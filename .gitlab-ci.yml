@@ -15,6 +15,7 @@ lint_n_audit_backend:
   stage: build_n_test
   script:
     - cd backend
+    - npm install --dev
     - eslint
     # - npm run audit
 

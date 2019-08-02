@@ -11,7 +11,6 @@
     "cors": "^2.8.4",
     "dompurify": "^1.0.11",
     "ejs": "^2.6.2",
-    "eslint": "^4.19.1",
     "express": "^4.17.1",
     "express-winston": "^2.5.0",
     "gridfs-stream": "^1.1.1",
@@ -44,7 +43,6 @@
     "winston-slack-transport": "^2.0.0"
   },
   "scripts": {
-    "pretest": "eslint --fix --ignore-path .gitignore .",
     "start": "node server.js",
     "dev": "NODE_ENV=development nodemon server.js",
     "test": "NODE_ENV=development mocha --exit",
@@ -59,7 +57,8 @@
     "nodemon": "^1.18.4",
     "npm-audit-ci-wrapper": "^2.2.1",
     "rewire": "^3.0.2",
-    "sinon": "^4.4.4"
+    "sinon": "^4.4.4",
+    "eslint": "^4.19.1"
   }
 
 }
