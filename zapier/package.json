@@ -1,0 +1,31 @@
+{
+  "name": "fyipe_app",
+  "version": "1.0.8",
+  "description": "Fyipe is an automation tool that helps you monitor the performance and downtime of your APIs and Web apps.",
+  "homepage": "https://fyipe.com",
+  "author": "Olalekan Ayodele <longyarnz@gmail.com>",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "eslint --fix --ignore-path .gitignore .",
+    "test": "mocha --recursive",
+    "audit": "npm-audit-ci-wrapper --threshold=high"
+  },
+  "engine": {
+    "node": "6.10.3",
+    "npm": ">=3.10.10"
+  },
+  "dependencies": {
+    "zapier-platform-core": "8.2.1"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.0.2",
+    "babel-preset-react": "^6.24.1",
+    "eslint": "^6.0.1",
+    "eslint-plugin-react": "^7.14.2",
+    "mocha": "^6.1.4",
+    "npm-audit-ci-wrapper": "^2.2.1",
+    "should": "11.2.1"
+  }
+}

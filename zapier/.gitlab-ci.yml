@@ -1,0 +1,41 @@
+image: docker:stable
+
+variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+services:
+    - docker:dind
+
+before_script:
+    - apk update && apk add curl curl-dev bash git python openssl py-pip python-dev libffi-dev openssl-dev gcc g++ libc-dev make nodejs npm
+    - npm install
+    - npm run audit
+
+cache:
+  paths:
+  - node_modules/
+
+stages:
+  - build_n_test
+  - cleanup
+
+build_n_test:
+  stage: build_n_test
+  script:
+    - npm run lint
+
+
+cleanup_job:
+  stage: cleanup
+  script: |
+    curl -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" \
+         -H "X-Auth-Email: ${CF_EMAIL}" \
+         -H "X-Auth-Key: ${CF_API_KEY}" \
+         -H "Content-Type: application/json" \
+         --data '{"purge_everything":true}'
+  only:
+    refs:
+      - master
+      - release
+  when: on_success
