@@ -10,6 +10,8 @@ stages:
   - E2E_test
   - Deploy_Staging
   - Deploy_Production
+  - Smoke_Test
+  - Rollback
 
 ##BACKEND 
 lint_n_audit_backend:
@@ -161,5 +163,46 @@ deploy_production:
   only:
     refs:
       - release
+  environment:
+    name: production
+
+
+smoke_test_production:
+  stage: Smoke_Test
+  script:
+    - echo "No test implemented"
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+smoke_test_staging:
+  stage: Smoke_Test
+  script:
+    - echo "No test implemented"
+  only:
+    refs:
+      - master
+  environment:
+    name: production
+
+production_rollback:
+  stage: Rollback
+  script:
+    - echo "No rollback implemented"
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+staging_rollback:
+  stage: Rollback
+  script:
+    - echo "No rollback implemented"
+  only:
+    refs:
+      - master
   environment:
     name: production
