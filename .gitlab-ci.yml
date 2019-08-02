@@ -11,6 +11,7 @@ stages:
   - Deploy_Staging
   - Deploy_Production
   - Smoke_Test
+  - Rollback_If_Failed
 
 ##BACKEND 
 lint_n_audit_backend:
