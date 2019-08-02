@@ -1,5 +1,5 @@
 
-var apiUrl = "";
+var apiUrl = '';
 var backendUrl = '';
 if (window.location.href.indexOf('localhost') > -1) {
     apiUrl = 'http://localhost:3000';
@@ -19,7 +19,7 @@ function loginUrl(extra){
     else{
     window.location.href = `${apiUrl}/login`;
     }
-};
+}
 
 function registerUrl(params){
     if(params){
@@ -28,9 +28,9 @@ function registerUrl(params){
     else{
     window.location.href = `${apiUrl}/register`;
     }
-};
+}
 
 function formUrl(){
     return `${backendUrl}/lead/`;
-};
+}
 

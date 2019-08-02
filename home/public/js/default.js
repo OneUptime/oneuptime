@@ -1,6 +1,6 @@
 function readConfig(t) {
     function n(t) {
-        return String(t).replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#x2F;/g, "index.html").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
+        return String(t).replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&#x2F;/g, 'index.html').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
     }
     var e = /^[\],:{}\s]*$/,
         i = /\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,
@@ -8,42 +8,42 @@ function readConfig(t) {
         r = /(?:^|:|,)(?:\s*\[)+/g,
         a = document.getElementById(t);
     if (!a) return null;
-    var s = n((a.textContent || a.innerHTML).replace(/^\s+|\s+$/gm, ""));
-    return e.test(s.replace(i, "@").replace(o, "]").replace(r, "")) ? window.JSON && window.JSON.parse ? window.JSON.parse(s) : new Function("return " + s)() : void 0
+    var s = n((a.textContent || a.innerHTML).replace(/^\s+|\s+$/gm, ''));
+    return e.test(s.replace(i, '@').replace(o, ']').replace(r, '')) ? window.JSON && window.JSON.parse ? window.JSON.parse(s) : new Function('return ' + s)() : void 0
 }
 
 function globalNavDropdowns(t) {
     var n = this;
-    this.container = document.querySelector(t), this.root = this.container.querySelector(".navRoot"), this.primaryNav = this.root.querySelector(".navSection.primary"), this.primaryNavItem = this.root.querySelector(".navSection.primary .rootLink:last-child"), this.secondaryNavItem = this.root.querySelector(".navSection.secondary .rootLink:first-child"), this.checkCollision(), window.addEventListener("load", this.checkCollision.bind(this)), window.addEventListener("resize", this.checkCollision.bind(this)), this.container.classList.add("noDropdownTransition"), this.dropdownBackground = this.container.querySelector(".dropdownBackground"), this.dropdownBackgroundAlt = this.container.querySelector(".alternateBackground"), this.dropdownContainer = this.container.querySelector(".dropdownContainer"), this.dropdownArrow = this.container.querySelector(".dropdownArrow"), this.dropdownRoots = Strut.queryArray(".hasDropdown", this.root), this.dropdownSections = Strut.queryArray(".dropdownSection", this.container).map(function(t) {
+    this.container = document.querySelector(t), this.root = this.container.querySelector('.navRoot'), this.primaryNav = this.root.querySelector('.navSection.primary'), this.primaryNavItem = this.root.querySelector('.navSection.primary .rootLink:last-child'), this.secondaryNavItem = this.root.querySelector('.navSection.secondary .rootLink:first-child'), this.checkCollision(), window.addEventListener('load', this.checkCollision.bind(this)), window.addEventListener('resize', this.checkCollision.bind(this)), this.container.classList.add('noDropdownTransition'), this.dropdownBackground = this.container.querySelector('.dropdownBackground'), this.dropdownBackgroundAlt = this.container.querySelector('.alternateBackground'), this.dropdownContainer = this.container.querySelector('.dropdownContainer'), this.dropdownArrow = this.container.querySelector('.dropdownArrow'), this.dropdownRoots = Strut.queryArray('.hasDropdown', this.root), this.dropdownSections = Strut.queryArray('.dropdownSection', this.container).map(function(t) {
         return {
             el: t,
-            name: t.getAttribute("data-dropdown"),
-            content: t.querySelector(".dropdownContent")
+            name: t.getAttribute('data-dropdown'),
+            content: t.querySelector('.dropdownContent')
         }
     });
     var e = window.PointerEvent ? {
-        end: "pointerup",
-        enter: "pointerenter",
-        leave: "pointerleave"
+        end: 'pointerup',
+        enter: 'pointerenter',
+        leave: 'pointerleave'
     } : {
-        end: "touchend",
-        enter: "mouseenter",
-        leave: "mouseleave"
+        end: 'touchend',
+        enter: 'mouseenter',
+        leave: 'mouseleave'
     };
     this.dropdownRoots.forEach(function(t) {
         t.addEventListener(e.end, function(e) {
             e.preventDefault(), e.stopPropagation(), n.toggleDropdown(t)
         }), t.addEventListener(e.enter, function(e) {
-            "touch" != e.pointerType && (n.stopCloseTimeout(), n.openDropdown(t))
+            'touch' != e.pointerType && (n.stopCloseTimeout(), n.openDropdown(t))
         }), t.addEventListener(e.leave, function(t) {
-            "touch" != t.pointerType && n.startCloseTimeout()
+            'touch' != t.pointerType && n.startCloseTimeout()
         })
     }), this.dropdownContainer.addEventListener(e.end, function(t) {
         t.stopPropagation()
     }), this.dropdownContainer.addEventListener(e.enter, function(t) {
-        "touch" != t.pointerType && n.stopCloseTimeout()
+        'touch' != t.pointerType && n.stopCloseTimeout()
     }), this.dropdownContainer.addEventListener(e.leave, function(t) {
-        "touch" != t.pointerType && n.startCloseTimeout()
+        'touch' != t.pointerType && n.startCloseTimeout()
     }), document.body.addEventListener(e.end, function() {
         Strut.touch.isDragging || n.closeDropdown()
     })
@@ -51,18 +51,18 @@ function globalNavDropdowns(t) {
 
 function globalNavPopup(t) {
     var n = this,
-        e = Strut.touch.isSupported ? "touchend" : "click";
-    this.activeClass = "globalPopupActive", this.root = document.querySelector(t), this.link = this.root.querySelector(".rootLink"), this.popup = this.root.querySelector(".popup"), this.closeButton = this.root.querySelector(".popupCloseButton"), this.link.addEventListener(e, function(t) {
+        e = Strut.touch.isSupported ? 'touchend' : 'click';
+    this.activeClass = 'globalPopupActive', this.root = document.querySelector(t), this.link = this.root.querySelector('.rootLink'), this.popup = this.root.querySelector('.popup'), this.closeButton = this.root.querySelector('.popupCloseButton'), this.link.addEventListener(e, function(t) {
         t.stopPropagation(), n.togglePopup()
     }), this.popup.addEventListener(e, function(t) {
         t.stopPropagation()
-    }), this.popup.addEventListener("transitionend", function() {
+    }), this.popup.addEventListener('transitionend', function() {
         if (n.isOpening) {
             n.isOpening = !1;
             var t = n.popup.getBoundingClientRect().top + window.scrollY;
             if (t < 15) {
                 var e = 15 - t;
-                n.popup.style.transform = "translateY(" + e + "px)"
+                n.popup.style.transform = 'translateY(' + e + 'px)'
             }
         }
     }), this.closeButton && this.closeButton.addEventListener(e, function() {
@@ -76,30 +76,30 @@ function globalNavPopup(t) {
     }
 
     function n() {
-        o.classList.add("dismissed")
+        o.classList.add('dismissed')
     }
 
     function e() {
         var t = new Date,
-            n = a + "=ack";
-        t.setYear(t.getFullYear() + 10), n += ";expires=" + t.toGMTString(), n += ";domain=" + document.domain, document.cookie = n
+            n = a + '=ack';
+        t.setYear(t.getFullYear() + 10), n += ';expires=' + t.toGMTString(), n += ';domain=' + document.domain, document.cookie = n
     }
 
     function i() {
-        o = document.querySelector('[rel="cookie-notification"]'), (r = document.querySelector('[rel="dismiss-cookie-notification"]')) && r.addEventListener("click", t)
+        o = document.querySelector('[rel="cookie-notification"]'), (r = document.querySelector('[rel="dismiss-cookie-notification"]')) && r.addEventListener('click', t)
     }
-    var o, r, a = "cookie_banner_ack";
-    document.addEventListener("DOMContentLoaded", i)
+    var o, r, a = 'cookie_banner_ack';
+    document.addEventListener('DOMContentLoaded', i)
 }(),
 function() {
     window.$ && window.$.ajaxPrefilter && $(function() {
         var t;
         return t = function() {
             var t, n;
-            return t = $("form input[name=csrf-token]"), t.length > 0 ? t.attr("value") : (n = $("meta[name=csrf-token]"), n.length > 0 ? n.attr("content") : "")
+            return t = $('form input[name=csrf-token]'), t.length > 0 ? t.attr('value') : (n = $('meta[name=csrf-token]'), n.length > 0 ? n.attr('content') : '')
         }, $.ajaxPrefilter(function(n, e, i) {
             var o;
-            return o = t(), i.setRequestHeader("x-fyipe-csrf-token", o)
+            return o = t(), i.setRequestHeader('x-fyipe-csrf-token', o)
         })
     })
 }.call(this);
@@ -123,23 +123,23 @@ var Strut = {
         return n || (n = document.body), Array.prototype.slice.call(n.querySelectorAll(t))
     },
     ready: function(t) {
-        "loading" !== document.readyState ? t() : document.addEventListener("DOMContentLoaded", t)
+        'loading' !== document.readyState ? t() : document.addEventListener('DOMContentLoaded', t)
     }
 };
-Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670, Strut.isMobileViewport = window.innerWidth < Strut.mobileViewportWidth, window.addEventListener("resize", function() {
+Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670, Strut.isMobileViewport = window.innerWidth < Strut.mobileViewportWidth, window.addEventListener('resize', function() {
         Strut.isMobileViewport = window.innerWidth < Strut.mobileViewportWidth
     }), Strut.touch = {
-        isSupported: "ontouchstart" in window || navigator.maxTouchPoints,
+        isSupported: 'ontouchstart' in window || navigator.maxTouchPoints,
         isDragging: !1
-    }, document.addEventListener("DOMContentLoaded", function() {
-        document.body.addEventListener("touchmove", function() {
+    }, document.addEventListener('DOMContentLoaded', function() {
+        document.body.addEventListener('touchmove', function() {
             Strut.touch.isDragging = !0
-        }), document.body.addEventListener("touchstart", function() {
+        }), document.body.addEventListener('touchstart', function() {
             Strut.touch.isDragging = !1
         })
     }), Strut.load = {
         images: function(t, n) {
-            "string" == typeof t && (t = [t]);
+            'string' == typeof t && (t = [t]);
             var e = -t.length;
             t.forEach(function(t) {
                 var i = new Image;
@@ -149,15 +149,15 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
             })
         },
         css: function(t, n) {
-            var e = document.createElement("link"),
-                i = window.readConfig("strut_files") || {},
+            var e = document.createElement('link'),
+                i = window.readConfig('strut_files') || {},
                 o = i[t];
             if (!o) throw new Error('CSS file "' + t + '" not found in strut_files config');
-            e.href = o, e.rel = "stylesheet", document.head.appendChild(e), n && (e.onload = n)
+            e.href = o, e.rel = 'stylesheet', document.head.appendChild(e), n && (e.onload = n)
         },
         js: function(t, n) {
-            var e = document.createElement("script"),
-                i = window.readConfig("strut_files") || {},
+            var e = document.createElement('script'),
+                i = window.readConfig('strut_files') || {},
                 o = i[t];
             if (!o) throw new Error('Javascript file "' + t + '" not found in strut_files config');
             e.src = o, e.async = !1, document.head.appendChild(e), n && (e.onload = n)
@@ -165,16 +165,16 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
     }, Strut.supports = {
         es6: function() {
             try {
-                return new Function("(a = 0) => a"), !0
+                return new Function('(a = 0) => a'), !0
             } catch (t) {
                 return !1
             }
         }(),
         pointerEvents: function() {
-            var t = document.createElement("a").style;
-            return t.cssText = "pointer-events:auto", "auto" === t.pointerEvents
+            var t = document.createElement('a').style;
+            return t.cssText = 'pointer-events:auto', 'auto' === t.pointerEvents
         }(),
-        positionSticky: Boolean(window.CSS && CSS.supports("(position: -webkit-sticky) or (position: sticky)")),
+        positionSticky: Boolean(window.CSS && CSS.supports('(position: -webkit-sticky) or (position: sticky)')),
         masks: function() {
             return !/MSIE|Trident|Edge/i.test(navigator.userAgent)
         }()
@@ -184,22 +184,22 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
             if (1 == t.compact) {
                 var n = document.body.clientWidth,
                     e = t.primaryNav.getBoundingClientRect();
-                e.left + e.width / 2 > n / 2 && (t.container.classList.remove("compact"), t.compact = !1)
+                e.left + e.width / 2 > n / 2 && (t.container.classList.remove('compact'), t.compact = !1)
             } else {
                 var i = t.primaryNavItem.getBoundingClientRect(),
                     o = t.secondaryNavItem.getBoundingClientRect();
-                i.right > o.left && (t.container.classList.add("compact"), t.compact = !0)
+                i.right > o.left && (t.container.classList.add('compact'), t.compact = !0)
             }
     }, globalNavDropdowns.prototype.openDropdown = function(t) {
         var n = this;
         if (this.activeDropdown !== t) {
-            this.container.classList.add("overlayActive"), this.container.classList.add("dropdownActive"), this.activeDropdown = t, this.dropdownRoots.forEach(function(t) {
-                t.classList.remove("active")
-            }), t.classList.add("active");
-            var e, i, o, r = t.getAttribute("data-dropdown"),
-                a = "left";
+            this.container.classList.add('overlayActive'), this.container.classList.add('dropdownActive'), this.activeDropdown = t, this.dropdownRoots.forEach(function(t) {
+                t.classList.remove('active')
+            }), t.classList.add('active');
+            var e, i, o, r = t.getAttribute('data-dropdown'),
+                a = 'left';
             this.dropdownSections.forEach(function(t) {
-                t.el.classList.remove("active"), t.el.classList.remove("left"), t.el.classList.remove("right"), t.name == r ? (t.el.classList.add("active"), a = "right", e = t.content.offsetWidth, i = t.content.offsetHeight, t.content.getAttribute("data-fixed") ? t.content.setAttribute("data-fixed", !0) : (t.content.style.width = e + "px", t.content.style.height = i + "px"), o = t.content) : t.el.classList.add(a)
+                t.el.classList.remove('active'), t.el.classList.remove('left'), t.el.classList.remove('right'), t.name == r ? (t.el.classList.add('active'), a = 'right', e = t.content.offsetWidth, i = t.content.offsetHeight, t.content.getAttribute('data-fixed') ? t.content.setAttribute('data-fixed', !0) : (t.content.style.width = e + 'px', t.content.style.height = i + 'px'), o = t.content) : t.el.classList.add(a)
             });
             var s = 380,
                 c = 400,
@@ -208,20 +208,20 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
                 u = t.getBoundingClientRect(),
                 p = u.left + u.width / 2 - e / 2;
             p = Math.round(Math.max(p, 10)), clearTimeout(this.disableTransitionTimeout), this.enableTransitionTimeout = setTimeout(function() {
-                n.container.classList.remove("noDropdownTransition")
-            }, 50), this.dropdownBackground.style.transform = "translateX(" + p + "px) scaleX(" + d + ") scaleY(" + l + ")", this.dropdownContainer.style.transform = "translateX(" + p + "px)", this.dropdownContainer.style.width = e + "px", this.dropdownContainer.style.height = i + "px";
+                n.container.classList.remove('noDropdownTransition')
+            }, 50), this.dropdownBackground.style.transform = 'translateX(' + p + 'px) scaleX(' + d + ') scaleY(' + l + ')', this.dropdownContainer.style.transform = 'translateX(' + p + 'px)', this.dropdownContainer.style.width = e + 'px', this.dropdownContainer.style.height = i + 'px';
             var w = Math.round(u.left + u.width / 2);
-            this.dropdownArrow.style.transform = "translateX(" + w + "px) rotate(45deg)";
+            this.dropdownArrow.style.transform = 'translateX(' + w + 'px) rotate(45deg)';
             var f = o.children[0].offsetHeight / l;
-            this.dropdownBackgroundAlt.style.transform = "translateY(" + f + "px)", window.siteAnalytics && window.siteAnalytics.trackGlobalNavDropdownOpen && window.siteAnalytics.trackGlobalNavDropdownOpen(r)
+            this.dropdownBackgroundAlt.style.transform = 'translateY(' + f + 'px)', window.siteAnalytics && window.siteAnalytics.trackGlobalNavDropdownOpen && window.siteAnalytics.trackGlobalNavDropdownOpen(r)
         }
     }, globalNavDropdowns.prototype.closeDropdown = function() {
         var t = this;
         this.activeDropdown && (this.dropdownRoots.forEach(function(t) {
-            t.classList.remove("active")
+            t.classList.remove('active')
         }), clearTimeout(this.enableTransitionTimeout), this.disableTransitionTimeout = setTimeout(function() {
-            t.container.classList.add("noDropdownTransition")
-        }, 50), this.container.classList.remove("overlayActive"), this.container.classList.remove("dropdownActive"), this.activeDropdown = undefined)
+            t.container.classList.add('noDropdownTransition')
+        }, 50), this.container.classList.remove('overlayActive'), this.container.classList.remove('dropdownActive'), this.activeDropdown = undefined)
     }, globalNavDropdowns.prototype.toggleDropdown = function(t) {
         this.activeDropdown === t ? this.closeDropdown() : this.openDropdown(t)
     }, globalNavDropdowns.prototype.startCloseTimeout = function() {
@@ -236,12 +236,12 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         var t = this.root.classList.contains(this.activeClass);
         this.closeAllPopups(!0), t || (this.root.classList.add(this.activeClass), this.isOpening = !0)
     }, globalNavPopup.prototype.closeAllPopups = function() {
-        for (var t = document.getElementsByClassName(this.activeClass), n = 0; n < t.length; n++) t[n].querySelector(".popup").style.transform = null, t[n].classList.remove(this.activeClass)
-    }, Strut.supports.pointerEvents || Strut.load.css("v3/shared/navigation_ie10.html"), Strut.ready(function() {
-        new globalNavDropdowns(".globalNav"), new globalNavPopup(".globalNav .navSection.mobile"), new globalNavPopup(".globalFooterNav .select.country"), new globalNavPopup(".globalFooterNav .select.language")
+        for (var t = document.getElementsByClassName(this.activeClass), n = 0; n < t.length; n++) t[n].querySelector('.popup').style.transform = null, t[n].classList.remove(this.activeClass)
+    }, Strut.supports.pointerEvents || Strut.load.css('v3/shared/navigation_ie10.html'), Strut.ready(function() {
+        new globalNavDropdowns('.globalNav'), new globalNavPopup('.globalNav .navSection.mobile'), new globalNavPopup('.globalFooterNav .select.country'), new globalNavPopup('.globalFooterNav .select.language')
     }),
     function() {
-        "use strict";
+        'use strict';
 
         function t() {
             var t = [].slice.call(arguments);
@@ -250,7 +250,7 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
 
         function n() {
             var t = {},
-                n = document.getElementById("site-analytics-config");
+                n = document.getElementById('site-analytics-config');
             return n && (t = JSON.parse(n.textContent)), t
         }
 
@@ -267,19 +267,19 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         }
 
         function r(t, n) {
-            d("action", t, n)
+            d('action', t, n)
         }
 
         function a(t, n) {
-            d("actionOnce", t, n)
+            d('actionOnce', t, n)
         }
 
         function s(t, n) {
-            d("modal", t, n)
+            d('modal', t, n)
         }
 
         function c(t, n) {
-            d("viewed", t, n)
+            d('viewed', t, n)
         }
 
         function d(t, n, e) {
@@ -289,19 +289,19 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         function l(n, e, i) {
             u();
             var o = f(i);
-            window.Analytics[n](e, o), t("emit", n, e, o)
+            window.Analytics[n](e, o), t('emit', n, e, o)
         }
 
         function u() {
-            A || (window.Analytics.configure(e()), A = !0, t("Sent config data"))
+            A || (window.Analytics.configure(e()), A = !0, t('Sent config data'))
         }
 
         function p(n, e, i) {
-            S.push([n, e, i]), g(), t("enqueue", n, e, i)
+            S.push([n, e, i]), g(), t('enqueue', n, e, i)
         }
 
         function w() {
-            t("Flushing event queue"), u(), S.forEach(function(t) {
+            t('Flushing event queue'), u(), S.forEach(function(t) {
                 l.apply(this, t)
             })
         }
@@ -318,7 +318,7 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         }
 
         function m() {
-            v = null, window.Analytics ? (w(), L = E) : (g(), t("Ready timer waiting " + L + "ms"))
+            v = null, window.Analytics ? (w(), L = E) : (g(), t('Ready timer waiting ' + L + 'ms'))
         }
 
         function y(t) {
@@ -330,7 +330,7 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         }
         window.siteAnalytics = window.siteAnalytics || {}, window.siteAnalyticsUtil = window.siteAnalyticsUtil || {};
         var v, A = !1,
-            b = "SITE_ANALYTICS_DEBUG",
+            b = 'SITE_ANALYTICS_DEBUG',
             S = [],
             E = 250,
             L = E,
@@ -347,7 +347,7 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         }
 
         function n(t) {
-            return t.getAttribute(r) || t.getAttribute(s) ? t : t.parentNode && "BODY" !== t.tagName ? n(t.parentNode) : null
+            return t.getAttribute(r) || t.getAttribute(s) ? t : t.parentNode && 'BODY' !== t.tagName ? n(t.parentNode) : null
         }
 
         function e(t) {
@@ -362,10 +362,10 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         function o() {
             window.siteAnalytics.hasAnalyticsAttributes = e, window.siteAnalytics.trackByAttributes = i
         }
-        var r = "data-analytics-action",
-            a = "data-analytics-source",
-            s = "data-analytics-modal",
-            c = "data-analytics-ga";
+        var r = 'data-analytics-action',
+            a = 'data-analytics-source',
+            s = 'data-analytics-modal',
+            c = 'data-analytics-ga';
         o()
     }(),
     function() {
@@ -373,45 +373,45 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
             ! function(t, n, e, i, o, r, a) {
                 t.fbq || (o = t.fbq = function() {
                     o.callMethod ? o.callMethod.apply(o, arguments) : o.queue.push(arguments)
-                }, t._fbq || (t._fbq = o), o.push = o, o.loaded = !0, o.version = "2.0", o.queue = [], r = n.createElement(e), r.async = !0, r.src = i, a = n.getElementsByTagName(e)[0], a.parentNode.insertBefore(r, a))
-            }(window, document, "script", "../connect.facebook.net/en_US/fbevents.js")
+                }, t._fbq || (t._fbq = o), o.push = o, o.loaded = !0, o.version = '2.0', o.queue = [], r = n.createElement(e), r.async = !0, r.src = i, a = n.getElementsByTagName(e)[0], a.parentNode.insertBefore(r, a))
+            }(window, document, 'script', '../connect.facebook.net/en_US/fbevents.js')
         }
 
         function n() {
-            window.fbq && window.fbq("init", o)
+            window.fbq && window.fbq('init', o)
         }
 
         function e(t) {
-            window.fbq && t && (window.fbq("track", t), window.siteAnalyticsUtil.debugActive() && console.log("FB track", t))
+            window.fbq && t && (window.fbq('track', t), window.siteAnalyticsUtil.debugActive() && console.log('FB track', t))
         }
 
         function i() {
-            t(), n(), window.siteAnalytics.trackFacebookEvent = e, e("PageView")
+            t(), n(), window.siteAnalytics.trackFacebookEvent = e, e('PageView')
         }
-        var o = "742650679237989";
+        var o = '742650679237989';
         i()
     }(),
     function() {
         function t(t) {
-            return t.matches("form *")
+            return t.matches('form *')
         }
 
         function n(n) {
             t(n.target) && window.siteAnalyticsUtil.emitAction(o, {
-                name: n.target.getAttribute("name"),
+                name: n.target.getAttribute('name'),
                 value: n.target.value
             })
         }
 
         function e(t) {
-            "FORM" === t.target.tagName && window.siteAnalyticsUtil.emitAction(r)
+            'FORM' === t.target.tagName && window.siteAnalyticsUtil.emitAction(r)
         }
 
         function i() {
-            document.addEventListener("change", n), document.addEventListener("submit", e)
+            document.addEventListener('change', n), document.addEventListener('submit', e)
         }
-        var o = "form_input",
-            r = "form_submit";
+        var o = 'form_input',
+            r = 'form_submit';
         i()
     }(),
     function() {
@@ -424,20 +424,20 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         function n() {
             window.siteAnalytics.trackGlobalNavDropdownOpen = t
         }
-        var e = "nav_dropdown_open",
+        var e = 'nav_dropdown_open',
             i = {};
         n()
     }(),
     function(t, n, e, i, o) {
         t[i] = t[i] || [], t[i].push({
-            "gtm.start": (new Date).getTime(),
-            event: "gtm.js"
+            'gtm.start': (new Date).getTime(),
+            event: 'gtm.js'
         });
         var r = n.getElementsByTagName(e)[0],
             a = n.createElement(e),
-            s = "dataLayer" != i ? "&l=" + i : "";
-        a.async = !0, a.src = "../www.googletagmanager.com/gtm5445.html?id=" + o + s, r.parentNode.insertBefore(a, r)
-    }(window, document, "script", "dataLayer", "GTM-K8JKCBR"),
+            s = 'dataLayer' != i ? '&l=' + i : '';
+        a.async = !0, a.src = '../www.googletagmanager.com/gtm5445.html?id=' + o + s, r.parentNode.insertBefore(a, r)
+    }(window, document, 'script', 'dataLayer', 'GTM-K8JKCBR'),
     function() {
         function t() {
             window.siteAnalyticsUtil.emitActionOnce(c)
@@ -480,29 +480,29 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         function s() {
             window.siteAnalytics.trackConnectRoutingDiagram = i, window.siteAnalytics.trackHomePageNotebook = e, window.siteAnalytics.trackRadarIcosahedron = t, window.siteAnalytics.trackRadarFraudChart = n, window.siteAnalytics.trackSigmaQueryCategory = o, window.siteAnalytics.trackSigmaQueryExample = r, window.siteAnalytics.trackSigmaPricingSlider = a
         }
-        var c = "radar_icosahedron",
-            d = "radar_fraud_chart",
-            l = "home_page_notebook",
-            u = "connect_routing_diagram",
-            p = "query_category",
-            w = "pricing_slider",
+        var c = 'radar_icosahedron',
+            d = 'radar_fraud_chart',
+            l = 'home_page_notebook',
+            u = 'connect_routing_diagram',
+            p = 'query_category',
+            w = 'pricing_slider',
             f = {},
             g = {};
         s()
     }(),
     function() {
         function t(t) {
-            return !!t.getAttribute("href")
+            return !!t.getAttribute('href')
         }
 
         function n(t) {
-            return t.trim().replace(/\s+/g, " ")
+            return t.trim().replace(/\s+/g, ' ')
         }
 
         function e(t) {
             var n = t.className.toLowerCase(),
-                e = t.getAttribute("href");
-            return /\.pdf$|\.pdf#|\.pdf\?/i.test(t.href) ? d : -1 !== n.indexOf("button") || "#" === e ? c : s
+                e = t.getAttribute('href');
+            return /\.pdf$|\.pdf#|\.pdf\?/i.test(t.href) ? d : -1 !== n.indexOf('button') || '#' === e ? c : s
         }
 
         function i(t) {
@@ -514,7 +514,7 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         }
 
         function o(t) {
-            return "A" === t.tagName ? t : t.parentNode ? o(t.parentNode) : null
+            return 'A' === t.tagName ? t : t.parentNode ? o(t.parentNode) : null
         }
 
         function r(n) {
@@ -524,11 +524,11 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         }
 
         function a() {
-            document.addEventListener("click", r)
+            document.addEventListener('click', r)
         }
-        var s = "inline_link",
-            c = "button",
-            d = "pdf_link";
+        var s = 'inline_link',
+            c = 'button',
+            d = 'pdf_link';
         a()
     }(),
     function() {
@@ -547,7 +547,7 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         function e() {
             window.siteAnalytics.pageLoadTracking || (window.siteAnalytics.pageLoadTracking = {
                 trackPageView: t
-            }, window.addEventListener("load", t))
+            }, window.addEventListener('load', t))
         }
         e()
     }(),
@@ -566,35 +566,35 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
 
         function i(t, n) {
             var e = n;
-            "string" != typeof n && (e = r(n)), window.siteAnalyticsUtil.emitAction(t, {
+            'string' != typeof n && (e = r(n)), window.siteAnalyticsUtil.emitAction(t, {
                 video: e
             })
         }
 
         function o(t) {
-            return t.currentSrc || t.getAttribute("src") || t.querySelector("source").getAttribute("src")
+            return t.currentSrc || t.getAttribute('src') || t.querySelector('source').getAttribute('src')
         }
 
         function r(t) {
             var n = o(t),
-                e = n.slice(n.lastIndexOf("index.html") + 1);
-            return e.slice(0, e.lastIndexOf("."))
+                e = n.slice(n.lastIndexOf('index.html') + 1);
+            return e.slice(0, e.lastIndexOf('.'))
         }
 
         function a(t) {
-            "VIDEO" === t.target.tagName && n(t.target)
+            'VIDEO' === t.target.tagName && n(t.target)
         }
 
         function s(t) {
-            "VIDEO" === t.target.tagName && e(t.target)
+            'VIDEO' === t.target.tagName && e(t.target)
         }
 
         function c() {
-            document.addEventListener("play", a, !0), document.addEventListener("ended", s, !0), window.siteAnalytics.trackVideoExpand = t, window.siteAnalytics.trackVideoPlay = n, window.siteAnalytics.trackVideoEnd = e
+            document.addEventListener('play', a, !0), document.addEventListener('ended', s, !0), window.siteAnalytics.trackVideoExpand = t, window.siteAnalytics.trackVideoPlay = n, window.siteAnalytics.trackVideoEnd = e
         }
-        var d = "video_expand",
-            l = "video_end",
-            u = "video_play";
+        var d = 'video_expand',
+            l = 'video_end',
+            u = 'video_play';
         c()
     }();
 

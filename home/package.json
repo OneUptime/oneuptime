@@ -5,6 +5,7 @@
     "start": "node server.js",
     "test": "echo 'no tests'",
     "lint": "eslint .",
+    "fix-lint": "eslint . --fix",
     "lighthouse-test": "jest lighthouse-tests/test/index.test.js --env=node --detectOpenHandles",
     "lighthouse": "start-server-and-test http://localhost:1444",
     "smoketest": "jest smoketest/index.test.js --env=node --detectOpenHandles",
