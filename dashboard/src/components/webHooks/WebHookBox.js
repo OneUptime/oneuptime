@@ -1,0 +1,54 @@
+import React from 'react';
+import { withRouter } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import WebHookList from './WebHookList';
+import WebHookButton from './WebHookButton';
+import RenderIfAdmin from '../basic/RenderIfAdmin';
+
+class WebHookBox extends React.Component {
+
+    render() {
+        return (
+            <div className="db-World-contentPane Box-root">
+                <div className="db-RadarRulesLists-page">
+                    <div className="Box-root Margin-bottom--12">
+                        <div className="bs-ContentSection Card-root Card-shadow--medium">
+                            <div className="Box-root">
+                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                            <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                <span>Webhooks Integration</span>
+                                            </span>
+                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <span>
+                                                    Add your webhooks api.
+                                                        </span>
+                                            </span>
+                                        </div>
+                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                            <div className="Box-root">
+                                                <RenderIfAdmin>
+                                                    <WebHookButton />
+                                                </RenderIfAdmin>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <WebHookList />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+}
+
+WebHookBox.displayName = 'WebHookBox';
+
+WebHookBox.contextTypes = {
+    mixpanel: PropTypes.object.isRequired
+};
+
+export default withRouter(WebHookBox);

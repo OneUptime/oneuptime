@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>Fyipe | Status Page and On-call made simple.</title>
+    <meta name="description" content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+    <% include ./head %>
+
+    <link rel="stylesheet" href="/css/status-page.css">
+    <script defer src="/js/status-page.js"></script>
+</head>
+
+<body>
+    <% include ./nav %>
+
+<div class="globalContent">
+      
+    <header class="header">
+    
+      <div class="fyipeBackground accelerated stripes-header">
+        <div class="fyipe s0"></div>
+        <div class="fyipe s1"></div>
+        <div class="fyipe s2"></div>
+        <div class="fyipe s3"></div>
+        <div class="fyipe s4"></div>
+        <div class="fyipe s5"></div>
+        <div class="fyipe s6"></div>
+      </div>
+    
+      <div class="container-lg">
+        <div class="header-columns">
+    
+          <div class="header-content">
+            
+            <h1 class="common-SuperTitle">Beautiful Status Page for your business.</h1>
+            <p class="common-ButtonGroup">
+              <a href="#" onclick="registerUrl()" class="common-Button common-Button--dark" data-analytics-action="explore_docs" data-analytics-source="header_cta">
+                Create an account
+              </a>
+              <a href="/enterprise/demo" class="common-Button" data-analytics-action="pricing" data-analytics-source="header_cta">
+                Request Demo
+              </a>
+            </p>
+          </div>
+    
+          <div class="header-graphic">
+           
+          </div>
+    
+        </div>
+      </div>
+    
+    </header>
+    
+    
+    <div class="section-group group-primary">
+    
+      <section class="section-introduction" id="intro">
+        <div class="container-lg">
+    
+          <header class="section-header">
+            <p class="common-IntroText">Whether it's a server issue, bug in production, or DDoS attack, the simple truth is that downtime happens. Launch your status page to ditch the flood of support emails and let your team focus on fixing the problem at hand. </p>
+          </header>
+    
+          <ul class="xs-rows sm-cols">
+    
+            <li class="feature-block xs-icon-top">
+              <figure class="icon"><img style="width: 80px;
+                margin-left: -7px;" src="/img/battery.svg" alt="battery" /></figure>
+              <h3 class="common-BodyTitle">Beautiful Status Page</h3>
+              <p class="common-BodyText">Showcase your reliability with a beautiful status page that highlights your service level agreement and build trust.</p>
+              <p class="common-BodyText"><a class="common-Link common-Link--arrow" href="https://status.fyipe.com">Check out our status page</a></p>
+            </li>
+    
+            <li class="feature-block xs-icon-top">
+              <figure class="icon"><img src="/img/budget.svg" alt="budget" /></figure>
+              <h3 class="common-BodyTitle">Reduce support costs</h3>
+              <p class="common-BodyText">Let your team focus on fixing the downtime instead of handling a flood of customer support tickets. Fyipe let's you reduce support costs.</p>
+            </li>
+    
+            <li class="feature-block xs-icon-top">
+              <figure class="icon"><img src="/img/team.svg" alt="team" /></figure>
+              <h3 class="common-BodyTitle">Build trust.</h3>
+              <p class="common-BodyText">Customers value transparency. Allow them to opt into real-time incident and scheduled maintenance notifications via Email, SMS, or Webhook. Trust us, they’ll thank you.</p>
+            </li>
+    
+          </ul>
+    
+        </div>
+      </section>
+    
+      <section class="section-worldwide" id="worldwide">
+        <div class="container-xl worldwide-columns">
+    
+          <div class="worldwide-main">
+    
+            <header class="section-header">
+              <h2 class="common-UppercaseTitle">Your Status Page. Your brand. </h2>
+              <p class="common-IntroText">You can have your own logo, and style to your status page that reflects identity of your business.</p>
+            </header>
+    
+            <ul class="xs-rows sm-cols md-rows worldwide-content ">
+              <li class="feature-block xs-icon-top md-icon-left">
+                <figure class="icon"><img src="/img/shutterstock.svg" alt="shutterstock" /></figure>
+                <h3 class="common-BodyTitle">Your Logo</h3>
+                <p class="common-BodyText">All plans come with the ability to use a custom domain like <a href="https://status.cloudboost.io">status.cloudboost.io</a> and also the ability to upload a logo or banner image. You'll have your own branded status page instantly.
+                </p>
+              </li>
+    
+    
+              <li class="feature-block xs-icon-top md-icon-left">
+                <figure class="icon"><img src="/img/css.svg" alt="css" /></figure>
+                <h3 class="common-BodyTitle">Custom HTML and CSS</h3>
+                <p class="common-BodyText">Your status page should feel like an extension of your brand. Depending on your plan, using custom HTML and CSS gives you 100% control of every pixel. Your design and marketing departments will love being able to fine-tune fonts, colors, and all the details that make your brand special.</p>
+              </li>
+            </ul>
+    
+          </div>
+    
+          <div class="worldwide-aside">
+            <img src="/img/branding.svg" alt="branding" />
+          </div>
+    
+        </div>
+      </section>
+    
+    </div>
+    
+    
+    <div class="common-InvertedText section-group group-developers">
+    
+      <div class="fyipeBackground stripes-developers">
+        <div class="fyipe s1"></div>
+        <div class="fyipe s2"></div>
+        <div class="fyipe s3"></div>
+      </div>
+    
+      <section class="section-developers" id="developers">
+        <div class="container-xl developers-columns">
+    
+          <div class="developers-content">
+    
+            <header class="section-header large">
+              <h2 class="common-PageSubtitle">
+                <span class="icon"><img src="/img/shield.svg" alt="shield" /></span>
+                Private Status Pages
+              </h2>
+              <p class="common-IntroText">Private Status Pages enables IT communication for your employees</p>
+            </header>
+    
+            <ul class="xs-rows sm-grid md-rows lg-grid developers-features">
+              <li class="feature-block"><p class="common-BodyText">Private Status Pages are for internal eyes only. Give employees one source of truth and let them opt-into relevant notifications. Hook your private page up to SSO, automate away with your monitoring tools, and never reply to a "what's the status" email again.</p></li>
+              <li class="feature-block"><p class="common-BodyText">Keep your company informed. Pipe status updates into Hipchat or Slack to keep engineering, IT, and Ops teams on the same page as they work to resolve the incident at hand. </p></li>
+              <li class="feature-block"><p class="common-BodyText">Fyipe integrates with everything you have. Automatically create tickets for DevOps team to fix an issue or keep all your other enterprise systems looped in.</p></li>
+            </ul>
+    
+          </div>
+    
+          <div class="developers-graphic">
+            <img src="/img/employee.svg" alt="employee" />
+          </div>
+    
+        </div>
+      </section>
+    
+      <section class="section-flows">
+        <div class="container-lg flow-content">
+    
+          <div class="section-header">
+            <h2 class="common-UppercaseTitle">Keep your customers updated.</h2>
+            <p class="common-IntroText">Cut support costs during an outage.</p>
+          </div>
+    
+          <div class="flow-content">
+    
+            <div class="flow-row xs-rows sm-cols" id="elements">
+    
+            
+    
+              <div class="feature-block text">
+                <p class="common-BodyTitle">Ditch a flood of suppport tickets.</p>
+                <p class="common-BodyText">Downtime doesn't have to be a customer service disaster. By proactively notifying users of downtime, you can turn a bad situation into a memorable customer experience. Your end users will be able to subscribe to incident notifications via email, SMS, and webhook. </p>
+              </div>
+
+              <img style="max-height:200px" src="/img/support.svg" alt="support" />
+    
+            </div>
+    
+            <div class="flow-row xs-rows sm-cols" id="checkout">
+    
+              <div class="feature-block text">
+                <p class="common-BodyTitle">Get the right notification to the right user.</p>
+                <p class="common-BodyText">Every application has many parts that customers use - from the database, to the API, to the dashboard and everything in between. Often an incident that affects one user may not affect another. That's why we let your users opt-in to the parts of your service they care about with Component Subscriptions. </p>
+              </div>
+    
+              <img style="max-height:200px; margin-top:-60px" src="/img/notification.svg" alt="notification" />
+    
+            </div>
+    
+          </div>
+    
+        </div>
+      </section>
+    
+      <section class="section-otherways" id="otherways">
+        <div class="container-lg otherways-columns">
+    
+          <div class="otherways-content">
+    
+            <div class="section-header">
+              <h2 class="common-UppercaseTitle">Showcase Uptime, Performance and Reliability.</h2>
+            </div>
+    
+            <ul class="xs-rows md-cols">
+    
+              <li class="feature-block third-party">
+                <div class="third-party-content">
+                  <h3 class="common-BodyTitle"><a href="/docs/libraries#third-party-plugins" class="common-Link">Uptime Showcase</a></h3>
+                  <p class="common-BodyText">We all need to communicate with users when things go wrong. But what about the other 99.95% of the time? Uptime Showcase is your way to display top-notch availability and reliability. Now your status page can be used as a sales and marketing tool. 
+                  </p>
+                </div>
+                
+              </li>
+    
+              <li class="feature-block">
+                <h3 class="common-BodyTitle">Display how well your systems are performing</h3>
+                <p class="common-BodyText">If you want to prove your organization is committed to transparency, showing exactly how your systems are performing is a step in the right direction with Public Metrics. It can also help your customers self-diagnose problems without ever needing to contact support.</p>
+              </li>
+    
+            </ul>
+    
+          </div>
+    
+          <div class="otherways-graphic">
+            <figure class="graphic-platforms loaded">
+             
+                <img class="back site" src="/img/analytics (1).svg" alt="analytics">
+              
+            </figure>
+          </div>
+    
+        </div>
+      </section>
+    
+    </div>
+    
+    
+    <div class="section-group group-business">
+    
+      <section class="section-business" id="business">
+        <div class="container-lg">
+    
+          <div class="business-header">
+            <header class="section-header large">
+              <h2 class="common-PageSubtitle">
+                <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="72" height="72"><path fill="#C4F0FF" d="M36 0c19.882 0 36 16.117 36 36 0 19.882-16.118 36-36 36S0 55.882 0 36C0 16.116 16.118 0 36 0z"></path><path fill="#87BBFD" d="M18.5 54a1.5 1.5 0 0 1-1.5-1.5v-22a1.5 1.5 0 0 1 1.5-1.5H37v25H18.5zM25 33a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-3zm0 8a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-3zm7-8a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-3z"></path><path fill="#14aad9" d="M51.5 54H47v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8h-6V17.5a1.5 1.5 0 0 1 1.5-1.5h15a1.5 1.5 0 0 1 1.5 1.5v35a1.5 1.5 0 0 1-1.5 1.5zM43 29a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-3zm0 8a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-3zm7 0a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-3z"></path><path fill="#87BBFD" d="M49 33h-3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1zm0-8h-3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1zm-7 0h-3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1zm-2 27h8a1 1 0 0 1 1 1v1H39v-1a1 1 0 0 1 1-1z"></path></svg></span>
+                How does Status Page help your business?
+              </h2>
+              <p class="common-IntroText">Having a status page benefits the whole organization - DevOps teams, Support teams and IT teams.</p>
+            </header>
+          </div>
+    
+          <div class="business-columns">
+    
+            
+    
+            <div class="business-features">
+
+                <ul class="xs-rows sm-cols">
+    
+                    <li class="feature-block xs-icon-top">
+                        <figure class="icon"><img src="/img/programmer (1).svg" alt="programmer" /></figure>
+                        <h3 class="common-BodyTitle">DevOps Team</h3>
+                        <p class="common-BodyText">When servers are on fire, your team needs to focus on fixing the probems at hand and not communicate with each other internally. Status Page make it very clear to the entire organization about the incident and downtime.</p>
+                    </li>
+            
+                    <li class="feature-block xs-icon-top">
+                        <figure class="icon"><img src="/img/customer-service.svg" alt="customer-service" /></figure>
+                        <h3 class="common-BodyTitle">Support Teams</h3>
+                        <p class="common-BodyText">Downtime doesn't have to be a support nightmare. Our customers have seen dramatic reductions in support tickets after launching their status pages. Point customers to your new status page a few times and they'll learn to both check the status page and subscribe to proactive notifications instead of contacting support.</p>
+                    </li>
+            
+                    <li class="feature-block xs-icon-top">
+                        <figure class="icon"><img src="/img/programmer.svg" alt="programmer" /></figure>
+                        <h3 class="common-BodyTitle">IT Team</h3>
+                        <p class="common-BodyText">Status Page isn’t just for your customers, it’s for your employees too! Hundreds of companies are using Status Page internally to communicate around IT and third party cloud services. With the Jira Service Desk integration, IT Managers are saving hours per week by embedding IT incidents directly on internal help desks.</p>
+                    </li>
+            
+                  </ul>
+              
+              
+            </div>
+    
+          </div>
+    
+        </div>
+      </section>
+    
+    </div>
+    
+    
+    
+    
+        </div>
+        <% include ./footer %>
+
+</body>
+
+
+</html>

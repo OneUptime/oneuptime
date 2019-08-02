@@ -1,0 +1,34 @@
+{
+  "name": "fyipe-homepage",
+  "version": "0.1.0",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo 'no tests'",
+    "lighthouse-test": "jest lighthouse-tests/test/index.test.js --env=node --detectOpenHandles",
+    "lighthouse": "start-server-and-test http://localhost:1444",
+    "smoketest": "jest smoketest/index.test.js --env=node --detectOpenHandles",
+    "audit": "npm-audit-ci-wrapper --threshold=high"
+  },
+  "dependencies": {
+    "body-parser": "^1.14.1",
+    "compression": "^1.7.0",
+    "ejs": "^2.3.1",
+    "express": "^4.12.3",
+    "express-minify-html": "^0.12.0",
+    "express-seojs": "0.0.5",
+    "path": "^0.11.14",
+    "prerender-node": "^3.2.4",
+    "q": "^1.4.1",
+    "request": "^2.88.0",
+    "twitter-node-client": "0.0.6"
+  },
+  "devDependencies": {
+    "chrome-launcher": "^0.10.2",
+    "faker": "^4.1.0",
+    "jest": "^24.8.0",
+    "lighthouse": "^2.9.4",
+    "npm-audit-ci-wrapper": "^2.2.1",
+    "puppeteer": "^1.18.0",
+    "start-server-and-test": "^1.7.0"
+  }
+}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" id="legal">
+
+
+<head>
+  <title>Fyipe | Legal Center</title>
+  <meta name="description" content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+  <% include ./head %>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/legal.css">
+</head>
+
+<body>
+  <div id="docs">
+    <div id="sidebar">
+      <div class="logo">
+        <a class="site" href="/" title="fyipe"></a>
+      </div>
+      <nav>
+        <h1 class="legal">Legal Center</h1>
+        <ul data-collapsable="false">
+          <li>
+            <a href="/legal/terms">Terms of Service</a>
+          </li>
+          <li>
+            <a href="/legal/privacy">Privacy Policy</a>
+          </li>
+          <li>
+            <a href="/legal/sla">Service Level Agreement</a>
+          </li>
+
+        </ul>
+
+
+
+
+
+
+      </nav>
+    </div>
+    <div id="content-wrapper" tabindex="0">
+      <header id="main-header">
+        <nav>
+          <ul class="external">
+
+            <li>
+              <a href="/">Home</a>
+            </li>
+            <li>
+              <a href="/pricing">Pricing</a>
+            </li>
+            <li>
+              <a href="/enterprise/overview">Enterprise</a>
+            </li>
+            <li>
+              <a href="/support">Support</a>
+            </li>
+
+
+
+
+          </ul>
+        </nav>
+      </header>
+      <article id="content">
+
+
+        <% if(section === "terms") {%>
+          <% include ./terms %>
+        <% }%>
+
+
+        <% if(section === "privacy") {%>
+          <% include ./privacy %>
+        <% }%>
+
+
+        <% if(section === "sla") {%>
+          <% include ./sla %>
+        <% }%>
+
+      </article>
+    </div>
+  </div>
+
+</body>
+
+
+</html>

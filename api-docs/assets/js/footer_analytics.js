@@ -1,0 +1,1 @@
+function footerAnalytics(e){e("a[href='https://support.stripe.com/']").click(function(){Analytics.track("header.support.clicked")}),e(window).load(function(){try{analyticsconfig.merchant?makeTrackingRequest({merchant:analyticsconfig.merchant,user:analyticsconfig.user}):makeTrackingRequest()}catch(e){}})}window.$?footerAnalytics($):require(["jquery"],footerAnalytics);

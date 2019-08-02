@@ -1,0 +1,221 @@
+<section id="tabsection">
+  <div class="tab">
+    <h2 class="question">WHY FYIPE?</h2>
+    <button class="tablinks active" onclick="openTab(event, 'Statuspage')">Beautiful status page for your business.</button>
+    <button class="tablinks" onclick="openTab(event, 'Monitors')">Monitor your API's, services and more.</button>
+    <button class="tablinks" onclick="openTab(event, 'Schedules')">Alert your team when downtime happens.</button>
+    <button class="tablinks" onclick="openTab(event, 'On-call')">Have an on-call schedule for your team.</button>
+    <button class="tablinks" onclick="openTab(event, 'Investigation')">Post Investigation notes to keep your customers updated.</button>
+  </div>
+  <!-- First tab content     -->
+  <div id="Statuspage" class="tabcontent active">
+    <div class="navtopbuttons">
+      <div class="btnred"></div>
+      <div class="btnyellow"></div>
+      <div class="btngreen"></div>
+    </div>
+
+    <img src="/img/crm/backgroundcrm.png" alt="image" class="tabimage">
+
+    <div class="imgback"></div>
+    <img src="/img/crm/statuscut1.png" alt="image" style="top:34%;left:33%;width:300px;height:40px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:36%;left:31%" onclick="openTooltip('Statuspage1')">1
+      <span class="tooltiptext" id="Statuspage1">
+
+        <h2>Website Status</h2>
+        <br>
+        <p>Check uptime, current status and be at peace with your website.</p>
+
+      </span>
+    </div>
+    <img src="/img/crm/statuscut2.png" alt="image" style="top:47%;left:45%;width:10px;height:20px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:50%;left:44%" onclick="openTooltip('Statuspage2')">2
+      <span class="tooltiptext" id="Statuspage2">
+
+        <h2>Downtime</h2>
+        <br>
+        <p>When your website is down. We alert your team, improve transparency with your customers and cut support costs.</p>
+
+      </span>
+    </div>
+
+
+  </div>
+
+  <!-- Second tab content     -->
+  <div id="Monitors" class="tabcontent">
+    <div class="navtopbuttons">
+      <div class="btnred"></div>
+      <div class="btnyellow"></div>
+      <div class="btngreen"></div>
+    </div>
+    <img src="/img/crm/backgroundcrm2.png" alt="image" class="tabimage">
+    <div class="imgback"></div>
+    <img src="/img/crm/monitorcut1.png" alt="image" style="top:35%;left:24%;width:300px;height:52px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:39%;left:23%" onclick="openTooltip('Monitors1')">1
+      <span class="tooltiptext" id="Monitors1">
+
+        <h2>Performance</h2>
+        <br>
+        <p>We check your website performance and alert your team when the performance is degraded.</p>
+
+      </span>
+    </div>
+    <img src="/img/crm/monitorcut2.png" alt="image" style="top:54%;left:22.6%;width:600px;height:95px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:50%;right:40%" onclick="openTooltip('Monitors2')">2
+      <span class="tooltiptext" id="Monitors2">
+
+        <h2>Global Alerts</h2>
+        <br>
+        <p>Alert your team via SMS, Email or Call no matter where they are.</p>
+
+      </span>
+    </div>
+
+
+  </div>
+
+  <!-- Third tab content     -->
+  <div id="Schedules" class="tabcontent">
+    <div class="navtopbuttons">
+      <div class="btnred"></div>
+      <div class="btnyellow"></div>
+      <div class="btngreen"></div>
+    </div>
+    <img src="/img/crm/backgroundcrm3.png" alt="image" class="tabimage">
+    <div class="imgback"></div>
+    <img src="/img/crm/schedulecut1.png" alt="image" style="top:21%;right:6%;width:110px;height:25px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:21%;right:18%" onclick="openTooltip('Schedules1')">1
+      <span class="tooltiptext" id="Schedules1">
+
+        <h2>On-call Schedules</h2>
+        <br>
+        <p>Create a schedule for your on-call team based on timezone or member rotation.</p>
+
+      </span>
+    </div>
+    <img src="/img/crm/schedulecut2.png" alt="image" style="top:30%;left:22.5%;width:645px;height:50px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:28%;right:36%" onclick="openTooltip('Schedules2')">2
+      <span class="tooltiptext" id="Schedules2">
+
+        <h2>Multiple Schedules</h2>
+        <br>
+        <p>Multiple schedules let you assign team members to different monitors, so only the one who is responsible is alerted.</p>
+
+      </span>
+    </div>
+
+  </div>
+
+  <!-- Fourth tab content     -->
+  <div id="On-call" class="tabcontent">
+    <div class="navtopbuttons">
+      <div class="btnred"></div>
+      <div class="btnyellow"></div>
+      <div class="btngreen"></div>
+    </div>
+    <img src="/img/crm/backgroundcrm4.png" alt="image" class="tabimage">
+    <div class="imgback"></div>
+    <img src="/img/crm/oncallcut1.png" alt="image" style="top:32%;left:45%;width:70px;height:70px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:30%;right:46%" onclick="openTooltip('On-call1')">1
+      <span class="tooltiptext" id="On-call1">
+
+        <h2>Assign Monitors</h2>
+        <br>
+        <p>Assign different monitors and services to someone who is responsible in your team.</p>
+
+      </span>
+    </div>
+    <img src="/img/crm/oncallcut2.png" alt="image" style="top:76%;left:45%;width:95px;height:20px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:75%;right:42%" onclick="openTooltip('On-call2')">2
+      <span class="tooltiptext" id="On-call2">
+
+        <h2>Multiple Team members</h2>
+        <br>
+        <p>Add multiple team members to your team, assign them roles and responsibilities.</p>
+
+      </span>
+    </div>
+
+
+  </div>
+
+  <!-- Fifth tab content     -->
+  <div id="Investigation" class="tabcontent">
+    <div class="navtopbuttons">
+      <div class="btnred"></div>
+      <div class="btnyellow"></div>
+      <div class="btngreen"></div>
+    </div>
+    <img src="/img/crm/backgroundcrm5.png" alt="image" class="tabimage">
+    <div class="imgback"></div>
+
+    <img src="/img/crm/investigationcut1.png" alt="image" style="top:27%;left:22.8%;width:655px;height:70px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:25%;right:45%" onclick="openTooltip('Investigation1')">1
+      <span class="tooltiptext" id="Investigation1">
+
+        <h2>Alerts Reports</h2>
+        <br>
+        <p>Keep track of which team member is most and least responsive during downtime.</p>
+
+      </span>
+    </div>
+    <img src="/img/crm/investigationcut2.png" alt="image" style="top:67%;left:47%;width:340px;height:80px;" class="tabimage-cutout">
+    <div class="popover-dot" style="top:82%;right:40%" onclick="openTooltip('Investigation2')">2
+      <span class="tooltiptext" id="Investigation2">
+
+        <h2>Investigation Notes</h2>
+        <br>
+        <p>Keep your customers updated by posting investigation notes directly on your status page.</p>
+
+      </span>
+    </div>
+  </div>
+
+</section>
+
+<section id="tabsection-mobile">
+  <h2 class="question">WHY FYIPE?</h2>
+  <div id="answer">
+    <div class="mobile-content">
+      <div class="mobile-head">
+        <img class="mobile-image" src="/img/crm/status.svg" alt="Status">
+        <h2 class="mobile-heading">Beautiful status page for your business</h2>
+      </div>
+      <h4>Status Page helps you to improve transparency with your customers, build customer trust, cut support costs during downtime
+        and showcase reliability.</h4>
+    </div>
+
+    <div class="mobile-content">
+      <div class="mobile-head-right">
+        <img class="mobile-image" src="/img/tools-and-utensils.svg" alt="Monitor">
+        <h2 class="mobile-heading">Monitor your API's, services and more</h2>
+      </div>
+      <h4>Measure performance, uptime, response time of your website and be the first to know when something goes wrong.</h4>
+    </div>
+
+    <div class="mobile-content">
+      <div class="mobile-head">
+        <img class="mobile-image" src="/img/support.svg" alt="Schedules">
+        <h2 class="mobile-heading">Alert your team when downtime happens</h2>
+      </div>
+      <h4>Alert your team via SMS, Call, and Email globally when something goes wrong. Escalate to higher authority automatically.</h4>
+    </div>
+
+    <div class="mobile-content">
+      <div class="mobile-head-right">
+        <img class="mobile-image" src="/img/calendar.svg" alt="On-call">
+        <h2 class="mobile-heading">Have an on-call schedule for your team</h2>
+      </div>
+      <h4>Create a schedule for your on-call team based on timezone or member rotation.</h4>
+    </div>
+
+    <div class="mobile-content">
+      <div class="mobile-head">
+        <img class="mobile-image" src="/img/crm/notepad.svg" alt="Investigation">
+        <h2 class="mobile-heading">Post Investigation notes to keep your customers updated</h2>
+      </div>
+      <h4>Let your customers know what happened and improve transparency and reduce support costs.</h4>
+    </div>
+  </div>
+</section>

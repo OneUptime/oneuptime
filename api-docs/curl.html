@@ -1,0 +1,4057 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+<head>
+    <meta charset="utf-8" />
+    <title> SDK Reference</title>
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+
+    <link rel="stylesheet" type="text/css" href="assets/css/site.css" media="screen" />   
+
+    <script src="assets/js/qframe.js"></script>
+    <script src="assets/js/jquery.js"></script>
+    <script src="assets/js/jquery.cookie.js"></script>
+    <script src="assets/js/waypoints.js"></script>
+    <script src="assets/js/shared.js"></script>
+    <script src="assets/js/api.js"></script>
+    <!-- start Mixpanel -->
+    <script type="text/javascript">(function(f,b){if(!b.__SV){var a,e,i,g;window.mixpanel=b;b._i=[];b.init=function(a,e,d){function f(b,h){var a=h.split(".");2==a.length&&(b=b[a[0]],h=a[1]);b[h]=function(){b.push([h].concat(Array.prototype.slice.call(arguments,0)))}}var c=b;"undefined"!==typeof d?c=b[d]=[]:d="mixpanel";c.people=c.people||[];c.toString=function(b){var a="mixpanel";"mixpanel"!==d&&(a+="."+d);b||(a+=" (stub)");return a};c.people.toString=function(){return c.toString(1)+".people (stub)"};i="disable track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config people.set people.set_once people.increment people.append people.union people.track_charge people.clear_charges people.delete_user".split(" ");
+      for(g=0;g<i.length;g++)f(c,i[g]);b._i.push([a,e,d])};b.__SV=1.2;a=f.createElement("script");a.type="text/javascript";a.async=!0;a.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";e=f.getElementsByTagName("script")[0];e.parentNode.insertBefore(a,e)}})(document,window.mixpanel||[]);
+      mixpanel.init("be05a4d590e8bc9d5f2cd6b3b3ffb78b");</script>
+    <!-- end Mixpanel --> 
+
+</head>
+
+<body class="api-docs node">
+  <div id="background"></div>
+    <div id="header">
+      <a href="https://www.cloudboost.io">
+        <img src="assets/images/logoc81e.png" height="40" style="float:left;margin-top:5px" />
+      </a>
+      <div class="navigation">
+        <div class="signin">
+          <a id='signin' href="https://dashboard.cloudboost.io/accounts">
+            <span>Sign In</span>
+          </a>
+        </div>
+        <ul class="global">
+          <li><a href="https://docs.cloudboost.io" class="selected">Documentation</a></li>
+          <li><a href="https://cloudboost.io/quickstart" target="_blank">Quickstart</a></li>
+          <li><a href="http://stackoverflow.com/questions/ask?tags=cloudboost" target="_blank">Help &amp; Support</a></li>
+        </ul>
+      </div>
+    </div>
+
+    
+    <div id="guide">
+      <p class="ref-title">Overview</p>
+      <ul class="ref-list">
+        <li class="section">
+          <a href="#Introduction" class="parent viewing">Introduction</a>
+        </li>
+        <li class="section">
+          <a href="#Dependencies" class="parent">Dependencies</a>
+        </li>
+        <li class="section">
+          <a href="#Apps" class="parent">Apps</a>
+        </li>
+      </ul>
+
+      <p class="ref-title">Classes</p>
+      <ul class="ref-list">       
+      
+        <li class="section section-charges">
+          <a href="#CloudObject" class="parent">Object</a>
+          <span class="children">
+            <a href="#CloudObject-save" class="parent">Save</a>
+            <a href="#CloudObject-fetch" class="parent">Fetch</a>
+            <a href="#CloudObject-delete" class="parent">Delete</a>
+            <a href="#CloudObject-searchable" class="parent">Index for Search</a>
+            <a href="#CloudObject-expires" class="parent">Expires</a>
+          </span>
+        </li>
+        <li class="section section-charges"><a href="#Relationships" class="parent">Relationships</a>
+          <span class="children">
+            <a href="#Relationships-oneToOne" class="parent">One-to-One</a>
+            <a href="#Relationships-oneToMany" class="parent">One-to-Many</a>
+            <a href="#Relationships-manyToMany" class="parent">Many-to-many</a>
+          </span>
+        </li>
+
+
+        <li class="section section-charges"><a href="#CloudQuery" class="parent">Query</a>
+          <span class="children">
+            <a href="#CloudQuery-equalTo" class="parent">Equal To</a>
+            <a href="#CloudQuery-containedIn" class="parent">Contained In</a>
+            <a href="#CloudQuery-containsAll" class="parent">Contains All</a>
+            <a href="#CloudQuery-startsWith" class="parent">Starts With</a>
+            <a href="#CloudQuery-notEqualTo" class="parent">Not Equal To</a>
+            <a href="#CloudQuery-notContainedIn" class="parent">Not Contained In</a>
+            <a href="#CloudQuery-greaterThan" class="parent">Greater Than</a>
+            <a href="#CloudQuery-greaterThanEqualTo" class="parent">Greater Than and Equal To</a>
+            <a href="#CloudQuery-lessThan" class="parent">Less Than</a>
+            <a href="#CloudQuery-lessThanEqualTo" class="parent">Less than and equal to</a>
+            <a href="#CloudQuery-or" class="parent">Or</a>
+            <a href="#CloudQuery-orderByAsc" class="parent">Order by</a>
+            <a href="#CloudQuery-setLimit" class="parent">Limit</a>
+            <a href="#CloudQuery-setSkip" class="parent">Skip</a>
+            <a href="#CloudQuery-selectColumn" class="parent">Select Column</a>
+            <a href="#CloudQuery-exists" class="parent">Exists</a>
+            <a href="#CloudQuery-doesNotExists" class="parent">Does not exist</a>
+            <a href="#CloudQuery-find" class="parent">Find</a>
+            <a href="#CloudQuery-findOne" class="parent">Find One</a>
+            <a href="#CloudQuery-get" class="parent">Get</a>
+            <a href="#CloudQuery-count" class="parent">Count</a>
+            <a href="#CloudQuery-distinct" class="parent">Distinct</a>
+			<a href="#CloudQuery-paginate" class="parent">Paginate</a>
+          </span>
+        </li>
+        <li class="section section-charges"><a href="#CloudSearch" class="parent">Search</a>
+
+          <span class="children">
+            <a href="#CloudSearch-searchOn" class="parent">Search On</a>
+            <a href="#CloudSearch-equalTo" class="parent">Equal To</a>
+            <a href="#CloudSearch-notEqualTo" class="parent">Not Equal To</a>
+            <a href="#CloudSearch-greaterThan" class="parent">Greater Than</a>
+            <a href="#CloudSearch-greaterThanEqualTo" class="parent">Greater Than and Equal To</a>
+            <a href="#CloudSearch-lessThan" class="parent">Less Than</a>
+            <a href="#CloudSearch-lessThanEqualTo" class="parent">Less than and equal to</a>
+            <a href="#CloudSearch-or" class="parent">OR</a>
+            <a href="#CloudSearch-orderByAsc" class="parent">Order by</a>
+            <a href="#CloudSearch-setLimit" class="parent">Limit</a>
+            <a href="#CloudSearch-setSkip" class="parent">Skip</a>
+            <a href="#CloudSearch-exists" class="parent">Exists</a>
+            <a href="#CloudSearch-doesNotExists" class="parent">Does not exist</a>
+            <a href="#CloudSearch-search" class="parent">Search</a>
+          </span>
+
+        </li>
+        
+        <li class="section section-charges"><a href="#ACL" class="parent">ACL</a>
+          <span class="children">
+            <a href="#ACL-setPublicWriteAccess" class="parent">Public Write Access</a>
+            <a href="#ACL-setPublicReadAccess" class="parent">Public Read Access</a>
+            <a href="#ACL-setUserWriteAccess" class="parent">User Write Access</a>
+            <a href="#ACL-setUserReadAccess" class="parent">User Read Access</a>
+            <a href="#ACL-setRoleWriteAccess" class="parent">Role Write Access</a>
+            <a href="#ACL-setRoleReadAccess" class="parent">Role Read Access</a>
+          </span>
+        </li>
+        <li class="section section-charges"><a href="#CloudUser" class="parent">User</a>
+          <span class="children">
+            <a href="#CloudUser-signUp" class="parent">Signup</a>
+            <a href="#CloudUser-logIn" class="parent">Login</a>
+            <a href="#CloudUser-logOut" class="parent">Logout</a>
+            <a href="#CloudUser-addToRole" class="parent">Add To Role</a>            
+            <a href="#CloudUser-removeFromRole" class="parent">Remove from Role</a>
+            <a href="#CloudUser-changePassword" class="parent">Change Password</a>
+            <a href="#CloudUser-resetPassword" class="parent">Reset Password</a>
+          </span>
+        </li>
+        <li class="section section-charges"><a href="#CloudRole" class="parent">Role</a>
+          <span class="children">
+            <a href="#CloudRole-getRole" class="parent">Get Role</a>
+          </span>
+        </li>
+        <li class="section section-charges"><a href="#CloudFile" class="parent">File</a>
+          <span class="children">
+            <a href="#CloudFile-save" class="parent">Save</a>
+            <a href="#CloudFile-delete" class="parent">Delete</a>
+          </span>
+        </li>
+        <li class="section section-charges"><a href="#Contribute" class="parent">Contribute</a>
+        </li>
+      </ul>
+
+    </div>
+<!-- api docs -->
+<div id="api-docs">
+    <a id="top" name="top" class="section-anchor">&nbsp;</a>
+      	<div id="methods">
+        <div class="border"></div>
+
+        <div id="language">
+          <a id="javascript-sdk" class="language" href="javascript.html">JavaScript</a>
+          <a id="curl-sdk" class="language" href="curl.html">cURL</a>
+        </div>
+    <div class="method">
+          <a id='Introduction' name="Introduction" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h1>API Reference</h1>
+
+              <p>
+              The CloudBoost API is organized around <a href="http://en.wikipedia.org/wiki/Representational_State_Transfer">REST</a>. 
+              Our API is designed to have predictable, resource-oriented URLs and to 
+              use HTTP response codes to indicate API errors. We use built-in HTTP 
+              features, like HTTP authentication and HTTP verbs, which can be understood 
+              by off-the-shelf HTTP clients, and we support <a href="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing">cross-origin resource sharing</a> 
+              to allow you to interact securely with our API from a client-side web application/mobile application 
+              (though you should remember that you should never expose your secret API master key in any public website's 
+              client-side code, Client Key can be exposed). 
+              <a href="http://www.json.org/">JSON</a> will be returned in all responses from the API, including errors (though if you're using API bindings/SDK,
+              we will convert the response to the appropriate language-specific object).
+	        </p>
+	       
+            </div>
+            <div class="method-example" id="api-summary-example">
+
+              <h3>Endpoint</h3>
+              
+              <h4></h4> 
+                <code>https://api.cloudboost.io</code>
+              <br/>
+
+            </div>
+          </div>
+        </div>
+<div class="method">
+          <a id='Dependencies' name="Dependencies" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h1>Dependencies</h1>
+              <p>
+              These calls require few external dependencies. 
+              <ul>
+              	<li><a href="">curl-x.x.x</a></li>
+              </ul>
+              </p>
+            </div>
+            <div class="method-example" id="api-summary-example">
+            </div> <!-- method-example -->
+          </div> <!-- method-section -->
+        </div> <!-- method -->
+ <div class="method">
+          <a id='Apps' name="Apps" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h1>Apps</h1>
+              <p>
+              In Cloudboost, you create an app each of which has its own AppID, Java 
+              Client Key and the Master Key that you apply to your web app. You master key is a secret which should not be shared in your client apps. Your account on CloudBoost can accommodate multiple apps.
+
+              This is useful even if you have one application, since you can deploy different versions for test and production.
+              </p>
+            </div>
+            <div class="method-example" id="api-summary-example">
+            </div>
+          </div>
+        </div>
+ 
+          <a id='CloudObject-save' name="CloudObject-save" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudObject.save(callback)</h3>
+              <p>
+              Saves the <code>CloudObject</code> object to CloudBoost.
+              </p>
+              <div class="method-list">
+              <h6>Argument</h6>
+                <dl class="argument-list">
+                <dt>callback</dt>
+                  <dd class="">Callback interface object <span>Override the done.</span></dd>
+                  <div class="clearfix"></div>
+                <h6>Error Handling</h6>
+                <p>It throws <code>CloudBoostException</code></p>
+                
+                  
+                  <div class="clearfix"></div>
+                
+                </dl>
+
+              </div>
+            </div>
+  <div class="method-example" id="api-summary-example">
+<code class="method-request"><span class="prompt"></span><span class="lang lang-curl"><span class="highlight_js http">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "document": {     "_type": "custom",
+        "expires": null,
+        ${column_name}: ${column_value},
+        "_modifiedColumns": ["createdAt",
+        "updatedAt",
+        "ACL",
+        "expires",
+        ${column_name}],
+        "_tableName": "data",
+        "ACL": {
+            "write": {
+                "allow": {
+                    "role": [],
+                    "user": ["all"]
+                },
+                "deny": {
+                    "role": [],
+                    "user": []
+                }
+            },
+            "read": {
+                "allow": {
+                    "role": [],
+                    "user": ["all"]
+                },
+                "deny": {
+                    "role": [],
+                    "user": []
+                }
+            }
+        },
+        "_isModified": true}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+</span></span></span></code>
+
+            </div><!-- method-example -->
+          </div> <!-- method-section -->	  
+		  
+		   
+          <a id='CloudObject-fetch' name="CloudObject-fetch" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudObject.fetch()</h3>
+              <p>
+              Refreshes a <code>CloudObject</code> object to by fetching its values from the database.
+              </p>
+              <div class="method-list">
+              		<h6>Error Handling</h6>
+                <p>It throws <code>CloudBoostException</code></p>
+                  <div class="clearfix"></div>
+                </dl>
+
+                
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+    "limit": 1,
+    "sort": {        
+    },
+    "select": {        
+    },
+    "query": {
+        "$includeList": [],
+        "$include": [],
+        "_id": ${id_of_object_to_fetch}
+    },
+    "skip": 0,
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+		  
+		  
+		  
+		  
+          <a id='CloudObject-delete' name="CloudObject-delete" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudObject.delete()</h3>
+              <p>
+              Delete a <code>CloudObject</code> object, if it is saved in the database.
+              </p>
+              <div class="method-list">
+                <h6>Error Handling</h6>
+                <p>It throws <code>CloudBoostException</code></p>
+                
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+    "document": {
+        "updatedAt": "2016-03-15T09:22:10.446Z",
+        "_type": "custom",
+        "_version": 0,
+        "expires": null,
+        "_id": ${id_of_object_to_delete},
+        "createdAt": "2016-03-15T09:22:10.446Z",
+        "_tableName": "data",
+        "ACL": {
+            "write": {
+                "allow": {
+                    "role": [],
+                    "user": ["all"]
+                },
+                "deny": {
+                    "role": [],
+                    "user": []
+                }
+            },
+            "read": {
+                "allow": {
+                    "role": [],
+                    "user": ["all"]
+                },
+                "deny": {
+                    "role": [],
+                    "user": []
+                }
+            }
+        }
+    },
+    "method": "DELETE",
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+              </span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+		  
+		  
+		  
+
+           <a id='CloudObject-searchable' name="CloudObject-searchable" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudObject.isSearchable</h3>
+              <p>
+              Indexes <code>CloudObject</code> for search using CloudSearch.
+              </p>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "document": {     "_type": "custom",
+        "expires": null,
+        ${column_name}: ${column_value},
+        "_modifiedColumns": ["createdAt",
+        "updatedAt",
+        "ACL",
+        "expires",
+        ${column_name}],
+        "_tableName": "data",
+        "ACL": {
+            "write": {
+                "allow": {
+                    "role": [],
+                    "user": ["all"]
+                },
+                "deny": {
+                    "role": [],
+                    "user": []
+                }
+            },
+            "read": {
+                "allow": {
+                    "role": [],
+                    "user": ["all"]
+                },
+                "deny": {
+                    "role": [],
+                    "user": []
+                }
+            }
+        },
+        "_isModified": true,
+		"isSearchable":true
+		}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+</span></span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->	  
+		  
+
+
+            <a id='CloudObject-expires' name="CloudObject-expires" class="section-anchor">&nbsp;</a>
+            <div class="method-section">
+                <div class="method-description">
+
+                    <h3>CloudObject.expires</h3>
+                    <p>
+                        Sets the expiration time for <code>CloudObject</code>. Expiration time is to be given as number of
+                        milliseconds from 1 Jan 1970.
+                    </p>
+                </div>
+                <div class="method-example" id="api-summary-example">
+                    <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+    "document": {
+        "updatedAt": "2016-03-15T09:22:10.446Z",
+        "_type": "custom",
+        "_version": 0,
+        "expires": "2016-04-15T09:22:10.446Z",
+        "_id": ${id_of_object_to_delete},
+        "createdAt": "2016-03-15T09:22:10.446Z",
+        "_tableName": "data",
+        "ACL": {
+            "write": {
+                "allow": {
+                    "role": [],
+                    "user": ["all"]
+                },
+                "deny": {
+                    "role": [],
+                    "user": []
+                }
+            },
+            "read": {
+                "allow": {
+                    "role": [],
+                    "user": ["all"]
+                },
+                "deny": {
+                    "role": [],
+                    "user": []
+                }
+            }
+        }
+    }
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+</span></span></span></code>
+                </div><!-- method-example -->
+            </div> <!-- method-section -->
+
+      
+
+
+<div class="method">
+  <a id='Relationships' name="Relationships" class="section-anchor">&nbsp;</a>
+  <div class="method-section">
+    <div class="method-description">
+
+      <h1>Relationships</h1>
+
+      <p>
+        This section is dedicated to modelling relationships with CloudBoost.
+      </p>
+      <p>
+        There are usually three types of relationships. 
+        <ul>
+          <li> 
+            One-to-One Relationship
+          </li>
+          <li> 
+            One-to-many Relationship
+          </li>
+          <li> 
+            Many-to-many Relationship
+          </li>
+        </ul>
+      </p>
+
+    </div>
+    <div class="method-example" id="api-summary-example">
+    </div> <!-- method-example -->
+  </div><!-- method-section -->
+
+  <a id='Relationships-oneToOne' name="Relationships-oneToOne" class="section-anchor">&nbsp;</a>
+  <div class="method-section">
+    <div class="method-description">
+
+      <h3>One-to-One Relationship</h3>
+      <p>
+        If you want to model one-to-one relationship. Then you need to create a new column of type <code> Relation </code> pointed to a table which you want it to be related to and set that column <code> Unique </code> property to true.
+      </p>
+    </div>
+    <div class="method-example" id="api-summary-example">
+      <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+"key": ${client_key},
+"document": {
+"_type": "custom",
+"expires": null,
+"address": {
+    "_type": "custom",
+    "expires": null,
+    "StreetName": "Manhattan",
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "StreetName",
+    "Country"],
+    "_tableName": "table",
+    "ACL": {
+        "write": {
+            "allow": {
+                "role": [],
+                "user": ["all"]
+            },
+            "deny": {
+                "role": [],
+                "user": []
+            }
+        },
+        "read": {
+            "allow": {
+                "role": [],
+                "user": ["all"]
+            },
+            "deny": {
+                "role": [],
+                "user": []
+            }
+        }
+    },
+    "Country": "United States",
+    "_isModified": true
+},
+"name": "John Smith",
+"_modifiedColumns": ["createdAt",
+"updatedAt",
+"ACL",
+"expires",
+"name",
+"address"],
+"_tableName": "Student",
+"ACL": {
+    "write": {
+        "allow": {
+            "role": [],
+            "user": ["all"]
+        },
+        "deny": {
+            "role": [],
+            "user": []
+        }
+    },
+    "read": {
+        "allow": {
+            "role": [],
+            "user": ["all"]
+        },
+        "deny": {
+            "role": [],
+            "user": []
+        }
+    }
+},
+"_isModified": true
+}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+      </span></span></code>
+    </div><!-- method-example -->
+  </div> <!-- method-section -->
+
+<a id='Relationships-oneToMany' name="Relationships-oneToMany" class="section-anchor">&nbsp;</a>
+  <div class="method-section">
+    <div class="method-description">
+
+      <h3>One-to-Many Relationship</h3>
+       <p>
+        If you want to model one-to-many relationship. Then you need to create a new column of type <code> Relation </code> pointed to a table which you want it to be related to and set that column <code> Unique </code> property to false.
+      </p>
+    </div>
+    <div class="method-example" id="api-summary-example">
+    <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+"key": ${client_key},
+"document": {
+"_type": "custom",
+"expires": null,
+"address": {
+    "_type": "custom",
+    "expires": null,
+    "StreetName": "Manhattan",
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "StreetName",
+    "Country"],
+    "_tableName": "Address",
+    "ACL": {
+        "write": {
+            "allow": {
+                "role": [],
+                "user": ["all"]
+            },
+            "deny": {
+                "role": [],
+                "user": []
+            }
+        },
+        "read": {
+            "allow": {
+                "role": [],
+                "user": ["all"]
+            },
+            "deny": {
+                "role": [],
+                "user": []
+            }
+        }
+    },
+    "Country": "United States",
+    "_isModified": true
+},
+"name": "John Smith",
+"_modifiedColumns": ["createdAt",
+"updatedAt",
+"ACL",
+"expires",
+"name",
+"address"],
+"_tableName": "Student",
+"ACL": {
+    "write": {
+        "allow": {
+            "role": [],
+            "user": ["all"]
+        },
+        "deny": {
+            "role": [],
+            "user": []
+        }
+    },
+    "read": {
+        "allow": {
+            "role": [],
+            "user": ["all"]
+        },
+        "deny": {
+            "role": [],
+            "user": []
+        }
+    }
+},
+"_isModified": true
+}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+      </span></span></code>
+    </div><!-- method-example -->
+  </div> <!-- method-section -->
+
+  <a id='Relationships-manyToMany' name="Relationships-manyToMany" class="section-anchor">&nbsp;</a>
+  <div class="method-section">
+    <div class="method-description">
+
+      <h3>Many-to-Many Relationship</h3>
+       <p>
+        If you want to model many-to-many relationship. Then you have two options<br/>
+        <ol>
+          <li><b>#1 - Relation Option</b></li>
+          <li><b>#2 - List Option</b></li>
+        </ol>
+
+        We will discuss both of these options below. <br/><br/><br/>
+
+        <h4>Relation Option</h4>
+        <p> This option is recommended only if you have huge number of relationships assigned to any one object. </p>
+        <p> This relationship can be created by creating a third table and having two columns that are relatied to tables you want to have many to many relationships on.  </p>
+
+        <br/><br/><br/><br/><br/><br/><br/><br/>
+
+        <h4>List Option</h4>
+        <p> This option is recommended only if you have small number of relationships assigned to any one object. </p>
+        <p> This relationship can be created by creating an array and having related objects pushed to that array and having that array saved in any column of the table. </p>
+      </p>
+    </div>
+    <div class="method-example" id="api-summary-example">
+      <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+"key": ${client_key},
+"document": {
+"course": {
+    "_type": "custom",
+    "expires": null,
+    "name": "Java",
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "Course",
+    "ACL": {
+        "write": {
+            "allow": {
+                "role": [],
+                "user": ["all"]
+            },
+            "deny": {
+                "role": [],
+                "user": []
+            }
+        },
+        "read": {
+            "allow": {
+                "role": [],
+                "user": ["all"]
+            },
+            "deny": {
+                "role": [],
+                "user": []
+            }
+        }
+    },
+    "_isModified": true
+},
+"_type": "custom",
+"expires": null,
+"student": {
+    "_type": "custom",
+    "expires": null,
+    "name": "John Smith",
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "Student",
+    "ACL": {
+        "write": {
+            "allow": {
+                "role": [],
+                "user": ["all"]
+            },
+            "deny": {
+                "role": [],
+                "user": []
+            }
+        },
+        "read": {
+            "allow": {
+                "role": [],
+                "user": ["all"]
+            },
+            "deny": {
+                "role": [],
+                "user": []
+            }
+        }
+    },
+    "_isModified": true
+},
+"_modifiedColumns": ["createdAt",
+"updatedAt",
+"ACL",
+"expires",
+"student",
+"course"],
+"_tableName": "StudentCourses",
+"ACL": {
+    "write": {
+        "allow": {
+            "role": [],
+            "user": ["all"]
+        },
+        "deny": {
+            "role": [],
+            "user": []
+        }
+    },
+    "read": {
+        "allow": {
+            "role": [],
+            "user": ["all"]
+        },
+        "deny": {
+            "role": [],
+            "user": []
+        }
+    }
+},
+"_isModified": true
+}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+
+
+      </span></span></code>
+    </div><!-- method-example -->
+  </div> <!-- method-section -->
+
+</div>
+
+<!-- CloudQuery Section -->
+
+          <a id='CloudQuery-equalTo' name="CloudQuery-equalTo" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.equalTo( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> is equal to <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The column on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">Anything<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "name": "john"
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+          <a id='CloudQuery-containedIn' name="CloudQuery-containedIn" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.containedIn( <code>columnName, data</code> )</h3>
+              <p>
+              If you want to retrieve objects matching several different values, you can use containedIn, providing an array of acceptable values. This is often useful to replace multiple queries with a single query. 
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The name of the column whose value is to be checked</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">String, Integer, Double, String Array, Integer Array, Double Array <span>The value(s) that are to be matched with.</span></dd>
+                  <div class="clearfix"></div>
+
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "name": {
+      "$nin": [],
+      "$in": ["adam",
+      "bengi"]
+    },
+    "$include": []
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-containsAll' name="CloudQuery-containsAll" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.containsAll( <code>columnName, data</code> )</h3>
+              <p>
+               Find objects where the array data in columnName contains all of the elements of data.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The name of the column whose value is to be checked</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">String, Integer, Double, String Array, Integer Array, Double Array <span>The value(s) that are to be matched with.</span></dd>
+                  <div class="clearfix"></div>
+
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "name": {
+      "$all": ["adam","bengi"]
+    },
+    "$include": []
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-startsWith' name="CloudQuery-startsWith" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.startsWith( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant to find the data in which value of <code>columnName</code>
+              of each data is starts with <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The name of the column whose value is to be checked</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">string <span>The value that is to be checked with.</span></dd>
+                  <div class="clearfix"></div>
+
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//starts with b
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "name": {
+      "$options": "im",
+      "$regex": "^b"
+    }
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-notEqualTo' name="CloudQuery-notEqualTo" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.notEqualTo( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> does not has the value <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">Anything<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//name not equal to adam
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "name": {
+      "$ne": "adam"
+    }
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-notContainedIn' name="CloudQuery-notContainedIn" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.notContainedIn( <code>columnName, data</code> )</h3>
+              <p>
+               If you want to retrieve objects which doesnot include several different values, you can use notContainedIn, providing an array of acceptable values. This is often useful to replace multiple queries with a single query. 
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The name of the column whose value is to be checked</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">Array <span>The value(s) that are to be matched with.</span></dd>
+                  <div class="clearfix"></div>
+
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//name "ben" should not be contained in returned results
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "name": {
+      "$nin": ["ben"]
+    }
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-greaterThan' name="CloudQuery-greaterThan" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.greaterThan( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> has the value greater than <code>data</code>.
+              </p>
+              <div class="method-list">
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">string / number<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions. </p>
+
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//age column should be greater than 30 in all returned results
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "name": "bengi",
+    "age": {
+      "$gt": 30
+    }
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-greaterThanEqualTo' name="CloudQuery-greaterThanEqualTo" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.greaterThanEqualTo( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> has the value greater than or equals to <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">string / number<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//age should be equal to or greater than 30 in all returned records
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "age": {
+      "$gte": 30
+    }
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-lessThan' name="CloudQuery-lessThan" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.lessThan( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> has the value less than <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">string/number<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "age": {
+      "$lt": 30
+    }
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-lessThanEqualTo' name="CloudQuery-lessThanEqualTo" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.lessThanEqualTo( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> has the value less than or equals to <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">string/number<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "age": {
+      "$lte": 30
+    }
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-or' name="CloudQuery-or" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.or( <code>query1, query2</code> )</h3>
+              <p>
+              It adds a logical OR contriant between 2 <code>CloudQuery</code> objects for 
+              finding the set of the data satisfying conditions of both <code>query1</code>
+              and <code>query2</code>.
+              </p>
+              <p>
+                Both of the <code>CloudQuery</code> objects should be of the same collection
+                otherwise it throws an error.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>query1</dt>
+                  <dd class=""><code>CloudQuery object</code></dd>
+                  <div class="clearfix"></div>
+                  <dt>query2</dt>
+                  <dd class=""><code>CloudQuery object</code></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>It returns a <code>CloudQuery</code> object which contains
+                OR'ed query of both of the <code>CloudQuery</code> objects.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+
+//find all Student such that 30&lt;age&lt;60
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "$or": [{
+      "$includeList": [],
+      "$include": [],
+      "age": {
+        "$gt": 30
+      }
+    },
+    {
+      "$includeList": [],
+      "$include": [],
+      "age": {
+        "$lt": 60
+      }
+    }]
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+
+</span></span></code>
+              
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-orderByAsc' name="CloudQuery-orderByAsc" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.orderByAsc( <code>columnName</code> )</h3>
+              <p>
+              It adds a contriant for arranging the subset of the data in ascending 
+              order.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//order by ascending 
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {
+    "age": 1
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": []
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-orderByDesc' name="CloudQuery-orderByDesc" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.orderByDesc( <code>columnName</code> )</h3>
+              <p>
+              It adds a contriant for arranging the subset of the data in descending 
+              order.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+               <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//order by desscending 
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {
+    "age": -1
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": []
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-setLimit' name="CloudQuery-setLimit" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.setLimit( <code>data</code> )</h3>
+              <p>
+              It adds a contriant to limit no. of the data to be
+              fetched from the database.
+              </p>
+              <p>
+                If it is not set explicitly, database returns 20 results by default.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>data</dt>
+                  <dd class="">number <span>No. of data to be shown</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//limit
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 5,
+  "sort": {
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": []
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-setSkip' name="CloudQuery-setSkip" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.setSkip( <code>data</code> )</h3>
+              <p>
+              It adds a constraint to skip <code>data</code> no. of data
+              matching satisfying the query contraints and fetching
+              from the database.
+              </p>
+              <p>
+                It requires a <em>sort</em> contriant and if none of it is 
+                provided by the user then the documents are sorted according 
+                to the <i>createdAt</i> attribute associated with the data.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>data</dt>
+                  <dd class="">number <span>No. of data to be skipped</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//skip
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": []
+  },
+  "skip": 5
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-selectColumn' name="CloudQuery-selectColumn" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.selectColumn( <code>columnNames</code> )</h3>
+              <p>
+              It adds a contriant limiting the columns that are to fetched
+              for each of the data from the database.
+              </p>
+              <p>
+                <i>id</i>, <i>createdAt</i>, <i>updatedAt</i> and <i>ACL</i>
+                are always returned unless explicitly provided by the user to
+                discard it using <a href="#CloudQuery-doNotSelectColumn">doNotSelectColumn()</a>
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnNames</dt>
+                  <dd class="">string/Object/Array <span>The name of the column(s) that are to be returned</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+			  
+//select
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {
+  },
+  "select": {
+    "updatedAt": 1,
+    "_type": 1,
+    "_id": 1,
+    "createdAt": 1,
+    "age": 1,
+    "name": 1,
+    "_tableName": 1,
+    "ACL": 1
+  },
+  "query": {
+    "$includeList": [],
+    "$include": []
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-doNotSelectColumn' name="CloudQuery-doNotSelectColumn" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.doNotSelectColumn( <code>columnNames</code> )</h3>
+              <p>
+              It adds a contriant restricting the columns given in <code>columnNames</code> 
+              to be fetched for each of the data from the database.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnNames</dt>
+                  <dd class="">string/Object/Array <span>The name of the column(s) that are not to be returned</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+			  
+//do not select
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {
+  },
+  "select": {
+    "name": 0
+  },
+  "query": {
+    "$includeList": [],
+    "$include": []
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-exists' name="CloudQuery-exists" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+              <h3>CloudQuery.exists( <code>columnName</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> exists irrespective of what its value is.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The column name which is to be checked for existence</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "sort": {
+  },
+  "select": {},
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "ben": {
+      "$exists": true
+    }
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-doesNotExists' name="CloudQuery-doesNotExists" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.doesNotExists( <code>columnName</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> does not exists.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The column name which is to be checked for non-existence</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same query object, which can be helpful in chaining query functions.</p>
+                
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "sort": {
+  },
+  "select": {},
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "ben": {
+      "$exists": false
+    }
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/findOne'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+                    <a id='CloudQuery-find' name="CloudQuery-find" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.find( )</h3>
+              <p>
+                Queries the database on the constraints provided by the <code>CloudQuery</code>
+                object and gets the result as an array of <code>CloudObject</code> objects.
+              </p>
+              <p>
+              If no. of documents to be returned is not specified using <a href="#CloudQuery-setLimit">limit()</a>
+              then at max 20 documents are returned in each query by default.
+              </p>
+              <p>
+                If no. of documents to be skipped is specified using <a href="#CloudQuery-setSkip">skip()</a> 
+                without sorting parameter then the documents matching the query provided in 
+                <code>CloudQuery</code> object are sorted in ascending order of <i>createdAt</i> field.
+              </p>
+              <div class="method-list">
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>It returns an array of <code>CloudObject</code> objects.</p>
+                <h6>Error Handling</h6>
+                It throws <code>CloudBoostException, MalformedURLException, IOException</code>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js java">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+</span></span></code>
+
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-findOne' name="CloudQuery-findOne" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.findOne( )</h3>
+              <p>
+                Queries the database on the constraints provided by the <code>CloudQuery</code>
+                object and gets a single <code>CloudObject</code> object satisfying the constraint.
+              </p>
+              <p>
+                If no. of documents to be skipped is specified using <a href="#CloudQuery-setSkip">skip()</a> 
+                without sorting parameter then the documents matching the query provided in 
+                <code>CloudQuery</code> object are sorted in ascending order of <i>createdAt</i> field.
+              </p>
+              <div class="method-list">
+                  <div class="clearfix"></div>
+                </dl>
+
+                <h6>Returns</h6>
+                <p>It returns a <code>CloudObject</code> object or an error object if the opertion is successful.It throws an error 
+                too if sufficient data is not available to query the database.
+               </p>
+               <h6>Error Handling</h6>
+                It throws <code>CloudBoostException, MalformedURLException, IOException</code>
+              </div>
+              
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js java">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 1,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/findOne'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudQuery-get' name="CloudQuery-get" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.get( <code>id</code> )</h3>
+              <p>
+                Queries the database gets a <code>CloudObject</code> object whose <i>id</i> field
+                matches <code>id</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>id</dt>
+                  <dd class="">string <span>The ID of the data which is to be matched with <i>_id</i> field
+                  in the database.</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>It returns a <code>CloudObject</code> object or an error object if the operation is successful. It throws an error 
+                too if sufficient data is not available to query the database.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//retrieve a Student detail by his unique ID
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {
+  },
+  "select": {},
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "_id": "id"
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+	
+	</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+          <a id='CloudQuery-count' name="CloudQuery-count" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.count( )</h3>
+              <p>
+              It adds a contriant to find the data in which value of <code>columnName</code>
+              of each data is at least equal to all of the value(s) provided in <code>data</code>.
+              </p>
+              <div class="method-list">
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>It returns an <i>Integer</i> which is the number of documents matching the
+                constraints given in the <code>CloudQuery</code>.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+ //fetch how many Students are there, satisfying any criteria defined in query
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {
+  },
+  "select": {},
+  "query": {
+    "$includeList": [],
+    "$include": []
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/count'
+
+</span></span></code>
+            </div><!-- method-example -->
+
+          </div> <!-- method-section -->
+          <a id='CloudQuery-distinct' name="CloudQuery-distinct" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.distinct( <code>columnName</code> )</h3>
+              <p>
+              It returns distinct objects which have columnName
+              </p>
+              <p>
+                Sort parameter is required and if not provided by the user ascending order
+                sorting on <i>createdAt</i> field is applied by default.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+                  
+                  <dt>columnName</dt>
+                  <dd class="">String <span> The column name which should have distinct values in the
+                  returned data set.</span></dd>
+                  <div class="clearfix"></div>                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>It returns an array of <code>CloudObject</code> objects which are documents 
+                matching the given query in the <code>CloudQuery</code> object having distinct values of
+                <code>ColumnName</code></p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {
+  },
+  "select": {},
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "name": "name"
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/distinct'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+		  		
+		
+		
+		          <a id='CloudQuery-paginate' name="CloudQuery-paginate" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudQuery.paginate( <code>pageNo</code>,<code>totalItemsPerPage</code>,<code>callback</code> )</h3>
+              <p>
+              Paginate returns only the specified number of objects from the database. It takes in the current page number and total items in page as parameters and returns list of objects,count,total number of pages. 
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+                  
+                  <dt>pageNo</dt>
+                  <dd class=""><span>The page from which to count records to return</span></dd>
+                  <div class="clearfix"></div>   
+				<dt>totalItemsPerPage</dt>
+                  <dd class=""><span>How many items will appear on each page whenever we paginate</span></dd>
+                  <div class="clearfix"></div> 
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Paginate returns only the specified number of objects from the database</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//paginate
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": ${total_items_per_page},
+  "sort": {
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": []
+  },
+  "skip": ${(page_no*total_items_per_page)-total_items_per_page}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/find'
+
+</span></span>
+</code>
+            </div><!--method-example -->
+          </div><!--  method-section -->
+<div class="method">
+           <a id='CloudSearch-searchOn' name="CloudSearch-searchOn" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.searchOn( <code>columnName, query</code> )</h3>
+              <p>
+              Used to perform a search query.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string / Array <span>The column on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">query<span>A text query</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {
+        "bool": {
+          "must_not": [],
+          "should": [{
+            "match": {
+              "name": {
+                "query": "[\"egima\",\"bengi\"]"
+              }
+            }
+          }],
+          "must": []
+        }
+      },
+      "filter": {        
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+
+          <a id='CloudSearch-equalTo' name="CloudSearch-equalTo" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.equalTo( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> is equal to <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The column on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">Anything<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {
+      },
+      "filter": {
+        "bool": {
+          "must_not": [],
+          "should": [],
+          "must": [{
+            "term": {
+              "name": "John"
+            }
+          }]
+        }
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+         
+          <a id='CloudSearch-notEqualTo' name="CloudSearch-notEqualTo" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.notEqualTo( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> does not has the value <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">Anything<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining query functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+        "bool": {
+          "must_not": [{
+            "term": {
+              "name": "bengi"
+            }
+          }],
+          "should": [],
+          "must": []
+        }
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          
+          <a id='CloudSearch-greaterThan' name="CloudSearch-greaterThan" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.greaterThan( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> has the value greater than <code>data</code>.
+              </p>
+              <div class="method-list">
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">string / number<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions. </p>
+
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+        "bool": {
+          "must_not": [],
+          "should": [],
+          "must": [{
+            "range": {
+              "age": {
+                "gt": 10
+              }
+            }
+          }]
+        }
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+          <a id='CloudSearch-greaterThanEqualTo' name="CloudSearch-greaterThanEqualTo" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.greaterThanEqualTo( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> has the value greater than or equals to <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">string / number<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+        "bool": {
+          "must_not": [],
+          "should": [],
+          "must": [{
+            "range": {
+              "age": {
+                "gte": 10
+              }
+            }
+          }]
+        }
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudSearch-lessThan' name="CloudSearch-lessThan" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.lessThan( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> has the value less than <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">string/number<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+        "bool": {
+          "must_not": [],
+          "should": [],
+          "must": [{
+            "range": {
+              "age": {
+                "lt": 10
+              }
+            }
+          }]
+        }
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+
+          <a id='CloudSearch-lessThanEqualTo' name="CloudSearch-lessThanEqualTo" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.lessThanEqualTo( <code>columnName, data</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> has the value less than or equals to <code>data</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>data</dt>
+                  <dd class="">string/number<span>The value of the equals contraint</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+        "bool": {
+          "must_not": [],
+          "should": [],
+          "must": [{
+            "range": {
+              "age": {
+                "lte": 10
+              }
+            }
+          }]
+        }
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudSearch-or' name="CloudSearch-or" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.or( <code>cloudSearch1, cloudSearch2</code> )</h3>
+              <p>
+              It adds a logical OR contriant between 2 <code>CloudSearch</code> objects for 
+              finding the set of the data satisfying conditions of both <code>cloudSearch1</code>
+              and <code>cloudSearch2</code>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>cloudSearch1</dt>
+                  <dd class=""><code>CloudSearch object</code></dd>
+                  <div class="clearfix"></div>
+                  <dt>cloudSearch2</dt>
+                  <dd class=""><code>CloudSearch object</code></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>It returns a <code>CloudSearch</code> object which contains
+                OR'ed query of both of the <code>CloudSearch</code> objects.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+
+//search for Students either called Adam or smith
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+        "bool": {
+          "must_not": [],
+          "should": [],
+          "must": [{
+            "term": {
+              "name": "Adam"
+            }
+          },
+          {
+            "term": {
+              "name": "smith"
+            }
+          }]
+        }
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+              
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudSearch-orderByAsc' name="CloudSearch-orderByAsc" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.orderByAsc( <code>columnName</code> )</h3>
+              <p>
+              It adds a contriant for arranging the subset of the data in ascending 
+              order.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [{
+    "name": {
+      "order": "asc"
+    }
+  }],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudSearch-orderByDesc' name="CloudSearch-orderByDesc" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.orderByDesc( <code>columnName</code> )</h3>
+              <p>
+              It adds a contriant for arranging the subset of the data in descending 
+              order.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The attribute on which the contraint is to be applied</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+               <h6>Returns</h6>
+                <p>Same search object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [{
+    "name": {
+      "order": "desc"
+    }
+  }],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudSearch-setLimit' name="CloudSearch-setLimit" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.setLimit( <code>data</code> )</h3>
+              <p>
+              It adds a contriant to limit no. of the data to be
+              fetched from the database.
+              </p>
+              <p>
+                If it is not set explicitly, database returns 20 results by default.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>data</dt>
+                  <dd class="">number <span>No. of data to be shown</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//default limit is 10
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 5,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudSearch-setSkip' name="CloudSearch-setSkip" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.setSkip( <code>data</code> )</h3>
+              <p>
+              It adds a constraint to skip <code>data</code> no. of data
+              matching satisfying the query contraints and fetching
+              from the database.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>data</dt>
+                  <dd class="">number <span>No. of data to be skipped</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//default skip is 0
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {        
+      },
+      "filter": {
+      }
+    }
+  },
+  "skip": 5,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          
+
+          <a id='CloudSearch-exists' name="CloudSearch-exists" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+              <h3>CloudSearch.exists( <code>columnName</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> exists irrespective of what its value is.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The column name which is to be checked for existence</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+    "query": {
+  "filtered": {
+    "query": {      
+    },
+    "filter": {
+      "bool": {
+        "must_not": [],
+        "should": [],
+        "must": [{
+          "exists": {
+            "field": "name"
+          }
+        }]
+      }
+    }
+  }
+},
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudSearch-doesNotExists' name="CloudSearch-doesNotExists" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.doesNotExists( <code>columnName</code> )</h3>
+              <p>
+              It adds a contriant for finding the subset of the data in which 
+              <code>columnName</code> does not exists.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>columnName</dt>
+                  <dd class="">string <span>The column name which is to be checked for non-existence</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>Same CloudSearch object, which can be helpful in chaining search functions.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+    "query": {
+  "filtered": {
+    "query": {      
+    },
+    "filter": {
+      "bool": {
+        "must_not": [{
+          "exists": {
+            "field": "name"
+          }
+        }],
+        "should": [],
+        "must": []
+      }
+    }
+  }
+},
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+          <a id='CloudSearch-search' name="CloudSearch-search" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudSearch.search(<code>[callback]</code> )</h3>
+              <p>
+                Searches the database on the constraints provided by the <code>CloudSearch</code>
+                object and gets the result as an array of <code>CloudObject</code> objects.
+              </p>
+              <p>
+              If no. of documents to be returned is not specified using <a href="#CloudQuery-setLimit">limit()</a>
+              then at max 20 documents are returned in each query by default.
+              </p>
+              <div class="method-list">
+              
+				<h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>callback</dt>
+                  <dd class="">CloudSearchCallback interface object <span>must override success(Map&lt;String, Object &gt;) method and error method</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+                <h6>Returns</h6>
+                <p>It returns an array of <code>CloudObject</code> objects.</p>
+                <h6>Error Handling</h6>
+                It throws <code>CloudBoostException, MalformedURLException, IOException</code>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": [],
+  "query": {
+    "filtered": {
+      "query": {
+        "bool": {
+          "must_not": [],
+          "should": [{
+            "match": {
+              "name": {
+                "query": "[\"egima\",\"bengi\"]"
+              }
+            }
+          }],
+          "must": []
+        }
+      },
+      "filter": {        
+      }
+    }
+  },
+  "skip": 0,
+  "collectionName": ${table_name}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}/search'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+      </div>
+ <a id='ACL' name="ACL" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+              <h1>ACL</h1>
+              <p>
+              Each <code>CloudObject</code> namespace has security option by default. By default every object can be read and modified by anyone so for each object change the security option as desidred.
+              For any object, you can specify which users/roles are allowed to read the object, and which users/roles are allowed to modify an object. To support this type of security, each object has an access control list, implemented by the <code>ACL</code> class.
+              </p>
+              <p>
+                For each object <code>ACL</code> object is a property in  <code>CloudObject.ACL</code> class.
+              </p>
+              <p>
+                All the modifications in the ACL can be reflected only after the object is saved after the changes.
+              </p>
+            </div>
+          </div>		  
+		  
+          <a id='ACL-setPublicWriteAccess' name="ACL-setPublicWriteAccess" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>ACL.setPublicWriteAccess( <code>value</code> )</h3>
+              <p>
+                To allow/disallow <i>public</i> to write on a particular CloudObject
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>value</dt>
+                  <dd class="">boolean</dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>void</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "document": {   "_type": "custom",
+    "expires": null,
+    ${column_name}: ${column_value},
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "data",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "_isModified": true}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='ACL-setPublicReadAccess' name="ACL-setPublicReadAccess" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>ACL.setPublicReadAccess( <code>value</code> )</h3>
+              <p>
+                To allow/disallow <i>public</i> to read a particular object
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>value</dt>
+                  <dd class="">boolean</dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>void</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+      <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "document": {   "_type": "custom",
+    "expires": null,
+    ${column_name}: ${column_value},
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "data",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "_isModified": true}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='ACL-setUserWriteAccess' name="ACL-setUserWriteAccess" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>ACL.setUserWriteAccess( <code>userId, value</code> )</h3>
+              <p>
+                To allow/disallow user having to write on a particular object.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+                  
+                  <dt>userId</dt>
+                  <dd class="">string <span>The User ID of the user you want to set the access for</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>value</dt>
+                  <dd class="">boolean</dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>void</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+             <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "document": {   "_type": "custom",
+    "expires": null,
+    ${column_name}: ${column_value},
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "data",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["userId"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "_isModified": true}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+
+              </span></span></code>
+                
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='ACL-setUserReadAccess' name="ACL-setUserReadAccess" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>ACL.setUserReadAccess( <code>userId, value</code> )</h3>
+              <p>
+                To allow/disallow user having <i>_id</i> <code>userId</code> to read a particular object.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+                  
+                  <dt>userId</dt>
+                  <dd class="">string <span>The user ID of the user you want to set the access for</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>value</dt>
+                  <dd class="">boolean</dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>It returns nothing.</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+                 <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "document": {   "_type": "custom",
+    "expires": null,
+    ${column_name}: ${column_value},
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "data",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["userId"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "_isModified": true}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+
+              </span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+          <a id='ACL-setRoleWriteAccess' name="ACL-setRoleWriteAccess" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>ACL.setRoleWriteAccess( <code>roleId, value</code> )</h3>
+              <p>
+                To allow/disallow users of <i>roles</i> <code>roleId</code> to write on a particular object
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+                  
+                  <dt>roleId</dt>
+                  <dd class="">string <span>The role ID of the Role you want to set the access for</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>value</dt>
+                  <dd class="">boolean</dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>void</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+                 <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "document": {   "_type": "custom",
+    "expires": null,
+    ${column_name}: ${column_value},
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "data",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": ["rolename"],
+          "user": []
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "_isModified": true}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+
+          <a id='ACL-setRoleReadAccess' name="ACL-setRoleReadAccess" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>ACL.setRoleReadAccess( <code>roleId, value</code> )</h3>
+              <p>
+                To allow/disallow users of <i>roles</i> <code>roleId</code> to read a particular object
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+                  
+                  <dt>roleId</dt>
+                  <dd class="">string <span>The role ID of the Role you want to set the access for</span></dd>
+                  <div class="clearfix"></div>
+                  <dt>value</dt>
+                  <dd class="">boolean</dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>void</p>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+                 <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "document": {   "_type": "custom",
+    "expires": null,
+    ${column_name}: ${column_value},
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "data",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": ["rolename"],
+          "user": []
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "_isModified": true}
+}' 'http://api.cloudboost.io/data/${app_id}/${table_name}'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudUser-signUp' name="CloudUser-signUp" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudUser.signUp( )</h3>
+              <p>
+                It registers new user given its <i>username</i>, <i>email</i> and <i>password</i>.
+                Registration is successful if the given <i>email</i> is not already registered to an existing user.
+              </p>
+              <p>
+                It sets the attributes of <code>CloudUser.current</code> object with the 
+                <code>CloudUser</code> object recieved.
+              </p>
+              <div class="method-list">
+                
+                
+
+                <h6>Returns</h6>
+                <p>
+                It returns a <code>CloudUser</code> object which has the user information if registration is successful.
+                </p>
+                <h6>Error Handling</h6>
+                It throws <code>CloudBoostException</code>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+    "document": {
+    "_type": "user",
+    "username": ${user_name},
+    "expires": null,
+    "email": "${usr_email},
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "username",
+    "password",
+    "email"],
+    "_tableName": "User",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "password": ${password},
+    "_isModified": true
+  }
+}' 'http://api.cloudboost.io/user/${app_id}/signup'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudUser-logIn' name="CloudUser-logIn" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudUser.logIn( )</h3>
+              <p>
+                It logs in user given its <i>username</i> and <i>password</i>.
+                Login is successful if the given <i>username</i> and <i>password</i> pair is already present in the database.
+              </p>
+              <p>
+                It sets the attributes of <code>CloudUser.current</code> object with the 
+                <code>CloudUser</code> object recieved.
+              </p>
+              <div class="method-list">
+                
+               </dl>
+
+
+                <h6>Returns</h6>
+                <p>
+                It returns a <code>CloudUser</code> object which has the user information if registration is 
+                successful.</p>
+                <h6>Error Handling</h6>
+                It throws <code>CloudBoostException</code>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+    "document": {
+    "_type": "user",
+    "username": ${user_name},
+    "expires": null,
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "username",
+    "password"],
+    "_tableName": "User",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "password": ${password},
+    "_isModified": true
+  }
+}' 'http://api.cloudboost.io/user/${app_id}/login'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+          <a id='CloudUser-logOut' name="CloudUser-logOut" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudUser.logOut( )</h3>
+              <p>
+                It logs the user out.
+              </p>
+              <p>
+                It sets the <code>CloudUser.current</code> object to <i>null</i>.
+              </p>
+              <div class="method-list">
+                
+                <h6>Returns</h6>
+                <p>
+                It returns a <code>CloudUser</code> object having the user information of the user who was logged in. 
+                </p>
+                <h6>Error Handling</h6>
+                It throws <code>CloudBoostException</code>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+    "document": {
+  "_id": "M6gLT9DI",
+  "_type": "user",
+  "username": "momo",
+  "expires": null,
+  "email": "momo@gmail.com",
+  "_tableName": "User",
+  "ACL": {
+    "write": {
+      "allow": {
+        "role": [],
+        "user": ["all"]
+      },
+      "deny": {
+        "role": [],
+        "user": []
+      }
+    },
+    "read": {
+      "allow": {
+        "role": [],
+        "user": ["all"]
+      },
+      "deny": {
+        "role": [],
+        "user": []
+      }
+    }
+  },
+  "password": ${encrypted_password},
+  "createdAt": "2016-03-15T09:44:28.978Z",
+  "updatedAt": "2016-03-15T09:44:28.978Z",
+  "_version": 0
+  }
+}' 'http://api.cloudboost.io/user/${app_id}/logout'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+          <a id='CloudUser-addToRole' name="CloudUser-addToRole" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudUser.addToRole( <code>role</code> )</h3>
+              <p>
+                A user can be a part of many roles, like in real world. For this functionality
+                user should get added to a Role.
+              </p>
+              <p>
+                For this purpose <code>addToRole()</code> of <code>CloudUser</code> comes in handy.
+              </p>
+              <div class="method-list">
+                
+                <h6>Arguments</h6>
+                <dl class="argument-list">
+
+                  <dt>role</dt>
+                  <dd class="">CloudRole Object <span> The <code>CloudRole</code> object of the role you want to
+                  add the user to.</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                <p>
+                It returns a <code>CloudUser</code> object having the user information of the user who was logged in. 
+                </p>
+                <h6>Error Handling</h6>
+                It throws <code>CloudBoostExceptionn</code>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+//role is an instance of CloudRole Object.
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${app_key},
+  "role": {   "_type": "role",
+    "expires": null,
+    "name": "admin",
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "Role",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "_isModified": true},
+  "user": {   "updatedAt": "2016-03-15T09:44:28.978Z",
+    "_type": "user",
+    "_version": 0,
+    "username": "momo",
+    "expires": null,
+    "_id": "M6gLT9DI",
+    "email": "momo@gmail.com",
+    "createdAt": "2016-03-15T09:44:28.978Z",
+    "_tableName": "User",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "password": ${encrypted password}}
+}' 'http://api.cloudboost.io/user/cpnbzclvxjts/addToRole'
+
+</span></span></code>
+            <p>Given <a href="#CloudRole-getRole">getRole()</a> is discussed later</p>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+          <a id='CloudUser-removeFromRole' name="CloudUser-removeFromRole" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudUser.removeFromRole( <code>role</code> )</h3>
+              <p>
+                Removes the user from the given role provided in <code>role</code> object.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>role</dt>
+                  <dd class="">CloudRole Object <span> The <code>CloudRole</code> object of the role you want to
+                  remove the user from.</span></dd>
+                  <div class="clearfix"></div>
+                  </dl>
+
+                <h6>Returns</h6>
+                <p>
+                It returns a <code>CloudUser</code> object having the user information of the user who was logged in.
+                </p>
+                <h6>Error Handling</h6>
+                It throws <code>CloudBoostException</code>
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  {
+  "role": {
+    "_type": "role",
+    "expires": null,
+    "name": "admin",
+    "_modifiedColumns": ["createdAt",
+    "updatedAt",
+    "ACL",
+    "expires",
+    "name"],
+    "_tableName": "Role",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "_isModified": true
+  },
+  "user": {
+    "updatedAt": "2016-03-15T09:44:28.978Z",
+    "_type": "user",
+    "_version": 0,
+    "username": "momo",
+    "expires": null,
+    "_id": "M6gLT9DI",
+    "email": "momo@gmail.com",
+    "createdAt": "2016-03-15T09:44:28.978Z",
+    "_tableName": "User",
+    "ACL": {
+      "write": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      },
+      "read": {
+        "allow": {
+          "role": [],
+          "user": ["all"]
+        },
+        "deny": {
+          "role": [],
+          "user": []
+        }
+      }
+    },
+    "password": ${encrypted_password}
+  },
+  "key":${app_key}
+}
+}' 'http://api.cloudboost.io/user/${app_id}/removeFromRole'
+
+</span></span></code>
+            <p>Given <a href="#CloudRole-getRole">getRole()</a> is discussed later</p>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+		  
+		  
+          <a id='CloudUser-changePassword' name="CloudUser-changePassword" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudUser.changePassword( )</h3>
+              <p>
+                To change the password of a user you need to call the changePassword function of the CB.CloudUser instance. Before you call the changePassword function make sure the current user is loggedIn and the current session is valid. Please note : Calling change password will not log the user out of its current session.
+              </p>
+             
+              
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  {
+  "newPassword": ${old_pass},
+  "oldPassword": ${new_pass},
+  "key":${app_key}
+}
+}' 'http://api.cloudboost.io/user/${app_id}/changePassword'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+		  
+		  
+          <a id='CloudUser-resetPassword' name="CloudUser-resetPassword" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudUser.resetPassword( )</h3>
+              <p>
+To reset the password of a user you need to call the resetPassword function of the CB.CloudUser class. Reset Password takes in an email of the user as first parameter and callback as second parameter. CloudBoost automatically takes care of emailing the user with password reset link. Please note : If you want to change the format the email which CloudBoost sends by default. You can head over to your CloudBoost App Dashboard and change the email settings of an app.
+              </p>
+             
+              
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  {
+  "email": ${email_address},
+  "key":${app_key}
+}
+}' 'http://api.cloudboost.io/user/${app_id}/resetPassword'
+
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+
+          <a id='CloudRole-getRole' name="CloudRole-getRole" class="section-anchor">&nbsp;</a>
+          <div class="method-section">
+            <div class="method-description">
+
+              <h3>CloudRole.getRole( <code>role</code> )</h3>
+              <p>
+              Gets a <code>CloudRole</code> object for a given <code>role</code> object with <i>name</i>
+              field only.
+              </p>
+              <div class="method-list">
+                
+                <h6>Argument</h6>
+                <dl class="argument-list">
+
+                  <dt>role</dt>
+                  <dd class="">CloudRole object <span>The name of the role you want to deal with</span></dd>
+                  <div class="clearfix"></div>
+                  
+                </dl>
+
+                <h6>Returns</h6>
+                It returns a <code>CloudRole</code> object having the role information of the role whose name was 
+                provided in the object of <code>role</code> argument.
+              </div>
+            </div>
+            <div class="method-example" id="api-summary-example">
+              <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${client_key},
+  "limit": 10,
+  "sort": {    
+  },
+  "select": {    
+  },
+  "query": {
+    "$includeList": [],
+    "$include": [],
+    "name": "role_name"
+  },
+  "skip": 0
+}' 'http://api.cloudboost.io/data/${app_id}/Role/find'
+</span></span></code>
+            </div><!-- method-example -->
+          </div> <!-- method-section -->
+<a id='CloudFile' name="CloudFile" class="section-anchor">&nbsp;</a>
+      <div class="method-section">
+        <div class="method-description">
+          <h1>CloudFile</h1>
+          <p>
+            <code>CloudFile</code> lets you store application files in the cloud that would otherwise be too large or 
+            cumbersome to fit into a regular <code>CloudObject</code>. The most common use case is storing images, 
+            but you can also use it for documents, videos, music, and any other binary data.
+          </p>
+        </div>
+        <div class="method-example" id="api-summary-example">
+        </div>
+      </div>  
+	  
+	  
+	  
+	  
+      <a id='CloudFile-save' name="CloudFile-save" class="section-anchor">&nbsp;</a>
+      <div class="method-section">
+        <div class="method-description">
+
+          <h3>CloudFile.save( )</h3>
+          <p>
+          Saves the <code>CloudFile</code> object.
+          </p>
+          <div class="method-list">
+
+            <h6>Returns</h6>
+            <p>It returns a <code>CloudFile</code> object having <code>url</code> attribute set to the URL 
+            of the blob uploaded to the server if the operation is successful.<p>
+            <h6>Error Handling</h6>
+            It throws <code>CloudBoostException, MalformedURLException, IOException</code>
+          </div>
+        </div>
+        <div class="method-example" id="api-summary-example">
+          <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
+  "key": ${app_key},
+  "data": "this data will be written to the new file",
+  "fileObj": {
+    "_id": "string",
+    "_type": "file",
+    "ACL": {
+      "read": {
+        "allow": {
+          "user": [
+            "all"
+          ],
+          "role": []
+        },
+        "deny": {
+          "user": [],
+          "role": []
+        }
+      },
+      "write": {
+        "allow": {
+          "user": [
+            "all"
+          ],
+          "role": []
+        },
+        "deny": {
+          "user": [],
+          "role": []
+        }
+      }
+    },
+    "name": "string",
+    "size": 0,
+    "url": "string",
+    "expires": "2016-03-16T13:31:41.151Z",
+    "contentType": "application/octet-stream"
+  }
+}' 'https://api.cloudboost.io/file/${app_id}'
+</span></span></code>
+        </div><!-- method-example -->
+      </div> <!-- method-section -->
+      
+      <a id='CloudFile-delete' name="CloudFile-delete" class="section-anchor">&nbsp;</a>
+      <div class="method-section">
+        <div class="method-description">
+
+          <h3>CloudFile.delete( )</h3>
+          <p>
+          Deletes the <code>CloudFile</code> object.
+          </p>
+          <div class="method-list">
+
+            <h6>Returns</h6>
+            <p>It returns a <code>CloudFile</code> object having <code>url</code> attribute set to <code>null</code> 
+            if the operation is successful.<p>
+            <h6>Error Handling</h6>
+            It throws <code>CloudBoostException, MalformedURLException, IOException</code>
+          </div>
+        </div>
+        <div class="method-example" id="api-summary-example">
+          <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+curl -X PUT --header 'Content-Type: application/json' --header 'Accept: text/html' -d '{
+  "key": ${app_key},
+  "method": "DELETE"
+}' 'http://api.cloudboost.io/file/${app_id}/${file_id}'
+</span></span>
+</code>
+
+</div>
+<!-- method-example -->
+<div class="clearfix"></div>
+        
+</div> <!-- method-section -->
+
+
+
+ 
+<div class="method">
+  <a id='Contribute' name="Contribute" class="section-anchor">&nbsp;</a>
+  <div class="method-section">
+    <div class="method-description">
+
+      <h1>Contribute</h1>
+      <p>
+      Our documentation is open source <br/><br/>
+
+      Documentation : <a href="https://github.com/CloudBoost/api-reference">GitHub Repository</a> 
+      </p>
+
+    </div>
+     <div class="method-example" id="api-summary-example">
+      <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+01001101 01100001 01100100 01100101
+01110111 01101001 01110100 01101000  
+00111100 00110011
+01001101 01100001 01100100 01100101
+01110111 01101001 01110100 01101000  
+00111100 00110011 
+      </span></span></code>
+    </div><!-- method-example -->
+  </div>
+ 
+</div> <!-- method -->
+	</div> <!-- methods -->
+</div> <!-- api-docs -->
+    <div class="footer">
+
+    </div>
+
+    <script src="assets/js/docs.js"></script>
+    <script src="assets/js/highlight.pack.js"></script>
+    <script src="assets/js/highlighter.js"></script>
+    <script>
+    
+      /****Tracking*********/              
+        mixpanel.track('Documentation Views');
+      /****End of Tracking*****/
+
+      var currentLangId="#javascript-sdk";
+      var url = window.location.href;
+      var urlParts=url.split("/");
+      var currentAPI=urlParts[3];     
+      
+
+      if(currentAPI=="javascript.html" || currentAPI.indexOf("javascript.html")>-1){
+        currentLangId="#javascript-sdk";
+      }
+      if(currentAPI=="java.html" || currentAPI.indexOf("java.html")>-1){
+        currentLangId="#java-sdk";
+      }
+      if(currentAPI=="dotnet.html" || currentAPI.indexOf("dotnet.html")>-1){
+        currentLangId="#dotnet-sdk";
+      }
+      if(currentAPI=="curl.html" || currentAPI.indexOf("curl.html")>-1){
+        currentLangId="#curl-sdk";
+      }
+      _selectLanguage(currentLangId);
+
+      $(document).ready(function(){
+          $("#javascript-sdk").click(function(){            
+            window.location.href="javascript.html";
+            _selectLanguage("#javascript-sdk");
+          });
+
+          $("#java-sdk").click(function(){            
+            window.location.href="java.html";
+            _selectLanguage("#java-sdk");
+          });
+
+          $("#dotnet-sdk").click(function(){           
+            window.location.href="dotnet.html";
+            _selectLanguage("#dotnet-sdk");
+          });
+
+          $("#curl-sdk").click(function(){           
+            window.location.href="curl.html";
+            _selectLanguage("#curl-sdk");
+          });
+
+          $("#others-swagger").click(function(){           
+            window.location.href="https://swagger.cloudboost.io";            
+          });
+      });
+
+      function _selectLanguage(langId){
+        //remove from all
+        $("#javascript-sdk").removeClass("selected");
+        $("#java-sdk").removeClass("selected");
+        $("#dotnet-sdk").removeClass("selected");
+        $("#curl-sdk").removeClass("selected");
+
+        //select current
+        $(langId).addClass("selected");
+      } 
+       
+    </script>
+  </body>
+</html>

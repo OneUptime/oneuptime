@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <meta charset="utf-8" />
+  <title>Fyipe API Reference</title>
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+
+  <link rel="stylesheet" type="text/css" href="assets/css/site.css" media="screen" />
+
+  <script src="assets/js/qframe.js"></script>
+  <script src="assets/js/jquery.js"></script>
+  <script src="assets/js/jquery.cookie.js"></script>
+  <script src="assets/js/waypoints.js"></script>
+  <script src="assets/js/shared.js"></script>
+  <script src="assets/js/api.js"></script>
+  <!-- start Mixpanel -->
+  <script type="text/javascript">
+    (function (f, b) {
+      if (!b.__SV) {
+        var a, e, i, g;
+        window.mixpanel = b;
+        b._i = [];
+        b.init = function (a, e, d) {
+          function f(b, h) {
+            var a = h.split(".");
+            2 == a.length && (b = b[a[0]], h = a[1]);
+            b[h] = function () {
+              b.push([h].concat(Array.prototype.slice.call(arguments, 0)))
+            }
+          }
+          var c = b;
+          "undefined" !== typeof d ? c = b[d] = [] : d = "mixpanel";
+          c.people = c.people || [];
+          c.toString = function (b) {
+            var a = "mixpanel";
+            "mixpanel" !== d && (a += "." + d);
+            b || (a += " (stub)");
+            return a
+          };
+          c.people.toString = function () {
+            return c.toString(1) + ".people (stub)"
+          };
+          i =
+            "disable track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config people.set people.set_once people.increment people.append people.union people.track_charge people.clear_charges people.delete_user"
+            .split(" ");
+          for (g = 0; g < i.length; g++) f(c, i[g]);
+          b._i.push([a, e, d])
+        };
+        b.__SV = 1.2;
+        a = f.createElement("script");
+        a.type = "text/javascript";
+        a.async = !0;
+        a.src = "undefined" !== typeof MIXPANEL_CUSTOM_LIB_URL ? MIXPANEL_CUSTOM_LIB_URL :
+          "//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";
+        e = f.getElementsByTagName("script")[0];
+        e.parentNode.insertBefore(a, e)
+      }
+    })(document, window.mixpanel || []);
+    mixpanel.init("be05a4d590e8bc9d5f2cd6b3b3ffb78b");
+  </script>
+  <!-- end Mixpanel -->
+
+</head>
+
+<body class="api-docs node">
+  <div id="background"></div>
+  <div id="header">
+    <a href="https://www.Fyipe.io">
+      <img src="https://fyipe.com/img/FyipeFull.svg" height="40" style="float:left;margin-top:5px" />
+    </a>
+    <div class="navigation">
+      <div class="signin">
+        <a id='signin' href="https://dashboard.Fyipe.io/accounts">
+          <span>Sign In</span>
+        </a>
+      </div>
+      <ul class="global">
+        <li><a href="https://docs.Fyipe.io" class="selected">Documentation</a></li>
+        <li><a href="https://Fyipe.io/quickstart" target="_blank">Quickstart</a></li>
+        <li><a href="http://stackoverflow.com/questions/ask?tags=Fyipe" target="_blank">Help &amp; Support</a></li>
+      </ul>
+    </div>
+  </div>
+  <div id="guide">
+    <p class="ref-title">Overview</p>
+    <ul class="ref-list">
+      <li class="section">
+        <a href="#Introduction" class="parent viewing">Introduction</a>
+      </li>
+      <li class="section">
+        <a href="#User" class="parent">User</a>
+      </li>
+      <li class="section">
+        <a href="#Project" class="parent">Project</a>
+      </li>
+      <li class="section">
+        <a href="#Settings" class="parent">Settings</a>
+      </li>
+      <li class="section">
+        <a href="#Settings" class="parent">Feedback</a>
+      </li>
+    </ul>
+    <br />
+    <p class="Settingsref-title">Classes</p>
+    <ul class="ref-list">
+
+      <li class="section section-charges">
+        <a href="#Authentication" class="parent">Authentication</a>
+        <span class="children">
+          <a href="#Authentication-constructor" class="parent">Constructor</a>
+          <a href="#Authentication-login" class="parent">Login</a>
+          <a href="#Authentication-signup" class="parent">Signup</a>
+        </span>
+      </li>
+
+      <li class="section section-charges">
+        <a href="#User" class="parent">User</a>
+        <span class="children">
+          <a href="#User-constructor" class="parent">Constructor</a>
+          <a href="#User-resetPassword" class="parent">Reset Password</a>
+          <a href="#User-forgotPassword" class="parent">Forgot Password</a>
+        </span>
+      </li>
+
+      <li class="section section-charges">
+        <a href="#Alert" class="parent">Alert</a>
+        <span class="children">
+          <a href="#Alert-constructor" class="parent">Constructor</a>
+          <a href="#Alert-getAlerts" class="parent">Get Alerts</a>
+          <a href="#Alert-getIncidentAlerts" class="parent">Get Incident Alerts</a>
+
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Feedback" class="parent">Feedback</a>
+        <span class="children">
+          <a href="#Feedback-create" class="parent">Create</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Project" class="parent">Project</a>
+        <span class="children">
+          <a href="#Project-create" class="parent">Create Project</a>
+          <a href="#Project-getAll" class="parent">Get Projects</a>
+          <a href="#Project-resetKey" class="parent">Reset Project API Key</a>
+          <a href="#Project-renameProject" class="parent">Rename Project</a>
+          <a href="#Project-deleteProject" class="parent">Delete Project</a>
+          <a href="#Project-changeProjectPlan" class="parent">Change Plan</a>
+          <a href="#Project-removeTeamMember" class="parent">Remove Team Member</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Incident" class="parent">Incident</a>
+        <span class="children">
+          <a href="#Incident-create" class="parent">Create</a>
+          <a href="#Incident-getAllIncidentsByMonitor" class="parent">Get All Incidents By Monitor</a>
+          <a href="#Incident-GetAllIncidentByProject" class="parent">Get All Incident By Project</a>
+          <a href="#Incident-GetOneIncident" class="parent">Get One Incident</a>
+          <a href="#Incident-AcknowledgeIncident" class="parent">Acknowledge Incident</a>
+          <a href="#Incident-GetAcknowledgeIncident" class="parent">Get Acknowledge Incident By Id</a>
+          <a href="#Incident-ResolveIncident" class="parent">Resolve Incident</a>
+          <a href="#Incident-getResolvedIncident" class="parent">Get Resolve Incident</a>
+          <a href="#Incident-getIncidentNote" class="parent">Get Incident Notes</a>
+          <a href="#Incident-unresolvedincidents" class="parent">Get Unresolved Incidents</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Monitor" class="parent">Monitor</a>
+        <span class="children">
+          <a href="#Monitor-addMonitorToProject" class="parent">Add Monitor to Project</a>
+          <a href="#Monitor-getAllMonitorsByProject" class="parent">Get All Monitors By Project</a>
+          <a href="#Monitor-deleteMonitor" class="parent">Delete Monitor</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Schedule" class="parent">Schedule</a>
+        <span class="children">
+          <a href="#Schedule-create" class="parent">Create Schedule</a>
+          <a href="#Schedule-getAllProjectSchedules" class="parent">Get All Project Schedules</a>
+          <a href="#Schedule-rename" class="parent">Rename</a>
+          <a href="#Schedule-delete" class="parent">Delete</a>
+          <a href="#Schedule-addMonitors" class="parent">Add Monitors</a>
+          <a href="#Schedule-addUsers" class="parent">Add Users</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Notifcation" class="parent">Notifcation</a>
+        <span class="children">
+          <a href="#Notifcation-getNotifications" class="parent">Get Notifications</a>
+          <a href="#Notifcation-getAllMonitorsByProject" class="parent">Create Notificaitons</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Lead" class="parent">Lead</a>
+        <span class="children">
+          <a href="#Incident-lead" class="parent">Create</a>
+          <a href="#Incident-getIncidentByMonitor" class="parent">GetIncidentByMonitor</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Settings" class="parent">Settings</a>
+        <span class="children">
+          <a href="#Settings-onCallAlert" class="parent">On Call Alert</a>
+          <a href="#Settings-updateProfile" class="parent">Update Profile</a>
+          <a href="#Settings-changePassword" class="parent">Change Password</a>
+          <a href="#Settings-profile" class="parent">Profile</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#StatusPage" class="parent">Status Page</a>
+        <span class="children">
+          <a href="#StatusPage-createStatusPage" class="parent">Create Status Page</a>
+          <a href="#StatusPage-addStatusPage" class="parent">Update Status Page</a>
+          <a href="#StatusPage-updateStatusPage" class="parent">Update Status Page Settings</a>
+          <a href="#StatusPage-changePassword" class="parent">Add Branding to Status</a>
+          <a href="#StatusPage-updateLinksToStatusPage" class="parent">Update Links to Status Page</a>
+          <a href="#StatusPage-getStatusPageByProject" class="parent">Get Status Page By Project</a>
+          <a href="#StatusPage-getStatusData" class="parent">Get Status Data</a>
+          <a href="#StatusPage-getStatusNotesByProject" class="parent">Get Status Notes By Project</a>
+          <a href="#StatusPage-getStatusNotesByProject" class="parent">Get Status Page Notes By Monitor Id</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Team" class="parent">Team</a>
+        <span class="children">
+          <a href="#Team-getTeamMembers" class="parent">Get Team Members</a>
+          <a href="#Team-addTeamMember" class="parent">Add Team Member</a>
+          <a href="#Team-changeTeamMemberRole" class="parent">Change Team Member Role</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Twilio" class="parent">Twilio</a>
+        <span class="children">
+          <a href="#Twilio-voice" class="parent">Voice</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Zapier" class="parent">Zapier</a>
+        <span class="children">
+          <a href="#Zapier-pullAll" class="parent">Get All Zapier Service</a>
+          <a href="#Zapier-test" class="parent">Get All Zapier Test</a>
+          <a href="#Zapier-incidents" class="parent">Get All Zapier Incidents</a>
+          <a href="#Zapier-resolved" class="parent">Get All Zapier Resolved</a>
+          <a href="#Zapier-subscribe" class="parent">Subscribe Zapier</a>
+          <a href="#Zapier-unSubscribe" class="parent">Unsubscribe Zapier</a>
+        </span>
+      </li>
+
+      <li class="section section-charges"><a href="#Contribute" class="parent">Contribute</a>
+      </li>
+    </ul>
+
+  </div>
+  <!-- api docs -->
+  <div id="api-docs">
+    <a id="top" name="top" class="section-anchor">&nbsp;</a>
+    <div id="methods">
+      <div class="border"></div>
+
+      <div id="language">
+        <a id="javascript-sdk" class="language" href="rest.html">REST</a>
+        <a id="javascript-sdk" class="language" href="javascript.html">JavaScript</a>
+      </div>
+      <div class="method">
+        <a id='Introduction' name="Introduction" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+
+            <h1>API Reference</h1>
+
+            <p>
+              The Fyipe API is organized around <a href="http://en.wikipedia.org/wiki/Representational_State_Transfer">REST</a>.
+              Our API is designed to have predictable, resource-oriented URLs and to use HTTP response codes to
+              indicate
+              API errors. We use built-in HTTP features, like HTTP authentication and HTTP verbs, which can be
+              understood
+              by off-the-shelf HTTP clients, and we support <a href="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing">cross-origin
+                resource sharing</a> to allow you to interact securely with our API from a client-side web
+              application/mobile application (though
+              you should remember that you should never expose your secret API master key in any public website's
+              client-side
+              code, Client Key can be exposed).
+              <a href="http://www.json.org/">JSON</a> will be returned in all responses from the API, including errors
+              (though
+              if you're using API bindings/SDK, we will convert the response to the appropriate language-specific
+              object).
+            </p>
+
+          </div>
+          <div class="method-example" id="api-summary-example">
+
+            <h3>REST API</h3>
+
+            <h4>Minified JS :</h4> <a href="https://Fyipe.io/js-sdk/Fyipe.min.js" target="_blank">
+              <code>https://Fyipe.io/js-sdk/Fyipe.min.js</code>
+            </a><br />
+
+            <h4>NPM :</h4>
+            <code>npm install <b>Fyipe</b></code>
+            <code>var CB = require('Fyipe');</code>
+            <br />
+
+            <h4>GitHub :</h4> <a href="https://github.com/Fyipe/JavaScriptSDK/">
+              <code>https://github.com/Fyipe/JavaScriptSDK</code>
+            </a><br />
+
+          </div>
+        </div>
+      </div>
+      <div class="method">
+        <a id='Apps' name="Apps" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+
+            <h1>Apps</h1>
+            <p>
+              In Fyipe, you create an app each of which has its own AppID, Client Key and the Master Key that you apply
+              to your web
+              app. Your master key is a secret which should not be shared in your client apps. Your account on Fyipe
+              can accommodate multiple apps. This is useful even if you have one application since you can deploy
+              different
+              versions for test and production.
+            </p>
+
+          </div>
+          <div class="method-example" id="api-summary-example">
+          </div>
+        </div>
+      </div>
+
+      <div class="method">
+        <a id='Authentication' name="Authentication" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+
+            <h1>Authentication</h1>
+            <!--<p>
+              This Class helps you to Initialize Application with Fyipe, with the following method :-
+              </p>-->
+
+          </div>
+          <div class="method-example" id="api-summary-example">
+          </div>
+        </div>
+
+        <a id='Authentication-constructor' name="Authentication-constructor" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Authentication-login' name="Authentication-login" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Authentication-signup' name="Authentication-signup" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+      </div>
+
+      <div class="method">
+        <a id='User' name="User" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+
+            <h1>User</h1>
+            <!--<p>
+                This Class helps you to Initialize Application with Fyipe, with the following method :-
+                </p>-->
+
+          </div>
+          <div class="method-example" id="api-summary-example">
+          </div>
+        </div>
+
+        <a id='User-constructor' name="User-constructor" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='User-resetPassword' name="User-resetPassword" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='User-forgotPassword' name="User-forgotPassword" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+      </div>
+      <div class="method">
+        <a id='Alert' name="Alert" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+
+            <h1>Alert</h1>
+            <!--<p>
+                This Class helps you to Initialize Application with Fyipe, with the following method :-
+                </p>-->
+          </div>
+          <div class="method-example" id="api-summary-example">
+          </div>
+        </div>
+
+        <a id='Alert-constructor' name="Alert-constructor" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Alert-getAlerts' name="Alert-getAlerts" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Alert-getIncidentAlerts' name="Alert-getIncidentAlerts" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+      </div>
+
+      <div class="method">
+        <a id='Feedback' name="Feedback" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+
+            <h1>Feedback</h1>
+            <!--<p>
+                This Class helps you to Initialize Application with Fyipe, with the following method :-
+                </p>-->
+
+          </div>
+          <div class="method-example" id="api-summary-example">
+          </div>
+        </div>
+
+        <a id='Feedback-create' name="Feedback-create" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+      </div>
+
+
+      <div class="method">
+        <a id='Project' name="Project" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+
+            <h1>Project</h1>
+            <!--<p>
+                  This Class helps you to Initialize Application with Fyipe, with the following method :-
+                  </p>-->
+
+          </div>
+          <div class="method-example" id="api-summary-example">
+          </div>
+        </div>
+
+        <a id='Project-create' name="Project-create" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Project-getAll' name="Project-getAll" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Project-resetKey' name="Project-resetKey" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Project-renameProject' name="Project-renameProject" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Project-deleteProject' name="Project-deleteProject" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Project-changeProjectPlan' name="Project-changeProjectPlan" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Project-removeTeamMember' name="Project-removeTeamMember" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+      </div>
+
+      <div class="method">
+        <a id='Incident' name="Incident" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+
+            <h1>Incident</h1>
+            <p>
+              ......
+            </p>
+
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  01001101 01100001 01100100 01100101
+                  01110111 01101001 01110100 01101000
+                  00111100 00110011
+                </span></span></code>
+          </div>
+          <!-- method-example -->
+        </div>
+
+        <a id='Incident-create' name="Incident-create" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Incident-GetAllIncidentByProject' name="Incident-GetAllIncidentByProject" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Incident-getAllIncidentsByMonitor' name="Incident-getAllIncidentsByMonitor" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Incident-GetOneIncident' name="Incident-GetOneIncident" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Incident-AcknowledgeIncident' name="Incident-AcknowledgeIncident" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Incident-GetAcknowledgeIncident' name="Incident-GetAcknowledgeIncident" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Incident-ResolveIncident' name="Incident-ResolveIncident" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='Incident-getResolvedIncident' name="#Incident-getResolvedIncident" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+        <a id='#Incident-getIncidentNote' name="#Incident-getIncidentNote" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+
+        <a id='Incident-unresolvedincidents' name="Incident-unresolvedincidents" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+      </div>
+      <!-- method -->
+      
+
+    <div class="method">
+        <a id='Monitor' name="Monitor" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+  
+            <h1>Monitor</h1>
+            <!--<p>
+                  This Class helps you to Initialize Application with Fyipe, with the following method :-
+                  </p>-->
+  
+          </div>
+          <div class="method-example" id="api-summary-example">
+          </div>
+        </div>
+  
+        <a id='Monitor-addMonitorToProject' name="Monitor-addMonitorToProject" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+  
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+  
+        <a id='Monitor-getAllMonitorsByProject' name="Monitor-getAllMonitorsByProject" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+  
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+
+  
+        <a id='Monitor-deleteMonitor' name="Monitor-deleteMonitor" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+            ...
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  CB.CloudApp.init('YOUR APP ID', 'YOUR APP KEY');
+                </span></span></code>
+  
+          </div>
+          <!-- method-example -->
+        </div>
+        <!-- method-section -->
+      </div>
+  
+      <div class="method">
+        <a id='Contribute' name="Contribute" class="section-anchor">&nbsp;</a>
+        <div class="method-section">
+          <div class="method-description">
+  
+            <h1>Contribute</h1>
+            <p>
+              We heart contributors. Love what we do and want to contribute? <br /> JavaScript SDK :
+              <a href="https://github.com/Fyipe/JavaScriptSDK">GitHub Repository</a>
+  
+              <br /><br /> Our documentation is open source too! <br /><br /> Documentation : <a href="https://github.com/Fyipe/api-reference">GitHub
+                Repository</a>
+            </p>
+  
+          </div>
+          <div class="method-example" id="api-summary-example">
+            <code class="method-request"><span class="prompt"></span><span class="lang lang-node"><span class="highlight_js javascript">
+                  01001101 01100001 01100100 01100101
+                  01110111 01101001 01110100 01101000
+                  00111100 00110011
+                </span></span></code>
+          </div>
+          <!-- method-example -->
+        </div>
+  
+      </div>
+      <!-- method -->
+    </div>
+    <!-- methods -->
+
+  </div>
+  <!-- methods -->
+  </div>
+  <!-- api-docs -->
+  <div class="footer">
+
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+  <script src="assets/js/highlight.pack.js"></script>
+  <script src="assets/js/highlighter.js"></script>
+  <script>
+    /****Tracking*********/
+    mixpanel.track('Documentation Views');
+    /****End of Tracking*****/
+
+    var currentLangId = "#javascript-sdk";
+    var url = window.location.href;
+    var urlParts = url.split("/");
+    var currentAPI = urlParts[3];
+
+
+    if (currentAPI == "javascript.html" || currentAPI.indexOf("javascript.html") > -1) {
+      currentLangId = "#javascript-sdk";
+    }
+    if (currentAPI == "java.html" || currentAPI.indexOf("java.html") > -1) {
+      currentLangId = "#java-sdk";
+    }
+    if (currentAPI == "dotnet.html" || currentAPI.indexOf("dotnet.html") > -1) {
+      currentLangId = "#dotnet-sdk";
+    }
+    if (currentAPI == "curl.html" || currentAPI.indexOf("curl.html") > -1) {
+      currentLangId = "#curl-sdk";
+    }
+    _selectLanguage(currentLangId);
+
+    $(document).ready(function () {
+      $("#javascript-sdk").click(function () {
+        window.location.href = "javascript.html";
+        _selectLanguage("#javascript-sdk");
+      });
+
+      $("#java-sdk").click(function () {
+        window.location.href = "java.html";
+        _selectLanguage("#java-sdk");
+      });
+
+      $("#dotnet-sdk").click(function () {
+        window.location.href = "dotnet.html";
+        _selectLanguage("#dotnet-sdk");
+      });
+
+      $("#curl-sdk").click(function () {
+        window.location.href = "curl.html";
+        _selectLanguage("#curl-sdk");
+      });
+
+      $("#others-swagger").click(function () {
+        window.location.href = "https://swagger.Fyipe.io";
+      });
+    });
+
+    function _selectLanguage(langId) {
+      //remove from all
+      $("#javascript-sdk").removeClass("selected");
+      $("#java-sdk").removeClass("selected");
+      $("#dotnet-sdk").removeClass("selected");
+      $("#curl-sdk").removeClass("selected");
+
+      //select current
+      $(langId).addClass("selected");
+    }
+  </script>
+</body>
+
+</html>

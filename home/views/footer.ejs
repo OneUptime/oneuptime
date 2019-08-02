@@ -1,0 +1,148 @@
+<footer class='globalFooter withCards'>
+
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH" height="0" width="0"
+            style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <% if (footerCards) { %>
+    <% include ./footer-cards %>
+    <% } %>
+
+    <% if (cta) { %>
+    <% include ./cta %>
+    <% } %>
+
+    <article class='globalFooterNav'>
+        <div class='container-lg'>
+
+            <ul class="metaNav">
+
+                <li class="space"></li>
+
+                <li class="select language">
+                    <a class="rootLink item-language" href="https://hackerbay.io" rel="noopener" target="_blank">
+                        <img width="40" height="40" src="/img/HB-Logo-Grey.svg" alt="HB-Logo-Grey" />
+                    </a>
+
+                </li>
+
+                <li style="margin-top: 8px;" class="copyright">&copy; HackerBay, Inc.</li>
+            </ul>
+
+            <div class="siteNav">
+                <div class="column">
+                    <h4>Products</h4>
+                    <div class="splitColumn">
+                        <ul>
+                            <li>
+                                <a href="/product/status-page">
+                                    <strong>Status Page</strong>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/product/oncall-management">
+                                    <strong>On-call Management</strong>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/product/uptime-monitoring">
+                                    <strong>Uptime Monitoring</strong>
+                                </a>
+                            </li>
+                        </ul>
+
+                    </div>
+                </div>
+                <div class="column">
+                    <h4>Enterprise</h4>
+                    <ul>
+                        <li>
+                            <a href="/enterprise/overview">Overview</a>
+                        </li>
+                        <li>
+                            <a href="/enterprise/resources">Resources &amp; Whitepapers</a>
+                        </li>
+                        <li>
+                            <a href="/enterprise/demo">Request Demo</a>
+                        </li>
+                        <li>
+                            <a href="https://hackerbay.io" rel="noopener" target="_blank">Consulting</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="column">
+                    <h4>Company</h4>
+                    <ul>
+                        <li>
+                            <a href="https://hackerbay.io" rel="noopener" target="_blank">About HackerBay</a>
+                        </li>
+                        <li>
+                            <a href="/customers">Customers</a>
+                        </li>
+                        <li>
+                            <a href="https://angel.co/hackerbayinc/jobs" rel="noopener" target="_blank">Jobs</a>
+                        </li>
+                        <li>
+                            <a href="https://medium.com/fyipe" rel="noopener" target="_blank">Blog</a>
+                        </li>
+
+                    </ul>
+                </div>
+
+                <div class="column">
+                    <h4>More</h4>
+                    <ul>
+                        <li>
+                            <a href="https://status.fyipe.com/" rel="noopener" target="_blank">Platform Status</a>
+                        </li>
+                        <li>
+                            <a href="/support">Contact &amp; Support</a>
+                        </li>
+                        <li>
+                            <a href="/legal/terms">Legal Center</a>
+                        </li>
+                        <li>
+                            <a href="https://partners.hackerbay.io" target="_blank" rel="noopener">Become a Partner</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </article>
+
+
+</footer>
+
+
+<!-- start Mixpanel -->
+<script type="text/javascript">(function (e, a) {
+        if (!a.__SV) {
+            var b = window; try { var c, l, i, j = b.location, g = j.hash; c = function (a, b) { return (l = a.match(RegExp(b + "=([^&]*)"))) ? l[1] : null }; g && c(g, "state") && (i = JSON.parse(decodeURIComponent(c(g, "state"))), "mpeditor" === i.action && (b.sessionStorage.setItem("_mpcehash", g), history.replaceState(i.desiredHash || "", e.title, j.pathname + j.search))) } catch (m) { } var k, h; window.mixpanel = a; a._i = []; a.init = function (b, c, f) {
+                function e(b, a) {
+                    var c = a.split("."); 2 == c.length && (b = b[c[0]], a = c[1]); b[a] = function () {
+                        b.push([a].concat(Array.prototype.slice.call(arguments,
+                            0)))
+                    }
+                } var d = a; "undefined" !== typeof f ? d = a[f] = [] : f = "mixpanel"; d.people = d.people || []; d.toString = function (b) { var a = "mixpanel"; "mixpanel" !== f && (a += "." + f); b || (a += " (stub)"); return a }; d.people.toString = function () { return d.toString(1) + ".people (stub)" }; k = "disable time_event track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user".split(" ");
+                for (h = 0; h < k.length; h++)e(d, k[h]); a._i.push([b, c, f])
+            }; a.__SV = 1.2; b = e.createElement("script"); b.type = "text/javascript"; b.async = !0; b.src = "undefined" !== typeof MIXPANEL_CUSTOM_LIB_URL ? MIXPANEL_CUSTOM_LIB_URL : "file:" === e.location.protocol && "//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//) ? "https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js" : "//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js"; c = e.getElementsByTagName("script")[0]; c.parentNode.insertBefore(b, c)
+        }
+    })(document, window.mixpanel || []);
+    mixpanel.init("de27af9b37fa926bf648bb704836fd5f");</script>
+<!-- end Mixpanel -->
+
+<!-- Begin Inspectlet JS Code -->
+<script type="text/javascript" id="inspectletjs">
+    (function () {
+        var insp_ab_loader = true; // set this boolean to false to disable the A/B testing loader
+        window.__insp = window.__insp || [];
+        __insp.push(['wid', 1170888949]);
+        var ldinsp = function () {
+            if (typeof window.__inspld != "undefined") return; window.__inspld = 1; var insp = document.createElement('script'); insp.type = 'text/javascript'; insp.async = true; insp.id = "inspsync"; insp.src = ('https:' == document.location.protocol ? 'https' : 'http') + '://cdn.inspectlet.com/inspectlet.js?wid=1170888949&r=' + Math.floor(new Date().getTime() / 3600000); var x = document.getElementsByTagName('script')[0]; x.parentNode.insertBefore(insp, x); if (typeof insp_ab_loader != "undefined" && insp_ab_loader) { var adlt = function () { var e = document.getElementById('insp_abl'); if (e) { e.parentNode.removeChild(e); __insp.push(['ab_timeout']); } }; var adlc = "body{ visibility: hidden !important; }"; var adln = typeof insp_ab_loader_t != "undefined" ? insp_ab_loader_t : 1200; insp.onerror = adlt; var abti = setTimeout(adlt, adln); window.__insp_abt = abti; var abl = document.createElement('style'); abl.id = "insp_abl"; abl.type = "text/css"; if (abl.styleSheet) abl.styleSheet.cssText = adlc; else abl.appendChild(document.createTextNode(adlc)); document.head.appendChild(abl); }
+        };
+        setTimeout(ldinsp, 0);
+    })();
+</script>
+<!-- End Inspectlet JS Code -->

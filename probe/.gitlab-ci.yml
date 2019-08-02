@@ -1,0 +1,97 @@
+# IMPORTANT:
+#
+# This CI/CD will run on an Ubuntu VM. After this script runs, the VM will retain the state.
+# It's your responsibility to clean the VM up in the cleanup stage after job finishes executing.
+# This script runs on Minikube. since our deployments are on Kubernetes, our aim is to create EXACT same replica for test, staging and production.
+
+#Define stages
+
+stages:
+  - setup_environment
+  - build_n_test
+  - deploy_staging
+  - deploy_production
+  - cleanup
+  - deployment_cleanup
+
+before_script:
+   - sudo rm -r *
+   - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/fyipe-project/kubernetes
+   - cd kubernetes
+
+#Set up the environment
+setup_environment:
+  stage: setup_environment
+  script:
+   - chmod +x ./ci/setup-machine.sh
+   - ./ci/setup-machine.sh
+
+build_n_test:
+  stage: build_n_test
+  script:
+   - chmod +x ./ci/setup.sh
+   - ./ci/setup.sh
+
+deploy_staging:
+  stage: deploy_staging
+  script:
+    - chmod +x ./ci/deployment-setup.sh
+    - ./ci/deployment-setup.sh
+    - chmod +x ./ci/deployment-staging-setup.sh
+    - ./ci/deployment-staging-setup.sh
+    - cd ..
+    - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/probe.git
+    - cd probe
+    - git checkout master
+    - sudo docker build -t fyipe-project/probe:master .
+    - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:2.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:master
+    - sudo docker push registry.gitlab.com/fyipe-project/probe:2.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/probe:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe probe=registry.gitlab.com/fyipe-project/probe:2.0.$CI_PIPELINE_IID
+  only:
+    refs:
+      - master
+  environment:
+    name: staging
+
+deploy_production:
+  stage: deploy_production
+  script:
+    - chmod +x ./ci/deployment-setup.sh
+    - ./ci/deployment-setup.sh
+    - chmod +x ./ci/deployment-production-setup.sh
+    - ./ci/deployment-production-setup.sh
+    - cd ..
+    - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/probe.git
+    - cd probe
+    - git checkout release
+    - sudo docker build -t fyipe-project/probe:latest .
+    - sudo docker tag fyipe-project/probe:latest registry.gitlab.com/fyipe-project/probe:1.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/probe:latest registry.gitlab.com/fyipe-project/probe:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/probe:1.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/probe:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe probe=registry.gitlab.com/fyipe-project/probe:1.0.$CI_PIPELINE_IID
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+cleanup_job:
+  stage: cleanup
+  script:
+    - chmod +x ./ci/cleanup.sh
+    - ./ci/cleanup.sh
+  when: always
+
+deployment_cleanup:
+  stage: deployment_cleanup
+  script:
+  - chmod +x ./ci/deployment-cleanup.sh
+  - ./ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+      - master
+  when: always

@@ -1,0 +1,27 @@
+<section class="globalFooterCards">
+        <div class="container-xl">
+            <% if(requestDemoCta) {%>
+                <a class="common-Link globalFooterCard card-sigma" href="/enterprise/demo" data-analytics-action="sigma" data-analytics-source="card_link">
+                    <img src="/img/calendar.svg" alt="calendar" />
+                    <h2 class="common-Uppercase common-Link--arrow">Request Demo</h2>
+                    <p class="common-BodyText">Get a personalized demo tailored to you business from our team. Discover what Fyipe can do for your business and how it can help you save costs.</p>
+                </a>
+            <% } %>
+            <% if(!requestDemoCta) {%>
+            <a class="common-Link globalFooterCard card-sigma" href="/enterprise/overview" data-analytics-action="sigma" data-analytics-source="card_link">
+                <img src="/img/flats.svg" alt="flats" />
+                <h2 class="common-Uppercase common-Link--arrow">Fyipe for Enterprise</h2>
+                <p class="common-BodyText">Fyipe is an enterprise grade status page and on-call management solution. Talk to us to see how we can help you cut your support costs, improve transparency.</p>
+            </a>
+
+            <% } %>
+
+            <a class="common-Link globalFooterCard card-documentation" href="/enterprise/resources" data-analytics-action="documentation" data-analytics-source="card_link">
+                <img src="/img/bookshelf.svg" alt="bookshelf" />
+                <h2 class="common-Uppercase common-Link--arrow">Explore Resources &amp; Whitepapers</h2>
+                <p class="common-BodyText">In depth resources on industry thoughts and insights. Explore and learn more about everything from how to manage, monitor, and support web scale products and businesses.</p>
+            </a>
+
+
+        </div>
+    </section>

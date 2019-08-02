@@ -1,0 +1,162 @@
+
+.bs-Spinner-svg {
+  position: relative;
+  display: flex;
+  width: 16px;
+  height: 16px;
+  animation: SpinnerAnimationShow 0.25s normal ease,
+    SpinnerAnimationRotation 0.7s linear infinite;
+  transition-property: opacity, transform;
+  transition-timing-function: ease;
+  transform-origin: 50% 50%;
+}
+.bs-Spinner-ellipse {
+  fill: transparent;
+  stroke: #8898aa;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 60;
+  stroke-dashoffset: 20;
+}
+.bs-Spinner--stopped .bs-Spinner-svg {
+  opacity: 0;
+}
+.bs-Spinner--stopped .bs-Spinner-ellipse {
+  animation: none;
+}
+.bs-Spinner--size--large .bs-Spinner-svg {
+  width: 24px;
+  height: 24px;
+}
+.bs-Spinner--size--small .bs-Spinner-svg {
+  width: 12px;
+  height: 12px;
+}
+.bs-Spinner--color--white .bs-Spinner-ellipse {
+  stroke: #fff;
+}
+.bs-ContentSection-header-copy .bs-Spinner {
+  margin: 0 5px;
+}
+@keyframes SpinnerAnimationShow {
+  0% {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes SpinnerAnimationRotation {
+  0% {
+    transform: scaleX(-1) rotate(0);
+  }
+  50% {
+    transform: scaleX(-1) rotate(-180deg);
+  }
+  to {
+    transform: scaleX(-1) rotate(-1turn);
+  }
+}
+#app-loading {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #e6ebf1;
+    z-index: 999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Camphor, Segoe UI, Open Sans, sans-serif;
+    font-size : 14px;
+    color:#525f7f;
+    font-weight: 400;
+}
+
+@-webkit-keyframes ball-beat {
+  50% {
+    opacity: 0.2;
+    -webkit-transform: scale(0.75);
+            transform: scale(0.75); }
+  100% {
+    opacity: 1;
+    -webkit-transform: scale(1);
+            transform: scale(1); } }
+
+@keyframes ball-beat {
+  50% {
+    opacity: 0.2;
+    -webkit-transform: scale(0.75);
+            transform: scale(0.75); }
+  100% {
+    opacity: 1;
+    -webkit-transform: scale(1);
+            transform: scale(1); } }
+
+.ball-beat > div {
+  background-color: #d8dde2;
+  width: 15px;
+  height: 15px;
+  border-radius: 100%;
+  margin: 2px;
+  -webkit-animation-fill-mode: both;
+          animation-fill-mode: both;
+  display: inline-block;
+  -webkit-animation: ball-beat 0.7s 0s infinite linear;
+          animation: ball-beat 0.7s 0s infinite linear;
+}
+.ball-beat > div:nth-child(2n-1) {
+  -webkit-animation-delay: -0.35s !important;
+          animation-delay: -0.35s !important; }
+
+          @-webkit-keyframes scale {
+            0% {
+              -webkit-transform: scale(1);
+                      transform: scale(1);
+              opacity: 1; }
+            45% {
+              -webkit-transform: scale(0.1);
+                      transform: scale(0.1);
+              opacity: 0.7; }
+            80% {
+              -webkit-transform: scale(1);
+                      transform: scale(1);
+              opacity: 1; } }
+          @keyframes scale {
+            0% {
+              -webkit-transform: scale(1);
+                      transform: scale(1);
+              opacity: 1; }
+            45% {
+              -webkit-transform: scale(0.1);
+                      transform: scale(0.1);
+              opacity: 0.7; }
+            80% {
+              -webkit-transform: scale(1);
+                      transform: scale(1);
+              opacity: 1;
+            }
+          }
+
+.ball-pulse > div:nth-child(1) {
+  -webkit-animation: scale 0.75s -0.24s infinite cubic-bezier(0.2, 0.68, 0.18, 1.08);
+          animation: scale 0.75s -0.24s infinite cubic-bezier(0.2, 0.68, 0.18, 1.08); }
+
+.ball-pulse > div:nth-child(2) {
+  -webkit-animation: scale 0.75s -0.12s infinite cubic-bezier(0.2, 0.68, 0.18, 1.08);
+          animation: scale 0.75s -0.12s infinite cubic-bezier(0.2, 0.68, 0.18, 1.08); }
+
+.ball-pulse > div:nth-child(3) {
+  -webkit-animation: scale 0.75s 0s infinite cubic-bezier(0.2, 0.68, 0.18, 1.08);
+          animation: scale 0.75s 0s infinite cubic-bezier(0.2, 0.68, 0.18, 1.08); }
+
+.ball-pulse > div {
+  background-color: #fff;
+  width: 15px;
+  height: 15px;
+  border-radius: 100%;
+  margin: 2px;
+  -webkit-animation-fill-mode: both;
+          animation-fill-mode: both;
+  display: inline-block; }

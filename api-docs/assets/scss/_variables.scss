@@ -1,0 +1,84 @@
+/*
+Copyright 2018 Hackerbay 
+*/
+
+////////////////////////////////
+////// BACKGROUND COLORS ///////
+////////////////////////////////
+$nav-bg: #2E3336 !default;
+$examples-bg: #2E3336 !default;
+$code-bg: #1E2224 !default;
+$code-annotation-bg: #191D1F !default;
+$nav-subitem-bg: #1E2224 !default;
+$nav-active-bg: #0F75D4 !default;
+$nav-active-parent-bg: #1E2224 !default;
+$lang-select-border: #000 !default;
+$lang-select-bg: #1E3336 !default;
+$lang-select-active-bg: $examples-bg !default;
+$lang-select-pressed-bg: #111 !default;
+$main-bg: #F3F7F9 !default;
+$aside-notice-bg: #8fbcd4 !default;
+$aside-warning-bg: #c97a7e !default;
+$aside-success-bg: #6ac174 !default;
+$search-notice-bg: #c97a7e !default;
+
+
+////////////////////////////////
+///////// TEXT COLORS //////////
+////////////////////////////////
+$main-text: #333 !default;
+$nav-text: #fff !default;
+$nav-active-text: #fff !default;
+$nav-active-parent-text: #fff !default;
+$lang-select-text: #fff !default;
+$lang-select-active-text: #fff !default;
+$lang-select-pressed-text: #fff !default;
+
+
+////////////////////////////////
+//////////// SIZES /////////////
+////////////////////////////////
+$nav-width: 230px !default;
+$examples-width: 50% !default;
+$logo-margin: 0px !default;
+$main-padding: 28px !default;
+$nav-padding: 15px !default;
+$nav-v-padding: 10px !default;
+$nav-indent: 10px !default;
+$code-annotation-padding: 13px !default;
+$h1-margin-bottom: 21px !default;
+$tablet-width: 930px !default;
+$phone-width: $tablet-width !default;
+
+
+////////////////////////////////
+///////////// FONTS ////////////
+////////////////////////////////
+%default-font {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+}
+
+%header-font {
+  @extend %default-font;
+  font-weight: bold;
+}
+
+%code-font {
+  font-family: Consolas, Menlo, Monaco, "Lucinda Console", "Liberation Mono", "Dejavu Sans Mono", "Bitstream Vera Sans Mono", "Courier New", monospace, serif;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+
+////////////////////////////////
+///////////// OTHERS ///////////
+////////////////////////////////
+$nav-footer-border-color: #666 !default;
+$search-box-border-color: #666!default;
+
+
+%break-words {
+  word-wrap: break-all;
+  hyphens: auto;
+}

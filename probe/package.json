@@ -1,0 +1,36 @@
+{
+  "name": "probe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "pretest": "eslint --fix --ignore-path .gitignore .",
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo 'no tests'",
+    "audit": "npm-audit-ci-wrapper --threshold=high"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/fyipe-project/probe.git"
+  },
+  "author": "Nilanshu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/fyipe-project/probe/issues"
+  },
+  "homepage": "https://gitlab.com/fyipe-project/probe#readme",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "cors": "^2.8.5",
+    "eslint": "^6.0.1",
+    "express": "^4.17.1",
+    "http": "0.0.0",
+    "lodash": "^4.17.11",
+    "moment": "^2.24.0",
+    "node-cron": "^2.0.3",
+    "node-fetch": "^2.6.0",
+    "winston": "^3.2.1",
+    "winston-slack-transport": "^2.0.0"
+  }
+}

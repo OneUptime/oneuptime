@@ -1,0 +1,30 @@
+{
+  "name": "@twumm/fyipe-server-monitor",
+  "version": "0.0.1",
+  "description": "A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.",
+  "main": "index.js",
+  "bin": {
+    "fyipe": "index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "@twumm",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "commander": "^2.19.0",
+    "cron": "^1.6.0",
+    "eslint": "^5.10.0",
+    "inquirer": "^6.2.1",
+    "node-cron": "^2.0.3",
+    "os-utils": "0.0.14",
+    "q": "^1.5.1"
+  },
+  "keywords": [
+    "fyipe",
+    "server",
+    "server monitor",
+    "server stats"
+  ]
+}

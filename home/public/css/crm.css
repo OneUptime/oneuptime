@@ -1,0 +1,267 @@
+/* Style the tab */
+#tabsection{
+    height: 450px;
+    display:block;
+    margin:0 auto;
+    max-width:1080px;
+}
+
+.question{
+    padding: 18px 16px;
+    width: 100%; 
+    text-align: center;
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 33px;
+    text-transform: capitalize;
+    letter-spacing: 0.025em;
+    color: #24b47e;
+    margin: 10px 0 0 0;
+}
+
+.tab {
+    display:block;
+    float: left;
+    border: none;
+    width: 20%;
+    max-width:250px;
+    height: 450px;
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab button {
+    color: #6b7c93;
+    padding: 8px 8px;
+    margin-top: 7px;
+    width: 100%;
+    font-weight: 400;
+    font-size: 1.5em;
+    border: solid 1px #e6e6e6;
+    border-right: 0;
+    border-radius: 3px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: rgba(20, 170, 217,.05);
+    border-color: rgba(20, 170, 217,.4);
+}
+
+/* Create an active/current "tab button" class */
+.tab button.active {
+    background-color: rgba(20, 170, 217,.05);
+    border-color: rgba(20, 170, 217,.4);
+}
+
+/* Style the tab content */
+.tabcontent {
+    display:none;
+    position:relative;
+    background-color: #e6e6e6;
+    padding:30px 10px 10px 10px;
+    border-radius: 5px;
+    float: left;
+    width:80%;
+    max-width: 960px;
+    height: 450px;
+}
+
+.tabcontent.active{
+    display:block;
+}
+
+.tabimage{
+    max-width: 100%;
+    max-height: 100%;
+    background-repeat: no-repeat;
+    background-size: contain;
+    position: relative;
+}
+.tabimage-cutout{
+    background-repeat: no-repeat;
+    background-size: contain;
+    position: absolute;
+    z-index: 3;
+    border-radius: 5px;
+}
+.imgback{
+    position: absolute;
+    top:0;
+    left:0;
+    height:100%;
+    width:100%;
+    background:rgba(161, 164, 168,0.5);
+    border-radius:5px;
+}
+
+.popover-dot{
+    position: absolute;
+    font-size: 1em;
+    color:white;
+    font-weight: bold;
+    background-color: rgb(20, 170, 217);
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    padding:5px;
+    text-align: center;
+    line-height:1.5em;
+    cursor: pointer;
+    z-index: 5;
+}
+
+.navtopbuttons{
+  position:absolute;
+  top:10px;
+  left:10px;
+  display:flex;
+}
+
+.btnred{
+    float:left;
+    margin:3px;
+    height:8px;
+    width:8px;
+    border-radius: 50%;
+    background-color: #fc635d;
+}
+
+.btnyellow{
+    float:left;
+    margin:3px;
+    height:8px;
+    width:8px;
+    border-radius: 50%;
+    background-color: #fdbc40;
+}
+
+.btngreen{
+    float:left;
+    margin:3px;
+    height:8px;
+    width:8px;
+    border-radius: 50%;
+    background-color: #34c84a;
+}
+
+.tooltiptext {
+    visibility:hidden;
+    opacity:0;
+    width: 250px;
+    height:auto;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 15px;
+    border-radius: 6px;
+    position: absolute;
+    z-index: 999;
+    bottom: 135%;
+    left: 50%; 
+    margin-left: -125px;
+    transition: all .3s ease-in-out;
+}
+
+.tooltiptext.active{
+    visibility: visible;
+    opacity:1;
+}
+
+.tooltiptext::after {
+    content: " ";
+    position: absolute;
+    top: 100%; /* At the bottom of the tooltip */
+    left: 50%;
+    margin-left: -10px;
+    border-width: 10px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+#tabsection-mobile{
+  display:none;
+  margin:30px 0;
+}
+
+.mobile-content{
+    display:block;
+    padding: 22px 16px;
+    width: 80%;
+    margin: 0 auto;
+}
+.mobile-content:nth-child(even){
+    text-align: right;
+}
+.mobile-content:nth-child(odd){
+    text-align: left;
+}
+.mobile-image{
+    height:50px;
+    width:50px;
+}
+.mobile-head{
+    display: flex;
+    flex-direction: row;
+}
+.mobile-head-right{
+    display: flex;
+    flex-direction: row-reverse;
+}
+.mobile-head>img{
+    padding-right: 10px;
+}
+.mobile-head-right>img{
+    padding-left: 10px;
+}
+.mobile-content h2{
+    color: #24b47e;
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 26px;
+    padding-top: 20px;
+}
+.mobile-content h4{
+    color: #6b7c93;
+    font-weight: 400;
+    font-size: 17px;
+    line-height: 26px;
+}
+@media only screen and (max-width: 670px) {
+    .mobile-head{
+        flex-direction: column;
+    }
+    .mobile-head-right{
+        flex-direction: column;
+    }
+    .mobile-head>img,.mobile-head-right>img{
+        margin:0 auto;
+    }
+    .mobile-content:nth-child(even){
+        text-align: center;
+    }
+    .mobile-content:nth-child(odd){
+        text-align: center;
+    }
+    .mobile-content h2{
+        padding-top: 10px;
+    }
+}
+@media only screen and (max-width: 960px) {
+    #tabsection{
+        display: none;
+    }
+    #tabsection-mobile{
+        display:block;
+      }
+}
+
+.tooltiptext > p{
+    color:rgba(255,255,255,.75);
+    font-size: 1.2em;
+    line-height: 1.6em;
+}

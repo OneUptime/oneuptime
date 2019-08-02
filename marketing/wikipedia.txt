@@ -1,0 +1,42 @@
+{{short description|American technology company}}
+{{infobox company
+| name=Fyipe
+| logo = File:Fyipe-Icon.png
+| type= [[Private company|Private]]
+| industry=[[Information technology]], [[Incident management]], [[Information technology operations]]
+| hq_location=[[New York, NY]]
+| key_people=Nawaz Dhandala, CEO
+| founders = Nawaz Dhandala, {{small|co-founder, CTO}}
+| foundation  = 2014
+| website = {{URL|https://www.fyipe.com/}}
+| num_employees=52 (2019)
+}}
+
+'''Fyipe''' is a [[cloud computing]] company that produces a [[Software as a service|SaaS]] incident response platform for Enterprise IT departments.<ref>{{Cite web|url=https://fyipe.com|website=www.fyipe.com|title=Fyipe - Status page, monitoring and on-call made simple.}}</ref>
+
+Fyipe is headquartered in [[New York, NY]] <ref>{{Cite web|url=https://www.crunchbase.com/organization/fyipe|website=www.crunchbase.com|title=Fyipe, Crunchbase}}</ref> with operations in [[Hyderabad, India]]. Its platform is designed to alert clients to disruptions and outages through [[machine learning]] and automation.
+
+Fyipe is a owned by HackerBay, Inc. an enterprise software company responsible for building products like [[CloudBoost]]<ref>{{Cite web|url=https://cloudboost.io|website=www.cloudboost.io|title=CloudBoost}}</ref>, Fyipe and many more. <ref>{{Cite web|url=https://hackerbay.io|website=www.hackerbay.io|title=HackerBay}}</ref>
+
+==History==
+The company was founded 2014 in Hyderabad, India, by Nawaz Dhandala. The company was incubated at the [[MassChallenge]]<ref>{{Cite web|url=https://masschallenge.org/media/masschallenge-boston-announces-2017-cohort|website=www.masschallenge.com|title=MassChallenge}}</ref>.
+
+Fyipe was awarded an equity free grant of $50,000 in 2016 from Parallel18, an equity free startup accelerator in San Juan, Puerto Rico.<ref>{{Cite web|url=https://parallel18.com/startups.html|website=www.parallel18.com|title=Parallel18}}</ref>.
+
+In 2017, Fyipe launched an update with let's customers build beautiful and customizable status page for online businesses which helps improve transparency with their customers and cuts support costs. Fyipe also monitors your website, web apps, API's and more and alerts your team via call, SMS and email when downtime happens.
+
+==References==
+{{Reflist|2}}
+
+==External Links==
+* {{Official Website|https://www.fyipe.com}}
+* [https://hackerbay.io HackerBay]
+* [https://blog.fyipe.com Official Blog]
+* [https://docs.fyipe.com API Reference]
+* [https://fyipe.com/customers Customers]
+
+{{authority control}}
+
+[[Category:Cloud computing providers]]
+[[Category:Software companies established in 2014]]
+[[Category:Companies based in New York]]

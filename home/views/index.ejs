@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>Fyipe | Status Page and On-call made simple.</title>
+    <meta name="description"
+        content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+    <% include ./head %>
+
+    <link rel="stylesheet" href="/css/crm.css">
+    <link rel="stylesheet" href="/css/sdlc.css">
+    <script src="/js/crm.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="/css/home.css">
+    <script defer src="/js/home.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.2.1/js/bootstrap.bundle.min.js"
+        type="text/javascript"></script>
+</head>
+
+<body>
+    <% include ./nav %>
+
+    <div class="globalContent">
+
+        <main>
+            <header>
+                <div id="stripes">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+
+                <section id="intro">
+                    <div class="container-lg" style="display: flex;">
+                        <div style="position: relative;">
+                            <h1>
+                                Status Page, Monitoring
+                                <br>and On-call made simple.
+                            </h1>
+                            <p class="common-BodyText">
+                                Fyipe monitors your website, dashboards, API's, and more and alerts your team when
+                                downtime happens. We also give you a Status
+                                Page which keeps your customers looped in and improves transparency.
+                            </p>
+                            <ul>
+                                <li>
+                                    <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top"
+                                        data-analytics-action="create_account" data-analytics-source="header_cta">
+                                        Create account
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/enterprise/demo" class="common-Button"
+                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
+                                        Request Demo
+                                    </a>
+                                </li>
+                            </ul>
+                            <div style="margin-top:10px">
+                                <a class="common-BodyText common-Link common-Link--arrow"
+                                    href="https://status.fyipe.com" style="width:80%;color:white;margin-top:10px;">
+                                    See Fyipe's status page.
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                </section>
+            </header>
+            <div id="introimage">
+                <!-- <iframe title="Fyipe Status" scrolling="no" src="https://status.fyipe.com/?embedded=true" id="fyipe-frame">
+
+                </iframe>-->
+                <img src="/img/fyipestatuspage.png" alt="statuspage" id="fyipe-frame-image">
+            </div>
+            <% include ./sdlc %>
+            <% include ./crm %>
+            <section id="primary">
+                <section id="complete-toolkit" class="container-lg">
+
+                    <h2 class="common-UppercaseTitle" style="width:80%">
+                        <img class="heading-icon" src="/img/icon-96-96.png" style="border-radius:50%" alt="icon" />
+
+                        <span>
+                            Status Page for internet business.
+                        </span>
+                    </h2>
+                    <p class="common-BodyText" style="width:80%">
+                        Fyipe gives you simple status page for your business. Status Page helps you to improve
+                        transparency with your customers,
+                        build customer trust, cut support costs during downtime and showcase reliability.
+                    </p>
+                    <div style="text-align:center" style="width:80%">
+                        <img src="/img/dashboard-status.png" class="status-image" alt="dashboard-status" />
+                    </div>
+                    <a class="common-BodyText common-Link common-Link--arrow" href="/product/status-page"
+                        style="width:80%">
+                        Learn more about our status page.
+                    </a>
+                </section>
+                <section id="test"></section>
+                <section id="developers-first">
+                    <div id="programming-languages"></div>
+                    <h2 class="common-UppercaseTitle">
+                        <img class="heading-icon" src="/img/wall-calendar.svg" alt="wall-calendar" /> On call and
+                        alerts.
+                    </h2>
+                    <p class="common-BodyText">
+                        Have your team alerted when downtime happens. Waste no time and have your team reliabily work
+                        on the issue right away. We
+                        alert your team by Call, SMS, and Email. You can also automatically schedule who in your
+                        team receives the alert at different time of the day.
+                    </p>
+
+                    <section id="comparison">
+
+                        <div class="container-lg" style="max-width:800px">
+
+                            <section>
+                                <h2 class="common-Uppercase">Your Team's schedule.</h2>
+                                <p class="common-BodyText">With Fyipe you can schedule on-call for your team with
+                                    primary and secondary on-call
+                                    team member and have them rotate week after week, or anyway you like. </p>
+                                <ul>
+                                    <li>
+                                        <span
+                                            class="label">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                    </li>
+                                    <li>
+                                        <span class="label">
+                                            <span class="launch-marker">
+                                                <span class="launch-marker-circle"></span>
+                                                <span class="launch-marker-bar"></span>
+                                            </span>
+                                            <span class="centered-label">
+                                                Alice
+                                            </span>
+                                        </span>
+                                    </li>
+                                </ul>
+                            </section>
+                        </div>
+                    </section>
+                </section>
+
+                <section id="secondary">
+                    <div class="cols container-lg">
+                        <section id="always-improving">
+                            <h2 class="common-Uppercase">
+                                <img class="heading-icon" src="/img/graph.svg" alt="graph" />
+                                <span style="font-size:1.5em;"> Uptime Monitoring.</span>
+                            </h2>
+                            <p class="common-BodyText">
+                                Fyipe monitors your dashboard, landing pages, and API's every minute and keeps your
+                                team updated on any downtime that might
+                                happen in the future. We also monitor the page response time, page speed and more
+                                and help your team remove bottlenecks.
+                            </p>
+                            <a class="common-BodyText common-Link common-Link--arrow" href="/product/uptime-monitoring">
+                                Learn more about Uptime Monitoring.
+                            </a>
+                        </section>
+
+                        <section id="global-scale">
+                            <h2 class="common-Uppercase">
+                                <img class="heading-icon" src="/img/intersection.svg" alt="intersection" />
+                                <span style="font-size:1.5em;">1000+ Integrations.</span>
+                            </h2>
+                            <p class="common-BodyText">
+                                Fyipe works with the tools you already use. Connect to hundreds of your favorite apps
+                                and services.
+                            </p>
+                            <a class="common-BodyText common-Link common-Link--arrow"
+                                href="https://zapier.com/apps/fyipe/integrations">
+                                Check out our intergrations.
+                            </a>
+                        </section>
+                    </div>
+
+                    <section id="customer-logos">
+                        <a href="/customers" class="container-lg">
+                            <span class="common-Button common-Button--default">See our customers</span>
+                            <ul>
+                                <li>
+                                    <img style="height:40px" class="cloudboost" alt="cloudboost"
+                                        src="img/CloudBoost.svg">
+                                </li>
+                                <li>
+                                    <img style="height:22px" class="ironio" alt="ironio" src="img/iron-io.svg">
+                                </li>
+                                <li>
+                                    <img style="height:90px" class="siemens" alt="siemens" src="img/siemens (1).svg">
+                                </li>
+                                <li>
+                                    <img style="height:70px" class="hersheys" alt="hersheys" src="img/hershey-s.svg">
+                                </li>
+                                <li>
+                                    <img style="height:30px" class="elasticstack" alt="elasticstack"
+                                        src="img/elastic-stack.svg">
+                                </li>
+                                <li>
+                                    <img style="height:24px" class="freshsales" alt="freshsales"
+                                        src="img/freshsales-1.svg">
+                                </li>
+
+                            </ul>
+                        </a>
+                    </section>
+
+                </section>
+        </main>
+
+    </div>
+
+
+
+
+    <% include ./footer %>
+    <script>
+        $(document).ready(function () {
+            $(function () {
+                $('[data-toggle="tooltip"]').tooltip()
+            })
+        })
+    </script>
+
+    <!--     linkedin code    -->
+
+    <script type="text/javascript">
+        _linkedin_partner_id = "706292";
+        window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
+        window._linkedin_data_partner_ids.push(_linkedin_partner_id);
+    </script>
+    <script type="text/javascript">
+        (function () {
+            var s = document.getElementsByTagName("script")[0];
+            var b = document.createElement("script");
+            b.type = "text/javascript"; b.async = true;
+            b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
+            s.parentNode.insertBefore(b, s);
+        })();
+    </script>
+    <noscript>
+        <img height="1" width="1" style="display:none;" alt=""
+            src="https://dc.ads.linkedin.com/collect/?pid=706292&fmt=gif" />
+    </noscript>
+    <!--     linkedin code    -->
+</body>
+
+
+</html>

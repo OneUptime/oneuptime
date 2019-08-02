@@ -1,0 +1,740 @@
+#login{
+    font-family: Camphor, Segoe UI, Open Sans, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.6;
+    color: #525f7f;
+}
+#login #header {
+  height: 70px;
+  -webkit-font-smoothing: antialiased;
+}
+#login #header h1 {
+  text-indent: -999em;
+  float: left;
+  margin: 20px 0 0 -1px;
+  width: 72px;
+  height: 31px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+#login #header h1 a{
+  background-size: 71px 30px;
+  background-repeat: no-repeat;
+  display: block;
+  height: 31px;
+}
+#login #header h1 a:hover {
+  opacity: 0.75;
+}
+#login {
+  height: 100%;
+  min-height: 100%;
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+#login div#wrap {
+  position: relative;
+  min-height: 100%;
+}
+#login div#header {
+  height: 90px;
+  margin: 0 auto;
+  padding-top: 90px;
+  width: 330px;
+}
+#login div#header h1 {
+  float: none;
+  height: 45px;
+  margin: 0 auto;
+  width: 109px;
+}
+#login div#header h1 a {
+  height: 55px;
+  background-image: url('/images/black-svg-full.svg');
+  background-size: 100% 100%;
+}
+@media only screen and (-webkit-min-device-pixel-ratio: 2) {
+  #login div#header h1 a{
+    background-image: url('/images/black-svg-full.svg');
+  }
+}
+#login div.newbox {
+  width: 330px;
+}
+#login h2 {
+  font-family: Camphor, Segoe UI, Open Sans, sans-serif;
+  padding: 17px 24px;
+  color: #525f7f;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 21px;
+  text-align: center;
+  margin-bottom: 17px;
+  border:none;
+}
+#login h2.error {
+  color: #cb1a1a;
+  font-size: 13px;
+}
+#login .login-view h2 {
+  background: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+}
+#login div#main-body {
+  background: #f2f6f9;
+  background: linear-gradient(#fff, #f2f6f9);
+  border-radius: 6px;
+  -ms-box-shadow: 0 0 0 1px rgba(14, 41, 57, 0.12),
+    0 2px 5px rgba(14, 41, 57, 0.44), inset 0 -1px 2px rgba(14, 41, 57, 0.15);
+  -o-box-shadow: 0 0 0 1px rgba(14, 41, 57, 0.12),
+    0 2px 5px rgba(14, 41, 57, 0.44), inset 0 -1px 2px rgba(14, 41, 57, 0.15);
+  box-shadow: 0 0 0 1px rgba(14, 41, 57, 0.12), 0 2px 5px rgba(14, 41, 57, 0.44),
+    inset 0 -1px 2px rgba(14, 41, 57, 0.15);
+  background-color: none;
+}
+#login div#main-body .error-message {
+  color: #cb1a1a;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+#login div#main-body .spinner-holder {
+  height: 30px;
+  position: relative;
+}
+#login div#main-body div.title {
+  min-height: 55px;
+  overflow: hidden;
+}
+#login div#main-body div.title.canada-notice {
+  padding-top: 140px;
+  font-weight: 400;
+}
+#login div#main-body div.title.canada-notice a {
+  text-decoration: underline;
+}
+#login div#main-body div.title.canada-notice strong {
+  font-weight: 700;
+}
+#login div#main-body div.extra {
+  height: auto;
+}
+#login div#main-body div.extra p{
+  padding: 0 10px 9px;
+  font-size: 12px;
+  line-height: 19px;
+  text-align: center;
+}
+#login div#main-body div.extra p strong {
+  font-weight: 700;
+}
+#login div#main-body div.extra p.left {
+  text-align: left;
+}
+#login div#main-body div.skip {
+  margin-top: -22px;
+  color: #999;
+  font-size: 12px;
+  text-align: center;
+}
+#login div#main-body p.message {
+  padding: 0 20px 10px;
+  font-size: 14px;
+  line-height: 19px;
+  text-align: center;
+}
+#login div#main-body form {
+  padding: 14px;
+}
+#login div#main-body form .step,
+#login div#main-body form p {
+  margin-bottom: 14px;
+}
+#login div#main-body form p:last-child {
+  margin-bottom: 0;
+}
+#login div#main-body form p.lost-mobile,
+#login div#main-body form p.phone-failed,
+#login div#main-body form p.resend-phone-code {
+  font-size: 12px;
+  text-align: center;
+}
+#login div#main-body form p.lost-mobile,
+#login div#main-body form p.resend-phone-code {
+  color: #999;
+}
+#login div#main-body form p.phone-failed{
+  color: #df0b0b;
+}
+#login div#main-body form p.text span {
+  display: block;
+}
+#login div#main-body form p.text label{
+  display: block;
+  margin: 0 0 3px 1px;
+  font-size: 13px;
+}
+#login div#main-body form p.text input {
+  -ms-box-sizing: border-box;
+  -o-box-sizing: border-box;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  width: 100%;
+  border-radius: 5px;
+  -ms-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+  -o-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+  -webkit-font-smoothing: antialiased;
+  border: 1px solid #bbb;
+  border-top-color: #999;
+  font-size: 14px;
+  font-weight: small;
+}
+#login div#main-body form p.text input:focus {
+  -ms-box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
+  -o-box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
+  box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
+  border: 1px solid #28a0e5;
+  outline: none;
+}
+#login div#main-body form p a.button,
+#login div#main-body form p button.button {
+  box-sizing: border-box;
+  text-align: center;
+  height: 44px;
+  width: 302px;
+  border-radius: 6px;
+  -ms-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
+  -o-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
+}
+#login div#main-body form p a.button.grey span,
+#login div#main-body form p button.button.grey span{
+  text-shadow: 0 1px 0 #fff;
+}
+#login div#main-body form p a.button span,
+#login div#main-body form p button.button span {
+  height: 42px;
+  padding: 13px 0 0;
+  border-radius: 5px;
+  font-size: 14px;
+  line-height: 14px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.53);
+}
+#login div#main-body form p.button-list a.button,
+#login div#main-body form p.button-list button.button{
+  margin-bottom: 10px;
+}
+#login div#main-body form p.button-list a.button span,
+#login div#main-body form p.button-list button.button span {
+  text-shadow: none;
+}
+#login div#main-body form p.forgot {
+  float: right;
+  font-size: 12px;
+  line-height: 12px;
+  color: #777;
+  padding: 0;
+}
+#login div#main-body form p.remember {
+  padding: 5px 0;
+  color: #777;
+  font-size: 12px;
+  line-height: 12px;
+  text-shadow: 0 1px 0 #fff;
+}
+#login div#main-body form p.remember input {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+#login div#main-body form p.help {
+  padding: 0 0 5px;
+  color: #777;
+  font-size: 12px;
+  line-height: 16px;
+  text-shadow: 0 1px 0 #fff;
+  text-align: center;
+}
+#login div#main-body form p span.password-strength {
+  position: relative;
+}
+#login div#main-body form p span.password-strength input[type='password'] {
+  padding-right: 25px;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength
+  span.password-strength-indicator {
+  position: absolute;
+  right: 0;
+  top: 10px;
+  width: 5px;
+  padding: 0 10px;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength
+  span.password-strength-indicator
+  span {
+  display: block;
+  height: 5px;
+  margin-bottom: 2px;
+  width: 5px;
+  border-radius: 5px;
+  background: #ebeef1;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength
+  span.password-strength-popover {
+  position: absolute;
+  right: -250px;
+  top: -37px;
+  display: none;
+  padding: 12px 15px;
+  width: 230px;
+  border-radius: 5px;
+  -ms-box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 8px 13px rgba(0, 0, 0, 0.36);
+  -o-box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 8px 13px rgba(0, 0, 0, 0.36);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 8px 13px rgba(0, 0, 0, 0.36);
+  -ms-box-sizing: border-box;
+  -o-box-sizing: border-box;
+  box-sizing: border-box;
+  background: #fff;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength
+  span.password-strength-popover:before {
+  left: -19px;
+  position: absolute;
+  top: 32px;
+  display: block;
+  height: 54px;
+  width: 19px;
+  background-size: 19px 54px;
+  content: '';
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength
+  span.password-strength-popover
+  span{
+  color: #696f77;
+  font-family: Lucida Grande, Lucida Sans Unicode, Geneva, sans-serif;
+  font-size: 12px;
+  line-height: 17px;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength
+  span.password-strength-popover
+  span.password-strength-popover-status {
+  font-weight: 700;
+  padding-bottom: 3px;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='-1']
+  span.password-strength-popover {
+  top: -27px;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='-1']
+  span.password-strength-popover
+  span.password-strength-popover-status {
+  display: none;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='-1']
+  span.password-strength-popover:before {
+  top: 22px;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='-1']
+  span.password-strength-indicator {
+  display: none;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='0']
+  span.password-strength-popover {
+  top: 1px;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='0']
+  span.password-strength-popover
+  span.password-strength-popover-status {
+  color: #e01414;
+  padding-bottom: 0;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='0']
+  span.password-strength-popover
+  span.password-strength-popover-explanation {
+  display: none;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='0']
+  span.password-strength-popover:before {
+  top: -6px;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='0']
+  span.password-strength-indicator {
+  display: none;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='1']
+  span.password-strength-popover
+  span.password-strength-popover-status {
+  color: #e01414;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='1']
+  span.password-strength-indicator
+  span
+  + span
+  + span
+  + span {
+  background: #e01414;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='2']
+  span.password-strength-popover
+  span.password-strength-popover-status{
+  color: #e09115;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='2']
+  span.password-strength-indicator
+  span
+  + span
+  + span{
+  background: #e09115;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='3']
+  span.password-strength-popover
+  span.password-strength-popover-status {
+  color: #6ead09;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='3']
+  span.password-strength-indicator
+  span
+  + span {
+  background: #6ead09;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='4']
+  span.password-strength-popover
+  span.password-strength-popover-status {
+  color: #008cdd;
+}
+#login
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='4']
+  span.password-strength-indicator
+  span,
+.page-wrapper
+  div#main-body
+  form
+  p
+  span.password-strength[data-password-strength='4']
+  span.password-strength-indicator
+  span {
+  background: #008cdd;
+}
+#login div#main-body form .g-recaptcha,
+.page-wrapper div#main-body form .g-recaptcha {
+  margin-bottom: 14px;
+}
+#login div.below-box,
+.page-wrapper div.below-box {
+  padding-top: 30px;
+  color: #6f757c;
+  font-size: 12px;
+  text-align: center;
+  text-shadow: 0 1px 0 hsla(0, 0%, 100%, 0.5);
+}
+#login div.below-box a,
+.page-wrapper div.below-box a {
+  color: #6f757c;
+  font-weight: 700;
+  text-decoration: underline;
+}
+#login div.below-box a:hover,
+.page-wrapper div.below-box a:hover {
+  color: #222;
+}
+#login div#footer,
+.page-wrapper div#footer {
+  margin-top: 20px;
+  padding: 0;
+  -ms-box-shadow: none;
+  -o-box-shadow: none;
+  box-shadow: none;
+  border: 0;
+}
+#login div#footer a,
+.page-wrapper div#footer a {
+  display: block;
+  padding: 15px;
+  border-radius: 6px;
+  -ms-box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.5),
+    0 1px 0 hsla(0, 0%, 100%, 0.5);
+  -o-box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.5),
+    0 1px 0 hsla(0, 0%, 100%, 0.5);
+  box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.5),
+    0 1px 0 hsla(0, 0%, 100%, 0.5);
+  border: 1px solid rgba(14, 41, 57, 0.1);
+  color: #455b67;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+#login div#footer a:hover,
+.page-wrapper div#footer a:hover {
+  color: #1e2b32;
+  text-decoration: none;
+}
+#login div#footer a strong,
+.page-wrapper div#footer a strong {
+  color: #3297d3;
+  font-weight: 700;
+}
+#login div#footer a span,
+.page-wrapper div#footer a span {
+  text-decoration: underline;
+}
+.save-contact-number-interrupt-phone-entry-view div.title p.text {
+  margin-bottom: 0 !important;
+  font-size: 13px !important;
+}
+.save-contact-number-interrupt-phone-entry-view div.title ul {
+  margin: 0 0 14px;
+  padding: 0 0 0 24px;
+}
+.save-contact-number-interrupt-phone-entry-view div.title ul li {
+  list-style: disc;
+  margin-bottom: 4px;
+  font-size: 13px;
+  line-height: 20px;
+}
+#login #footer_spacer,
+#recovery #footer_spacer,
+.page-wrapper #footer_spacer {
+  height: 60px;
+}
+#login div#bottom,
+#recovery div#bottom,
+.page-wrapper div#bottom {
+  bottom: 20px;
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  text-align: center;
+}
+#login div#bottom li,
+#recovery div#bottom li,
+.page-wrapper div#bottom li {
+  display: inline;
+  padding: 0 20px 0 16px;
+  background-size: 4px 5px;
+  background-position: 100% 9px;
+  background-repeat: no-repeat;
+}
+#login div#bottom li.first,
+#recovery div#bottom li.first,
+.page-wrapper div#bottom li.first {
+  padding-left: 20px;
+}
+#login div#bottom li.last,
+#recovery div#bottom li.last,
+.page-wrapper div#bottom li.last {
+  padding-right: 16px;
+  background: none;
+}
+#login div#bottom a,
+#recovery div#bottom a,
+.page-wrapper div#bottom a {
+  color: #696f77;
+  font-weight: 700;
+  font-size: 12px;
+  text-shadow: 0 1px 0 hsla(0, 0%, 100%, 0.5);
+}
+#login div#bottom a:hover,
+#recovery div#bottom a:hover,
+.page-wrapper div#bottom a:hover {
+  color: #3a3f45;
+  text-decoration: underline;
+}
+html.placeholder #login label {
+    display: none !important;
+  }
+html.placeholder #login p.remember label {
+    display: inline !important;
+  }
+#login .selector {
+    font-size: 18px;
+    padding: 10px 12px;
+    width: 100%;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+    border: 1px solid #ddd;
+    background-color: #fff;
+    box-sizing: border-box;
+    height: 45px;
+}
+div.newbox {
+  position: relative;
+  border-radius: 4px;
+  -ms-box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), 0 3px 5px rgba(0, 0, 0, 0.2);
+  -o-box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), 0 3px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), 0 3px 5px rgba(0, 0, 0, 0.2);
+}
+div.newbox {
+  width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+p.text input:not([type='checkbox']),
+  p.text textarea {
+    background-color: #fff;
+    color: #000;
+    font-size: 14px;
+    padding: 6px 7px;
+    width: 150px;
+    border: 1px solid #bbb;
+    border-top-color: #999;
+    border-radius: 4px;
+    -ms-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+    -o-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+    -webkit-font-smoothing: antialiased;
+  }
+  p.text input:not([type='checkbox']):focus,
+p.text textarea.focus,
+p.text textarea:focus {
+  border: 1px solid #28a0e5;
+  outline: none;
+  -ms-box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
+  -o-box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
+  box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
+}
+p.text input.placeholder,
+p.text textarea.placeholder {
+  color: rgba(153,153,153,.8);
+  font-size: 18px;
+  font-weight: 350;
+  line-height: 1.6;
+}
+p.text input:-moz-placeholder,
+p.text textarea:-moz-placeholder {
+  color: rgba(153,153,153,.8);
+  font-size: 18px;
+  font-weight: 350;
+  line-height: 1.6;
+}
+p.text input:-ms-input-placeholder,
+p.text textarea:-ms-input-placeholder {
+  color:rgba(153,153,153,.8);
+  font-size: 18px;
+  font-weight: 350;
+  line-height: 1.6;
+}
+p.text input::-webkit-input-placeholder,
+p.text textarea::-webkit-input-placeholder {
+  color: rgba(153,153,153,.8);
+  font-size: 18px;
+  font-weight: 350;
+  line-height: 1.6;
+}
+div.form p.submit,
+form.form p.submit {
+  border-top: 1px solid #eee;
+  padding-top: 30px;
+}
+button.button.blue {
+  background: #015e94;
+  background: linear-gradient(#7dc5ee, #008cdd 85%, #30a2e4);
+  -ms-box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.25);
+  -o-box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.25);
+  box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.25);
+  outline: none;
+  border:none;
+}
+button.button.blue span {
+  color: #fff;
+}
+button.button.blue.active,
+button.button.blue:active{
+    background: #005d93;
+}
+.text label {
+font-size: 18px;
+  font-weight: 350;
+  line-height: 200%;
+}

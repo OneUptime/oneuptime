@@ -1,0 +1,70 @@
+.LocalNavigation{
+    position:relative;
+    position:-webkit-sticky;
+    position:-moz-sticky;
+    position:-ms-sticky;
+    position:-o-sticky;
+    position:sticky;
+    top:-1px;
+    z-index:500;
+    background:hsla(0,0%,100%,.95);
+    border-top:1px solid rgba(7,96,115,.07);
+    border-bottom:1px solid rgba(7,96,115,.07);
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch
+}
+@media (min-width:670px){
+    .LocalNavigation{
+        overflow-x:hidden
+    }
+}
+@supports ((-webkit-backdrop-filter:blur(10px)) or (backdrop-filter:blur(10px))){
+    .LocalNavigation{
+        background:hsla(0,0%,100%,.9);
+        -webkit-backdrop-filter:blur(10px);
+        backdrop-filter:blur(10px)
+    }
+}
+.LocalNavigation .container,.LocalNavigation .container-wide{
+    padding:0
+}
+.LocalNavigation-list{
+    display:table;
+    width:100%;
+    padding:0 10px;
+    margin:0
+}
+.LocalNavigation-list li{
+    display:table-cell;
+    text-align:center;
+    white-space:nowrap
+}
+@media (min-width:670px){
+    .LocalNavigation-list li{
+        white-space:normal
+    }
+}
+.LocalNavigation-list a{
+    font-size:17px;
+    line-height:24px;
+    font-weight:500;
+    letter-spacing:.025em;
+    text-transform:uppercase;
+    text-decoration:none;
+    color:#8898aa;
+    display:block;
+    padding:25px 15px;
+    transition:color .1s ease
+}
+.LocalNavigation-list a:hover{
+    color:#32325d
+}
+@media (min-width:670px){
+    .LocalNavigation-list a{
+        padding-left:8px;
+        padding-right:8px
+    }
+}
+.LocalNavigation-list a.active{
+    color:#24b47e
+}
