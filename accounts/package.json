@@ -9,7 +9,6 @@
     "card-validator": "^4.3.0",
     "chart.js": "^2.7.2",
     "clipboard": "^2.0.1",
-    "cloudboost": "^6.6.6",
     "components": "^0.1.0",
     "connected-react-router": "^4.5.0",
     "creditcard-generator": "0.0.7",
