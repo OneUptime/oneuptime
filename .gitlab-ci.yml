@@ -6,21 +6,21 @@
 # Define stages
 
 stages:
-  - build_n_test
-  - e2e_test
-  - deploy_staging
-  - deploy_production
+  - Build_n_Test
+  - E2E_test
+  - Deploy_Staging
+  - Deploy_Production
 
 lint_n_audit_backend:
-  stage: build_n_test
+  stage: Build_n_Test
   script:
     - cd backend
     - npm install --dev
-    - eslint
+    - npm run lint
     # - npm run audit
 
 build_n_test_backend:
-  stage: build_n_test
+  stage: Build_n_Test
   script:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -29,7 +29,7 @@ build_n_test_backend:
     - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
 
 e2e_test:
-  stage: e2e_test
+  stage: E2E_test
   script:
    - chmod +x ./kubernetes/ci/setup-machine.sh
    - ./kubernetes/ci/setup-machine.sh
@@ -42,7 +42,7 @@ e2e_test:
       - master
 
 deploy_staging:
-  stage: deploy_staging
+  stage: Deploy_Staging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -65,7 +65,7 @@ deploy_staging:
     name: staging
 
 deploy_production:
-  stage: deploy_production
+  stage: Deploy_Production
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
