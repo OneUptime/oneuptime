@@ -73,7 +73,7 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) 
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
-});;
+});
 
 router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) {
     let data = req.body;
