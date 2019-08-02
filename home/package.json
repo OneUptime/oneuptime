@@ -4,6 +4,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "echo 'no tests'",
+    "lint": "eslint .",
     "lighthouse-test": "jest lighthouse-tests/test/index.test.js --env=node --detectOpenHandles",
     "lighthouse": "start-server-and-test http://localhost:1444",
     "smoketest": "jest smoketest/index.test.js --env=node --detectOpenHandles",
@@ -27,6 +28,7 @@
     "faker": "^4.1.0",
     "jest": "^24.8.0",
     "lighthouse": "^2.9.4",
+    "eslint": "5.16.0",
     "npm-audit-ci-wrapper": "^2.2.1",
     "puppeteer": "^1.18.0",
     "start-server-and-test": "^1.7.0"

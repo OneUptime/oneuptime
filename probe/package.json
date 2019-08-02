@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "lint": "eslint .",
     "pretest": "eslint --fix --ignore-path .gitignore .",
     "start": "node index.js",
     "dev": "nodemon index.js",

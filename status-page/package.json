@@ -56,7 +56,7 @@
     "test": "cross-env CI=true react-scripts test --env=jsdom --coverage --coverage",
     "e2e": "mocha ./src/test/statusPage.test.js",
     "pretest": "npm run lint",
-    "lint": "eslint --fix --ignore-path .gitignore .",
+    "lint": "eslint .",
     "eject": "react-scripts eject",
     "snapshots": "cross-env CI=true react-scripts test --env=jsdom --coverage --coverage",
     "snapshots:watch": "react-scripts test --env=jsdom --watchAll",
