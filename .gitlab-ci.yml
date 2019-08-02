@@ -3,8 +3,9 @@
 # This CI/CD will run on an Ubuntu VM. After this script runs, the VM will retain the state.
 # It's your responsibility to clean the VM up in the cleanup stage after job finishes executing.
 # This script runs on Microk8s. since our deployments are on Kubernetes, our aim is to create EXACT same replica for test, staging and production.
-# Define stages
 
+
+# Define stages
 stages:
   - Build_n_Test
   - E2E_test
@@ -121,6 +122,7 @@ e2e_test:
       - release
       - master
 
+# DEPLOYMENT STAGE
 deploy_staging:
   stage: Deploy_Staging
   script:
@@ -166,7 +168,7 @@ deploy_production:
   environment:
     name: production
 
-
+## SMOKE TEST STAGE
 smoke_test_production:
   stage: Smoke_Test
   script:
@@ -187,6 +189,8 @@ smoke_test_staging:
   environment:
     name: production
 
+
+## ROLLBACK STAGE
 production_rollback:
   stage: Rollback_If_Failed
   script:
