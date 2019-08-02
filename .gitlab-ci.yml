@@ -170,9 +170,6 @@ smoke_test_production:
   stage: Smoke_Test
   script:
     - echo "No test implemented"
-  after_script:
-   when: on_failure
-    - echo "Rollback not implemented"
   only:
     refs:
       - release
@@ -183,9 +180,26 @@ smoke_test_staging:
   stage: Smoke_Test
   script:
     - echo "No test implemented"
-  after_script:
-   when: on_failure
-    - echo "Rollback not implemented"
+  only:
+    refs:
+      - master
+  environment:
+    name: production
+
+production_rollback:
+  stage: Rollback_If_Failed
+  script:
+    - echo "No rollback implemented"
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+staging_rollback:
+  stage: Rollback_If_Failed
+  script:
+    - echo "No rollback implemented"
   only:
     refs:
       - master
