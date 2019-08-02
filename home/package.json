@@ -23,6 +23,7 @@
     "twitter-node-client": "0.0.6"
   },
   "devDependencies": {
+    "babel-eslint": "^10.0.2",
     "chrome-launcher": "^0.10.7",
     "eslint": "5.16.0",
     "eslint-plugin-react": "^7.14.3",

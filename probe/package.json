@@ -33,5 +33,8 @@
     "node-fetch": "^2.6.0",
     "winston": "^3.2.1",
     "winston-slack-transport": "^2.0.0"
+  },
+  "devDependencies": {
+    "npm-audit-ci-wrapper": "^2.3.0"
   }
 }
