@@ -48,6 +48,21 @@ build_n_test_dashboard:
   script:
    - echo "No test implemented"
 
+##ZAPIER
+lint_n_audit_zapier:
+  stage: Build_n_Test
+  script:
+    - cd zapier
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
+
+build_n_test_zapier:
+  stage: Build_n_Test
+  script:
+   - echo "No test implemented"
+
 ## STATUS PAGE
 lint_n_audit_statuspage:
   stage: Build_n_Test

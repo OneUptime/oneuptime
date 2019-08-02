@@ -8,8 +8,8 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
-    "pretest": "eslint --fix --ignore-path .gitignore .",
     "test": "mocha --recursive",
+    "fix-lint": "eslint . --fix",
     "audit": "npm-audit-ci-wrapper --threshold=high"
   },
   "engine": {
