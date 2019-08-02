@@ -11,6 +11,7 @@ stages:
   - Deploy_Staging
   - Deploy_Production
 
+##BACKEND 
 lint_n_audit_backend:
   stage: Build_n_Test
   script:
@@ -18,6 +19,7 @@ lint_n_audit_backend:
     - npm install --dev
     - npm run lint
     # - npm run audit
+    - cd ..
 
 build_n_test_backend:
   stage: Build_n_Test
@@ -28,6 +30,82 @@ build_n_test_backend:
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
 
+##DASHBOARD
+lint_n_audit_dashboard:
+  stage: Build_n_Test
+  script:
+    - cd dashboard
+    - npm install --dev
+    - npm run lint
+    # - npm run audit
+    - cd ..
+
+build_n_test_dashboard:
+  stage: Build_n_Test
+  script:
+   - echo "No test implemented"
+
+## STATUS PAGE
+lint_n_audit_statuspage:
+  stage: Build_n_Test
+  script:
+    - cd status-page
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
+
+build_n_test_statuspage:
+  stage: Build_n_Test
+  script:
+   - echo "No test implemented"
+
+## ACCOUNTS
+lint_n_audit_accounts:
+  stage: Build_n_Test
+  script:
+    - cd accounts
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
+
+build_n_test_accounts:
+  stage: Build_n_Test
+  script:
+   - echo "No test implemented"
+
+## HOME
+lint_n_audit_home:
+  stage: Build_n_Test
+  script:
+    - cd home
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
+
+build_n_test_home:
+  stage: Build_n_Test
+  script:
+   - echo "No test implemented"
+
+## PROBE
+lint_n_audit_probe:
+  stage: Build_n_Test
+  script:
+    - cd probe
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
+
+build_n_test_probe:
+  stage: Build_n_Test
+  script:
+   - echo "No test implemented"
+
+##E2E Stage. 
 e2e_test:
   stage: E2E_test
   script:

@@ -70,8 +70,7 @@
     "lint": "eslint .",
     "dev": "PORT=3000 react-scripts start",
     "build": "react-scripts build",
-    "jest": "jest --clearCache && jest",
-    "test": "npm run lint",
+    "test": "jest --clearCache && jest",
     "start": "node index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high"
   },
