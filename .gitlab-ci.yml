@@ -16,7 +16,7 @@ lint_n_audit_backend:
   script:
     - cd backend
     - eslint
-    - # npm run audit
+    # - npm run audit
 
 build_n_test_backend:
   stage: build_n_test
