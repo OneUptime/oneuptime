@@ -7,16 +7,16 @@
 
 # Define stages
 stages:
-  - Build_n_Test
-  - E2E_test
-  - Deploy_Staging
-  - Deploy_Production
-  - Smoke_Test
-  - Rollback_If_Failed
+  - BuildAndTest
+  - E2E
+  - DeployStaging
+  - DeployProduction
+  - SmokeTest
+  - Rollback
 
 ##BACKEND 
 lint_n_audit_backend:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd backend
     - npm install --dev
@@ -25,7 +25,7 @@ lint_n_audit_backend:
     - cd ..
 
 build_n_test_backend:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -35,7 +35,7 @@ build_n_test_backend:
 
 ##DASHBOARD
 lint_n_audit_dashboard:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd dashboard
     - npm install --dev
@@ -44,13 +44,13 @@ lint_n_audit_dashboard:
     - cd ..
 
 build_n_test_dashboard:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ##ZAPIER
 lint_n_audit_zapier:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd zapier
     - npm install --dev
@@ -59,13 +59,13 @@ lint_n_audit_zapier:
     - cd ..
 
 build_n_test_zapier:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ## STATUS PAGE
 lint_n_audit_statuspage:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd status-page
     - npm install --dev
@@ -74,13 +74,13 @@ lint_n_audit_statuspage:
     - cd ..
 
 build_n_test_statuspage:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ## ACCOUNTS
 lint_n_audit_accounts:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd accounts
     - npm install --dev
@@ -89,13 +89,13 @@ lint_n_audit_accounts:
     - cd ..
 
 build_n_test_accounts:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ## HOME
 lint_n_audit_home:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd home
     - npm install --dev
@@ -104,13 +104,13 @@ lint_n_audit_home:
     - cd ..
 
 build_n_test_home:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ## PROBE
 lint_n_audit_probe:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd probe
     - npm install --dev
@@ -119,13 +119,13 @@ lint_n_audit_probe:
     - cd ..
 
 build_n_test_probe:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ##E2E Stage. 
 e2e_test:
-  stage: E2E_test
+  stage: E2E
   script:
    - chmod +x ./kubernetes/ci/setup-machine.sh
    - ./kubernetes/ci/setup-machine.sh
@@ -139,7 +139,7 @@ e2e_test:
 
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
-  stage: Deploy_Staging
+  stage: DeployStaging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -164,7 +164,7 @@ deploy_staging_backend:
 
 
 deploy_production_backend:
-  stage: Deploy_Production
+  stage: DeployProduction
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -187,7 +187,7 @@ deploy_production_backend:
 
 # DEPLOYMENT STAGE - Api docs
 deploy_staging_api-docs:
-  stage: Deploy_Staging
+  stage: DeployStaging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -210,7 +210,7 @@ deploy_staging_api-docs:
     name: staging
 
 deploy_production_api-docs:
-  stage: Deploy_Production
+  stage: DeployProduction
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -233,7 +233,7 @@ deploy_production_api-docs:
 
 # DEPLOYMENT STAGE - Home
 deploy_staging_home:
-  stage: Deploy_Staging
+  stage: DeployStaging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -256,7 +256,7 @@ deploy_staging_home:
     name: staging
 
 deploy_production_home:
-  stage: Deploy_Production
+  stage: DeployProduction
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -279,7 +279,7 @@ deploy_production_home:
 
 # DEPLOYMENT STAGE - Probe
 deploy_staging_probe:
-  stage: Deploy_Staging
+  stage: DeployStaging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -302,7 +302,7 @@ deploy_staging_probe:
     name: staging
 
 deploy_production_probe:
-  stage: Deploy_Production
+  stage: DeployProduction
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -325,7 +325,7 @@ deploy_production_probe:
 
 # DEPLOYMENT STAGE - status-page
 deploy_staging_status-page:
-  stage: Deploy_Staging
+  stage: DeployStaging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -348,7 +348,7 @@ deploy_staging_status-page:
     name: staging
 
 deploy_production_status-page:
-  stage: Deploy_Production
+  stage: DeployProduction
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -371,7 +371,7 @@ deploy_production_status-page:
 
 # DEPLOYMENT STAGE - Admin Dashboard
 deploy_staging_admin-dashboard:
-  stage: Deploy_Staging
+  stage: DeployStaging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -394,7 +394,7 @@ deploy_staging_admin-dashboard:
     name: staging
 
 deploy_production_admin-dashboard:
-  stage: Deploy_Production
+  stage: DeployProduction
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -418,7 +418,7 @@ deploy_production_admin-dashboard:
 
 # DEPLOYMENT STAGE - Accounts
 deploy_staging_accounts:
-  stage: Deploy_Staging
+  stage: DeployStaging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -441,7 +441,7 @@ deploy_staging_accounts:
     name: staging
 
 deploy_production_accounts:
-  stage: Deploy_Production
+  stage: DeployProduction
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -464,7 +464,7 @@ deploy_production_accounts:
 
 # DEPLOYMENT STAGE - Dashboard
 deploy_staging_dashboard:
-  stage: Deploy_Staging
+  stage: DeployStaging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -487,7 +487,7 @@ deploy_staging_dashboard:
     name: staging
 
 deploy_production_dashboard:
-  stage: Deploy_Production
+  stage: DeployProduction
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -511,7 +511,7 @@ deploy_production_dashboard:
 
 ## SMOKE TEST STAGE
 smoke_test_production:
-  stage: Smoke_Test
+  stage: SmokeTest
   script:
     - echo "No test implemented"
   only:
@@ -521,7 +521,7 @@ smoke_test_production:
     name: production
 
 smoke_test_staging:
-  stage: Smoke_Test
+  stage: SmokeTest
   script:
     - echo "No test implemented"
   only:
@@ -533,7 +533,7 @@ smoke_test_staging:
 
 ## ROLLBACK STAGE
 production_rollback:
-  stage: Rollback_If_Failed
+  stage: Rollback
   script:
     - echo "No rollback implemented"
   only:
@@ -543,7 +543,7 @@ production_rollback:
     name: production
 
 staging_rollback:
-  stage: Rollback_If_Failed
+  stage: Rollback
   script:
     - echo "No rollback implemented"
   only:
