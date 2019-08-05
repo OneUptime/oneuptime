@@ -68,7 +68,7 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "dev": "SET PORT=3100 && react-scripts start",
+    "dev": "export PORT=3100 react-scripts start",
     "build": "react-scripts build",
     "jest": "jest src/test/puppeteer/index.test.js",
     "test": "npm run lint",
