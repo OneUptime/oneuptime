@@ -20,7 +20,6 @@
     "history": "^4.7.2",
     "humanize-duration": "^3.15.3",
     "imrc-datetime-picker": "^2.1.1",
-    "jest": "^24.7.1",
     "js-uuid": "0.0.6",
     "jshint": "^2.9.6",
     "loadable": "^1.0.0",
@@ -82,7 +81,6 @@
     "babel-preset-react": "^6.24.1",
     "babel-runtime": "^6.26.0",
     "cross-env": "^5.2.0",
-    "eslint": "5.16.0",
     "jest-localstorage-mock": "^2.2.0",
     "npm-audit-ci-wrapper": "^2.2.1",
     "react-test-renderer": "^16.5.2",
@@ -98,8 +96,10 @@
       "!src/config.js",
       "!src/routes.js",
       "!src/setupTests.js"
-    ], 
-    "testMatch": ["<rootDir>/src/test/puppeteer/**/*.test.js"]
+    ],
+    "testMatch": [
+      "<rootDir>/src/test/puppeteer/**/*.test.js"
+    ]
   },
   "browserslist": {
     "production": [
