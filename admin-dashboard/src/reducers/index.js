@@ -3,7 +3,6 @@ import { routerReducer } from 'react-router-redux';
 import { reducer as formReducer } from 'redux-form';
 import modal from './modal';
 import profileSettings from './profile';
-import feedback from './feedback';
 import notifications from './notifications';
 
 const appReducer = combineReducers({
@@ -11,7 +10,6 @@ const appReducer = combineReducers({
     form: formReducer,
     modal,
     profileSettings,
-    feedback,
     notifications,
 });
 

@@ -21,6 +21,7 @@ class SideNav extends Component {
 	render() {
 		
 		return (
+			<div className="db-World-scrollWrapper"> 
 			<div onKeyDown={this.handleKeyBoard}  className="db-World-sideNavContainer">
 				<div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
 					<div className="Box-root Margin-bottom--20">
@@ -45,9 +46,10 @@ class SideNav extends Component {
 												whiteSpace: 'nowrap'
 											}}
 										>
+											<span class="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--noWrap">Admin Dashboard</span>
 										</div>
 										<div className="Box-root Margin-left--8">
-											<div className="db-AccountSwitcherX-chevron" />
+											{/* <div className="db-AccountSwitcherX-chevron" /> */}
 										</div>
 									</div>
 								</div>
@@ -81,6 +83,7 @@ class SideNav extends Component {
 							})}
 					</div>
 				</div>
+			</div>
 			</div>
 		);
 	}

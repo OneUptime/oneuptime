@@ -77,7 +77,7 @@ export class DashboardApp extends Component {
 
                         </div>
 
-
+                        <TopNav />
 
                     </div>
                 </div>

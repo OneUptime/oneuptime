@@ -1,7 +1,7 @@
 import pages from './pages';
 
 const {
-	DashboardView
+	Users
 } = pages;
 
 export const groups = [
@@ -10,10 +10,10 @@ export const groups = [
 		visible: true,
 		routes: [
 			{
-				title: 'Dashboard',
+				title: 'Users',
 				path: '/',
 				icon: 'atlas',
-				component: DashboardView,
+				component: Users,
 				visible: true,
 				subRoutes: [],
 				index: 1

@@ -1,7 +1,7 @@
-import DashboardView from './DashboardView';
+import Users from './Users';
 import Profile from './Profile';
 
 export default {
-    DashboardView,
+    Users,
     Profile
 }

@@ -2,10 +2,8 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import FeedBackModal from '../FeedbackModal';
 import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
-import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
 import ClickOutside from 'react-click-outside';
 import { userSettings } from '../../actions/profile';
 import { API_URL,User } from '../../config';
@@ -14,20 +12,6 @@ class TopContent extends Component {
 
 	componentDidMount() {
 		this.props.userSettings();
-	}
-
-	showFeedbackModal =()=> {
-		this.props.openFeedbackModal();
-		if(window.location.href.indexOf('localhost') <= -1){
-			this.context.mixpanel.track('Feedback Modal Opened', {});
-		}
-	}
-
-	hideFeedbackModal =()=> {
-		this.props.closeFeedbackModal();
-		if(window.location.href.indexOf('localhost') <= -1){
-			this.context.mixpanel.track('Feedback Modal Closed', {});
-		}
 	}
 
 	showProfileMenu =()=> {
@@ -47,7 +31,6 @@ class TopContent extends Component {
 	handleKeyBoard = (e)=>{
 		switch(e.key){
 			case 'Escape':
-			this.hideFeedbackModal()
 			return true;
 			default:
 			return false;
@@ -74,45 +57,11 @@ class TopContent extends Component {
 			<div tabIndex="0" onKeyDown={this.handleKeyBoard} style={{zIndex:'2'}} className="db-World-topContent Box-root Box-background--surface Padding-vertical--20">
 
 				<div  className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-					<ClickOutside onClickOutside={this.hideFeedbackModal}>
-						<FeedBackModal />
-					</ClickOutside>
 					<div className="db-SearchField db-SearchField--tokenizable">
 
 						<span />
 					</div>
 					<div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-						<div className="Box-root Margin-right--16">
-							<div
-								id="feedback-div"
-								className="db-FeedbackInput-container Card-root Card-shadow--small"
-								onClick={this.showFeedbackModal}
-							>
-								<div className="db-FeedbackInput-box Box-root Box-background--offset Flex-flex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--4">
-									<div className="Box-root Flex-flex Margin-right--8">
-										<span className="db-FeedbackInput-defaultIcon" />
-									</div>
-
-									<div
-										style={{
-											overflow: 'hidden',
-											textOveerflow: 'ellipsis',
-											whiteSpace: 'nowrap'
-										}}
-									>
-										<span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-											{(this.props.feedback.feedback.success || this.props.feedback.feedback.requesting) && (!this.props.feedback.feedback.error) ? <span>Thank you for your feedback.</span> : <span>Feedback about this page?</span>}
-											{
-												(this.props.feedback.feedback.error) ? <span>Sorry, Please try again.</span> : null
-											}
-										</span>
-
-									</div>
-									<span />
-								</div>
-								<span />
-							</div>
-						</div>
 						
 						<div className="Box-root Flex-flex">
 							<div tabIndex="-1" style={{ outline: 'none',marginRight:'15px' }}>
@@ -158,22 +107,18 @@ const mapStateToProps = (state) => {
 
 	return {
 		profilePic,
-		feedback: state.feedback,
 		notifications : state.notifications.notifications
 	}
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-	{ showProfileMenu, openFeedbackModal, closeFeedbackModal, userSettings,openNotificationMenu }
+	{ showProfileMenu, userSettings,openNotificationMenu }
 	, dispatch)
 
 TopContent.propTypes = {
 	userSettings: PropTypes.func.isRequired,
-	openFeedbackModal: PropTypes.func.isRequired,
-	closeFeedbackModal: PropTypes.func.isRequired,
 	showProfileMenu: PropTypes.func.isRequired,
 	openNotificationMenu : PropTypes.func.isRequired,
-	feedback: PropTypes.object.isRequired,
 	profilePic: PropTypes.oneOfType([
 		PropTypes.string,
 		PropTypes.oneOf([null,undefined])
