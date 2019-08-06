@@ -9,7 +9,9 @@ var notificationSchema = new Schema({
     read: [{type: String, ref: 'User'}],
     icon : String,
     deleted: { type: Boolean, default: false},
-    
+    meta: {
+        type: Object
+    },
     deletedAt: {
         type: Date
     },

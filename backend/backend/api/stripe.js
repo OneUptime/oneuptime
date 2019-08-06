@@ -98,5 +98,13 @@ router.get('/creditCard/:projectId/:cardId', getUser, isAuthorized, isUserOwner,
         return sendErrorResponse(req, res, error);
     }
 });
+router.post('/webHook/pi', async function (req, res){
+    var paymentIntentData = req.body.data.object;
+    if(paymentIntentData.description === 'Recharge balance'){
+        var status = await StripeService.updateBalance(paymentIntentData);
+        return sendItemResponse(req, res, status);
+    }
+    return sendItemResponse(req, res, false);
+});
 
 module.exports = router;
