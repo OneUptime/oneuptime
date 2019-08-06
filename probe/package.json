@@ -27,7 +27,7 @@
     "eslint": "^6.0.1",
     "express": "^4.17.1",
     "http": "0.0.0",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "moment": "^2.24.0",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.6.0",
