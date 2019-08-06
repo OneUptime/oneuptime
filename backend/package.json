@@ -48,7 +48,8 @@
     "start": "node server.js",
     "dev": "NODE_ENV=development nodemon server.js",
     "test": "NODE_ENV=development mocha --exit",
-    "audit": "npm-audit-ci-wrapper --threshold=high"
+    "audit": "npm-audit-ci-wrapper --threshold=high",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "babel-eslint": "^10.0.2",
