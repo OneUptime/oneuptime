@@ -39,6 +39,10 @@ var projectSchema = new Schema({
         type: Boolean,
         default: false
     },
+    balance:{
+        type: Number,
+        default: 0
+    },
     alertOptions: {
         minimumBalance: {
             type: Number,

@@ -197,7 +197,62 @@ module.exports = {
             return updatedProject;
         }
     },
+    updateAlertOptions: async function (data) {
+        var projectId = data._id;
+        var userId = data.userId;
+        var project = await ProjectModel.findById(projectId).lean();
+        var currentBalance = project.balance;
+        var { minimumBalance, rechargeToBalance } = data.alertOptions;
+        var updatedProject = {};
 
+        if (!data.alertEnable) {
+            updatedProject = await ProjectModel.findByIdAndUpdate(
+                projectId, {
+                    $set: {
+                        alertEnable: false,
+                    }
+                }, { new: true });
+            return updatedProject;
+        }
+
+        if (currentBalance >= minimumBalance) {
+            // update settings, the current balance satisfies incoming project's alert settings
+            updatedProject = await ProjectModel.findByIdAndUpdate(
+                projectId, {
+                    $set: {
+                        alertEnable: data.alertEnable,
+                        alertOptions: data.alertOptions
+                    }
+                }, { new: true });
+            return updatedProject;
+        }
+        var chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, projectId, data.alertOptions);
+        if (chargeForBalance && chargeForBalance.paid) {
+            var newBalance = rechargeToBalance + currentBalance;
+            updatedProject = await ProjectModel.findByIdAndUpdate(
+                projectId, {
+                    $set: {
+                        balance: newBalance,
+                        alertEnable: data.alertEnable,
+                        alertOptions: data.alertOptions
+                    }
+                }, { new: true });
+            return updatedProject;
+        }
+        else if (chargeForBalance && chargeForBalance.client_secret) {
+            updatedProject = {
+                ...project,
+                paymentIntent: chargeForBalance.client_secret
+            };
+            return updatedProject;
+        }
+        else {
+            var error = new Error('Cannot save project settings');
+            error.code = 403;
+            ErrorService.log('ProjectService.updateAlertOptions', error);
+            throw error;
+        }
+    },
     saveProject: async function (project) {
         try{
             project = await project.save();
@@ -412,4 +467,4 @@ var ScheduleService = require('./scheduleService');
 var moment = require('moment');
 var domains = require('../config/domains');
 var EscalationService = require('./escalationService');
-
+var StripeService = require('./stripeService');

@@ -259,6 +259,7 @@ router.put('/:projectId/renameProject', getUser, isAuthorized, isUserOwner, asyn
 
 router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async function(req, res){
     let projectId = req.params.projectId;
+    var userId = req.user ? req.user.id : null;
 
     if (!projectId) {
         return sendErrorResponse( req, res, {
@@ -284,19 +285,37 @@ router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async
             message: 'Recharge balance must be present and valid.'
         });
     }
-    if (data.billingUS && rechargeToBalance < 20) {
+    if (data.billingUS && minimumBalance < 20) {
         return sendErrorResponse(req, res, {
             code: 400,
             message: 'Price-plan mismatch'
         });
     }
-    if (data.billingNonUSCountries && rechargeToBalance < 50) {
+    if (data.billingNonUSCountries && minimumBalance < 50) {
         return sendErrorResponse(req, res, {
             code: 400,
             message: 'Price-plan mismatch'
         });
     }
-    if (data.billingRiskCountries && rechargeToBalance < 100) {
+    if (data.billingRiskCountries && minimumBalance < 100) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Price-plan mismatch'
+        });
+    }
+    if (data.billingUS && rechargeToBalance < 40) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Price-plan mismatch'
+        });
+    }
+    if (data.billingNonUSCountries && rechargeToBalance < 100) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Price-plan mismatch'
+        });
+    }
+    if (data.billingRiskCountries && rechargeToBalance < 200) {
         return sendErrorResponse(req, res, {
             code: 400,
             message: 'Price-plan mismatch'
@@ -312,11 +331,12 @@ router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async
             billingNonUSCountries: data.billingNonUSCountries,
             billingRiskCountries: data.billingRiskCountries,
             billingUS: data.billingUS
-        }
+        },
+        userId
     };
 
     try{
-        var project = await ProjectService.update(data);
+        var project = await ProjectService.updateAlertOptions(data);
         return sendItemResponse(req, res, project);
     }catch(error){
         sendErrorResponse(req, res, error);

@@ -14,6 +14,7 @@ var UserService = require('../backend/services/userService');
 var UserModel = require('../backend/models/user');
 var IncidentService = require('../backend/services/incidentService');
 var ProjectService = require('../backend/services/projectService');
+var ProjectModel = require('../backend/models/project');
 var StatusPageService = require('../backend/services/statusPageService');
 var MonitorService = require('../backend/services/monitorService');
 var AlertService = require('../backend/services/alertService');
@@ -39,7 +40,7 @@ describe('Alert API', function () {
 
 
     describe('Alert API without subprojects', function () {
-        this.timeout(20000);
+        this.timeout(30000);
 
         before(function (done) {
             this.timeout(30000);
@@ -76,9 +77,10 @@ describe('Alert API', function () {
             var authorization = `Basic ${token}`;
             request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization).send(incidentData).end(function (err, res) {
                 incidentId = res.body._id;
+                monitorId = res.body.monitorId._id;
                 request.post(`/alert/${res.body.projectId}`).set('Authorization', authorization)
                     .send({
-                        monitorId: res.body.monitorId._id,
+                        monitorId,
                         alertVia: 'email',
                         incidentId: incidentId
                     }).end(function (err, res) {
@@ -86,6 +88,28 @@ describe('Alert API', function () {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
                         done();
+                    });
+            });
+        });
+
+        it('should create alert and balance should be deducted', function (done) {
+            var authorization = `Basic ${token}`;
+            ProjectModel.findByIdAndUpdate(projectId, { balance: 100 }, { new: true }, function (err, project) {
+                var balanceBeforeAlert = project.balance;
+                request.post(`/alert/${projectId}`).set('Authorization', authorization)
+                    .send({
+                        monitorId,
+                        alertVia: 'call',
+                        incidentId: incidentId
+                    }).end(function (err, res) {
+                        alertId = res.body._id;
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.be.an('object');
+                        ProjectModel.findById(projectId, function (err, project) {
+                            var balanceAfterAlert = project.balance;
+                            expect(balanceBeforeAlert).to.be.greaterThan(balanceAfterAlert);
+                            done();
+                        })
                     });
             });
         });
@@ -136,7 +160,7 @@ describe('Alert API', function () {
     var newUserToken, subProjectAlertId;
 
     describe('Alert API with Sub-Projects', function () {
-        this.timeout(30000);
+        this.timeout(40000)
         before(function (done) {
             this.timeout(30000);
             var authorization = `Basic ${token}`;

@@ -236,47 +236,78 @@ module.exports = {
         return subscriptions.id;
     },
 
-    chargeAlert: async function (planId, stripeMeteredSubscriptionId) {
-        try{
-            var subscription = await stripe.subscriptions.retrieve(stripeMeteredSubscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.retrieve', error);
-            throw error;
-        }
-        try{
-            var plan = await Plans.getPlanById(planId);
-        }catch(error){
-            ErrorService.log('Plans.getPlanById', error);
-            throw error;
-        }
-        var subscriptionItemId = null;
-        if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
-            let error = new Error('Your subscription cannot be retrieved.');
-            error.code = 400;
-            ErrorService.log('PaymentService.chargeAlert', error);
-            throw error;
-        } else {
-            for (var i = 0; i < subscription.items.data.length; i++) {
+    // chargeAlert: async function (planId, stripeMeteredSubscriptionId) {
+    //     try{
+    //         var subscription = await stripe.subscriptions.retrieve(stripeMeteredSubscriptionId);
+    //     }catch(error){
+    //         ErrorService.log('stripe.subscriptions.retrieve', error);
+    //         throw error;
+    //     }
+    //     try{
+    //         var plan = await Plans.getPlanById(planId);
+    //     }catch(error){
+    //         ErrorService.log('Plans.getPlanById', error);
+    //         throw error;
+    //     }
+    //     var subscriptionItemId = null;
+    //     if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
+    //         let error = new Error('Your subscription cannot be retrieved.');
+    //         error.code = 400;
+    //         ErrorService.log('PaymentService.chargeAlert', error);
+    //         throw error;
+    //     } else {
+    //         for (var i = 0; i < subscription.items.data.length; i++) {
 
-                if (subscription.items.data[i].plan.id === plan.alertPlanId) {
-                    subscriptionItemId = subscription.items.data[i].id;
-                    break;
-                    //do nothing.
-                }
-            }
-            var today = new Date();
-            try{
-                var subscriptionItem = await stripe.usageRecords.create(subscriptionItemId, {
-                    quantity: 1,
-                    timestamp: today.getTime() + today.getTimezoneOffset(),
-                    action: 'increment'
-                });
-            }catch(error){
-                ErrorService.log('stripe.usageRecords.create', error);
+    //             if (subscription.items.data[i].plan.id === plan.alertPlanId) {
+    //                 subscriptionItemId = subscription.items.data[i].id;
+    //                 break;
+    //                 //do nothing.
+    //             }
+    //         }
+    //         var today = new Date();
+    //         try{
+    //             var subscriptionItem = await stripe.usageRecords.create(subscriptionItemId, {
+    //                 quantity: 1,
+    //                 timestamp: today.getTime() + today.getTimezoneOffset(),
+    //                 action: 'increment'
+    //             });
+    //         }catch(error){
+    //             ErrorService.log('stripe.usageRecords.create', error);
+    //             throw error;
+    //         }
+    //         return subscriptionItem;
+    //     }
+    // },
+
+    chargeAlert: async function(userId, projectId, chargeAmount){
+        var project = await ProjectService.findOneBy({
+            _id: projectId
+        });
+        var { balance } = project;
+        var { minimumBalance, rechargeToBalance } = project.alertOptions;
+        if ( balance < minimumBalance ){
+            var chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, projectId);
+            if (!(chargeForBalance.paid)){
+                //create notification
+                var message = 'Your billing needs action. Click here to authorize payment.';
+                var meta = {
+                    type: 'action',
+                    client_secret: chargeForBalance.client_secret
+                };
+                await NotificationService.create(projectId, message, userId, null, meta);
+                var error = new Error('Alert not sent, recharge your account first');
+                error.code = 400;
                 throw error;
             }
-            return subscriptionItem;
         }
+        var balanceAfterAlertSent = balance - chargeAmount;
+        var updatedProject = await ProjectModel.findByIdAndUpdate(
+            projectId, {
+                $set: {
+                    balance: balanceAfterAlertSent
+                }
+            }, { new: true });
+        return updatedProject;
     },
 
     //Description: Call this fuction to bill for extra users added to an account.
@@ -335,3 +366,7 @@ var payment = require('../config/payment');
 var stripe = require('stripe')(payment.paymentPrivateKey);
 var Plans = require('../config/plans');
 var ErrorService = require('./errorService');
+var ProjectService = require('./projectService');
+var ProjectModel = require('../models/project');
+var StripeService = require('./stripeService');
+var NotificationService = require('./notificationService');

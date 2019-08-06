@@ -57,12 +57,16 @@ module.exports = {
         return notifications;
     },
 
-    create: async function (projectId, message, userId, icon) {
+    create: async function (projectId, message, userId, icon, meta) {
+        if(!meta){
+            meta = {}
+        }
         var notification = new NotificationModel();
         notification.projectId = projectId;
         notification.message = message;
         notification.icon = icon;
         notification.createdBy = userId;
+        notification.meta = meta;
         try{
             notification = await notification.save();
         }catch(error){

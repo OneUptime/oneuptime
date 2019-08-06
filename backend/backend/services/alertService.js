@@ -63,14 +63,15 @@ module.exports = {
 
         //charge an alert for call.
         if (savedAlert.alertVia == 'call') {
+            // try{
+            //     var project = await ProjectService.findOneBy({_id: projectId});
+            // }catch(error){
+            //     ErrorService.log('ProjectService.findOneBy', error);
+            //     throw error;
+            // }
             try{
-                var project = await ProjectService.findOneBy({_id: projectId});
-            }catch(error){
-                ErrorService.log('ProjectService.findOneBy', error);
-                throw error;
-            }
-            try{
-                await PaymentService.chargeAlert(project.stripePlanId, project.stripeMeteredSubscriptionId);
+                var tempAlertChargeAmount = 1;
+                await PaymentService.chargeAlert(userId, projectId, tempAlertChargeAmount);
             }catch(error){
                 ErrorService.log('PaymentService.chargeAlert', error);
                 throw error;
@@ -423,7 +424,7 @@ module.exports = {
 };
 
 let AlertModel = require('../models/alert');
-let ProjectService = require('./projectService');
+// let ProjectService = require('./projectService');
 let PaymentService = require('./paymentService');
 let AlertType = require('../config/alertType');
 let ScheduleService = require('./scheduleService');
