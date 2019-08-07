@@ -24,7 +24,7 @@ class LoginPage extends React.Component {
 		this.props.loginUser(values).then((user) => {
 			if (user && user.data && user.data.id) {
 				if(window.location.href.indexOf('localhost') <= -1){
-				thisObj.context.mixpanel.identify(user.data.id);
+					thisObj.context.mixpanel.identify(user.data.id);
 				}
 			}
 		})
@@ -90,7 +90,8 @@ LoginPage.propTypes = {
 	error: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.bool,
-    ]),
+	]),
+	location: PropTypes.object,
 }
 
 LoginPage.displayName = 'LoginPage'
