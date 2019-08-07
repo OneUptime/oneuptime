@@ -24,9 +24,11 @@ export function fetchUsersError(error) {
 }
 
 // Calls the API to fetch all users.
-export function fetchUsers() {
+export function fetchUsers(skip, limit) {
+	skip = skip ? parseInt(skip) : 0;
+	limit = limit ? parseInt(limit) : 10;
 	return function (dispatch) {
-		var promise = getApi('user/users');
+		var promise = getApi(`user/users?skip=${skip}&limit=${limit}`);
 		dispatch(fetchUsersRequest());
 		promise.then(function (response) {
 			var users = response.data;

@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import NotFound from './components/404';
 import BackboneModals from './containers/BackboneModals';
-// import Socket from './components/basic/Socket';
 import ReactGA from 'react-ga';
 import { User, ACCOUNTS_URL, DOMAIN_URL } from './config';
 import Cookies from 'universal-cookie';
@@ -35,7 +34,6 @@ if (!User.isLoggedIn()){
 
 const App = () => (
 	<div style={{ height: '100%' }}>
-		{/* <Socket /> */}
 		<Router history={history}>
 			<Switch>
 			{allRoutes.filter(route => route.visible).map((route, index) => {

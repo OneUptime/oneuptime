@@ -5,6 +5,7 @@ import { destroy } from 'redux-form';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import UserList from '../components/user/UserList'
+import { fetchUsers } from '../actions/user';
 
 
 class Users extends Component {
@@ -15,13 +16,25 @@ class Users extends Component {
         }
     }
 
-    ready = () => {
+    prevClicked = (skip, limit) => {
+        this.props.fetchUsers((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
+    }
+
+    nextClicked = (skip, limit) => {
+        this.props.fetchUsers(skip + limit, 10);
     }
 
     render() {
         const { users, user } = this.props;
+        let canNext = (this.props.user.users && this.props.user.users.count) && (this.props.user.users.count > (this.props.user.users.skip + this.props.user.users.limit)) ? true : false;
+        let canPrev = (this.props.user.users && this.props.user.users.skip <= 0) ? false : true;
+
+        if (this.props.user.users && (this.props.user.users.requesting || !this.props.user.users)) {
+            canNext = false;
+            canPrev = false;
+        }
         return (
-            <Dashboard ready={this.ready}>
+            <Dashboard>
                 <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
                     <div>
                         <div>
@@ -80,30 +93,14 @@ class Users extends Component {
                                                     <div className="bs-Tail-actions">
                                                         <div className="ButtonGroup Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                             <div className="Box-root Margin-right--8">
-                                                                <button
-                                                                    data-test="TeamSettings-paginationButton"
-                                                                    className={`Button bs-ButtonLegacy`}
-                                                                    type="button"
-                                                                >
-                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                            <span>Previous</span>
-                                                                        </span>
-                                                                    </div>
-                                                                </button>
+                                                            <button id="btnPrev" onClick={()=>{this.prevClicked(this.props.user.users.skip, this.props.user.users.limit)}} className={'Button bs-ButtonLegacy' + (canPrev ? '' : 'Is--disabled')} disabled={!canPrev} data-db-analytics-name="list_view.pagination.previous" type="button">
+                                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Previous</span></span></div>
+                                                            </button>
                                                             </div>
                                                             <div className="Box-root">
-                                                                <button
-                                                                    data-test="TeamSettings-paginationButton"
-                                                                    className={`Button bs-ButtonLegacy`}
-                                                                    type="button"
-                                                                >
-                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                            <span>Next</span>
-                                                                        </span>
-                                                                    </div>
-                                                                </button>
+                                                            <button id="btnNext" onClick={()=>{this.nextClicked(this.props.user.users.skip, this.props.user.users.limit)}} className={'Button bs-ButtonLegacy' + (canNext ? '' : 'Is--disabled')} disabled={!canNext} data-db-analytics-name="list_view.pagination.next" type="button">
+                                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Next</span></span></div>
+                                                            </button>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -123,13 +120,13 @@ class Users extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ destroy }, dispatch)
+    return bindActionCreators({ destroy, fetchUsers }, dispatch)
 }
 
 const mapStateToProps = state => {
     return {
         user: state.user,
-        users: state.user.users.users || []
+        users: state.user.users.users || [],
     };
 }
 
@@ -140,6 +137,7 @@ Users.contextTypes = {
 Users.propTypes = {
     user: PropTypes.object.isRequired,
     users: PropTypes.array,
+    fetchUsers: PropTypes.func.isRequired,
 }
 
 Users.displayName = 'Users'
