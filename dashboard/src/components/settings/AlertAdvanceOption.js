@@ -18,23 +18,31 @@ export class AlertAdvanceOption extends Component {
 
     submitForm = (value) => {
         value._id = this.props.projectId;
-        this.props.alertOptionsUpdate(this.props.projectId, value);
+        this.props.alertOptionsUpdate(this.props.projectId, value)
+        .then(() => {
+            let { paymentIntent } = this.props;
+            if(paymentIntent){
+                //init payment
+                this.handlePaymentIntent(paymentIntent);
+            }
+        });
     }
 
-    handlePaymentIntent = (client_secret) => {
+    handlePaymentIntent = (paymentIntentClientSecret) => {
         const { stripe } = this.props;
-        stripe.handleCardPayment(client_secret)
+        stripe.handleCardPayment(paymentIntentClientSecret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    alert('Transaction successful.')
+                    alert('Transaction successful')
                 }
                 else {
                     alert('Transaction failed')
                 }
             })
     }
+    
     componentDidUpdate() {
-        let { formValues, paymentIntent } = this.props;
+        let { formValues } = this.props;
         let rechargeToBalance = Number(formValues.rechargeToBalance);
         let minimumBalance = Number(formValues.minimumBalance);
 
@@ -55,10 +63,6 @@ export class AlertAdvanceOption extends Component {
         }
         if (formValues.billingRiskCountries && rechargeToBalance < 200) {
             this.props.change('rechargeToBalance', '200')
-        }
-        if(paymentIntent){
-            //init payment
-            this.handlePaymentIntent(paymentIntent);
         }
     }
 
