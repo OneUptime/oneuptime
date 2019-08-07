@@ -46,6 +46,24 @@ router.put('/:projectId/:notificationId/read', getUser, isAuthorized, async func
     }
 });
 
+router.put('/:projectId/:notificationId', getUser, isAuthorized, async function (req, res) {
+    var notificationId = req.params.notificationId;
+    var updateObject = req.body;
+    updateObject._id = notificationId
+    try {
+        let notification = await NotificationService.updateBy(updateObject);
+        if (notification) {
+            return sendItemResponse(req, res, notification);
+        } else {
+            var error = new Error('Notification not found.');
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.post('/:projectId', getUser, isAuthorized, async function(req, res){
     var projectId = req.params.projectId;
     let userId = req.user ? req.user.id : null;

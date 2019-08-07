@@ -13,8 +13,17 @@ import {
     injectStripe,
     Elements
 } from 'react-stripe-elements';
+import { openModal } from '../../actions/modal';
+import MessageBox from '../modals/MessageBox';
+import uuid from 'uuid';
+
+
 
 export class AlertAdvanceOption extends Component {
+
+    state = { 
+        MessageBoxId: uuid.v4()
+    }
 
     submitForm = (value) => {
         value._id = this.props.projectId;
@@ -29,18 +38,29 @@ export class AlertAdvanceOption extends Component {
     }
 
     handlePaymentIntent = (paymentIntentClientSecret) => {
-        const { stripe } = this.props;
+        const { stripe, openModal } = this.props;
+        const { MessageBoxId } = this.state;
         stripe.handleCardPayment(paymentIntentClientSecret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    alert('Transaction successful')
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: "Message",
+                        message: "Transaction successful, your balance has been refilled."
+                    })
                 }
                 else {
-                    alert('Transaction failed')
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: "Message",
+                        message: "Transaction failed, try again later or use a different card."
+                    })
                 }
             })
     }
-    
+
     componentDidUpdate() {
         let { formValues } = this.props;
         let rechargeToBalance = Number(formValues.rechargeToBalance);
@@ -308,7 +328,8 @@ AlertAdvanceOption.propTypes = {
     change:PropTypes.func,
     alertEnable:PropTypes.bool,
     stripe: PropTypes.object,
-    paymentIntent: PropTypes.string
+    paymentIntent: PropTypes.string,
+    openModal: PropTypes.func.isRequired
 }
 
 let formName = 'AlertAdvanceOption';
@@ -319,7 +340,7 @@ let AlertAdvanceOptionForm = new reduxForm({
 })(AlertAdvanceOption);
 
 const mapDispatchToProps = dispatch => (
-    bindActionCreators({ change, alertOptionsUpdate }, dispatch)
+    bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch)
 )
 
 const mapStateToProps = state => (
