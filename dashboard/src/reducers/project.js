@@ -28,7 +28,8 @@ const initialState = {
     alertOptionsUpdate:{
         success: false,
         requesting: false,
-        error: null
+        error: null,
+        project: {}
     },
     changePlan: {
         success: false,
@@ -414,7 +415,8 @@ export default function project(state = initialState, action) {
                 alertOptionsUpdate: {
                     success: true,
                     requesting: false,
-                    error: null
+                    error: null,
+                    project: action.payload
                 },
                 currentProject: {
                     ...state.currentProject,

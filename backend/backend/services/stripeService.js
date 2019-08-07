@@ -116,11 +116,101 @@ module.exports = {
                 throw error;
             }
         }
+    },
+    chargeCustomerForBalance: async function (userId, chargeAmount, projectId, alertOptions) {
+
+        var stripechargeAmount = chargeAmount * 100;
+        var user = await UserService.findOneBy({ _id: userId });
+        var stripeCustomerId = user.stripeCustomerId;
+        var customer = await stripe.customers.retrieve(stripeCustomerId);
+        try {
+            var charge = await stripe.charges.create({
+                amount: stripechargeAmount,
+                currency: 'usd',
+                customer: stripeCustomerId,
+                description: 'Recharge balance for Alert services.'
+            });
+            return charge;
+        } catch (error) {
+            if(error.code === 'authentication_required'){
+                //create payment intent and return to client for verification
+                var metadata; 
+                if(alertOptions){
+                    metadata = {
+                        projectId,
+                        ...alertOptions
+                    };
+                } else {
+                    metadata = {
+                        projectId
+                    };
+                }
+                var paymentIntent = await stripe.paymentIntents.create({
+                    amount: stripechargeAmount,
+                    currency: 'usd',
+                    payment_method_types: ['card'],
+                    customer: stripeCustomerId,
+                    source: customer.default_source,
+                    description: 'Recharge balance',
+                    metadata
+                });
+                return paymentIntent;
+            }
+            else {
+                ErrorService.log('Stripe.charges.rechargeBalance', error);
+                throw error;
+            }
+        }
+    },
+    updateBalance: async function(paymentIntentData){
+        if(paymentIntentData.status === 'succeeded'){
+            var amountRechargedStripe = Number(paymentIntentData.amount_received);
+            if(amountRechargedStripe){
+                var projectId = paymentIntentData.metadata.projectId,
+                    minimumBalance = paymentIntentData.metadata.minimumBalance && Number(paymentIntentData.metadata.minimumBalance),
+                    rechargeToBalance = paymentIntentData.metadata.rechargeToBalance && Number(paymentIntentData.metadata.rechargeToBalance),
+                    billingUS = paymentIntentData.metadata.billingUS && JSON.parse(paymentIntentData.metadata.billingUS),
+                    billingNonUSCountries = paymentIntentData.metadata.billingNonUSCountries && JSON.parse(paymentIntentData.metadata.billingNonUSCountries),
+                    billingRiskCountries = paymentIntentData.metadata.billingRiskCountries && JSON.parse(paymentIntentData.metadata.billingRiskCountries);
+
+                var alertOptions = {
+                    minimumBalance,
+                    rechargeToBalance,
+                    billingUS,
+                    billingNonUSCountries,
+                    billingRiskCountries
+                }; 
+                var amountRecharged = amountRechargedStripe / 100;
+                var project = await ProjectModel.findById(projectId).lean();
+                var currentBalance = project.balance;
+                var newbalance = currentBalance + amountRecharged;
+                var updateObject = {};
+                if(!minimumBalance || !rechargeToBalance){
+                    updateObject = {
+                        balance: newbalance,
+                        alertEnable: true
+                    };
+                } else {
+                    updateObject = {
+                        balance: newbalance,
+                        alertEnable: true,
+                        alertOptions
+                    };
+                }
+                var updatedProject = await ProjectModel.findByIdAndUpdate(projectId, updateObject,
+                    { new: true });
+                if (updatedProject.balance === newbalance) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 };
 var payment = require('../config/payment');
 var UserService = require('../services/userService');
 var ProjectService = require('../services/projectService');
+var ProjectModel = require('../models/project');
 var MailService = require('../services/mailService');
 var ErrorService = require('../services/errorService');
 var stripe = require('stripe')(payment.paymentPrivateKey);

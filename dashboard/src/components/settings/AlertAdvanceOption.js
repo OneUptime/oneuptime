@@ -8,6 +8,11 @@ import ShouldRender from '../basic/ShouldRender';
 import { alertOptionsUpdate } from '../../actions/project';
 import PropTypes from 'prop-types';
 import { RenderSelect } from '../basic/RenderSelect';
+import {
+    StripeProvider,
+    injectStripe,
+    Elements
+} from 'react-stripe-elements';
 
 export class AlertAdvanceOption extends Component {
 
@@ -15,8 +20,21 @@ export class AlertAdvanceOption extends Component {
         value._id = this.props.projectId;
         this.props.alertOptionsUpdate(this.props.projectId, value);
     }
+
+    handlePaymentIntent = (client_secret) => {
+        const { stripe } = this.props;
+        stripe.handleCardPayment(client_secret)
+            .then(result => {
+                if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+                    alert('Transaction successful.')
+                }
+                else {
+                    alert('Transaction failed')
+                }
+            })
+    }
     componentDidUpdate() {
-        let { formValues } = this.props;
+        let { formValues, paymentIntent } = this.props;
         let rechargeToBalance = Number(formValues.rechargeToBalance);
         let minimumBalance = Number(formValues.minimumBalance);
 
@@ -37,6 +55,10 @@ export class AlertAdvanceOption extends Component {
         }
         if (formValues.billingRiskCountries && rechargeToBalance < 200) {
             this.props.change('rechargeToBalance', '200')
+        }
+        if(paymentIntent){
+            //init payment
+            this.handlePaymentIntent(paymentIntent);
         }
     }
 
@@ -98,8 +120,9 @@ export class AlertAdvanceOption extends Component {
                                                         <label className="Checkbox">
                                                             <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
                                                                 <label>
-                                                                    Your Account is configured to be auto recharged.
-                                                        </label>
+                                                                    Your Account is configured to be auto recharged. If your card needs additional step to authorize payment,
+                                                                    wait for the popup to confirm the payment.
+                                                                </label>
                                                             </div>
                                                         </label>
                                                     </div>
@@ -209,7 +232,7 @@ export class AlertAdvanceOption extends Component {
                                                                 type="checkbox"
                                                                 name='billingRiskCountries'
                                                                 className="Checkbox-source"
-                                                                id='billingRiskCountries'
+                                                                    id='billingRiskCountries'
                                                             />
                                                             <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                                                 <div className="Checkbox-target Box-root">
@@ -280,6 +303,8 @@ AlertAdvanceOption.propTypes = {
     formValues:PropTypes.object,
     change:PropTypes.func,
     alertEnable:PropTypes.bool,
+    stripe: PropTypes.object,
+    paymentIntent: PropTypes.string
 }
 
 let formName = 'AlertAdvanceOption';
@@ -310,7 +335,8 @@ const mapStateToProps = state => (
         alertEnable: state.form.AlertAdvanceOption && state.form.AlertAdvanceOption.values.alertEnable,
         formValues: state.form.AlertAdvanceOption && state.form.AlertAdvanceOption.values,
         isRequesting: state.project.alertOptionsUpdate.requesting,
-        error: state.project.alertOptionsUpdate.error
+        error: state.project.alertOptionsUpdate.error,
+        paymentIntent: state.project.alertOptionsUpdate.project && state.project.alertOptionsUpdate.project.paymentIntent
     }
 )
 
@@ -318,4 +344,19 @@ AlertAdvanceOption.contextTypes = {
     mixpanel: PropTypes.object.isRequired,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm);
+
+
+const _AlertAdvanceOptionForm = injectStripe(connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm));
+
+export default class AlertAdvanceOptionWithCheckout extends Component {
+    render() {
+        return (
+            <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
+                    <Elements>
+                        <_AlertAdvanceOptionForm />
+                    </Elements>
+            </StripeProvider>
+        )
+    }
+}
+AlertAdvanceOptionWithCheckout.displayName = 'AlertAdvanceOptionWithCheckout';

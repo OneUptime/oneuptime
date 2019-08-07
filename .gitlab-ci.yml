@@ -7,16 +7,16 @@
 
 # Define stages
 stages:
-  - Build_n_Test
-  - E2E_test
-  - Deploy_Staging
-  - Deploy_Production
-  - Smoke_Test
-  - Rollback_If_Failed
+  - BuildAndTest
+  - E2E
+  - DeployStaging
+  - DeployProduction
+  - SmokeTest
+  - Rollback
 
 ##BACKEND 
 lint_n_audit_backend:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd backend
     - npm install --dev
@@ -25,7 +25,7 @@ lint_n_audit_backend:
     - cd ..
 
 build_n_test_backend:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -35,7 +35,7 @@ build_n_test_backend:
 
 ##DASHBOARD
 lint_n_audit_dashboard:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd dashboard
     - npm install --dev
@@ -44,13 +44,13 @@ lint_n_audit_dashboard:
     - cd ..
 
 build_n_test_dashboard:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ##ZAPIER
 lint_n_audit_zapier:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd zapier
     - npm install --dev
@@ -59,13 +59,13 @@ lint_n_audit_zapier:
     - cd ..
 
 build_n_test_zapier:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ## STATUS PAGE
 lint_n_audit_statuspage:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd status-page
     - npm install --dev
@@ -74,13 +74,13 @@ lint_n_audit_statuspage:
     - cd ..
 
 build_n_test_statuspage:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ## ACCOUNTS
 lint_n_audit_accounts:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd accounts
     - npm install --dev
@@ -89,13 +89,13 @@ lint_n_audit_accounts:
     - cd ..
 
 build_n_test_accounts:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ## HOME
 lint_n_audit_home:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd home
     - npm install --dev
@@ -104,13 +104,13 @@ lint_n_audit_home:
     - cd ..
 
 build_n_test_home:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ## PROBE
 lint_n_audit_probe:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
     - cd probe
     - npm install --dev
@@ -119,13 +119,13 @@ lint_n_audit_probe:
     - cd ..
 
 build_n_test_probe:
-  stage: Build_n_Test
+  stage: BuildAndTest
   script:
    - echo "No test implemented"
 
 ##E2E Stage. 
 e2e_test:
-  stage: E2E_test
+  stage: E2E
   script:
    - chmod +x ./kubernetes/ci/setup-machine.sh
    - ./kubernetes/ci/setup-machine.sh
@@ -137,9 +137,9 @@ e2e_test:
       - release
       - master
 
-# DEPLOYMENT STAGE
-deploy_staging:
-  stage: Deploy_Staging
+# DEPLOYMENT STAGE - BACKEND
+deploy_staging_backend:
+  stage: DeployStaging
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -161,8 +161,10 @@ deploy_staging:
   environment:
     name: staging
 
-deploy_production:
-  stage: Deploy_Production
+
+
+deploy_production_backend:
+  stage: DeployProduction
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -183,9 +185,333 @@ deploy_production:
   environment:
     name: production
 
+# DEPLOYMENT STAGE - Api docs
+deploy_staging_api-docs:
+  stage: DeployStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy api-docs.
+    - sudo docker build -t fyipe-project/dashobard:master ./api-docs
+    - sudo docker tag fyipe-project/api-docs:master registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/api-docs:master registry.gitlab.com/fyipe-project/api-docs:master
+    - sudo docker push registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/api-docs:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/api-docs api-docs=registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+  environment:
+    name: staging
+
+deploy_production_api-docs:
+  stage: DeployProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker build -t fyipe-project/api-docs:latest ./api-docs
+    - sudo docker tag fyipe-project/api-docs:latest registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/api-docs:latest registry.gitlab.com/fyipe-project/api-docs:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/api-docs:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/api-docs api-docs=registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+# DEPLOYMENT STAGE - Home
+deploy_staging_home:
+  stage: DeployStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy home.
+    - sudo docker build -t fyipe-project/dashobard:master ./home
+    - sudo docker tag fyipe-project/home:master registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/home:master registry.gitlab.com/fyipe-project/home:master
+    - sudo docker push registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/home:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/home home=registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+  environment:
+    name: staging
+
+deploy_production_home:
+  stage: DeployProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker build -t fyipe-project/home:latest ./home
+    - sudo docker tag fyipe-project/home:latest registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/home:latest registry.gitlab.com/fyipe-project/home:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/home:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/home home=registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+# DEPLOYMENT STAGE - Probe
+deploy_staging_probe:
+  stage: DeployStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy probe.
+    - sudo docker build -t fyipe-project/dashobard:master ./probe
+    - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:master
+    - sudo docker push registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/probe:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe probe=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+  environment:
+    name: staging
+
+deploy_production_probe:
+  stage: DeployProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker build -t fyipe-project/probe:latest ./probe
+    - sudo docker tag fyipe-project/probe:latest registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/probe:latest registry.gitlab.com/fyipe-project/probe:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/probe:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe probe=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+# DEPLOYMENT STAGE - status-page
+deploy_staging_status-page:
+  stage: DeployStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy status-page.
+    - sudo docker build -t fyipe-project/dashobard:master ./status-page
+    - sudo docker tag fyipe-project/status-page:master registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/status-page:master registry.gitlab.com/fyipe-project/status-page:master
+    - sudo docker push registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/status-page:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/status-page status-page=registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+  environment:
+    name: staging
+
+deploy_production_status-page:
+  stage: DeployProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker build -t fyipe-project/status-page:latest ./status-page
+    - sudo docker tag fyipe-project/status-page:latest registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/status-page:latest registry.gitlab.com/fyipe-project/status-page:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/status-page:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/status-page status-page=registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+# DEPLOYMENT STAGE - Admin Dashboard
+deploy_staging_admin-dashboard:
+  stage: DeployStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy admin-dashboard.
+    - sudo docker build -t fyipe-project/dashobard:master ./admin-dashboard
+    - sudo docker tag fyipe-project/admin-dashboard:master registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/admin-dashboard:master registry.gitlab.com/fyipe-project/admin-dashboard:master
+    - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/admin-dashboard admin-dashboard=registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+  environment:
+    name: staging
+
+deploy_production_admin-dashboard:
+  stage: DeployProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker build -t fyipe-project/admin-dashboard:latest ./admin-dashboard
+    - sudo docker tag fyipe-project/admin-dashboard:latest registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/admin-dashboard:latest registry.gitlab.com/fyipe-project/admin-dashboard:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/admin-dashboard admin-dashboard=registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+
+# DEPLOYMENT STAGE - Accounts
+deploy_staging_accounts:
+  stage: DeployStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy accounts.
+    - sudo docker build -t fyipe-project/dashobard:master ./accounts
+    - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:master
+    - sudo docker push registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/accounts:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/accounts accounts=registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+  environment:
+    name: staging
+
+deploy_production_accounts:
+  stage: DeployProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker build -t fyipe-project/accounts:latest ./accounts
+    - sudo docker tag fyipe-project/accounts:latest registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/accounts:latest registry.gitlab.com/fyipe-project/accounts:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/accounts:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/accounts accounts=registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+# DEPLOYMENT STAGE - Dashboard
+deploy_staging_dashboard:
+  stage: DeployStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy dashboard.
+    - sudo docker build -t fyipe-project/dashobard:master ./dashboard
+    - sudo docker tag fyipe-project/dashboard:master registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/dashboard:master registry.gitlab.com/fyipe-project/dashboard:master
+    - sudo docker push registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/dashboard:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/dashboard dashboard=registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+  environment:
+    name: staging
+
+deploy_production_dashboard:
+  stage: DeployProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker build -t fyipe-project/dashboard:latest ./dashboard
+    - sudo docker tag fyipe-project/dashboard:latest registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/dashboard:latest registry.gitlab.com/fyipe-project/dashboard:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/dashboard:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/dashboard dashboard=registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+  environment:
+    name: production
+
+
 ## SMOKE TEST STAGE
 smoke_test_production:
-  stage: Smoke_Test
+  stage: SmokeTest
   script:
     - echo "No test implemented"
   only:
@@ -195,7 +521,7 @@ smoke_test_production:
     name: production
 
 smoke_test_staging:
-  stage: Smoke_Test
+  stage: SmokeTest
   script:
     - echo "No test implemented"
   only:
@@ -207,7 +533,7 @@ smoke_test_staging:
 
 ## ROLLBACK STAGE
 production_rollback:
-  stage: Rollback_If_Failed
+  stage: Rollback
   script:
     - echo "No rollback implemented"
   only:
@@ -217,7 +543,7 @@ production_rollback:
     name: production
 
 staging_rollback:
-  stage: Rollback_If_Failed
+  stage: Rollback
   script:
     - echo "No rollback implemented"
   only:
