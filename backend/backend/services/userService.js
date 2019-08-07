@@ -577,6 +577,25 @@ module.exports = {
             throw error;
         }
     },
+    getAllUsers: async function(skip, limit){
+        var _this = this;
+        let users = await _this.findBy({ deleted: false }, skip, limit);
+        users = await Promise.all(users.map(async (user)=>{
+            // find user subprojects and parent projects
+            var userProjects = await ProjectService.findBy({'users.userId': user._id});
+            var parentProjectIds = [];
+            var projectIds = [];
+            if(userProjects.length > 0){
+                var subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
+                parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
+                var projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
+                projectIds = projects.map(project => project._id);
+            }
+            userProjects = await ProjectService.findBy({ $or: [ { _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } } ] });
+            return await Object.assign({}, user._doc, {projects: userProjects});
+        }));
+        return users;
+    },
     hardDeleteBy: async function(query){
         try{
             await UserModel.deleteMany(query);
