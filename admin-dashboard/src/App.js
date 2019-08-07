@@ -4,11 +4,10 @@ import { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import NotFound from './components/404';
-import './components/Dashboard';
 import BackboneModals from './containers/BackboneModals';
-import Socket from './components/basic/Socket';
+// import Socket from './components/basic/Socket';
 import ReactGA from 'react-ga';
-import { User, ACCOUNTS_URL, DOMAIN_URL, ADMIN_DASHBOARD_URL } from './config';
+import { User, ACCOUNTS_URL, DOMAIN_URL } from './config';
 import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
 
@@ -31,12 +30,12 @@ if (userData !== undefined){
 cookies.remove('admin-data', {domain: DOMAIN_URL });
 
 if (!User.isLoggedIn()){
-	window.location = `${ACCOUNTS_URL}?redirectTo=${ADMIN_DASHBOARD_URL}`;
+	window.location = ACCOUNTS_URL;
 }
 
 const App = () => (
 	<div style={{ height: '100%' }}>
-		<Socket />
+		{/* <Socket /> */}
 		<Router history={history}>
 			<Switch>
 			{allRoutes.filter(route => route.visible).map((route, index) => {
@@ -54,7 +53,7 @@ const App = () => (
 					key={'404'}
 					component={NotFound}
 				/>
-				<Redirect to="/" />
+				<Redirect to="/users" />
 			</Switch>
 		</Router>
 		<BackboneModals />

@@ -44,17 +44,6 @@ export class ProfileMenu extends Component {
                                     </div>
                                     <div className="Box-root Padding-vertical--8">
                                         <div className="Box-root" style={{padding: '10px', fontWeight: '500', marginTop: '-12px'}}>
-                                            <Link to="/profile/settings" className="ButtonLink db-Menu-item db-Menu-item--link" type="button" onClick={()=> this.props.hideProfileMenu()}>
-                                                <div className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed">
-                                                    <span className="ButtonLink-label Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                        <span className="Text-color--primary Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <span>Profile</span>
-                                                        </span>
-                                                    </span>
-                                                </div>
-                                            </Link>
-                                        </div>
-                                        <div className="Box-root" style={{padding: '10px', fontWeight: '500', marginTop: '-12px'}}>
                                             <button className="ButtonLink db-Menu-item db-Menu-item--link"  id="logout-button" type="button" onClick={()=>this.logout()}>
                                                 <div className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed">
                                                     <span className="ButtonLink-label Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">

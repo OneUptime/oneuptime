@@ -11,6 +11,7 @@ import ClickOutside from 'react-click-outside';
 import { hideProfileMenu } from '../actions/profile';
 import NotificationMenu from './notification/NotificationMenu';
 import { closeNotificationMenu } from '../actions/notification';
+import { fetchUsers } from '../actions/user';
 
 export class DashboardApp extends Component {
     constructor(props){
@@ -18,7 +19,12 @@ export class DashboardApp extends Component {
     }
 
     componentDidMount() {
-        this.props.ready && this.props.ready();
+        const { fetchUsers, ready, user } = this.props;
+        if (user.users && user.users.users && user.users.users.length === 0 && !user.users.requesting){
+            fetchUsers().then(() => ready && ready());
+        } else {
+            this.props.ready && this.props.ready();
+        }
     }
 
     showProjectForm = () => {
@@ -53,7 +59,7 @@ export class DashboardApp extends Component {
     }
     
     render() {
-        const { location, project, children } = this.props
+        const { user, children } = this.props
 
         return (
             <Fragment>
@@ -67,19 +73,38 @@ export class DashboardApp extends Component {
 
                 <div onKeyDown={this.handleKeyBoard} className="db-World-root" >
 
-                    <div className="db-World-wrapper Box-root Flex-flex Flex-direction--column">
+                    <ShouldRender if={!user.users.requesting && user.users.success}>
+                        <div className="db-World-wrapper Box-root Flex-flex Flex-direction--column">
 
-                        <SideNav />
+                            <SideNav />
 
-                        <div className="db-World-mainPane Box-root Padding-right--20" >
+                            <div className="db-World-mainPane Box-root Padding-right--20" >
 
-                            {children}
+                                {children}
+
+                            </div>
+
+                            <TopNav />
 
                         </div>
+                    </ShouldRender>
 
-                        <TopNav />
+                    <ShouldRender if={user.users.requesting}>
+                            <div id="app-loading" style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
+                                <div style={{ 'transform': 'scale(2)' }}>
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="bs-Spinner-svg">
+                                        <ellipse cx="12" cy="12" rx="10" ry="10" className="bs-Spinner-ellipse"></ellipse>
+                                    </svg>
+                                </div>
+                            </div>
+                        </ShouldRender>
 
-                    </div>
+                        <ShouldRender if={user.users.error}>
+                            <div id="app-loading" style={{ 'backgroundColor':'#E6EBF1', 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
+                                <div>Cannot connect to server.</div>
+                            </div>
+                        </ShouldRender>
+
                 </div>
 
             </Fragment>
@@ -98,18 +123,21 @@ DashboardApp.propTypes = {
     showForm: PropTypes.func,
     location: PropTypes.object.isRequired,
     children: PropTypes.any,
-    ready: PropTypes.func
+    ready: PropTypes.func,
+    user: PropTypes.object.isRequired
 }
 
 let mapStateToProps = state => ({
     profile: state.profileSettings,
-    notification: state.notifications
+    notification: state.notifications,
+    user: state.user
 })
 
 let mapDispatchToProps = dispatch => (
     bindActionCreators({
         hideProfileMenu,
-        closeNotificationMenu
+        closeNotificationMenu,
+        fetchUsers
     }, dispatch)
 )
 

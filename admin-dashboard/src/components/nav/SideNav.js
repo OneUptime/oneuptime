@@ -46,7 +46,7 @@ class SideNav extends Component {
 												whiteSpace: 'nowrap'
 											}}
 										>
-											<span class="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--noWrap">Admin Dashboard</span>
+											<span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--noWrap">Fyipe Admin Dashboard</span>
 										</div>
 										<div className="Box-root Margin-left--8">
 											{/* <div className="db-AccountSwitcherX-chevron" /> */}

@@ -5,14 +5,9 @@ import { connect } from 'react-redux';
 import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
 import ClickOutside from 'react-click-outside';
-import { userSettings } from '../../actions/profile';
 import { API_URL,User } from '../../config';
 
 class TopContent extends Component {
-
-	componentDidMount() {
-		this.props.userSettings();
-	}
 
 	showProfileMenu =()=> {
 		this.props.showProfileMenu();
@@ -102,21 +97,17 @@ class TopContent extends Component {
 TopContent.displayName = 'TopContent'
 
 const mapStateToProps = (state) => {
-	const settings = state.profileSettings.profileSetting.data;
-	const profilePic = settings ? settings.profilePic : '';
 
 	return {
-		profilePic,
 		notifications : state.notifications.notifications
 	}
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-	{ showProfileMenu, userSettings,openNotificationMenu }
+	{ showProfileMenu, openNotificationMenu }
 	, dispatch)
 
 TopContent.propTypes = {
-	userSettings: PropTypes.func.isRequired,
 	showProfileMenu: PropTypes.func.isRequired,
 	openNotificationMenu : PropTypes.func.isRequired,
 	profilePic: PropTypes.oneOfType([

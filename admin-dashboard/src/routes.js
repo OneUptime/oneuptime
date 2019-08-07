@@ -11,7 +11,7 @@ export const groups = [
 		routes: [
 			{
 				title: 'Users',
-				path: '/',
+				path: '/users',
 				icon: 'atlas',
 				component: Users,
 				visible: true,

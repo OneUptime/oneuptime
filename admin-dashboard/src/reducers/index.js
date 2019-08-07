@@ -4,6 +4,7 @@ import { reducer as formReducer } from 'redux-form';
 import modal from './modal';
 import profileSettings from './profile';
 import notifications from './notifications';
+import user from './user';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -11,6 +12,7 @@ const appReducer = combineReducers({
     modal,
     profileSettings,
     notifications,
+    user
 });
 
 export default (state, action) => {
