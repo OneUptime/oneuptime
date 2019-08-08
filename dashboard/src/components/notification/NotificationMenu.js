@@ -33,34 +33,35 @@ class NotificationMenu extends Component {
     handlePaymentIntent = (notification) => {
         var { client_secret } = notification.meta;
         var { projectId, _id } = notification;
-        var { stripe, billingActionTaken, openModal } = this.props;
+        var { stripe, billingActionTaken, openModal, balance } = this.props;
         var { MessageBoxId } = this.props;
         stripe.handleCardPayment(client_secret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+                    var creditedBalance = result.paymentIntent.amount / 100; 
                     billingActionTaken(projectId, _id, {
                         meta: {},
                         icon: 'success',
-                        message: "Billing is successful."
+                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
                     })
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
                         title: "Message",
-                        message: "Transaction successful, your balance has been refilled."
+                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
                     })
                 }
                 else {
                     billingActionTaken(projectId, _id, {
                         meta: {},
                         icon: 'error',
-                        message: "Billing failed."
+                        message: "Transaction failed, try again later or use a different card."
                     })
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
                         title: "Message",
-                        message: "Transaction failed."
+                        message: "Transaction failed, try again later or use a different card."
                     })
                 }
             })
@@ -129,7 +130,8 @@ NotificationMenu.displayName = 'NotificationMenu';
 const mapStateToProps = (state) => {
     return {
         notifications: state.notifications.notifications,
-        notificationsVisible: state.notifications.notificationsVisible
+        notificationsVisible: state.notifications.notificationsVisible,
+        balance: state.project.currentProject && state.project.currentProject.balance
     }
 }
 

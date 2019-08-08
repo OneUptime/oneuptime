@@ -38,16 +38,17 @@ export class AlertAdvanceOption extends Component {
     }
 
     handlePaymentIntent = (paymentIntentClientSecret) => {
-        const { stripe, openModal } = this.props;
+        const { stripe, openModal, balance } = this.props;
         const { MessageBoxId } = this.state;
         stripe.handleCardPayment(paymentIntentClientSecret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+                    var creditedBalance = result.paymentIntent.amount / 100; 
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
                         title: "Message",
-                        message: "Transaction successful, your balance has been refilled."
+                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
                     })
                 }
                 else {
@@ -361,7 +362,8 @@ const mapStateToProps = state => (
         formValues: state.form.AlertAdvanceOption && state.form.AlertAdvanceOption.values,
         isRequesting: state.project.alertOptionsUpdate.requesting,
         error: state.project.alertOptionsUpdate.error,
-        paymentIntent: state.project.alertOptionsUpdate.project && state.project.alertOptionsUpdate.project.paymentIntent
+        paymentIntent: state.project.alertOptionsUpdate.project && state.project.alertOptionsUpdate.project.paymentIntent,
+        balance: state.project.currentProject && state.project.currentProject.balance
     }
 )
 

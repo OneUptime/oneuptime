@@ -62,16 +62,17 @@ export class CustomerBalance extends Component {
         }
     }
     handlePaymentIntent = (paymentIntentClientSecret) => {
-        const { stripe, openModal, getProjects } = this.props;
+        const { stripe, openModal, getProjects, balance } = this.props;
         const { MessageBoxId } = this.state;
         stripe.handleCardPayment(paymentIntentClientSecret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+                    var creditedBalance = result.paymentIntent.amount / 100; 
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
                         title: "Message",
-                        message: "Transaction successful, your balance has been refilled."
+                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
                     })
                     getProjects()
                 }
@@ -83,9 +84,6 @@ export class CustomerBalance extends Component {
                         message: "Transaction failed, try again later or use a different card."
                     })
                 }
-            })
-            .catch(err => {
-                console.log(err);
             })
     }
     render() {
