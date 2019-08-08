@@ -40,7 +40,7 @@
     "twilio": "^3.33.2",
     "uuid": "^3.2.1",
     "valid-url": "^1.0.9",
-    "winston": "^2.4.0",
+    "winston": "^3.2.1",
     "winston-slack-transport": "^2.0.0"
   },
   "scripts": {
