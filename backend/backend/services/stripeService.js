@@ -205,8 +205,31 @@ module.exports = {
             }
         }
         return false;
+    },
+    addBalance: async function (userId, chargeAmount, projectId) {
+
+        var stripechargeAmount = chargeAmount * 100;
+        var user = await UserService.findOneBy({ _id: userId });
+        var stripeCustomerId = user.stripeCustomerId;
+        var customer = await stripe.customers.retrieve(stripeCustomerId);
+
+        var metadata = {
+            projectId
+        };
+        var paymentIntent = await stripe.paymentIntents.create({
+            amount: stripechargeAmount,
+            currency: 'usd',
+            payment_method_types: ['card'],
+            confirm: true,
+            customer: stripeCustomerId,
+            source: customer.default_source,
+            description: 'Recharge balance',
+            metadata
+        });
+        return paymentIntent;
     }
-};
+}
+
 var payment = require('../config/payment');
 var UserService = require('../services/userService');
 var ProjectService = require('../services/projectService');

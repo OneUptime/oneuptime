@@ -296,7 +296,7 @@ module.exports = {
                 };
                 await NotificationService.create(projectId, message, userId, null, meta);
                 var error = new Error('Alert not sent, recharge your account first');
-                error.code = 400;
+                error.code = 402;
                 throw error;
             }
         }

@@ -90,7 +90,7 @@ router.get('/creditCard/:projectId', getUser, isAuthorized, isUserOwner, async f
 });
 router.get('/creditCard/:projectId/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
     let userId = req.user ? req.user.id : null;
-    let cardId = req.params.cardId;
+    let { cardId } = req.params;
     try{ 
         var card = await StripeService.creditCard.get(userId, cardId);
         return sendItemResponse(req, res, card);
@@ -106,5 +106,23 @@ router.post('/webHook/pi', async function (req, res){
     }
     return sendItemResponse(req, res, false);
 });
+router.post('/addBalance/:projectId', getUser, isAuthorized, isUserOwner, async function(req ,res){
+    let userId = req.user ? req.user.id : null;
+    let { projectId } = req.params;
+    let { rechargeBalanceAmount } = req.body;
+    rechargeBalanceAmount = Number(rechargeBalanceAmount);
+    if (!rechargeBalanceAmount) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Amount should be present and be a valid number.'
+        });
+    }
+    try{ 
+        var pi = await StripeService.addBalance(userId, rechargeBalanceAmount, projectId);
+        return sendItemResponse(req, res, pi);
+    } catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+})
 
 module.exports = router;
