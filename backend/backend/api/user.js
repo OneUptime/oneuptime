@@ -421,6 +421,38 @@ router.put('/profile', getUser, async function (req, res) {
 
 });
 
+router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, res) {
+    var upload = multer({
+        storage
+    }).fields([{
+        name: 'profilePic',
+        maxCount: 1
+    }]);
+
+    upload(req, res, async function (error) {
+        var userId = req.params.userId;
+        var data = req.body;
+        data._id = userId;
+
+        if (error) {
+            return sendErrorResponse(req, res, error);
+        }
+
+        if (req.files && req.files.profilePic && req.files.profilePic[0].filename) {
+            data.profilePic = req.files.profilePic[0].filename;
+        }
+
+        try {
+            // Call the UserService
+            var user = await UserService.update(data);
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(error);
+        }
+    });
+
+});
+
 // Route
 // Description: Updating change password setting.
 // Params:

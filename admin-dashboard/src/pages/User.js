@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { destroy } from 'redux-form';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
+import UserSetting from '../components/user/UserSetting';
 
 
 class User extends Component {
@@ -17,7 +18,27 @@ class User extends Component {
     render() {
         return (
             <Dashboard>
-                
+                <div className="db-World-contentPane Box-root Padding-bottom--48">
+
+                    <div>
+                        <div>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span data-reactroot="">
+                                        <div>
+                                            <div>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <UserSetting {...this.props} />
+                                                </div>
+                                            </div>
+                                    </div>
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
             </Dashboard>
         );
     }
