@@ -9,7 +9,7 @@ const UserList = ({ users }) => (
         let userProjects = projEval(0) ? projects[0].name : 'Not Yet Added';
         userProjects += projEval(1) ? ` and ${projects.length - 1} other${projEval(2) ? 's' : ''}` : '';
         return (
-            <Link to={'#'} key={k} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
+            <Link to={`/users/${user._id}`} key={k} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
                                                                             
                 <div className="bs-ObjectList-cell bs-u-v-middle">
                     <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{user.name}</div>

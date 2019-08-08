@@ -39,7 +39,7 @@ const App = () => (
 			{allRoutes.filter(route => route.visible).map((route, index) => {
 					return  (
 						<Route
-							exact={route.exact}
+							exact
 							path={route.path}
 							key={index}
 							component={(route.component)}

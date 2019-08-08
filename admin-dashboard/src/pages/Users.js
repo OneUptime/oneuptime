@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { destroy } from 'redux-form';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import UserList from '../components/user/UserList'
@@ -120,7 +119,7 @@ class Users extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ destroy, fetchUsers }, dispatch)
+    return bindActionCreators({ fetchUsers }, dispatch)
 }
 
 const mapStateToProps = state => {

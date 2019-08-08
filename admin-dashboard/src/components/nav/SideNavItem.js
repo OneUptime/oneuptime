@@ -18,10 +18,10 @@ export class SidebarNavItem extends Component {
 
     render() {
         const { RenderListItems } = this;
-        const { route, location, schedule, match, currentProject } = this.props;
-        var path = route.path.replace(':projectId', match.params.projectId || (currentProject || {})._id);
-        path = path.replace(':subProjectId', match.params.subProjectId);
-        const isLinkActive = location.pathname === path 
+        const { route, location, match } = this.props;
+        var path = route.path;
+        const isLinkActive = location.pathname === path
+        || (location.pathname.match(/users\/([0-9]|[a-z])*/) && route.title === 'Users') 
         
         const isChildLinkActive = false
 
@@ -54,8 +54,6 @@ export class SidebarNavItem extends Component {
                         <ShouldRender if={(isLinkActive && route.subRoutes.length) || isChildLinkActive}>
                             <ul style={{ marginBottom: '8px' }}>
                                 <RenderListItems
-                                    projectId={match.params.projectId}
-                                    schedule={schedule}
                                     active={match.url}
                                 />
                             </ul>
@@ -66,9 +64,13 @@ export class SidebarNavItem extends Component {
         );
     }
 
-    RenderListItems({ active, link }) {
+    RenderListItems({ active }) {
         return this.props.route.subRoutes.map((child, index) => {
+            const removedLinks = ['User'];
+            if (removedLinks.some(link => link === child.title)) return null;
+
             if (child.visible) {
+                let link = child.path.replace(':userId', this.props.match.params.userId);
                 return (
                     <li id={this.camalize(child.title)} key={`nav ${index}`}>
                         <div style={{ position: 'relative' }}>

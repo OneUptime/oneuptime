@@ -1,7 +1,8 @@
 import pages from './pages';
 
 const {
-	Users
+	Users,
+	User
 } = pages;
 
 export const groups = [
@@ -15,7 +16,15 @@ export const groups = [
 				icon: 'atlas',
 				component: Users,
 				visible: true,
-				subRoutes: [],
+				subRoutes: [{
+					title: 'User',
+					path: '/users/:userId',
+					icon: 'atlas',
+					component: User,
+					visible: true,
+					subRoutes: [],
+					index: 1
+				},],
 				index: 1
 			},
 		]
