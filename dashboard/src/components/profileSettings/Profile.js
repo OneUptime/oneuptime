@@ -10,6 +10,8 @@ import { UploadFile } from '../basic/UploadFile';
 import TimezoneSelector from '../basic/TimezoneSelector';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import ReactPhoneInput from 'react-phone-input-2'
+import 'react-phone-input-2/dist/style.css'
 
 //Client side validation
 function validate(values) {
@@ -45,6 +47,14 @@ function validate(values) {
 
 export class ProfileSetting extends Component {
 
+    state = {
+        alertPhoneNumber: this.props.initialValues.alertPhoneNumber
+    }
+
+    handleOnChange = (value) =>  {
+        this.setState({ alertPhoneNumber: value })
+    }
+
     componentDidMount() {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Profile settings page Loaded');
@@ -74,6 +84,8 @@ export class ProfileSetting extends Component {
 
     submitForm = (values) => {
         const { updateProfileSetting, resetFile } = this.props;
+        const { alertPhoneNumber } = this.state;
+        values.alertPhoneNumber = alertPhoneNumber;
 
         updateProfileSetting(values).then(function () {
             resetFile();
@@ -146,6 +158,17 @@ export class ProfileSetting extends Component {
                                                         placeholder="Phone Number"
                                                         component={RenderField}
                                                         disabled={profileSettings && profileSettings.requesting}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Phone for Alerts</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <ReactPhoneInput
+                                                        defaultCountry={'us'}
+                                                        value={this.state.alertPhoneNumber}
+                                                        onChange={this.handleOnChange}
+                                                        inputStyle={{width: 250, height: 28, fontSize:14}}
                                                     />
                                                 </div>
                                             </div>

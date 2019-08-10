@@ -40,6 +40,7 @@ export function updateProfileSetting(values) {
 		data.append('email', values.email);
 		data.append('companyPhoneNumber', values.companyPhoneNumber);
 		data.append('timezone', values.timezone);
+		data.append('alertPhoneNumber', values.alertPhoneNumber);
 
 		var promise = putApi('user/profile', data);
 		dispatch(updateProfileSettingRequest());

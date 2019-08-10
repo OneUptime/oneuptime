@@ -527,6 +527,7 @@ router.get('/profile', getUser, async function (req, res) {
             companySize: user.companySize,
             referral: user.referral,
             companyPhoneNumber: user.companyPhoneNumber ? user.companyPhoneNumber : '',
+            alertPhoneNumber: user.alertPhoneNumber ? user.alertPhoneNumber : '',
             profilePic: user.profilePic,
             timezone: user.timezone ? user.timezone : '',
             tokens: {
