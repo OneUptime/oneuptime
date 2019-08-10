@@ -87,7 +87,7 @@ class Users extends Component {
 
                                             <div className="bs-Tail-copy">
                                                 <span>
-                                                    {user.users.count} Fyipe User{user.users.count === 1 ? '' : 's'}
+                                                    { user.users.count } Fyipe User{ user.users.count === 1 ? '' : 's' }
                                                 </span></div>
                                                     <div className="bs-Tail-actions">
                                                         <div className="ButtonGroup Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">

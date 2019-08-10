@@ -4,6 +4,11 @@ import {
     FETCH_USERS_FAILURE,
     FETCH_USERS_RESET,
 
+    FETCH_USER_PROJECTS_REQUEST,
+    FETCH_USER_PROJECTS_SUCCESS,
+    FETCH_USER_PROJECTS_FAILURE,
+    FETCH_USER_PROJECTS_RESET,
+
     UPDATE_USER_SETTING_REQUEST,
     UPDATE_USER_SETTING_SUCCESS,
     UPDATE_USER_SETTING_FAILURE,
@@ -16,6 +21,15 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         users: [],
+        count: null,
+        limit: null,
+        skip: null
+    },
+    projects: {
+        error: null,
+        requesting: false,
+        success: false,
+        projects: [],
         count: null,
         limit: null,
         skip: null
@@ -116,6 +130,47 @@ export default function user(state = INITIAL_STATE, action) {
             });
 
         case UPDATE_USER_SETTING_RESET:
+
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
+            
+        // fetch users list
+        case FETCH_USER_PROJECTS_REQUEST:
+
+            return Object.assign({}, state, {
+                userProjects: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+
+            });
+
+        case FETCH_USER_PROJECTS_SUCCESS:
+            return Object.assign({}, state, {
+                userProjects: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    projects: action.payload.data,
+                    count: action.payload.count,
+                    limit: action.payload.limit,
+                    skip: action.payload.skip
+                },
+            });
+
+        case FETCH_USER_PROJECTS_FAILURE:
+
+            return Object.assign({}, state, {
+                userProjects: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case FETCH_USER_PROJECTS_RESET:
 
             return Object.assign({}, state, {
                 ...INITIAL_STATE

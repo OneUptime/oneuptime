@@ -251,7 +251,7 @@ UserSetting.displayName = 'UserSetting'
 let UserSettingForm = reduxForm({
     form: 'User', // a unique identifier for this form,
     enableReinitialize: true,
-    validate // <--- validation function given to redux-for
+    validate // <--- validation function given to redux-form
 })(UserSetting);
 
 const mapDispatchToProps = (dispatch) => {
@@ -263,7 +263,7 @@ const mapDispatchToProps = (dispatch) => {
 }
 
 function mapStateToProps(state, props) {
-    const userId = props.match ? props.match.params.userId : null;
+    const userId = props.userId;
     const initialValues = state.user.users.users.find(user => user._id === userId) || {}
     return {
         userId,

@@ -5,6 +5,8 @@ import { destroy } from 'redux-form';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import UserSetting from '../components/user/UserSetting';
+import UserProject from '../components/user/UserProject';
+import { fetchUserProjects } from '../actions/user';
 
 
 class User extends Component {
@@ -15,9 +17,13 @@ class User extends Component {
         }
     }
 
+    ready = () => {
+        this.props.fetchUserProjects(this.props.match.params.userId);
+    }
+
     render() {
         return (
-            <Dashboard>
+            <Dashboard ready={this.ready}>
                 <div className="db-World-contentPane Box-root Padding-bottom--48">
 
                     <div>
@@ -28,29 +34,32 @@ class User extends Component {
                                         <div>
                                             <div>
                                                 <div className="Box-root Margin-bottom--12">
-                                                    <UserSetting {...this.props} />
+                                                    <UserSetting userId={this.props.match.params.userId} />
+                                                </div>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <UserProject userId={this.props.match.params.userId} />
                                                 </div>
                                             </div>
-                                    </div>
-                                </span>
+                                        </div>
+                                    </span>
+                                </div>
                             </div>
-                        </div>
 
                     </div>
                 </div>
             </div>
-            </Dashboard>
+        </Dashboard>
         );
     }
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ destroy }, dispatch)
+    return bindActionCreators({ fetchUserProjects }, dispatch)
 }
 
 const mapStateToProps = state => {
     return {
-    };
+    }
 }
 
 User.contextTypes = {
@@ -58,6 +67,8 @@ User.contextTypes = {
 };
 
 User.propTypes = {
+    match: PropTypes.object.isRequired,
+    fetchUserProjects: PropTypes.func.isRequired,
 }
 
 User.displayName = 'User'

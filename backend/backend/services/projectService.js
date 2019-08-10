@@ -454,6 +454,39 @@ module.exports = {
         });
     },
 
+    getUserProjects: async function(userId, skip, limit){
+        var _this = this;
+        // find user subprojects and parent projects
+        var userProjects = await _this.findBy({'users.userId': userId});
+        var parentProjectIds = [];
+        var projectIds = [];
+        if(userProjects.length > 0){
+            var subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
+            parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
+            var projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
+            projectIds = projects.map(project => project._id);
+        }
+
+        // query data
+        const query = { $or: [ { _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } } ] };
+        projects = await _this.findBy(query, limit || 10, skip || 0);
+        var count = await _this.countBy(query);
+
+        // add project monitors
+        projects = await Promise.all(projects.map(async(project)=> {
+            // get both sub-project users and project users
+            const users = await TeamService.getTeamMembersBy({parentProjectId: project._id});
+            project.users = users;
+            return await _this.addMonitorsToProject(project);
+        }));
+        return { projects, count };
+    },
+
+    addMonitorsToProject: async function (project){
+        const monitors = await MonitorService.findBy({projectId: project._id});
+        return Object.assign({}, project._doc, {monitors});
+    }
+
 };
 
 var ProjectModel = require('../models/project');
@@ -468,3 +501,4 @@ var moment = require('moment');
 var domains = require('../config/domains');
 var EscalationService = require('./escalationService');
 var StripeService = require('./stripeService');
+var TeamService = require('./teamService');

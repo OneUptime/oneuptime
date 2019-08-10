@@ -6,6 +6,7 @@ var PaymentService = require('../services/paymentService');
 var UserService = require('../services/userService');
 var MailService = require('../services/mailService');
 var getUser = require('../middlewares/user').getUser;
+var isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 var isUserOwner = require('../middlewares/project').isUserOwner;
 const {
     isAuthorized
@@ -200,6 +201,22 @@ router.get('/projects', getUser, async function (req, res) {
         var response = await ProjectService.findBy(query, req.query.limit || 10, req.query.skip || 0);
         var count = await ProjectService.countBy(query);
         return sendListResponse(req, res, response, count);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Description: Fetching user project records
+// Params:
+// Param 1: req.headers-> {token};
+// Returns: 200: [{project}]; 400: Error.
+router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function (req, res) {
+    let userId = req.params.userId;
+    let skip = req.query.skip || 0;
+    let limit = req.query.limit || 10;
+    try{
+        const { projects, count } = await ProjectService.getUserProjects(userId, skip, limit)
+        return sendListResponse(req, res, projects, count);
     }catch(error){
         return sendErrorResponse(req, res, error);
     }

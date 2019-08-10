@@ -592,7 +592,7 @@ module.exports = {
                 projectIds = projects.map(project => project._id);
             }
             userProjects = await ProjectService.findBy({ $or: [ { _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } } ] });
-            return await Object.assign({}, user._doc, {projects: userProjects});
+            return await Object.assign({}, user._doc, { projects: userProjects });
         }));
         return users;
     },
