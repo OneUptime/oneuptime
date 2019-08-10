@@ -6,7 +6,7 @@
 
 const express = require('express');
 const IncidentService = require('../services/incidentService');
-const { sendIncidentCreatedCall, sendResponseMessage } = require('../services/twilioService');
+const { sendIncidentCreatedCall, sendResponseMessage, sendVerificationSMS, verifySMSCode } = require('../services/twilioService');
 const baseApiUrl = require('../config/baseApiUrl');
 const incidentSMSActionService = require('../services/IncidentSMSActionService');
 const {
@@ -158,5 +158,27 @@ router.post('/sms/incoming', async (req, res) => {
         return sendErrorResponse(req, res, { status: 'action failed' });
     }
 });
+
+router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (req, res) {
+    var { to } = req.body;
+    console.log(to);
+    try{
+        var sendVerifyToken = await sendVerificationSMS(to);
+        return sendItemResponse(req, res, sendVerifyToken);
+    } catch(error) {
+        return sendErrorResponse(req, res, { status: 'action failed' });
+    }
+});
+
+
+router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
+    var { to, code } = req.body;
+    try{
+        var sendVerifyToken = await verifySMSCode(to, code);
+        return sendItemResponse(req, res, sendVerifyToken);
+    } catch(error) {
+        return sendErrorResponse(req, res, { status: 'action failed' });
+    }
+})
 
 module.exports = router;

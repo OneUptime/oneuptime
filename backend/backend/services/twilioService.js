@@ -145,5 +145,34 @@ module.exports = {
         }
         var template = await Handlebars.compile(smsContent);
         return { template };
+    },
+    sendVerificationSMS: async function (to) {
+        try {
+            if (!to.startsWith("+")) {
+                to = "+" + to;
+            }
+            var channel = 'sms';
+            var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
+                .verifications
+                .create({ to, channel });
+            return verificationRequest;
+        } catch (error) {
+            ErrorService.log('client.sms.sendVerificationSMS', error);
+            throw error;
+        }
+    },
+    verifySMSCode: async function (to, code) {
+        try {
+            if (!to.startsWith("+")) {
+                to = "+" + to;
+            }
+            var verificationResult = await client.verify.services(twilioCredentials.verificationSid)
+                .verificationChecks
+                .create({ to, code });
+            return verificationResult;
+        } catch (error) {
+            ErrorService.log('client.sms.verifySMSCode', error);
+            throw error;
+        }
     }
 };
