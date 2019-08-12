@@ -5,6 +5,19 @@
  */
 
 module.exports = {
+    balanceCheck: async function (projectId, alertPhoneNumber, userId, alertType) { 
+        var project = await ProjectService.findOneBy({_id: projectId});
+        var balance = project.balance;
+        var countryCode = alertPhoneNumber.split(' ')[0];
+        var countryType = getCountryType(countryCode);
+        var alertChargeAmount = getAlertChargeAmount(alertType, countryType);
+        if( balance > alertChargeAmount.minimumBalance){
+            await PaymentService.chargeAlert(userId, projectId, alertChargeAmount.price);
+            return true;
+        } else {
+            return false;
+        }
+    },
     findBy: async function (query, skip, limit, sort) {
 
         if(!skip) skip=0;
@@ -47,41 +60,24 @@ module.exports = {
 
 
     create: async function (projectId, monitorId, alertVia, userId, incidentId, alertStatus) {
-        var alert = new AlertModel();
-        alert.projectId = projectId;
-        alert.monitorId = monitorId;
-        alert.alertVia = alertVia;
-        alert.userId = userId;
-        alert.incidentId = incidentId;
-        alert.alertStatus = alertStatus;
-        try{
+        try {
+            var alert = new AlertModel();
+            alert.projectId = projectId;
+            alert.monitorId = monitorId;
+            alert.alertVia = alertVia;
+            alert.userId = userId;
+            alert.incidentId = incidentId;
+            alert.alertStatus = alertStatus;
             var savedAlert = await alert.save();
-        }catch(error){
+            return savedAlert;
+        } catch (error) {
             ErrorService.log('alert.save', error);
             throw error;
         }
-
-        //charge an alert for call.
-        if (savedAlert.alertVia == 'call') {
-            // try{
-            //     var project = await ProjectService.findOneBy({_id: projectId});
-            // }catch(error){
-            //     ErrorService.log('ProjectService.findOneBy', error);
-            //     throw error;
-            // }
-            try{
-                var tempAlertChargeAmount = 1;
-                await PaymentService.chargeAlert(userId, projectId, tempAlertChargeAmount);
-            }catch(error){
-                ErrorService.log('PaymentService.chargeAlert', error);
-                throw error;
-            }
-        }
-        return savedAlert;
     },
 
     countBy: async function (query) {
-        if(!query){
+        if (!query) {
             query = {};
         }
 
@@ -192,29 +188,39 @@ module.exports = {
                                             }
                                             if (teamMember.sms) {
                                                 try{
-                                                    await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.companyPhoneNumber, incident._id, user._id, user.name);
+                                                    var alertStatus;
+                                                    var balanceCheckStatus = await _this.balanceCheck(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS)
+                                                    if(balanceCheckStatus){
+                                                        var alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
+                                                        if(alertSuccess){
+                                                            alertStatus = 'success';
+                                                            await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
+                                                        }
+                                                    } else { 
+                                                        alertStatus = 'Blocked - Low balance';
+                                                        await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
+                                                    }
                                                 }catch(error){
                                                     ErrorService.log('TwilioService.sendIncidentCreatedMessage', error);
-                                                    throw error;
-                                                }
-                                                try{
-                                                    await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id);
-                                                }catch(error){
-                                                    ErrorService.log('AlertService.create', error);
                                                     throw error;
                                                 }
                                             }
                                             if (teamMember.call) {
                                                 try{
-                                                    await TwilioService.sendIncidentCreatedCall(date, monitorName, user.companyPhoneNumber, accessToken, incident._id, incident.projectId);
+                                                    var alertStatus;
+                                                    var balanceCheckStatus = await _this.balanceCheck(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call)
+                                                    if(balanceCheckStatus){
+                                                        var alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
+                                                        if(alertSuccess){
+                                                            alertStatus = 'success';
+                                                            await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
+                                                        }
+                                                    } else { 
+                                                        alertStatus = 'Blocked - Low balance';
+                                                        await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
+                                                    }
                                                 }catch(error){
                                                     ErrorService.log('TwilioService.sendIncidentCreatedCall', error);
-                                                    throw error;
-                                                }
-                                                try{
-                                                    await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id);
-                                                }catch(error){
-                                                    ErrorService.log('AlertService.create', error);
                                                     throw error;
                                                 }
                                             }
@@ -424,7 +430,7 @@ module.exports = {
 };
 
 let AlertModel = require('../models/alert');
-// let ProjectService = require('./projectService');
+let ProjectService = require('./projectService');
 let PaymentService = require('./paymentService');
 let AlertType = require('../config/alertType');
 let ScheduleService = require('./scheduleService');
@@ -443,3 +449,4 @@ let jwtKey = require('../config/keys');
 let countryCode = require('../config/countryCode');
 let jwt = require('jsonwebtoken');
 const baseApiUrl = require('../config/baseApiUrl');
+let { getAlertChargeAmount, getCountryType } = require('../config/alertType');

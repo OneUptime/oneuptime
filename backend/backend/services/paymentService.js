@@ -280,34 +280,36 @@ module.exports = {
     // },
 
     chargeAlert: async function(userId, projectId, chargeAmount){
-        var project = await ProjectService.findOneBy({
-            _id: projectId
-        });
-        var { balance } = project;
-        var { minimumBalance, rechargeToBalance } = project.alertOptions;
-        if ( balance < minimumBalance ){
-            var chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, projectId);
-            if (!(chargeForBalance.paid)){
-                //create notification
-                var message = 'Your billing needs action. Click here to authorize payment.';
-                var meta = {
-                    type: 'action',
-                    client_secret: chargeForBalance.client_secret
-                };
-                await NotificationService.create(projectId, message, userId, null, meta);
-                var error = new Error('Alert not sent, recharge your account first');
-                error.code = 402;
-                throw error;
-            }
-        }
-        var balanceAfterAlertSent = balance - chargeAmount;
-        var updatedProject = await ProjectModel.findByIdAndUpdate(
-            projectId, {
-                $set: {
-                    balance: balanceAfterAlertSent
+        try{
+            var project = await ProjectService.findOneBy({
+                _id: projectId
+            });
+            var { balance } = project;
+            var { minimumBalance, rechargeToBalance } = project.alertOptions;
+            if ( balance < minimumBalance ){
+                var chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, project.id);
+                if (!(chargeForBalance.paid)){
+                    //create notification
+                    var message = 'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
+                    var meta = {
+                        type: 'action',
+                        client_secret: chargeForBalance.client_secret
+                    };
+                    NotificationService.create(projectId, message, userId, null, meta);
                 }
-            }, { new: true });
-        return updatedProject;
+            }
+            var balanceAfterAlertSent = balance - chargeAmount;
+            var updatedProject = await ProjectModel.findByIdAndUpdate(
+                projectId, {
+                    $set: {
+                        balance: balanceAfterAlertSent
+                    }
+                }, { new: true });
+            return updatedProject;
+        } catch (error) {
+            ErrorService.log('PaymentService.chargeAlert', error);
+            throw error;
+        }
     },
 
     //Description: Call this fuction to bill for extra users added to an account.
