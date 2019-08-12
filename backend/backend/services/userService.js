@@ -191,7 +191,7 @@ module.exports = {
         }
         if (verificationToken) {
             var verificationTokenURL = `${FYIPE_BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
-            await MailService.sendVerifyEmail(verificationTokenURL, user.name, user.email);
+            MailService.sendVerifyEmail(verificationTokenURL, user.name, user.email);
         }
         return verificationToken.token;
     },
@@ -336,7 +336,7 @@ module.exports = {
                 try{
                     ipLocation = await iplocation(clientIP);
                 } catch(error){
-                    iplocation = {};
+                    ipLocation = {};
                 }   
                 await LoginIPLog.create({
                     userId: user._id,

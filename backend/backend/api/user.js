@@ -103,7 +103,7 @@ router.post('/signup', async function (req, res) {
                 user = await UserService.update({ _id: user._id, name: data.name, password: hash, jwtRefreshToken: jwtRefreshToken });
 
                 // Call the MailService.
-                await MailService.sendSignupMail(user.email, user.name);
+                MailService.sendSignupMail(user.email, user.name);
 
                 // create access token and refresh token.
                 let authUserObj = {
@@ -163,7 +163,7 @@ router.post('/signup', async function (req, res) {
             // Call the UserService.
             user = await UserService.signup(data);
             // Call the MailService.
-            await MailService.sendSignupMail(user.email, user.name);
+            MailService.sendSignupMail(user.email, user.name);
             // create access token and refresh token.
             let authUserObj = {
                 id: user._id,
