@@ -12,77 +12,77 @@ module.exports = {
         if (type === 'sms') {
             if (country === 'us') {
                 return {
-                    alertType: "sms",
-                    category: "us",
+                    alertType: 'sms',
+                    category: 'us',
                     price: 1.0,
                     minimumBalance: 5
-                }
+                };
             } else if (country === 'non-us') {
                 return {
-                    alertType: "sms",
-                    category: "non-us",
+                    alertType: 'sms',
+                    category: 'non-us',
                     price: 1.0,
                     minimumBalance: 10
-                }
+                };
             } else if (country === 'risk') {
                 return {
-                    alertType: "sms",
-                    category: "risk",
+                    alertType: 'sms',
+                    category: 'risk',
                     price: 1.0,
                     minimumBalance: 20
-                }
+                };
             } else
-                return {}
+                return {};
         } else if (type === 'email') {
             if (country === 'us') {
                 return {
-                    alertType: "email",
-                    category: "us",
+                    alertType: 'email',
+                    category: 'us',
                     price: 1.0,
                     minimumBalance: 0
-                }
+                };
             } else if (country === 'non-us') {
                 return {
-                    alertType: "email",
-                    category: "non-us",
+                    alertType: 'email',
+                    category: 'non-us',
                     price: 1.0,
                     minimumBalance: 0
-                }
+                };
             } else if (country === 'risk') {
                 return {
-                    alertType: "email",
-                    category: "risk",
+                    alertType: 'email',
+                    category: 'risk',
                     price: 1.0,
                     minimumBalance: 0
-                }
+                };
             } else
-                return {}
+                return {};
         } else if (type === 'call') {
             if (country === 'us') {
                 return {
-                    alertType: "call",
-                    category: "us",
+                    alertType: 'call',
+                    category: 'us',
                     price: 1.0,
                     minimumBalance: 10
-                }
+                };
             } else if (country === 'non-us') {
                 return {
-                    alertType: "call",
-                    category: "non-us",
+                    alertType: 'call',
+                    category: 'non-us',
                     price: 1.0,
                     minimumBalance: 20
-                }
+                };
             } else if (country === 'risk') {
                 return {
-                    alertType: "call",
-                    category: "risk",
+                    alertType: 'call',
+                    category: 'risk',
                     price: 1.0,
                     minimumBalance: 50
-                }
+                };
             } else
-                return {}
+                return {};
         } else
-            return {}
+            return {};
     },
     getCountryType: function (code) {
         if (code === '+1') {
@@ -94,4 +94,4 @@ module.exports = {
         }
         else return 'non-us';
     }
-}
+};

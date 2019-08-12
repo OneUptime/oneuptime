@@ -188,10 +188,10 @@ module.exports = {
                                             }
                                             if (teamMember.sms) {
                                                 try{
-                                                    var alertStatus;
-                                                    var balanceCheckStatus = await _this.balanceCheck(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS)
+                                                    let alertStatus;
+                                                    let balanceCheckStatus = await _this.balanceCheck(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
                                                     if(balanceCheckStatus){
-                                                        var alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
+                                                        let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
                                                         if(alertSuccess){
                                                             alertStatus = 'success';
                                                             await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
@@ -207,10 +207,10 @@ module.exports = {
                                             }
                                             if (teamMember.call) {
                                                 try{
-                                                    var alertStatus;
-                                                    var balanceCheckStatus = await _this.balanceCheck(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call)
+                                                    let alertStatus;
+                                                    let balanceCheckStatus = await _this.balanceCheck(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
                                                     if(balanceCheckStatus){
-                                                        var alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
+                                                        let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
                                                         if(alertSuccess){
                                                             alertStatus = 'success';
                                                             await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
