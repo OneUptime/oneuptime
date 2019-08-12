@@ -47,7 +47,7 @@ export class AlertAdvanceOption extends Component {
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
-                        title: "Message",
+                        title: 'Message',
                         message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
                     })
                 }
@@ -55,8 +55,8 @@ export class AlertAdvanceOption extends Component {
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
-                        title: "Message",
-                        message: "Transaction failed, try again later or use a different card."
+                        title: 'Message',
+                        message: 'Transaction failed, try again later or use a different card.'
                     })
                 }
             })
@@ -330,7 +330,8 @@ AlertAdvanceOption.propTypes = {
     alertEnable:PropTypes.bool,
     stripe: PropTypes.object,
     paymentIntent: PropTypes.string,
-    openModal: PropTypes.func.isRequired
+    openModal: PropTypes.func.isRequired,
+    balance: PropTypes.number
 }
 
 let formName = 'AlertAdvanceOption';

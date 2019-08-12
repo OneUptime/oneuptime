@@ -228,7 +228,7 @@ module.exports = {
         });
         return paymentIntent;
     }
-}
+};
 
 var payment = require('../config/payment');
 var UserService = require('../services/userService');

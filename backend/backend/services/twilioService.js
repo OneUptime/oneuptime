@@ -149,8 +149,8 @@ module.exports = {
     },
     sendVerificationSMS: async function (to) {
         try {
-            if (!to.startsWith("+")) {
-                to = "+" + to;
+            if (!to.startsWith('+')) {
+                to = '+' + to;
             }
             var channel = 'sms';
             var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
@@ -164,8 +164,8 @@ module.exports = {
     },
     verifySMSCode: async function (to, code, userId) {
         try {
-            if (!to.startsWith("+")) {
-                to = "+" + to;
+            if (!to.startsWith('+')) {
+                to = '+' + to;
             }
             var verificationResult = await client.verify.services(twilioCredentials.verificationSid)
                 .verificationChecks
@@ -179,7 +179,7 @@ module.exports = {
                 var data = {
                     _id: userId,
                     alertPhoneNumber: to
-                }
+                };
                 await UserService.update(data);
             }
             return verificationResult;

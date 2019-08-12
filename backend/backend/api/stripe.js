@@ -123,6 +123,6 @@ router.post('/addBalance/:projectId', getUser, isAuthorized, isUserOwner, async 
     } catch(error){
         return sendErrorResponse(req, res, error);
     }
-})
+});
 
 module.exports = router;

@@ -230,7 +230,7 @@ export class ProfileSetting extends Component {
                                                 </div>
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">Enter OTP</label>
-                                                    <div className="bs-Fieldset-fields" style={{ flex: "0 0 0" }}>
+                                                    <div className="bs-Fieldset-fields" style={{ flex: '0 0 0' }}>
                                                         <Field
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                             type="text"
@@ -439,8 +439,22 @@ ProfileSetting.propTypes = {
     fileUrl: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
-    ])
-
+    ]),
+    otp: PropTypes.string,
+    sendVerificationSMSError: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined])
+    ]),
+    sendVerificationSMSRequesting: PropTypes.bool,
+    verifySMSCodeError: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined])
+    ]),
+    verifySMSCodeRequesting: PropTypes.bool,
+    initialValues: PropTypes.object,
+    projectId: PropTypes.string,
+    verifySMSCode: PropTypes.func.isRequired,
+    sendVerificationSMS: PropTypes.func.isRequired
 }
 
 ProfileSetting.contextTypes = {

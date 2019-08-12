@@ -8,11 +8,11 @@ import { closeModal } from '../../actions/modal';
 class MessageBox extends Component {
 
     handleKeyBoard = (e) => {
-        const { MessageBoxId, closeModal } = this.props;
+        const { messageBoxId, closeModal } = this.props;
         switch (e.key) {
             case 'Escape':
                 return closeModal({
-                    id: MessageBoxId
+                    id: messageBoxId
                 })
             default:
                 return false;
@@ -20,7 +20,7 @@ class MessageBox extends Component {
 	}
 	
 	render() {
-        const { title, message, MessageBoxId } = this.props;
+        const { title, message, messageBoxId } = this.props;
 		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
 			<div
@@ -45,7 +45,7 @@ class MessageBox extends Component {
 				<div className="bs-Modal-footer">
 					<div className="bs-Modal-footer-actions">
 						<button className="bs-Button bs-DeprecatedButton bs-Button--blue" type="button" onClick={() => this.props.closeModal({
-                                        id: MessageBoxId
+                                        id: messageBoxId
                                     })}>
 						<span>OK</span>
 						</button>
@@ -64,12 +64,13 @@ MessageBox.displayName = 'MessageBoxModal';
 MessageBox.propTypes = {
 	closeModal: PropTypes.func.isRequired,
     title: PropTypes.string,
-    message: PropTypes.string
+	message: PropTypes.string,
+	messageBoxId: PropTypes.string
 }
 
 const mapStateToProps = state => {
     return {
-        MessageBoxId: state.modal.modals[0].id,
+        messageBoxId: state.modal.modals[0].id,
         title: state.modal.modals[0].title,
         message: state.modal.modals[0].message
     }

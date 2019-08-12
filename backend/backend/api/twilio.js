@@ -183,6 +183,6 @@ router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
             message: error.message
         });
     }
-})
+});
 
 module.exports = router;

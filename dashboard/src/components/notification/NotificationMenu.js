@@ -34,7 +34,7 @@ class NotificationMenu extends Component {
         var { client_secret } = notification.meta;
         var { projectId, _id } = notification;
         var { stripe, billingActionTaken, openModal, balance } = this.props;
-        var { MessageBoxId } = this.props;
+        var { MessageBoxId } = this.state;
         stripe.handleCardPayment(client_secret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
@@ -47,7 +47,7 @@ class NotificationMenu extends Component {
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
-                        title: "Message",
+                        title: 'Message',
                         message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
                     })
                 }
@@ -55,13 +55,13 @@ class NotificationMenu extends Component {
                     billingActionTaken(projectId, _id, {
                         meta: {},
                         icon: 'error',
-                        message: "Transaction failed, try again later or use a different card."
+                        message: 'Transaction failed, try again later or use a different card.'
                     })
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
-                        title: "Message",
-                        message: "Transaction failed, try again later or use a different card."
+                        title: 'Message',
+                        message: 'Transaction failed, try again later or use a different card.'
                     })
                 }
             })
@@ -149,8 +149,9 @@ NotificationMenu.propTypes = {
     length: PropTypes.number,
     map: PropTypes.func,
     stripe: PropTypes.object,
-    notificationsVisible: PropTypes.bool
-    
+    notificationsVisible: PropTypes.bool,
+    openModal: PropTypes.func,
+    balance: PropTypes.number
 }
 
 NotificationMenu.contextTypes = {

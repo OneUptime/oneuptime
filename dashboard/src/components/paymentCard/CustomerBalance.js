@@ -55,7 +55,7 @@ export class CustomerBalance extends Component {
                 openModal({
                     id: MessageBoxId,
                     content: MessageBox,
-                    title: "Message",
+                    title: 'Message',
                     message: err.message
                 })
             })
@@ -71,7 +71,7 @@ export class CustomerBalance extends Component {
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
-                        title: "Message",
+                        title: 'Message',
                         message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
                     })
                     getProjects()
@@ -80,8 +80,8 @@ export class CustomerBalance extends Component {
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
-                        title: "Message",
-                        message: "Transaction failed, try again later or use a different card."
+                        title: 'Message',
+                        message: 'Transaction failed, try again later or use a different card.'
                     })
                 }
             })
@@ -191,7 +191,11 @@ CustomerBalance.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     projectId: PropTypes.string,
-    balance: PropTypes.number
+    balance: PropTypes.number,
+    openModal: PropTypes.func,
+    paymentIntent: PropTypes.string,
+    stripe: PropTypes.object,
+    getProjects: PropTypes.func
 }
 
 let formName = 'CustomerBalance' + Math.floor((Math.random() * 10) + 1);
