@@ -161,7 +161,6 @@ router.post('/sms/incoming', async (req, res) => {
 
 router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (req, res) {
     var { to } = req.body;
-    console.log(to);
     try{
         var sendVerifyToken = await sendVerificationSMS(to);
         return sendItemResponse(req, res, sendVerifyToken);
@@ -173,11 +172,16 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function 
 
 router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
     var { to, code } = req.body;
+    var userId = req.user ? req.user.id : null;
+
     try{
-        var sendVerifyToken = await verifySMSCode(to, code);
+        var sendVerifyToken = await verifySMSCode(to, code, userId);
         return sendItemResponse(req, res, sendVerifyToken);
     } catch(error) {
-        return sendErrorResponse(req, res, { status: 'action failed' });
+        return sendErrorResponse(req, res, { 
+            code: 400,
+            message: error.message
+        });
     }
 })
 

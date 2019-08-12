@@ -1,4 +1,4 @@
-import { getApi ,putApi} from '../api';
+import { getApi ,putApi, postApi} from '../api';
 import * as types from '../constants/profile';
 import FormData from 'form-data';
 import errors from '../errors'
@@ -202,5 +202,105 @@ export function resetFile() {
 
 	return function (dispatch) {
 		dispatch({type: 'RESET_FILE'});
+	};
+}
+
+
+export function sendVerificationSMSRequest() {
+	return {
+		type: types.SEND_VERIFICATION_SMS_REQUEST,
+	};
+}
+
+export function sendVerificationSMSSuccess(verificationAction) {
+
+	return {
+		type: types.SEND_VERIFICATION_SMS_SUCCESS,
+		payload: verificationAction
+	};
+}
+
+export function sendVerificationSMSError(error) {
+	return {
+		type: types.SEND_VERIFICATION_SMS_FAILURE,
+		payload: error
+	};
+}
+
+export function sendVerificationSMS(projectId, values) {
+
+	return function (dispatch) {
+
+		var promise = postApi(`twilio/sms/sendVerificationToken?projectId=${projectId}`, values);
+		dispatch(sendVerificationSMSRequest());
+
+		promise.then(function (response) {
+			var vericationAction = response.data;
+			dispatch(sendVerificationSMSSuccess(vericationAction));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if(error && error.message){
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(sendVerificationSMSError(errors(error)));
+		});
+
+		return promise;
+	};
+}
+export function verifySMSCodeRequest() {
+	return {
+		type: types.VERIFY_SMS_CODE_REQUEST,
+	};
+}
+
+export function verifySMSCodeSuccess(verificationResult) {
+
+	return {
+		type: types.VERIFY_SMS_CODE_SUCCESS,
+		payload: verificationResult
+	};
+}
+
+export function verifySMSCodeError(error) {
+	return {
+		type: types.VERIFY_SMS_CODE_FAILURE,
+		payload: error
+	};
+}
+
+export function verifySMSCode(projectId, values) {
+
+	return function (dispatch) {
+
+		var promise = postApi(`twilio/sms/verify?projectId=${projectId}`, values);
+		dispatch(verifySMSCodeRequest());
+
+		promise.then(function (response) {
+			var verificationResult = response.data;
+			dispatch(verifySMSCodeSuccess(verificationResult));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if(error && error.message){
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(verifySMSCodeError(errors(error)));
+		});
+
+		return promise;
 	};
 }

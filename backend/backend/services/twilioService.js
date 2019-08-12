@@ -12,6 +12,7 @@ const ErrorService = require('./errorService');
 var Handlebars = require('handlebars');
 var defaultSmsTemplates = require('../config/smsTemplate');
 var SmsSmtpService = require('./smsSmtpService');
+var UserService = require('./userService');
 
 var getTwilioSettings = async (projectId) => {
     let { accountSid, authToken, phoneNumber } = twilioCredentials;
@@ -161,7 +162,7 @@ module.exports = {
             throw error;
         }
     },
-    verifySMSCode: async function (to, code) {
+    verifySMSCode: async function (to, code, userId) {
         try {
             if (!to.startsWith("+")) {
                 to = "+" + to;
@@ -169,8 +170,25 @@ module.exports = {
             var verificationResult = await client.verify.services(twilioCredentials.verificationSid)
                 .verificationChecks
                 .create({ to, code });
+            if (verificationResult.status === 'pending') {
+                var error = new Error('Incorrect code');
+                error.code = 400;
+                throw error;
+            }
+            if(verificationResult.status === 'approved') { 
+                var data = {
+                    _id: userId,
+                    alertPhoneNumber: to
+                }
+                await UserService.update(data);
+            }
             return verificationResult;
         } catch (error) {
+            if (error.message === 'Invalid parameter: To') {
+                var invalidNumbererror = new Error('Invalid number');
+                error.code = 400;
+                throw invalidNumbererror;
+            }
             ErrorService.log('client.sms.verifySMSCode', error);
             throw error;
         }
