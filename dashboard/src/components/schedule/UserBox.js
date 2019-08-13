@@ -16,7 +16,7 @@ function submitUserForm(values, dispatch, props) {
     const { projectId, scheduleId } = props.match.params;
     const users = [];
     for (const id in values) {
-        if (values.hasOwnProperty(id)) {
+        if (Object.prototype.hasOwnProperty.call(values, id)) {
             values[id] && users.push(id);
         }
     }

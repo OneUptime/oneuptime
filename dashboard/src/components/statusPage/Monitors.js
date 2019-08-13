@@ -19,7 +19,7 @@ export class Monitors extends Component {
         const { projectId } = status;
         const monitorIds = [];
         for (const id in values) {
-            if (values.hasOwnProperty(id)) {
+            if (Object.prototype.hasOwnProperty.call(values, id)) {
                 values[id] && monitorIds.push(id);
             }
         }
