@@ -1,7 +1,7 @@
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
-var request = require('request');
+var request = require('request'); //eslint-disable-line
 var path = require('path');
 var compression = require('compression');
 
@@ -65,15 +65,15 @@ app.get('/enterprise/overview', function(req, res) {
 });
 
 app.get('/legal', function(req, res) {
-    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false, blackLogo:false, section: 'terms',requestDemoCta:false});
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'terms',requestDemoCta:false});
 });
 
 app.get('/legal/terms', function(req, res) {
-    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false, blackLogo:false, section: 'terms',requestDemoCta:false});
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'terms',requestDemoCta:false});
 });
 
 app.get('/legal/privacy', function(req, res) {
-    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false, blackLogo:false, section: 'privacy',requestDemoCta:false});
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'privacy',requestDemoCta:false});
 });
 
 app.get('/legal/sla', function(req, res) {
@@ -87,11 +87,13 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 2592000 }));
 
 app.get('/*', function(req, res) {
-    res.render('notFound.ejs', {footerCards: true, cta:true, blackLogo:false, blackLogo:false, section: 'terms',requestDemoCta:false});
+    res.render('notFound.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'terms',requestDemoCta:false});
 });
 
 app.set('port', process.env.PORT || 1444);
 
-var server = app.listen(app.get('port'), function() {
-	console.log('Server running on port : '+app.get('port'));
+app.listen(app.get('port'), function() {
+//eslint-disable-next-line
+console.log('Server running on port : '+app.get('port'));
 });
+
