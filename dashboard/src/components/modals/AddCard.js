@@ -48,7 +48,7 @@ class _CardForm extends React.Component {
                 .then(({ token }) => {
                     if(token){
                         tok = token;
-                        return postApi(`stripe/creditCard/${projectId}/${token.id}/pi`); 
+                        return postApi(`stripe/${projectId}/creditCard/${token.id}/pi`); 
                     }
                     else{
                         throw new Error('Invalid card Details.');
@@ -58,11 +58,11 @@ class _CardForm extends React.Component {
                 .then(result => {
                     if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
                         cardId = result.paymentIntent && result.paymentIntent.source;
-                        return getApi(`stripe/creditCard/${projectId}/${cardId}`)
+                        return getApi(`stripe/${projectId}/creditCard/${cardId}`)
                     }
                     else {
                         cardId = tok.card && tok.card.id;
-                        deleteApi(`stripe/creditCard/${projectId}/${cardId}`);
+                        deleteApi(`stripe/${projectId}/creditCard/${cardId}`);
                         throw new Error(result.error.message);
                     }
                 })

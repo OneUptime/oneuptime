@@ -697,7 +697,7 @@ export function addBalance(projectId, data) {
 
 	return function (dispatch) {
 
-		var promise = postApi(`stripe/addBalance/${projectId}`, data);
+		var promise = postApi(`stripe/${projectId}/addBalance`, data);
 
 		dispatch(addBalanceRequest());
 
