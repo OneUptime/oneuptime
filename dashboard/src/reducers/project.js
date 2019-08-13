@@ -25,6 +25,12 @@ const initialState = {
         requesting: false,
         error: null
     },
+    addBalance: {
+        success: false,
+        requesting: false,
+        error: null,
+        pi: {}
+    },
     alertOptionsUpdate:{
         success: false,
         requesting: false,
@@ -436,6 +442,33 @@ export default function project(state = initialState, action) {
         case types.ALERT_OPTIONS_UPDATE_FAILED:
             return Object.assign({}, state, {
                 alertOptionsUpdate: {
+                    success: false,
+                    requesting: false,
+                    error: action.payload
+                }
+            });
+
+        case types.ADD_BALANCE_SUCCESS:
+            return Object.assign({}, state, {
+                addBalance: {
+                    success: true,
+                    requesting: false,
+                    error: null,
+                    pi: action.payload
+                }
+            });
+
+        case types.ADD_BALANCE_REQUEST:
+            return Object.assign({}, state, {
+                addBalance: {
+                    ...state.addBalance,
+                    requesting: true,
+                }
+            });
+        case types.ADD_BALANCE_FAILED:
+            return Object.assign({}, state, {
+                addBalance: {
+                    pi: {},
                     success: false,
                     requesting: false,
                     error: action.payload

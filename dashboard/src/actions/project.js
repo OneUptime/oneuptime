@@ -672,3 +672,52 @@ export function alertOptionsUpdate(projectId, alertData) {
 		return promise;
 	}
 }
+
+export function addBalanceRequest() {
+	return {
+		type: types.ADD_BALANCE_REQUEST,
+	};
+}
+
+export function addBalanceSuccess(pi) {
+	return {
+		type: types.ADD_BALANCE_SUCCESS,
+		payload: pi.data
+	};
+}
+
+export function addBalanceError(error) {
+	return {
+		type: types.ADD_BALANCE_FAILED,
+		payload: error
+	};
+}
+
+export function addBalance(projectId, data) {
+
+	return function (dispatch) {
+
+		var promise = postApi(`stripe/addBalance/${projectId}`, data);
+
+		dispatch(addBalanceRequest());
+
+		promise.then(function (pi) {
+			dispatch(addBalanceSuccess(pi));
+
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else {
+				error = 'Network Error';
+			}
+			dispatch(addBalanceError(errors(error)));
+		})
+		return promise;
+	}
+}

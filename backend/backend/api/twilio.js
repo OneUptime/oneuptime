@@ -6,7 +6,7 @@
 
 const express = require('express');
 const IncidentService = require('../services/incidentService');
-const { sendIncidentCreatedCall, sendResponseMessage } = require('../services/twilioService');
+const { sendIncidentCreatedCall, sendResponseMessage, sendVerificationSMS, verifySMSCode } = require('../services/twilioService');
 const baseApiUrl = require('../config/baseApiUrl');
 const incidentSMSActionService = require('../services/IncidentSMSActionService');
 const {
@@ -156,6 +156,32 @@ router.post('/sms/incoming', async (req, res) => {
     } catch (e) {
         sendResponseMessage(From, 'We could not perform with action. Please logon to Fyipe Dashboard to complete. Thank you.');
         return sendErrorResponse(req, res, { status: 'action failed' });
+    }
+});
+
+router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (req, res) {
+    var { to } = req.body;
+    try{
+        var sendVerifyToken = await sendVerificationSMS(to);
+        return sendItemResponse(req, res, sendVerifyToken);
+    } catch(error) {
+        return sendErrorResponse(req, res, { status: 'action failed' });
+    }
+});
+
+
+router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
+    var { to, code } = req.body;
+    var userId = req.user ? req.user.id : null;
+
+    try{
+        var sendVerifyToken = await verifySMSCode(to, code, userId);
+        return sendItemResponse(req, res, sendVerifyToken);
+    } catch(error) {
+        return sendErrorResponse(req, res, { 
+            code: 400,
+            message: error.message
+        });
     }
 });
 
