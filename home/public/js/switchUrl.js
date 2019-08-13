@@ -11,7 +11,7 @@ if (window.location.href.indexOf('localhost') > -1) {
     apiUrl = 'https://dashboard.fyipe.com';
     backendUrl = 'https://api.fyipe.com';
 }
-
+//eslint-disable-next-line
 function loginUrl(extra){
     if(extra){
         window.location.href = `${apiUrl}/login${extra}`;
@@ -20,7 +20,7 @@ function loginUrl(extra){
     window.location.href = `${apiUrl}/login`;
     }
 }
-
+//eslint-disable-next-line
 function registerUrl(params){
     if(params){
         window.location.href = `${apiUrl}/register${params}`;
@@ -29,7 +29,7 @@ function registerUrl(params){
     window.location.href = `${apiUrl}/register`;
     }
 }
-
+//eslint-disable-next-line
 function formUrl(){
     return `${backendUrl}/lead/`;
 }

@@ -133,6 +133,7 @@ module.exports = {
             var companySize = data.companySize || user.companySize;
             var referral = data.referral || user.referral;
             var companyPhoneNumber = data.companyPhoneNumber || user.companyPhoneNumber;
+            var alertPhoneNumber = data.alertPhoneNumber || user.alertPhoneNumber;
             var onCallAlert = data.onCallAlert || user.onCallAlert;
             var profilePic = data.profilePic || user.profilePic;
             var jwtRefreshToken = data.jwtRefreshToken || user.jwtRefreshToken;
@@ -155,6 +156,7 @@ module.exports = {
                         companySize: companySize,
                         referral: referral,
                         companyPhoneNumber: companyPhoneNumber,
+                        alertPhoneNumber,
                         onCallAlert: onCallAlert,
                         profilePic: profilePic,
                         jwtRefreshToken: jwtRefreshToken,
@@ -191,7 +193,7 @@ module.exports = {
         }
         if (verificationToken) {
             var verificationTokenURL = `${FYIPE_BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
-            await MailService.sendVerifyEmail(verificationTokenURL, user.name, user.email);
+            MailService.sendVerifyEmail(verificationTokenURL, user.name, user.email);
         }
         return verificationToken.token;
     },
@@ -336,7 +338,7 @@ module.exports = {
                 try{
                     ipLocation = await iplocation(clientIP);
                 } catch(error){
-                    iplocation = {};
+                    ipLocation = {};
                 }   
                 await LoginIPLog.create({
                     userId: user._id,

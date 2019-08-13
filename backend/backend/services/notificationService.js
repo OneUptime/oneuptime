@@ -104,6 +104,7 @@ module.exports = {
             let createdBy = data.createdBy || notification.createdBy;
             let message = data.message || notification.message;
             let read = notification.read;
+            let meta = data.meta || notification.meta;
             if(data.read){
                 for(let userId of data.read){
                     read.push(userId);
@@ -118,7 +119,8 @@ module.exports = {
                         createdBy: createdBy,
                         message: message,
                         icon: icon,
-                        read: read
+                        read: read,
+                        meta: meta
                     }},
                 {
                     new: true

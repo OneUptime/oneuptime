@@ -1,4 +1,4 @@
-
+//eslint-disable-next-line
 function openTab(evt, tabName) {
     // Declare all variables
     var i, tabcontent, tablinks;
@@ -20,7 +20,7 @@ function openTab(evt, tabName) {
     evt.currentTarget.className += ' active';
     setTimeout(() => document.getElementById(tabName + '1').parentNode.click(), 200);
 }
-
+//eslint-disable-next-line
 function openTooltip(name) {
     // Declare all variables
     var i, tooltip, elclass, element;

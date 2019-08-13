@@ -46,6 +46,7 @@
     "react-loaders": "^3.0.1",
     "react-mixpanel": "0.0.11",
     "react-moment-proptypes": "^1.6.0",
+    "react-phone-input-2": "^2.9.5",
     "react-redux": "^5.0.7",
     "react-router-dom": "^4.2.2",
     "react-router-redux": "^4.0.8",
