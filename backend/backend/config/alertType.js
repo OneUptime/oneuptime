@@ -87,9 +87,9 @@ module.exports = {
     getCountryType: function (code) {
         if (code === '+1') {
             return 'us';
-        } else if (code === '+53' || code === '+371' || code === '+252' || code === '+370'
-            || code === '+224' || code === '+220' || code === '+960' || code === '+372'
-            || code === '+263' || code === '+216') {
+        } else if (['+53', '+371', '+252', '+370',
+            '+224', '220', '960', '372',
+            '263', '+216'].includes(code)) {
             return 'risk';
         }
         else return 'non-us';
