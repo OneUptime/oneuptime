@@ -5,7 +5,7 @@
  */
 
 module.exports = {
-    balanceCheck: async function (projectId, alertPhoneNumber, userId, alertType) { 
+    checkBalance: async function (projectId, alertPhoneNumber, userId, alertType) { 
         var project = await ProjectService.findOneBy({_id: projectId});
         var balance = project.balance;
         var countryCode = alertPhoneNumber.split(' ')[0];
@@ -189,7 +189,7 @@ module.exports = {
                                             if (teamMember.sms) {
                                                 try{
                                                     let alertStatus;
-                                                    let balanceCheckStatus = await _this.balanceCheck(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
+                                                    let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
                                                     if(balanceCheckStatus){
                                                         let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
                                                         if(alertSuccess){
@@ -208,7 +208,7 @@ module.exports = {
                                             if (teamMember.call) {
                                                 try{
                                                     let alertStatus;
-                                                    let balanceCheckStatus = await _this.balanceCheck(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
+                                                    let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
                                                     if(balanceCheckStatus){
                                                         let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
                                                         if(alertSuccess){
