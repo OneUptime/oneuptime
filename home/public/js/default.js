@@ -1,3 +1,4 @@
+/*eslint-disable*/
 function readConfig(t) {
     function n(t) {
         return String(t).replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&#x2F;/g, 'index.html').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')

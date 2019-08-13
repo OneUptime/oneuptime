@@ -33,7 +33,7 @@ class Invoice extends Component {
     render() {
 
       return (
-          <div className="db-World-contentPane Box-root">
+          <div className="db-World-contentPane Box-root" style={{ paddingTop: 0 }}>
           <div>
             <div>
               <div className="db-RadarRulesLists-page">

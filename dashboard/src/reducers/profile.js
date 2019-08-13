@@ -12,8 +12,13 @@ import {
     USER_SETTINGS_FAILURE,
     USER_SETTINGS_RESET,
     SHOW_PROFILE_MENU,
-    HIDE_PROFILE_MENU
-
+    HIDE_PROFILE_MENU,
+    SEND_VERIFICATION_SMS_REQUEST,
+    SEND_VERIFICATION_SMS_SUCCESS,
+    SEND_VERIFICATION_SMS_FAILURE,
+    VERIFY_SMS_CODE_REQUEST,
+    VERIFY_SMS_CODE_SUCCESS,
+    VERIFY_SMS_CODE_FAILURE
 } from '../constants/profile';
 
 const INITIAL_STATE = {
@@ -29,7 +34,19 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
     },
-    file: null
+    file: null,
+    smsVerification: {
+        error: null, 
+        requesting: false,
+        success: false,
+        data: {}
+    },
+    smsVerificationResult: {
+        error: null, 
+        requesting: false,
+        success: false,
+        data: {}
+    }
 };
 
 export default function profileSettings(state = INITIAL_STATE, action) {
@@ -176,6 +193,71 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 file: null
+            });
+
+        case SEND_VERIFICATION_SMS_REQUEST:
+
+            return Object.assign({}, state, {
+                smsVerification: {
+                    error: null,
+                    requesting: true,
+                    success: false,
+                    data: {}
+                }
+            });
+
+        case SEND_VERIFICATION_SMS_SUCCESS:
+
+            return Object.assign({}, state, {
+                smsVerification: {
+                    error: null,
+                    requesting: false,
+                    success: false,
+                    data: action.payload
+                }
+            });
+
+        case SEND_VERIFICATION_SMS_FAILURE:
+
+            return Object.assign({}, state, {
+                smsVerification: {
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                    data: {}
+                }
+            });
+        case VERIFY_SMS_CODE_REQUEST:
+
+            return Object.assign({}, state, {
+                smsVerificationResult: {
+                    error: null,
+                    requesting: true,
+                    success: false,
+                    data: {}
+                }
+            });
+
+        case VERIFY_SMS_CODE_SUCCESS:
+
+            return Object.assign({}, state, {
+                smsVerificationResult: {
+                    error: null,
+                    requesting: false,
+                    success: false,
+                    data: action.payload
+                }
+            });
+
+        case VERIFY_SMS_CODE_FAILURE:
+
+            return Object.assign({}, state, {
+                smsVerificationResult: {
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                    data: {}
+                }
             });
 
         default: return state;
