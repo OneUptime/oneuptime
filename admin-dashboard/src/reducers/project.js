@@ -1,47 +1,45 @@
 import {
-    FETCH_USERS_REQUEST,
-    FETCH_USERS_SUCCESS,
-    FETCH_USERS_FAILURE,
-    FETCH_USERS_RESET,
+    FETCH_PROJECTS_REQUEST,
+    FETCH_PROJECTS_SUCCESS,
+    FETCH_PROJECTS_FAILURE,
+    FETCH_PROJECTS_RESET,
 
-    UPDATE_USER_SETTING_REQUEST,
-    UPDATE_USER_SETTING_SUCCESS,
-    UPDATE_USER_SETTING_FAILURE,
-    UPDATE_USER_SETTING_RESET,
-} from '../constants/user';
+    FETCH_USER_PROJECTS_REQUEST,
+    FETCH_USER_PROJECTS_SUCCESS,
+    FETCH_USER_PROJECTS_FAILURE,
+    FETCH_USER_PROJECTS_RESET
+} from '../constants/project';
 
 const INITIAL_STATE = {
-    users: {
+    projects: {
         error: null,
         requesting: false,
         success: false,
-        users: [],
+        projects: [],
         count: null,
         limit: null,
         skip: null
     },
-    userSetting: {
+    userProjects: {
         error: null,
         requesting: false,
         success: false,
-        data: {}
-    },
-    deleteUser: {
-        error: null,
-        requesting: false,
-        success: false
+        projects: [],
+        count: null,
+        limit: null,
+        skip: null
     }
 };
 
-export default function user(state = INITIAL_STATE, action) {
+export default function project(state = INITIAL_STATE, action) {
 
     switch (action.type) {
 
-        // fetch users list
-        case FETCH_USERS_REQUEST:
+        // fetch projects list
+        case FETCH_PROJECTS_REQUEST:
 
             return Object.assign({}, state, {
-                users: {
+                projects: {
                     requesting: true,
                     error: null,
                     success: false,
@@ -49,41 +47,40 @@ export default function user(state = INITIAL_STATE, action) {
 
             });
 
-        case FETCH_USERS_SUCCESS:
+        case FETCH_PROJECTS_SUCCESS:
             return Object.assign({}, state, {
-                users: {
+                projects: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: action.payload.data,
+                    projects: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
                     skip: action.payload.skip
                 },
             });
 
-        case FETCH_USERS_FAILURE:
+        case FETCH_PROJECTS_FAILURE:
 
             return Object.assign({}, state, {
-                users: {
+                projects: {
                     requesting: false,
                     error: action.payload,
                     success: false,
                 },
             });
 
-        case FETCH_USERS_RESET:
+        case FETCH_PROJECTS_RESET:
 
             return Object.assign({}, state, {
                 ...INITIAL_STATE
             });
 
-
-        //update user setting
-        case UPDATE_USER_SETTING_REQUEST:
+        // fetch userProjects
+        case FETCH_USER_PROJECTS_REQUEST:
 
             return Object.assign({}, state, {
-                userSetting: {
+                userProjects: {
                     requesting: true,
                     error: null,
                     success: false,
@@ -91,40 +88,35 @@ export default function user(state = INITIAL_STATE, action) {
 
             });
 
-        case UPDATE_USER_SETTING_SUCCESS:
+        case FETCH_USER_PROJECTS_SUCCESS:
             return Object.assign({}, state, {
-                userSetting: {
+                userProjects: {
                     requesting: false,
                     error: null,
                     success: true,
-                    data: action.payload
-                },
-                users: {
-                    requesting: false,
-                    error: null,
-                    success: true,
-                    users: state.users.users.map(user => user._id === action.payload._id ? action.payload : user),
+                    projects: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
                     skip: action.payload.skip
-                }
+                },
             });
 
-        case UPDATE_USER_SETTING_FAILURE:
+        case FETCH_USER_PROJECTS_FAILURE:
 
             return Object.assign({}, state, {
-                userSetting: {
+                userProjects: {
                     requesting: false,
                     error: action.payload,
                     success: false,
                 },
             });
 
-        case UPDATE_USER_SETTING_RESET:
+        case FETCH_USER_PROJECTS_RESET:
 
             return Object.assign({}, state, {
                 ...INITIAL_STATE
             });
+
 
         default: return state;
     }

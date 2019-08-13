@@ -645,8 +645,22 @@ router.get('/users', getUser, isUserMasterAdmin, async function(req, res) {
     const limit = req.query.limit || 10;
     try{
         const users = await UserService.getAllUsers(skip, limit);
-        const count = await UserService.countBy({ deleted: false });
+        const count = await UserService.countBy({ _id: { $ne: null }, deleted: { $ne: null }});
         return sendListResponse(req, res, users, count);
+    }catch(error){
+        return sendErrorResponse(req, res, {
+            code: 500,
+            message: 'Server Error'
+        });
+    }
+});
+
+router.delete('/:userId', getUser, isUserMasterAdmin, async function(req, res) {
+    const userId = req.params.userId;
+    const masterUserId = req.user.id || null;
+    try{
+        const user = await UserService.deleteBy({_id: userId}, masterUserId);
+        return sendItemResponse(req, res, user);
     }catch(error){
         return sendErrorResponse(req, res, {
             code: 500,

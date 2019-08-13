@@ -6,7 +6,7 @@ import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
 
-export class UserProjectList extends Component {
+export class ProjectList extends Component {
 
     render() {
         if(this.props.projects && this.props.projects.skip && typeof this.props.projects.skip === 'string'){
@@ -28,7 +28,7 @@ export class UserProjectList extends Component {
 
         const userInProject = this.props.users.find(user => user._id === this.props.userId);
         const username = userInProject ? userInProject.name : null;
-    
+        let evalProjectUser = project => this.props.users.find(user => user._id === project.users[0].userId) ? this.props.users.find(user => user._id === project.users[0].userId).name : 'Not Yet Added';
         return (
             <div>
                 <table className="Table">
@@ -73,7 +73,7 @@ export class UserProjectList extends Component {
                                                 <a className="db-ListViewItem-link" >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root"><span>{ `${username}`} { (project.users.length - 1) > 0 ? `and ${project.users.length - 1} more` : ''}</span></div>
+                                                            <div className="Box-root"><span>{ `${username ? username : evalProjectUser(project)}`} { (project.users.length - 1) > 0 ? `and ${project.users.length - 1} more` : ''}</span></div>
                                                         </span>
                                                     </div>
                                                 </a>
@@ -90,7 +90,7 @@ export class UserProjectList extends Component {
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="Box-root Flex-flex">
                                                                     <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        
+                                                                    { project.monitors[0] ? project.monitors[0].name : 'Not Yet Added' } { (project.monitors.length - 1) > 0 ? `and ${project.monitors.length - 1} other` : ''}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -139,12 +139,12 @@ export class UserProjectList extends Component {
                     <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
-                                <button id="btnPrev" onClick={()=>{this.props.prevClicked(this.props.projects ? this.props.projects._id : null, this.props.projects.skip, this.props.projects.limit)}} className={'Button bs-ButtonLegacy' + (canPrev ? '' : 'Is--disabled')} disabled={!canPrev} data-db-analytics-name="list_view.pagination.previous" type="button">
+                                <button id="btnPrev" onClick={()=>{this.props.prevClicked(this.props.projects.skip, this.props.projects.limit)}} className={'Button bs-ButtonLegacy' + (canPrev ? '' : 'Is--disabled')} disabled={!canPrev} data-db-analytics-name="list_view.pagination.previous" type="button">
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Previous</span></span></div>
                                 </button>
                             </div>
                             <div className="Box-root">
-                                <button id="btnNext" onClick={()=>{this.props.nextClicked(this.props.projects ? this.props.projects._id : null, this.props.projects.skip, this.props.projects.limit)}} className={'Button bs-ButtonLegacy' + (canNext ? '' : 'Is--disabled')} disabled={!canNext} data-db-analytics-name="list_view.pagination.next" type="button">
+                                <button id="btnNext" onClick={()=>{this.props.nextClicked(this.props.projects.skip, this.props.projects.limit)}} className={'Button bs-ButtonLegacy' + (canNext ? '' : 'Is--disabled')} disabled={!canNext} data-db-analytics-name="list_view.pagination.next" type="button">
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Next</span></span></div>
                                 </button>
                             </div>
@@ -166,9 +166,9 @@ function mapStateToProps(state) {
     }
 }
 
-UserProjectList.displayName = 'UserProjectList'
+ProjectList.displayName = 'ProjectList'
 
-UserProjectList.propTypes = {
+ProjectList.propTypes = {
     nextClicked:PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
     projects: PropTypes.oneOfType([
@@ -178,4 +178,4 @@ UserProjectList.propTypes = {
     users: PropTypes.object.isRequired
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(UserProjectList);
+export default connect(mapStateToProps, mapDispatchToProps)(ProjectList);

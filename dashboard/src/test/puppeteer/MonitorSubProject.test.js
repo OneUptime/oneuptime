@@ -28,7 +28,7 @@ let subProjectName = utils.generateRandomString();
 beforeAll(async (done) => {
     jest.setTimeout(200000);
     // browser for parent user
-    browser1 = await puppeteer.launch();
+    browser1 = await puppeteer.launch({headless: false});
     page = await browser1.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
 
@@ -55,7 +55,7 @@ beforeAll(async (done) => {
     });
 
     // browser sub-project user
-    browser2 = await puppeteer.launch();
+    browser2 = await puppeteer.launch({headless: false});
     newPage = await browser2.newPage();
     await newPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
 

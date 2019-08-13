@@ -1,15 +1,16 @@
 import React from 'react';
-import UserProjectList from './UserProjectList';
+import ProjectList from '../project/ProjectList';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { fetchUserProjects } from '../../actions/user';
+import { fetchUserProjects } from '../../actions/project';
 
 class UserProject extends React.Component {
-    prevClicked = () => {
-        
+    prevClicked = (skip, limit) => {
+        this.props.fetchUserProjects((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
     }
-    nextClicked = () => {
 
+    nextClicked = (skip, limit) => {
+        this.props.fetchUserProjects(skip + limit, 10);
     }
     render(){
         return (
@@ -22,7 +23,7 @@ class UserProject extends React.Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>Project Details</span>
                                 </span>
-                                <p><span>Here is a list of this user projects.</span></p>
+                                <p><span>Here is a list of this user's projects.</span></p>
                             </div>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
@@ -30,7 +31,7 @@ class UserProject extends React.Component {
                 </div>
             </div>
             </div>
-                <UserProjectList 
+                <ProjectList 
                     projects={this.props.projects || {}} 
                     prevClicked={this.prevClicked} 
                     nextClicked={this.nextClicked} 
@@ -51,7 +52,7 @@ const mapDispatchToProps = (dispatch) => {
 
 const mapStateToProps = state => {
     return {
-        projects: state.user.userProjects
+        projects: state.project.userProjects
     };
 }
 

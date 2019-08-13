@@ -66,7 +66,7 @@ export class SidebarNavItem extends Component {
 
     RenderListItems({ active }) {
         return this.props.route.subRoutes.map((child, index) => {
-            const removedLinks = ['User'];
+            const removedLinks = ['User', 'Project'];
             if (removedLinks.some(link => link === child.title)) return null;
 
             if (child.visible) {

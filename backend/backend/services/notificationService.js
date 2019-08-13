@@ -59,7 +59,7 @@ module.exports = {
 
     create: async function (projectId, message, userId, icon, meta) {
         if(!meta){
-            meta = {}
+            meta = {};
         }
         var notification = new NotificationModel();
         notification.projectId = projectId;

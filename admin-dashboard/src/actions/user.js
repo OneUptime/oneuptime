@@ -1,4 +1,4 @@
-import { getApi, putApi } from '../api';
+import { getApi, putApi, deleteApi } from '../api';
 import * as types from '../constants/user';
 import errors from '../errors'
 
@@ -132,54 +132,59 @@ export function resetFile() {
 	};
 }
 
-export function fetchUserProjectsRequest() {
+//Delete user
+export function deleteUserRequest() {
 	return {
-		type: types.FETCH_USER_PROJECTS_REQUEST
+		type: types.DELETE_USER_REQUEST,
+
 	};
 }
 
-export function fetchUserProjectsSuccess(users) {
-
+export function deleteUserReset() {
 	return {
-		type: types.FETCH_USER_PROJECTS_SUCCESS,
-		payload: users
+		type: types.DELETE_USER_RESET,
+
 	};
 }
 
-export function fetchUserProjectsError(error) {
+export function deleteUserSuccess(user) {
+
 	return {
-		type: types.FETCH_USER_PROJECTS_FAILURE,
+		type: types.DELETE_USER_SUCCESS,
+		payload: user
+	};
+}
+
+export function deleteUserError(error) {
+	return {
+		type: types.DELETE_USER_FAILED,
 		payload: error
 	};
 }
 
-// Calls the API to fetch all user projects.
-export function fetchUserProjects(userId, skip, limit) {
-	skip = skip ? parseInt(skip) : 0;
-	limit = limit ? parseInt(limit) : 10;
+// Calls the API to delete a user
+export function deleteUser(userId) {
 	return function (dispatch) {
-		var promise = getApi(`project/projects/user/${userId}?skip=${skip}&limit=${limit}`);
-		dispatch(fetchUserProjectsRequest());
+		var promise;
+		promise = deleteApi(`user/${userId}`);
+		dispatch(deleteUserRequest());
 		promise.then(function (response) {
-			var users = response.data;
-			dispatch(fetchUserProjectsSuccess(users));
-
+			var data = response.data;
+			dispatch(deleteUserSuccess(data));
 		}, function (error) {
-
 			if (error && error.response && error.response.data)
 				error = error.response.data;
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
 			else{
 				error = 'Network Error';
 			}
-			dispatch(fetchUserProjectsError(errors(error)));
+			dispatch(deleteUserError(errors(error)));
 		});
-
 		return promise;
 	};
 }

@@ -206,20 +206,31 @@ router.get('/projects', getUser, async function (req, res) {
     }
 });
 
-// Description: Fetching user project records
-// Params:
-// Param 1: req.headers-> {token};
-// Returns: 200: [{project}]; 400: Error.
 router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function (req, res) {
     let userId = req.params.userId;
     let skip = req.query.skip || 0;
     let limit = req.query.limit || 10;
     try{
-        const { projects, count } = await ProjectService.getUserProjects(userId, skip, limit)
+        const { projects, count } = await ProjectService.getUserProjects(userId, skip, limit);
         return sendListResponse(req, res, projects, count);
     }catch(error){
         return sendErrorResponse(req, res, error);
     }
+});
+
+router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (req, res) {
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+    // try{
+    const projects = await ProjectService.getAllProjects(skip, limit);
+    const count = await ProjectService.countBy({ parentProjectId: null });
+    return sendListResponse(req, res, projects, count);
+    // }catch(error){
+    //     return sendErrorResponse(req, res, {
+    //         code: 500,
+    //         message: 'Server Error'
+    //     });
+    // }
 });
 
 // Description: Resetting the API key of a project.

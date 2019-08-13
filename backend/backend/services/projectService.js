@@ -454,6 +454,19 @@ module.exports = {
         });
     },
 
+    getAllProjects: async function(skip, limit){
+        var _this = this;
+        let projects = await _this.findBy({ parentProjectId: null }, limit, skip);
+        // add project monitors
+        projects = await Promise.all(projects.map(async(project) => {
+            // get both sub-project users and project users
+            const users = await TeamService.getTeamMembersBy({parentProjectId: project._id});
+            project.users = users.length > 0 ? users : project.users;
+            return await _this.addMonitorsToProject(project);
+        }));
+        return projects;
+    },
+
     getUserProjects: async function(userId, skip, limit){
         var _this = this;
         // find user subprojects and parent projects
@@ -483,7 +496,10 @@ module.exports = {
     },
 
     addMonitorsToProject: async function (project){
-        const monitors = await MonitorService.findBy({projectId: project._id});
+        const _this = this;
+        const subProjectIds = (await _this.findBy({ parentProjectId: project._id })).map(subProject => subProject._id);
+        subProjectIds.push(project._id);
+        const monitors = await MonitorService.findBy({projectId: { $in: subProjectIds }});
         return Object.assign({}, project._doc, {monitors});
     }
 

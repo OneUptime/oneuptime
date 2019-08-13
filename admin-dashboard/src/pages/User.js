@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { destroy } from 'redux-form';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import UserSetting from '../components/user/UserSetting';
 import UserProject from '../components/user/UserProject';
-import { fetchUserProjects } from '../actions/user';
+import UserDeleteBox from '../components/user/UserDeleteBox';
+import { fetchUserProjects } from '../actions/project';
 
 
 class User extends Component {
@@ -39,12 +39,18 @@ class User extends Component {
                                                 <div className="Box-root Margin-bottom--12">
                                                     <UserProject userId={this.props.match.params.userId} />
                                                 </div>
+                                                {
+                                                    this.props.user && !this.props.user.deleted ?
+                                                    <div className="Box-root Margin-bottom--12">
+                                                        <UserDeleteBox userId={this.props.match.params.userId} />
+                                                    </div>
+                                                    : null
+                                                }
                                             </div>
                                         </div>
                                     </span>
                                 </div>
                             </div>
-
                     </div>
                 </div>
             </div>
@@ -57,8 +63,10 @@ const mapDispatchToProps = (dispatch) => {
     return bindActionCreators({ fetchUserProjects }, dispatch)
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const user = state.user.users.users.find(user => user._id === props.match.params.userId);
     return {
+        user
     }
 }
 
@@ -69,6 +77,7 @@ User.contextTypes = {
 User.propTypes = {
     match: PropTypes.object.isRequired,
     fetchUserProjects: PropTypes.func.isRequired,
+    user: PropTypes.object.isRequired,
 }
 
 User.displayName = 'User'

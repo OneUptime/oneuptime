@@ -24,13 +24,21 @@ const UserList = ({ users }) => (
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle">
 
-                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                            <span>
-                                { user.name ? 'Online ' + moment(user.lastActive).fromNow() : 'Invitation Sent' }
+                    {
+                        user.deleted ? 
+                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                <span>Deleted</span>
                             </span>
-                        </span>
-                    </div>
+                        </div>
+                        : <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                <span>
+                                    { user.name ? 'Online ' + moment(user.lastActive).fromNow() : 'Invitation Sent' }
+                                </span>
+                            </span>
+                        </div>
+                    }
 
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle"></div>

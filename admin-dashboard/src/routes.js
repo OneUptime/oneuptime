@@ -2,7 +2,9 @@ import pages from './pages';
 
 const {
 	Users,
-	User
+	User,
+	Projects,
+	Project
 } = pages;
 
 export const groups = [
@@ -26,6 +28,23 @@ export const groups = [
 					index: 1
 				},],
 				index: 1
+			},
+			{
+				title: 'Projects',
+				path: '/projects',
+				icon: 'atlas',
+				component: Projects,
+				visible: true,
+				subRoutes: [{
+					title: 'Project',
+					path: '/projects/:projectId',
+					icon: 'atlas',
+					component: Project,
+					visible: true,
+					subRoutes: [],
+					index: 1
+				}],
+				index: 2
 			},
 		]
 	},

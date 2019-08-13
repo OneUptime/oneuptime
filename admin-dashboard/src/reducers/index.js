@@ -5,6 +5,7 @@ import modal from './modal';
 import profileSettings from './profile';
 import notifications from './notifications';
 import user from './user';
+import project from './project';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -12,7 +13,8 @@ const appReducer = combineReducers({
     modal,
     profileSettings,
     notifications,
-    user
+    user,
+    project
 });
 
 export default (state, action) => {
