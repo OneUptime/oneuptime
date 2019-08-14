@@ -23,8 +23,6 @@ fi
 DIR=$PWD
 FYIPE_DIR="$DIR/.."
 
-echo $DIR
-echo $FYIPE_DIR
 
 function build {
   cd $1
@@ -33,7 +31,7 @@ function build {
   cd ..
 }
 
-cd ..
+# cd ..
 
 build dashboard
 build accounts 
