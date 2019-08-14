@@ -15,13 +15,13 @@ export const groups = [
 			{
 				title: 'Users',
 				path: '/users',
-				icon: 'atlas',
+				icon: 'customers',
 				component: Users,
 				visible: true,
 				subRoutes: [{
 					title: 'User',
 					path: '/users/:userId',
-					icon: 'atlas',
+					icon: 'customers',
 					component: User,
 					visible: true,
 					subRoutes: [],

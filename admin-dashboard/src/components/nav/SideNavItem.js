@@ -21,7 +21,8 @@ export class SidebarNavItem extends Component {
         const { route, location, match } = this.props;
         var path = route.path;
         const isLinkActive = location.pathname === path
-        || (location.pathname.match(/users\/([0-9]|[a-z])*/) && route.title === 'Users') 
+        || (location.pathname.match(/users\/([0-9]|[a-z])*/) && route.title === 'Users')
+        || (location.pathname.match(/projects\/([0-9]|[a-z])*/) && route.title === 'Projects')  
         
         const isChildLinkActive = false
 

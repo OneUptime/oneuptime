@@ -168,9 +168,8 @@ export function deleteUser(userId) {
 		var promise;
 		promise = deleteApi(`user/${userId}`);
 		dispatch(deleteUserRequest());
-		promise.then(function (response) {
-			var data = response.data;
-			dispatch(deleteUserSuccess(data));
+		promise.then(function () {
+			dispatch(deleteUserSuccess({userId}));
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;

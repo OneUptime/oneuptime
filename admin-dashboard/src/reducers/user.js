@@ -8,6 +8,11 @@ import {
     UPDATE_USER_SETTING_SUCCESS,
     UPDATE_USER_SETTING_FAILURE,
     UPDATE_USER_SETTING_RESET,
+
+    DELETE_USER_FAILED,
+    DELETE_USER_REQUEST,
+    DELETE_USER_RESET,
+    DELETE_USER_SUCCESS
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -124,6 +129,54 @@ export default function user(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 ...INITIAL_STATE
+            });
+        
+        case DELETE_USER_SUCCESS:
+            return Object.assign({}, state, {
+                deleteUser: {
+                    requesting: false,
+                    success: true,
+                    error: null
+                },
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: state.users.users.map(user => {
+                        user.deleted = user._id === action.payload.userId ? true : user.deleted;
+                        return user;
+                    }),
+                    count: state.users.count,
+                    limit: state.users.limit,
+                    skip: state.users.skip
+                }
+            });
+
+        case DELETE_USER_REQUEST:
+            return Object.assign({}, state, {
+                deleteUser: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case DELETE_USER_FAILED:
+            return Object.assign({}, state, {
+                deleteUser: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case DELETE_USER_RESET:
+            return Object.assign({}, state, {
+                deleteUser: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                }
             });
 
         default: return state;
