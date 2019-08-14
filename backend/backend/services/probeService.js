@@ -89,7 +89,6 @@ module.exports = {
         return probe;
     },
 
-
     countBy: async function (query) {
         if (!query) {
             query = {};
@@ -169,7 +168,7 @@ module.exports = {
                     new: true
                 });
         } catch (error) {
-            ErrorService.log('ProbeModel.findOneAndUpdate', error);
+            ErrorService.log('MonitorStatusModel.findOneAndUpdate', error);
             throw error;
         }
         return MonitorStatus;
@@ -208,6 +207,16 @@ module.exports = {
             throw error;
         }
         return log;
+    },
+
+    updateProbeStatus: async function (probeId) {
+        try {
+            var probe = await ProbeModel.findOneAndUpdate({_id:probeId}, { $set: { lastAlive: Date.now() } }, { new: true });
+        } catch (error) {
+            ErrorService.log('ProbeModel.findOneAndUpdate', error);
+            throw error;
+        }
+        return probe;
     },
 };
 
