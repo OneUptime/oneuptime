@@ -23,6 +23,9 @@ fi
 DIR=$PWD
 FYIPE_DIR="$DIR/.."
 
+echo $DIR
+echo $FYIPE_DIR
+
 function build {
   cd $1
   sudo docker build -t localhost:32000/$1:master .
@@ -32,7 +35,7 @@ function build {
 
 cd ..
 
-build fyipe
+build dashboard
 build accounts 
 build backend
 build home 
