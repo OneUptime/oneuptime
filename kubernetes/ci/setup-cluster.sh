@@ -37,3 +37,5 @@ echo "RUNNING COMMAND: sudo kubectl get pvc"
 sudo kubectl get pvc
 echo "RUNNING COMMAND: sudo kubectl get storageclass"
 sudo kubectl get storageclass
+echo "RUNNING COMMAND: sudo kubectl cluster-info"
+sudo kubectl cluster-info
