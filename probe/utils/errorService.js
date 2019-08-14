@@ -9,6 +9,11 @@ if (process.env.PORT) {
         handleExceptions: true
     });
 }
+else {
+    winston.add(new winston.transports.Console({
+        format: winston.format.simple()
+    }));
+}
 
 module.exports = {
     log: (functionName, error) => {

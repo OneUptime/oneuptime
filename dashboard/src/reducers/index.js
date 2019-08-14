@@ -24,6 +24,7 @@ import subscriber from './subscriber';
 import scheduledEvent from './scheduledEvent';
 import monitorCategories from './monitorCategories';
 import card from './card';
+import probe from './probe';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -50,7 +51,8 @@ const appReducer = combineReducers({
     smsTemplates,
     subscriber,
     scheduledEvent,
-    card
+    card,
+    probe
 });
 
 export default (state, action) => {
