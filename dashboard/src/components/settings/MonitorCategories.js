@@ -148,9 +148,9 @@ MonitorCategories.propTypes = {
     isRequesting: PropTypes.bool,
     deleteMonitorCategory: PropTypes.func.isRequired,
     fetchMonitorCategories: PropTypes.func.isRequired,
-    skip: PropTypes.string,
+    skip: PropTypes.number,
     count: PropTypes.number,
-    limit: PropTypes.string,
+    limit: PropTypes.number,
     name: PropTypes.string,
     openModal: PropTypes.func.isRequired
 }

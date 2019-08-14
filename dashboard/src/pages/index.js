@@ -24,6 +24,8 @@ import SmsTemplates from './SmsTemplates';
 import MonitorView from './MonitorView';
 import Reports from './Reports';
 
+import Probe from './Probe';
+
 export default {
     ChangePassword,
     Monitor,
@@ -42,5 +44,6 @@ export default {
     EmailTemplates,
     SmsTemplates,
     Reports,
-    MonitorView
+    MonitorView,
+    Probe
 }
