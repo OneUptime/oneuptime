@@ -41,6 +41,10 @@ var userSchema = new Schema({
         type: Date,
         default: null,
     },
+    role: {
+        type: String,
+        enum: ['master-admin']
+    },
 
     deleted: { type: Boolean, default: false},
     
