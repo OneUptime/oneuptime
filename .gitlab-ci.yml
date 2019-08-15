@@ -51,7 +51,7 @@ build_n_test_dashboard:
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run -p 3002:3002 -d --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run -d --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
     - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
