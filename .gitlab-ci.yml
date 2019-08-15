@@ -56,6 +56,7 @@ build_n_test_dashboard:
     - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
     - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker ps
     - cd dashboard
     - npm install
     - npm run jest
