@@ -46,7 +46,7 @@ describe('Stripe payment API', function () {
     });
 
     it('should sign up and a transaction of 1 $ should be made', function (done) {
-        request.get('/stripe/charges').set('Authorization', authorization).end(function (err, res) {
+        request.get(`/stripe/${projectId}/charges`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.have.property('data');
             expect(res.body.data).to.be.an('array');
@@ -69,7 +69,7 @@ describe('Stripe payment API', function () {
                 cvc: '123'
             }
         }, function (err, token){
-            request.post(`/stripe/creditCard/${projectId}/${token.id}/pi`).set('Authorization', authorization).end(function (err, res) {
+            request.post(`/stripe/${projectId}/creditCard/${token.id}/pi`).set('Authorization', authorization).end(function (err, res) {
                 cardId = token.card.id;
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('id');
@@ -83,7 +83,7 @@ describe('Stripe payment API', function () {
     });
 
     it('should return 2 cards attached to customer', function (done) {
-        request.get(`/stripe/creditCard/${projectId}`).set('Authorization', authorization).end(function (err, res) {
+        request.get(`/stripe/${projectId}/creditCard`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.have.property('data');
             expect(res.body.data).to.be.an('array');
@@ -92,7 +92,7 @@ describe('Stripe payment API', function () {
         });       
     });
     it('should update default card for customer', function(done){
-        request.put(`/stripe/creditCard/${projectId}/${cardId}`).set('Authorization', authorization).end(function (err, res) {
+        request.put(`/stripe/${projectId}/creditCard/${cardId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('default_source');
@@ -101,7 +101,7 @@ describe('Stripe payment API', function () {
         });
     });
     it('should return 2 cards attached to customer', function (done) {
-        request.get(`/stripe/creditCard/${projectId}`).set('Authorization', authorization).end(function (err, res) {
+        request.get(`/stripe/${projectId}/creditCard`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.have.property('data');
             expect(res.body.data).to.be.an('array');
@@ -111,7 +111,7 @@ describe('Stripe payment API', function () {
     });
 
     it('should fetch a single card', function (done) {
-        request.get(`/stripe/creditCard/${projectId}/${cardId}`).set('Authorization', authorization).end(function (err, res) {
+        request.get(`/stripe/${projectId}/creditCard/${cardId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('id');
@@ -123,7 +123,7 @@ describe('Stripe payment API', function () {
     });
 
     it('should delete a card', function (done) {
-        request.delete(`/stripe/creditCard/${projectId}/${cardId}`).set('Authorization', authorization).end(function (err, res) {
+        request.delete(`/stripe/${projectId}/creditCard/${cardId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('id');

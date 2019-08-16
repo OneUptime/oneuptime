@@ -6,6 +6,7 @@ var PaymentService = require('../services/paymentService');
 var UserService = require('../services/userService');
 var MailService = require('../services/mailService');
 var getUser = require('../middlewares/user').getUser;
+var isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 var isUserOwner = require('../middlewares/project').isUserOwner;
 const {
     isAuthorized
@@ -203,6 +204,33 @@ router.get('/projects', getUser, async function (req, res) {
     }catch(error){
         return sendErrorResponse(req, res, error);
     }
+});
+
+router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function (req, res) {
+    let userId = req.params.userId;
+    let skip = req.query.skip || 0;
+    let limit = req.query.limit || 10;
+    try{
+        const { projects, count } = await ProjectService.getUserProjects(userId, skip, limit);
+        return sendListResponse(req, res, projects, count);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (req, res) {
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+    // try{
+    const projects = await ProjectService.getAllProjects(skip, limit);
+    const count = await ProjectService.countBy({ parentProjectId: null });
+    return sendListResponse(req, res, projects, count);
+    // }catch(error){
+    //     return sendErrorResponse(req, res, {
+    //         code: 500,
+    //         message: 'Server Error'
+    //     });
+    // }
 });
 
 // Description: Resetting the API key of a project.

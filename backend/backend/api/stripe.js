@@ -35,7 +35,7 @@ router.post('/stripe/events', async function(req, res) {
     }
 });
 
-router.get('/charges', getUser, async function (req, res) {
+router.get('/:projectId/charges', getUser, async function (req, res) {
     let userId = req.user ? req.user.id : null;
 
     try{
@@ -46,19 +46,19 @@ router.get('/charges', getUser, async function (req, res) {
     }
 });
 
-router.post('/creditCard/:projectId/:token/pi', getUser, isAuthorized, isUserOwner, async function (req, res){
+router.post('/:projectId/creditCard/:token/pi', getUser, isAuthorized, isUserOwner, async function (req, res){
     let userId = req.user ? req.user.id : null;
     let { token } = req.params;
 
     try{ 
-        var pi = await StripeService.creditCard.createPaymentIntent(token, userId);
-        return sendItemResponse(req, res, pi);
+        var item = await StripeService.creditCard.createPaymentIntent(token, userId);
+        return sendItemResponse(req, res, item);
     } catch(error){
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.put('/creditCard/:projectId/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
+router.put('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
     let userId = req.user ? req.user.id : null;
     let { cardId } = req.params;
     try{ 
@@ -69,7 +69,7 @@ router.put('/creditCard/:projectId/:cardId', getUser, isAuthorized, isUserOwner,
     }
 });
 
-router.delete('/creditCard/:projectId/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
+router.delete('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
     let userId = req.user ? req.user.id : null;
     let { cardId } = req.params;
     try{ 
@@ -79,7 +79,7 @@ router.delete('/creditCard/:projectId/:cardId', getUser, isAuthorized, isUserOwn
         return sendErrorResponse(req, res, error);
     }
 });
-router.get('/creditCard/:projectId', getUser, isAuthorized, isUserOwner, async function (req, res){
+router.get('/:projectId/creditCard', getUser, isAuthorized, isUserOwner, async function (req, res){
     let userId = req.user ? req.user.id : null;
     try{ 
         var cards = await StripeService.creditCard.get(userId);
@@ -88,7 +88,7 @@ router.get('/creditCard/:projectId', getUser, isAuthorized, isUserOwner, async f
         return sendErrorResponse(req, res, error);
     }
 });
-router.get('/creditCard/:projectId/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
+router.get('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
     let userId = req.user ? req.user.id : null;
     let { cardId } = req.params;
     try{ 
@@ -106,7 +106,7 @@ router.post('/webHook/pi', async function (req, res){
     }
     return sendItemResponse(req, res, false);
 });
-router.post('/addBalance/:projectId', getUser, isAuthorized, isUserOwner, async function(req ,res){
+router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async function(req ,res){
     let userId = req.user ? req.user.id : null;
     let { projectId } = req.params;
     let { rechargeBalanceAmount } = req.body;
@@ -118,8 +118,8 @@ router.post('/addBalance/:projectId', getUser, isAuthorized, isUserOwner, async 
         });
     }
     try{ 
-        var pi = await StripeService.addBalance(userId, rechargeBalanceAmount, projectId);
-        return sendItemResponse(req, res, pi);
+        var item = await StripeService.addBalance(userId, rechargeBalanceAmount, projectId);
+        return sendItemResponse(req, res, item);
     } catch(error){
         return sendErrorResponse(req, res, error);
     }

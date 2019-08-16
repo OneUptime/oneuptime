@@ -18,6 +18,7 @@ const {
 	SmsTemplates,
 	Reports,
 	MonitorView,
+	Probe,
 } = pages;
 
 export const groups = [
@@ -169,6 +170,15 @@ export const groups = [
 						subRoutes: [],
 						component: SmsTemplates,
 						index: 4
+					},
+					{
+						title: 'Probe Settings',
+						path: '/project/:projectId/probe',
+						icon: 'radar',
+						visible: true,
+						subRoutes: [],
+						component: Probe,
+						index: 5
 					}
 				],
 				component: Settings,

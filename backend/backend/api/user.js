@@ -8,6 +8,7 @@ var MailService = require('../services/mailService');
 const getUser = require('../middlewares/user').getUser;
 var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 var sendItemResponse = require('../middlewares/response').sendItemResponse;
+var sendListResponse = require('../middlewares/response').sendListResponse;
 var router = express.Router();
 var multer = require('multer');
 const storage = require('../middlewares/upload');
@@ -19,6 +20,7 @@ var VerificationTokenModel = require('../models/verificationToken');
 var { FYIPE_ACCOUNT_HOST } = process.env;
 var UserModel = require('../models/user');
 var ErrorService = require('../services/errorService');
+const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 router.post('/signup', async function (req, res) {
     var data = req.body;
@@ -243,6 +245,7 @@ router.post('/login', async function (req, res) {
                 }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
+            role: user.role || null
         };
 
         return sendItemResponse(req, res, authUserObj);
@@ -396,6 +399,38 @@ router.put('/profile', getUser, async function (req, res) {
 
     upload(req, res, async function (error) {
         var userId = req.user ? req.user.id : null;
+        var data = req.body;
+        data._id = userId;
+
+        if (error) {
+            return sendErrorResponse(req, res, error);
+        }
+
+        if (req.files && req.files.profilePic && req.files.profilePic[0].filename) {
+            data.profilePic = req.files.profilePic[0].filename;
+        }
+
+        try {
+            // Call the UserService
+            var user = await UserService.update(data);
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(error);
+        }
+    });
+
+});
+
+router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, res) {
+    var upload = multer({
+        storage
+    }).fields([{
+        name: 'profilePic',
+        maxCount: 1
+    }]);
+
+    upload(req, res, async function (error) {
+        var userId = req.params.userId;
         var data = req.body;
         data._id = userId;
 
@@ -602,6 +637,35 @@ router.post('/resend', async function (req, res) {
         return sendErrorResponse(req, res, {
             code: 400,
             message: 'Email should be present'
+        });
+    }
+});
+
+router.get('/users', getUser, isUserMasterAdmin, async function(req, res) {
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+    try{
+        const users = await UserService.getAllUsers(skip, limit);
+        const count = await UserService.countBy({ _id: { $ne: null }, deleted: { $ne: null }});
+        return sendListResponse(req, res, users, count);
+    }catch(error){
+        return sendErrorResponse(req, res, {
+            code: 500,
+            message: 'Server Error'
+        });
+    }
+});
+
+router.delete('/:userId', getUser, isUserMasterAdmin, async function(req, res) {
+    const userId = req.params.userId;
+    const masterUserId = req.user.id || null;
+    try{
+        const user = await UserService.deleteBy({_id: userId}, masterUserId);
+        return sendItemResponse(req, res, user);
+    }catch(error){
+        return sendErrorResponse(req, res, {
+            code: 500,
+            message: 'Server Error'
         });
     }
 });

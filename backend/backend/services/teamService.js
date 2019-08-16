@@ -40,7 +40,9 @@ module.exports = {
 
         var response = [];
         for (let i = 0; i < users.length; i++) {
-            response.push({ userId: users[i]._id, email: users[i].email, name: users[i].name, role: projectMembers[i].role, lastActive: users[i].lastActive });
+            if(users[i]){
+                response.push({ userId: users[i]._id, email: users[i].email, name: users[i].name, role: projectMembers[i].role, lastActive: users[i].lastActive });
+            }
         }
         return response;
     },

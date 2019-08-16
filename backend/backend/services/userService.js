@@ -11,7 +11,7 @@ module.exports = {
 
         if(!query) query = {};
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var users = await UserModel.find(query)
                 .sort([['createdAt', -1]])
@@ -58,7 +58,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var count = await UserModel.count(query);
         }catch(error){
@@ -83,6 +83,8 @@ module.exports = {
                     deletedById: userId,
                     deletedAt: Date.now()
                 }
+            }, {
+                $new: true
             });
         }catch(error){
             ErrorService.log('UserModel.updateMany', error);
@@ -578,6 +580,25 @@ module.exports = {
             ErrorService.log('UserService.changePassword', error);
             throw error;
         }
+    },
+    getAllUsers: async function(skip, limit){
+        var _this = this;
+        let users = await _this.findBy({ _id: { $ne: null }, deleted: { $ne: null }}, skip, limit);
+        users = await Promise.all(users.map(async (user)=>{
+            // find user subprojects and parent projects
+            var userProjects = await ProjectService.findBy({'users.userId': user._id});
+            var parentProjectIds = [];
+            var projectIds = [];
+            if(userProjects.length > 0){
+                var subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
+                parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
+                var projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
+                projectIds = projects.map(project => project._id);
+            }
+            userProjects = await ProjectService.findBy({ $or: [ { _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } } ] });
+            return await Object.assign({}, user._doc, { projects: userProjects });
+        }));
+        return users;
     },
     hardDeleteBy: async function(query){
         try{

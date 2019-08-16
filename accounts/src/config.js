@@ -9,12 +9,14 @@ import { emaildomains } from './constants/emaildomains';
 let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let domain = null;
+let adminDashboardUrl = null;
 
 if (!isServer) {
     if (window.location.href.indexOf('localhost') > -1) {
         apiUrl = 'http://localhost:3002';
         dashboardUrl = 'http://localhost:3000';
         domain = 'localhost';
+        adminDashboardUrl = 'http://localhost:3100';
     } else if (window.location.href.indexOf('staging') > -1) {
         apiUrl = 'https://staging-api.fyipe.com';
         dashboardUrl = 'http://staging-dashboard.fyipe.com';
@@ -33,6 +35,8 @@ export const API_URL = apiUrl;
 export const DASHBOARD_URL = dashboardUrl;
 
 export const DOMAIN_URL = domain;
+
+export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
 export const User = {
 

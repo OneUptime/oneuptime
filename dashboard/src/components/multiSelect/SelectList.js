@@ -26,7 +26,7 @@ class SelectList extends React.Component {
         const { options, selected, focusIndex, onClick, ItemRenderer, disabled } = this.props;
         return options.map((o, i) => 
             <li
-                key={o.hasOwnProperty('key') ? o.key : i}
+                key={Object.prototype.hasOwnProperty.call(o, 'key') ? o.key : i}
                 style={{ listStyle: 'none'}}
             >
                 <SelectItem
