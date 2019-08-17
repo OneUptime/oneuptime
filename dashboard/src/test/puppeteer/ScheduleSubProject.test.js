@@ -27,7 +27,7 @@ let subProjectName = utils.generateRandomString();
 
 
 describe('Schedule API With SubProjects', () => {
-    const operationTimeOut = 20000;
+    const operationTimeOut = 50000;
 
 
     beforeAll(async () => {

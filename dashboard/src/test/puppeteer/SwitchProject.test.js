@@ -11,7 +11,7 @@ let project = utils.generateRandomString();
 
 
 describe('Project API', () => {
-    const operationTimeOut = 20000;
+    const operationTimeOut = 50000;
     beforeAll(async () => {
         jest.setTimeout(150000);
         browser = await puppeteer.launch({headless:utils.headlessMode});

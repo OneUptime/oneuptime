@@ -15,7 +15,7 @@ const user = {
 let callSchedule = utils.generateRandomString();
 
 describe('Monitor Category', () => {
-    const operationTimeOut = 30000;
+    const operationTimeOut = 50000;
 
     beforeAll(async () => {
         jest.setTimeout(150000);

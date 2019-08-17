@@ -33,7 +33,7 @@ let projectName = utils.generateRandomString();
 let subProjectName = utils.generateRandomString();
 
 describe('Team API With SubProjects', () => {
-    const operationTimeOut = 30000;
+    const operationTimeOut = 50000;
     
     beforeAll(async () => {
         jest.setTimeout(200000);

@@ -72,6 +72,6 @@ describe('Project API', () => {
             return json;
          });
         localStorageData.should.have.property('project');
-    }, 30000);
+    }, 50000);
 });
 

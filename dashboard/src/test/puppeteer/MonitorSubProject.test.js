@@ -28,7 +28,7 @@ let subProjectName = utils.generateRandomString();
 
 
 describe('Monitor API With SubProjects', () => {
-    const operationTimeOut = 25000;
+    const operationTimeOut = 50000;
 
     beforeAll(async () => {
         jest.setTimeout(200000);

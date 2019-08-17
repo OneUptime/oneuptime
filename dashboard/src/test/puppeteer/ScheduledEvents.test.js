@@ -11,7 +11,7 @@ let password = utils.generateRandomString();
 
 
 describe('Scheduled event', () => {
-    const operationTimeOut = 20000;
+    const operationTimeOut = 50000;
 
     beforeAll(async () => {
         jest.setTimeout(150000);

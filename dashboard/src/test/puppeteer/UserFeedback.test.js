@@ -70,6 +70,6 @@ describe('User Feedback', () => {
         await page.waitFor(3000);
         var feedbackMessage = await page.$eval('#feedback-div', el => el.textContent);
         expect(feedbackMessage).toEqual('Thank you for your feedback.');
-    }, 16000);
+    }, 30000);
 
 });
