@@ -30,7 +30,7 @@ let subProjectName = utils.generateRandomString();
 describe('StatusPage API With SubProjects', () => {
     const operationTimeOut = 20000;
 
-    beforeAll(async (done) => {
+    beforeAll(async () => {
         jest.setTimeout(150000);
         // browser for parent user
         browser1 = await puppeteer.launch();
@@ -109,24 +109,24 @@ describe('StatusPage API With SubProjects', () => {
         // add new monitor to parent project and sub-project
         await init.addMonitorToProject(subProjectMonitorName, subProjectName, page);
         
-        done();
+        ;
     });
     
-    afterAll(async (done) => {
+    afterAll(async () => {
         await browser1.close();
         await browser2.close();
-        done();
+        ;
     });
 
-    it('should not display create status page button for subproject `member` role.', async (done)=>{
+    it('should not display create status page button for subproject `member` role.', async ()=>{
         await newPage.waitForSelector(`#statusPages > a`);
         await newPage.click(`#statusPages > a`);
         const createButton = await newPage.$(`#btnCreateStatusPage_${subProjectName}`);
         expect(createButton).toBe(null);
-        done();
+        ;
     });
 
-    it('should create a status page in sub-project for sub-project `admin`', async (done) => {
+    it('should create a status page in sub-project for sub-project `admin`', async () => {
         const statuspageName = utils.generateRandomString();
         await page.waitForSelector(`#statusPages > a`);
         await page.click(`#statusPages > a`);
@@ -141,10 +141,10 @@ describe('StatusPage API With SubProjects', () => {
         let textContent = await statusPageCountSelector.getProperty('innerText');
         textContent = await textContent.jsonValue();
         await expect(textContent).toEqual('1 status page');
-        done();
+        ;
     }, operationTimeOut);
 
-    it('should get list of status pages in sub-projects and paginate status pages in sub-project', async (done)=>{
+    it('should get list of status pages in sub-projects and paginate status pages in sub-project', async ()=>{
         // add 10 more statuspages to sub-project to test for pagination
         for(let i = 0; i < 10; i++){
             const statuspageName = utils.generateRandomString();
@@ -166,10 +166,10 @@ describe('StatusPage API With SubProjects', () => {
         await newPage.waitFor(5000);
         countStatusPages = (await newPage.$$('tr.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')).length;
         expect(countStatusPages).toEqual(10);
-        done();
+        ;
     }, 120000);
 
-    it('should update sub-project status page settings', async (done)=>{
+    it('should update sub-project status page settings', async ()=>{
         await page.waitForSelector('.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')
         await page.click('.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink');
         await page.waitFor(5000);
@@ -190,15 +190,15 @@ describe('StatusPage API With SubProjects', () => {
         await page.type('#url_0', 'https://fyipe.com');
         await page.click('#btnSaveLinks');
         await page.waitFor(5000);
-        done();
+        ;
     }, operationTimeOut);
 
-    it('should delete sub-project status page', async (done)=>{
+    it('should delete sub-project status page', async ()=>{
         await page.waitForSelector('#delete');
         await page.click('#delete');
         await page.waitForSelector('#confirmDelete');
         await page.click('#confirmDelete');
         await page.waitFor(5000);
-        done();
+        ;
     }, operationTimeOut);
 });     

@@ -46,7 +46,8 @@ module.exports = {
         await page.type('input[name=state]', utils.user.address.state);
         await page.click('input[name=zipCode]');
         await page.type('input[name=zipCode]', utils.user.address.zipcode);
-        await page.select('#country', utils.user.address.country);
+        await page.select('#country', 'India')
+        // await page.select('#country', utils.user.address.country);
 
         await page.click('button[type=submit]');
         await page.waitFor(25000);

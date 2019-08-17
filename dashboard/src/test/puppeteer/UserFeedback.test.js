@@ -62,7 +62,7 @@ describe('User Feedback', () => {
         await browser.close();
     });
 
-    it('should send feedback from the dashboard', async (done) => {
+    it('should send feedback from the dashboard', async () => {
         await page.reload({ waitUntil: 'networkidle2' });
         await page.click('#feedback-div', {clickCount: 2});
         await page.type('textarea[name="feedback"]', testFeedback);
@@ -70,7 +70,6 @@ describe('User Feedback', () => {
         await page.waitFor(3000);
         var feedbackMessage = await page.$eval('#feedback-div', el => el.textContent);
         expect(feedbackMessage).toEqual('Thank you for your feedback.');
-        done();
     }, 16000);
 
 });

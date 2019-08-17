@@ -35,7 +35,7 @@ let subProjectName = utils.generateRandomString();
 describe('Team API With SubProjects', () => {
     const operationTimeOut = 30000;
     
-    beforeAll(async (done) => {
+    beforeAll(async () => {
         jest.setTimeout(200000);
         // browser for parent user
         browser1 = await puppeteer.launch();
@@ -136,17 +136,17 @@ describe('Team API With SubProjects', () => {
         await init.registerUser(newUser1, newPage1);
         await init.loginUser(newUser1, newPage1);
     
-        done();
+        
     });
     
-    afterAll(async (done) => {
+    afterAll(async () => {
         await browser1.close();
         await browser2.close();
         await browser3.close();
-        done();
+        
     });
     
-    it('should add a new user to sub-project (role -> `Member`)', async (done) => {
+    it('should add a new user to sub-project (role -> `Member`)', async () => {
         const role = 'Member';
         await page.waitForSelector('#teamMembers');
         await page.click( '#teamMembers');
@@ -169,10 +169,10 @@ describe('Team API With SubProjects', () => {
         const element = await newPage.$(`#accountSwitcher > div[title="${projectName}"]`);
         await element.click();
         await newPage.waitFor(5000);
-        done();
+        
     }, operationTimeOut);
 
-    it('should add a new user to parent project and all sub-projects (role -> `Administrator`)', async (done) => {
+    it('should add a new user to parent project and all sub-projects (role -> `Administrator`)', async () => {
         const role = 'Administrator';
         await page.waitForSelector(`#btn_${projectName}`);
         await page.click(`#btn_${projectName}`);
@@ -195,23 +195,23 @@ describe('Team API With SubProjects', () => {
         const element = await newPage1.$(`#accountSwitcher > div[title="${projectName}"]`);
         await element.click();
         await newPage1.waitFor(5000);
-        done();
+        
     }, operationTimeOut);
     
-    it('should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)', async (done) =>{
+    it('should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)', async () =>{
         const newRole = 'Member';
         await page.waitForSelector(`button[title="Change Role"]`);
         await page.click(`button[title="Change Role"]`);
         await page.waitForSelector(`div.dropdown---menu-item---1LjoL[title="${newRole}"]`);
         await page.click(`div.dropdown---menu-item---1LjoL[title="${newRole}"]`);
         await page.waitFor(5000);
-        done();
+        
     }, operationTimeOut);
 
-    it('should remove user from project Team Members and all sub-projects.', async (done) =>{
+    it('should remove user from project Team Members and all sub-projects.', async () =>{
         await page.waitForSelector(`button[title="delete"]`);
         await page.click(`button[title="delete"]`);
         await page.waitFor(5000);
-        done();
+        
     }, operationTimeOut);
 });     

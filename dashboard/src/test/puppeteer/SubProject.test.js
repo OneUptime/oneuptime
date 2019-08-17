@@ -20,7 +20,7 @@ describe('Sub-Project API', () => {
 
     const operationTimeOut = 20000;
 
-    beforeAll(async (done) => {
+    beforeAll(async () => {
         jest.setTimeout(60000);
         browser = await puppeteer.launch({headless:utils.headlessMode});
         page = await browser.newPage();
@@ -50,15 +50,15 @@ describe('Sub-Project API', () => {
     
         await init.registerUser(user, page);
         await init.loginUser(user, page);
-        done();
+        
     });
     
-    afterAll(async (done) => {
+    afterAll(async () => {
         await browser.close();
-        done();
+        
     });
     
-    it('should not create a sub-project with no name', async(done) => {
+    it('should not create a sub-project with no name', async() => {
 
         await page.waitForSelector('#projectSettings');
 
@@ -75,10 +75,10 @@ describe('Sub-Project API', () => {
         const spanSelector = await page.$('#frmSubProjects > div > div > div > div.Box-root > span');
         expect(await (await spanSelector.getProperty('innerText')).jsonValue()).toEqual('Subproject name must be present.')
         
-        done();
+        
     }, operationTimeOut);
 
-    it('should create a new sub-project', async(done) => {
+    it('should create a new sub-project', async() => {
 
         subProjectName = utils.generateRandomString();
 
@@ -93,10 +93,10 @@ describe('Sub-Project API', () => {
         const subProjectSelector = await page.$('#sub_project_name_0');
         expect(await (await subProjectSelector.getProperty('value')).jsonValue()).toEqual(subProjectName)
         
-        done();
+        
     }, operationTimeOut);
 
-    it('should rename a sub-project', async(done) => {
+    it('should rename a sub-project', async() => {
         const editSubProjectName = utils.generateRandomString();
 
         await page.click('#sub_project_name_0');
@@ -111,10 +111,10 @@ describe('Sub-Project API', () => {
         expect(await (await subProjectSelector.getProperty('value')).jsonValue()).toEqual(subProjectName + editSubProjectName)
         
         subProjectName = subProjectName + editSubProjectName
-        done();
+        
     }, operationTimeOut);
 
-    it('should not create a sub-project with an existing sub-project name', async(done) => {
+    it('should not create a sub-project with an existing sub-project name', async() => {
  
         await page.click('#btnAddSubProjects');
 
@@ -129,10 +129,10 @@ describe('Sub-Project API', () => {
         const spanSelector = await page.$('#frmSubProjects > div > div > div > div.Box-root > span');
         expect(await (await spanSelector.getProperty('innerText')).jsonValue()).toEqual('You already have a sub-project with same name.')
         
-        done();
+        
     }, operationTimeOut);
 
-    it('should delete a sub-project', async(done) => {
+    it('should delete a sub-project', async() => {
 
         await page.click('#btnRemoveSubproject1');
 
@@ -145,6 +145,6 @@ describe('Sub-Project API', () => {
         const subProjectSelector = await page.$('#sub_project_name_0');
         expect(subProjectSelector).toEqual(null)
         
-        done();
+        
     }, operationTimeOut);
 });

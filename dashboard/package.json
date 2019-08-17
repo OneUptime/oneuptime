@@ -73,7 +73,7 @@
     "test": "jest --clearCache && jest",
     "start": "node index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
-    "jest": "jest src/test/puppeteer/index.test.js"
+    "jest": "jest --runInBand src/test/puppeteer"
   },
   "devDependencies": {
     "axios-mock-adapter": "^1.15.0",

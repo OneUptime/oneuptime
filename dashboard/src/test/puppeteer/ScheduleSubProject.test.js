@@ -30,7 +30,7 @@ describe('Schedule API With SubProjects', () => {
     const operationTimeOut = 20000;
 
 
-    beforeAll(async (done) => {
+    beforeAll(async () => {
         jest.setTimeout(200000);
         // browser for parent user
         browser1 = await puppeteer.launch();
@@ -109,24 +109,24 @@ describe('Schedule API With SubProjects', () => {
         // add new monitor to parent project and sub-project
         await init.addMonitorToProject(subProjectMonitorName, subProjectName, page);
 
-        done();
+        ;
     });
 
-    afterAll(async (done) => {
+    afterAll(async () => {
         await browser1.close();
         await browser2.close();
-        done();
+        ;
     });
 
-    it('should not display create schedule button for subproject `member` role.', async (done) => {
+    it('should not display create schedule button for subproject `member` role.', async () => {
         await newPage.waitForSelector(`#callSchedules > a`);
         await newPage.click(`#callSchedules > a`);
         const createButton = await newPage.$(`#btnCreateSchedule_${subProjectName}`);
         expect(createButton).toBe(null);
-        done();
+        ;
     });
 
-    it('should create a schedule in sub-project for sub-project `admin`', async (done) => {
+    it('should create a schedule in sub-project for sub-project `admin`', async () => {
         const statuspageName = utils.generateRandomString();
         await page.waitForSelector(`#callSchedules > a`);
         await page.click(`#callSchedules > a`);
@@ -141,10 +141,10 @@ describe('Schedule API With SubProjects', () => {
         let textContent = await scheduleCountSelector.getProperty('innerText');
         textContent = await textContent.jsonValue();
         await expect(textContent).toEqual('1 schedule');
-        done();
+        ;
     }, operationTimeOut);
 
-    it('should get list schedules in sub-projects and paginate schedules in sub-project', async (done) => {
+    it('should get list schedules in sub-projects and paginate schedules in sub-project', async () => {
         // add 10 more schedules to sub-project to test for pagination
         for (let i = 0; i < 10; i++) {
             const scheduleName = utils.generateRandomString();
@@ -166,10 +166,10 @@ describe('Schedule API With SubProjects', () => {
         await newPage.waitFor(5000);
         countSchedules = (await newPage.$$('tr.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')).length;
         expect(countSchedules).toEqual(10);
-        done();
+        ;
     }, 120000);
 
-    it('should add monitor to sub-project schedule', async (done) => {
+    it('should add monitor to sub-project schedule', async () => {
         await page.waitForSelector('.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')
         await page.click('.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink');
         await page.waitFor(5000);
@@ -178,15 +178,15 @@ describe('Schedule API With SubProjects', () => {
         await page.waitForSelector('#btnSaveMonitors');
         await page.click('#btnSaveMonitors');
         await page.waitFor(5000);
-        done();
+        ;
     }, operationTimeOut);
 
-    it('should delete sub-project schedule', async (done) => {
+    it('should delete sub-project schedule', async () => {
         await page.waitForSelector('#delete');
         await page.click('#delete');
         await page.waitForSelector('#confirmDelete');
         await page.click('#confirmDelete');
         await page.waitFor(5000);
-        done();
+        ;
     }, operationTimeOut);
 });     
