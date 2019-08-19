@@ -3,7 +3,11 @@ var faker = require('faker');
 var ACCOUNTS_URL = 'http://localhost:3003';
 var DASHBOARD_URL = 'http://localhost:3000';
 
-var headlessMode = true;
+var puppeteerLaunchConfig = {
+    headless: false,
+    slowMo: 20,
+    args: ['--no-sandbox']  
+};
 
 var user = faker.helpers.createCard();
 var cvv = '542';
@@ -42,7 +46,7 @@ var updatedScheduledEventName = 'event name updated';
 module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
-    headlessMode,
+    puppeteerLaunchConfig,
     user,
     cvv,
     expiryDate,
