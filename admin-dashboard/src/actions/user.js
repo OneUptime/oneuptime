@@ -168,8 +168,9 @@ export function deleteUser(userId) {
 		var promise;
 		promise = deleteApi(`user/${userId}`);
 		dispatch(deleteUserRequest());
-		promise.then(function () {
-			dispatch(deleteUserSuccess({userId}));
+		promise.then(function (response) {
+			const data = response.data;
+			dispatch(deleteUserSuccess(data));
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
@@ -183,6 +184,171 @@ export function deleteUser(userId) {
 				error = 'Network Error';
 			}
 			dispatch(deleteUserError(errors(error)));
+		});
+		return promise;
+	};
+}
+
+//Restore user
+export function restoreUserRequest() {
+	return {
+		type: types.RESTORE_USER_REQUEST,
+	};
+}
+
+export function restoreUserReset() {
+	return {
+		type: types.RESTORE_USER_RESET,
+
+	};
+}
+
+export function restoreUserSuccess(user) {
+
+	return {
+		type: types.RESTORE_USER_SUCCESS,
+		payload: user
+	};
+}
+
+export function restoreUserError(error) {
+	return {
+		type: types.RESTORE_USER_FAILED,
+		payload: error
+	};
+}
+
+// Calls the API to restore a user
+export function restoreUser(userId) {
+	return function (dispatch) {
+		var promise;
+		promise = putApi(`user/${userId}/restoreUser`);
+		dispatch(restoreUserRequest());
+		promise.then(function (response) {
+			const data = response.data;
+			dispatch(restoreUserSuccess(data));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}else{
+				error = 'Network Error';
+			}
+			dispatch(restoreUserError(errors(error)));
+		});
+		return promise;
+	};
+}
+
+//Block user
+export function blockUserRequest() {
+	return {
+		type: types.BLOCK_USER_REQUEST,
+	};
+}
+
+export function blockUserReset() {
+	return {
+		type: types.BLOCK_USER_RESET,
+
+	};
+}
+
+export function blockUserSuccess(user) {
+
+	return {
+		type: types.BLOCK_USER_SUCCESS,
+		payload: user
+	};
+}
+
+export function blockUserError(error) {
+	return {
+		type: types.BLOCK_USER_FAILED,
+		payload: error
+	};
+}
+
+// Calls the API to block a user
+export function blockUser(userId) {
+	return function (dispatch) {
+		var promise;
+		promise = putApi(`user/${userId}/blockUser`);
+		dispatch(blockUserRequest());
+		promise.then(function (response) {
+			const data = response.data;
+			dispatch(blockUserSuccess(data));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}else{
+				error = 'Network Error';
+			}
+			dispatch(blockUserError(errors(error)));
+		});
+		return promise;
+	};
+}
+
+//Unblock user
+export function unblockUserRequest() {
+	return {
+		type: types.UNBLOCK_USER_REQUEST,
+	};
+}
+
+export function unblockUserReset() {
+	return {
+		type: types.UNBLOCK_USER_RESET,
+
+	};
+}
+
+export function unblockUserSuccess(user) {
+
+	return {
+		type: types.UNBLOCK_USER_SUCCESS,
+		payload: user
+	};
+}
+
+export function unblockUserError(error) {
+	return {
+		type: types.UNBLOCK_USER_FAILED,
+		payload: error
+	};
+}
+
+// Calls the API to unblock a user
+export function unblockUser(userId) {
+	return function (dispatch) {
+		var promise;
+		promise = putApi(`user/${userId}/unblockUser`);
+		dispatch(unblockUserRequest());
+		promise.then(function (response) {
+			const data = response.data;
+			dispatch(unblockUserSuccess(data));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}else{
+				error = 'Network Error';
+			}
+			dispatch(unblockUserError(errors(error)));
 		});
 		return promise;
 	};

@@ -3,9 +3,13 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
+import ShouldRender from '../components/basic/ShouldRender';
 import UserSetting from '../components/user/UserSetting';
 import UserProject from '../components/user/UserProject';
 import UserDeleteBox from '../components/user/UserDeleteBox';
+import UserRestoreBox from '../components/user/UserRestoreBox';
+import UserBlockBox from '../components/user/UserBlockBox';
+import UserUnblockBox from '../components/user/UserUnblockBox';
 import { fetchUserProjects } from '../actions/project';
 
 
@@ -39,13 +43,26 @@ class User extends Component {
                                                 <div className="Box-root Margin-bottom--12">
                                                     <UserProject userId={this.props.match.params.userId} />
                                                 </div>
-                                                {
-                                                    this.props.user && !this.props.user.deleted ?
+                                                <ShouldRender if={this.props.user && !this.props.user.deleted && !this.props.user.isBlocked} >
+                                                    <div className="Box-root Margin-bottom--12">
+                                                        <UserBlockBox userId={this.props.match.params.userId} />
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={this.props.user && !this.props.user.deleted && this.props.user.isBlocked} >
+                                                    <div className="Box-root Margin-bottom--12">
+                                                        <UserUnblockBox userId={this.props.match.params.userId} />
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={this.props.user && !this.props.user.deleted} >
                                                     <div className="Box-root Margin-bottom--12">
                                                         <UserDeleteBox userId={this.props.match.params.userId} />
                                                     </div>
-                                                    : null
-                                                }
+                                                </ShouldRender>
+                                                <ShouldRender if={this.props.user && this.props.user.deleted} >
+                                                    <div className="Box-root Margin-bottom--12">
+                                                        <UserRestoreBox userId={this.props.match.params.userId} />
+                                                    </div>
+                                                </ShouldRender>
                                             </div>
                                         </div>
                                     </span>

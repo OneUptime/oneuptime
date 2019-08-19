@@ -1,4 +1,3 @@
-import uuid from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux';
@@ -6,44 +5,19 @@ import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { deleteUser } from '../../actions/user';
-import UserDeleteModal from './UserDeleteModal';
+import { restoreUser } from '../../actions/user';
 import { openModal, closeModal } from '../../actions/modal';
 
-export class UserDeleteBox extends Component {
+export class UserRestoreBox extends Component {
 
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { deleteModalId: uuid.v4() }
     }
 
     handleClick = () => {
-        const { deleteUser, history, userId } = this.props;
-        const { deleteModalId } = this.state
-        var thisObj = this;
-        this.props.openModal({
-            id: deleteModalId,
-            onConfirm: () => {
-               return deleteUser(userId)
-                .then(() =>{
-                if (window.location.href.indexOf('localhost') <= -1) {
-                    thisObj.context.mixpanel.track('User Deleted');
-                }
-            })
-            },
-            content: UserDeleteModal
-        })
-
-    }
-
-    handleKeyBoard = (e) => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.closeModal({ id: this.state.deleteModalId })
-            default:
-                return false;
-        }
+        const { restoreUser, userId } = this.props;
+        return restoreUser(userId);
     }
 
     render() {
@@ -51,26 +25,28 @@ export class UserDeleteBox extends Component {
         const { isRequesting } = this.props;
 
         return (
-            <div onKeyDown={this.handleKeyBoard} className="Box-root Margin-bottom--12">
+            <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        Delete This User
+                                        Restore This User
                                     </span>
                                 </span>
                                 <p>
-                                    <span>Click the button to delete this user.</span>
+                                    <span>
+                                        Click the button to restore this user.
+                                    </span>
                                 </p>
                             </div>
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--0 Padding-vertical--12">
                                 <span className="db-SettingsForm-footerMessage"></span>
                                 <div>
-                                    <button id="delete" className="bs-Button bs-Button--red Box-background--red" disabled={isRequesting} onClick={this.handleClick}>
+                                    <button id="restore" className="bs-Button bs-Button--blue Box-background--blue" disabled={isRequesting} onClick={this.handleClick}>
                                         <ShouldRender if={!isRequesting}>
-                                            <span>Delete</span>
+                                            <span>Restore User</span>
                                         </ShouldRender>
                                         <ShouldRender if={isRequesting}>
                                             <FormLoader />
@@ -86,32 +62,35 @@ export class UserDeleteBox extends Component {
     }
 }
 
-UserDeleteBox.displayName = 'UserDeleteBox'
+UserRestoreBox.displayName = 'UserRestoreBox'
 
 const mapDispatchToProps = dispatch => (
-    bindActionCreators({ deleteUser, openModal, closeModal }, dispatch)
+    bindActionCreators({ restoreUser, openModal, closeModal }, dispatch)
 )
 
-const mapStateToProps = (state) => {
+const mapStateToProps = (state, props) => {
+    const user = state.user.users.users.find(user => user._id === props.userId);
     return {
-        isRequesting: state.user && state.user.deleteUser && state.user.deleteUser.requesting,
+        user,
+        isRequesting: state.user && state.user.restoreUser && state.user.restoreUser.requesting,
     }
 }
 
-UserDeleteBox.propTypes = {
+UserRestoreBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     history: PropTypes.object.isRequired,
     userId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
     ]),
-    deleteUser: PropTypes.func.isRequired,
+    restoreUser: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
+    userId: PropTypes.string.isRequired,
 }
 
-UserDeleteBox.contextTypes = {
+UserRestoreBox.contextTypes = {
     mixpanel: PropTypes.object.isRequired
 };
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(UserDeleteBox));
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(UserRestoreBox));

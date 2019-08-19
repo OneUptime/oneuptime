@@ -14,7 +14,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var incidents = await IncidentModel.find(query)
                 .limit(limit)
@@ -182,6 +182,15 @@ module.exports = {
                 notClosedBy = notClosedBy.concat(data.notClosedBy);
             }
             var manuallyCreated = data.manuallyCreated || oldIncident.manuallyCreated || false;
+            var deleted = oldIncident.deleted;
+            var deletedById = oldIncident.deletedById;
+            var deletedAt = oldIncident.deletedAt;
+
+            if(data.deleted === false){
+                deleted = false;
+                deletedById = null;
+                deletedAt = null;
+            }
             try{
                 var updatedIncident = await IncidentModel.findByIdAndUpdate(data._id, {
                     $set: {
@@ -200,7 +209,10 @@ module.exports = {
                         manuallyCreated:manuallyCreated,
                         acknowledgedByZapier: acknowledgedByZapier,
                         resolvedByZapier: resolvedByZapier,
-                        createdByZapier: createdByZapier
+                        createdByZapier: createdByZapier,
+                        deleted,
+                        deletedById,
+                        deletedAt
                     }
                 }, {
                     new: true
@@ -732,6 +744,37 @@ module.exports = {
         }
         return 'Incident(s) removed successfully!';
     },
+
+    restoreBy: async function(query){
+        const _this = this;
+        query.deleted = true;
+        let incident = await _this.findBy(query);
+        if(incident && incident.length > 1){
+            const incidents = await Promise.all(incident.map(async (incident) => {
+                const incidentId = incident._id;
+                incident = await _this.update({
+                    _id: incidentId,
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                return incident;
+            }));
+            return incidents;
+        }else{
+            incident = incident[0];
+            if(incident){
+                const incidentId = incident._id;
+                incident = await _this.update({
+                    _id: incidentId,
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+            }
+            return incident;
+        }
+    }
 };
 
 var IncidentModel = require('../models/incident');

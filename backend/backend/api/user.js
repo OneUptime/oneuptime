@@ -649,10 +649,7 @@ router.get('/users', getUser, isUserMasterAdmin, async function(req, res) {
         const count = await UserService.countBy({ _id: { $ne: null }, deleted: { $ne: null }});
         return sendListResponse(req, res, users, count);
     }catch(error){
-        return sendErrorResponse(req, res, {
-            code: 500,
-            message: 'Server Error'
-        });
+        return sendErrorResponse(req, res, error);
     }
 });
 
@@ -663,10 +660,37 @@ router.delete('/:userId', getUser, isUserMasterAdmin, async function(req, res) {
         const user = await UserService.deleteBy({_id: userId}, masterUserId);
         return sendItemResponse(req, res, user);
     }catch(error){
-        return sendErrorResponse(req, res, {
-            code: 500,
-            message: 'Server Error'
-        });
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function(req, res){
+    const userId = req.params.userId;
+    try{
+        const user = await UserService.restoreBy({ _id: userId, deleted: true });
+        return sendItemResponse(req, res, user);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function(req, res){
+    const userId = req.params.userId;
+    try{
+        const user = await UserService.update({_id: userId, isBlocked: true});
+        return sendItemResponse(req, res, user);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function (req, res){
+    const userId = req.params.userId;
+    try{
+        const user = await UserService.update({_id: userId, isBlocked: false});
+        return sendItemResponse(req, res, user);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
     }
 });
 

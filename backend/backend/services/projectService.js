@@ -11,7 +11,7 @@ module.exports = {
 
         if (!query) query = {};
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var projects = await ProjectModel.find(query)
                 .sort([['createdAt', -1]])
@@ -47,6 +47,7 @@ module.exports = {
         projectModel.stripeMeteredSubscriptionId = data.stripeMeteredSubscriptionId || null;
         projectModel.parentProjectId = data.parentProjectId || null;
         projectModel.seats = '1';
+        projectModel.isBlocked = data.isBlocked || false;
         try{
             var project = await projectModel.save();
         }catch(error){
@@ -60,7 +61,7 @@ module.exports = {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
 
         var count = await ProjectModel.count(query);
         return count;
@@ -85,37 +86,48 @@ module.exports = {
             ErrorService.log('ProjectModel.findOneAndUpdate', error);
             throw error;
         }
-        if (project.stripeSubscriptionId) {
+        if(project){
+            if (project.stripeSubscriptionId) {
+                try{
+                    await PaymentService.removeSubscription(project.stripeSubscriptionId, project.stripeMeteredSubscriptionId, project.stripeExtraUserSubscriptionId);
+                }catch(error){
+                    ErrorService.log('PaymentService.removeSubscription', error);
+                    throw error;
+                }
+            }
             try{
-                await PaymentService.removeSubscription(project.stripeSubscriptionId, project.stripeMeteredSubscriptionId, project.stripeExtraUserSubscriptionId);
+                var monitors = await MonitorService.findBy({projectId: project._id});
             }catch(error){
-                ErrorService.log('PaymentService.removeSubscription', error);
+                ErrorService.log('MonitorService.findBy');
                 throw error;
             }
-        }
-        try{
-            var monitors = await MonitorService.findBy({projectId: project._id});
-        }catch(error){
-            ErrorService.log('MonitorService.findBy');
-            throw error;
-        }
-        await Promise.all(monitors.map(async (monitor)=>{
-            await MonitorService.deleteBy({_id: monitor._id});
-        }));
-        try{
-            var schedules = await ScheduleService.findBy({projectId: project._id});
-        }catch(error){
-            ErrorService.log('ScheduleService.findBy', error);
-            throw error;
-        }
-        await Promise.all(schedules.map(async (schedule)=>{
-            await ScheduleService.deleteBy({_id: schedule._id});
-        }));
-        try{
-            await integrationService.deleteBy({ projectId: project._id }, userId);
-        }catch(error){
-            ErrorService.log('integrationService.deleteBy', error);
-            throw error;
+            await Promise.all(monitors.map(async (monitor)=>{
+                await MonitorService.deleteBy({_id: monitor._id});
+            }));
+            try{
+                var schedules = await ScheduleService.findBy({projectId: project._id});
+            }catch(error){
+                ErrorService.log('ScheduleService.findBy', error);
+                throw error;
+            }
+            await Promise.all(schedules.map(async (schedule)=>{
+                await ScheduleService.deleteBy({_id: schedule._id});
+            }));
+            try{
+                var statusPages = await StatusPageService.findBy({projectId: project._id});
+            }catch(error){
+                ErrorService.log('StatusPageService.findBy', error);
+                throw error;
+            }
+            await Promise.all(statusPages.map(async (statusPage)=>{
+                await StatusPageService.deleteBy({_id: statusPage._id});
+            }));
+            try{
+                await integrationService.deleteBy({ projectId: project._id }, userId);
+            }catch(error){
+                ErrorService.log('integrationService.deleteBy', error);
+                throw error;
+            }
         }
         return project;
     },
@@ -124,7 +136,7 @@ module.exports = {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
 
         try{
             var project = await ProjectModel.findOne(query)
@@ -150,7 +162,7 @@ module.exports = {
             return project;
         } else {
             try{
-                var oldProject = await _this.findOneBy({ _id: data._id });
+                var oldProject = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
             }catch(error){
                 ErrorService.log('ProjectService.findOneBy', error);
                 throw error;
@@ -167,8 +179,19 @@ module.exports = {
             var seats = data.seats || oldProject.seats;
             var alertEnable = data.alertEnable !== undefined ? data.alertEnable : oldProject.alertEnable;
             var alertOptions = data.alertOptions || oldProject.alertOptions;
-            if (data.users) {
-                users = data.users;
+            
+            var isBlocked = oldProject.isBlocked;
+            if(typeof data.isBlocked === 'boolean'){
+                isBlocked = data.isBlocked;
+            }
+
+            var deleted = oldProject.deleted;
+            var deletedById = oldProject.deletedById;
+            var deletedAt = oldProject.deletedAt;
+            if(data.deleted === false){
+                deleted = false;
+                deletedById = null;
+                deletedAt = null;
             }
 
             try{
@@ -185,7 +208,11 @@ module.exports = {
                         parentProjectId: parentProjectId,
                         seats: seats,
                         alertEnable,
-                        alertOptions
+                        alertOptions,
+                        isBlocked,
+                        deleted,
+                        deletedById,
+                        deletedAt
                     }
                 }, {
                     new: true
@@ -456,13 +483,13 @@ module.exports = {
 
     getAllProjects: async function(skip, limit){
         var _this = this;
-        let projects = await _this.findBy({ parentProjectId: null }, limit, skip);
+        let projects = await _this.findBy({ parentProjectId: null, deleted: { $ne: null } }, limit, skip);
         // add project monitors
         projects = await Promise.all(projects.map(async(project) => {
             // get both sub-project users and project users
             const users = await TeamService.getTeamMembersBy({parentProjectId: project._id});
             project.users = users.length > 0 ? users : project.users;
-            return await _this.addMonitorsToProject(project);
+            return project;
         }));
         return projects;
     },
@@ -486,23 +513,64 @@ module.exports = {
         var count = await _this.countBy(query);
 
         // add project monitors
-        projects = await Promise.all(projects.map(async(project)=> {
+        projects = await Promise.all(projects.map(async(project) => {
             // get both sub-project users and project users
             const users = await TeamService.getTeamMembersBy({parentProjectId: project._id});
             project.users = users;
-            return await _this.addMonitorsToProject(project);
+            return project;
         }));
         return { projects, count };
     },
 
-    addMonitorsToProject: async function (project){
+    restoreBy: async function(query){
         const _this = this;
-        const subProjectIds = (await _this.findBy({ parentProjectId: project._id })).map(subProject => subProject._id);
-        subProjectIds.push(project._id);
-        const monitors = await MonitorService.findBy({projectId: { $in: subProjectIds }});
-        return Object.assign({}, project._doc, {monitors});
-    }
+        query.deleted = true;
 
+        let project = await _this.findBy(query);
+        if(project && project.length > 1){
+            const projects = await Promise.all(project.map(async (project) => {
+                const projectId = project._id;
+                let projectOwner = project.users.find(user => user.role === 'Owner');
+                projectOwner = await UserService.findOneBy({_id: projectOwner.userId});
+                const subscription = await PaymentService.subscribePlan(project.stripePlanId, projectOwner.stripeCustomerId);
+                project = await _this.update({
+                    _id: projectId, 
+                    deleted: false, 
+                    deletedBy: null, 
+                    deletedAt: null,
+                    stripeSubscriptionId: subscription.stripeSubscriptionId,
+                    stripeExtraUserSubscriptionId:subscription.stripeExtraUserSubscriptionId,
+                    stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
+                });
+                let projectSeats = project.seats;
+                await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
+                await MonitorService.restoreBy({ projectId, deleted: true });
+                return project;
+            }));
+            return projects;
+        }else{
+            project = project[0];
+            if(project){
+                const projectId = project._id;
+                let projectOwner = project.users.find(user => user.role === 'Owner');
+                projectOwner = await UserService.findOneBy({_id: projectOwner.userId});
+                const subscription = await PaymentService.subscribePlan(project.stripePlanId, projectOwner.stripeCustomerId);
+                project = await _this.update({
+                    _id: projectId, 
+                    deleted: false, 
+                    deletedBy: null, 
+                    deletedAt: null,
+                    stripeSubscriptionId: subscription.stripeSubscriptionId,
+                    stripeExtraUserSubscriptionId:subscription.stripeExtraUserSubscriptionId,
+                    stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
+                });
+                let projectSeats = project.seats;
+                await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
+                await MonitorService.restoreBy({ projectId, deleted: true });
+            }
+            return project;
+        }
+    },
 };
 
 var ProjectModel = require('../models/project');
@@ -518,3 +586,4 @@ var domains = require('../config/domains');
 var EscalationService = require('./escalationService');
 var StripeService = require('./stripeService');
 var TeamService = require('./teamService');
+var StatusPageService = require('./statusPageService');

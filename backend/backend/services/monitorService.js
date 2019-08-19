@@ -106,7 +106,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
 
         try {
             var monitor = await MonitorModel.findOneAndUpdate(query,
@@ -694,6 +694,38 @@ module.exports = {
         }
         let updatedMonitor = Object.assign({}, monitor, { time, responseTime, uptimePercent, status });
         return updatedMonitor;
+    },
+    restoreBy: async function(query){
+        const _this = this;
+        query.deleted = true;
+        let monitor = await _this.findBy(query);
+        if(monitor && monitor.length > 1){
+            const monitors = await Promise.all(monitor.map(async (monitor) => {
+                const monitorId = monitor._id;
+                monitor = await _this.update({_id: monitorId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await IncidentService.restoreBy({monitorId, deleted: true});
+                await AlertService.restoreBy({monitorId, deleted: true});
+                return monitor;
+            }));
+            return monitors;
+        }else{
+            monitor = monitor[0];
+            if(monitor){
+                const monitorId = monitor._id;
+                monitor = await _this.update({_id: monitorId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await IncidentService.restoreBy({monitorId, deleted: true});
+                await AlertService.restoreBy({monitorId, deleted: true});
+            }
+            return monitor;
+        }
     }
 };
 
