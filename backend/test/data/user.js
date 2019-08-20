@@ -116,6 +116,7 @@ module.exports = {
         email: 'lekan@fyipe.com',
         timezone: 'London GMT +00:00',
         profilePic: 'Image.jpg',
-        companyPhoneNumber: '+01234567890'
+        companyPhoneNumber: '+01234567890',
+        alertPhoneNumber: '+01234567890'
     }
 };

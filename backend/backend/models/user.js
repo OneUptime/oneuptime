@@ -53,7 +53,10 @@ var userSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
-    alertPhoneNumber: String
+    alertPhoneNumber: {
+        type: String,
+        default: ''
+    }
 });
 
 module.exports = mongoose.model('User', userSchema);

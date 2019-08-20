@@ -9,11 +9,16 @@ var request = chai.request.agent(app);
 
 var incidentData = require('./data/incident');
 var UserService = require('../backend/services/userService');
+var UserModel = require('../backend/models/user');
 var ProjectService = require('../backend/services/projectService');
+var ProjectModel = require('../backend/models/project');
 var IncidentService = require('../backend/services/incidentService');
 var MonitorService = require('../backend/services/monitorService');
 var NotificationService = require('../backend/services/notificationService');
 var VerificationTokenModel = require('../backend/models/verificationToken');
+var AlertModel = require('../backend/models/alert');
+var sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+var TwilioConfig = require('../backend/config/twilio');
 
 
 var token, userId, projectId, monitorId, incidentId, monitor = {
@@ -23,8 +28,7 @@ var token, userId, projectId, monitorId, incidentId, monitor = {
 };
 
 describe('Incident API', function () {
-    this.timeout(20000);
-
+    this.timeout(100000);
     before(function (done) {
         this.timeout(30000);
         request.post('/user/signup').send(userData.user).end(function (err, res) {
@@ -130,6 +134,76 @@ describe('Incident API', function () {
             expect(res.body._id).to.be.equal(incidentId);
             done();
         });
+    });
+
+    it('should not send incident alert when balance is below minimum amount', async function () {
+        var authorization = `Basic ${token}`;
+        await UserModel.findByIdAndUpdate(userId, {
+            $set: {
+                alertPhoneNumber: TwilioConfig.testphoneNumber
+            }
+        });
+        var schedule = await request.post(`/schedule/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'test schedule'
+            });
+        var selectMonitor = await request.put(`/schedule/${projectId}/${schedule.body._id}`)
+            .set('Authorization', authorization)
+            .send({
+                monitorIds: [monitorId]
+            });
+        if(selectMonitor){
+            var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
+                .send([{
+                    callFrequency: 10,
+                    teamMember: [{
+                        member: userId,
+                        call: false,
+                        sms: true,
+                        startTime: '12:01 AM',
+                        endTime: '11:59 PM',
+                        timezone: 'American Samoa (GMT -11:00)',
+                        email: false
+                    }]
+                }]);
+            if(createEscalation){
+                var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
+                    .set('Authorization', authorization)
+                    .send(incidentData);
+                var alert = await AlertModel.findOne({
+                    incidentId: createdIncident.body._id
+                });
+            }
+        }
+        expect(alert).to.be.an('object');
+        expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
+    });
+
+    it('should send incident alert when balance is above minimum amount ', async function () {
+        var authorization = `Basic ${token}`;
+        await ProjectModel.findByIdAndUpdate(projectId, {
+            $set: {
+                balance: 100,
+                alertEnable: true,
+                alertOptions:{
+                    minimumBalance: 50,
+                    rechargeToBalance: 100,
+                    billingUS: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: false
+                }
+            }
+        });
+        var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(incidentData);
+        await sleep(10000);
+        var alert = await AlertModel.findOne({
+            incidentId: createdIncident.body._id
+        });
+        expect(alert).to.be.an('object');
+        expect(alert.alertStatus).to.be.equal('success');
     });
 });
 
