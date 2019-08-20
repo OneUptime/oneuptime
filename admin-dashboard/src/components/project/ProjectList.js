@@ -73,7 +73,7 @@ export class ProjectList extends Component {
                                                 <a className="db-ListViewItem-link" >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root"><span>{ `${username ? username : evalProjectUser(project)}`} { (project.users.length - 1) > 0 ? `and ${project.users.length - 1} more` : ''}</span></div>
+                                                            <div className="Box-root"><span>{ `${username ? username : evalProjectUser(project)}`} { (project.users.length - 1) > 0 ? `and ${project.users.length - 1} other` : ''}</span></div>
                                                         </span>
                                                     </div>
                                                 </a>

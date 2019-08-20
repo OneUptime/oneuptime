@@ -630,4 +630,52 @@ router.put('/:projectId/restoreProject', getUser, isUserMasterAdmin, async funct
     }
 });
 
+router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (req, res){
+
+    if(Array.isArray(req.body)){
+        let data = [];
+        if(req.body.length > 0){
+            for(let val of req.body){
+                if(!val._id){
+                    // Sanitize
+                    if (!val.note) {
+                        return sendErrorResponse( req, res, {
+                            code: 400,
+                            message: 'Admin note must be present.'
+                        });
+                    }
+        
+                    if (typeof val.note !== 'string') {
+                        return sendErrorResponse( req, res, {
+                            code: 400,
+                            message: 'Admin note is not in string format.'
+                        });
+                    }
+                }
+                data.push(val);
+            }
+        
+            try{
+                let adminNotes = await ProjectService.addNotes(data);
+                return sendItemResponse(req, res, adminNotes);
+            }catch(error){
+                return sendErrorResponse(req, res, error);
+            }
+        }else{
+            try{
+                let adminNotes = await ProjectService.addNotes(data);
+                return sendItemResponse(req, res, adminNotes);
+            }catch(error){
+                return sendErrorResponse(req, res, error);
+            }
+        }
+    }else{
+        return sendErrorResponse( req, res, {
+            code: 400,
+            message: 'Admin notes are expected in array format.'
+        });
+    }
+
+});
+
 module.exports = router;

@@ -68,8 +68,11 @@ var projectSchema = new Schema({
     isBlocked: {
         type: Boolean,
         default: false
-    }
-
+    },
+    adminNotes: [{
+        note: { type: String },
+        createdAt: { type: Date }
+    }],
 });
 
 projectSchema.pre('save', function (next) {

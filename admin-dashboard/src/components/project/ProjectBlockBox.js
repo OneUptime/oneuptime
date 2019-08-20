@@ -19,7 +19,7 @@ export class ProjectBlockBox extends Component {
     }
 
     handleClick = () => {
-        const { blockProject, history, projectId } = this.props;
+        const { blockProject, projectId } = this.props;
         const { blockModalId } = this.state
         var thisObj = this;
         this.props.openModal({
@@ -108,7 +108,6 @@ ProjectBlockBox.propTypes = {
     blockProject: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired,
 }
 
 ProjectBlockBox.contextTypes = {

@@ -68,7 +68,7 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false
-    }
+    },
 };
 
 export default function project(state = INITIAL_STATE, action) {
@@ -307,6 +307,33 @@ export default function project(state = INITIAL_STATE, action) {
                     count: state.projects.count,
                     limit: state.projects.limit,
                     skip: state.projects.skip
+                }
+            });
+
+        case UNBLOCK_PROJECT_REQUEST:
+            return Object.assign({}, state, {
+                unblockProject: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case UNBLOCK_PROJECT_FAILED:
+            return Object.assign({}, state, {
+                unblockProject: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case UNBLOCK_PROJECT_RESET:
+            return Object.assign({}, state, {
+                unblockProject: {
+                    requesting: false,
+                    success: false,
+                    error: null,
                 }
             });
 

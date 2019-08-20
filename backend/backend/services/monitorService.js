@@ -151,7 +151,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try {
             var monitors = await MonitorModel.find(query)
                 .sort([['createdAt', -1]])
@@ -170,7 +170,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try {
             var monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name');
@@ -187,7 +187,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try {
             var count = await MonitorModel.count(query)
                 .populate('project', 'name');

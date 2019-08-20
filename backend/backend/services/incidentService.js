@@ -94,7 +94,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var count = await IncidentModel.count(query);
         }catch(error){
@@ -158,7 +158,7 @@ module.exports = {
             return incident;
         }else{
             try{
-                var oldIncident = await _this.findOneBy({_id: data._id});
+                var oldIncident = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
             }catch(error){
                 ErrorService.log('IncidentService.findOneBy', error);
                 throw error;

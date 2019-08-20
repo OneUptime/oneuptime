@@ -9,6 +9,8 @@ import ProjectDeleteBox from '../components/project/ProjectDeleteBox';
 import ProjectRestoreBox from '../components/project/ProjectRestoreBox';
 import ProjectBlockBox from '../components/project/ProjectBlockBox';
 import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
+import AdminNotes from '../components/adminNote/AdminNotes';
+import { addProjectNote } from '../actions/adminNote';
 
 class Project extends Component {
 
@@ -37,6 +39,9 @@ class Project extends Component {
                                         <div>
                                             <div className="Box-root Margin-bottom--12">
                                                 <ProjectDetails projectId={this.props.project ? this.props.project._id : ''} />
+                                            </div>
+                                            <div className="Box-root Margin-bottom--12">
+                                                <AdminNotes projectId={this.props.project ? this.props.project._id : ''} addNote={this.props.addProjectNote} />
                                             </div>
                                             <ShouldRender if={this.props.project && !this.props.project.deleted && !this.props.project.isBlocked}>
                                                 <div className="Box-root Margin-bottom--12">
@@ -71,13 +76,14 @@ class Project extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ }, dispatch)
+    return bindActionCreators({ addProjectNote }, dispatch)
 }
 
 const mapStateToProps = (state, props) => {
     const project = state.project.projects.projects.find(project => project._id === props.match.params.projectId);
     return {
-        project
+        project,
+        adminNote: state.adminNote,
     }
 }
 
@@ -87,6 +93,7 @@ Project.contextTypes = {
 
 Project.propTypes = {
     history: PropTypes.object.isRequired,
+    addProjectNote: PropTypes.func.isRequired,
 }
 
 Project.displayName = 'Project'

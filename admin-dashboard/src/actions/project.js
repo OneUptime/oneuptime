@@ -1,4 +1,4 @@
-import { getApi, putApi, deleteApi } from '../api';
+import { getApi, putApi, deleteApi, postApi } from '../api';
 import * as types from '../constants/project';
 import errors from '../errors'
 

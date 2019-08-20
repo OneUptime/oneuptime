@@ -544,6 +544,9 @@ module.exports = {
                 });
                 let projectSeats = project.seats;
                 await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
+                await ScheduleService.restoreBy({ projectId, deleted: true });
+                await StatusPageService.restoreBy({ projectId, deleted: true });
+                await integrationService.restoreBy({ projectId, deleted: true });
                 await MonitorService.restoreBy({ projectId, deleted: true });
                 return project;
             }));
@@ -566,6 +569,9 @@ module.exports = {
                 });
                 let projectSeats = project.seats;
                 await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
+                await integrationService.restoreBy({ projectId, deleted: true });
+                await ScheduleService.restoreBy({ projectId, deleted: true });
+                await StatusPageService.restoreBy({ projectId, deleted: true });
                 await MonitorService.restoreBy({ projectId, deleted: true });
             }
             return project;

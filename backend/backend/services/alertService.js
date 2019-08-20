@@ -81,7 +81,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var count = await AlertModel.count(query);
         }catch(error){
@@ -104,7 +104,7 @@ module.exports = {
             return alert;
         }else{
             try{
-                var oldAlert = await _this.findOneBy({_id: data._id});
+                var oldAlert = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
             }catch(error){
                 ErrorService.log('AlertService.findOneBy', error);
                 throw error;

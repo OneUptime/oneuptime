@@ -110,7 +110,6 @@ ProjectDeleteBox.propTypes = {
     deleteProject: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired,
 }
 
 ProjectDeleteBox.contextTypes = {
