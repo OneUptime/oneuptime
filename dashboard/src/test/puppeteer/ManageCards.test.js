@@ -10,7 +10,7 @@ let browser, page, frame, userCredentials;
 describe('Stripe cards API', () => {
     beforeAll(async () => {
         jest.setTimeout(150000);
-        browser = await puppeteer.launch({headless:utils.headlessMode});
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
     
@@ -66,7 +66,7 @@ describe('Stripe cards API', () => {
         frame = await frame.contentFrame();
         frame.waitForSelector('input[name=cardnumber]');
         await frame.type('input[name=cardnumber]', '6011111111111117', {
-            delay:20
+            delay:50
         });
         frame.waitForSelector('input[name=exp-date]');
         await frame.type('input[name=exp-date]', '1123' );
@@ -78,7 +78,7 @@ describe('Stripe cards API', () => {
         await page.waitFor(10000);
         var cardsCount = await page.$eval('#cardsCount', el => el.textContent);
         expect(cardsCount).toEqual('2 Cards');
-    }, 30000);
+    }, 50000);
     it('should delete card', async () => {
         await page.click('#deleteCard1');
         await page.waitForSelector('#deleteCardButton');
@@ -86,7 +86,7 @@ describe('Stripe cards API', () => {
         await page.waitFor(4000);
         var cardsCount = await page.$eval('#cardsCount', el => el.textContent);
         expect(cardsCount).toEqual('1 Card');
-    }, 30000);
+    }, 50000);
     it('should not delete card when there is only one card left', async () => {
         await page.click('#deleteCard0');
         await page.waitForSelector('#deleteCardButton');
@@ -95,7 +95,7 @@ describe('Stripe cards API', () => {
         await page.click('#deleteCardCancel');
         var cardsCount = await page.$eval('#cardsCount', el => el.textContent);
         expect(cardsCount).toEqual('1 Card');
-    }, 30000);
+    }, 50000);
     it('should not add an invalid card', async () => {
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
@@ -118,6 +118,6 @@ describe('Stripe cards API', () => {
         frame.waitForSelector('input[name=postal]');
         await frame.type('input[name=postal]', '11234' );
         await page.click('#addCardButtonSubmit');
-    }, 30000);
+    }, 50000);
 });
 
