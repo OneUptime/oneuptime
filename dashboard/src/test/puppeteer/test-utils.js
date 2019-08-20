@@ -3,6 +3,8 @@ var faker = require('faker');
 var ACCOUNTS_URL = 'http://localhost:3003';
 var DASHBOARD_URL = 'http://localhost:3000';
 
+var headlessMode = true;
+
 var user = faker.helpers.createCard();
 var cvv = '542';
 var expiryDate = '09/2020';
@@ -40,6 +42,7 @@ var updatedScheduledEventName = 'event name updated';
 module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
+    headlessMode,
     user,
     cvv,
     expiryDate,
