@@ -101,3 +101,25 @@ export function markAsRead(projectId,notificationId) {
 		});
 	};
 }
+
+export function billingActionTaken(projectId, notificationId, values) {
+	return function(dispatch){
+		var promise = putApi(`notification/${projectId}/${notificationId}`, values);
+		return promise.then(function(notification){
+			dispatch(notificationReadSuccess(notification));
+		}, function(error){
+			if(error && error.response && error.response.data)
+				error = error.response.data;
+			if(error && error.data){
+				error = error.data;
+			}
+			if(error && error.message){
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(fetchNotificationsError(errors(error)));
+		});
+	};
+}

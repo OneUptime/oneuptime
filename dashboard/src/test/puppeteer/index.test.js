@@ -3,6 +3,7 @@ require('./IncidentSubProject.test');
 require('./Monitor.test');
 require('./MonitorSubProject.test');
 require('./ScheduledEvents.test');
+require('./MonitorCategory.test');
 require('./ScheduleSubProject.test');
 require('./StatusPageSubProject.test');
 require('./SubProject.test');

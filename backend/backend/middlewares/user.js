@@ -50,15 +50,21 @@ module.exports = {
                     message:'You are unauthorized to access the page'
                 });
             } else {
-                req.authorizationType = 'USER';
                 req.user = decoded;
-                try{
-                    UserService.update({ _id: req.user.id, lastActive: Date.now() });
-                }catch(error){
-                    ErrorService.log('UserService.update', error);
-                    throw error;
-                }
-                next();
+                UserService.findOneBy({_id: req.user.id }).then((user)=>{
+                    if(user.role === 'master-admin'){
+                        req.authorizationType = 'MASTER-ADMIN';
+                    }else{
+                        req.authorizationType = 'USER';
+                    }
+                    try{
+                        UserService.update({ _id: req.user.id, lastActive: Date.now() });
+                    }catch(error){
+                        ErrorService.log('UserService.update', error);
+                        throw error;
+                    }
+                    next();
+                });
             }
         });
     },
@@ -164,6 +170,16 @@ module.exports = {
                         });
                     }
                 }
+            });
+        }
+    },
+    isUserMasterAdmin: async function (req, res, next){
+        if(req.authorizationType === 'MASTER-ADMIN'){
+            next();
+        }else{
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You are not authorized.'
             });
         }
     }

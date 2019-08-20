@@ -3,7 +3,7 @@ import {
 	postApi
 } from '../api';
 import * as types from '../constants/login'
-import { User, DASHBOARD_URL, DOMAIN_URL } from '../config.js';
+import { User, DASHBOARD_URL, DOMAIN_URL, ADMIN_DASHBOARD_URL } from '../config.js';
 import errors from '../errors'
 import { getQueryVar } from '../config'
 
@@ -27,7 +27,6 @@ export function loginError(error) {
 }
 
 export function loginSuccess(user) {
-	if (user.redirect) return window.location = `${user.redirect}?accessToken=${user.tokens.jwtAccessToken}`;
 	//save user session details.
 	User.setUserId(user.id);
 	User.setAccessToken(user.tokens.jwtAccessToken);
@@ -36,11 +35,25 @@ export function loginSuccess(user) {
 	User.setCardRegistered(user.cardRegistered);
 
 	//share localStorage with dashboard app
-	const cookies = new Cookies();
+	var cookies = new Cookies();
 	var userData = user;
 	cookies.set('data', userData, { path: '/', maxAge: 30, domain: DOMAIN_URL });
+
+	if(user.role === 'master-admin'){
+		//share localStorage with admin dashboard app
+		cookies = new Cookies();
+		userData = user;
+		cookies.set('admin-data', userData, { path: '/', maxAge: 30, domain: DOMAIN_URL });
+	}
+
+	if (user.redirect){
+		return window.location = `${user.redirect}?accessToken=${user.tokens.jwtAccessToken}`;
+	}else if(user.role === 'master-admin'){
+		window.location = ADMIN_DASHBOARD_URL
+	}else{
+		window.location = DASHBOARD_URL
+	}
 	
-	window.location = DASHBOARD_URL
 	return {
 		type: types.LOGIN_SUCCESS,
 		payload: user
@@ -56,8 +69,8 @@ export const resetLogin = () => {
 // Calls the API to register a user.
 export function loginUser(values) {
 	const initialUrl =  User.initialUrl();
-	const redirect = getQueryVar('redirectTo', initialUrl)
-	values.redirect = redirect;
+	const redirect = getQueryVar('redirectTo', initialUrl);
+	if(redirect) values.redirect = redirect;
 	return function (dispatch) {
 
 		var promise = postApi('user/login', values);

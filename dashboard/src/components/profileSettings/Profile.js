@@ -2,14 +2,16 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field } from 'redux-form';
-import { updateProfileSetting, userSettings, logFile, resetFile } from '../../actions/profile';
+import { updateProfileSetting, userSettings, logFile, resetFile, sendVerificationSMS, verifySMSCode } from '../../actions/profile';
 import { RenderField } from '../basic/RenderField';
 import { Validate, API_URL } from '../../config';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader, ListLoader } from '../basic/Loader';
 import { UploadFile } from '../basic/UploadFile';
 import TimezoneSelector from '../basic/TimezoneSelector';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import ReactPhoneInput from 'react-phone-input-2'
+import 'react-phone-input-2/dist/style.css'
 
 //Client side validation
 function validate(values) {
@@ -45,6 +47,41 @@ function validate(values) {
 
 export class ProfileSetting extends Component {
 
+    state = {
+        alertPhoneNumber: this.props.initialValues.alertPhoneNumber,
+        initPhoneVerification: false,
+        verified: false
+    }
+
+    handleOnChange = (value) =>  {
+        this.setState({ alertPhoneNumber: value })
+    }
+
+    handleVerifySMSCode = () => {
+        const { projectId, verifySMSCode, otp } = this.props;
+        const { alertPhoneNumber } = this.state;
+
+        verifySMSCode(projectId, {
+            to: alertPhoneNumber,
+            code: otp
+        }).then((result) => {
+            if(result.data.valid && result.data.status === 'approved'){
+                this.setState({
+                    verified: true
+                })
+            }
+        })
+
+    }
+
+    handleSendVerificationSMS = () => {
+        const { projectId, sendVerificationSMS } = this.props;
+        const { alertPhoneNumber } = this.state;
+        sendVerificationSMS(projectId, {
+            to: alertPhoneNumber
+        })
+    }
+ 
     componentDidMount() {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Profile settings page Loaded');
@@ -73,6 +110,15 @@ export class ProfileSetting extends Component {
 
 
     submitForm = (values) => {
+        const initialAlertPhoneNumber = this.props.initialValues.alertPhoneNumber;
+        const { alertPhoneNumber, verified } = this.state;
+        const { sendVerificationSMSError, verifySMSCodeError } = this.props;
+        if (initialAlertPhoneNumber !== alertPhoneNumber
+            && !verified && !sendVerificationSMSError && !verifySMSCodeError) {
+            this.setState({
+                initPhoneVerification: true
+            }, () => this.handleSendVerificationSMS())
+        }
         const { updateProfileSetting, resetFile } = this.props;
 
         updateProfileSetting(values).then(function () {
@@ -84,7 +130,13 @@ export class ProfileSetting extends Component {
     }
 
     render() {
-        const { handleSubmit, profileSettings } = this.props;
+        const { initPhoneVerification, verified } = this.state;
+
+        const { handleSubmit, profileSettings, 
+                sendVerificationSMSRequesting, 
+                verifySMSCodeRequesting, sendVerificationSMSError,
+                verifySMSCodeError } = this.props;
+                
         var fileData = this.props.fileUrl ? this.props.fileUrl : this.props.profileSettings && this.props.profileSettings.data && this.props.profileSettings.data.profilePic ? `${API_URL}/file/${this.props.profileSettings.data.profilePic}` : '';
         var profileImage = <span />;
         if ((this.props.profileSettings && this.props.profileSettings.data && this.props.profileSettings.data.profilePic) || this.props.fileUrl) {
@@ -149,6 +201,106 @@ export class ProfileSetting extends Component {
                                                     />
                                                 </div>
                                             </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Phone for Alerts</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <ReactPhoneInput
+                                                        defaultCountry={'us'}
+                                                        value={this.state.alertPhoneNumber}
+                                                        onChange={this.handleOnChange}
+                                                        inputStyle={{width: 250, height: 28, fontSize:14, color: '#525f7f', fontFamily:'camphor'}}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <ShouldRender if={initPhoneVerification}>
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                        <div className="Box-root" style={{ height: '5px' }}></div>
+                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                            <label className="Checkbox">
+                                                                <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                    <label>
+                                                                        We have sent an OTP to the entered phone number for alerts.
+                                                                </label>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">Enter OTP</label>
+                                                    <div className="bs-Fieldset-fields" style={{ flex: '0 0 0' }}>
+                                                        <Field
+                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            type="text"
+                                                            name="otp"
+                                                            id="otp"
+                                                            placeholder="OTP"
+                                                            component={RenderField}
+                                                            disabled={verifySMSCodeRequesting}
+                                                            style={{ width: 120, marginRight: 10 }}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <button
+                                                            className="bs-Button"
+                                                            disabled={profileSettings && profileSettings.requesting}
+                                                            type="button"
+                                                            onClick={() => this.handleVerifySMSCode()}>
+                                                            {!verifySMSCodeRequesting && <span>Verify</span>}
+                                                            {verifySMSCodeRequesting && <div style={{ marginTop: -20 }}>
+                                                                <ListLoader />
+                                                            </div>}
+                                                        </button>
+                                                        <button
+                                                            className="bs-Button"
+                                                            disabled={profileSettings && profileSettings.requesting}
+                                                            type="button"
+                                                            onClick={() => this.handleSendVerificationSMS()}>
+                                                            {!sendVerificationSMSRequesting && <span>Resend</span>}
+                                                            {sendVerificationSMSRequesting && <div style={{ marginTop: -20 }}>
+                                                                <ListLoader />
+                                                            </div>}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <ShouldRender if={!verified && (verifySMSCodeError || sendVerificationSMSError)}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div className="Box-root" style={{ height: '5px' }}></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div className="Box-root" style={{ 'paddingLeft': '5px', color: 'red' }}>
+                                                                        <label>
+                                                                            {verifySMSCodeError}
+                                                                            {sendVerificationSMSError}
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={verified}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div className="Box-root" style={{ height: '5px' }}></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div className="Box-root" style={{ 'paddingLeft': '5px', color: 'green' }}>
+                                                                        <label>
+                                                                            Verification successful, this number has been updated.
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                            </ShouldRender>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Profile Picture</label>
                                                 <div className="bs-Fieldset-fields">
@@ -255,7 +407,8 @@ const mapDispatchToProps = (dispatch) => {
     return bindActionCreators({
         updateProfileSetting,
         logFile, resetFile,
-        userSettings
+        userSettings, sendVerificationSMS,
+        verifySMSCode
     }, dispatch)
 }
 
@@ -263,7 +416,13 @@ function mapStateToProps(state) {
     return {
         fileUrl: state.profileSettings.file,
         profileSettings: state.profileSettings.profileSetting,
-        initialValues: state.profileSettings.profileSetting ? state.profileSettings.profileSetting.data : {}
+        initialValues: state.profileSettings.profileSetting ? state.profileSettings.profileSetting.data : {},
+        projectId: state.project.currentProject !== null && state.project.currentProject._id,
+        otp:  state.form.Profile && state.form.Profile.values && state.form.Profile.values.otp,
+        sendVerificationSMSError: state.profileSettings.smsVerification.error,
+        sendVerificationSMSRequesting: state.profileSettings.smsVerification.requesting,
+        verifySMSCodeError: state.profileSettings.smsVerificationResult.error,
+        verifySMSCodeRequesting: state.profileSettings.smsVerificationResult.requesting,
     };
 }
 
@@ -280,8 +439,22 @@ ProfileSetting.propTypes = {
     fileUrl: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
-    ])
-
+    ]),
+    otp: PropTypes.string,
+    sendVerificationSMSError: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined])
+    ]),
+    sendVerificationSMSRequesting: PropTypes.bool,
+    verifySMSCodeError: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined])
+    ]),
+    verifySMSCodeRequesting: PropTypes.bool,
+    initialValues: PropTypes.object,
+    projectId: PropTypes.string,
+    verifySMSCode: PropTypes.func.isRequired,
+    sendVerificationSMS: PropTypes.func.isRequired
 }
 
 ProfileSetting.contextTypes = {

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { markAsRead } from '../../actions/notification';
+import { markAsRead, billingActionTaken} from '../../actions/notification';
 import { User } from '../../config';
 import moment from 'moment';
 import {
@@ -10,9 +10,16 @@ import {
     injectStripe,
     Elements
 } from 'react-stripe-elements';
+import { openModal } from '../../actions/modal';
+import MessageBox from '../modals/MessageBox';
+import uuid from 'uuid';
 
 class NotificationMenu extends Component {
-    
+
+    state = { 
+        MessageBoxId: uuid.v4()
+    }
+
     markAsRead(notification) {
         this.props.markAsRead(notification.projectId, notification._id);
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -23,15 +30,39 @@ class NotificationMenu extends Component {
         }
     }
 
-    handlePaymentIntent = (client_secret) => {
-        const { stripe } = this.props;
+    handlePaymentIntent = (notification) => {
+        var { client_secret } = notification.meta;
+        var { projectId, _id } = notification;
+        var { stripe, billingActionTaken, openModal, balance } = this.props;
+        var { MessageBoxId } = this.state;
         stripe.handleCardPayment(client_secret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    alert('Transaction successful.')
+                    var creditedBalance = result.paymentIntent.amount / 100; 
+                    billingActionTaken(projectId, _id, {
+                        meta: {},
+                        icon: 'success',
+                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
+                    })
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: 'Message',
+                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
+                    })
                 }
                 else {
-                    alert('Transaction failed.')
+                    billingActionTaken(projectId, _id, {
+                        meta: {},
+                        icon: 'error',
+                        message: 'Transaction failed, try again later or use a different card.'
+                    })
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: 'Message',
+                        message: 'Transaction failed, try again later or use a different card.'
+                    })
                 }
             })
     }
@@ -62,7 +93,7 @@ class NotificationMenu extends Component {
                                                         <div className="Box-root db-ListViewItem--hasLink"
                                                             style={{ padding: '10px 10px', fontWeight: '400', fontSize: '1em', borderBottom: '1px solid rgba(188,188,188,0.5)', borderRadius: '2px' }}
                                                             key={key}
-                                                            onClick={() => this.handlePaymentIntent(notification.meta.client_secret)}>
+                                                            onClick={() => this.handlePaymentIntent(notification)}>
                                                             <div className="Notify-fyipe">
                                                                 <img src={`/assets/img/${notification.icon ? notification.icon : 'information'}.svg`} className="Notify-fyipe-row-primary" style={{ height: '20px', width: '20px' }} alt="notify" />
                                                                 <span className="Notify-fyipe-row-secondary" style={{ cursor: 'pointer' }}>{notification.message} on {moment(notification.createdAt).format('MMMM Do YYYY, h:mm a')}</span>
@@ -99,16 +130,18 @@ NotificationMenu.displayName = 'NotificationMenu';
 const mapStateToProps = (state) => {
     return {
         notifications: state.notifications.notifications,
-        notificationsVisible: state.notifications.notificationsVisible
+        notificationsVisible: state.notifications.notificationsVisible,
+        balance: state.project.currentProject && state.project.currentProject.balance
     }
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ markAsRead }, dispatch);
+    return bindActionCreators({ markAsRead, billingActionTaken, openModal }, dispatch);
 };
 
 NotificationMenu.propTypes = {
     markAsRead: PropTypes.func,
+    billingActionTaken: PropTypes.func,
     notifications: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined])
@@ -116,8 +149,9 @@ NotificationMenu.propTypes = {
     length: PropTypes.number,
     map: PropTypes.func,
     stripe: PropTypes.object,
-    notificationsVisible: PropTypes.bool
-    
+    notificationsVisible: PropTypes.bool,
+    openModal: PropTypes.func,
+    balance: PropTypes.number
 }
 
 NotificationMenu.contextTypes = {

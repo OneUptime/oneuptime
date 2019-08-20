@@ -12,6 +12,7 @@ const ErrorService = require('./errorService');
 var Handlebars = require('handlebars');
 var defaultSmsTemplates = require('../config/smsTemplate');
 var SmsSmtpService = require('./smsSmtpService');
+var UserModel = require('../models/user');
 
 var getTwilioSettings = async (projectId) => {
     let { accountSid, authToken, phoneNumber } = twilioCredentials;
@@ -145,5 +146,51 @@ module.exports = {
         }
         var template = await Handlebars.compile(smsContent);
         return { template };
+    },
+    sendVerificationSMS: async function (to) {
+        try {
+            if (!to.startsWith('+')) {
+                to = '+' + to;
+            }
+            var channel = 'sms';
+            var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
+                .verifications
+                .create({ to, channel });
+            return verificationRequest;
+        } catch (error) {
+            ErrorService.log('client.sms.sendVerificationSMS', error);
+            throw error;
+        }
+    },
+    verifySMSCode: async function (to, code, userId) {
+        try {
+            if (!to.startsWith('+')) {
+                to = '+' + to;
+            }
+            var verificationResult = await client.verify.services(twilioCredentials.verificationSid)
+                .verificationChecks
+                .create({ to, code });
+            if (verificationResult.status === 'pending') {
+                var error = new Error('Incorrect code');
+                error.code = 400;
+                throw error;
+            }
+            if(verificationResult.status === 'approved') { 
+                await UserModel.findByIdAndUpdate(userId, {
+                    $set: {
+                        alertPhoneNumber: to
+                    }
+                });
+            }
+            return verificationResult;
+        } catch (error) {
+            if (error.message === 'Invalid parameter: To') {
+                var invalidNumbererror = new Error('Invalid number');
+                error.code = 400;
+                throw invalidNumbererror;
+            }
+            ErrorService.log('client.sms.verifySMSCode', error);
+            throw error;
+        }
     }
 };

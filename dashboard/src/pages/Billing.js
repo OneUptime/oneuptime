@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import Dashboard from '../components/Dashboard';
+import CustomerBalance from '../components/paymentCard/CustomerBalance';
 import Invoice from '../components/invoice/Invoice';
 import PaymentCard from '../components/paymentCard/PaymentCard';
 import PropTypes from 'prop-types';
@@ -22,6 +23,7 @@ class Billing extends Component {
   render() {
     return (
       <Dashboard>
+        <CustomerBalance />
         <Invoice />
         <PaymentCard />
       </Dashboard>

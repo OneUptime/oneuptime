@@ -17,7 +17,6 @@ const {
 } = require('../middlewares/authorization');
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
-
     if(!req.body.feedback){
         return sendErrorResponse( req, res, {
             code: 400, 

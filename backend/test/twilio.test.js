@@ -14,6 +14,7 @@ var MonitorService = require('../backend/services/monitorService');
 var NotificationService = require('../backend/services/notificationService');
 var baseApiUrl = require('../backend/config/baseApiUrl');
 var VerificationTokenModel = require('../backend/models/verificationToken');
+var TwilioConfig = require('../backend/config/twilio');
 
 var token, userId, projectId, monitorId, incidentId, monitor = {
     name: 'New Monitor',
@@ -102,4 +103,17 @@ describe('Twilio API', function () {
             done();
         });
     });
+    it('should send verification sms code for adding alert phone number', function (done) {
+        var authorization = `Basic ${token}`;
+        request.post(`/twilio/sms/sendVerificationToken?projectId=${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                to: TwilioConfig.testphoneNumber
+            })
+            .end(function (err, res) {
+                expect(res).to.have.status(200);
+                done();
+            });
+    });
+
 });
