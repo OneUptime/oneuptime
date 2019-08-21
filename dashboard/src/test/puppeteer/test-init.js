@@ -112,6 +112,7 @@ module.exports = {
         await page.click('#AccountSwitcherId');
         await page.waitForSelector('#accountSwitcher');
         const element = await page.$(`#accountSwitcher > div[title="${projectName}"]`);
+        await page.screenshot({path: 'screenshot.png'});
         await element.click();
         await page.waitFor(5000);
     },
