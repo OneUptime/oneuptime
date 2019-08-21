@@ -43,7 +43,7 @@ class UptimeGraphs extends Component {
     }
 
     return (
-      <div className="uptime-graph-section dashboard-uptime-graph">
+      <div className="uptime-graph-section dashboard-uptime-graph" id={this.props.id}>
         <div className="uptime-graph-header clearfix">
           <span style={status}></span>
           <span className="uptime-stat-name">{this.props.monitor.name}</span>
@@ -61,6 +61,9 @@ class UptimeGraphs extends Component {
 
 UptimeGraphs.displayName = 'UptimeGraphs';
 
-UptimeGraphs.propTypes = {monitor: PropTypes.object}
+UptimeGraphs.propTypes = {
+  monitor: PropTypes.object,
+  id: PropTypes.string
+}
 
 export default UptimeGraphs;
