@@ -5,9 +5,16 @@ var DASHBOARD_URL = 'http://localhost:3000';
 
 var puppeteerLaunchConfig = {
     headless: false,
-    slowMo: 20,
-    args: ['--no-sandbox']  
-};
+    args: [
+    '--proxy-server=',
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--disable-gpu',
+    '--window-size=1920x1080',
+    ],
+  };
 
 var user = faker.helpers.createCard();
 var cvv = '542';
