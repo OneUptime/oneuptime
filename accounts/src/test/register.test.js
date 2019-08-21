@@ -4,33 +4,22 @@ var utils = require('./test-utils');
 
 let browser;
 let page;
-var password;
-
-
-beforeAll(async (done) => {
-    jest.setTimeout(20000);
-    //browser = await puppeteer.launch({ args: ['--headless', '--no-sandbox'] });
-    if (process.env.NODE_ENV === 'development') {
-        browser = await puppeteer.launch({})
-      } else {
-        browser = await puppeteer.connect({
-          browserWSEndpoint: process.env['CHROMELESS_PORT_3000_TCP_ADDR'] && process.env['CHROMELESS_PORT_3000_TCP_PORT']
-            ? 'ws://' + process.env['CHROMELESS_PORT_3000_TCP_ADDR'] + ':' + process.env['CHROMELESS_PORT_3000_TCP_PORT'] : 'ws://localhost:3030'
-        })
-      }
-    page = await browser.newPage();
-    done();
-});
-
-afterAll(async (done) => {
-    browser.close();
-    done();
-});
+var password = utils.generatePassword();
+var email = utils.generateRandomBusinessEmail();
 
 describe('Registration API', () => {
-    password = utils.generatePassword();
 
-    it('User cannot register with invalid email', async (done) => {
+    beforeAll(async () => {
+        jest.setTimeout(20000);
+        browser = await puppeteer.launch({ headless: utils.headlessMode });
+        page = await browser.newPage();
+    });
+
+    afterAll(async () => {
+        await browser.close();
+    });
+
+    it('User cannot register with invalid email', async () => {
         await page.goto(utils.ACCOUNTS_URL + '/register', { waitUntil: 'networkidle2' });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
@@ -46,15 +35,13 @@ describe('Registration API', () => {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', password);
         await page.click('button[type=submit]');
-        await page.waitFor(10000);
         const html = await page.$eval('#ema', (e) => {
             return e.innerHTML
         });
         html.should.containEql('Email is not valid.')
-        done();
     }, 160000);
 
-    it('User cannot register with personal email', async (done) => {
+    it('User cannot register with personal email', async () => {
         const personalEmail = 'personalEmail@gmail.com'
         await page.goto(utils.ACCOUNTS_URL + '/register', { waitUntil: 'networkidle2' });
         await page.waitForSelector('#email');
@@ -76,14 +63,13 @@ describe('Registration API', () => {
             return e.innerHTML
         });
         html.should.containEql('Please enter a business email address.')
-        done();
     }, 16000);
 
-    it('Should register User with valid details', async (done) => {
+    it('Should register User with valid details', async () => {
         await page.goto(utils.ACCOUNTS_URL + '/register', { waitUntil: 'networkidle2' });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
-        await page.type('input[name=email]', utils.user.email);
+        await page.type('input[name=email]', email);
         await page.click('input[name=name]');
         await page.type('input[name=name]', utils.user.name);
         await page.click('input[name=companyName]');
@@ -95,7 +81,7 @@ describe('Registration API', () => {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', password);
         await page.click('button[type=submit]');
-        await page.waitFor(20000);
+        await page.waitFor(10000);
         await page.waitForSelector('#cardName');
         await page.click('input[name=cardName]');
         await page.type('input[name=cardName]', utils.user.name);
@@ -115,20 +101,14 @@ describe('Registration API', () => {
         await page.type('input[name=state]', utils.user.address.state);
         await page.click('input[name=zipCode]');
         await page.type('input[name=zipCode]', utils.user.address.zipcode);
-        await page.select('#country', utils.user.address.country);
+        await page.select('#country', 'India');
 
         await page.click('button[type=submit]');
-        await page.waitFor(20000);
-        const localStorageData = await page.evaluate(() => {
-            let json = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                json[key] = localStorage.getItem(key);
-            }
-            return json;
+        await page.waitFor(15000);
+        const html = await page.$eval('#main-body', (e) => {
+            return e.innerHTML;
         });
-        localStorageData.should.have.property('sessionID');
-        done();
+        html.should.containEql('Activate your Fyipe account');
     }, 160000);
 
 });
