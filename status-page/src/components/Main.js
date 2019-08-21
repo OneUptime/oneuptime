@@ -65,14 +65,16 @@ class Main extends Component {
 				marginBottom:40
 			}
 			return groupedMonitorData.map((groupedMonitors, i) => {
-				return (<div key={i} style = {monitorCategoryGroupContainerStyle}className="uptime-graph-header">
-					<div style={monitorCategoryStyle}>
+				return (
+				<div key={i} style = {monitorCategoryGroupContainerStyle} className="uptime-graph-header">
+					<div id={`monitorCategory${i}`} style={monitorCategoryStyle}>
 						<span>{groupedMonitors[0].monitorCategoryId ? groupedMonitors[0].monitorCategoryId.name.toUpperCase() : 'Uncategorized'.toUpperCase()}</span>
 					</div>
 					{groupedMonitors.map((monitor, i) => {
-						return (<UptimeGraphs monitor={monitor} key={i} />)
+						return (<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`}/>)
 					})}
-				</div>)
+				</div>
+				)
 			})
 		} else {
 			return <NoMonitor />
@@ -139,9 +141,7 @@ class Main extends Component {
 							<div className="statistics">
 								<div className="inner-gradient"></div>
 								<div className="uptime-graphs box-inner">
-									{isGroupedByMonitorCategory ? this.groupedMonitors()
-										: (this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0 ? this.props.statusData.monitorIds.map((monitor, i) => <UptimeGraphs monitor={monitor} key={i} />) : <NoMonitor />)
-									}
+									{isGroupedByMonitorCategory ? this.groupedMonitors() : (this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0 ? this.props.statusData.monitorIds.map((monitor, i) => <UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />) : <NoMonitor />)}
 								</div>
 								{this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0 ? <UptimeLegend /> : ''}
 							</div>
