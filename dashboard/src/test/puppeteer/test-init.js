@@ -48,9 +48,9 @@ module.exports = {
         await page.type('input[name=zipCode]', utils.user.address.zipcode);
         await page.select('#country', 'India')
         // await page.select('#country', utils.user.address.country);
-
         await page.click('button[type=submit]');
         await page.waitFor(25000);
+        // await page.screenshot({path: 'screenshot-register.png'});
     },
     loginUser: async function (user, page){
         const { email, password } = user;
@@ -62,6 +62,7 @@ module.exports = {
         await page.type('input[name=password]', password);
         await page.click('button[type=submit]');
         await page.waitFor(5000);
+        // await page.screenshot({path: 'screenshot-login.png'});
     },
     addSchedule: async function (callSchedule, page){
         await page.waitForSelector('#callSchedules');
@@ -73,6 +74,7 @@ module.exports = {
         await page.type('#name', callSchedule);
         await page.click('button.bs-Button:nth-child(2)');
         await page.waitFor(2000);
+        // await page.screenshot({path: 'screenshot-addSchedule.png'});
     },
     addSubProject: async function (subProjectName, page){
         const subProjectNameSelector = await page.$('#btnAddSubProjects');
@@ -92,6 +94,7 @@ module.exports = {
             await page.click('#btnSaveSubproject');
         }
         await page.waitFor(5000);
+        // await page.screenshot({path: 'screenshot-addSubProject.png'});
     },
     addUserToProject: async function (data, page){
         const {email, role, subProjectName} = data;
@@ -105,6 +108,7 @@ module.exports = {
         await page.click(`#${role}_${subProjectName}`);
         await page.click(`#btn_modal_${subProjectName}`);
         await page.waitFor(5000);
+        // await page.screenshot({path: 'screenshot-addUserToProject.png'});
     },
     switchProject: async function (projectName, page){
         await page.reload({ waitUntil: 'networkidle2'});
@@ -112,9 +116,9 @@ module.exports = {
         await page.click('#AccountSwitcherId');
         await page.waitForSelector('#accountSwitcher');
         const element = await page.$(`#accountSwitcher > div[title="${projectName}"]`);
-        await page.screenshot({path: 'screenshot.png'});
         await element.click();
         await page.waitFor(5000);
+        // await page.screenshot({path: 'screenshot-switchProject.png'});
     },
     renameProject: async function (newProjectName, page){
         const projectNameSelector = await page.$('input[name=project_name');
@@ -131,11 +135,13 @@ module.exports = {
             await page.click('#btnCreateProject');
         }
         await page.waitFor(5000);
+        // await page.screenshot({path: 'screenshot-renameProject.png'});
     },
     clear: async function (selector, page) {
         const input = await page.$(selector);
         await input.click({ clickCount: 3 })
         await input.type('');
+        // await page.screenshot({path: 'screenshot-clear.png'});
     },
     selectByText: async function (selector, text, page) {
         let elemHandler = await page.$(selector);
@@ -154,6 +160,7 @@ module.exports = {
                 }
             }
         }
+        // await page.screenshot({path: 'screenshot-selectByText.png'});
     },
     addMonitorToProject: async function (monitorName, projectName, page){
         await page.waitForSelector('#monitors');
@@ -168,6 +175,7 @@ module.exports = {
         await page.type('#url', 'https://google.com');
         await page.click('button[type=submit]');
         await page.waitFor(5000);
+        // await page.screenshot({path: 'screenshot-addMonitorToProject.png'});
     },
     addIncidentToProject: async function (monitorName, projectName, page){
         const createIncidentSelector = await page.$(`#btnCreateIncident_${projectName}`);
@@ -188,6 +196,7 @@ module.exports = {
             await page.click('#createIncident');
             await page.waitFor(5000);
         }
+        // await page.screenshot({path: 'screenshot-addIncidentToProject.png'});
     },
     addStatusPageToProject: async function (statusPageName, projectName, page){
         const createStatusPageSelector = await page.$(`#btnCreateStatusPage_${projectName}`);
@@ -208,6 +217,7 @@ module.exports = {
             await page.click('#btnCreateStatusPage');
             await page.waitFor(5000);
         }
+        // await page.screenshot({path: 'screenshot-addStatusPageToProject.png'});
     },
     addScheduleToProject: async function (scheduleName, projectName, page){
         const createStatusPageSelector = await page.$(`#btnCreateStatusPage_${projectName}`);
@@ -228,5 +238,6 @@ module.exports = {
             await page.click('#btnCreateSchedule');
             await page.waitFor(5000);
         }
+        // await page.screenshot({path: 'screenshot-addScheduleToProject.png'});
     }
 }
