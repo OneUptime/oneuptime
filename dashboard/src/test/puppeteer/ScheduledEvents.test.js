@@ -11,11 +11,11 @@ let password = utils.generateRandomString();
 
 
 describe('Scheduled event', () => {
-    const operationTimeOut = 20000;
+    const operationTimeOut = 50000;
 
-    beforeAll(async (done) => {
+    beforeAll(async () => {
         jest.setTimeout(150000);
-        browser = await puppeteer.launch({headless:utils.headlessMode});
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
     
@@ -53,16 +53,16 @@ describe('Scheduled event', () => {
         await init.registerUser(user, page);
         await init.loginUser(user, page);
     
-        done();
+        
     });
     
-    afterAll(async (done) => {
+    afterAll(async () => {
         await browser.close();
-        done();
+        
     });
     
 
-    it('should create a new scheduled event for a monitor', async(done) => {
+    it('should create a new scheduled event for a monitor', async() => {
         
         let monitorName = utils.generateRandomString();
         await page.waitForSelector('#monitors');
@@ -112,10 +112,10 @@ describe('Scheduled event', () => {
         var createdScheduledEventName = await page.$eval(createdScheduledEventSelector, el => el.textContent);
         expect(createdScheduledEventName).toEqual(utils.scheduledEventName);
         
-        done();
+        
     }, operationTimeOut);
 
-    it('should update the created scheduled event for a monitor', async(done) => {
+    it('should update the created scheduled event for a monitor', async() => {
         
         createdScheduledEventSelector='#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
         await page.click(createdScheduledEventSelector);
@@ -143,10 +143,10 @@ describe('Scheduled event', () => {
         var createdScheduledEventName = await page.$eval(createdScheduledEventSelector, el => el.textContent);
         expect(createdScheduledEventName).toEqual(utils.updatedScheduledEventName);
         
-        done();
+        
     }, operationTimeOut);
 
-    it('should delete the created scheduled event for a monitor', async(done) => {
+    it('should delete the created scheduled event for a monitor', async() => {
 
 
         var deleteButtonSelector = '#scheduledEventsList > div > div:nth-child(5) > button'
@@ -159,6 +159,6 @@ describe('Scheduled event', () => {
         var scheduledEventCount = await page.$eval(scheduledEventCounterSelector, el => el.textContent);
         
         expect(scheduledEventCount).toEqual("0 Scheduled Event");
-        done();
+        
     }, operationTimeOut);
 });

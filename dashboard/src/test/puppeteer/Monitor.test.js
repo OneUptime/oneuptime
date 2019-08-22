@@ -17,11 +17,11 @@ let subProjectName = utils.generateRandomString();
 
 
 describe('Monitor API', () => {
-    const operationTimeOut = 20000;
+    const operationTimeOut = 50000;
 
-    beforeAll(async (done) => {
+    beforeAll(async () => {
         jest.setTimeout(150000);
-        browser = await puppeteer.launch({headless:utils.headlessMode});
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
     
@@ -50,15 +50,15 @@ describe('Monitor API', () => {
         await init.registerUser(user, page);
         await init.loginUser(user, page);
         await init.addSchedule(callSchedule, page);
-        done();
+        
     });
     
-    afterAll(async (done) => {
+    afterAll(async () => {
         await browser.close();
-        done();
+        
     });
 
-    it('Should create new monitor with correct details', async (done) => {
+    it('Should create new monitor with correct details', async () => {
         let monitorName = utils.generateRandomString();
         await page.waitForSelector('#monitors');
         await page.click('#monitors');
@@ -76,10 +76,10 @@ describe('Monitor API', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly(monitorName);
-        done();
+        
     }, operationTimeOut);
 
-    it('Should delete monitor', async (done) => {
+    it('Should delete monitor', async () => {
         await page.waitForSelector('#name');
         await page.evaluate(() => {
             document.querySelector('div.Box-root div.db-Trends-header div.db-Trends-controls div button.bs-Button.bs-DeprecatedButton.db-Trends-editButton.bs-Button--icon.bs-Button--delete').click();
@@ -87,10 +87,10 @@ describe('Monitor API', () => {
         await page.evaluate(() => {
             document.querySelector('button.bs-DeprecatedButton:nth-child(2)').click();
         });
-        done();
+        
     }, operationTimeOut);
 
-    it('Should create new monitor with call schedule', async (done) => {
+    it('Should create new monitor with call schedule', async () => {
         let monitorName = utils.generateRandomString();
         await page.waitFor(10000);
         await page.waitForSelector('#name');
@@ -108,10 +108,10 @@ describe('Monitor API', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly(monitorName);
-        done();
+        
     }, operationTimeOut);
 
-    it('Should not create new monitor when details that are incorrect', async (done) => {
+    it('Should not create new monitor when details that are incorrect', async () => {
     
         await page.waitFor(10000);
         await page.waitForSelector('#name');
@@ -125,6 +125,6 @@ describe('Monitor API', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly('This field cannot be left blank');
-        done();
+        
     }, operationTimeOut);
 });

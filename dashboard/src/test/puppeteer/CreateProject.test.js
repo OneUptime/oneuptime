@@ -5,15 +5,11 @@ const init = require('./test-init');
 
 let browser, page, userCredentials;
 
-let email;
-let password = utils.generateRandomString();
-
-
 describe('Project API', () => {
 
-    beforeAll(async (done) => {
-        jest.setTimeout(150000);
-        browser = await puppeteer.launch({headless:utils.headlessMode});
+    beforeAll(async () => {
+        jest.setTimeout(100000);
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
     
@@ -50,15 +46,13 @@ describe('Project API', () => {
         // register and signin user
         await init.registerUser(user, page);
         await init.loginUser(user, page);
-        done();
     });
     
-    afterAll(async (done) => {
+    afterAll(async () => {
         await browser.close();
-        done();
     });
 
-    it('Should create new project from dropdown after login', async (done) => {
+    it('Should create new project from dropdown after login', async () => {
         await page.waitForSelector('#selector');
         await page.$eval('#create-project', e => e.click());
 
@@ -78,8 +72,6 @@ describe('Project API', () => {
             return json;
          });
         localStorageData.should.have.property('project');
-        done();
-    }, 160000);
-
+    }, 50000);
 });
 

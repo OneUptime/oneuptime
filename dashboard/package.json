@@ -70,10 +70,10 @@
     "lint": "eslint .",
     "dev": "PORT=3000 react-scripts start",
     "build": "react-scripts build",
-    "test": "jest --clearCache && jest",
+    "test": "jest --runInBand",
     "start": "node index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
-    "jest": "jest src/test/puppeteer/index.test.js"
+    "jest": "jest --runInBand"
   },
   "devDependencies": {
     "axios-mock-adapter": "^1.15.0",
