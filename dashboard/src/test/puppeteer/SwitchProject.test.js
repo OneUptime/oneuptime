@@ -11,10 +11,10 @@ let project = utils.generateRandomString();
 
 
 describe('Project API', () => {
-    const operationTimeOut = 20000;
-    beforeAll(async (done) => {
+    const operationTimeOut = 50000;
+    beforeAll(async () => {
         jest.setTimeout(150000);
-        browser = await puppeteer.launch({headless:utils.headlessMode});
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
     
@@ -52,15 +52,15 @@ describe('Project API', () => {
         await init.registerUser(user, page);
         await init.loginUser(user, page);
     
-        done();
+        
     });
     
-    afterAll(async (done) => {
+    afterAll(async () => {
         await browser.close();
-        done();
+        
     });
 
-    it('Should create new project from dropdown after login', async (done) => {
+    it('Should create new project from dropdown after login', async () => {
         await page.waitForSelector('#selector');
         await page.$eval('#create-project', e => e.click());
 
@@ -80,11 +80,11 @@ describe('Project API', () => {
             return json;
          });
         localStorageData.should.have.property('project');
-        done();
+        
     }, operationTimeOut);
 
 
-    it('Should switch project using project switcher', async (done) => {
+    it('Should switch project using project switcher', async () => {
         await page.reload({ waitUntil: 'networkidle2'});
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
@@ -101,7 +101,7 @@ describe('Project API', () => {
             return json;
          });
         localStorageData.should.have.property('project');
-        done();
+        
     }, operationTimeOut);
 
 });

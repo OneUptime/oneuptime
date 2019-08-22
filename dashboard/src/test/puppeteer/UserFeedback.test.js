@@ -19,7 +19,7 @@ describe('User Feedback', () => {
     beforeAll(async () => {
         jest.setTimeout(100000);
         projectId = await localStorage.getItem('id');
-        browser = await puppeteer.launch({headless:utils.headlessMode});
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
     
@@ -62,7 +62,7 @@ describe('User Feedback', () => {
         await browser.close();
     });
 
-    it('should send feedback from the dashboard', async (done) => {
+    it('should send feedback from the dashboard', async () => {
         await page.reload({ waitUntil: 'networkidle2' });
         await page.click('#feedback-div', {clickCount: 2});
         await page.type('textarea[name="feedback"]', testFeedback);
@@ -70,7 +70,6 @@ describe('User Feedback', () => {
         await page.waitFor(3000);
         var feedbackMessage = await page.$eval('#feedback-div', el => el.textContent);
         expect(feedbackMessage).toEqual('Thank you for your feedback.');
-        done();
-    }, 16000);
+    }, 30000);
 
 });

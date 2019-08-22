@@ -1,7 +1,7 @@
 module.exports = {
     user: {
-        name: 'Olalekan Ayodele',
-        email: 'lekanmedia@hotmail.com',
+        name: 'Status Page',
+        email: 'status@fyipe.com',
         password:'1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',

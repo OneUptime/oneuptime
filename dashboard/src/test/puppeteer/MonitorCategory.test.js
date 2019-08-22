@@ -15,11 +15,11 @@ const user = {
 let callSchedule = utils.generateRandomString();
 
 describe('Monitor Category', () => {
-    const operationTimeOut = 30000;
+    const operationTimeOut = 50000;
 
     beforeAll(async () => {
         jest.setTimeout(150000);
-        browser = await puppeteer.launch({headless:utils.headlessMode});
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
     
@@ -54,7 +54,7 @@ describe('Monitor Category', () => {
     });
     
 
-    it('should create a new monitor category', async(done) => {
+    it('should create a new monitor category', async() => {
 
         await page.waitForSelector('#projectSettings');
 
@@ -72,11 +72,10 @@ describe('Monitor Category', () => {
         var createdMonitorCategoryName = await page.$eval(createdMonitorCategorySelector, el => el.textContent);
         
         expect(createdMonitorCategoryName).toEqual(utils.monitorCategoryName);
-        done();
     }, operationTimeOut);
 
 
-    it('should show created monitor category in new monitor dropdown', async(done) => {
+    it('should show created monitor category in new monitor dropdown', async() => {
         await page.waitForSelector('#monitors');
         await page.click('#monitors');
         await page.waitFor(5000);
@@ -96,11 +95,10 @@ describe('Monitor Category', () => {
             }
         }                
         expect(monitorCategoryCheck).toEqual(true);
-        done();
     }, operationTimeOut);
 
 
-    it ('should create a new monitor by selecting monitor category from dropdown', async(done) => {
+    it ('should create a new monitor by selecting monitor category from dropdown', async() => {
         
         await page.waitForSelector('#monitors');
         await page.click('#monitors');
@@ -119,10 +117,9 @@ describe('Monitor Category', () => {
         var createdMonitorName = await page.$eval(createdMonitorSelector, el => el.textContent);
         
         expect(createdMonitorName).toEqual(utils.monitorName);
-        done();
     }, operationTimeOut);
 
-    it('should delete the created monitor category', async(done) => {
+    it('should delete the created monitor category', async() => {
 
         await page.click('#projectSettings');
                 
@@ -138,6 +135,5 @@ describe('Monitor Category', () => {
         var monitorCategoryCount = await page.$eval(monitorCategoryCounterSelector, el => el.textContent);
         
         expect(monitorCategoryCount).toEqual("0 Monitor Category");
-        done();
     }, operationTimeOut);
 });
