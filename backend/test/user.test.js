@@ -325,4 +325,14 @@ describe('User API', function () {
             done();
         });
     });
+
+    it('should not update the unverified alert phone number through profile update API', function (done) {
+        var authorization = `Basic ${token}`;
+        request.put('/user/profile').set('Authorization', authorization).send(profile).end(function (err, res) {
+            expect(res.body._id).to.be.equal(userId);
+            expect(res.body.alertPhoneNumber).not.to.be.equal(profile.alertPhoneNumber);
+            expect(res.body.alertPhoneNumber).to.be.equal('');
+            done();
+        });
+    });
 });

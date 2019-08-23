@@ -5,36 +5,26 @@ var utils = require('./test-utils');
 let browser;
 let page;
 
-var email = utils.user.email;
+var email = utils.generateRandomBusinessEmail();
 var password = utils.generatePassword();
-beforeAll(async (done) => {
-   jest.setTimeout(20000);
-   if (process.env.NODE_ENV === 'development') {
-      browser = await puppeteer.launch({})
-    } else {
-      browser = await puppeteer.connect({
-        browserWSEndpoint: process.env['CHROMELESS_PORT_3000_TCP_ADDR'] && process.env['CHROMELESS_PORT_3000_TCP_PORT']
-          ? 'ws://' + process.env['CHROMELESS_PORT_3000_TCP_ADDR'] + ':' + process.env['CHROMELESS_PORT_3000_TCP_PORT'] : 'ws://localhost:3030'
-      })
-    }
-   //browser = await puppeteer.launch({ args: ['--headless', '--no-sandbox'] });
-   page = await browser.newPage();
-   done();
-});
-
-afterAll(async (done) => {
-   browser.close();
-   done();
-});
-
 
 describe('Reset Password API', () => {
 
-   it('Should reset password successfully', async (done) => {
+   beforeAll(async () => {
+      jest.setTimeout(20000);
+      browser = await puppeteer.launch({ headless: utils.headlessMode });
+      page = await browser.newPage();
+   });
+
+   afterAll(async () => {
+      await browser.close();
+   });
+
+   it('Should reset password successfully', async () => {
       await page.goto(utils.ACCOUNTS_URL + '/register', { waitUntil: 'networkidle2' });
       await page.waitForSelector('#email');
       await page.click('input[name=email]');
-      await page.type('input[name=email]', utils.user.email);
+      await page.type('input[name=email]', email);
       await page.click('input[name=name]');
       await page.type('input[name=name]', utils.user.name);
       await page.click('input[name=companyName]');
@@ -46,7 +36,7 @@ describe('Reset Password API', () => {
       await page.click('input[name=confirmPassword]');
       await page.type('input[name=confirmPassword]', password);
       await page.click('button[type=submit]');
-      await page.waitFor(20000);
+      await page.waitFor(5000);
       await page.waitForSelector('#cardName');
       await page.click('input[name=cardName]');
       await page.type('input[name=cardName]', utils.user.name);
@@ -66,47 +56,33 @@ describe('Reset Password API', () => {
       await page.type('input[name=state]', utils.user.address.state);
       await page.click('input[name=zipCode]');
       await page.type('input[name=zipCode]', utils.user.address.zipcode);
-      await page.select('#country', utils.user.address.country);
-
+      await page.select('#country', 'India');
       await page.click('button[type=submit]');
-      await page.waitFor(20000);
-      const localStorageData = await page.evaluate(() => {
-         let json = {};
-         for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            json[key] = localStorage.getItem(key);
-         }
-         return json;
-      });
-      localStorageData.should.have.property('sessionID');
-
+      await page.waitFor(10000);
       await page.goto(utils.ACCOUNTS_URL + '/forgot-password', { waitUntil: 'networkidle2' });
       await page.waitForSelector('#email');
       await page.click('input[name=email]');
       await page.type('input[name=email]', email);
       await page.click('button[type=submit]');
-      await page.waitFor(10000);
+      await page.waitForSelector('#reset-password-success');
       const html = await page.$eval('#reset-password-success', (e) => {
          return e.innerHTML;
       });
       should.exist(html);
       html.should.containEql(" An email is on its way to you. Follow the instructions to reset your password. Please don't forget to check spam. ");
-      done();
    }, 160000);
 
-   it('User cannot reset password with non-existing email', async (done) => {
+   it('User cannot reset password with non-existing email', async () => {
       await page.goto(utils.ACCOUNTS_URL + '/forgot-password', { waitUntil: 'networkidle2' });
       await page.waitForSelector('#email');
       await page.click('input[name=email]');
       await page.type('input[name=email]', utils.generateWrongEmail());
       await page.click('button[type=submit]');
-      await page.waitFor(6000);
+      await page.waitForSelector('#error-msg');
       const html = await page.$eval('#error-msg', (e) => {
          return e.innerHTML;
       });
       should.exist(html);
       html.should.containEql('User does not exist.');
-
-      done();
    }, 160000);
 });

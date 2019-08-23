@@ -13,28 +13,57 @@ import {
     injectStripe,
     Elements
 } from 'react-stripe-elements';
+import { openModal } from '../../actions/modal';
+import MessageBox from '../modals/MessageBox';
+import uuid from 'uuid';
+
+
 
 export class AlertAdvanceOption extends Component {
 
-    submitForm = (value) => {
-        value._id = this.props.projectId;
-        this.props.alertOptionsUpdate(this.props.projectId, value);
+    state = { 
+        MessageBoxId: uuid.v4()
     }
 
-    handlePaymentIntent = (client_secret) => {
-        const { stripe } = this.props;
-        stripe.handleCardPayment(client_secret)
+    submitForm = (value) => {
+        value._id = this.props.projectId;
+        this.props.alertOptionsUpdate(this.props.projectId, value)
+        .then(() => {
+            let { paymentIntent } = this.props;
+            if(paymentIntent){
+                //init payment
+                this.handlePaymentIntent(paymentIntent);
+            }
+        });
+    }
+
+    handlePaymentIntent = (paymentIntentClientSecret) => {
+        const { stripe, openModal, balance } = this.props;
+        const { MessageBoxId } = this.state;
+        stripe.handleCardPayment(paymentIntentClientSecret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    alert('Transaction successful.')
+                    var creditedBalance = result.paymentIntent.amount / 100; 
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: 'Message',
+                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
+                    })
                 }
                 else {
-                    alert('Transaction failed')
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: 'Message',
+                        message: 'Transaction failed, try again later or use a different card.'
+                    })
                 }
             })
     }
+
     componentDidUpdate() {
-        let { formValues, paymentIntent } = this.props;
+        let { formValues } = this.props;
         let rechargeToBalance = Number(formValues.rechargeToBalance);
         let minimumBalance = Number(formValues.minimumBalance);
 
@@ -55,10 +84,6 @@ export class AlertAdvanceOption extends Component {
         }
         if (formValues.billingRiskCountries && rechargeToBalance < 200) {
             this.props.change('rechargeToBalance', '200')
-        }
-        if(paymentIntent){
-            //init payment
-            this.handlePaymentIntent(paymentIntent);
         }
     }
 
@@ -304,7 +329,9 @@ AlertAdvanceOption.propTypes = {
     change:PropTypes.func,
     alertEnable:PropTypes.bool,
     stripe: PropTypes.object,
-    paymentIntent: PropTypes.string
+    paymentIntent: PropTypes.string,
+    openModal: PropTypes.func.isRequired,
+    balance: PropTypes.number
 }
 
 let formName = 'AlertAdvanceOption';
@@ -315,7 +342,7 @@ let AlertAdvanceOptionForm = new reduxForm({
 })(AlertAdvanceOption);
 
 const mapDispatchToProps = dispatch => (
-    bindActionCreators({ change, alertOptionsUpdate }, dispatch)
+    bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch)
 )
 
 const mapStateToProps = state => (
@@ -336,7 +363,8 @@ const mapStateToProps = state => (
         formValues: state.form.AlertAdvanceOption && state.form.AlertAdvanceOption.values,
         isRequesting: state.project.alertOptionsUpdate.requesting,
         error: state.project.alertOptionsUpdate.error,
-        paymentIntent: state.project.alertOptionsUpdate.project && state.project.alertOptionsUpdate.project.paymentIntent
+        paymentIntent: state.project.alertOptionsUpdate.project && state.project.alertOptionsUpdate.project.paymentIntent,
+        balance: state.project.currentProject && state.project.currentProject.balance
     }
 )
 

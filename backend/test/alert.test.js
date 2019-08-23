@@ -92,28 +92,6 @@ describe('Alert API', function () {
             });
         });
 
-        it('should create alert and balance should be deducted', function (done) {
-            var authorization = `Basic ${token}`;
-            ProjectModel.findByIdAndUpdate(projectId, { balance: 100 }, { new: true }, function (err, project) {
-                var balanceBeforeAlert = project.balance;
-                request.post(`/alert/${projectId}`).set('Authorization', authorization)
-                    .send({
-                        monitorId,
-                        alertVia: 'call',
-                        incidentId: incidentId
-                    }).end(function (err, res) {
-                        alertId = res.body._id;
-                        expect(res).to.have.status(200);
-                        expect(res.body).to.be.an('object');
-                        ProjectModel.findById(projectId, function (err, project) {
-                            var balanceAfterAlert = project.balance;
-                            expect(balanceBeforeAlert).to.be.greaterThan(balanceAfterAlert);
-                            done();
-                        })
-                    });
-            });
-        });
-
         it('should get an array of alerts by valid projectId', function (done) {
             var authorization = `Basic ${token}`;
             request.get(`/alert/${projectId}/alert`).set('Authorization', authorization).end(function (err, res) {
