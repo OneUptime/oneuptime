@@ -6,22 +6,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fyipe
+  name: dashboard
   labels:
-    app: fyipe
+    app: dashboard
 spec:
   selector:
     matchLabels:
-      app: fyipe
+      app: dashboard
   replicas: 1
   template:
     metadata:
       labels:
-        app: fyipe
+        app: dashboard
     spec:
       containers:
-      - image: localhost:32000/fyipe:master
-        name: fyipe
+      - image: localhost:32000/dashboard:master
+        name: dashboard
         imagePullPolicy: Always
         env:
         - name: FYIPE_HOSTED
@@ -29,7 +29,7 @@ spec:
         ports:
         - containerPort: 3000
           hostPort: 3000
-          name: fyipe
+          name: dashboard
       restartPolicy: Always
       imagePullSecrets:
       - name: gitlabcredv2
@@ -39,15 +39,15 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: fyipe
-  name: fyipe
+    app: dashboard
+  name: dashboard
 spec:
   ports:
   - port: 80
     protocol: TCP
     targetPort: 3000
   selector:
-    app: fyipe
+    app: dashboard
   type: LoadBalancer
 ---
 
@@ -104,22 +104,22 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fyipe-backend
+  name: backend
   labels:
-    app: fyipe-backend
+    app: backend
 spec:
   selector:
     matchLabels:
-      app: fyipe-backend
+      app: backend
   replicas: 1
   template:
     metadata:
       labels:
-        app: fyipe-backend
+        app: backend
     spec:
       containers:
-      - image: localhost:32000/fyipe-backend:master
-        name: fyipe-backend
+      - image: localhost:32000/backend:master
+        name: backend
         imagePullPolicy: Always
         env:
         - name: FYIPE_HOSTED
@@ -153,7 +153,7 @@ spec:
         ports:
         - containerPort: 3001
           hostPort: 3001
-          name: fyipe-backend
+          name: backend
       restartPolicy: Always
       imagePullSecrets:
       - name: gitlabcredv2
@@ -163,37 +163,37 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: fyipe-backend
-  name: fyipe-backend
+    app: backend
+  name: backend
 spec:
   ports:
   - port: 80
     protocol: TCP
     targetPort: 3001
   selector:
-    app: fyipe-backend
+    app: backend
   type: LoadBalancer
 ---
 # Fyipe Home
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fyipe-home
+  name: home
   labels:
-    app: fyipe-home
+    app: home
 spec:
   selector:
     matchLabels:
-      app: fyipe-home
+      app: home
   replicas: 1
   template:
     metadata:
       labels:
-        app: fyipe-home
+        app: home
     spec:
       containers:
-      - image: localhost:32000/fyipe-home:master
-        name: fyipe-home
+      - image: localhost:32000/home:master
+        name: home
         imagePullPolicy: Always
         env:
         - name: FYIPE_HOSTED
@@ -201,7 +201,7 @@ spec:
         ports:
         - containerPort: 1444
           hostPort: 1444
-          name: fyipe-home
+          name: home
       restartPolicy: Always
       imagePullSecrets:
       - name: gitlabcredv2
@@ -210,15 +210,15 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: fyipe-home
-  name: fyipe-home
+    app: home
+  name: home
 spec:
   ports:
   - port: 80
     protocol: TCP
     targetPort: 1444
   selector:
-    app: fyipe-home
+    app: home
   type: LoadBalancer
 ---
 apiVersion: apps/v1
