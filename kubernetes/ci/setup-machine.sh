@@ -55,6 +55,8 @@ echo "RUNNING COMMAND: microk8s.enable registry"
 microk8s.enable registry
 echo "RUNNING COMMAND: microk8s.enable dns"
 microk8s.enable dns
+echo "RUNNING COMMAND: iptables -P FORWARD ACCEPT"
+iptables -P FORWARD ACCEPT
 echo "RUNNING COMMAND: microk8s.enable ingress"
 microk8s.enable ingress
 echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl kubectl"
