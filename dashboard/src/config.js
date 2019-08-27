@@ -10,26 +10,41 @@ let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
 
+// if (!isServer) {
+//     if (window.location.href.indexOf('localhost') > -1) {
+//         apiUrl = 'http://localhost:3002';
+//         dashboardUrl = 'http://localhost:3000';
+//         accountsUrl = 'http://localhost:3003';
+//         domain = 'localhost';
+//     } else if (window.location.href.indexOf('staging') > -1) {
+//         apiUrl = 'https://staging-api.fyipe.com';
+//         dashboardUrl = 'http://staging-dashboard.fyipe.com';
+//         accountsUrl = 'http://staging-accounts.fyipe.com';
+//         domain = 'fyipe.com';
+//     } else {
+//         apiUrl = 'https://api.fyipe.com';
+//         dashboardUrl = 'https://fyipe.com';
+//         accountsUrl = 'https://accounts.fyipe.com';
+//         domain = 'fyipe.com';
+//     }
+// }
+
+
 if (!isServer) {
     if (window.location.href.indexOf('localhost') > -1) {
         apiUrl = 'http://localhost:3002';
         dashboardUrl = 'http://localhost:3000';
         accountsUrl = 'http://localhost:3003';
         domain = 'localhost';
-    } else if (window.location.href.indexOf('staging') > -1) {
-        apiUrl = 'https://staging-api.fyipe.com';
-        dashboardUrl = 'http://staging-dashboard.fyipe.com';
-        accountsUrl = 'http://staging-accounts.fyipe.com';
-        domain = 'fyipe.com';
     } else {
-        apiUrl = 'https://api.fyipe.com';
-        dashboardUrl = 'https://fyipe.com';
-        accountsUrl = 'https://accounts.fyipe.com';
-        domain = 'fyipe.com';
+        apiUrl = 'http://backend:3002';
+        dashboardUrl = 'http://dashboard:3000';
+        accountsUrl = 'http://accounts:3003';
+        domain = 'local';
     }
-
-
 }
+
+
 
 export const API_URL = apiUrl;
 

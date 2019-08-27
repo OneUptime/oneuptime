@@ -27,11 +27,11 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: HOST
-          value: dashboard
+          value: "dashboard"
         - name: ACCOUNTS_HOST
-          value: accounts
+          value: "accounts"
         - name: BACKEND_HOST
-          value: backend
+          value: "backend"
         ports:
         - containerPort: 3000
           hostPort: 3000
@@ -82,11 +82,11 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: HOST
-          value: accounts
+          value: "accounts"
         - name: BACKEND_HOST
-          value: backend
+          value: "backend"
         - name: DASHBOARD_HOST
-          value: dashboard
+          value: "dashboard"
         ports:
         - containerPort: 3003
           hostPort: 3003
@@ -145,7 +145,7 @@ spec:
         - name: STRIPE_PRIVATE_KEY
           value: "sk_test_YxwnzywggtAd8jDaHecNmHiN"
         - name: PORT
-          value: "3001"
+          value: "3002"
         - name: MAIL_USER
           value: "testmail@fyipe.com"
         - name: MAIL_PASSWORD
@@ -163,8 +163,8 @@ spec:
         - name: EMAIL_VERIFY_TIME
           value: "3600"
         ports:
-        - containerPort: 3001
-          hostPort: 3001
+        - containerPort: 3002
+          hostPort: 3002
           name: backend
       restartPolicy: Always
       imagePullSecrets:
@@ -181,7 +181,7 @@ spec:
   ports:
   - port: 80
     protocol: TCP
-    targetPort: 3001
+    targetPort: 3002 
   selector:
     app: backend
   type: LoadBalancer
@@ -211,13 +211,13 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: HOST
-          value: home
+          value: "home"
         - name: BACKEND_HOST
-          value: backend
+          value: "backend"
         - name: ACCOUNTS_HOST
-          value: accounts
+          value: "accounts"
         - name: DASHBOARD_HOST
-          value: dashboard
+          value: "dashboard"
         ports:
         - containerPort: 1444
           hostPort: 1444
@@ -265,13 +265,13 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: HOST
-          value: statusspage
+          value: "statuspage"
         - name: BACKEND_HOST
-          value: backend
+          value: "backend"
         - name: ACCOUNTS_HOST
-          value: accounts
+          value: "accounts"
         - name: DASHBOARD_HOST
-          value: dashboard
+          value: "dashboard"
         ports:
         - containerPort: 3006
           hostPort: 3006
