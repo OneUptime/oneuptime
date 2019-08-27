@@ -174,7 +174,19 @@ e2e_test:
    - ./kubernetes/ci/setup-machine.sh
    - chmod +x ./kubernetes/ci/setup.sh
    - ./kubernetes/ci/setup.sh
-   - BACKEND_CONTAINER_NAME=`sudo kubectl get pods -l app=backend -o custom-columns=:metadata.name`
+   - export ACCOUNTS_URL=`sudo kubectl describe svc accounts | grep Endpoints | cut -d ":" -f 2`
+   - export BACKEND_URL=`sudo kubectl describe svc backend | grep Endpoints | cut -d ":" -f 2`
+   - export DASHBOARD_URL=`sudo kubectl describe svc dashboard | grep Endpoints | cut -d ":" -f 2`
+   - export HOME_URL=`sudo kubectl describe svc home | grep Endpoints | cut -d ":" -f 2`
+   - export STATUSPAGE_URL=`sudo kubectl describe svc status-page | grep Endpoints | cut -d ":" -f 2`
+   - echo ACCOUNTS_URL=$ACCOUNTS_URL
+   - echo BACKEND_URL=$BACKEND_URL
+   - echo DASHBOARD_URL=$DASHBOARD_URL
+   - echo HOME_URL=$HOME_URL
+   - echo STATUSPAGE_URL=$STATUSPAGE_URL
+   - chmod +x ./kubernetes/ci/hosts-setup.sh
+   - ./kubernetes/ci/hosts-setup.sh
+
   only:
     refs:
       - release
