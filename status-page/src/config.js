@@ -20,13 +20,9 @@ if (!isServer) {
     if (window.location.href.indexOf('localhost') > -1) {
         apiUrl = 'http://localhost:3002';
         dashboardUrl = 'http://localhost:3000';
-        accountsUrl = 'http://localhost:3003';
-        domain = 'localhost';
     } else {
         apiUrl = 'http://backend:3002';
         dashboardUrl = 'http://dashboard:3000';
-        accountsUrl = 'http://accounts:3003';
-        domain = 'local';
     }
 }
 
