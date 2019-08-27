@@ -12,7 +12,7 @@ let accountsUrl = null;
 let domain = null;
 
 function getEnvVars(){
-    env = axios.get('http://localhost:3000/env')
+    axios.get('http://localhost:3000/env')
     .then(resp => resp.data)
     .then(env => {
         if (!isServer) {

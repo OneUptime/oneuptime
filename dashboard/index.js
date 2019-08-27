@@ -5,6 +5,7 @@ const app = express();
 app.use(express.static(path.join(__dirname, 'build')));
 
 var env = {
+  TEST: 'TEST',
   FYIPE_HOSTED: process.env.FYIPE_HOSTED,
   HOST: process.env.HOST,
   ACCOUNTS_HOST: process.env.ACCOUNTS_HOST,
