@@ -26,6 +26,12 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: dashboard
+        - name: ACCOUNTS_HOST
+          value: accounts
+        - name: BACKEND_HOST
+          value: backend
         ports:
         - containerPort: 3000
           hostPort: 3000
@@ -75,6 +81,12 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: accounts
+        - name: BACKEND_HOST
+          value: backend
+        - name: DASHBOARD_HOST
+          value: dashboard
         ports:
         - containerPort: 3003
           hostPort: 3003
@@ -198,6 +210,14 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: home
+        - name: BACKEND_HOST
+          value: backend
+        - name: ACCOUNTS_HOST
+          value: accounts
+        - name: DASHBOARD_HOST
+          value: dashboard
         ports:
         - containerPort: 1444
           hostPort: 1444
@@ -244,6 +264,14 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: statusspage
+        - name: BACKEND_HOST
+          value: backend
+        - name: ACCOUNTS_HOST
+          value: accounts
+        - name: DASHBOARD_HOST
+          value: dashboard
         ports:
         - containerPort: 3006
           hostPort: 3006

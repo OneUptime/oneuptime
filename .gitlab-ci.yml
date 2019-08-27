@@ -186,6 +186,9 @@ e2e_test:
    - echo STATUSPAGE_URL=$STATUSPAGE_URL
    - chmod +x ./kubernetes/ci/hosts-setup.sh
    - ./kubernetes/ci/hosts-setup.sh
+   - cd smoke-test
+   - npm i 
+   - npm run test
 
   only:
     refs:
