@@ -9,7 +9,11 @@ user.expiryDate = '12/23';
 user.message = 'Test message'
 
 const puppeteerLaunchConfig = {
-    headless: true
+    headless: true,
+    args: [
+        'no-sandbox',
+        'disable-setuid-sandbox',
+    ]
 }
 
 const HOME_URL = process.env.HOME_URL ?  'http://home:1444' : 'http://localhost:1444';

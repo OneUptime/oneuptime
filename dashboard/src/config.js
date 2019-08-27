@@ -3,12 +3,37 @@ import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
 import { isServer } from './store';
-import FileSaver from 'file-saver'
+import FileSaver from 'file-saver';
+import axios from 'axios';
 
 let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
+
+function getEnvVars(){
+    env = axios.get('http://localhost:3000/env')
+    .then(resp => resp.data)
+    .then(env => {
+        if (!isServer) {
+            console.log(env);
+            if (window.location.href.indexOf('localhost') > -1) {
+                apiUrl = 'http://localhost:3002';
+                dashboardUrl = 'http://localhost:3000';
+                accountsUrl = 'http://localhost:3003';
+                domain = 'localhost';
+            } else {
+                apiUrl = env.BACKEND_HOST;
+                dashboardUrl = env.HOST;
+                accountsUrl = env.ACCOUNTS_HOST;
+                domain = 'local';
+            }
+        }
+    })
+    .catch(err => {
+        console.log(err)
+    })
+}
 
 // if (!isServer) {
 //     if (window.location.href.indexOf('localhost') > -1) {
@@ -29,22 +54,7 @@ let domain = null;
 //     }
 // }
 
-
-if (!isServer) {
-    if (window.location.href.indexOf('localhost') > -1) {
-        apiUrl = 'http://localhost:3002';
-        dashboardUrl = 'http://localhost:3000';
-        accountsUrl = 'http://localhost:3003';
-        domain = 'localhost';
-    } else {
-        apiUrl = 'http://backend:3002';
-        dashboardUrl = 'http://dashboard:3000';
-        accountsUrl = 'http://accounts:3003';
-        domain = 'local';
-    }
-}
-
-
+getEnvVars();
 
 export const API_URL = apiUrl;
 

@@ -27,11 +27,11 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: HOST
-          value: "dashboard"
+          value: "dashboard:3000"
         - name: ACCOUNTS_HOST
-          value: "accounts"
+          value: "accounts:3003"
         - name: BACKEND_HOST
-          value: "backend"
+          value: "backend:3002"
         ports:
         - containerPort: 3000
           hostPort: 3000
