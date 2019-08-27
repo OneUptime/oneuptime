@@ -16,14 +16,13 @@ let dashboardUrl = null;
 //     dashboardUrl = 'https://fyipe.com';
 // }
 
-if (!isServer) {
-    if (window.location.href.indexOf('localhost') > -1) {
-        apiUrl = 'http://localhost:3002';
-        dashboardUrl = 'http://localhost:3000';
-    } else {
-        apiUrl = 'http://backend:3002';
-        dashboardUrl = 'http://dashboard:3000';
-    }
+
+if (window.location.href.indexOf('localhost') > -1) {
+    apiUrl = 'http://localhost:3002';
+    dashboardUrl = 'http://localhost:3000';
+} else {
+    apiUrl = 'http://backend:3002';
+    dashboardUrl = 'http://dashboard:3000';
 }
 
 
