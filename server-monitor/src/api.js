@@ -1,4 +1,5 @@
 const axios = require('axios');
+const si = require('systeminformation');
 const { apiUrl } = require('./config');
 
 const postApi = (url, data) => {

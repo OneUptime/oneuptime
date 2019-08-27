@@ -19,7 +19,8 @@
     "inquirer": "^6.2.1",
     "node-cron": "^2.0.3",
     "os-utils": "0.0.14",
-    "q": "^1.5.1"
+    "q": "^1.5.1",
+    "systeminformation": "^4.14.8"
   },
   "keywords": [
     "fyipe",
