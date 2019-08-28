@@ -10,7 +10,7 @@ module.exports = {
 
         if (!query) query = {};
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
 
         try{
             var schedules = await ScheduleModel.find(query)
@@ -39,7 +39,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var schedule = await ScheduleModel.findOne(query)
                 .sort([['createdAt', -1]])
@@ -98,7 +98,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var count = await ScheduleModel.count(query);
         }catch(error){
@@ -164,7 +164,7 @@ module.exports = {
             }
         } else {
             try{
-                var schedule = await _this.findOneBy({ _id: data._id });
+                var schedule = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
             }catch(error){
                 ErrorService.log('ScheduleService.findOneBy', error);
                 throw error;
@@ -348,6 +348,37 @@ module.exports = {
         }
         return 'Schedule(s) removed successfully';
     },
+
+    restoreBy: async function (query) {
+        const _this = this;
+        query.deleted = true;
+        let schedule = await _this.findBy(query);
+        if(schedule && schedule.length > 1){
+            const schedules = await Promise.all(schedule.map(async (schedule) => {
+                const scheduleId = schedule._id;
+                schedule = await _this.update({_id: scheduleId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await EscalationService.restoreBy({scheduleId, deleted: true});
+                return schedule;
+            }));
+            return schedules;
+        }else{
+            schedule = schedule[0];
+            if(schedule){
+                const scheduleId = schedule._id;
+                schedule = await _this.update({_id: scheduleId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await EscalationService.restoreBy({scheduleId, deleted: true});
+            }
+            return schedule;
+        }
+    }
 };
 
 var ScheduleModel = require('../models/schedule');

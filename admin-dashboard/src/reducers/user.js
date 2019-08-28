@@ -12,7 +12,22 @@ import {
     DELETE_USER_FAILED,
     DELETE_USER_REQUEST,
     DELETE_USER_RESET,
-    DELETE_USER_SUCCESS
+    DELETE_USER_SUCCESS,
+
+    RESTORE_USER_FAILED,
+    RESTORE_USER_REQUEST,
+    RESTORE_USER_RESET,
+    RESTORE_USER_SUCCESS,
+
+    BLOCK_USER_FAILED,
+    BLOCK_USER_REQUEST,
+    BLOCK_USER_RESET,
+    BLOCK_USER_SUCCESS,
+
+    UNBLOCK_USER_FAILED,
+    UNBLOCK_USER_REQUEST,
+    UNBLOCK_USER_RESET,
+    UNBLOCK_USER_SUCCESS,
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -32,6 +47,21 @@ const INITIAL_STATE = {
         data: {}
     },
     deleteUser: {
+        error: null,
+        requesting: false,
+        success: false
+    },
+    restoreUser: {
+        error: null,
+        requesting: false,
+        success: false
+    },
+    blockUser: {
+        error: null,
+        requesting: false,
+        success: false
+    },
+    unblockUser: {
         error: null,
         requesting: false,
         success: false
@@ -142,10 +172,7 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: state.users.users.map(user => {
-                        user.deleted = user._id === action.payload.userId ? true : user.deleted;
-                        return user;
-                    }),
+                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
                     count: state.users.count,
                     limit: state.users.limit,
                     skip: state.users.skip
@@ -173,6 +200,141 @@ export default function user(state = INITIAL_STATE, action) {
         case DELETE_USER_RESET:
             return Object.assign({}, state, {
                 deleteUser: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                }
+            });
+
+        case RESTORE_USER_SUCCESS:
+            return Object.assign({}, state, {
+                restoreUser: {
+                    requesting: false,
+                    success: true,
+                    error: null
+                },
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
+                    count: state.users.count,
+                    limit: state.users.limit,
+                    skip: state.users.skip
+                }
+            });
+
+        case RESTORE_USER_REQUEST:
+            return Object.assign({}, state, {
+                restoreUser: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case RESTORE_USER_FAILED:
+            return Object.assign({}, state, {
+                restoreUser: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case RESTORE_USER_RESET:
+            return Object.assign({}, state, {
+                restoreUser: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                }
+            });
+
+        case BLOCK_USER_SUCCESS:
+            return Object.assign({}, state, {
+                blockUser: {
+                    requesting: false,
+                    success: true,
+                    error: null
+                },
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
+                    count: state.users.count,
+                    limit: state.users.limit,
+                    skip: state.users.skip
+                }
+            });
+    
+        case BLOCK_USER_REQUEST:
+            return Object.assign({}, state, {
+                blockUser: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case BLOCK_USER_FAILED:
+            return Object.assign({}, state, {
+                blockUser: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case BLOCK_USER_RESET:
+            return Object.assign({}, state, {
+                blockUser: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                }
+            });
+
+        case UNBLOCK_USER_SUCCESS:
+            return Object.assign({}, state, {
+                unblockUser: {
+                    requesting: false,
+                    success: true,
+                    error: null
+                },
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
+                    count: state.users.count,
+                    limit: state.users.limit,
+                    skip: state.users.skip
+                }
+            });
+
+        case UNBLOCK_USER_REQUEST:
+            return Object.assign({}, state, {
+                unblockUser: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case UNBLOCK_USER_FAILED:
+            return Object.assign({}, state, {
+                unblockUser: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case UNBLOCK_USER_RESET:
+            return Object.assign({}, state, {
+                unblockUser: {
                     requesting: false,
                     success: false,
                     error: null,

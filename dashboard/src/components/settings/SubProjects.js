@@ -68,9 +68,8 @@ export class SubProjects extends Component {
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 <FieldArray 
-
-                                                name="subProjects" 
-                                                component={SubProject} 
+                                                    name="subProjects" 
+                                                    component={SubProject} 
                                                 />
                                             </div>
                                         </fieldset>

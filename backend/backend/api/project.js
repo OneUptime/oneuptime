@@ -206,33 +206,6 @@ router.get('/projects', getUser, async function (req, res) {
     }
 });
 
-router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function (req, res) {
-    let userId = req.params.userId;
-    let skip = req.query.skip || 0;
-    let limit = req.query.limit || 10;
-    try{
-        const { projects, count } = await ProjectService.getUserProjects(userId, skip, limit);
-        return sendListResponse(req, res, projects, count);
-    }catch(error){
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (req, res) {
-    const skip = req.query.skip || 0;
-    const limit = req.query.limit || 10;
-    // try{
-    const projects = await ProjectService.getAllProjects(skip, limit);
-    const count = await ProjectService.countBy({ parentProjectId: null });
-    return sendListResponse(req, res, projects, count);
-    // }catch(error){
-    //     return sendErrorResponse(req, res, {
-    //         code: 500,
-    //         message: 'Server Error'
-    //     });
-    // }
-});
-
 // Description: Resetting the API key of a project.
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {projectId};
@@ -599,6 +572,108 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function (req
         return sendListResponse(req, res, subProjects, count);
     }catch(error){
         return sendErrorResponse(req, res, error);
+    }
+
+});
+
+router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function (req, res) {
+    let userId = req.params.userId;
+    let skip = req.query.skip || 0;
+    let limit = req.query.limit || 10;
+    try{
+        const { projects, count } = await ProjectService.getUserProjects(userId, skip, limit);
+        return sendListResponse(req, res, projects, count);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (req, res) {
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+    try{
+        const projects = await ProjectService.getAllProjects(skip, limit);
+        const count = await ProjectService.countBy({ parentProjectId: null, deleted: { $ne: null } });
+        return sendListResponse(req, res, projects, count);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async function (req, res){
+    const projectId = req.params.projectId;
+    try{
+        const project = await ProjectService.update({_id: projectId, isBlocked: true});
+        return sendItemResponse(req, res, project);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:projectId/unblockProject', getUser, isUserMasterAdmin, async function (req, res){
+    const projectId = req.params.projectId;
+    try{
+        const project = await ProjectService.update({_id: projectId, isBlocked: false});
+        return sendItemResponse(req, res, project);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:projectId/restoreProject', getUser, isUserMasterAdmin, async function (req, res){
+    const projectId = req.params.projectId;
+    try{
+        const project = await ProjectService.restoreBy({ _id: projectId, deleted: true });
+        return sendItemResponse(req, res, project);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (req, res){
+
+    if(Array.isArray(req.body)){
+        let data = [];
+        if(req.body.length > 0){
+            for(let val of req.body){
+                if(!val._id){
+                    // Sanitize
+                    if (!val.note) {
+                        return sendErrorResponse( req, res, {
+                            code: 400,
+                            message: 'Admin note must be present.'
+                        });
+                    }
+        
+                    if (typeof val.note !== 'string') {
+                        return sendErrorResponse( req, res, {
+                            code: 400,
+                            message: 'Admin note is not in string format.'
+                        });
+                    }
+                }
+                data.push(val);
+            }
+        
+            try{
+                let adminNotes = await ProjectService.addNotes(data);
+                return sendItemResponse(req, res, adminNotes);
+            }catch(error){
+                return sendErrorResponse(req, res, error);
+            }
+        }else{
+            try{
+                let adminNotes = await ProjectService.addNotes(data);
+                return sendItemResponse(req, res, adminNotes);
+            }catch(error){
+                return sendErrorResponse(req, res, error);
+            }
+        }
+    }else{
+        return sendErrorResponse( req, res, {
+            code: 400,
+            message: 'Admin notes are expected in array format.'
+        });
     }
 
 });

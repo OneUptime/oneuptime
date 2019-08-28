@@ -15,6 +15,10 @@ class Users extends Component {
         }
     }
 
+    ready = () => {
+        this.props.fetchUsers();
+    }
+
     prevClicked = (skip, limit) => {
         this.props.fetchUsers((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
     }
@@ -33,7 +37,7 @@ class Users extends Component {
             canPrev = false;
         }
         return (
-            <Dashboard>
+            <Dashboard ready={this.ready}>
                 <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
                     <div>
                         <div>

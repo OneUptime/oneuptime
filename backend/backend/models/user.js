@@ -45,6 +45,10 @@ var userSchema = new Schema({
         type: String,
         enum: ['master-admin']
     },
+    isBlocked: {
+        type: Boolean,
+        default: false
+    },
 
     deleted: { type: Boolean, default: false},
     
