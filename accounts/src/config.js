@@ -29,20 +29,29 @@ let adminDashboardUrl = null;
 
 
 // }
-
-if (!isServer) {
-    if (window.location.href.indexOf('localhost') > -1) {
-        apiUrl = 'http://localhost:3002';
-        dashboardUrl = 'http://localhost:3000';
-        domain = 'localhost';
-        adminDashboardUrl = 'http://localhost:3100';
-    } else {
-        apiUrl = 'http://backend:3002';
-        dashboardUrl = 'http://dashboard:3000';
-        domain = 'local';
-    }
+function getEnvVars(){
+    axios.get('http://localhost:3003/env')
+    .then(resp => resp.data)
+    .then(env => {
+        if (!isServer) {
+            if (window.location.href.indexOf('localhost') > -1) {
+                apiUrl = 'http://localhost:3002';
+                dashboardUrl = 'http://localhost:3000';
+                domain = 'localhost';
+                adminDashboardUrl = 'http://localhost:3100';
+            } else {
+                domain = 'local';
+                apiUrl = env.BACKEND_HOST;
+                dashboardUrl = env.DASHBOARD_HOST;
+            }
+        }
+    })
+    .catch(err => {
+        console.log(err)
+    })
 }
 
+getEnvVars();
 
 export const API_URL = apiUrl;
 
