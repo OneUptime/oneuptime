@@ -5,6 +5,7 @@ import valid from 'card-validator';
 import { isServer } from './store';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
+import axios from 'axios';
 
 let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
