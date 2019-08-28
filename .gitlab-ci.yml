@@ -179,6 +179,7 @@ e2e_test:
    - export DASHBOARD_URL=`sudo kubectl describe svc dashboard | grep Endpoints | cut -d ":" -f 2`
    - export HOME_URL=`sudo kubectl describe svc home | grep Endpoints | cut -d ":" -f 2`
    - export STATUSPAGE_URL=`sudo kubectl describe svc status-page | grep Endpoints | cut -d ":" -f 2`
+   - export APIDOCS_URL=`sudo kubectl describe svc api-docs | grep Endpoints | cut -d ":" -f 2`
    - echo ACCOUNTS_URL=$ACCOUNTS_URL
    - echo BACKEND_URL=$BACKEND_URL
    - echo DASHBOARD_URL=$DASHBOARD_URL

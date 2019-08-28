@@ -6,5 +6,7 @@ sudo sed -i '/backend/c\' /etc/hosts
 echo $BACKEND_URL'      backend' | sudo tee -a /etc/hosts
 sudo sed -i '/home/c\' /etc/hosts
 echo $HOME_URL'      home' | sudo tee -a /etc/hosts
-sudo sed -i '/statuspage/c\' /etc/hosts
-echo $STATUSPAGE_URL'      statuspage' | sudo tee -a /etc/hosts
+sudo sed -i '/status-page/c\' /etc/hosts
+echo $STATUSPAGE_URL'      status-page' | sudo tee -a /etc/hosts
+sudo sed -i '/api-docs/c\' /etc/hosts
+echo $APIDOCS_URL'      api-docs' | sudo tee -a /etc/hosts

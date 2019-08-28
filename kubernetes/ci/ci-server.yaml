@@ -112,6 +112,61 @@ spec:
   type: LoadBalancer
 ---
 
+# Fyipe API docs Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-docs
+  labels:
+    app: api-docs
+spec:
+  selector:
+    matchLabels:
+      app: api-docs
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: api-docs
+    spec:
+      containers:
+      - image: localhost:32000/api-docs:master
+        name: api-docs
+        imagePullPolicy: Always
+        env:
+        - name: FYIPE_HOSTED
+          value: "true"
+        - name: HOST
+          value: "accounts"
+        - name: BACKEND_HOST
+          value: "backend"
+        - name: DASHBOARD_HOST
+          value: "dashboard"
+        ports:
+        - containerPort: 1445
+          hostPort: 1445
+          name: api-docs
+      restartPolicy: Always
+      imagePullSecrets:
+      - name: gitlabcredv2
+---
+# Fyipe API docs Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: api-docs
+  name: api-docs
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 1445
+  selector:
+    app: api-docs
+  type: LoadBalancer
+---
+
 # Fyipe Backend Deployment
 apiVersion: apps/v1
 kind: Deployment
