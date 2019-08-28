@@ -15,7 +15,7 @@ import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin
 import { mapCriteria } from '../config';
 
 class MonitorView extends React.Component {
-
+  // eslint-disable-next-line
   constructor(props) {
     super(props);
   }

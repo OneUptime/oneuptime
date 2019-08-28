@@ -94,11 +94,11 @@ const mapStateToProps = (state, props) => {
 
 	const { projects } = state.project.projects;
 
-	const project = projects != undefined && projects.length > 0 ? projects.filter(
+	const project = projects !== undefined && projects.length > 0 ? projects.filter(
 		project => project._id === projectId
 	)[0] : [];
 
-	const nextProject = projects != undefined && projects.length > 0 ? projects.filter(
+	const nextProject = projects !== undefined && projects.length > 0 ? projects.filter(
 		project => project._id !== projectId
 	)[0] : {};
 
