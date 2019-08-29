@@ -5,11 +5,31 @@ import valid from 'card-validator';
 import { isServer } from './store';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
+import env from "@beam-australia/react-env";
 
 let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
+
+// if (!isServer) {
+//     if (window.location.href.indexOf('localhost') > -1) {
+//         apiUrl = 'http://localhost:3002';
+//         dashboardUrl = 'http://localhost:3000';
+//         domain = 'localhost';
+//         adminDashboardUrl = 'http://localhost:3100';
+//     } else if (window.location.href.indexOf('staging') > -1) {
+//         apiUrl = 'https://staging-api.fyipe.com';
+//         dashboardUrl = 'http://staging-dashboard.fyipe.com';
+//         domain = 'fyipe.com';
+//     } else {
+//         apiUrl = 'https://api.fyipe.com';
+//         dashboardUrl = 'https://dashboard.fyipe.com';
+//         domain = 'fyipe.com';
+//     }
+
+
+// }
 
 if (!isServer) {
     if (window.location.href.indexOf('localhost') > -1) {
@@ -17,21 +37,11 @@ if (!isServer) {
         dashboardUrl = 'http://localhost:3000';
         domain = 'localhost';
         adminDashboardUrl = 'http://localhost:3100';
-    } else if (window.location.href.indexOf('accounts:3003') > -1) {
-        apiUrl = 'http://backend:3002';
-        dashboardUrl = 'http://dashboard:3000';
-        domain = 'local';
-    } else if (window.location.href.indexOf('staging') > -1) {
-        apiUrl = 'https://staging-api.fyipe.com';
-        dashboardUrl = 'http://staging-dashboard.fyipe.com';
-        domain = 'fyipe.com';
-    } else {
-        apiUrl = 'https://api.fyipe.com';
-        dashboardUrl = 'https://dashboard.fyipe.com';
-        domain = 'fyipe.com';
+    } else if (env('BACKEND_HOST')) {
+        apiUrl = env('BACKEND_HOST');
+        dashboardUrl = env('DASHBOARD_HOST');
+        domain = 'host';
     }
-
-
 }
 
 export const API_URL = apiUrl;
