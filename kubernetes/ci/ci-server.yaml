@@ -82,11 +82,11 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: HOST
-          value: "http://accounts"
+          value: "http://accounts:3003"
         - name: BACKEND_HOST
-          value: "http://backend"
+          value: "http://backend:3002"
         - name: DASHBOARD_HOST
-          value: "http://dashboard"
+          value: "http://dashboard:3000"
         ports:
         - containerPort: 3003
           hostPort: 3003
