@@ -5,7 +5,7 @@ import valid from 'card-validator';
 import { isServer } from './store';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
-import env from "@beam-australia/react-env";
+import env from '@beam-australia/react-env';
 
 let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
