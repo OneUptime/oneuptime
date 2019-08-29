@@ -13,6 +13,10 @@ var env = {
 
 fs.writeFileSync('.env', envfile.stringifySync(env));
 
+var reactEnv = require('@beam-australia/react-env');
+
+reactEnv.apply();
+
 app.use(express.static(path.join(__dirname, 'build')));
 
 app.get('/*', function (req, res) {
