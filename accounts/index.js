@@ -3,6 +3,7 @@ const path = require('path');
 const app = express();
 const envfile = require('envfile');
 const fs = require('fs');
+var child_process = require('child_process');
 
 var env = {
   REACT_APP_FYIPE_HOSTED: process.env.FYIPE_HOSTED,
@@ -13,9 +14,9 @@ var env = {
 
 fs.writeFileSync('.env', envfile.stringifySync(env));
 
-var reactEnv = require('@beam-australia/react-env');
-
-reactEnv.apply();
+child_process.execSync("react-env", {
+  stdio: [0, 1, 2]
+});
 
 app.use(express.static(path.join(__dirname, 'build')));
 
