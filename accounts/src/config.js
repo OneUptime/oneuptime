@@ -13,7 +13,6 @@ let adminDashboardUrl = null;
 
 
 function env(value) {
-    console.log(window._env);
     var { _env } = window;
     return _env[`REACT_APP_${value}`];
 }
