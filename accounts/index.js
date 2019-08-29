@@ -2,7 +2,6 @@ const express = require('express');
 const path = require('path');
 const app = express();
 const envfile = require('envfile');
-const sourcePath = '.env';
 const fs = require('fs');
 
 var env = {
@@ -12,9 +11,7 @@ var env = {
   REACT_APP_BACKEND_HOST: process.env.BACKEND_HOST
 }
 
-let parsedFile = envfile.parseFileSync(sourcePath);
-parsedFile = env;
-fs.writeFileSync('./.env', envfile.stringifySync(parsedFile));
+fs.writeFileSync('.env', envfile.stringifySync(env));
 
 app.use(express.static(path.join(__dirname, 'build')));
 
