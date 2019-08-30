@@ -27,11 +27,11 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: HOST
-          value: "dashboard:3000"
+          value: "http://dashboard:3000"
         - name: ACCOUNTS_HOST
-          value: "accounts:3003"
+          value: "http://accounts:3003"
         - name: BACKEND_HOST
-          value: "backend:3002"
+          value: "http://backend:3002"
         ports:
         - containerPort: 3000
           hostPort: 3000
@@ -217,6 +217,8 @@ spec:
           value: "testmail@fyipe.com"
         - name: EMAIL_VERIFY_TIME
           value: "3600"
+        - name: MAIL_SECURE
+          value: "false"
         ports:
         - containerPort: 3002
           hostPort: 3002
