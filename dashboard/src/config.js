@@ -4,36 +4,12 @@ import validUrl from 'valid-url';
 import valid from 'card-validator';
 import { isServer } from './store';
 import FileSaver from 'file-saver';
-import axios from 'axios';
 
 let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
 
-function getEnvVars(){
-    axios.get('http://localhost:3000/env')
-    .then(resp => resp.data)
-    .then(env => {
-        if (!isServer) {
-            console.log(env);
-            if (window.location.href.indexOf('localhost') > -1) {
-                apiUrl = 'http://localhost:3002';
-                dashboardUrl = 'http://localhost:3000';
-                accountsUrl = 'http://localhost:3003';
-                domain = 'localhost';
-            } else {
-                apiUrl = env.BACKEND_HOST;
-                dashboardUrl = env.HOST;
-                accountsUrl = env.ACCOUNTS_HOST;
-                domain = 'local';
-            }
-        }
-    })
-    .catch(err => {
-        console.log(err)
-    })
-}
 
 // if (!isServer) {
 //     if (window.location.href.indexOf('localhost') > -1) {
@@ -54,7 +30,24 @@ function getEnvVars(){
 //     }
 // }
 
-getEnvVars();
+function env(value) {
+    var { _env } = window;
+    return _env[`REACT_APP_${value}`];
+}
+
+if (!isServer) {
+    if (window.location.href.indexOf('localhost') > -1) {
+        apiUrl = 'http://localhost:3002';
+        dashboardUrl = 'http://localhost:3000';
+        accountsUrl = 'http://localhost:3003';
+        domain = 'localhost';
+    } else if (env('BACKEND_HOST')) {
+        apiUrl = env('BACKEND_HOST');
+        dashboardUrl = env('HOST');
+        accountsUrl = env('ACCOUNTS_HOST');
+        domain = 'host';
+    }
+}
 
 export const API_URL = apiUrl;
 
