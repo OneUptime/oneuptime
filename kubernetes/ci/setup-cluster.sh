@@ -39,3 +39,7 @@ echo "RUNNING COMMAND: sudo kubectl get storageclass"
 sudo kubectl get storageclass
 echo "RUNNING COMMAND: sudo kubectl cluster-info"
 sudo kubectl cluster-info
+echo "RUNNING COMMAND: sudo kubectl get all --all-namespaces"
+sudo kubectl get all --all-namespaces
+echo "RUNNING COMMAND: sudo cat /etc/hosts"
+sudo cat /etc/hosts
