@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 import ShouldRender from '../basic/ShouldRender';
+import { Field } from 'redux-form';
 
 const AdminNote = ({ fields, meta: { error, submitFailed } }) => {
 
@@ -13,14 +14,15 @@ const AdminNote = ({ fields, meta: { error, submitFailed } }) => {
                                 <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label">Admin Note</label>
                                     <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                        <textarea 
-                                            id={`txtAdminNote${i}`} 
-                                            name={`${val}.note`}  
+                                        <Field
+                                            id={`txtAdminNote${i}`}
                                             rows="5" 
                                             cols="100"
-                                            className="bs-TextArea" 
-                                            type="text">
-                                        </textarea>
+                                            className="bs-TextArea"
+                                            type="text"
+                                            name={`${val}.note`}
+                                            component="textarea"
+                                        />
                                     </div>
                                 </div>
                                 <div className="bs-Fieldset-row">
@@ -55,7 +57,7 @@ const AdminNote = ({ fields, meta: { error, submitFailed } }) => {
                                         id="btnAddAdminNotes"
                                         type="button"
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                        onClick={() => fields.push({name: ''})}
+                                        onClick={() => fields.push({note: ''})}
                                     >
                                         Add Notes
                                     </button>

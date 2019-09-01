@@ -10,7 +10,7 @@ import ProjectRestoreBox from '../components/project/ProjectRestoreBox';
 import ProjectBlockBox from '../components/project/ProjectBlockBox';
 import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
 import AdminNotes from '../components/adminNote/AdminNotes';
-import { addProjectNote } from '../actions/adminNote';
+import { addProjectNote } from '../actions/project';
 
 class Project extends Component {
 

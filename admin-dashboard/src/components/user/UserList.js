@@ -4,10 +4,7 @@ import moment from 'moment';
 
 const UserList = ({ users }) => (
     users.map((user, k)=>{
-        let projects = user.projects || [];
-        let projEval = i => projects.length > i;
-        let userProjects = projEval(0) ? projects[0].name : 'Not Yet Added';
-        userProjects += projEval(1) ? ` and ${projects.length - 1} other${projEval(2) ? 's' : ''}` : '';
+
         return (
             <Link to={`/users/${user._id}`} key={k} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
                                                                             
@@ -19,7 +16,7 @@ const UserList = ({ users }) => (
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle">
                     <div className="bs-ObjectList-cell-row">
-                        { userProjects }
+                    { `${user.projects[0] ? user.projects[0].name : 'Not Added Yet'}`} { (user.projects.length - 1) > 0 ? user.projects.length - 1 > 1 ? `and ${user.projects.length - 1} others` : `and 1 other` : ''}
                     </div>
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle">

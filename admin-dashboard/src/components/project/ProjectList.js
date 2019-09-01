@@ -26,9 +26,6 @@ export class ProjectList extends Component {
             canPrev = false;
         }
 
-        const userInProject = this.props.users.find(user => user._id === this.props.userId);
-        const username = userInProject ? userInProject.name : null;
-        let evalProjectUser = project => this.props.users.find(user => user._id === project.users[0].userId) ? this.props.users.find(user => user._id === project.users[0].userId).name : 'Not Yet Added';
         return (
             <div>
                 <table className="Table">
@@ -73,7 +70,7 @@ export class ProjectList extends Component {
                                                 <a className="db-ListViewItem-link" >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root"><span>{ `${username ? username : evalProjectUser(project)}`} { (project.users.length - 1) > 0 ? `and ${project.users.length - 1} other` : ''}</span></div>
+                                                            <div className="Box-root"><span>{ `${project.users[0].name}`} { (project.users.length - 1) > 0 ? project.users.length - 1 > 1 ? `and ${project.users.length - 1} others` : `and 1 other` : ''}</span></div>
                                                         </span>
                                                     </div>
                                                 </a>

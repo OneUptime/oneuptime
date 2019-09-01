@@ -48,6 +48,7 @@ module.exports = {
         projectModel.parentProjectId = data.parentProjectId || null;
         projectModel.seats = '1';
         projectModel.isBlocked = data.isBlocked || false;
+        projectModel.adminNotes = data.adminNotes || null;
         try{
             var project = await projectModel.save();
         }catch(error){
@@ -179,6 +180,7 @@ module.exports = {
             var seats = data.seats || oldProject.seats;
             var alertEnable = data.alertEnable !== undefined ? data.alertEnable : oldProject.alertEnable;
             var alertOptions = data.alertOptions || oldProject.alertOptions;
+            var adminNotes = data.adminNotes || oldProject.adminNotes;
             
             var isBlocked = oldProject.isBlocked;
             if(typeof data.isBlocked === 'boolean'){
@@ -212,7 +214,8 @@ module.exports = {
                         isBlocked,
                         deleted,
                         deletedById,
-                        deletedAt
+                        deletedAt,
+                        adminNotes
                     }
                 }, {
                     new: true
@@ -484,12 +487,15 @@ module.exports = {
     getAllProjects: async function(skip, limit){
         var _this = this;
         let projects = await _this.findBy({ parentProjectId: null, deleted: { $ne: null } }, limit, skip);
-        // add project monitors
+
         projects = await Promise.all(projects.map(async(project) => {
             // get both sub-project users and project users
-            const users = await TeamService.getTeamMembersBy({parentProjectId: project._id});
-            project.users = users.length > 0 ? users : project.users;
-            return project;
+            let users = await TeamService.getTeamMembersBy({parentProjectId: project._id});
+            if(users.length < 1){
+                users = await TeamService.getTeamMembersBy({_id: project._id});
+            }
+            const projectObj = Object.assign({}, project._doc, { users });
+            return projectObj;
         }));
         return projects;
     },
@@ -576,6 +582,15 @@ module.exports = {
             }
             return project;
         }
+    },
+
+    addNotes: async function(projectId, notes){
+        const _this = this;
+        let adminNotes = (await _this.update({
+            _id: projectId,
+            adminNotes: notes
+        })).adminNotes;
+        return adminNotes;
     },
 };
 

@@ -631,7 +631,7 @@ router.put('/:projectId/restoreProject', getUser, isUserMasterAdmin, async funct
 });
 
 router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (req, res){
-
+    const projectId = req.params.projectId;
     if(Array.isArray(req.body)){
         let data = [];
         if(req.body.length > 0){
@@ -656,14 +656,14 @@ router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (r
             }
         
             try{
-                let adminNotes = await ProjectService.addNotes(data);
+                let adminNotes = await ProjectService.addNotes(projectId, data);
                 return sendItemResponse(req, res, adminNotes);
             }catch(error){
                 return sendErrorResponse(req, res, error);
             }
         }else{
             try{
-                let adminNotes = await ProjectService.addNotes(data);
+                let adminNotes = await ProjectService.addNotes(projectId, data);
                 return sendItemResponse(req, res, adminNotes);
             }catch(error){
                 return sendErrorResponse(req, res, error);

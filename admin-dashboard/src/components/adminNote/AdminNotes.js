@@ -41,7 +41,7 @@ export class AdminNotes extends Component {
 
     submitForm = (values) => {
         if(this.props.projectId){
-            this.props.addNote(this.props.projectId, values);
+            this.props.addNote(this.props.projectId, values.adminNotes);
         }
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Admin Notes Updated', values);
@@ -49,7 +49,7 @@ export class AdminNotes extends Component {
     }
 
     render() {
-        const { handleSubmit, adminNote, requesting } = this.props;
+        const { handleSubmit, requesting } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -82,12 +82,12 @@ export class AdminNotes extends Component {
                             <div>
                                 <button
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                    disabled={this.props.requesting}
+                                    disabled={requesting}
                                     type="submit">
-                                    <ShouldRender if={this.props.requesting}>
+                                    <ShouldRender if={requesting}>
                                         <FormLoader />
                                     </ShouldRender>
-                                    <ShouldRender if={!this.props.requesting}>
+                                    <ShouldRender if={!requesting}>
                                         <span>Save</span>
                                     </ShouldRender>
                                 </button>
@@ -107,14 +107,18 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     { }
     , dispatch);
 
-const mapStateToProps = state => (
-    { }
-)
+const mapStateToProps = (state, props) => {
+    const projectId = props.projectId;
+    const project = state.project.projects.projects.find(project => project._id === projectId) || {}
+    return { 
+        initialValues: { adminNotes: project.adminNotes || []}
+    }
+}
 
 AdminNotes.propTypes = {
     requesting: PropTypes.bool,
     addNote: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired
+    projectId: PropTypes.string.isRequired,
 }
 
 let AdminNotesForm = reduxForm({
