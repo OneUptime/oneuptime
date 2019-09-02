@@ -7,6 +7,7 @@
     "fyipe": "index.js"
   },
   "scripts": {
+    "start": "node index -p 5d64d59cae46131619708309 -a 'b02798c0-c898-11e9-9f14-4963dc67e2ab'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "@twumm",
