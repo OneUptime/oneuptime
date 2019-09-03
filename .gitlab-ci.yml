@@ -249,7 +249,7 @@ deploy_staging_api-docs:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy api-docs.
-    - sudo docker build -t fyipe-project/dashobard:master ./api-docs
+    - sudo docker build -t fyipe-project/api-docs:master ./api-docs
     - sudo docker tag fyipe-project/api-docs:master registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/api-docs:master registry.gitlab.com/fyipe-project/api-docs:master
     - sudo docker push registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
@@ -295,7 +295,7 @@ deploy_staging_home:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy home.
-    - sudo docker build -t fyipe-project/dashobard:master ./home
+    - sudo docker build -t fyipe-project/home:master ./home
     - sudo docker tag fyipe-project/home:master registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/home:master registry.gitlab.com/fyipe-project/home:master
     - sudo docker push registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
@@ -341,7 +341,7 @@ deploy_staging_probe:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy probe.
-    - sudo docker build -t fyipe-project/dashobard:master ./probe
+    - sudo docker build -t fyipe-project/probe:master ./probe
     - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:master
     - sudo docker push registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
@@ -387,7 +387,7 @@ deploy_staging_status-page:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy status-page.
-    - sudo docker build -t fyipe-project/dashobard:master ./status-page
+    - sudo docker build -t fyipe-project/status-page:master ./status-page
     - sudo docker tag fyipe-project/status-page:master registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/status-page:master registry.gitlab.com/fyipe-project/status-page:master
     - sudo docker push registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
@@ -433,7 +433,7 @@ deploy_staging_admin-dashboard:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy admin-dashboard.
-    - sudo docker build -t fyipe-project/dashobard:master ./admin-dashboard
+    - sudo docker build -t fyipe-project/admin-dashboard:master ./admin-dashboard
     - sudo docker tag fyipe-project/admin-dashboard:master registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/admin-dashboard:master registry.gitlab.com/fyipe-project/admin-dashboard:master
     - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
@@ -480,7 +480,7 @@ deploy_staging_accounts:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy accounts.
-    - sudo docker build -t fyipe-project/dashobard:master ./accounts
+    - sudo docker build -t fyipe-project/accounts:master ./accounts
     - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:master
     - sudo docker push registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
@@ -526,7 +526,7 @@ deploy_staging_dashboard:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy dashboard.
-    - sudo docker build -t fyipe-project/dashobard:master ./dashboard
+    - sudo docker build -t fyipe-project/dashboard:master ./dashboard
     - sudo docker tag fyipe-project/dashboard:master registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/dashboard:master registry.gitlab.com/fyipe-project/dashboard:master
     - sudo docker push registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
