@@ -181,6 +181,10 @@ module.exports = {
             var alertEnable = data.alertEnable !== undefined ? data.alertEnable : oldProject.alertEnable;
             var alertOptions = data.alertOptions || oldProject.alertOptions;
             var adminNotes = data.adminNotes || oldProject.adminNotes;
+
+            if (data.users) {
+                users = data.users;
+            }
             
             var isBlocked = oldProject.isBlocked;
             if(typeof data.isBlocked === 'boolean'){

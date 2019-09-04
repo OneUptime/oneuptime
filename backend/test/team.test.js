@@ -19,8 +19,6 @@ describe('Team API', function () {
     before(function (done) {
         this.timeout(30000);
         request.post('/user/signup').send(userData.user).end(function (err, res) {
-            // eslint-disable-next-line no-console
-            console.log('res.url: ', res.url);
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
