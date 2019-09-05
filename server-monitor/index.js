@@ -48,14 +48,14 @@ checkParams(questions)
               const _id = monitorId.split(' (').shift();
               const filteredData = data.data.filter(monitor => monitor._id === _id);
 
-              pingServer(filteredData.pop()).start();
+              pingServer(filteredData.pop(), projectId, apiKey).start();
             });
           } else {
             // eslint-disable-next-line no-console
             console.log('You do not have any Server Monitor.');
           }
         } else {
-          pingServer(data).start();
+          pingServer(data, projectId, apiKey).start();
         }
       })
       // eslint-disable-next-line no-console
