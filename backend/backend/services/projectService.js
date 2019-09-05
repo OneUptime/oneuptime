@@ -525,9 +525,17 @@ module.exports = {
         // add project monitors
         projects = await Promise.all(projects.map(async(project) => {
             // get both sub-project users and project users
-            const users = await TeamService.getTeamMembersBy({parentProjectId: project._id});
-            project.users = users;
-            return project;
+            let users = [];
+            if(project.parentProjectId){
+                users = await TeamService.getTeamMembersBy({parentProjectId: project.parentProjectId});
+                project.users = users;
+            }else{
+                users = await Promise.all(project.users.map(async (user) => {
+                    return await UserService.findOneBy({ _id: user.userId });
+                }));
+                project.users = users;
+            }
+            return Object.assign({}, project._doc, { users });
         }));
         return { projects, count };
     },

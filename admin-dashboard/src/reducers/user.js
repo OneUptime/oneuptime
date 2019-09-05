@@ -28,6 +28,11 @@ import {
     UNBLOCK_USER_REQUEST,
     UNBLOCK_USER_RESET,
     UNBLOCK_USER_SUCCESS,
+
+    ADD_USER_NOTE_REQUEST, 
+    ADD_USER_NOTE_RESET,
+    ADD_USER_NOTE_SUCCESS,
+    ADD_USER_NOTE_FAILURE,
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -65,7 +70,12 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false
-    }
+    },
+    newUserNote: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 
 export default function user(state = INITIAL_STATE, action) {
@@ -339,6 +349,54 @@ export default function user(state = INITIAL_STATE, action) {
                     success: false,
                     error: null,
                 }
+            });
+            // add user admin notes
+        case ADD_USER_NOTE_REQUEST:
+
+            return Object.assign({}, state, {
+                newUserNote: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+
+            });
+
+        case ADD_USER_NOTE_SUCCESS:
+            return Object.assign({}, state, {
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: state.users.users.map(user=> {
+                        user.adminNotes = user._id === action.payload.projectId ? action.payload.notes : user.adminNotes;
+                        return user;
+                    }),
+                    count: state.users.count,
+                    limit: state.users.limit,
+                    skip: state.users.skip
+                },
+                newUserNote:{
+                    requesting: false,
+                    error: null,
+                    success: true
+                }
+            });
+
+        case ADD_USER_NOTE_FAILURE:
+
+            return Object.assign({}, state, {
+                newUserNote: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case ADD_USER_NOTE_RESET:
+
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
             });
 
         default: return state;

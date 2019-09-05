@@ -1,4 +1,4 @@
-import { getApi, putApi, deleteApi } from '../api';
+import { getApi, putApi, deleteApi, postApi } from '../api';
 import * as types from '../constants/user';
 import errors from '../errors'
 
@@ -349,6 +349,59 @@ export function unblockUser(userId) {
 				error = 'Network Error';
 			}
 			dispatch(unblockUserError(errors(error)));
+		});
+		return promise;
+	};
+}
+
+//Add Project Notes
+export function addUserNoteRequest() {
+	return {
+		type: types.ADD_USER_NOTE_REQUEST,
+	};
+}
+
+export function addUserNoteReset() {
+	return {
+		type: types.ADD_USER_NOTE_RESET,
+	};
+}
+
+export function addUserNoteSuccess(userNote) {
+	return {
+		type: types.ADD_USER_NOTE_SUCCESS,
+		payload: userNote
+	};
+}
+
+export function addUserNoteError(error) {
+	return {
+		type: types.ADD_USER_NOTE_FAILURE,
+		payload: error
+	};
+}
+
+// Calls the API to add Admin Note
+export function addUserNote(userId, values) {
+	return function (dispatch) {
+		var promise;
+		promise = postApi(`user/${userId}/addNote`, values);
+		dispatch(addUserNoteRequest());
+		promise.then(function (response) {
+			const data = response.data;
+			dispatch(addUserNoteSuccess(data));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}else{
+				error = 'Network Error';
+			}
+			dispatch(addUserNoteError(errors(error)));
 		});
 		return promise;
 	};

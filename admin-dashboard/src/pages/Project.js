@@ -41,7 +41,7 @@ class Project extends Component {
                                                 <ProjectDetails projectId={this.props.project ? this.props.project._id : ''} />
                                             </div>
                                             <div className="Box-root Margin-bottom--12">
-                                                <AdminNotes projectId={this.props.project ? this.props.project._id : ''} addNote={this.props.addProjectNote} />
+                                                <AdminNotes id={this.props.project ? this.props.project._id : ''} addNote={this.props.addProjectNote} initialValues={this.props.initialValues} />
                                             </div>
                                             <ShouldRender if={this.props.project && !this.props.project.deleted && !this.props.project.isBlocked}>
                                                 <div className="Box-root Margin-bottom--12">
@@ -84,6 +84,7 @@ const mapStateToProps = (state, props) => {
     return {
         project,
         adminNote: state.adminNote,
+        initialValues: { adminNotes: project.adminNotes || []}
     }
 }
 

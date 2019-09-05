@@ -10,7 +10,9 @@ import UserDeleteBox from '../components/user/UserDeleteBox';
 import UserRestoreBox from '../components/user/UserRestoreBox';
 import UserBlockBox from '../components/user/UserBlockBox';
 import UserUnblockBox from '../components/user/UserUnblockBox';
+import AdminNotes from '../components/adminNote/AdminNotes';
 import { fetchUserProjects } from '../actions/project';
+import { addUserNote } from '../actions/user';
 
 
 class User extends Component {
@@ -42,6 +44,9 @@ class User extends Component {
                                                 </div>
                                                 <div className="Box-root Margin-bottom--12">
                                                     <UserProject userId={this.props.match.params.userId} />
+                                                </div>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <AdminNotes id={this.props.match.params.userId} addNote={this.props.addUserNote} initialValues={this.props.initialValues} />
                                                 </div>
                                                 <ShouldRender if={this.props.user && !this.props.user.deleted && !this.props.user.isBlocked} >
                                                     <div className="Box-root Margin-bottom--12">
@@ -77,13 +82,14 @@ class User extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ fetchUserProjects }, dispatch)
+    return bindActionCreators({ fetchUserProjects, addUserNote }, dispatch)
 }
 
 const mapStateToProps = (state, props) => {
-    const user = state.user.users.users.find(user => user._id === props.match.params.userId);
+    const user = state.user.users.users.find(user => user._id === props.match.params.userId) || {};
     return {
-        user
+        user,
+        initialValues: { adminNotes: user.adminNotes || []}
     }
 }
 

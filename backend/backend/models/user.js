@@ -49,6 +49,10 @@ var userSchema = new Schema({
         type: Boolean,
         default: false
     },
+    adminNotes: [{
+        note: { type: String },
+        createdAt: { type: Date }
+    }],
 
     deleted: { type: Boolean, default: false},
     

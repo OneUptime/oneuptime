@@ -40,9 +40,7 @@ export class AdminNotes extends Component {
     }
 
     submitForm = (values) => {
-        if(this.props.projectId){
-            this.props.addNote(this.props.projectId, values.adminNotes);
-        }
+        this.props.addNote(this.props.id, values.adminNotes);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Admin Notes Updated', values);
         }
@@ -59,7 +57,7 @@ export class AdminNotes extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>Admin Notes</span>
                                 </span>
-                                <p><span>Leave a comment for this user.</span></p>
+                                <p><span>Leave a comment.</span></p>
                             </div>
                         </div>
                         <form onSubmit={handleSubmit(this.submitForm)}>
@@ -107,18 +105,14 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     { }
     , dispatch);
 
-const mapStateToProps = (state, props) => {
-    const projectId = props.projectId;
-    const project = state.project.projects.projects.find(project => project._id === projectId) || {}
-    return { 
-        initialValues: { adminNotes: project.adminNotes || []}
-    }
+const mapStateToProps = state => {
+    return {};
 }
 
 AdminNotes.propTypes = {
     requesting: PropTypes.bool,
     addNote: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired,
+    id: PropTypes.string.isRequired,
 }
 
 let AdminNotesForm = reduxForm({

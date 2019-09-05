@@ -44,6 +44,7 @@ module.exports = {
         userModel.timezone = data.timezone || null;
         userModel.lastActive = data.lastActive || Date.now();
         userModel.coupon = data.coupon || null;
+        userModel.adminNotes = data.adminNotes || null;
         try{
             var user = await userModel.save();
         }catch(error){
@@ -144,6 +145,7 @@ module.exports = {
             var lastActive = data.lastActive || user.lastActive;
             var coupon = data.coupon || user.coupon;
             var disabled = data.disabled || false;
+            var adminNotes = data.adminNotes || user.adminNotes;
 
             var isBlocked = user.isBlocked;
             if(typeof data.isBlocked === 'boolean'){
@@ -184,7 +186,8 @@ module.exports = {
                         deleted,
                         deletedById,
                         deletedAt,
-                        isBlocked
+                        isBlocked,
+                        adminNotes
                     }
                 }, {
                     new: true
@@ -647,6 +650,14 @@ module.exports = {
             }
             return user;
         }
+    },
+    addNotes: async function(userId, notes){
+        const _this = this;
+        let adminNotes = (await _this.update({
+            _id: userId,
+            adminNotes: notes
+        })).adminNotes;
+        return adminNotes;
     },
     hardDeleteBy: async function(query){
         try{
