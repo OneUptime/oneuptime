@@ -72,7 +72,10 @@ ResponseParent.propTypes = {
         PropTypes.array,
         PropTypes.object
     ]).isRequired,
-    bodyfield : PropTypes.object,
+    bodyfield : PropTypes.oneOfType([
+        PropTypes.array,
+        PropTypes.object
+    ]),
     level : PropTypes.number,
 }
 

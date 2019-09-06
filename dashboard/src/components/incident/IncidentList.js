@@ -24,7 +24,7 @@ export class IncidentList extends Component {
             canNext = false;
             canPrev = false;
         }
-        console.log(this.props.incidents);
+
         return (
             <div>
                 <table className="Table">

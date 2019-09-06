@@ -66,7 +66,7 @@ export default function monitor(state = INITIAL_STATE, action) {
     switch (action.type) {
 
         case CREATE_MONITOR_SUCCESS:
-            isExistingMonitor = state.monitorsList.monitors.find(monitor => monitor._id === action.payload.projectId);
+            isExistingMonitor = state.monitorsList.monitors.find(monitor => monitor._id === action.payload.projectId._id);
             return Object.assign({}, state, {
                 ...state,
                 newMonitor: {
@@ -78,9 +78,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                 monitorsList: {
                     ...state.monitorsList,
                     monitors: isExistingMonitor ? state.monitorsList.monitors.length > 0 ? state.monitorsList.monitors.map((subProjectMonitors) => {
-                        return subProjectMonitors._id === action.payload.projectId ?
+                        return subProjectMonitors._id === action.payload.projectId._id ?
                             {
-                                _id: action.payload.projectId,
+                                _id: action.payload.projectId._id,
                                 monitors: [...subProjectMonitors.monitors, action.payload],
                                 count: subProjectMonitors.count + 1,
                                 skip: subProjectMonitors.skip,

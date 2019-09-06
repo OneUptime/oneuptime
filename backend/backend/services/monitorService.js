@@ -89,7 +89,12 @@ module.exports = {
                     ErrorService.log('monitor.save', error);
                     throw error;
                 }
-                return savedMonitor;
+                var fetchedMonitor = await IncidentService.getMonitorsWithIncidentsBy({
+                    query: {_id: savedMonitor._id},
+                    skip:0,
+                    limit:0
+                });
+                return fetchedMonitor;
             }
             else {
                 let error = new Error('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
@@ -119,7 +124,7 @@ module.exports = {
             throw error;
         }
         monitor = await IncidentService.getMonitorsWithIncidentsBy({
-            query: {monitorId: monitor._id},
+            query: {_id: monitor._id},
             skip:0,
             limit:0
         });
