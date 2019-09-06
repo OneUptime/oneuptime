@@ -40,15 +40,15 @@ div.block-chart {
       position: relative;
       height: 100%;
       width: 6px;
-  
+
       cursor: pointer;
-  
+
       /* Border instead of margin so we get the hover behavior we want */
       border-left: 1px solid #fff;
       border-right: 1px solid #fff;
-  
+
       opacity: 0.6;
-  
+
       /* DEFAULT IS GREEN */
       background: rgb(0, 128, 168);
     }
@@ -74,118 +74,118 @@ div.block-chart {
 
 ******* Tipsy Tooltips ******/
 
-.tipsy { 
-  font-size: 12px; 
-  position: absolute; 
-  padding: 5px; 
-  z-index: 100000; 
+.tipsy {
+  font-size: 12px;
+  position: absolute;
+  padding: 5px;
+  z-index: 100000;
 }
-  .tipsy-inner { 
-    background-color: #32325d; 
-    color: #FFF; 
-    max-width: 200px; 
-    padding: 5px 12px 5px 12px; 
-    line-height: 19px; 
-    text-align: center; 
+  .tipsy-inner {
+    background-color: #32325d;
+    color: #FFF;
+    max-width: 200px;
+    padding: 5px 12px 5px 12px;
+    line-height: 19px;
+    text-align: center;
   }
 
 /* Rounded corners */
-.tipsy-inner { 
-  border-radius: 3px; 
-  -moz-border-radius: 3px; 
-  -webkit-border-radius: 3px; 
+.tipsy-inner {
+  border-radius: 3px;
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
 }
 
 /* Uncomment for shadow */
 /*.tipsy-inner { box-shadow: 0 0 5px #000000; -webkit-box-shadow: 0 0 5px #000000; -moz-box-shadow: 0 0 5px #000000; }*/
 
-.tipsy-arrow { 
-  position: absolute; 
-  width: 0; 
-  height: 0; 
-  line-height: 0; 
-  border: 5px dashed #32325d; 
+.tipsy-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  line-height: 0;
+  border: 5px dashed #32325d;
 }
 
 /* Rules to colour arrows */
-.tipsy-arrow-n { 
-  border-bottom-color: #32325d; 
+.tipsy-arrow-n {
+  border-bottom-color: #32325d;
 }
-.tipsy-arrow-s { 
-  border-top-color: #32325d; 
+.tipsy-arrow-s {
+  border-top-color: #32325d;
 }
-.tipsy-arrow-e { 
-  border-left-color: #32325d; 
+.tipsy-arrow-e {
+  border-left-color: #32325d;
 }
-.tipsy-arrow-w { 
-  border-right-color: #32325d; 
+.tipsy-arrow-w {
+  border-right-color: #32325d;
 }
 
-.tipsy-n .tipsy-arrow { 
-  top: 0px; 
-  left: 50%; 
-  margin-left: -5px; 
-  border-bottom-style: solid; 
-  border-top: none; 
-  border-left-color: transparent; 
-  border-right-color: transparent; 
-}
-.tipsy-nw .tipsy-arrow { 
-  top: 0; 
-  left: 10px; 
-  border-bottom-style: solid; 
-  border-top: none; 
-  border-left-color: transparent; 
+.tipsy-n .tipsy-arrow {
+  top: 0px;
+  left: 50%;
+  margin-left: -5px;
+  border-bottom-style: solid;
+  border-top: none;
+  border-left-color: transparent;
   border-right-color: transparent;
 }
-.tipsy-ne .tipsy-arrow { 
-  top: 0; right: 10px; 
-  border-bottom-style: solid; 
-  border-top: none;  
-  border-left-color: transparent; 
+.tipsy-nw .tipsy-arrow {
+  top: 0;
+  left: 10px;
+  border-bottom-style: solid;
+  border-top: none;
+  border-left-color: transparent;
   border-right-color: transparent;
 }
-.tipsy-s .tipsy-arrow { 
-  bottom: 0; 
-  left: 50%; 
-  margin-left: -5px; 
-  border-top-style: solid; 
-  border-bottom: none;  
-  border-left-color: transparent; 
-  border-right-color: transparent; 
+.tipsy-ne .tipsy-arrow {
+  top: 0; right: 10px;
+  border-bottom-style: solid;
+  border-top: none;
+  border-left-color: transparent;
+  border-right-color: transparent;
 }
-.tipsy-sw .tipsy-arrow { 
-  bottom: 0; left: 10px; 
-  border-top-style: solid; 
-  border-bottom: none;  
-  border-left-color: transparent; 
-  border-right-color: transparent; 
+.tipsy-s .tipsy-arrow {
+  bottom: 0;
+  left: 50%;
+  margin-left: -5px;
+  border-top-style: solid;
+  border-bottom: none;
+  border-left-color: transparent;
+  border-right-color: transparent;
 }
-.tipsy-se .tipsy-arrow { 
-  bottom: 0; 
-  right: 10px; 
-  border-top-style: solid; 
-  border-bottom: none; 
-  border-left-color: transparent; 
-  border-right-color: transparent; 
+.tipsy-sw .tipsy-arrow {
+  bottom: 0; left: 10px;
+  border-top-style: solid;
+  border-bottom: none;
+  border-left-color: transparent;
+  border-right-color: transparent;
 }
-.tipsy-e .tipsy-arrow { 
-  right: 0; 
-  top: 50%; 
-  margin-top: -5px; 
-  border-left-style: solid; 
-  border-right: none; 
-  border-top-color: transparent; 
-  border-bottom-color: transparent; 
+.tipsy-se .tipsy-arrow {
+  bottom: 0;
+  right: 10px;
+  border-top-style: solid;
+  border-bottom: none;
+  border-left-color: transparent;
+  border-right-color: transparent;
 }
-.tipsy-w .tipsy-arrow { 
-  left: 0; 
-  top: 50%; 
-  margin-top: -5px; 
-  border-right-style: solid; 
-  border-left: none; 
-  border-top-color: transparent; 
-  border-bottom-color: transparent; 
+.tipsy-e .tipsy-arrow {
+  right: 0;
+  top: 50%;
+  margin-top: -5px;
+  border-left-style: solid;
+  border-right: none;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+.tipsy-w .tipsy-arrow {
+  left: 0;
+  top: 50%;
+  margin-top: -5px;
+  border-right-style: solid;
+  border-left: none;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
 }
 
 @media only screen and (max-width: 1180px) {
@@ -198,4 +198,41 @@ div.block-chart {
     .chart-font{
       font-size: 90%;
     }
+}
+.btn-group{
+  display:flex;
+  flex-direction:row;
+  flex-wrap: nowrap;
+  width:100%;
+}
+.btn-group .icon-container {
+  background-color: #f6f9fc; /* Green background */
+  border: 2px solid #e6ebf1; /* Green border */
+  color: #525f7f; /* White text */
+  padding: 6px; /* Some padding */
+  cursor: pointer; /* Pointer/hand icon */
+  box-sizing: border-box;
+  outline: none;
+  width:100%;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.btn-group .icon-container.selected{
+  background-color: #f6f9fc;
+  border-bottom: none;
+  color: black;
+}
+.btn-group .icon-container {
+  border-right: none; /* Prevent double borders */
+}
+
+.btn-group .icon-container:first-child {
+  border-left: none; /* Prevent double borders */
+}
+/* Clear floats (clearfix hack) */
+.btn-group:after {
+  content: "";
+  clear: both;
+  display: table;
 }

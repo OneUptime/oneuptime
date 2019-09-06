@@ -423,3 +423,12 @@ export function removeArrayField(val) {
         dispatch(autofill('NewMonitor', `${val}.collection`, undefined));
     };
 }
+
+export function selectedProbe(val) {
+    return function (dispatch) {
+        dispatch({
+            type: types.SELECT_PROBE,
+            payload: val
+        });
+    };
+}

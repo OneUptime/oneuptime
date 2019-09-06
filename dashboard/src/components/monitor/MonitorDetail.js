@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
 import uuid from 'uuid';
-import { editMonitorSwitch, deleteMonitor, fetchMonitorsIncidents } from '../../actions/monitor';
+import { editMonitorSwitch, selectedProbe, deleteMonitor, fetchMonitorsIncidents } from '../../actions/monitor';
 import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import DeleteMonitor from '../modals/DeleteMonitor';
@@ -30,9 +30,12 @@ export class MonitorDetail extends Component {
             deleteModalId: uuid.v4(),
             createIncidentModalId: uuid.v4()
         }
-        this.deleteMonitor = this.deleteMonitor;
+        this.deleteMonitor = this.deleteMonitor.bind(this);
+        this.selectbutton = this.selectbutton.bind(this);
     }
-
+    selectbutton = (data) => {
+        this.props.selectedProbe(data);
+    }
     prevClicked = () => {
         this.props.fetchMonitorsIncidents(this.props.monitor.projectId._id, this.props.monitor._id, (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) - 3) : 3), 3);
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -40,7 +43,7 @@ export class MonitorDetail extends Component {
                 ProjectId: this.props.monitor.projectId._id,
                 monitorId: this.props.monitor._id,
                 skip: (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) - 3) : 3)
-            }); 
+            });
         }
     }
 
@@ -89,6 +92,30 @@ export class MonitorDetail extends Component {
     }
 
     render() {
+        var greenBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor : 'rgb(117, 211, 128)'// "green-status"
+        }
+        var yellowBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor : 'rgb(255, 222, 36)'// "yellow-status"
+        }
+        var redBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor : 'rgb(250, 117, 90)'// "red-status"
+        }
         let { createIncidentModalId, deleteModalId } = this.state;
         let creating = this.props.create ? this.props.create : false;
         let monitor = this.props.monitor;
@@ -217,8 +244,21 @@ export class MonitorDetail extends Component {
                             </RenderIfSubProjectAdmin>
                         </div></div>
                 </div>
-
-                <MonitorBarChart monitor={ this.props.monitor } />
+                <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
+                    <div className="btn-group">
+                        {this.props.monitor && this.props.monitor.probes.map((location,index) => (<button
+                            id={`probes-btn${index}`}
+                            disabled={false}
+                            onClick={() => this.selectbutton(index)}
+                            className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+                            <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
+                            <span>{location.probeName}</span>
+                        </button>)
+                        )}
+                    </div>
+                    <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
+                    </ShouldRender>
+                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]}/> : ''}
 
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
@@ -248,7 +288,15 @@ export class MonitorDetail extends Component {
 MonitorDetail.displayName = 'MonitorDetail'
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ editMonitorSwitch, deleteMonitor, openModal, closeModal, fetchMonitorsIncidents, createNewIncident }, dispatch)
+    return bindActionCreators({
+        editMonitorSwitch,
+        deleteMonitor,
+        openModal,
+        closeModal,
+        fetchMonitorsIncidents,
+        createNewIncident,
+        selectedProbe,
+    }, dispatch)
 }
 
 
@@ -257,7 +305,8 @@ function mapStateToProps(state) {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,
-        subProject: state.subProject
+        subProject: state.subProject,
+        activeProbe : state.monitor.activeProbe,
     };
 }
 
@@ -268,7 +317,7 @@ MonitorDetail.propTypes = {
     editMonitorSwitch: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
     deleteMonitor: PropTypes.func.isRequired,
-    index: PropTypes.number.isRequired,
+    index: PropTypes.string,
     openModal: PropTypes.func,
     create: PropTypes.bool,
     closeModal: PropTypes.func,

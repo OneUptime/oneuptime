@@ -8,14 +8,14 @@ import { history } from '../../store';
 export class IncidentList extends Component {
 
     render() {
-        if(this.props.incidents && this.props.incidents.skip && typeof this.props.incidents.skip === 'string'){
-            this.props.incidents.skip = parseInt(this.props.incidents.skip,10);
+        if (this.props.incidents && this.props.incidents.skip && typeof this.props.incidents.skip === 'string') {
+            this.props.incidents.skip = parseInt(this.props.incidents.skip, 10);
         }
-        if(this.props.incidents && this.props.incidents.limit && typeof this.props.incidents.limit === 'string'){
-            this.props.incidents.limit = parseInt(this.props.incidents.limit,10);
+        if (this.props.incidents && this.props.incidents.limit && typeof this.props.incidents.limit === 'string') {
+            this.props.incidents.limit = parseInt(this.props.incidents.limit, 10);
         }
-        if(!this.props.incidents.skip) this.props.incidents.skip = 0;
-        if(!this.props.incidents.limit) this.props.incidents.limit = 0;
+        if (!this.props.incidents.skip) this.props.incidents.skip = 0;
+        if (!this.props.incidents.limit) this.props.incidents.limit = 0;
 
         let canNext = (this.props.incidents && this.props.incidents.count) && (this.props.incidents.count > (this.props.incidents.skip + this.props.incidents.limit)) ? true : false;
         let canPrev = (this.props.incidents && this.props.incidents.skip <= 0) ? false : true;
@@ -24,14 +24,17 @@ export class IncidentList extends Component {
             canNext = false;
             canPrev = false;
         }
-    
+        console.log(this.props.incidents);
         return (
             <div>
                 <table className="Table">
                     <thead className="Table-body">
                         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Monitor</span></span></div>
+                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Probes</span></span></div>
+                            </td>
+                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>status</span></span></div>
                             </td>
                             <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Created</span></span></div>
@@ -56,89 +59,130 @@ export class IncidentList extends Component {
                     <tbody className="Table-body">
                         {
                             this.props.incidents && this.props.incidents.incidents && this.props.incidents.incidents.length > 0 ? (
-                                this.props.incidents.incidents.map((incident, i) => (
-                                        <tr id={`incident_${incident.monitorId ? incident.monitorId.name : this.props.incidents.name ? this.props.incidents.name : 'Unknown Monitor'}_${i}`} key={incident._id} className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink" onClick={() => { history.push('/project/' + this.props.currentProject._id + '/incidents/' + incident._id) }} >
-                                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '270px' }}>
+                                this.props.incidents.incidents.map((incident, i) => {
+                                    let probeNames = incident && incident.probes ? [...new Set(incident.probes.map(currVal => currVal.probeId && currVal.probeId.probeName ? currVal.probeId.probeName : 'Unknown Probe'))] : [];
+                                    return (<tr id={`incident_${incident.monitorId ? incident.monitorId.name : this.props.incidents.name ? this.props.incidents.name : 'Unknown Monitor'}_${i}`} key={incident._id} className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink" onClick={() => { history.push('/project/' + this.props.currentProject._id + '/incidents/' + incident._id) }} >
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '270px' }}>
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <div className="Box-root Margin-right--16"><span>{probeNames && probeNames.length ? probeNames.join(',') : 'Unknown Probe'}</span></div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                            <a className="db-ListViewItem-link" >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16"><span>{incident.monitorId ? incident.monitorId.name : this.props.incidents.name ? this.props.incidents.name : 'Unknown Monitor'}</span></div>
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                                <a className="db-ListViewItem-link" >
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root"><span>{moment(incident.createdAt).fromNow()}</span></div>
-                                                        </span>
-                                                    </div>
-                                                </a>
-                                            </td>
-                                            <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                                <a className="db-ListViewItem-link" >
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-                                                </a>
-                                            </td>
-                                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                                <a className="db-ListViewItem-link" >
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root Flex-flex">
                                                             <div className="Box-root Flex-flex">
-                                                                <div className="Box-root Flex-flex">
-                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        {!incident.acknowledged ?
-                                                                        ( <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                    <span>Not Acknowledged </span>
+                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                    {incident && incident.incidentType && incident.incidentType === 'offline' ?
+                                                                        (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                <span>offline</span>
+                                                                            </span>
+                                                                        </div>)
+                                                                        : incident && incident.incidentType && incident.incidentType === 'online' ?
+                                                                            (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                    <span>online</span>
                                                                                 </span>
                                                                             </div>)
-                                                                            : (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                        : incident && incident.incidentType && incident.incidentType === 'degraded' ?
+                                                                            (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                 <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                    <span> By {incident.acknowledgedBy === null ? incident.acknowledgedByZapier ? 'Zapier' : 'fyipe' : incident.acknowledgedBy.name} {moment(incident.acknowledgedAt).fromNow()}</span>
+                                                                                    <span>degraded</span>
                                                                                 </span>
-                                    </div>)}
-                                                                    </div>
+                                                                            </div>)
+                                                                        :
+                                                                            (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                    <span>Unknown Status</span>
+                                                                                </span>
+                                                                            </div>)
+                                                                    }
                                                                 </div>
                                                             </div>
-                                                        </span>
-                                                    </div>
-                                                </a>
-                                            </td>
+                                                        </div>
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                            <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root"><span>{moment(incident.createdAt).fromNow()}</span></div>
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        </td>
+                                        <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
+                                            <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
+                                            </a>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                            <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root Flex-flex">
+                                                            <div className="Box-root Flex-flex">
+                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                    {!incident.acknowledged ?
+                                                                        (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                <span>Not Acknowledged </span>
+                                                                            </span>
+                                                                        </div>)
+                                                                        : (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                <span> By {incident.acknowledgedBy === null ? incident.acknowledgedByZapier ? 'Zapier' : 'fyipe' : incident.acknowledgedBy.name} {moment(incident.acknowledgedAt).fromNow()}</span>
+                                                                            </span>
+                                                                        </div>)}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        </td>
 
-                                            <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                                <a className="db-ListViewItem-link" >
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-                                                </a>
-                                            </td>
-                                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                                <a className="db-ListViewItem-link" >
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        {
-                                                            !incident.resolved ? (
-                                                                <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                        <span>Not Resolved</span>
+                                        <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
+                                            <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
+                                            </a>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                            <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    {
+                                                        !incident.resolved ? (
+                                                            <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span>Not Resolved</span>
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                                <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                        <span>
+                                                                            By {incident.resolvedBy === null ? incident.resolvedByZapier ? 'Zapier' : 'fyipe' : incident.resolvedBy.name} {moment(incident.resolvedAt).fromNow()}
+                                                                        </span>
                                                                     </span>
                                                                 </div>
-                                                            ) : (
-                                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                            <span>
-                                                                                By {incident.resolvedBy === null ? incident.resolvedByZapier ? 'Zapier' : 'fyipe' : incident.resolvedBy.name} {moment(incident.resolvedAt).fromNow()}
-                                                                    </span>
-                                                                        </span>
-                                                                    </div>
-                                                                )
-                                                        }
-                                                    </div>
-                                                </a>
-                                            </td>
-                                            <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell">
-                                            </td>
-                                        </tr>
-                                ))
+                                                            )
+                                                    }
+                                                </div>
+                                            </a>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell">
+                                        </td>
+                                    </tr>
+                                    )
+                                })
                             ) :
-                                <tr></tr> 
+                                <tr></tr>
                         }
                     </tbody>
 
@@ -161,12 +205,12 @@ export class IncidentList extends Component {
                     <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
-                                <button id="btnPrev" onClick={()=>{this.props.prevClicked(this.props.incidents ? this.props.incidents._id : null, this.props.incidents.skip, this.props.incidents.limit)}} className={'Button bs-ButtonLegacy' + (canPrev ? '' : 'Is--disabled')} disabled={!canPrev} data-db-analytics-name="list_view.pagination.previous" type="button">
+                                <button id="btnPrev" onClick={() => { this.props.prevClicked(this.props.incidents ? this.props.incidents._id : null, this.props.incidents.skip, this.props.incidents.limit) }} className={'Button bs-ButtonLegacy' + (canPrev ? '' : 'Is--disabled')} disabled={!canPrev} data-db-analytics-name="list_view.pagination.previous" type="button">
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Previous</span></span></div>
                                 </button>
                             </div>
                             <div className="Box-root">
-                                <button id="btnNext" onClick={()=>{this.props.nextClicked(this.props.incidents ? this.props.incidents._id : null, this.props.incidents.skip, this.props.incidents.limit)}} className={'Button bs-ButtonLegacy' + (canNext ? '' : 'Is--disabled')} disabled={!canNext} data-db-analytics-name="list_view.pagination.next" type="button">
+                                <button id="btnNext" onClick={() => { this.props.nextClicked(this.props.incidents ? this.props.incidents._id : null, this.props.incidents.skip, this.props.incidents.limit) }} className={'Button bs-ButtonLegacy' + (canNext ? '' : 'Is--disabled')} disabled={!canNext} data-db-analytics-name="list_view.pagination.next" type="button">
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Next</span></span></div>
                                 </button>
                             </div>
@@ -192,13 +236,13 @@ function mapStateToProps(state) {
 IncidentList.displayName = 'IncidentList'
 
 IncidentList.propTypes = {
-    nextClicked:PropTypes.func.isRequired,
+    nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
     incidents: PropTypes.oneOfType([
         PropTypes.object,
-        PropTypes.oneOf([null,undefined])
+        PropTypes.oneOf([null, undefined])
     ]),
-    monitorState : PropTypes.object.isRequired,
+    monitorState: PropTypes.object.isRequired,
     currentProject: PropTypes.object
 }
 

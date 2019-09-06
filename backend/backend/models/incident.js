@@ -3,7 +3,7 @@ var mongoose = require('../config/db');
 var Schema = mongoose.Schema;
 var monitorSchema = new Schema({
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', alias: 'project' }, //which project this incident belongs to.
-    monitorId: { type: String, ref: 'Monitor' }, // which monitor does this incident belongs to. 
+    monitorId: { type: String, ref: 'Monitor' }, // which monitor does this incident belongs to.
 
     acknowledged: {
         type: Boolean,
@@ -13,20 +13,32 @@ var monitorSchema = new Schema({
     acknowledgedAt: {
         type: Date
     },
-    acknowledgedByZapier: { 
+    acknowledgedByZapier: {
         type: Boolean,
-        default: false, 
+        default: false,
     }, // is true when zapier acknowledges incident
 
     resolved: {
         type: Boolean,
         default: false,
     },
+    incidentType: {
+        type: String,
+        enum: ['online', 'offline', 'degraded'],
+        required: false
+    },
+    probes: [
+        {
+            probeId: { type: String, ref: 'Probe' },
+            updatedAt: { type: Date },
+            status: { type: Boolean, default: true }
+        }
+    ],
     resolvedBy: { type: String, ref: 'User' }, // userId
     resolvedAt: { type: Date },
-    resolvedByZapier: { 
+    resolvedByZapier: {
         type: Boolean,
-        default: false, 
+        default: false,
     }, // is true when zapier resolves incident
 
     internalNote: { type: String, default: '' },
@@ -39,13 +51,13 @@ var monitorSchema = new Schema({
         default: Date.now,
     },
 
-    createdByZapier: { 
+    createdByZapier: {
         type: Boolean,
-        default: false, 
+        default: false,
     }, // is true when zapier creates incident
 
     notClosedBy: [{ type: String, ref: 'User' }],
-    manuallyCreated:{ type: Boolean, default: false },
+    manuallyCreated: { type: Boolean, default: false },
 
     deleted: { type: Boolean, default: false },
 

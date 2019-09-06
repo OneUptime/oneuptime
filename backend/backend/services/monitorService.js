@@ -101,7 +101,6 @@ module.exports = {
     },
 
     update: async function (query, data) {
-        var _this = this;
         if (!query) {
             query = {};
         }
@@ -119,7 +118,11 @@ module.exports = {
             ErrorService.log('MonitorModel.findOneAndUpdate', error);
             throw error;
         }
-        monitor = await _this.addUpTime(monitor);
+        monitor = await IncidentService.getMonitorsWithIncidentsBy({
+            query: {monitorId: monitor._id},
+            skip:0,
+            limit:0
+        });
         try {
             await RealTimeService.monitorEdit(monitor);
         } catch (error) {
@@ -355,7 +358,7 @@ module.exports = {
             return [];
         }
     },
-
+/*
     async getAllMonitorsPing(date) {
         var newdate = new Date();
         try {
@@ -438,7 +441,7 @@ module.exports = {
             return null;
         }
     },
-
+*/
     async updateMonitorPingTime(id) {
         var newdate = new Date();
         var thisObj = this;
@@ -480,7 +483,7 @@ module.exports = {
             return monitor;
         }
     },
-
+/*
     async setMonitorTime(monitorId, time, status) {
         var thisObj = this;
         var monitorTimeData = new MonitorTimeModel();
@@ -502,7 +505,7 @@ module.exports = {
 
         return monitorsData;
     },
-
+*/
     async sendResponseTime(monitorsData) {
         try {
             var monitor = await MonitorModel.findOne({ _id: monitorsData.monitorId, deleted: false });
@@ -530,7 +533,7 @@ module.exports = {
         }
         return monitorTime;
     },
-
+/*
     //Deletes previous datetime from database
     deleteTime: async function (monitorId, date) {
         try {
@@ -551,7 +554,7 @@ module.exports = {
         if (!timemodel) return null;
         else return timemodel.time;
     },
-
+*/
     addSeat: async function (query) {
         try {
             var project = await ProjectService.findOneBy(query);
@@ -589,7 +592,7 @@ module.exports = {
         }
         return 'Monitor(s) removed successfully!';
     },
-
+// yet to be edited
     async getManualMonitorTime(monitorId) {
         var _this = this;
         try {
@@ -654,7 +657,7 @@ module.exports = {
         }
         return times;
     },
-
+/*
     addUpTime: async function (monitor) {
         if (monitor && monitor._doc) {
             monitor = monitor._doc;
@@ -694,7 +697,7 @@ module.exports = {
         }
         let updatedMonitor = Object.assign({}, monitor, { time, responseTime, uptimePercent, status });
         return updatedMonitor;
-    }
+    } */
 };
 
 var MonitorModel = require('../models/monitor');
