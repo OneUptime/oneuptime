@@ -20,8 +20,13 @@ child_process.execSync('react-env', {
 
 app.use(express.static(path.join(__dirname, 'build')));
 
+app.get('/env.js', function (req, res) {
+  res.sendFile(path.join(__dirname, 'public', 'env.js'));
+});
+
 app.get('/*', function (req, res) {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
+
 
 app.listen(3003);
