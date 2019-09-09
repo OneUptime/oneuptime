@@ -5,26 +5,16 @@ import valid from 'card-validator';
 let apiUrl = null;
 let dashboardUrl = null;
 
-// if (window.location.href.indexOf('localhost') > -1) {
-//     apiUrl = 'http://localhost:3002';
-//     dashboardUrl = 'http://localhost:3000'
-// } else if (window.location.href.indexOf('staging') > -1) {
-//     apiUrl = 'https://staging-api.fyipe.com';
-//     dashboardUrl = 'http://staging-dashboard.fyipe.com'
-// } else {
-//     apiUrl = 'https://api.fyipe.com';
-//     dashboardUrl = 'https://fyipe.com';
-// }
-
-
 if (window.location.href.indexOf('localhost') > -1) {
     apiUrl = 'http://localhost:3002';
-    dashboardUrl = 'http://localhost:3000';
+    dashboardUrl = 'http://localhost:3000'
+} else if (window.location.href.indexOf('staging') > -1) {
+    apiUrl = 'https://staging-api.fyipe.com';
+    dashboardUrl = 'http://staging-dashboard.fyipe.com'
 } else {
-    apiUrl = 'http://backend:3002';
-    dashboardUrl = 'http://dashboard:3000';
+    apiUrl = 'https://api.fyipe.com';
+    dashboardUrl = 'https://fyipe.com';
 }
-
 
 export const API_URL = apiUrl;
 
