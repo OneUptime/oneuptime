@@ -27,6 +27,12 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: "https://staging-dashboard.fyipe.com"
+        - name: ACCOUNTS_HOST
+          value: "https://staging-accounts.fyipe.com"
+        - name: BACKEND_HOST
+          value: "https://staging-api.fyipe.com"
         ports:
         - containerPort: 3000
           hostPort: 3000
@@ -76,6 +82,12 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: "https://staging-accounts.fyipe.com"
+        - name: ACCOUNTS_HOST
+          value: "https://staging-dashboard.fyipe.com"
+        - name: BACKEND_HOST
+          value: "https://staging-api.fyipe.com"
         ports:
         - containerPort: 3003
           hostPort: 3003
