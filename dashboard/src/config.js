@@ -45,7 +45,7 @@ if (!isServer) {
         apiUrl = env('BACKEND_HOST');
         dashboardUrl = env('HOST');
         accountsUrl = env('ACCOUNTS_HOST');
-        domain = 'host';
+        domain = '.fyipe.com';
     }
 }
 
