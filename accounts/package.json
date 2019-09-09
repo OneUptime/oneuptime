@@ -2,6 +2,7 @@
   "name": "fyipe-accounts",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
     "@trendmicro/react-dropdown": "^1.3.0",
