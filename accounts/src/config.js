@@ -11,24 +11,25 @@ let dashboardUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
 
+
+function env(value) {
+    var { _env } = window;
+    return _env[`REACT_APP_${value}`];
+}
+
 if (!isServer) {
     if (window.location.href.indexOf('localhost') > -1) {
         apiUrl = 'http://localhost:3002';
         dashboardUrl = 'http://localhost:3000';
         domain = 'localhost';
         adminDashboardUrl = 'http://localhost:3100';
-    } else if (window.location.href.indexOf('staging') > -1) {
-        apiUrl = 'https://staging-api.fyipe.com';
-        dashboardUrl = 'http://staging-dashboard.fyipe.com';
-        domain = 'fyipe.com';
-    } else {
-        apiUrl = 'https://api.fyipe.com';
-        dashboardUrl = 'https://dashboard.fyipe.com';
-        domain = 'fyipe.com';
+    } else if (env('BACKEND_HOST')) {
+        apiUrl = env('BACKEND_HOST');
+        dashboardUrl = env('DASHBOARD_HOST');
+        domain = 'host';
     }
-
-
 }
+
 
 export const API_URL = apiUrl;
 
@@ -197,7 +198,7 @@ export const PricingPlan = {
 
     getPlans() {
 
-        if (window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1) {
+        if (window.location.href.indexOf('localhost') > -1 ||  window.location.href.indexOf('staging') > -1 || window.location.href.indexOf('accounts:3003') > -1) {
             return [
                 {
                     category: 'Basic',
