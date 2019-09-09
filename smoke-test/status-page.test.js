@@ -17,6 +17,7 @@ describe('Check status-page up', () => {
         await page.goto(utils.STATUSPAGE_URL, {
             waitUntil: 'domcontentloaded'
         });
+        await page.waitFor(2000);
         const response = await page.$eval('#login-button > span', (e) => {
             return e.innerHTML;
         });
