@@ -14,7 +14,7 @@ var env = {
 
 fs.writeFileSync('.env', envfile.stringifySync(env));
 
-child_process.execSync("react-env", {
+child_process.execSync('react-env', {
   stdio: [0, 1, 2]
 });
 
