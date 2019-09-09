@@ -26,6 +26,12 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: "http://dashboard:3000"
+        - name: ACCOUNTS_HOST
+          value: "http://accounts:3003"
+        - name: BACKEND_HOST
+          value: "http://backend:3002"
         ports:
         - containerPort: 3000
           hostPort: 3000
@@ -75,6 +81,12 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: "http://accounts:3003"
+        - name: BACKEND_HOST
+          value: "http://backend:3002"
+        - name: DASHBOARD_HOST
+          value: "http://dashboard:3000"
         ports:
         - containerPort: 3003
           hostPort: 3003
@@ -97,6 +109,61 @@ spec:
     targetPort: 3003
   selector:
     app: accounts
+  type: LoadBalancer
+---
+
+# Fyipe API docs Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-docs
+  labels:
+    app: api-docs
+spec:
+  selector:
+    matchLabels:
+      app: api-docs
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: api-docs
+    spec:
+      containers:
+      - image: localhost:32000/api-docs:master
+        name: api-docs
+        imagePullPolicy: Always
+        env:
+        - name: FYIPE_HOSTED
+          value: "true"
+        - name: HOST
+          value: "accounts"
+        - name: BACKEND_HOST
+          value: "backend"
+        - name: DASHBOARD_HOST
+          value: "dashboard"
+        ports:
+        - containerPort: 1445
+          hostPort: 1445
+          name: api-docs
+      restartPolicy: Always
+      imagePullSecrets:
+      - name: gitlabcredv2
+---
+# Fyipe API docs Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: api-docs
+  name: api-docs
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 1445
+  selector:
+    app: api-docs
   type: LoadBalancer
 ---
 
@@ -133,7 +200,7 @@ spec:
         - name: STRIPE_PRIVATE_KEY
           value: "sk_test_YxwnzywggtAd8jDaHecNmHiN"
         - name: PORT
-          value: "3001"
+          value: "3002"
         - name: MAIL_USER
           value: "testmail@fyipe.com"
         - name: MAIL_PASSWORD
@@ -150,9 +217,11 @@ spec:
           value: "testmail@fyipe.com"
         - name: EMAIL_VERIFY_TIME
           value: "3600"
+        - name: MAIL_SECURE
+          value: "false"
         ports:
-        - containerPort: 3001
-          hostPort: 3001
+        - containerPort: 3002
+          hostPort: 3002
           name: backend
       restartPolicy: Always
       imagePullSecrets:
@@ -169,7 +238,7 @@ spec:
   ports:
   - port: 80
     protocol: TCP
-    targetPort: 3001
+    targetPort: 3002 
   selector:
     app: backend
   type: LoadBalancer
@@ -198,6 +267,14 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: "home"
+        - name: BACKEND_HOST
+          value: "backend"
+        - name: ACCOUNTS_HOST
+          value: "accounts"
+        - name: DASHBOARD_HOST
+          value: "dashboard"
         ports:
         - containerPort: 1444
           hostPort: 1444
@@ -244,6 +321,14 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: "statuspage"
+        - name: BACKEND_HOST
+          value: "backend"
+        - name: ACCOUNTS_HOST
+          value: "accounts"
+        - name: DASHBOARD_HOST
+          value: "dashboard"
         ports:
         - containerPort: 3006
           hostPort: 3006

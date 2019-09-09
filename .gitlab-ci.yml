@@ -7,190 +7,194 @@
 
 # Define stages
 stages:
-  - BuildAndTest
-  - E2E
+  # - BuildAndTest
+  # - E2E
   - DeployStaging
   - DeployProduction
   - SmokeTest
   - Rollback
 
 ##BACKEND 
-lint_n_audit_backend:
-  stage: BuildAndTest
-  script:
-    - cd backend
-    - npm install --dev
-    - npm run lint
-    # - npm run audit
-    - cd ..
+# lint_n_audit_backend:
+#   stage: BuildAndTest
+#   script:
+#     - cd backend
+#     - npm install --dev
+#     - npm run lint
+#     # - npm run audit
+#     - cd ..
 
-build_n_test_backend:
-  stage: BuildAndTest
-  script:
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
+# build_n_test_backend:
+#   stage: BuildAndTest
+#   script:
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+#     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
 
-##DASHBOARD
-lint_n_audit_dashboard:
-  stage: BuildAndTest
-  script:
-    - cd dashboard
-    - npm install --dev
-    - npm run lint
-    # - npm run audit
-    - cd ..
+# ##DASHBOARD
+# lint_n_audit_dashboard:
+#   stage: BuildAndTest
+#   script:
+#     - cd dashboard
+#     - npm install --dev
+#     - npm run lint
+#     # - npm run audit
+#     - cd ..
 
-build_n_test_dashboard:
- stage: BuildAndTest
- script:
-    - echo "Setup machine for running puppeteer tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-    - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd dashboard
-    - npm install
-    - npm run jest
-
-
-##ZAPIER
-lint_n_audit_zapier:
-  stage: BuildAndTest
-  script:
-    - cd zapier
-    - npm install --dev
-    - npm run lint
-    - npm run audit
-    - cd ..
-
-build_n_test_zapier:
-  stage: BuildAndTest
-  script:
-   - echo "No test implemented"
-
-## STATUS PAGE
-lint_n_audit_statuspage:
-  stage: BuildAndTest
-  script:
-    - cd status-page
-    - npm install --dev
-    - npm run lint
-    - npm run audit
-    - cd ..
-
-build_n_test_statuspage:
- stage: BuildAndTest
- script:
-    - echo "Setup machine for running puppeteer tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipe-project/status-page:3.0.$CI_PIPELINE_IID ./status-page
-    - sudo docker run -p 3006:3006 -d fyipe-project/status-page:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd backend
-    - npm install 
-    - cd ..
-    - cd status-page
-    - npm install
-    - curl localhost:3006
-    - npm run jest
+# build_n_test_dashboard:
+#  stage: BuildAndTest
+#  script:
+#     - echo "Setup machine for running puppeteer tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+#     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+#     - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd dashboard
+#     - npm install
+#     - npm run jest
 
 
-## ACCOUNTS
-lint_n_audit_accounts:
-  stage: BuildAndTest
-  script:
-    - cd accounts
-    - npm install --dev
-    - npm run lint
-    - npm run audit
-    - cd ..
+# ##ZAPIER
+# lint_n_audit_zapier:
+#   stage: BuildAndTest
+#   script:
+#     - cd zapier
+#     - npm install --dev
+#     - npm run lint
+#     - npm run audit
+#     - cd ..
 
-build_n_test_accounts:
- stage: BuildAndTest
- script:
-    - echo "Setup machine for running puppeteer tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-    - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd accounts
-    - npm install
-    - npm run jest
+# build_n_test_zapier:
+#   stage: BuildAndTest
+#   script:
+#    - echo "No test implemented"
 
-## HOME
-lint_n_audit_home:
-  stage: BuildAndTest
-  script:
-    - cd home
-    - npm install --dev
-    - npm run lint
-    - npm run audit
-    - cd ..
+# ## STATUS PAGE
+# lint_n_audit_statuspage:
+#   stage: BuildAndTest
+#   script:
+#     - cd status-page
+#     - npm install --dev
+#     - npm run lint
+#     - npm run audit
+#     - cd ..
 
-build_n_test_home:
-  stage: BuildAndTest
-  script:
-   - echo "No test implemented"
+# build_n_test_statuspage:
+#  stage: BuildAndTest
+#  script:
+#     - echo "Setup machine for running puppeteer tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+#     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipe-project/status-page:3.0.$CI_PIPELINE_IID ./status-page
+#     - sudo docker run -p 3006:3006 -d fyipe-project/status-page:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd backend
+#     - npm install 
+#     - cd ..
+#     - cd status-page
+#     - npm install
+#     - curl localhost:3006
+#     - npm run jest
 
-## PROBE
-lint_n_audit_probe:
-  stage: BuildAndTest
-  script:
-    - cd probe
-    - npm install --dev
-    - npm run lint
-    - npm run audit
-    - cd ..
 
-build_n_test_probe:
-  stage: BuildAndTest
-  script:
-   - echo "No test implemented"
+# ## ACCOUNTS
+# lint_n_audit_accounts:
+#   stage: BuildAndTest
+#   script:
+#     - cd accounts
+#     - npm install --dev
+#     - npm run lint
+#     - npm run audit
+#     - cd ..
 
-##E2E Stage. 
-e2e_test:
-  stage: E2E
-  script:
-   - chmod +x ./kubernetes/ci/setup-machine.sh
-   - ./kubernetes/ci/setup-machine.sh
-   - chmod +x ./kubernetes/ci/setup.sh
-   - ./kubernetes/ci/setup.sh
-   - export ACCOUNTS_URL=`sudo kubectl describe svc accounts | grep Endpoints | cut -d ":" -f 2`
-   - export BACKEND_URL=`sudo kubectl describe svc backend | grep Endpoints | cut -d ":" -f 2`
-   - export DASHBOARD_URL=`sudo kubectl describe svc dashboard | grep Endpoints | cut -d ":" -f 2`
-   - export HOME_URL=`sudo kubectl describe svc home | grep Endpoints | cut -d ":" -f 2`
-   - export STATUSPAGE_URL=`sudo kubectl describe svc status-page | grep Endpoints | cut -d ":" -f 2`
-   - echo ACCOUNTS_URL=$ACCOUNTS_URL
-   - echo BACKEND_URL=$BACKEND_URL
-   - echo DASHBOARD_URL=$DASHBOARD_URL
-   - echo HOME_URL=$HOME_URL
-   - echo STATUSPAGE_URL=$STATUSPAGE_URL
-   - chmod +x ./kubernetes/ci/hosts-setup.sh
-   - ./kubernetes/ci/hosts-setup.sh
+# build_n_test_accounts:
+#  stage: BuildAndTest
+#  script:
+#     - echo "Setup machine for running puppeteer tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+#     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+#     - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd accounts
+#     - npm install
+#     - npm run jest
 
-  only:
-    refs:
-      - release
-      - master
+# ## HOME
+# lint_n_audit_home:
+#   stage: BuildAndTest
+#   script:
+#     - cd home
+#     - npm install --dev
+#     - npm run lint
+#     - npm run audit
+#     - cd ..
+
+# build_n_test_home:
+#   stage: BuildAndTest
+#   script:
+#    - echo "No test implemented"
+
+# ## PROBE
+# lint_n_audit_probe:
+#   stage: BuildAndTest
+#   script:
+#     - cd probe
+#     - npm install --dev
+#     - npm run lint
+#     - npm run audit
+#     - cd ..
+
+# build_n_test_probe:
+#   stage: BuildAndTest
+#   script:
+#    - echo "No test implemented"
+
+# ##E2E Stage. 
+# e2e_test:
+#   stage: E2E
+#   script:
+#    - chmod +x ./kubernetes/ci/setup-machine.sh
+#    - ./kubernetes/ci/setup-machine.sh
+#    - chmod +x ./kubernetes/ci/setup.sh
+#    - ./kubernetes/ci/setup.sh
+#    - export ACCOUNTS_URL=`sudo kubectl describe svc accounts | grep Endpoints | cut -d ":" -f 2`
+#    - export BACKEND_URL=`sudo kubectl describe svc backend | grep Endpoints | cut -d ":" -f 2`
+#    - export DASHBOARD_URL=`sudo kubectl describe svc dashboard | grep Endpoints | cut -d ":" -f 2`
+#    - export HOME_URL=`sudo kubectl describe svc home | grep Endpoints | cut -d ":" -f 2`
+#    - export STATUSPAGE_URL=`sudo kubectl describe svc status-page | grep Endpoints | cut -d ":" -f 2`
+#    - export APIDOCS_URL=`sudo kubectl describe svc api-docs | grep Endpoints | cut -d ":" -f 2`
+#    - echo ACCOUNTS_URL=$ACCOUNTS_URL
+#    - echo BACKEND_URL=$BACKEND_URL
+#    - echo DASHBOARD_URL=$DASHBOARD_URL
+#    - echo HOME_URL=$HOME_URL
+#    - echo STATUSPAGE_URL=$STATUSPAGE_URL
+#    - chmod +x ./kubernetes/ci/hosts-setup.sh
+#    - ./kubernetes/ci/hosts-setup.sh
+#    - cd smoke-test
+#    - npm i 
+#    - npm run test
+
+#   only:
+#     refs:
+#       - release
+#       - master
 
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
@@ -249,7 +253,7 @@ deploy_staging_api-docs:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy api-docs.
-    - sudo docker build -t fyipe-project/dashobard:master ./api-docs
+    - sudo docker build -t fyipe-project/api-docs:master ./api-docs
     - sudo docker tag fyipe-project/api-docs:master registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/api-docs:master registry.gitlab.com/fyipe-project/api-docs:master
     - sudo docker push registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
@@ -295,7 +299,7 @@ deploy_staging_home:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy home.
-    - sudo docker build -t fyipe-project/dashobard:master ./home
+    - sudo docker build -t fyipe-project/home:master ./home
     - sudo docker tag fyipe-project/home:master registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/home:master registry.gitlab.com/fyipe-project/home:master
     - sudo docker push registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
@@ -341,7 +345,7 @@ deploy_staging_probe:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy probe.
-    - sudo docker build -t fyipe-project/dashobard:master ./probe
+    - sudo docker build -t fyipe-project/probe:master ./probe
     - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:master
     - sudo docker push registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
@@ -387,7 +391,7 @@ deploy_staging_status-page:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy status-page.
-    - sudo docker build -t fyipe-project/dashobard:master ./status-page
+    - sudo docker build -t fyipe-project/status-page:master ./status-page
     - sudo docker tag fyipe-project/status-page:master registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/status-page:master registry.gitlab.com/fyipe-project/status-page:master
     - sudo docker push registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
@@ -433,7 +437,7 @@ deploy_staging_admin-dashboard:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy admin-dashboard.
-    - sudo docker build -t fyipe-project/dashobard:master ./admin-dashboard
+    - sudo docker build -t fyipe-project/admin-dashboard:master ./admin-dashboard
     - sudo docker tag fyipe-project/admin-dashboard:master registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/admin-dashboard:master registry.gitlab.com/fyipe-project/admin-dashboard:master
     - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
@@ -480,7 +484,7 @@ deploy_staging_accounts:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy accounts.
-    - sudo docker build -t fyipe-project/dashobard:master ./accounts
+    - sudo docker build -t fyipe-project/accounts:master ./accounts
     - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:master
     - sudo docker push registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
@@ -526,7 +530,7 @@ deploy_staging_dashboard:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy dashboard.
-    - sudo docker build -t fyipe-project/dashobard:master ./dashboard
+    - sudo docker build -t fyipe-project/dashboard:master ./dashboard
     - sudo docker tag fyipe-project/dashboard:master registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/dashboard:master registry.gitlab.com/fyipe-project/dashboard:master
     - sudo docker push registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
@@ -578,7 +582,15 @@ smoke_test_production:
 smoke_test_staging:
   stage: SmokeTest
   script:
-    - echo "No test implemented"
+    - export HOME_URL=https://staging.fyipe.com
+    - export ACCOUNTS_URL=https://staging-accounts.fyipe.com
+    - export DASHBOARD_URL=https://staging-dashboard.fyipe.com
+    - export BACKEND_URL=https://staging-api.fyipe.com
+    - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
+    - export APIDOCS_URL=https://staging-api-docs.fyipe.com 
+    - cd smoke-test
+    - npm install
+    - npm run test
   only:
     refs:
       - master
