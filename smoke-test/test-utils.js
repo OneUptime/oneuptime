@@ -16,12 +16,12 @@ const puppeteerLaunchConfig = {
     ]
 }
 
-const HOME_URL = process.env.HOME_URL ?  'http://home:1444' : 'http://localhost:1444';
-const ACCOUNTS_URL = process.env.ACCOUNTS_URL ? 'http://accounts:3003' : 'http://localhost:3003';
-const DASHBOARD_URL = process.env.DASHBOARD_URL ? 'http://dashboard:3000' : 'http://localhost:3000';
-const BACKEND_URL = process.env.BACKEND_URL ? 'http://backend:3002' : 'http://localhost:3002';
-const STATUSPAGE_URL = process.env.STATUSPAGE_URL ? 'http://status-page:3006' : 'http://localhost:3006';
-const APIDOCS_URL = process.env.APIDOCS_URL ? 'http://api-docs:1445' : 'http://localhost:1445';
+const HOME_URL = process.env.HOME_URL || 'http://localhost:1444';
+const ACCOUNTS_URL = process.env.ACCOUNTS_URL || 'http://localhost:3003';
+const DASHBOARD_URL = process.env.DASHBOARD_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
+const STATUSPAGE_URL = process.env.STATUSPAGE_URL || 'http://localhost:3006';
+const APIDOCS_URL = process.env.APIDOCS_URL || 'http://localhost:1445';
 
 
 function generateRandomBusinessEmail() {
