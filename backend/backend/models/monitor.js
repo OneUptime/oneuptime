@@ -8,7 +8,7 @@ var monitorSchema = new Schema({
     createdById: { type: String, ref: 'User' }, //userId.
     type: {
         type: String,
-        enum: ['url', 'device', 'manual','api']
+        enum: ['url', 'device', 'manual','api', 'server-monitor']
     }, //type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
     monitorCategoryId: {
         type: String,

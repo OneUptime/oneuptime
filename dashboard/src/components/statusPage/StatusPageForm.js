@@ -20,6 +20,7 @@ function validate(values) {
 }
 
 export class StatusPageForm extends React.Component{
+    // eslint-disable-next-line
     constructor(props){
         super(props);
     }

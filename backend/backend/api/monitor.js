@@ -10,7 +10,6 @@ var NotificationService = require('../services/notificationService');
 var RealTimeService = require('../services/realTimeService');
 var ScheduleService = require('../services/scheduleService');
 
-
 var router = express.Router();
 var isUserAdmin = require('../middlewares/project').isUserAdmin;
 var getUser = require('../middlewares/user').getUser;
@@ -41,7 +40,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
     }
     data.createdById = req.user ? req.user.id : null;
 
-    if(data.monitorCategoryId && typeof data.monitorCategoryId !== 'string') {
+    if (data.monitorCategoryId && typeof data.monitorCategoryId !== 'string') {
         return sendErrorResponse(req, res, {
             code: 400,
             message: 'Monitor Category ID is not of string type.'
@@ -129,7 +128,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
     data.projectId = projectId;
     try {
         var monitor = await MonitorService.create(data);
-        if (data.callScheduleId){
+        if (data.callScheduleId) {
             var schedule = await ScheduleService.findOneBy({ _id: data.callScheduleId });
             var monitors = schedule.monitorIds;
             if (monitors.length > 0) {
@@ -184,19 +183,27 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
 
 router.get('/:projectId/monitor', getUser, isAuthorized, async function (req, res) {
     var projectId = req.params.projectId;
-    try{
-        var monitors = await MonitorService.findBy({projectId}, req.query.limit || 10, req.query.skip || 0);
-        var count = await MonitorService.countBy({projectId});
+    var type = req.query.type;
+    var query = type ? { projectId, type } : { projectId };
+
+    try {
+        var monitors = await MonitorService.findBy(query, req.query.limit || 10, req.query.skip || 0);
+        var count = await MonitorService.countBy({ projectId });
         return sendListResponse(req, res, monitors, count); // frontend expects sendListResponse
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, async function (req, res) {
+    var _id = req.params.monitorId;
+    var projectId = req.params.projectId;
+    var type = req.query.type;
+    var query = type ? { _id, projectId, type } : { _id, projectId };
+
     try {
         // Call the MonitorService.
-        var monitor = await MonitorService.findOneBy({ _id: req.params.monitorId, projectId: req.params.projectId });
+        var monitor = await MonitorService.findOneBy(query);
         return sendItemResponse(req, res, monitor);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -213,6 +220,24 @@ router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, asyn
         else {
             return sendErrorResponse(req, res, { message: 'Monitor not found' });
         }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: Adding / Updating a new monitor log
+// Params:
+// Param 1: req.params-> {projectId, monitorId}; req.body -> {[_id], data} <- Check MonitorLogModel for description.
+// Returns: response status, error message
+router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
+    var data = req.body.data;
+    // var projectId = req.params.projectId;
+    var monitorId = req.params.monitorId || req.body._id;
+
+    try {
+        var monitorData = await MonitorService.addMonitorLog(monitorId, data);
+        return sendItemResponse(req, res, monitorData);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
