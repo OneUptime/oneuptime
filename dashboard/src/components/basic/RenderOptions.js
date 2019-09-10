@@ -19,8 +19,8 @@ const flexStylehidden = {
     visibility: 'hidden',
 }
 
-const firstField = ['greaterThan', 'lessThan', 'inBetween', 'equalTo', 'notEqualto', 'gtEqualTo', 'ltEqualTo', 'contains', 'doesNotContain', 'jsExpression'];
-const placeholderfilter = ['isUp', 'isDown', 'empty', 'notEmpty'];
+const firstField = ['greaterThan', 'lessThan', 'inBetween', 'equalTo', 'notEqualto', 'gtEqualTo', 'ltEqualTo', 'contains', 'doesNotContain', 'jsExpression', 'executesIn', 'doesNotExecuteIn', 'throwsError', 'doesNotThrowError'];
+const placeholderfilter = ['isUp', 'isDown', 'empty', 'notEmpty', 'executesIn'];
 const mapValue = {
     'greaterThan': 'Greater Than',
     'lessThan': 'Less Than',
@@ -32,6 +32,10 @@ const mapValue = {
     'contains': 'Contains',
     'doesNotContain': 'Does not Contain',
     'jsExpression': 'Javascript Expression',
+    'executesIn': 'Executes in',
+    'doesNotExecuteIn': 'Does not execute in',
+    'throwsError': 'Throws error',
+    'doesNotThrowError': 'Does not throw error'
 }
 
 const placeholders = {
@@ -72,6 +76,19 @@ const placeholders = {
     'jsExpression': {
         'responseBody': 'response.data === {}'
     },
+    'executesIn': {
+        'responseTime': '2000',
+        'statusCode': '200'
+    },
+    'doesNotExecuteIn': {
+        'responseTime': '2000'
+    },
+    'throwsError': {
+        'responseBody': 'Contains'
+    },
+    'doesNotThrowError': {
+        'responseBody': 'Does not Contain'
+    }
 }
 
 export class RenderOption extends Component {
@@ -94,10 +111,13 @@ export class RenderOption extends Component {
                             validate={ValidateField.select}
                         >
                             <option value="">None</option>
-                            <option value="responseTime">Response Time</option>
-                            <option value="doesRespond">Does Respond</option>
-                            <option value="statusCode">Status Code</option>
-                            <option value="responseBody">Response Body</option>
+                            { this.props.type !== 'script' ? <option value="responseTime">Response Time</option> : ''}
+                            { this.props.type !== 'script' ? <option value="doesRespond">Does Respond</option> : ''}
+                            { this.props.type !== 'script' ? <option value="statusCode">Status Code</option> : ''}
+                            { this.props.type !== 'script' ? <option value="responseBody">Response Body</option> : ''}
+                            { this.props.type === 'script' ? <option value="executes">Executes</option> : ''}
+                            { this.props.type === 'script' ? <option value="error">Error</option> : ''}
+                            { this.props.type === 'script' ? <option value="javascriptExpression">JavaScript Expression</option> : ''}
                         </Field>
                     </div>
                 </div>
@@ -128,6 +148,11 @@ export class RenderOption extends Component {
                             {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="jsExpression">Javascript Expression</option> : ''}
                             {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="empty">Is empty</option> : ''}
                             {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="notEmpty">Is not empty</option> : ''}
+                            {bodyfield && bodyfield.responseType === 'executes' ? <option value="executesIn">Executes in</option> : ''}
+                            {bodyfield && bodyfield.responseType === 'executes' ? <option value="doesNotExecuteIn">Does not execute in</option> : ''}
+                            {bodyfield && bodyfield.responseType === 'error' ? <option value="throwsError">Throws error</option> : ''}
+                            {bodyfield && bodyfield.responseType === 'error' ? <option value="doesNotThrowError">Does not throw error</option> : ''}
+                            {/* {bodyfield && bodyfield.responseType === 'javascriptExpression' ? <option value="">KK</option> : ''} */}
                         </Field>
                     </div>
                 </div>
@@ -233,6 +258,7 @@ RenderOption.propTypes = {
     removeField: PropTypes.func,
     level:PropTypes.number,
     fieldnameprop:PropTypes.string,
+    type: PropTypes.string
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
