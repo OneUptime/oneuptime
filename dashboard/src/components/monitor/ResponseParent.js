@@ -53,9 +53,10 @@ export class ResponseParent extends Component {
                                     addField={() => fields.insert(j + 1, { responseType: '', filter: '', field1: '', field2: '',field3:false })}
                                     removeField={(removeArrayField) => level > 1 && fields && fields.length < 2 ? removeArrayField(fields.name.substring(0, fields.name.length - 11)) : fields.remove(j)}
                                     fieldnameprop={newval}
+                                    type={this.props.type}
                                 />
                                 {level < 3 && bodyfield[j] && bodyfield[j].field3 ?
-                                    <FieldArray name={`${newval}.collection`} component={ResponseParent} bodyfield={bodyfield[j].collection} level={level + 1} />
+                                    <FieldArray name={`${newval}.collection`} component={ResponseParent} type={this.props.type} bodyfield={bodyfield[j].collection} level={level + 1} />
                                     : ''}
                             </React.Fragment>
                         )
@@ -75,6 +76,7 @@ ResponseParent.propTypes = {
     ]).isRequired,
     bodyfield : PropTypes.object,
     level : PropTypes.number,
+    type: PropTypes.string
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
