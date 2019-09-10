@@ -69,7 +69,7 @@ export class ResponseComponent extends Component {
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                 <fieldset className="bs-Fieldset">
                                     <div className="bs-Fieldset-rows">
-                                        <FieldArray name={this.props.fieldname} component={ResponseParent} bodyfield={this.props.bodyfield} level={1} />
+                                        <FieldArray name={this.props.fieldname} component={ResponseParent} type={this.props.type} bodyfield={this.props.bodyfield} level={1} />
                                     </div>
                                 </fieldset>
                             </div>
@@ -176,6 +176,7 @@ ResponseComponent.propTypes = {
     head: PropTypes.string,
     tagline: PropTypes.string,
     index:PropTypes.number,
+    script: PropTypes.string
 }
 
 const mapDispatchToProps = {
