@@ -1,4 +1,8 @@
 {
+  "env": {
+    "node": true,
+    "commonjs": true
+  },
   "extends": "eslint:recommended",
   "parserOptions": {
     "sourceType": "module",
@@ -11,7 +15,7 @@
     ],
     "linebreak-style": [
       "error",
-      "windows"
+      "unix"
     ],
     "quotes": [
       "error",

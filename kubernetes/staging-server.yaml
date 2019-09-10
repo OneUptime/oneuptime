@@ -84,7 +84,7 @@ spec:
           value: "true"
         - name: HOST
           value: "https://staging-accounts.fyipe.com"
-        - name: ACCOUNTS_HOST
+        - name: DASHBOARD_HOST
           value: "https://staging-dashboard.fyipe.com"
         - name: BACKEND_HOST
           value: "https://staging-api.fyipe.com"

@@ -18,6 +18,7 @@ import NotificationMenu from './notification/NotificationMenu';
 import { closeNotificationMenu } from '../actions/notification';
 
 export class DashboardApp extends Component {
+    // eslint-disable-next-line
     constructor(props){
         super(props);
     }
@@ -103,7 +104,7 @@ export class DashboardApp extends Component {
                             <div className="db-World-scrollWrapper" >
 
 
-                                <ShouldRender if={project.projects.projects != undefined && project.projects.projects[0]}>
+                                <ShouldRender if={project.projects.projects !== undefined && project.projects.projects[0]}>
 
                                     <SideNav />
 
@@ -124,7 +125,7 @@ export class DashboardApp extends Component {
                         <ShouldRender if={!project.projects.requesting && project.projects.success && location.pathname !== '/profile/settings'}>
                             <div className="db-World-scrollWrapper" >
 
-                                <ShouldRender if={ project.projects.projects != undefined && project.projects.projects[0]}>
+                                <ShouldRender if={ project.projects.projects !== undefined && project.projects.projects[0]}>
 
                                     <SideNav />
 

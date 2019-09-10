@@ -20,6 +20,7 @@ function validate(values) {
 }
 
 export class ScheduleForm extends React.Component{
+    // eslint-disable-next-line
     constructor(props){
         super(props);
     }

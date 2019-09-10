@@ -306,6 +306,7 @@ class NewMonitor extends Component {
                                                                 <option value="manual">Manual</option>
                                                                 <option value="api">API</option>
                                                                 <option value="script">Script</option>
+                                                                <option value="serverMonitor">Server Monitor</option>
                                                             </Field>
                                                         </div>
                                                     </div>
