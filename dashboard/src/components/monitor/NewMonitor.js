@@ -432,14 +432,6 @@ class NewMonitor extends Component {
                                                             />
                                                         </div>
                                                     </div>}
-                                                    <ShouldRender if={type && (type === 'api' || type === 'url') && !this.state.advance}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label"></label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <a onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</a>
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
                                                     <ShouldRender if={type === 'script'}>
                                                     <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">Script</label>
@@ -463,13 +455,21 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
                                                     </ShouldRender>
-                                                    <ShouldRender if={this.state.advance && (type === 'api' || type === 'url')}>
+                                                    <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'script') && !this.state.advance}>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label"></label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <a onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</a>
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
+                                                    <ShouldRender if={this.state.advance && (type === 'api' || type === 'url' || type === 'script')}>
                                                         <ShouldRender if={this.state.advance && type === 'api'}>
                                                             <ApiAdvance index={this.props.index} />
                                                         </ShouldRender>
-                                                        <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} />
-                                                        <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} />
-                                                        <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} />
+                                                        <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} type={type}/>
+                                                        <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} type={type}/>
+                                                        <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} type={type}/>
                                                     </ShouldRender>
                                                 </ShouldRender>
                                             </div>
@@ -573,11 +573,13 @@ const mapStateToProps = (state, ownProps) => {
         };
     }
     else {
+
         const initialvalue = {
             up_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isUp', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
             down_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isDown', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
             degraded_1000: [{ match: 'all', responseType: 'responseTime', filter: 'greaterThan', field1: '5000', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
         }
+       
         return {
             initialValues: initialvalue,
             monitor: state.monitor,
