@@ -33,6 +33,8 @@ spec:
           value: "https://staging-accounts.fyipe.com"
         - name: BACKEND_HOST
           value: "https://staging-api.fyipe.com"
+        - name: DOMAIN
+          value: ".fyipe.com"
         ports:
         - containerPort: 3000
           hostPort: 3000
@@ -88,6 +90,8 @@ spec:
           value: "https://staging-dashboard.fyipe.com"
         - name: BACKEND_HOST
           value: "https://staging-api.fyipe.com"
+        - name: DOMAIN
+          value: ".fyipe.com"
         ports:
         - containerPort: 3003
           hostPort: 3003
