@@ -75,10 +75,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
         });
     }
 
-    if (data.type !== 'url' && data.type !== 'device' && data.type !== 'manual' && data.type !== 'api') {
+    if (data.type !== 'url' && data.type !== 'device' && data.type !== 'manual' && data.type !== 'api' && data.type !== 'script') {
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Monitor type should be url, manual or device.'
+            message: 'Monitor type should be url, manual, device or script.'
         });
     }
     if (!data.data) {
@@ -124,6 +124,15 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
                 code: 400,
                 message: 'Monitor data should have a `Device ID` property of type string.'
             });
+        }
+    }
+
+    if (data.type === 'script') {
+        if (!data.data.script){
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor data should have a `script` property of type string.'
+            })
         }
     }
     data.projectId = projectId;
