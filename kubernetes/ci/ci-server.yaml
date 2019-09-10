@@ -27,11 +27,13 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: HOST
-          value: "http://dashboard:3000"
+          value: "http://dashboard.app.local:3000"
         - name: ACCOUNTS_HOST
-          value: "http://accounts:3003"
+          value: "http://accounts.app.local:3003"
         - name: BACKEND_HOST
-          value: "http://backend:3002"
+          value: "http://backend.app.local:3002"
+        - name: DOMAIN
+          value: ".app.local"
         ports:
         - containerPort: 3000
           hostPort: 3000
@@ -82,11 +84,13 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: HOST
-          value: "http://accounts:3003"
+          value: "http://accounts.app.local:3003"
         - name: BACKEND_HOST
-          value: "http://backend:3002"
+          value: "http://backend.app.local:3002"
         - name: DASHBOARD_HOST
-          value: "http://dashboard:3000"
+          value: "http://dashboard.app.local:3000"
+        - name: DOMAIN
+          value: ".app.local"
         ports:
         - containerPort: 3003
           hostPort: 3003
