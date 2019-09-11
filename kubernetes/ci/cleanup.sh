@@ -7,6 +7,8 @@ echo "Delete microk8s Cluster..."
 echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
 sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND: microk8s.reset || 'microk8s cannot delete'"
+sudo usermod -aG docker ${USER}
+su - ${USER}
 microk8s.reset || 'microk8s cannot delete'
 echo "RUNNING COMMAND: microk8s.stop || 'microk8s cannot Stop'"
 microk8s.stop || "microk8s cannot Stop"
