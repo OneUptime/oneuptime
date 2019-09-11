@@ -6,8 +6,6 @@
 # Cleanup
 echo "RUNNING COMMAND:  chmod +x ./ci/cleanup.sh"
 chmod +x ./kubernetes/ci/cleanup.sh
-echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
-sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND:  ./ci/cleanup.sh"
 ./kubernetes/ci/cleanup.sh
 # Flush all repos
@@ -34,9 +32,15 @@ sudo iptables -P FORWARD ACCEPT
 # Install Basic packages
 echo "RUNNING COMMAND:  sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget"
 sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget
-#Install Docker.
+#Install Docker and setup registry and insecure access to it.
 echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
 curl -sSL https://get.docker.com/ | sh
+echo "RUNNING COMMAND: touch /etc/docker/daemon.json"
+touch /etc/docker/daemon.json
+echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" >> /etc/docker/daemon.json"
+echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" >> /etc/docker/daemon.json
+echo "RUNNING COMMAND: sudo systemctl restart docker"
+sudo systemctl restart docker
 #Install Kubectl
 echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
 curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
