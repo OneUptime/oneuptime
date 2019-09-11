@@ -33,15 +33,25 @@ sudo iptables -P FORWARD ACCEPT
 echo "RUNNING COMMAND:  sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget"
 sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget
 #Install Docker and setup registry and insecure access to it.
-echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
-curl -sSL https://get.docker.com/ | sh
-#Install Kubectl
-echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-echo "RUNNING COMMAND: chmod +x ./kubectl"
-chmod +x ./kubectl
-echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
-sudo mv ./kubectl /usr/local/bin/kubectl
+#IF docker is already installed, do not install docker.
+
+if [[ ! $(which docker) ]]
+then
+  echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
+  curl -sSL https://get.docker.com/ | sh
+fi
+
+if [[ ! $(which kubectl) ]]
+then
+  #Install Kubectl
+  echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+  echo "RUNNING COMMAND: chmod +x ./kubectl"
+  chmod +x ./kubectl 
+  echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
+  sudo mv ./kubectl /usr/local/bin/kubectl
+fi
+
 #Install microK8s
 echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
 sudo snap set system refresh.retain=2
