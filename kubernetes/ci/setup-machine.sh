@@ -35,10 +35,10 @@ sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl s
 #Install Docker and setup registry and insecure access to it.
 echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
 curl -sSL https://get.docker.com/ | sh
-echo "RUNNING COMMAND: touch /etc/docker/daemon.json"
-touch /etc/docker/daemon.json
-echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" >> /etc/docker/daemon.json"
-echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" >> /etc/docker/daemon.json
+echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
+sudo touch /etc/docker/daemon.json
+echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
+echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
 echo "RUNNING COMMAND: sudo systemctl restart docker"
 sudo systemctl restart docker
 #Install Kubectl
