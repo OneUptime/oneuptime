@@ -77,7 +77,6 @@ const store_error = mockStore(state_error)
 const props = {
     index: 0,
     fetchMonitorsIncidents: action('fetchMonitorsIncidents'),
-    fetchMonitorLogs: action('fetchMonitorLogs'),
     editMonitorSwitch: action('editMonitorSwitch'),
     deleteMonitor: action('deleteMonitor'),
     openModal: action('openModal'),

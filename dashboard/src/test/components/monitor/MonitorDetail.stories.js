@@ -121,7 +121,6 @@ const props = {
         '__v': 0
     },
     fetchMonitorsIncidents: action('fetchMonitorsIncidents'),
-    fetchMonitorLogs: action('fetchMonitorLogs'),
     editMonitorSwitch: action('editMonitorSwitch'),
     deleteMonitor: action('deleteMonitor'),
     openModal: action('openModal')
