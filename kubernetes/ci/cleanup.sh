@@ -14,6 +14,8 @@ echo "RUNNING COMMAND: sudo snap remove microk8s || 'microk8s cannot be removed.
 sudo snap remove microk8s || 'microk8s cannot be removed.'
 # Stop all docker containers
 echo "Stop and Delete all docker containers..."
+echo "RUNNING COMMAND: sudo usermod -aG docker $USER"
+sudo usermod -aG docker $USER
 echo "RUNNING COMMAND: sudo docker stop \$(sudo docker ps -aq) || echo 'No docker containers'"
 sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
 # Remove all docker containers.
