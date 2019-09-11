@@ -6,6 +6,8 @@
 # Cleanup
 echo "RUNNING COMMAND:  chmod +x ./ci/cleanup.sh"
 chmod +x ./kubernetes/ci/cleanup.sh
+echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
+sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND:  ./ci/cleanup.sh"
 ./kubernetes/ci/cleanup.sh
 # Flush all repos
@@ -47,6 +49,8 @@ echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
 sudo snap set system refresh.retain=2
 echo "RUNNING COMMAND: sudo snap install microk8s --classic"
 sudo snap install microk8s --classic
+echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
+sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND: microk8s.start"
 microk8s.start
 echo "RUNNING COMMAND: microk8s.status --wait-ready"
