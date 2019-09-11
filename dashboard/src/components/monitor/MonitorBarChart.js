@@ -24,7 +24,7 @@ export function MonitorBarChart(props) {
     }
 
     let monitorType = props.monitor.type;
-
+ 
     let colInformation = monitorType === "server-monitor" ? (
         <div className="block-chart-side">
             <div className="db-TrendRow margin-b-1">
