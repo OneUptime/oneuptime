@@ -7,8 +7,6 @@ echo "Delete microk8s Cluster..."
 echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
 sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND: microk8s.reset || 'microk8s cannot delete'"
-sudo usermod -aG docker ${USER}
-su - ${USER}
 microk8s.reset || 'microk8s cannot delete'
 echo "RUNNING COMMAND: microk8s.stop || 'microk8s cannot Stop'"
 microk8s.stop || "microk8s cannot Stop"
@@ -21,6 +19,9 @@ sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
 # Remove all docker containers.
 echo "RUNNING COMMAND: sudo docker rm \$(sudo docker ps -aq) || echo 'No docker containers'"
 sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+echo "REINSTALL DOCKER"
+sudo apt-get purge docker-ce
+sudo rm -rf /var/lib/docker
 # Delete all locally built images. (Comment this out to reduce build times)
 # echo "RUNNING COMMAND: sudo docker rmi -f \$(sudo docker images -q) || echo 'No docker containers'"
 # sudo docker rmi -f $(sudo docker images -q) || echo 'No docker containers'
