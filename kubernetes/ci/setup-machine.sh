@@ -35,14 +35,6 @@ sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl s
 #Install Docker and setup registry and insecure access to it.
 echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
 curl -sSL https://get.docker.com/ | sh
-echo "RUNNING COMMAND: sudo usermod -aG docker $USER"
-sudo usermod -aG docker $USER
-echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
-sudo touch /etc/docker/daemon.json
-echo "RUNNING COMMAND: echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
-echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
-echo "RUNNING COMMAND: sudo systemctl restart docker"
-sudo systemctl restart docker
 #Install Kubectl
 echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
 curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
