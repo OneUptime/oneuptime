@@ -20,7 +20,7 @@ const flexStylehidden = {
 }
 
 const firstField = ['greaterThan', 'lessThan', 'inBetween', 'equalTo', 'notEqualto', 'gtEqualTo', 'ltEqualTo', 'contains', 'doesNotContain', 'jsExpression', 'executesIn', 'doesNotExecuteIn', 'throwsError', 'doesNotThrowError'];
-const placeholderfilter = ['isUp', 'isDown', 'empty', 'notEmpty', 'executesIn'];
+const placeholderfilter = ['isUp', 'isDown', 'empty', 'notEmpty'];
 const mapValue = {
     'greaterThan': 'Greater Than',
     'lessThan': 'Less Than',
@@ -121,7 +121,7 @@ export class RenderOption extends Component {
                         </Field>
                     </div>
                 </div>
-                <div className="bs-Fieldset-row" style={bodyfield && bodyfield.responseType && bodyfield.responseType !== '' ? flexStyle : flexStylehidden}>
+                <div className="bs-Fieldset-row" style={bodyfield && bodyfield.responseType && bodyfield.responseType !== '' && bodyfield.responseType !== 'javascriptExpression' ? flexStyle : flexStylehidden}>
                     <label className="bs-Fieldset-label" style={{ padding: '6px' }}>Filter</label>
                     <div className="bs-Fieldset-fields">
                         <Field className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -152,7 +152,6 @@ export class RenderOption extends Component {
                             {bodyfield && bodyfield.responseType === 'executes' ? <option value="doesNotExecuteIn">Does not execute in</option> : ''}
                             {bodyfield && bodyfield.responseType === 'error' ? <option value="throwsError">Throws error</option> : ''}
                             {bodyfield && bodyfield.responseType === 'error' ? <option value="doesNotThrowError">Does not throw error</option> : ''}
-                            {/* {bodyfield && bodyfield.responseType === 'javascriptExpression' ? <option value="">KK</option> : ''} */}
                         </Field>
                     </div>
                 </div>
