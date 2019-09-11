@@ -1,6 +1,5 @@
 #
 echo "Running Cleanup Script..."
-sudo reboot
 # Stop microk8s VM
 echo "Stopping microk8s..."
 # Delete microk8s cluster so it can be fresh for next job. 
