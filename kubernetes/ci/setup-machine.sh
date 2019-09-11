@@ -32,7 +32,7 @@ sudo iptables -P FORWARD ACCEPT
 # Install Basic packages
 echo "RUNNING COMMAND:  sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget"
 sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget
-#Install Docker.
+#Install Docker and setup registry and insecure access to it.
 echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
 curl -sSL https://get.docker.com/ | sh
 #Install Kubectl
@@ -47,6 +47,8 @@ echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
 sudo snap set system refresh.retain=2
 echo "RUNNING COMMAND: sudo snap install microk8s --classic"
 sudo snap install microk8s --classic
+echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
+sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND: microk8s.start"
 microk8s.start
 echo "RUNNING COMMAND: microk8s.status --wait-ready"

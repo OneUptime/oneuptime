@@ -67,6 +67,9 @@ module.exports = {
                 } else if (data.type === 'device') {
                     monitor.data = {};
                     monitor.data.deviceId = data.data.deviceId;
+                } else if (data.type === 'script') {
+                    monitor.data = {};
+                    monitor.data.script = data.data.script;
                 }
                 if (monitorCategory) {
                     monitor.monitorCategoryId = data.monitorCategoryId;

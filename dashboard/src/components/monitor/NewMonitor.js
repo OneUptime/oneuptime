@@ -20,7 +20,10 @@ import ResponseComponent from './ResponseComponent';
 import { User } from '../../config';
 import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
-
+import AceEditor from 'react-ace';
+import 'brace/mode/javascript';
+import 'brace/theme/github';
+ 
 const selector = formValueSelector('NewMonitor');
 
 class NewMonitor extends Component {
@@ -29,7 +32,8 @@ class NewMonitor extends Component {
         super(props);
         this.state = {
             upgradeModalId: uuid.v4(),
-            advance: false
+            advance: false,
+            script: ``
         }
     }
 
@@ -97,6 +101,10 @@ class NewMonitor extends Component {
 
         if (postObj.type === 'api')
             postObj.data.url = values[`url_${this.props.index}`];
+        
+        if (postObj.type === 'script'){
+            postObj.data.script = thisObj.state.script;
+        }
 
         if (postObj.type === 'url' || postObj.type === 'api') {
             if (values && values[`up_${this.props.index}`] && values[`up_${this.props.index}`].length) {
@@ -200,6 +208,10 @@ class NewMonitor extends Component {
         this.setState({ advance: false });
     }
 
+    scriptTextChange = (newValue) => {
+        this.setState({script: newValue});
+    }
+
     render() {
         let requesting = ((this.props.monitor.newMonitor.requesting && !this.props.edit) || (this.props.monitor.editMonitor.requesting && this.props.edit));
 
@@ -292,6 +304,7 @@ class NewMonitor extends Component {
                                                                 <option value="device">Device</option>
                                                                 <option value="manual">Manual</option>
                                                                 <option value="api">API</option>
+                                                                <option value="script">Script</option>
                                                                 <option value="server-monitor">Server Monitor</option>
                                                             </Field>
                                                         </div>
@@ -423,6 +436,29 @@ class NewMonitor extends Component {
                                                             <label className="bs-Fieldset-label"></label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <a onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</a>
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
+                                                    <ShouldRender if={type === 'script'}>
+                                                    <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">Script</label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <span>
+                                                                    <span>
+                                                                        <AceEditor
+                                                                            placeholder="Enter script here"
+                                                                            mode="javascript"
+                                                                            theme="github"
+                                                                            value={this.state.script}
+                                                                            name={`script_${this.props.index}`}
+                                                                            id="script"
+                                                                            editorProps={{ $blockScrolling: true }}
+                                                                            height={150}
+                                                                            highlightActiveLine={true}
+                                                                            onChange={this.scriptTextChange}
+                                                                        />
+                                                                    </span>
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </ShouldRender>

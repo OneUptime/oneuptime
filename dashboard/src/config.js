@@ -3,12 +3,37 @@ import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
 import { isServer } from './store';
-import FileSaver from 'file-saver'
+import FileSaver from 'file-saver';
 
 let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
+
+
+// if (!isServer) {
+//     if (window.location.href.indexOf('localhost') > -1) {
+//         apiUrl = 'http://localhost:3002';
+//         dashboardUrl = 'http://localhost:3000';
+//         accountsUrl = 'http://localhost:3003';
+//         domain = 'localhost';
+//     } else if (window.location.href.indexOf('staging') > -1) {
+//         apiUrl = 'https://staging-api.fyipe.com';
+//         dashboardUrl = 'http://staging-dashboard.fyipe.com';
+//         accountsUrl = 'http://staging-accounts.fyipe.com';
+//         domain = 'fyipe.com';
+//     } else {
+//         apiUrl = 'https://api.fyipe.com';
+//         dashboardUrl = 'https://fyipe.com';
+//         accountsUrl = 'https://accounts.fyipe.com';
+//         domain = 'fyipe.com';
+//     }
+// }
+
+function env(value) {
+    var { _env } = window;
+    return _env[`REACT_APP_${value}`];
+}
 
 if (!isServer) {
     if (window.location.href.indexOf('localhost') > -1) {
@@ -16,19 +41,12 @@ if (!isServer) {
         dashboardUrl = 'http://localhost:3000';
         accountsUrl = 'http://localhost:3003';
         domain = 'localhost';
-    } else if (window.location.href.indexOf('staging') > -1) {
-        apiUrl = 'https://staging-api.fyipe.com';
-        dashboardUrl = 'http://staging-dashboard.fyipe.com';
-        accountsUrl = 'http://staging-accounts.fyipe.com';
-        domain = 'fyipe.com';
-    } else {
-        apiUrl = 'https://api.fyipe.com';
-        dashboardUrl = 'https://fyipe.com';
-        accountsUrl = 'https://accounts.fyipe.com';
-        domain = 'fyipe.com';
+    } else if (env('BACKEND_HOST')) {
+        apiUrl = env('BACKEND_HOST');
+        dashboardUrl = env('HOST');
+        accountsUrl = env('ACCOUNTS_HOST');
+        domain = env('DOMAIN');
     }
-
-
 }
 
 export const API_URL = apiUrl;
@@ -215,7 +233,7 @@ export const PricingPlan = {
 
     getPlans() {
 
-        if (window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1) {
+        if (window.location.href.indexOf('localhost') > -1 ||  window.location.href.indexOf('staging') > -1 || window.location.href.indexOf('app.local') > -1) {
             return [
                 {
                     category: 'Basic',
