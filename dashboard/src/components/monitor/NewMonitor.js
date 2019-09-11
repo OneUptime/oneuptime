@@ -34,11 +34,11 @@ class NewMonitor extends Component {
     }
 
 
-    componentDidMount(){
+    componentDidMount() {
         const userId = User.getUserId();
         const projectMember = this.props.currentProject.users.find(user => user.userId === userId);
         //load call schedules
-        if(projectMember) this.props.fetchSchedules(this.props.currentProject._id);
+        if (projectMember) this.props.fetchSchedules(this.props.currentProject._id);
     }
 
     //Client side validation
@@ -88,8 +88,8 @@ class NewMonitor extends Component {
         postObj.type = values[`type_${this.props.index}`] ? values[`type_${this.props.index}`] : this.props.editMonitorProp.type;
         postObj.monitorCategoryId = values[`monitorCategoryId_${this.props.index}`]
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
-        if(!postObj.projectId) postObj.projectId = this.props.currentProject._id;
-        if(postObj.type === 'url' || postObj.type === 'manual')
+        if (!postObj.projectId) postObj.projectId = this.props.currentProject._id;
+        if (postObj.type === 'url' || postObj.type === 'manual')
             postObj.data.url = values[`url_${this.props.index}`] || null;
 
         if (postObj.type === 'device')
@@ -142,15 +142,15 @@ class NewMonitor extends Component {
             const { monitorId } = this.props;
             postObj._id = this.props.editMonitorProp._id;
             this.props.editMonitor(postObj.projectId, postObj)
-                .then( ()=> {
-                        thisObj.props.destroy();
-                        if(monitorId === this.props.editMonitorProp._id){
-                            this.props.fetchMonitorsIncidents(postObj.projectId, this.props.editMonitorProp._id, 0, 5);
-                            this.props.fetchMonitorsSubscribers(postObj.projectId, this.props.editMonitorProp._id, 0, 5);
-                        }else{
-                            this.props.fetchMonitorsIncidents(postObj.projectId, this.props.editMonitorProp._id, 0, 3);
-                        }
-                    if(window.location.href.indexOf('localhost') <= -1){
+                .then(() => {
+                    thisObj.props.destroy();
+                    if (monitorId === this.props.editMonitorProp._id) {
+                        this.props.fetchMonitorsIncidents(postObj.projectId, this.props.editMonitorProp._id, 0, 5);
+                        this.props.fetchMonitorsSubscribers(postObj.projectId, this.props.editMonitorProp._id, 0, 5);
+                    } else {
+                        this.props.fetchMonitorsIncidents(postObj.projectId, this.props.editMonitorProp._id, 0, 3);
+                    }
+                    if (window.location.href.indexOf('localhost') <= -1) {
                         thisObj.context.mixpanel.track('Monitor Edit', values);
                     }
                 })
@@ -176,14 +176,14 @@ class NewMonitor extends Component {
     }
 
     scheduleChange = (e) => {
-         //load call schedules
-         if(e.target.value && e.target.value !== ''){
-             this.props.fetchSchedules(e.target.value);
-         }else{
+        //load call schedules
+        if (e.target.value && e.target.value !== '') {
+            this.props.fetchSchedules(e.target.value);
+        } else {
             const userId = User.getUserId();
             const projectMember = this.props.currentProject.users.find(user => user.userId === userId);
-            if(projectMember) this.props.fetchSchedules(this.props.currentProject._id);
-         }
+            if (projectMember) this.props.fetchSchedules(this.props.currentProject._id);
+        }
     }
 
     cancelEdit = () => {
@@ -292,7 +292,7 @@ class NewMonitor extends Component {
                                                                 <option value="device">Device</option>
                                                                 <option value="manual">Manual</option>
                                                                 <option value="api">API</option>
-                                                                <option value="serverMonitor">Server Monitor</option>
+                                                                <option value="server-monitor">Server Monitor</option>
                                                             </Field>
                                                         </div>
                                                     </div>
@@ -306,7 +306,7 @@ class NewMonitor extends Component {
                                                                     required="required"
                                                                     disabled={requesting}
                                                                     component={SubProjectSelector}
-                                                                    props={{subProjects}}
+                                                                    props={{ subProjects }}
                                                                     onChange={this.scheduleChange}
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 />
@@ -325,11 +325,11 @@ class NewMonitor extends Component {
                                                                     disabled={requesting}
                                                                 >
                                                                     <option value="">Select call schedule</option>
-                                                                    { schedules && schedules.map((schedule, i)=> <option key={i} value={schedule._id}>{schedule.name}</option> ) }
-                                                                    </Field>
-                                                                    </div>
-                                                                    </div>
-                                                                    </ShouldRender>
+                                                                    {schedules && schedules.map((schedule, i) => <option key={i} value={schedule._id}>{schedule.name}</option>)}
+                                                                </Field>
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
                                                     <ShouldRender if={monitorCategoryList && monitorCategoryList.length > 0}>
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">Monitor Category</label>
