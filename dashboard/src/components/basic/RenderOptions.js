@@ -77,8 +77,7 @@ const placeholders = {
         'responseBody': 'response.data === {}'
     },
     'executesIn': {
-        'responseTime': '2000',
-        'statusCode': '200'
+        'responseTime': '2000'
     },
     'doesNotExecuteIn': {
         'responseTime': '2000'
