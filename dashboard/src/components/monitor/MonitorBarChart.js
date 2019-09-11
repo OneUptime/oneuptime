@@ -25,7 +25,7 @@ export function MonitorBarChart(props) {
 
     let monitorType = props.monitor.type;
  
-    let colInformation = monitorType === "server-monitor" ? (
+    let colInformation = monitorType === 'server-monitor' ? (
         <div className="block-chart-side">
             <div className="db-TrendRow margin-b-1">
                 <div className="db-Trend-colInformation">
@@ -109,8 +109,8 @@ export function MonitorBarChart(props) {
             </Fragment>
         );
 
-    let dbTrendStyle = { height: monitorType === "server-monitor" ? "144px" : "76px" };
-    let blockChartStyle = { height: monitorType === "server-monitor" ? "143px" : "75px" };
+    let dbTrendStyle = { height: monitorType === 'server-monitor' ? '144px' : '76px' };
+    let blockChartStyle = { height: monitorType === 'server-monitor' ? '143px' : '75px' };
 
     let chart = <div className="db-Trends-content">
         <div className="db-TrendsRows">

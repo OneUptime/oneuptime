@@ -89,7 +89,7 @@ export class MonitorDetail extends Component {
     }
 
     replaceDashWithSpace = (string) => {
-        return string.replace("-", " ");
+        return string.replace('-', ' ');
     }
 
     render() {
