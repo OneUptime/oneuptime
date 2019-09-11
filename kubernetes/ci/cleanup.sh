@@ -1,5 +1,6 @@
 #
 echo "Running Cleanup Script..."
+sudo reboot
 # Stop microk8s VM
 echo "Stopping microk8s..."
 # Delete microk8s cluster so it can be fresh for next job. 
@@ -20,8 +21,6 @@ sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
 echo "RUNNING COMMAND: sudo docker rm \$(sudo docker ps -aq) || echo 'No docker containers'"
 sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
 echo "REINSTALL DOCKER"
-sudo apt-get purge -y docker-ce
-sudo rm -rf /var/lib/docker
 # Delete all locally built images. (Comment this out to reduce build times)
 # echo "RUNNING COMMAND: sudo docker rmi -f \$(sudo docker images -q) || echo 'No docker containers'"
 # sudo docker rmi -f $(sudo docker images -q) || echo 'No docker containers'
