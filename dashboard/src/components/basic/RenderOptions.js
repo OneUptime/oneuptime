@@ -111,50 +111,66 @@ export class RenderOption extends Component {
                             validate={ValidateField.select}
                         >
                             <option value="">None</option>
-                            { this.props.type !== 'script' ? <option value="responseTime">Response Time</option> : ''}
-                            { this.props.type !== 'script' ? <option value="doesRespond">Does Respond</option> : ''}
-                            { this.props.type !== 'script' ? <option value="statusCode">Status Code</option> : ''}
-                            { this.props.type !== 'script' ? <option value="responseBody">Response Body</option> : ''}
-                            { this.props.type === 'script' ? <option value="executes">Executes</option> : ''}
-                            { this.props.type === 'script' ? <option value="error">Error</option> : ''}
-                            { this.props.type === 'script' ? <option value="javascriptExpression">JavaScript Expression</option> : ''}
+                            {this.props.type !== 'script' ? <option value="responseTime">Response Time</option> : ''}
+                            {this.props.type !== 'script' ? <option value="doesRespond">Does Respond</option> : ''}
+                            {this.props.type !== 'script' ? <option value="statusCode">Status Code</option> : ''}
+                            {this.props.type !== 'script' ? <option value="responseBody">Response Body</option> : ''}
+                            {this.props.type === 'script' ? <option value="executes">Executes</option> : ''}
+                            {this.props.type === 'script' ? <option value="error">Error</option> : ''}
+                            {this.props.type === 'script' ? <option value="javascriptExpression">JavaScript Expression</option> : ''}
                         </Field>
                     </div>
                 </div>
-                <div className="bs-Fieldset-row" style={bodyfield && bodyfield.responseType && bodyfield.responseType !== '' && bodyfield.responseType !== 'javascriptExpression' ? flexStyle : flexStylehidden}>
-                    <label className="bs-Fieldset-label" style={{ padding: '6px' }}>Filter</label>
-                    <div className="bs-Fieldset-fields">
-                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                            component={RenderSelect}
-                            name={`${fieldnameprop}.filter`}
-                            id="filter"
-                            placeholder="Response Method"
-                            disabled={false}
-                            style={{ width: '180px' }}
-                            validate={ValidateField.select}
-                        >
-                            <option value="">None</option>
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="greaterThan">Greater Than</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="lessThan">Less Than</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="inBetween">In Between</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isUp">Is Up</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isDown">Is Down</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="equalTo">Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="notEqualTo">Not Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="gtEqualTo">Greater Than Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="ltEqualTo">Less Than Equal To</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="contains">Contains</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="doesNotContain">Does not Contain</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="jsExpression">Javascript Expression</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="empty">Is empty</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="notEmpty">Is not empty</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'executes' ? <option value="executesIn">Executes in</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'executes' ? <option value="doesNotExecuteIn">Does not execute in</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'error' ? <option value="throwsError">Throws error</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'error' ? <option value="doesNotThrowError">Does not throw error</option> : ''}
-                        </Field>
-                    </div>
-                </div>
+                {bodyfield && bodyfield.responseType === 'javascriptExpression' ?
+                    <div className="bs-Fieldset-row" style={bodyfield !== '' && bodyfield.responseType === 'javascriptExpression' ? flexStyle : flexStylehidden}>
+                        <label className="bs-Fieldset-label" style={{ padding: '6px' }}>JavaScript Expression</label>
+                        <div className="bs-Fieldset-fields">
+                            <Field
+                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                type="text"
+                                name={`${fieldnameprop}.field1`}
+                                component={RenderField}
+                                validate={filterval !== '' && firstField.indexOf(filterval) > -1 ? filterval === 'jsExpression' ? ValidateField.required : [ValidateField.required, ValidateField.maxValue10000] : undefined}
+                                placeholder={bodyfield && filterval && bodyfield.responseType && placeholderfilter.indexOf(filterval) <= -1 && placeholders[filterval][bodyfield.responseType] ? placeholders[filterval][bodyfield.responseType] : ''}
+                                style={filterval !== '' && filterval === 'jsExpression' ? { width: '426px' } : bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' ? { width: '180px' } : { width: '200px' }}
+                            />
+                        </div>
+                    </div> :
+                    <div className="bs-Fieldset-row" style={bodyfield && bodyfield.responseType && bodyfield.responseType !== '' && bodyfield.responseType !== 'javascriptExpression' ? flexStyle : flexStylehidden}>
+                        <label className="bs-Fieldset-label" style={{ padding: '6px' }}>Filter</label>
+                        <div className="bs-Fieldset-fields">
+                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                component={RenderSelect}
+                                name={`${fieldnameprop}.filter`}
+                                id="filter"
+                                placeholder="Response Method"
+                                disabled={false}
+                                style={{ width: '180px' }}
+                                validate={ValidateField.select}
+                            >
+                                <option value="">None</option>
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="greaterThan">Greater Than</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="lessThan">Less Than</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="inBetween">In Between</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isUp">Is Up</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isDown">Is Down</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="equalTo">Equal To</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="notEqualTo">Not Equal To</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="gtEqualTo">Greater Than Equal To</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="ltEqualTo">Less Than Equal To</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="contains">Contains</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="doesNotContain">Does not Contain</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="jsExpression">Javascript Expression</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="empty">Is empty</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="notEmpty">Is not empty</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'executes' ? <option value="executesIn">Executes in</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'executes' ? <option value="doesNotExecuteIn">Does not execute in</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'error' ? <option value="throwsError">Throws error</option> : ''}
+                                {bodyfield && bodyfield.responseType === 'error' ? <option value="doesNotThrowError">Does not throw error</option> : ''}
+                            </Field>
+                        </div>
+                    </div>}
+
                 <div className="bs-Fieldset-row" style={filterval !== '' && firstField.indexOf(filterval) > -1 ? filterval === 'jsExpression' ? Object.assign({}, flexStyle, { width: '426px' }) : flexStyle : flexStylehidden}>
                     <label className="bs-Fieldset-label" style={{ padding: '6px' }}>{filterval && mapValue[filterval] ? mapValue[filterval] : ''}</label>
                     <div className="bs-Fieldset-fields">
@@ -255,8 +271,8 @@ RenderOption.propTypes = {
     removeArrayField: PropTypes.func,
     addField: PropTypes.func,
     removeField: PropTypes.func,
-    level:PropTypes.number,
-    fieldnameprop:PropTypes.string,
+    level: PropTypes.number,
+    fieldnameprop: PropTypes.string,
     type: PropTypes.string
 }
 
