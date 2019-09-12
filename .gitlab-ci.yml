@@ -22,7 +22,7 @@ lint_n_audit_backend:
     - cd backend
     - npm install --dev
     - npm run lint
-    # - npm run audit
+    - npm run audit
     - cd ..
 
 build_n_test_backend:
@@ -42,7 +42,7 @@ lint_n_audit_dashboard:
     - cd dashboard
     - npm install --dev
     - npm run lint
-    # - npm run audit
+    - npm run audit
     - cd ..
 
 build_n_test_dashboard:
