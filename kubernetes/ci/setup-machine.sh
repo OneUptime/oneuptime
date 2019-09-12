@@ -39,6 +39,12 @@ if [[ ! $(which docker) ]]
 then
   echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
   curl -sSL https://get.docker.com/ | sh
+  echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
+  sudo touch /etc/docker/daemon.json
+  echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
+  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
+  echo "RUNNING COMMAND: sudo systemctl restart docker"
+  sudo systemctl restart docker
 fi
 
 if [[ ! $(which kubectl) ]]
@@ -65,10 +71,10 @@ echo "RUNNING COMMAND: microk8s.status --wait-ready"
 microk8s.status --wait-ready
 echo "RUNNING COMMAND: microk8s.enable registry"
 microk8s.enable registry
-echo "RUNNING COMMAND: microk8s.enable dns"
-microk8s.enable dns
 echo "RUNNING COMMAND: iptables -P FORWARD ACCEPT"
 sudo iptables -P FORWARD ACCEPT
+echo "RUNNING COMMAND: microk8s.enable dns"
+microk8s.enable dns
 echo "RUNNING COMMAND: microk8s.enable ingress"
 microk8s.enable ingress
 echo "RUNNING COMMAND: sudo microk8s.inspect"
