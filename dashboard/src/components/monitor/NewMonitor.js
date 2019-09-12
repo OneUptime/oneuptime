@@ -33,7 +33,7 @@ class NewMonitor extends Component {
         this.state = {
             upgradeModalId: uuid.v4(),
             advance: false,
-            script: ``
+            script: ''
         }
     }
 
