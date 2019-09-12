@@ -71,7 +71,7 @@
     "valid-url": "^1.0.9"
   },
   "scripts": {
-    "lint": "eslint . --fix",
+    "lint": "eslint .",
     "dev": "PORT=3000 react-scripts start",
     "build": "react-scripts build",
     "test": "jest --runInBand",
