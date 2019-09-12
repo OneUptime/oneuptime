@@ -6,7 +6,7 @@
 
 # Define stages
 stages:
-  # - BuildAndTest
+  - BuildAndTest
   - E2E
   - DeployStaging
   - DeployProduction
