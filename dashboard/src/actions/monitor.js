@@ -1,7 +1,7 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/monitor';
 import errors from '../errors';
-import { change ,autofill} from 'redux-form';
+import { change, autofill } from 'redux-form';
 //import { PricingPlan } from '../config';
 //import { User } from '../config';
 //import { upgradePlanEmpty, upgradeToEnterpriseMail } from '../actions/project';
@@ -348,6 +348,54 @@ export function fetchMonitorsSubscribersRequest(monitorId) {
 export function fetchMonitorsSubscribersFailure(error) {
     return {
         type: types.FETCH_MONITORS_SUBSCRIBER_FAILURE,
+        payload: error
+    };
+}
+
+// Fetch Monitor Logs list
+export function fetchMonitorLogs(projectId, monitorId) {
+    return function (dispatch) {
+        var promise = getApi(`monitor/${projectId}/log/${monitorId}`);
+        dispatch(fetchMonitorLogsRequest());
+
+        promise.then(function (monitorLogs) {
+            dispatch(fetchMonitorLogsSuccess({ projectId, monitorId, logs: monitorLogs.data }));
+        }, function (error) {
+            if (error && error.response && error.response.data) {
+                error = error.response.data;
+            }
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            }
+            else {
+                error = 'Network Error';
+            }
+            dispatch(fetchMonitorLogsFailure(errors(error)));
+        });
+
+        return promise;
+    };
+}
+
+export function fetchMonitorLogsRequest() {
+    return {
+        type: types.FETCH_MONITOR_LOGS_REQUEST,
+    };
+}
+
+export function fetchMonitorLogsSuccess(monitorLogs) {
+    return {
+        type: types.FETCH_MONITOR_LOGS_SUCCESS,
+        payload: monitorLogs
+    };
+}
+
+export function fetchMonitorLogsFailure(error) {
+    return {
+        type: types.FETCH_MONITOR_LOGS_FAILURE,
         payload: error
     };
 }
