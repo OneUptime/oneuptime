@@ -74,7 +74,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
         });
     }
 
-    if (data.type !== 'url' && data.type !== 'device' && data.type !== 'manual' && data.type !== 'api' && data.type !== 'script') {
+    if (data.type !== 'url' && data.type !== 'device' && data.type !== 'manual' && data.type !== 'api' && data.type !== 'server-monitor' && data.type !== 'script') {
         return sendErrorResponse(req, res, {
             code: 400,
             message: 'Monitor type should be url, manual, device or script.'
@@ -127,7 +127,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
     }
 
     if (data.type === 'script') {
-        if (!data.data.script){
+        if (!data.data.script) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Monitor data should have a `script` property of type string.'
@@ -247,6 +247,19 @@ router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, as
     try {
         var monitorData = await MonitorService.addMonitorLog(monitorId, data);
         return sendItemResponse(req, res, monitorData);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: Get all Monitor Logs by monitorId
+router.get('/:projectId/log/:monitorId', getUser, isAuthorized, async function (req, res) {
+    var monitorId = req.params.monitorId;
+
+    try {
+        var monitorLogs = await MonitorService.getMonitorLogs(monitorId);
+        return sendListResponse(req, res, monitorLogs);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

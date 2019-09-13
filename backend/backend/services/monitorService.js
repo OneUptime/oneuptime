@@ -523,6 +523,18 @@ module.exports = {
         return monitorData;
     },
 
+    async getMonitorLogs(monitorId) {
+        try {
+            var monitorData = await MonitorLogModel.find({ monitorId: monitorId })
+                .sort([['createdAt', -1]]);
+        } catch (error) {
+            ErrorService.log('monitorLogModel.find', error);
+            throw error;
+        }
+
+        return monitorData;
+    },
+
     async sendResponseTime(monitorsData) {
         try {
             var monitor = await MonitorModel.findOne({ _id: monitorsData.monitorId, deleted: false });

@@ -21,7 +21,7 @@ const pingServer = (data, projectId, apiKey) => {
     Promise.all([
       si.currentLoad(),
       si.mem(),
-      si.blockDevices(),
+      si.fsSize(),
       si.networkStats(),
       si.cpuTemperature(),
       si.cpu(),
@@ -42,10 +42,6 @@ const pingServer = (data, projectId, apiKey) => {
       }))
       .then(data => {
         postApi(`monitor/${projectId}/log/${monitorId}`, { data }, apiKey)
-          .then(data => {
-            // eslint-disable-next-line no-console
-            console.log(data);
-          })
           // eslint-disable-next-line no-console
           .catch(error => { console.error(error) });
       })
