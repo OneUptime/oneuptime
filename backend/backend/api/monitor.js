@@ -131,7 +131,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Monitor data should have a `script` property of type string.'
-            })
+            });
         }
     }
     data.projectId = projectId;

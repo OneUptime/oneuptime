@@ -121,7 +121,6 @@ export class MonitorDetail extends Component {
                 break;
         }
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
-        const projectId = this.props.monitor.projectId ? this.props.monitor.projectId._id || this.props.monitor.projectId : this.props.currentProject._id;
         return (
             <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
                 <div className="db-Trends-header">
@@ -184,9 +183,8 @@ export class MonitorDetail extends Component {
                                         onClick={() =>
                                             this.props.openModal({
                                                 id: createIncidentModalId,
-                                                onClose: () => '',
-                                                onConfirm: () => this.props.createNewIncident(projectId, this.props.monitor._id),
-                                                content: DataPathHoC(CreateManualIncident, this.props.monitor._id)
+                                                monitorId: this.props.monitor._id,
+                                                content: DataPathHoC(CreateManualIncident)
                                             })}>
                                         <ShouldRender if={!creating}>
                                             <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
@@ -271,8 +269,7 @@ MonitorDetail.propTypes = {
     index: PropTypes.number.isRequired,
     openModal: PropTypes.func,
     create: PropTypes.bool,
-    closeModal: PropTypes.func,
-    createNewIncident: PropTypes.func.isRequired,
+    closeModal: PropTypes.func
 }
 
 MonitorDetail.contextTypes = {

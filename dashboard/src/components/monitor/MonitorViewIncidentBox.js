@@ -51,7 +51,6 @@ export class MonitorViewIncidentBox extends Component {
     render() {
         let { createIncidentModalId } = this.state;
         let creating = this.props.create ? this.props.create : false;
-        const projectId = this.props.monitor.projectId ? this.props.monitor.projectId._id || this.props.monitor.projectId : this.props.currentProject._id;
         return (
             <div onKeyDown={this.handleKeyBoard}>
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
@@ -73,9 +72,8 @@ export class MonitorViewIncidentBox extends Component {
                                 onClick={() =>
                                     this.props.openModal({
                                         id: createIncidentModalId,
-                                        onClose: () => '',
-                                        onConfirm: () => this.props.createNewIncident(projectId, this.props.monitor._id),
-                                        content: DataPathHoC(CreateManualIncident, this.props.monitor._id)
+                                        monitorId: this.props.monitor._id,
+                                        content: DataPathHoC(CreateManualIncident)
                                     })}>
                                 <ShouldRender if={!creating}>
                                     <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
@@ -101,12 +99,10 @@ MonitorViewIncidentBox.displayName = 'MonitorViewIncidentBox'
 
 MonitorViewIncidentBox.propTypes = {
     monitor: PropTypes.object.isRequired,
-    currentProject: PropTypes.object.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     openModal: PropTypes.func,
     create: PropTypes.bool,
-    closeModal: PropTypes.func,
-    createNewIncident: PropTypes.func.isRequired,
+    closeModal: PropTypes.func
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(

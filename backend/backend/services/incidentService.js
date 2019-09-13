@@ -60,6 +60,9 @@ module.exports = {
             else{
                 incident.manuallyCreated = false;
             }
+            if(data.type) {
+                incident.type = data.type;
+            }
             try{
                 incident = await incident.save();
             }catch(error){
