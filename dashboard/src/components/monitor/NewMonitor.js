@@ -561,30 +561,38 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     , dispatch);
 
 const mapStateToProps = (state, ownProps) => {
+    var type = selector(state, 'type_1000');
     if (ownProps.edit) {
         const monitorId = ownProps.match ? ownProps.match.params ? ownProps.match.params.monitorId : null : null;
         return {
             monitor: state.monitor,
             currentProject: state.project.currentProject,
-            type: selector(state, 'type_1000'),
+            type: type,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
             monitorId
         };
-    }
-    else {
-
-        const initialvalue = {
+    } else {
+        var initialvalue = {
             up_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isUp', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
             down_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isDown', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
             degraded_1000: [{ match: 'all', responseType: 'responseTime', filter: 'greaterThan', field1: '5000', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
+            type_1000: type
         }
-       
+        if (type === 'script'){
+            initialvalue = {
+                up_1000: [{ match: 'all', responseType: 'executes', filter: 'executesIn', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
+                down_1000: [{ match: 'all', responseType: 'error', filter: 'throwsError', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
+                degraded_1000: [{ match: 'all', responseType: 'executes', filter: 'doesNotExecuteIn', field1: '5000', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
+                type_1000: type
+            }
+        }
+
         return {
             initialValues: initialvalue,
             monitor: state.monitor,
             currentProject: state.project.currentProject,
-            type: selector(state, 'type_1000'),
+            type: type,
             monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data
