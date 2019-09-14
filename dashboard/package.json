@@ -8,7 +8,7 @@
     "axios": "^0.18.0",
     "browserslist": "^4.6.1",
     "card-validator": "^6.2.0",
-    "chart.js": "^2.7.2",
+    "chart.js": "^2.8.0",
     "clipboard": "^2.0.1",
     "cloudboost": "^6.6.6",
     "components": "^0.1.0",

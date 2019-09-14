@@ -56,7 +56,7 @@ export class MonitorViewHeader extends Component {
                             </div>
                         </div>
                     </div>
-                    <MonitorBarChart monitor={ this.props.monitor } /><br />
+                    <MonitorBarChart monitor={ this.props.monitor } showAll={true} /><br />
                 </div>
             </div>
         );

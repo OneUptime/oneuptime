@@ -9,14 +9,14 @@ div.block-chart-main {
 }
 div.block-chart-side {
   flex-grow: 1;
-  height: 96px;
-  padding-left: 3%;
+  height: 76px;
+  flex-basis: 50%;
 }
 .db-TrendRow {
   position: relative;
   display: flex;
   z-index: 1000;
-  justify-content: space-around;
+  justify-content: stretch;
 }
 .db-TrendRow .db-Trend-colInformation {
   flex-grow: 1;
