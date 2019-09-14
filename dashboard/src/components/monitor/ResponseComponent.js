@@ -176,7 +176,7 @@ ResponseComponent.propTypes = {
     head: PropTypes.string,
     tagline: PropTypes.string,
     index:PropTypes.number,
-    script: PropTypes.string
+    type: PropTypes.string
 }
 
 const mapDispatchToProps = {
