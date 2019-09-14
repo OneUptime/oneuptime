@@ -45,7 +45,7 @@ if (!isServer) {
         apiUrl = env('BACKEND_HOST');
         dashboardUrl = env('HOST');
         accountsUrl = env('ACCOUNTS_HOST');
-        domain = '.fyipe.com';
+        domain = env('DOMAIN');
     }
 }
 
@@ -233,7 +233,7 @@ export const PricingPlan = {
 
     getPlans() {
 
-        if (window.location.href.indexOf('localhost') > -1 ||  window.location.href.indexOf('staging') > -1 || window.location.href.indexOf('dashboard:3003') > -1) {
+        if (window.location.href.indexOf('localhost') > -1 ||  window.location.href.indexOf('staging') > -1 || window.location.href.indexOf('app.local') > -1) {
             return [
                 {
                     category: 'Basic',

@@ -9,7 +9,8 @@ var env = {
   REACT_APP_FYIPE_HOSTED: process.env.FYIPE_HOSTED,
   REACT_APP_HOST: process.env.HOST,
   REACT_APP_DASHBOARD_HOST: process.env.DASHBOARD_HOST,
-  REACT_APP_BACKEND_HOST: process.env.BACKEND_HOST
+  REACT_APP_BACKEND_HOST: process.env.BACKEND_HOST,
+  REACT_APP_DOMAIN: process.env.DOMAIN
 }
 
 fs.writeFileSync('.env', envfile.stringifySync(env));
