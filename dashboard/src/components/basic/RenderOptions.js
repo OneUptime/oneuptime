@@ -77,16 +77,16 @@ const placeholders = {
         'responseBody': 'response.data === {}'
     },
     'executesIn': {
-        'responseTime': '2000'
+        'executes': '2000'
     },
     'doesNotExecuteIn': {
-        'responseTime': '2000'
+        'executes': '5000'
     },
     'throwsError': {
-        'responseBody': 'Contains'
+        'error': 'response.error !== {}'
     },
     'doesNotThrowError': {
-        'responseBody': 'Does not Contain'
+        'error': 'response.error === null'
     }
 }
 
@@ -130,7 +130,7 @@ export class RenderOption extends Component {
                                 name={`${fieldnameprop}.field1`}
                                 component={RenderField}
                                 validate={filterval !== '' && firstField.indexOf(filterval) > -1 ? filterval === 'jsExpression' ? ValidateField.required : [ValidateField.required, ValidateField.maxValue10000] : undefined}
-                                placeholder={bodyfield && filterval && bodyfield.responseType && placeholderfilter.indexOf(filterval) <= -1 && placeholders[filterval][bodyfield.responseType] ? placeholders[filterval][bodyfield.responseType] : ''}
+                                placeholder="response.data === {}"
                                 style={filterval !== '' && filterval === 'jsExpression' ? { width: '426px' } : bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' ? { width: '180px' } : { width: '200px' }}
                             />
                         </div>
@@ -178,7 +178,7 @@ export class RenderOption extends Component {
                             type="text"
                             name={`${fieldnameprop}.field1`}
                             component={RenderField}
-                            validate={filterval !== '' && firstField.indexOf(filterval) > -1 ? filterval === 'jsExpression' ? ValidateField.required : [ValidateField.required, ValidateField.maxValue10000] : undefined}
+                            validate={filterval !== '' && firstField.indexOf(filterval) > -1 ? filterval === 'jsExpression' || bodyfield.responseType === 'error' ? ValidateField.required : [ValidateField.required, ValidateField.maxValue10000] : undefined}
                             placeholder={bodyfield && filterval && bodyfield.responseType && placeholderfilter.indexOf(filterval) <= -1 && placeholders[filterval][bodyfield.responseType] ? placeholders[filterval][bodyfield.responseType] : ''}
                             style={filterval !== '' && filterval === 'jsExpression' ? { width: '426px' } : bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' ? { width: '180px' } : { width: '200px' }}
                         />
