@@ -1,4 +1,4 @@
-sudo kubectl create -f ./kubernetes/ci/mongo-setup/unsecureMongo.yaml
+sudo k create -f ./kubernetes/ci/mongo-setup/unsecureMongo.yaml
 echo "Wait for 2 mins...."
 sleep 2m
 MONGO_IP=`sudo kubectl get --all-namespaces --output json pods | jq '.items[] | select(.metadata.name=="mongo-0")' | jq .status.podIP`

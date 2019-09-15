@@ -48,16 +48,17 @@ echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /et
 echo "RUNNING COMMAND: sudo systemctl restart docker"
 sudo systemctl restart docker
 
-if [[ ! $(which kubectl) ]]
-then
-  #Install Kubectl
-  echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-  echo "RUNNING COMMAND: chmod +x ./kubectl"
-  chmod +x ./kubectl 
-  echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
-  sudo mv ./kubectl /usr/local/bin/kubectl
-fi
+# We do not need to install kubectl here. 
+# if [[ ! $(which kubectl) ]]
+# then
+#   #Install Kubectl
+#   echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+#   curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+#   echo "RUNNING COMMAND: chmod +x ./kubectl"
+#   chmod +x ./kubectl 
+#   echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
+#   sudo mv ./kubectl /usr/local/bin/kubectl
+# fi
 
 #Install microK8s
 echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
@@ -78,13 +79,14 @@ echo "RUNNING COMMAND: microk8s.enable ingress"
 microk8s.enable ingress
 echo "RUNNING COMMAND: sudo microk8s.inspect"
 sudo microk8s.inspect
-echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl kubectl"
-sudo snap alias microk8s.kubectl kubectl
+# Making 'k' as an alias to microk8s.kubectl 
+echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl k"
+sudo snap alias microk8s.kubectl k
 echo "RUNNING COMMAND: microk8s.kubectl config view --raw > $HOME/.kube/config"
 microk8s.kubectl config view --raw > $HOME/.kube/config
 #Kubectl version.
-echo "RUNNING COMMAND: sudo kubectl version"
-sudo kubectl version
+echo "RUNNING COMMAND: sudo k version"
+sudo k version
 # Install Mongo Shell
 echo "RUNNING COMMAND: sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4"
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4
