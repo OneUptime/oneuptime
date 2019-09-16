@@ -62,7 +62,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <LineChart data={data} name={"load"} />
+                    <LineChart data={data} name={'load'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -95,7 +95,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <LineChart data={data} name={"memory"} />
+                    <LineChart data={data} name={'memory'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -128,7 +128,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <LineChart data={data} name={"disk"} />
+                    <LineChart data={data} name={'disk'} />
                 </div>
             </div>
             <ShouldRender if={props.showAll}>
@@ -155,7 +155,7 @@ export function MonitorBarChart(props) {
                         </div>
                     </div>
                     <div className="block-chart-main line-chart">
-                        <LineChart data={data} name={"temperature"} />
+                        <LineChart data={data} name={'temperature'} />
                     </div>
                 </div>
             </ShouldRender>

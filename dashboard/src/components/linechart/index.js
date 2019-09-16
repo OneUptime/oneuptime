@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { ResponsiveContainer, AreaChart as Chart, Area, CartesianGrid, Tooltip } from 'recharts';
 
 const noDataStyle = {
-  textAlign: "center",
+  textAlign: 'center',
   flexBasis: 1
 };
 
@@ -15,7 +15,7 @@ const formatBytes = (a, b, c, d, e) => {
   return formatDecimal((b = Math, c = b.log, d = 1e3, e = c(a) / c(d) | 0, a / b.pow(d, e)), 2) + ' ' + (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
 };
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload }) => {
   if (active) {
     return (
       <div className="custom-tooltip">
@@ -28,7 +28,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-class LineChart extends Component {
+export default class LineChart extends Component {
   getValue(data, name, display) {
     switch (name) {
       case 'load': return display ? `${formatDecimal(data.currentload, 2)} %` : data.currentload;
@@ -74,7 +74,7 @@ class LineChart extends Component {
 
 LineChart.propTypes = {
   data: PropTypes.array,
-  name: PropTypes.string
-}
-
-export default LineChart;
+  name: PropTypes.string,
+  active: PropTypes.bool,
+  payload: PropTypes.array
+};
