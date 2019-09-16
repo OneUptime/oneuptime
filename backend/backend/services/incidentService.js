@@ -71,7 +71,10 @@ module.exports = {
             else {
                 incident.manuallyCreated = false;
             }
-            try {
+            if(data.type) {
+                incident.type = data.type;
+            }
+            try{
                 incident = await incident.save();
             } catch (error) {
                 ErrorService.log('incident.save', error);

@@ -24,6 +24,9 @@ import {
     FETCH_MONITORS_SUBSCRIBER_SUCCESS,
     FETCH_MONITORS_SUBSCRIBER_FAILURE,
     REMOVE_MONITORS_SUBSCRIBERS,
+    FETCH_MONITOR_LOGS_REQUEST,
+    FETCH_MONITOR_LOGS_SUCCESS,
+    FETCH_MONITOR_LOGS_FAILURE,
     ADD_SEAT_SUCCESS,
     ADD_SEAT_FAILURE,
     ADD_SEAT_REQUEST,
@@ -56,9 +59,10 @@ const INITIAL_STATE = {
         success: false
     },
     fetchMonitorsIncidentRequest: false,
+    activeProbe: 0,
+    fetchMonitorLogsRequest: false,
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
-    activeProbe: 0,
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
@@ -342,6 +346,49 @@ export default function monitor(state = INITIAL_STATE, action) {
                 fetchMonitorsSubscriberRequest: action.payload
             });
 
+        case FETCH_MONITOR_LOGS_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+
+                fetchMonitorLogsRequest: action.payload
+            });
+
+        case FETCH_MONITOR_LOGS_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+
+                monitorsList: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.monitorsList.monitors.map(monitor => {
+                        monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
+                            if (monitor._id === action.payload.monitorId) {
+                                monitor.logs = action.payload.logs.data;
+                                return monitor
+                            } else {
+                                return monitor
+                            }
+                        }) : monitor.monitors
+                        return monitor;
+                    })
+                },
+                fetchMonitorLogsRequest: false
+            });
+
+        case FETCH_MONITOR_LOGS_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+
+                monitorsList: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    monitors: state.monitorsList.monitors
+                },
+                fetchMonitorLogsRequest: false
+            });
+
         case REMOVE_MONITORS_SUBSCRIBERS:
             return Object.assign({}, state, {
                 ...state,
@@ -351,7 +398,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         if (monitor._id === action.payload.monitorId) {
-                            monitor.subscribers.subscribers = monitor.subscribers.subscribers.filter(subscriber => subscriber._id != action.payload._id)
+                            monitor.subscribers.subscribers = monitor.subscribers.subscribers.filter(subscriber => subscriber._id !== action.payload._id)
                             monitor.subscribers.count = monitor.subscribers.count - 1
                             return monitor;
                         } else {

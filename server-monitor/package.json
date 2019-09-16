@@ -7,6 +7,7 @@
     "fyipe": "index.js"
   },
   "scripts": {
+    "start": "node index -p 5d64d59cae46131619708309 -a 'b02798c0-c898-11e9-9f14-4963dc67e2ab'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "@twumm",
@@ -19,7 +20,8 @@
     "inquirer": "^6.2.1",
     "node-cron": "^2.0.3",
     "os-utils": "0.0.14",
-    "q": "^1.5.1"
+    "q": "^1.5.1",
+    "systeminformation": "^4.14.8"
   },
   "keywords": [
     "fyipe",

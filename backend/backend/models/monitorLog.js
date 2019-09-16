@@ -7,6 +7,7 @@ var monitorLogSchema = new Schema({
     responseTime: Number, // Time taken for ping
     responseStatus: Number,
     status: String,
+    data: Object,
     createdAt: {
         type: Date,
         default: Date.now,

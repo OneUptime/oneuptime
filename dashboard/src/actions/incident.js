@@ -152,9 +152,9 @@ export const resetCreateIncident = () => {
 };
 
 // Calls the API to create new incident.
-export function createNewIncident(projectId, monitorId) {
+export function createNewIncident(projectId, monitorId, type) {
     return function (dispatch) {
-        var promise = postApi(`incident/${projectId}/${monitorId}`, {monitorId, projectId});
+        var promise = postApi(`incident/${projectId}/${monitorId}`, { monitorId, projectId, type });
 
         dispatch(createIncidentRequest(promise));
 

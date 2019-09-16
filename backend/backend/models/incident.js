@@ -66,6 +66,9 @@ var monitorSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
-
+    type: { 
+        type: String, 
+        enum: ['offline', 'online', 'degraded'],
+    }
 });
 module.exports = mongoose.model('Incident', monitorSchema);

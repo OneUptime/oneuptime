@@ -66,7 +66,7 @@ export class MonitorDetail extends Component {
     }
 
     deleteMonitor = () => {
-         let promise = this.props.deleteMonitor(this.props.monitor._id, this.props.monitor.projectId._id || this.props.monitor.projectId);
+        let promise = this.props.deleteMonitor(this.props.monitor._id, this.props.monitor.projectId._id || this.props.monitor.projectId);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Monitor Deleted', {
                 ProjectId: this.props.currentProject._id,
@@ -89,6 +89,10 @@ export class MonitorDetail extends Component {
             default:
                 return false;
         }
+    }
+
+    replaceDashWithSpace = (string) => {
+        return string.replace('-', ' ');
     }
 
     render() {
@@ -148,7 +152,6 @@ export class MonitorDetail extends Component {
                 break;
         }
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
-        const projectId = this.props.monitor.projectId ? this.props.monitor.projectId._id || this.props.monitor.projectId : this.props.currentProject._id;
         return (
             <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
                 <div className="db-Trends-header">
@@ -170,7 +173,7 @@ export class MonitorDetail extends Component {
                                 </div>
                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                     <div className="Box-root">
-                                        <Badge color={badgeColor}>{this.props.monitor.type}</Badge>
+                                        <Badge color={badgeColor}>{this.replaceDashWithSpace(this.props.monitor.type)}</Badge>
                                     </div>
                                 </div>
                             </div>
@@ -188,32 +191,31 @@ export class MonitorDetail extends Component {
                                 </div>
                             </div>
                         </div>
-                            <div>
-                                {this.props.monitor.type === 'device' &&
-                                    <button
-                                        className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
-                                        disabled={deleting}
-                                        onClick={() =>
-                                            this.props.openModal({
-                                                id: this.props.monitor._id,
-                                                onClose: () => '',
-                                                content: DataPathHoC(MonitorUrl, this.props.monitor)
-                                            })
-                                        }
-                                    >
-                                        <span>Show URL</span>
-                                    </button>
-                                }
-                                    <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
+                        <div>
+                            {this.props.monitor.type === 'device' &&
+                                <button
+                                    className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
+                                    disabled={deleting}
+                                    onClick={() =>
+                                        this.props.openModal({
+                                            id: this.props.monitor._id,
+                                            onClose: () => '',
+                                            content: DataPathHoC(MonitorUrl, this.props.monitor)
+                                        })
+                                    }
+                                >
+                                    <span>Show URL</span>
+                                </button>
+                            }
+                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
 
                                     <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
                                         id={`create_incident_${this.props.monitor.name}`}
                                         onClick={() =>
                                             this.props.openModal({
                                                 id: createIncidentModalId,
-                                                onClose: () => '',
-                                                onConfirm: () => this.props.createNewIncident(projectId, this.props.monitor._id),
-                                                content: DataPathHoC(CreateManualIncident, this.props.monitor._id)
+                                                monitorId: this.props.monitor._id,
+                                                content: DataPathHoC(CreateManualIncident)
                                             })}>
                                         <ShouldRender if={!creating}>
                                             <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
@@ -320,8 +322,7 @@ MonitorDetail.propTypes = {
     index: PropTypes.string,
     openModal: PropTypes.func,
     create: PropTypes.bool,
-    closeModal: PropTypes.func,
-    createNewIncident: PropTypes.func.isRequired,
+    closeModal: PropTypes.func
 }
 
 MonitorDetail.contextTypes = {

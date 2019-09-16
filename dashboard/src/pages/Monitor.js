@@ -12,7 +12,7 @@ import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMemb
 import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
-import { fetchMonitorsIncidents, fetchMonitors } from '../actions/monitor';
+import { fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors } from '../actions/monitor';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import Badge from '../components/common/Badge';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
@@ -20,22 +20,29 @@ import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 class DashboardView extends Component {
 
     componentDidMount() {
-        if(window.location.href.indexOf('localhost') <= -1){
-        this.context.mixpanel.track('Main monitor page Loaded');
+        if (window.location.href.indexOf('localhost') <= -1) {
+            this.context.mixpanel.track('Main monitor page Loaded');
         }
     }
 
-    componentWillUnmount(){
+    componentWillUnmount() {
         this.props.destroy('NewMonitor');
     }
 
     ready = () => {
         const projectId = this.props.currentProject ? this.props.currentProject._id : null;
-        this.props.fetchMonitors(projectId).then(()=>{
-            this.props.monitor.monitorsList.monitors.map((monitor)=>{
+        this.props.fetchMonitors(projectId).then(() => {
+            this.props.monitor.monitorsList.monitors.forEach((monitor) => {
+                if (monitor.monitors) {
+                    monitor.monitors.forEach((monitor) => {
+                        this.props.fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id);
+                    });
+                } else {
+                    this.props.fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id);
+                }
                 this.props.fetchMonitorsIncidents(monitor.projectId._id || monitor.projectId, monitor._id, 0, 3);
             });
-        })
+        });
     }
 
     render() {
@@ -55,7 +62,7 @@ class DashboardView extends Component {
 
         if (this.props.monitor && this.props.monitor.monitorsList && this.props.monitor.monitorsList.monitors && this.props.monitor.monitorsList.monitors.length > 0) {
             this.props.monitor.monitorsList.monitors.map((subProjectMonitor) => {
-                return subProjectMonitor && subProjectMonitor.monitors && subProjectMonitor.monitors.map(monitor=>{
+                return subProjectMonitor && subProjectMonitor.monitors && subProjectMonitor.monitors.map(monitor => {
                     if (monitor.editMode) {
                         isNewMonitorVisible = false;
                     }
@@ -79,39 +86,56 @@ class DashboardView extends Component {
         var allMonitors = this.props.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
 
         // SubProject Monitors List
-        const monitors = subProjects && subProjects.map((subProject, i)=>{
+        const monitors = subProjects && subProjects.map((subProject, i) => {
             const subProjectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === subProject._id)
             allMonitors = IsUserInSubProject(subProject) ? allMonitors : allMonitors.filter(monitor => monitor.projectId !== subProjectMonitor._id || monitor.projectId._id !== subProjectMonitor._id)
             return subProjectMonitor && subProjectMonitor.monitors.length > 0 ? (
-                    <div id={`box_${subProject.name}`} className="Box-root Margin-vertical--12" key={i}>
-                        <div className="db-Trends Card-root" style={{'overflow':'visible'}}>
-                            {
-                                <div id={`badge_${subProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
-                                    <Badge color={'blue'}>{subProject.name}</Badge>
-                                </div>
-                            }
-                            <MonitorList monitors={subProjectMonitor.monitors} />
-                        </div>
-                    </div>
-                ) : false;
-            });
-
-            // Add Project Monitors to Monitors List
-            var projectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === currentProjectId)
-            allMonitors = IsUserInSubProject(currentProject) ? allMonitors : allMonitors.filter(monitor => monitor.projectId !== currentProject._id || monitor.projectId._id !== currentProject._id)
-            projectMonitor = projectMonitor && projectMonitor.monitors.length > 0 ? (
-                <div id={`box_${currentProject.name}`} className="Box-root Margin-vertical--12">
-                    <div className="db-Trends Card-root" style={{'overflow':'visible'}}>
+                <div id={`box_${subProject.name}`} className="Box-root Margin-vertical--12" key={i}>
+                    <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
                         {
-                            <div id={`badge_${currentProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
-                                <Badge color={'red'}>Project</Badge>
+                            <div id={`badge_${subProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
+                                <Badge color={'blue'}>{subProject.name}</Badge>
                             </div>
                         }
-                        <MonitorList monitors={projectMonitor.monitors} />
+                        <MonitorList monitors={subProjectMonitor.monitors} />
                     </div>
                 </div>
-            ) : false
-            monitors && monitors.unshift(projectMonitor);
+            ) : false;
+        });
+
+        // Add Project Monitors to Monitors List
+        var projectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === currentProjectId)
+        allMonitors = IsUserInSubProject(currentProject) ? allMonitors : allMonitors.filter(monitor => monitor.projectId !== currentProject._id || monitor.projectId._id !== currentProject._id)
+        projectMonitor = projectMonitor && projectMonitor.monitors.length > 0 ? (
+            <div id={`box_${currentProject.name}`} className="Box-root Margin-vertical--12">
+                <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
+                    {
+                        <div id={`badge_${currentProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
+                            <Badge color={'red'}>Project</Badge>
+                        </div>
+                    }
+                    <MonitorList monitors={subProjectMonitor.monitors} />
+                </div>
+            </div>
+        ) : false;
+
+
+        // Add Project Monitors to Monitors List
+        var projectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === currentProjectId)
+        allMonitors = IsUserInSubProject(currentProject) ? allMonitors : allMonitors.filter(monitor => monitor.projectId !== currentProject._id || monitor.projectId._id !== currentProject._id)
+        projectMonitor = projectMonitor && projectMonitor.monitors.length > 0 ? (
+            <div id={`box_${currentProject.name}`} key={`box_${currentProject.name}`} className="Box-root Margin-vertical--12">
+                <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
+                    {
+                        <div id={`badge_${currentProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
+                            <Badge color={'red'}>Project</Badge>
+                        </div>
+                    }
+                    <MonitorList monitors={projectMonitor.monitors} />
+                </div>
+            </div>
+        ) : false
+        monitors && monitors.unshift(projectMonitor);
         return (
             <Dashboard ready={this.ready}>
                 <div className="db-World-contentPane Box-root Padding-bottom--48">
@@ -122,7 +146,7 @@ class DashboardView extends Component {
                                     <div>
                                         <div>
                                             <span>
-                                            <ShouldRender if={!this.props.monitor.monitorsList.requesting}>
+                                                <ShouldRender if={!this.props.monitor.monitorsList.requesting}>
 
                                                     <ShouldRender if={allMonitors.length === 0}>
                                                         <TutorialBox />
@@ -180,7 +204,7 @@ class DashboardView extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ destroy, fetchMonitorsIncidents, fetchMonitors }, dispatch)
+    return bindActionCreators({ destroy, fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors }, dispatch)
 }
 
 const mapStateToProps = state => {
@@ -190,7 +214,7 @@ const mapStateToProps = state => {
     // sort subprojects names for display in alphabetical order
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);
     subProjectNames && subProjectNames.sort();
-    subProjects = subProjectNames && subProjectNames.map(name => subProjects.find(subProject=>subProject.name === name))
+    subProjects = subProjectNames && subProjectNames.map(name => subProjects.find(subProject => subProject.name === name))
 
     const initialValues = {
         name_1000: '',
@@ -198,7 +222,7 @@ const mapStateToProps = state => {
     };
 
     monitor.monitorsList.monitors.forEach((subProjectMonitors) => {
-        subProjectMonitors && subProjectMonitors.monitors.map((monitor)=>{
+        subProjectMonitors && subProjectMonitors.monitors.map((monitor) => {
             initialValues[`name_${monitor._id}`] = monitor.name;
             initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
         });
@@ -222,29 +246,30 @@ DashboardView.propTypes = {
     currentProject: PropTypes.oneOfType(
         [
             PropTypes.object,
-            PropTypes.oneOf([null,undefined])
+            PropTypes.oneOf([null, undefined])
         ]
     ),
-    monitor:PropTypes.oneOfType(
+    monitor: PropTypes.oneOfType(
         [
             PropTypes.object,
-            PropTypes.oneOf([null,undefined])
+            PropTypes.oneOf([null, undefined])
         ]
     ),
     monitors: PropTypes.oneOfType(
         [
             PropTypes.array,
-            PropTypes.oneOf([null,undefined])
+            PropTypes.oneOf([null, undefined])
         ]
     ),
     incidents: PropTypes.oneOfType(
         [
             PropTypes.array,
-            PropTypes.oneOf([null,undefined])
+            PropTypes.oneOf([null, undefined])
         ]
     ),
     destroy: PropTypes.func.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
+    fetchMonitorLogs: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
 }

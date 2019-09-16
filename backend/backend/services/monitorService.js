@@ -8,22 +8,22 @@ module.exports = {
         var subProject = null;
         try {
             var project = await ProjectService.findOneBy({ _id: data.projectId });
-        }catch (error) {
+        } catch (error) {
             ErrorService.log('ProjectService.findOneBy', error);
             throw error;
         }
-        if(project.parentProjectId){
+        if (project.parentProjectId) {
             subProject = project;
             try {
                 project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
-            }catch (error) {
+            } catch (error) {
                 ErrorService.log('ProjectService.findOneBy', error);
                 throw error;
             }
         }
         var subProjectIds = [];
         var subProjects = await ProjectService.findBy({ parentProjectId: project._id });
-        if(subProjects && subProjects.length > 0){
+        if (subProjects && subProjects.length > 0) {
             subProjectIds = subProjects.map(project => project._id);
         }
         subProjectIds.push(project._id);
@@ -67,6 +67,9 @@ module.exports = {
                 } else if (data.type === 'device') {
                     monitor.data = {};
                     monitor.data.deviceId = data.data.deviceId;
+                } else if (data.type === 'script') {
+                    monitor.data = {};
+                    monitor.data.script = data.data.script;
                 }
                 if (monitorCategory) {
                     monitor.monitorCategoryId = data.monitorCategoryId;
@@ -77,11 +80,11 @@ module.exports = {
                     monitor.criteria = data.criteria || {};
                 }
                 if (data.type === 'api') {
-                    if(data.method && data.method.length) monitor.method = data.method;
-                    if(data.bodyType && data.bodyType.length) monitor.bodyType = data.bodyType;
-                    if(data.text && data.text.length) monitor.text = data.text;
-                    if(data.formData && data.formData.length) monitor.formData = data.formData;
-                    if(data.headers && data.headers.length) monitor.headers = data.headers;
+                    if (data.method && data.method.length) monitor.method = data.method;
+                    if (data.bodyType && data.bodyType.length) monitor.bodyType = data.bodyType;
+                    if (data.text && data.text.length) monitor.text = data.text;
+                    if (data.formData && data.formData.length) monitor.formData = data.formData;
+                    if (data.headers && data.headers.length) monitor.headers = data.headers;
                 }
                 try {
                     var savedMonitor = await monitor.save();
@@ -119,7 +122,7 @@ module.exports = {
                     new: true
                 })
                 .populate('projectId', 'name');
-        }catch(error){
+        } catch (error) {
             ErrorService.log('MonitorModel.findOneAndUpdate', error);
             throw error;
         }
@@ -166,7 +169,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name');
-        }catch(error){
+        } catch (error) {
             ErrorService.log('MonitorModel.find', error);
             throw error;
         }
@@ -182,7 +185,7 @@ module.exports = {
         try {
             var monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name');
-        }catch(error){
+        } catch (error) {
             ErrorService.log('MonitorModel.findOne', error);
             throw error;
         }
@@ -219,32 +222,32 @@ module.exports = {
             ErrorService.log('MonitorModel.findOneAndUpdate', error);
             throw error;
         }
-        if(monitor){
+        if (monitor) {
             var subProject = null;
             try {
                 var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-            }catch (error) {
+            } catch (error) {
                 ErrorService.log('ProjectService.findOneBy', error);
                 throw error;
             }
-            if(project.parentProjectId){
+            if (project.parentProjectId) {
                 subProject = project;
                 try {
                     project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
-                }catch (error) {
+                } catch (error) {
                     ErrorService.log('ProjectService.findOneBy', error);
                     throw error;
                 }
             }
             var subProjectIds = [];
             var subProjects = await ProjectService.findBy({ parentProjectId: project._id });
-            if(subProjects && subProjects.length > 0){
+            if (subProjects && subProjects.length > 0) {
                 subProjectIds = subProjects.map(project => project._id);
             }
             subProjectIds.push(project._id);
-            try{
+            try {
                 var monitorsCount = await this.countBy({ projectId: { $in: subProjectIds } });
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('MonitorService.countBy', error);
                 throw error;
             }
@@ -252,90 +255,90 @@ module.exports = {
             if (typeof (projectSeats) === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
-            var projectUsers = await TeamService.getTeamMembersBy({parentProjectId: project._id});            // eslint-disable-next-line no-console
+            var projectUsers = await TeamService.getTeamMembersBy({ parentProjectId: project._id });            // eslint-disable-next-line no-console
             var seats = await TeamService.getSeats(projectUsers);
             // check if project seats are more based on users in project or by count of monitors
             if (projectSeats && projectSeats > seats && monitorsCount > 0 && monitorsCount <= ((projectSeats - 1) * 5)) {
                 projectSeats = projectSeats - 1;
-                try{
+                try {
                     await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
-                }catch(error){
+                } catch (error) {
                     ErrorService.log('PaymentService.changeSeats', error);
                     throw error;
                 }
-                try{
+                try {
                     await ProjectService.update({ _id: project._id, seats: projectSeats.toString() });
-                }catch(error){
+                } catch (error) {
                     ErrorService.log('ProjectService.update', error);
                     throw error;
                 }
             }
-            try{
+            try {
                 var incidents = await IncidentService.findBy({ monitorId: monitor._id });
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('IncidentService.findBy', error);
                 throw error;
             }
-            await Promise.all(incidents.map(async(incident)=>{
-                await IncidentService.deleteBy({_id: incident._id}, userId);
+            await Promise.all(incidents.map(async (incident) => {
+                await IncidentService.deleteBy({ _id: incident._id }, userId);
             }));
-            try{
+            try {
                 var alerts = await AlertService.findBy({ monitorId: monitor._id }, userId);
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('AlertService.findBy', error);
                 throw error;
             }
-            await Promise.all(alerts.map(async(alert)=>{
-                await AlertService.deleteBy({_id: alert._id}, userId);
+            await Promise.all(alerts.map(async (alert) => {
+                await AlertService.deleteBy({ _id: alert._id }, userId);
             }));
-            try{
+            try {
                 await StatusPageService.removeMonitor(monitor._id);
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('StatusPageService.removeMonitor', error);
                 throw error;
             }
-            try{
+            try {
                 await ScheduleService.removeMonitor(monitor._id);
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('ScheduleService.deleteBy', error);
                 throw error;
             }
-            try{
+            try {
                 await IntegrationService.removeMonitor(monitor._id);
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('IntegrationService.removeMonitor', error);
                 throw error;
             }
-            try{
+            try {
                 await NotificationService.create(monitor.projectId, `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`, monitor.deletedById._id, 'monitoraddremove');
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('NotificationService.create', error);
                 throw error;
             }
-            try{
+            try {
                 await RealTimeService.sendMonitorDelete(monitor);
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('RealTimeService.sendMonitorDelete', error);
                 throw error;
             }
             return monitor;
-        }else{
+        } else {
             return null;
         }
     },
 
-    async getMonitors(subProjectIds, skip, limit){
-        if(typeof skip === 'string') skip = parseInt(skip);
-        if(typeof limit === 'string') limit = parseInt(limit);
+    async getMonitors(subProjectIds, skip, limit) {
+        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof limit === 'string') limit = parseInt(limit);
         var _this = this;
-        let subProjectMonitors = await Promise.all(subProjectIds.map(async (id)=>{
+        let subProjectMonitors = await Promise.all(subProjectIds.map(async (id) => {
             let monitors = await IncidentService.getMonitorsWithIncidentsBy({
-                query: {projectId: id},
+                query: { projectId: id },
                 skip,
                 limit
             });
-            let count = await _this.countBy({projectId: id});
-            return {monitors, count, _id: id, skip, limit};
+            let count = await _this.countBy({ projectId: id });
+            return { monitors, count, _id: id, skip, limit };
         }));
         return subProjectMonitors;
     },
@@ -363,90 +366,7 @@ module.exports = {
             return [];
         }
     },
-/*
-    async getAllMonitorsPing(date) {
-        var newdate = new Date();
-        try {
-            var monitors = await MonitorModel.find({ 'pollTime': { $lt: date }, type: 'url', deleted: false });
-        } catch (error) {
-            ErrorService.log('MonitorModel.find', error);
-            throw error;
-        }
-        if (monitors.length > 0) {
-            try {
-                await MonitorModel.update({
-                    'pollTime': { $lt: date }, type: 'url', deleted: false
-                }, { $set: { 'pollTime': newdate } }, { multi: true });
-            } catch (error) {
-                ErrorService.log('MonitorModel.update', error);
-                throw error;
-            }
-            return monitors;
-        }
-        else {
-            return null;
-        }
-    },
 
-    async getManualMonitorsPing(date) {
-        var newdate = new Date();
-        var monitors = await MonitorModel.find({ 'pollTime': { $lt: date }, type: 'manual', deleted: false });
-        if (monitors.length > 0) {
-            await MonitorModel.update({
-                'pollTime': { $lt: date }, type: 'manual', deleted: false
-            }, { $set: { 'pollTime': newdate } }, { multi: true });
-            return monitors;
-        }
-        else {
-            return null;
-        }
-    },
-
-    async getDeviceMonitorsPing() {
-        var date = new Date();
-        try {
-            var monitors = await MonitorModel.find({ 'pollTime': { $lt: date }, 'data.deviceId': { $exists: true }, deleted: false });
-        } catch (error) {
-            ErrorService.log('MonitorModel.find', error);
-            throw error;
-        }
-        if (monitors.length > 0) {
-            try {
-                await MonitorModel.update({
-                    deleted: false, 'pollTime': { $lt: date }, 'data.deviceId': { $exists: true }
-                }, { $set: { 'pollTime': date } }, { multi: true });
-            } catch (error) {
-                ErrorService.log('MonitorModel.update', error);
-                throw error;
-            }
-            return monitors;
-        }
-        else {
-            return null;
-        }
-    },
-
-    async getAllMonitorsAccumulate(yesterday) {
-        try {
-            var monitors = await MonitorModel.find({ 'updateTime': { $lt: yesterday }, deleted: false });
-        } catch (error) {
-            ErrorService.log('MonitorModel.find', error);
-            throw error;
-        }
-        if (monitors.length > 0) {
-            try {
-                await MonitorModel.update({ deleted: false, 'updateTime': { $lt: yesterday } }, { $set: { 'updateTime': new Date() } }, { multi: true });
-            } catch (error) {
-                ErrorService.log('MonitorModel.update', error);
-                throw error;
-            }
-            return (monitors);
-        }
-        else {
-            return null;
-        }
-    },
-*/
     async updateMonitorPingTime(id) {
         var newdate = new Date();
         var thisObj = this;
@@ -488,29 +408,7 @@ module.exports = {
             return monitor;
         }
     },
-/*
-    async setMonitorTime(monitorId, time, status) {
-        var thisObj = this;
-        var monitorTimeData = new MonitorTimeModel();
-        monitorTimeData.monitorId = monitorId;
-        monitorTimeData.time = time;
-        monitorTimeData.status = status;
-        try {
-            var monitorsData = await monitorTimeData.save();
-        } catch (error) {
-            ErrorService.log('monitorTimeData.save', error);
-            throw error;
-        }
-        try {
-            await thisObj.sendResponseTime(monitorsData);
-        } catch (error) {
-            ErrorService.log('MonitorService.sendResponseTime', error);
-            throw error;
-        }
 
-        return monitorsData;
-    },
-*/
     async sendResponseTime(monitorsData) {
         try {
             var monitor = await MonitorModel.findOne({ _id: monitorsData.monitorId, deleted: false });
@@ -518,7 +416,7 @@ module.exports = {
             ErrorService.log('MonitorModel.findOne', error);
             throw error;
         }
-        if(monitor){
+        if (monitor) {
             try {
                 await RealTimeService.updateResponseTime(monitorsData, monitor.projectId);
             } catch (error) {
@@ -538,28 +436,7 @@ module.exports = {
         }
         return monitorTime;
     },
-/*
-    //Deletes previous datetime from database
-    deleteTime: async function (monitorId, date) {
-        try {
-            await MonitorTimeModel.remove({ monitorId: monitorId, timestamp: { $lt: date } });
-        } catch (error) {
-            ErrorService.log('MonitorTimeModel.remove', error);
-            throw error;
-        }
-    },
 
-    getResponseTime: async function (monitorId) {
-        try {
-            var timemodel = await MonitorTimeModel.findOne({ monitorId: monitorId }).sort({ timestamp: -1 });
-        } catch (error) {
-            ErrorService.log('MonitorTimeModel.findOne', error);
-            throw error;
-        }
-        if (!timemodel) return null;
-        else return timemodel.time;
-    },
-*/
     addSeat: async function (query) {
         try {
             var project = await ProjectService.findOneBy(query);
@@ -662,51 +539,12 @@ module.exports = {
         }
         return times;
     },
-/*
-    addUpTime: async function (monitor) {
-        if (monitor && monitor._doc) {
-            monitor = monitor._doc;
-        }
-        var _this = this;
-        var time = [];
-        var responseTime = 0;
-        try {
-            time = await StatusPageService.getMonitorTime(monitor._id);
-        } catch (error) {
-            ErrorService.log('StatusPageService.getMonitorTime', error);
-            throw error;
-        }
-        try {
-            responseTime = await _this.getResponseTime(monitor._id);
-        } catch (error) {
-            ErrorService.log('MonitorService.getResponseTime', error);
-            throw error;
-        }
-        var uptime = 0;
-        var downtime = 0;
-        var status = 'offline';
-        var uptimePercent = 0;
 
-        time.forEach(el => {
-            uptime += el.upTime;
-            downtime += el.downTime;
-        });
-        if (uptime === 0 && downtime === 0) {
-            uptimePercent = 100;
-        }
-        else {
-            uptimePercent = uptime / (uptime + downtime) * 100;
-        }
-        if (time && time[time.length - 1] && time[time.length - 1].status) {
-            status = time[time.length - 1].status;
-        }
-        let updatedMonitor = Object.assign({}, monitor, { time, responseTime, uptimePercent, status });
-        return updatedMonitor;
-    } */
 };
 
 var MonitorModel = require('../models/monitor');
 var MonitorTimeModel = require('../models/monitorTime');
+var MonitorLogModel = require('../models/monitorLog');
 var MonitorCategoryService = require('../services/monitorCategoryService');
 var Plans = require('./../config/plans');
 var RealTimeService = require('./realTimeService');

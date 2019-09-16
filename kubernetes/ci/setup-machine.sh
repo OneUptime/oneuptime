@@ -32,31 +32,49 @@ sudo iptables -P FORWARD ACCEPT
 # Install Basic packages
 echo "RUNNING COMMAND:  sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget"
 sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget
-#Install Docker.
-echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
-curl -sSL https://get.docker.com/ | sh
-#Install Kubectl
-echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-echo "RUNNING COMMAND: chmod +x ./kubectl"
-chmod +x ./kubectl
-echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
-sudo mv ./kubectl /usr/local/bin/kubectl
+#Install Docker and setup registry and insecure access to it.
+#IF docker is already installed, do not install docker.
+
+if [[ ! $(which docker) ]]
+then
+  echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
+  curl -sSL https://get.docker.com/ | sh
+  echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
+  sudo touch /etc/docker/daemon.json
+  echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
+  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
+  echo "RUNNING COMMAND: sudo systemctl restart docker"
+  sudo systemctl restart docker
+fi
+
+if [[ ! $(which kubectl) ]]
+then
+  #Install Kubectl
+  echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+  echo "RUNNING COMMAND: chmod +x ./kubectl"
+  chmod +x ./kubectl 
+  echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
+  sudo mv ./kubectl /usr/local/bin/kubectl
+fi
+
 #Install microK8s
 echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
 sudo snap set system refresh.retain=2
 echo "RUNNING COMMAND: sudo snap install microk8s --classic"
 sudo snap install microk8s --classic
+echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
+sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND: microk8s.start"
 microk8s.start
 echo "RUNNING COMMAND: microk8s.status --wait-ready"
 microk8s.status --wait-ready
 echo "RUNNING COMMAND: microk8s.enable registry"
 microk8s.enable registry
-echo "RUNNING COMMAND: microk8s.enable dns"
-microk8s.enable dns
 echo "RUNNING COMMAND: iptables -P FORWARD ACCEPT"
 sudo iptables -P FORWARD ACCEPT
+echo "RUNNING COMMAND: microk8s.enable dns"
+microk8s.enable dns
 echo "RUNNING COMMAND: microk8s.enable ingress"
 microk8s.enable ingress
 echo "RUNNING COMMAND: sudo microk8s.inspect"

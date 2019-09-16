@@ -1,9 +1,9 @@
 import React from 'react';
 import { storiesOf, action } from '@storybook/react';
-import {MonitorDetail} from '../../../components/monitor/MonitorDetail'
+import { MonitorDetail } from '../../../components/monitor/MonitorDetail'
 
 import { Provider } from 'react-redux';
-import {state,mockStore} from '../../redux_mock'
+import { state, mockStore } from '../../redux_mock'
 
 localStorage.setItem('id', '5b1c0c29cb06cc23b132db07')
 
@@ -69,7 +69,7 @@ const props = {
         'error': null,
         'success': false,
         'requesting': false
-        
+
     },
     'index': 0,
     'monitorState': {
@@ -128,9 +128,9 @@ const props = {
 
 const state_non_admin = {
     ...state,
-    project:{
+    project: {
         ...state.project,
-        currentProject:{
+        currentProject: {
             ...state.project.currentProject,
             users: [
                 {
@@ -152,10 +152,10 @@ const state_non_admin = {
 const store_non_admin = mockStore(state_non_admin)
 
 storiesOf('Monitor', module)
-.addDecorator(story => <Provider store={store}>{story()}</Provider>)
+    .addDecorator(story => <Provider store={store}>{story()}</Provider>)
     .addDecorator(story => (
         <div style={{ margin: '5%' }} >
-         {story()}
+            {story()}
         </div>
     ))
     .add('Monitor Detail', () =>
@@ -164,13 +164,13 @@ storiesOf('Monitor', module)
 
 
 storiesOf('Monitor', module)
-.addDecorator(story => <Provider store={store_non_admin}>{story()}</Provider>)
+    .addDecorator(story => <Provider store={store_non_admin}>{story()}</Provider>)
     .addDecorator(story => (
         <div style={{ margin: '5%' }} >
-         {story()}
+            {story()}
         </div>
     ))
     .add('Monitor Detail Non Admin', () =>
         <MonitorDetail {...props} />
     )
-    
+

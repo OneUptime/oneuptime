@@ -1,13 +1,31 @@
 /******* Row containing Bar Chart *******/
 
 /******* Simple Bar Chart *******/
-div.block-chart-main{
+div.block-chart-main {
   position: relative;
   height: 75px;
-  margin-top:-15px;
-  margin-left:10px;
+  margin-top: -15px;
+  margin-left: 10px;
 }
-.db-Trend-colInformation{
+div.block-chart-side {
+  flex-grow: 1;
+  height: 96px;
+  padding-left: 3%;
+}
+.db-TrendRow {
+  position: relative;
+  display: flex;
+  z-index: 1000;
+  justify-content: space-around;
+}
+.db-TrendRow .db-Trend-colInformation {
+  flex-grow: 1;
+  flex-basis: 33.33%;
+}
+.margin-b-1 {
+  margin-bottom: 8px;
+}
+.db-Trend-colInformation {
   margin-right: 8px;
 }
 div.block-chart {
@@ -18,18 +36,18 @@ div.block-chart {
   width: 101%; /* IE overflow fix */
 }
 
-  div.block-chart div.bar {
-    float: left;
-    position: relative;
-    height: 100%;
-    width: 6px;
-    cursor: pointer;
-    /* Border instead of margin so we get the hover behavior we want */
-    border-left: 1px solid #fff;
-    border-right: 1px solid #fff;
-    /* DEFAULT IS GREEN */
-    background: rgb(0, 128, 168);
-  }
+div.block-chart div.bar {
+  float: left;
+  position: relative;
+  height: 100%;
+  width: 6px;
+  cursor: pointer;
+  /* Border instead of margin so we get the hover behavior we want */
+  border-left: 1px solid #fff;
+  border-right: 1px solid #fff;
+  /* DEFAULT IS GREEN */
+  background: rgb(0, 128, 168);
+}
 
     div.block-chart div.bar:hover {
       opacity: 1.0;
