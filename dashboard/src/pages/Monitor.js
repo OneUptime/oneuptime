@@ -103,22 +103,6 @@ class DashboardView extends Component {
             ) : false;
         });
 
-        // Add Project Monitors to Monitors List
-        var projectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === currentProjectId)
-        allMonitors = IsUserInSubProject(currentProject) ? allMonitors : allMonitors.filter(monitor => monitor.projectId !== currentProject._id || monitor.projectId._id !== currentProject._id)
-        projectMonitor = projectMonitor && projectMonitor.monitors.length > 0 ? (
-            <div id={`box_${currentProject.name}`} className="Box-root Margin-vertical--12">
-                <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
-                    {
-                        <div id={`badge_${currentProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
-                            <Badge color={'red'}>Project</Badge>
-                        </div>
-                    }
-                    <MonitorList monitors={subProjectMonitor.monitors} />
-                </div>
-            </div>
-        ) : false;
-
 
         // Add Project Monitors to Monitors List
         var projectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === currentProjectId)
