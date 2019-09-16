@@ -258,9 +258,9 @@ export class MonitorDetail extends Component {
                         </button>)
                         )}
                     </div>
-                    <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
+                    <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
                     </ShouldRender>
-                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]}/> : ''}
+                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
 
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
