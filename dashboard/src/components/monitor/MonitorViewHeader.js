@@ -8,6 +8,8 @@ import moment from 'moment';
 import { editMonitorSwitch } from '../../actions/monitor';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import Badge from '../common/Badge';
+import ShouldRender from '../basic/ShouldRender';
+import {selectedProbe} from '../../actions/monitor';
 
 export class MonitorViewHeader extends Component {
 
@@ -17,15 +19,41 @@ export class MonitorViewHeader extends Component {
             this.context.mixpanel.track('Edit Monitor Switch Clicked', {});
         }
     }
-
+    selectbutton = (data) => {
+        this.props.selectedProbe(data);
+    }
     render() {
+        var greenBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor : 'rgb(117, 211, 128)'// "green-status"
+        }
+        var yellowBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor : 'rgb(255, 222, 36)'// "yellow-status"
+        }
+        var redBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor : 'rgb(250, 117, 90)'// "red-status"
+        }
         var enddate = new Date();
         var startdate = new Date().setDate(enddate.getDate() - 90);
         const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
         const subProject = this.props.subProjects.find(subProject => subProject._id === subProjectId);
         return (
             <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
-                {   
+                {
                     this.props.currentProject._id === subProjectId ?
                         <div className="Box-root Padding-top--20 Padding-left--20">
                             <Badge color={'red'}>Project</Badge>
@@ -56,7 +84,21 @@ export class MonitorViewHeader extends Component {
                             </div>
                         </div>
                     </div>
-                    <MonitorBarChart monitor={ this.props.monitor } /><br />
+                    <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
+                    <div className="btn-group">
+                        {this.props.monitor && this.props.monitor.probes.map((location,index) => (<button
+                            id={`probes-btn${index}`}
+                            disabled={false}
+                            onClick={() => this.selectbutton(index)}
+                            className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+                            <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
+                            <span>{location.probeName}</span>
+                        </button>)
+                        )}
+                    </div>
+                    <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
+                    </ShouldRender>
+                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]}/> : ''}<br />
                 </div>
             </div>
         );
@@ -74,13 +116,14 @@ MonitorViewHeader.propTypes = {
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-    { editMonitorSwitch }, dispatch
+    { editMonitorSwitch,selectedProbe }, dispatch
 )
 
 const mapStateToProps = (state) => {
     return {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,
+        activeProbe : state.monitor.activeProbe,
     };
 }
 

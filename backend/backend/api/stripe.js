@@ -114,7 +114,7 @@ router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async 
     if (!rechargeBalanceAmount) {
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Amount should be present and be a valid number.'
+            message: 'Amount should be present and it should be a valid number.'
         });
     }
     try{ 

@@ -61,7 +61,7 @@ export class ProbeList extends Component {
                                         <a className="db-ListViewItem-link" >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Box-root"><span>{probesData.lastAlive ? moment(probesData.lastAlive).format("dddd, MMMM Do YYYY, h:mm a") : ''}</span></div>
+                                                    <div className="Box-root"><span>{probesData.lastAlive ? moment(probesData.lastAlive).format('dddd, MMMM Do YYYY, h:mm a') : ''}</span></div>
                                                 </span>
                                             </div>
                                         </a>
@@ -158,6 +158,15 @@ function mapStateToProps(state) {
 ProbeList.displayName = 'ProbeList'
 
 ProbeList.propTypes = {
+    probesList:PropTypes.object,
+    skip:PropTypes.number,
+    limit:PropTypes.number,
+    count:PropTypes.number,
+    requesting:PropTypes.bool,
+    data:PropTypes.array,
+    error:PropTypes.object,
+    prevClicked:PropTypes.func,
+    nextClicked:PropTypes.func,
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProbeList);

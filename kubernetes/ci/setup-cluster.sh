@@ -14,7 +14,7 @@ echo "RUNNING COMMAND: sudo kubectl create secret docker-registry gitlabcredv2 -
 sudo kubectl create secret docker-registry gitlabcredv2 --docker-server=$DOCKER_REGISTRY_SERVER --docker-username=$DOCKER_USER --docker-password=$DOCKER_PASSWORD --docker-email=$DOCKER_EMAIL
 # Create the entire cluster.
 echo "RUNNING COMMAND: sudo kubectl create -f test-server.yaml"
-sudo kubectl create -f ./ci/ci-server.yaml
+sudo kubectl create -f ./kubernetes/ci/ci-server.yaml
 # Wait for all the services to come online.
 echo "RUNNING COMMAND: echo 'Wait for 5 mins....'"
 echo 'Wait for 5 mins....'
@@ -37,3 +37,9 @@ echo "RUNNING COMMAND: sudo kubectl get pvc"
 sudo kubectl get pvc
 echo "RUNNING COMMAND: sudo kubectl get storageclass"
 sudo kubectl get storageclass
+echo "RUNNING COMMAND: sudo kubectl cluster-info"
+sudo kubectl cluster-info
+echo "RUNNING COMMAND: sudo kubectl get all --all-namespaces"
+sudo kubectl get all --all-namespaces
+echo "RUNNING COMMAND: sudo cat /etc/hosts"
+sudo cat /etc/hosts

@@ -99,6 +99,11 @@ const mapDispatchToProps = dispatch => {
 }
 
 Probe.propTypes = {
+  getProbes:PropTypes.func,
+  currentProject:PropTypes.object,
+  _id:PropTypes.string,
+  probes:PropTypes.object,
+  skip:PropTypes.number,
 }
 
 Probe.displayName = 'Probe'

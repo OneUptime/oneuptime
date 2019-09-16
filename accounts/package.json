@@ -66,28 +66,24 @@
   "scripts": {
     "lint": "eslint .",
     "fix-lint": "eslint . --fix",
-    "dev": "export PORT=3003 && react-scripts start",
+    "dev": "PORT=3003 react-scripts start",
     "build": "react-scripts build",
     "test": "npm run lint",
-    "jest": "jest src/test/index.test.js",
+    "jest": "jest --runInBand src/test",
     "start": "node index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high"
   },
   "devDependencies": {
     "axios-mock-adapter": "^1.15.0",
-    "babel-core": "^6.26.3",
-    "babel-loader": "8.0.5",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-react": "^6.24.1",
     "babel-runtime": "^6.26.0",
     "cross-env": "^5.2.0",
-    "eslint": "^4.19.1",
     "jest-localstorage-mock": "^2.2.0",
     "npm-audit-ci-wrapper": "^2.2.1",
     "react-test-renderer": "^16.5.2",
     "redux-logger": "^3.0.6",
-    "redux-mock-store": "^1.5.3",
-    "webpack": "^4.29.6"
+    "redux-mock-store": "^1.5.3"
   },
   "jest": {
     "collectCoverageFrom": [

@@ -1,5 +1,5 @@
 {
-  "name": "fiipe-status",
+  "name": "status-page",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -39,10 +39,8 @@
     "@storybook/addon-storyshots": "^3.4.11",
     "@storybook/addons": "^3.4.11",
     "@storybook/react": "^5.1.9",
-    "babel-core": "^6.26.3",
     "babel-runtime": "^6.26.0",
     "cross-env": "^5.2.0",
-    "eslint": "^5.16.0",
     "eslint-plugin-react": "^7.11.1",
     "jest-localstorage-mock": "^2.3.0",
     "npm-audit-ci-wrapper": "^2.2.1",
@@ -52,9 +50,9 @@
   "scripts": {
     "start": "npm run build && node index.js",
     "build": "react-scripts build",
-    "dev": "set PORT=3006 && react-scripts start",
+    "dev": "export PORT=3006 && react-scripts start",
     "test": "cross-env CI=true react-scripts test --env=jsdom --coverage --coverage",
-    "e2e": "mocha ./src/test/statusPage.test.js",
+    "jest": "mocha --exit ./src/test/statusPage.test.js",
     "pretest": "npm run lint",
     "lint": "eslint .",
     "eject": "react-scripts eject",

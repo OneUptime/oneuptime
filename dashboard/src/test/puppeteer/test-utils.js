@@ -3,6 +3,18 @@ var faker = require('faker');
 var ACCOUNTS_URL = 'http://localhost:3003';
 var DASHBOARD_URL = 'http://localhost:3000';
 
+var puppeteerLaunchConfig = {
+    args: [
+    '--proxy-server=',
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--disable-gpu',
+    '--window-size=1920x1080',
+    ],
+  };
+
 var user = faker.helpers.createCard();
 var cvv = '542';
 var expiryDate = '09/2020';
@@ -40,6 +52,7 @@ var updatedScheduledEventName = 'event name updated';
 module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
+    puppeteerLaunchConfig,
     user,
     cvv,
     expiryDate,

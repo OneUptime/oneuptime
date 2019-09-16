@@ -5,8 +5,9 @@
  */
 
 module.exports = {
-    accountSid : process.env['TWILIO_ACCOUNTSID'] || 'AC55ce28b0141cb9149ee9a12a4a82b61b',
-    authToken : process.env['TWILIO_AUTHTOKEN'] || '317b00a94ec303c3a7e174f11a0a0d4c',
-    phoneNumber : process.env['TWILIO_NUMBER'] || '+16464194935',
-    testphoneNumber : process.env['TEST_TWILIO_NUMBER'] || '+19179009335',
+    accountSid : process.env['TWILIO_ACCOUNTSID'] || 'AC84a1e9639b09c1262d19afa0d1c732a2',
+    authToken : process.env['TWILIO_AUTHTOKEN'] || 'e6e39b0b96cabcc30210a01b265b44f2',
+    phoneNumber : process.env['TWILIO_NUMBER'] || '+13362838458',
+    testphoneNumber : process.env['TEST_TWILIO_NUMBER'] || '+9199105 68840',
+    verificationSid: process.env['VERIFICATION_SID'] || 'VAf44c83fc52a25ce09225e3ca33fc1a17'
 };

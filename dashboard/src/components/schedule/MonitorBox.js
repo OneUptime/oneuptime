@@ -16,7 +16,7 @@ function submitMonitorForm(values, dispatch, props) {
     const { subProjectId, scheduleId } = props.match.params;
     const monitors = [];
     for (const id in values) {
-        if (values.hasOwnProperty(id)) {
+        if (Object.prototype.hasOwnProperty.call(values, id)) {
             values[id] && monitors.push(id);
         }
     }

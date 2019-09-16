@@ -9,58 +9,58 @@ let email;
 let password = utils.generateRandomString();
 let project = utils.generateRandomString();
 
-beforeAll(async (done) => {
-    jest.setTimeout(150000);
-    browser = await puppeteer.launch();
-    page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-
-    // intercept request and mock response for login
-    await page.setRequestInterception(true);
-    await page.on('request', async (request)=>{
-        if((await request.url()).match(/user\/login/)){
-            request.respond({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify(userCredentials)
-            });
-        }else{
-            request.continue();
-        }
-    });
-    await page.on('response', async (response)=>{
-        try{
-            var res = await response.json();
-            if(res && res.tokens){
-                userCredentials = res;
-            }
-        }catch(error){}
-    });
-
-    // user credentials
-    let email = utils.generateRandomBusinessEmail();
-    let password = utils.generateRandomString();
-    const user = {
-        email,
-        password
-    };
-
-    // register and signin user
-    await init.registerUser(user, page);
-    await init.loginUser(user, page);
-
-    done();
-});
-
-afterAll(async (done) => {
-    await browser.close();
-    done();
-});
 
 describe('Project API', () => {
-    const operationTimeOut = 20000;
+    const operationTimeOut = 50000;
+    beforeAll(async () => {
+        jest.setTimeout(150000);
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
+    
+        // intercept request and mock response for login
+        await page.setRequestInterception(true);
+        await page.on('request', async (request)=>{
+            if((await request.url()).match(/user\/login/)){
+                request.respond({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify(userCredentials)
+                });
+            }else{
+                request.continue();
+            }
+        });
+        await page.on('response', async (response)=>{
+            try{
+                var res = await response.json();
+                if(res && res.tokens){
+                    userCredentials = res;
+                }
+            }catch(error){}
+        });
+    
+        // user credentials
+        let email = utils.generateRandomBusinessEmail();
+        let password = utils.generateRandomString();
+        const user = {
+            email,
+            password
+        };
+    
+        // register and signin user
+        await init.registerUser(user, page);
+        await init.loginUser(user, page);
+    
+        
+    });
+    
+    afterAll(async () => {
+        await browser.close();
+        
+    });
 
-    it('Should create new project from dropdown after login', async (done) => {
+    it('Should create new project from dropdown after login', async () => {
         await page.waitForSelector('#selector');
         await page.$eval('#create-project', e => e.click());
 
@@ -80,11 +80,11 @@ describe('Project API', () => {
             return json;
          });
         localStorageData.should.have.property('project');
-        done();
+        
     }, operationTimeOut);
 
 
-    it('Should switch project using project switcher', async (done) => {
+    it('Should switch project using project switcher', async () => {
         await page.reload({ waitUntil: 'networkidle2'});
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
@@ -101,7 +101,7 @@ describe('Project API', () => {
             return json;
          });
         localStorageData.should.have.property('project');
-        done();
+        
     }, operationTimeOut);
 
 });

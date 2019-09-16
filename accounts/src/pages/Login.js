@@ -24,7 +24,7 @@ class LoginPage extends React.Component {
 		this.props.loginUser(values).then((user) => {
 			if (user && user.data && user.data.id) {
 				if(window.location.href.indexOf('localhost') <= -1){
-				thisObj.context.mixpanel.identify(user.data.id);
+					thisObj.context.mixpanel.identify(user.data.id);
 				}
 			}
 		})
@@ -41,8 +41,7 @@ class LoginPage extends React.Component {
 				</div>
 
 				{/* LOGIN BOX */}
-				{!this.props.login.success && this.props.login.error ? <MessageBox title={'Your email is not verified.'} message={'An email is on its way to you with new verification link. Please don&apos;t forget to check spam. '}/> :
-				<LoginForm onSubmit={this.submitHandler} {...this.props} />}
+				{!this.props.login.success && this.props.login.error && this.props.login.error === 'Verify your email first.' ? <MessageBox title={'Your email is not verified.'} message={'An email is on its way to you with new verification link. Please don&apos;t forget to check spam. '} /> : <LoginForm onSubmit={this.submitHandler} {...this.props} />}
 
 				{/* FOOTER */}
 				<div className="below-box">
@@ -90,7 +89,8 @@ LoginPage.propTypes = {
 	error: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.bool,
-    ]),
+	]),
+	location: PropTypes.object,
 }
 
 LoginPage.displayName = 'LoginPage'

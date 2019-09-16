@@ -12,7 +12,7 @@ const ErrorService = require('./errorService');
 var Handlebars = require('handlebars');
 var defaultSmsTemplates = require('../config/smsTemplate');
 var SmsSmtpService = require('./smsSmtpService');
-var UserService = require('./userService');
+var UserModel = require('../models/user');
 
 var getTwilioSettings = async (projectId) => {
     let { accountSid, authToken, phoneNumber } = twilioCredentials;
@@ -176,11 +176,11 @@ module.exports = {
                 throw error;
             }
             if(verificationResult.status === 'approved') { 
-                var data = {
-                    _id: userId,
-                    alertPhoneNumber: to
-                };
-                await UserService.update(data);
+                await UserModel.findByIdAndUpdate(userId, {
+                    $set: {
+                        alertPhoneNumber: to
+                    }
+                });
             }
             return verificationResult;
         } catch (error) {

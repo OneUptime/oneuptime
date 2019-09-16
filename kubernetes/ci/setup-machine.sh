@@ -5,9 +5,9 @@
 
 # Cleanup
 echo "RUNNING COMMAND:  chmod +x ./ci/cleanup.sh"
-chmod +x ./ci/cleanup.sh
+chmod +x ./kubernetes/ci/cleanup.sh
 echo "RUNNING COMMAND:  ./ci/cleanup.sh"
-./ci/cleanup.sh
+./kubernetes/ci/cleanup.sh
 # Flush all repos
 echo "RUNNING COMMAND:  sudo rm /etc/apt/sources.list  || echo 'File not found'"
 sudo rm /etc/apt/sources.list  || echo 'File not found'
@@ -55,8 +55,12 @@ echo "RUNNING COMMAND: microk8s.enable registry"
 microk8s.enable registry
 echo "RUNNING COMMAND: microk8s.enable dns"
 microk8s.enable dns
+echo "RUNNING COMMAND: iptables -P FORWARD ACCEPT"
+sudo iptables -P FORWARD ACCEPT
 echo "RUNNING COMMAND: microk8s.enable ingress"
 microk8s.enable ingress
+echo "RUNNING COMMAND: sudo microk8s.inspect"
+sudo microk8s.inspect
 echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl kubectl"
 sudo snap alias microk8s.kubectl kubectl
 echo "RUNNING COMMAND: microk8s.kubectl config view --raw > $HOME/.kube/config"
