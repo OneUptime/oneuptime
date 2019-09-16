@@ -28,11 +28,12 @@ export function MonitorBarChart(props) {
 
     let monitorType = props.monitor.type;
     let checkLogs = props.monitor.logs && props.monitor.logs.length > 0;
+    let data = props.monitor.logs;
 
     let monitorInfo = monitorType === 'server-monitor' ? (
         <Fragment>
             <div className="db-Trend">
-                <div className="block-chart-side">
+                <div className="block-chart-side line-chart">
                     <div className="db-TrendRow">
                         <div className="db-Trend-colInformation">
                             <div className="db-Trend-rowTitle" title="Current CPU Load">
@@ -60,14 +61,12 @@ export function MonitorBarChart(props) {
                         </div>
                     </div>
                 </div>
-                <div className="block-chart-main">
-                    <div className="block-chart">
-                        {block}
-                    </div>
+                <div className="block-chart-main line-chart">
+                    <LineChart data={data} name={"load"} />
                 </div>
             </div>
             <div className="db-Trend">
-                <div className="block-chart-side">
+                <div className="block-chart-side line-chart">
                     <div className="db-TrendRow">
                         <div className="db-Trend-colInformation">
                             <div className="db-Trend-rowTitle" title="Memory Used">
@@ -95,14 +94,12 @@ export function MonitorBarChart(props) {
                         </div>
                     </div>
                 </div>
-                <div className="block-chart-main">
-                    <div className="block-chart">
-                        {block}
-                    </div>
+                <div className="block-chart-main line-chart">
+                    <LineChart data={data} name={"memory"} />
                 </div>
             </div>
             <div className="db-Trend">
-                <div className="block-chart-side">
+                <div className="block-chart-side line-chart">
                     <div className="db-TrendRow">
                         <div className="db-Trend-colInformation">
                             <div className="db-Trend-rowTitle" title="Storage Used">
@@ -130,15 +127,13 @@ export function MonitorBarChart(props) {
                         </div>
                     </div>
                 </div>
-                <div className="block-chart-main">
-                    <div className="block-chart">
-                        {block}
-                    </div>
+                <div className="block-chart-main line-chart">
+                    <LineChart data={data} name={"disk"} />
                 </div>
             </div>
             <ShouldRender if={props.showAll}>
                 <div className="db-Trend">
-                    <div className="block-chart-side">
+                    <div className="block-chart-side line-chart">
                         <div className="db-TrendRow">
                             <div className="db-Trend-colInformation">
                                 <div className="db-Trend-rowTitle" title="Main Temperature">
@@ -159,10 +154,8 @@ export function MonitorBarChart(props) {
                             <div className="db-Trend-colInformation"></div>
                         </div>
                     </div>
-                    <div className="block-chart-main">
-                        <div className="block-chart">
-                            {block}
-                        </div>
+                    <div className="block-chart-main line-chart">
+                        <LineChart data={data} name={"temperature"} />
                     </div>
                 </div>
             </ShouldRender>
