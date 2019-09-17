@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 
-const RenderSelect = ({ input, placeholder, className, disabled, style, meta, children,message }) => (
+const RenderSelect = ({ input, placeholder, className, disabled, style, meta, children,message, id }) => (
     <span>
         <span>
-            <select {...input} placeholder={placeholder} className={className} disabled={disabled || false} style={style || {}}>
+            <select {...input} placeholder={placeholder} className={className} id={id} disabled={disabled || false} style={style || {}}>
                 {children}
             </select>
         </span>
@@ -37,6 +37,7 @@ RenderSelect.propTypes = {
     style: PropTypes.object,
     children: PropTypes.string,
     message: PropTypes.string,
+    id: PropTypes.string
 }
 
 export { RenderSelect }
