@@ -12,7 +12,7 @@ stages:
   - DeployProduction
   - SmokeTest
   - RollbackStaging
-
+  - RollbackProduction
 # #BACKEND
 # lint_n_audit_backend:
 #   stage: BuildAndTest
@@ -735,7 +735,7 @@ staging_rollback_probe:
 
 ## PRODUCTION ROLLBACK
 production_rollback:
-  stage: Rollback
+  stage: RollbackProduction
   script:
     - echo "No rollback implemented"
   only:
