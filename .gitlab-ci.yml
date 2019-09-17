@@ -604,8 +604,9 @@ staging_rollback_dashboard:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Rollback dashboard
+    - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [ $smoke_test_staging_status  == "success" ]; then exit 0; fi
+    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/dashboard
   only:
     refs:
@@ -622,8 +623,9 @@ staging_rollback_accounts:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Rollback accounts 
+    - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [ $smoke_test_staging_status  == "success" ]; then exit 0; fi
+    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/accounts
   only:
     refs:
@@ -639,8 +641,9 @@ staging_rollback_backend:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Rollback backend
+    - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [ $smoke_test_staging_status  == "success" ]; then exit 0; fi
+    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
   only:
     refs:
@@ -656,8 +659,9 @@ staging_rollback_home:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Rollback home
+    - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [ $smoke_test_staging_status  == "success" ]; then exit 0; fi
+    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
   only:
     refs:
@@ -673,8 +677,9 @@ staging_rollback_status-page:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Rollback status-page
+    - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [ $smoke_test_staging_status  == "success" ]; then exit 0; fi
+    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/status-page
   only:
     refs:
@@ -690,8 +695,9 @@ staging_rollback_api-docs:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Rollback api-docs
+    - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [ $smoke_test_staging_status  == "success" ]; then exit 0; fi
+    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/api-docs
   only:
     refs:
@@ -707,8 +713,9 @@ staging_rollback_admin-dashboard:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Rollback admin-dashboard
+    - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [ $smoke_test_staging_status  == "success" ]; then exit 0; fi
+    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/admin-dashboard
   only:
     refs:
@@ -724,8 +731,9 @@ staging_rollback_probe:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Rollback probe
+    - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [ $smoke_test_staging_status  == "success" ]; then exit 0; fi
+    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
   only:
     refs:
