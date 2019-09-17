@@ -15,6 +15,7 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 function submitMonitorForm(values, dispatch, props) {
     const { subProjectId, scheduleId } = props.match.params;
     const monitors = [];
+    /* eslint-disable no-unused-vars */
     for (const id in values) {
         if (Object.prototype.hasOwnProperty.call(values, id)) {
             values[id] && monitors.push(id);

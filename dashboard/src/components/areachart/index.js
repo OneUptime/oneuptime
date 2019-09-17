@@ -28,7 +28,14 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export default class LineChart extends Component {
+CustomTooltip.propTypes = {
+  active: PropTypes.bool,
+  payload: PropTypes.array
+};
+
+CustomTooltip.displayName = 'CustomTooltip';
+
+class AreaChart extends Component {
   getValue(data, name, display) {
     switch (name) {
       case 'load': return display ? `${formatDecimal(data.currentload, 2)} %` : data.currentload;
@@ -72,9 +79,11 @@ export default class LineChart extends Component {
   }
 }
 
-LineChart.propTypes = {
+AreaChart.displayName = 'AreaChart';
+
+AreaChart.propTypes = {
   data: PropTypes.array,
-  name: PropTypes.string,
-  active: PropTypes.bool,
-  payload: PropTypes.array
+  name: PropTypes.string
 };
+
+export default AreaChart;

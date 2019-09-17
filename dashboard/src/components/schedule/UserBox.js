@@ -15,6 +15,7 @@ import RenderIfMember from '../basic/RenderIfMember';
 function submitUserForm(values, dispatch, props) {
     const { projectId, scheduleId } = props.match.params;
     const users = [];
+    /* eslint-disable no-unused-vars */
     for (const id in values) {
         if (Object.prototype.hasOwnProperty.call(values, id)) {
             values[id] && users.push(id);

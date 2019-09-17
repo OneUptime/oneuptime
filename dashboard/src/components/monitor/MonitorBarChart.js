@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import BlockChart from '../blockchart/BlockChart';
-import LineChart from '../linechart';
+import AreaChart from '../areachart';
 import toPascalCase from 'to-pascal-case';
 import ShouldRender from '../basic/ShouldRender';
 
@@ -62,7 +62,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <LineChart data={data} name={'load'} />
+                    <AreaChart data={data} name={'load'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -95,7 +95,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <LineChart data={data} name={'memory'} />
+                    <AreaChart data={data} name={'memory'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -128,7 +128,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <LineChart data={data} name={'disk'} />
+                    <AreaChart data={data} name={'disk'} />
                 </div>
             </div>
             <ShouldRender if={props.showAll}>
@@ -155,7 +155,7 @@ export function MonitorBarChart(props) {
                         </div>
                     </div>
                     <div className="block-chart-main line-chart">
-                        <LineChart data={data} name={'temperature'} />
+                        <AreaChart data={data} name={'temperature'} />
                     </div>
                 </div>
             </ShouldRender>
