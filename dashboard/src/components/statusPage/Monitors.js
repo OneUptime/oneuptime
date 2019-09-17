@@ -18,6 +18,7 @@ export class Monitors extends Component {
         const { status } = this.props.statusPage;
         const { projectId } = status;
         const monitorIds = [];
+        /* eslint-disable no-unused-vars */
         for (const id in values) {
             if (Object.prototype.hasOwnProperty.call(values, id)) {
                 values[id] && monitorIds.push(id);
