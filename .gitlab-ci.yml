@@ -216,6 +216,7 @@ deploy_staging_backend:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -262,6 +263,7 @@ deploy_staging_api-docs:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -308,6 +310,7 @@ deploy_staging_home:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -354,6 +357,7 @@ deploy_staging_probe:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -400,6 +404,7 @@ deploy_staging_status-page:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -446,6 +451,7 @@ deploy_staging_admin-dashboard:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -492,6 +498,7 @@ deploy_staging_accounts:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -538,6 +545,7 @@ deploy_staging_dashboard:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -590,6 +598,7 @@ smoke_test_staging:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: production
 
