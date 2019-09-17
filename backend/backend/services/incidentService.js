@@ -57,24 +57,24 @@ module.exports = {
             incident.notClosedBy = users;
             if (data.incidentType) {
                 incident.incidentType = data.incidentType;
-            };
+            }
             if (data.probeId) {
                 incident.probes = [{
                     probeId: data.probeId,
                     updatedAt: Date.now(),
                     status: true
-                }]
-            };
+                }];
+            }
             if (data.manuallyCreated) {
                 incident.manuallyCreated = true;
             }
             else {
                 incident.manuallyCreated = false;
             }
-            if(data.type) {
+            if (data.type) {
                 incident.type = data.type;
             }
-            try{
+            try {
                 incident = await incident.save();
             } catch (error) {
                 ErrorService.log('incident.save', error);
@@ -221,9 +221,7 @@ module.exports = {
                         incidentType,
                         probes
                     }
-                }, {
-                        new: true
-                    });
+                }, { new: true });
             } catch (error) {
                 ErrorService.log('IncidentModel.findByIdAndUpdate', error);
                 throw error;
@@ -561,97 +559,97 @@ module.exports = {
             }
         }
     },
-/*
-    _mapIncidentsWithUsersAndMonitors: async function (incidents) {
-        if (incidents.length == 0)
-            return [];
-        else {
-            try {
-                var project = await ProjectService.findOneBy({ _id: incidents[0].projectId });
-            } catch (error) {
-                ErrorService.log('ProjectService.findOneBy', error);
-                throw error;
-            }
-            let userIds = [];
-            project.users.map((user) => {
-                userIds.push(user.userId);
-                return user;
-            });
-            try {
-                var users = UserService.findBy({
-                    '_id': {
-                        $in: userIds
-                    }
-                });
-            } catch (error) {
-                ErrorService.log('UserService.findBy', error);
-                throw error;
-            }
-            if (users.length > 0) {
+    /*
+        _mapIncidentsWithUsersAndMonitors: async function (incidents) {
+            if (incidents.length == 0)
+                return [];
+            else {
                 try {
-                    var monitors = await MonitorService.findBy({ projectId: incidents[0].projectId });
+                    var project = await ProjectService.findOneBy({ _id: incidents[0].projectId });
                 } catch (error) {
-                    ErrorService.log('MonitorService.findBy', error);
+                    ErrorService.log('ProjectService.findOneBy', error);
                     throw error;
                 }
-                if (monitors.length > 0) {
-                    incidents = incidents.map((incident) => {
-
-                        //map incident to plain object
-                        if (incident) {
-                            incident = incident._doc;
+                let userIds = [];
+                project.users.map((user) => {
+                    userIds.push(user.userId);
+                    return user;
+                });
+                try {
+                    var users = UserService.findBy({
+                        '_id': {
+                            $in: userIds
                         }
-
-                        if (incident.acknowledgedBy) {
-                            for (let i = 0; i < users.length; i++) {
-                                if (users[i]._id.toString() === incident.acknowledgedBy) {
-                                    incident.acknowledgedBy = users[i];
-                                }
-                            }
-                        }
-                        if (incident.resolvedBy) {
-                            for (let i = 0; i < users.length; i++) {
-                                if (users[i]._id.toString() === incident.resolvedBy) {
-                                    incident.resolvedBy = users[i];
-                                }
-                            }
-                        }
-                        if (incident.createdById) {
-                            for (let i = 0; i < users.length; i++) {
-                                if (users[i]._id.toString() === incident.createdById) {
-                                    incident.createdById = users[i];
-                                }
-                            }
-                        }
-                        if (incident.monitorId) {
-                            for (let i = 0; i < monitors.length; i++) {
-                                if (monitors[i]._id.toString() === incident.monitorId) {
-                                    incident.monitor = monitors[i];
-                                }
-                            }
-                        }
-
-                        return incident;
-
                     });
-
-                    return incidents;
+                } catch (error) {
+                    ErrorService.log('UserService.findBy', error);
+                    throw error;
+                }
+                if (users.length > 0) {
+                    try {
+                        var monitors = await MonitorService.findBy({ projectId: incidents[0].projectId });
+                    } catch (error) {
+                        ErrorService.log('MonitorService.findBy', error);
+                        throw error;
+                    }
+                    if (monitors.length > 0) {
+                        incidents = incidents.map((incident) => {
+    
+                            //map incident to plain object
+                            if (incident) {
+                                incident = incident._doc;
+                            }
+    
+                            if (incident.acknowledgedBy) {
+                                for (let i = 0; i < users.length; i++) {
+                                    if (users[i]._id.toString() === incident.acknowledgedBy) {
+                                        incident.acknowledgedBy = users[i];
+                                    }
+                                }
+                            }
+                            if (incident.resolvedBy) {
+                                for (let i = 0; i < users.length; i++) {
+                                    if (users[i]._id.toString() === incident.resolvedBy) {
+                                        incident.resolvedBy = users[i];
+                                    }
+                                }
+                            }
+                            if (incident.createdById) {
+                                for (let i = 0; i < users.length; i++) {
+                                    if (users[i]._id.toString() === incident.createdById) {
+                                        incident.createdById = users[i];
+                                    }
+                                }
+                            }
+                            if (incident.monitorId) {
+                                for (let i = 0; i < monitors.length; i++) {
+                                    if (monitors[i]._id.toString() === incident.monitorId) {
+                                        incident.monitor = monitors[i];
+                                    }
+                                }
+                            }
+    
+                            return incident;
+    
+                        });
+    
+                        return incidents;
+                    } else {
+                        let error = new Error('Incident cannot load because there are no monitors for this project');
+                        error.code = 400;
+                        ErrorService.log('IncidentService._mapIncidentsWithUsersAndMonitors', error);
+                        throw error;
+                    }
+    
                 } else {
-                    let error = new Error('Incident cannot load because there are no monitors for this project');
+                    let error = new Error('Incident cannot load because there are no users in the project');
                     error.code = 400;
                     ErrorService.log('IncidentService._mapIncidentsWithUsersAndMonitors', error);
                     throw error;
                 }
-
-            } else {
-                let error = new Error('Incident cannot load because there are no users in the project');
-                error.code = 400;
-                ErrorService.log('IncidentService._mapIncidentsWithUsersAndMonitors', error);
-                throw error;
             }
-        }
-    },
-*/
+        },
+    */
     getMonitorsWithIncidentsBy: async function (query) {
         var thisObj = this;
         var newmonitors = [];

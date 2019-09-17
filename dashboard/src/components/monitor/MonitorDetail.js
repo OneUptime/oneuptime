@@ -249,6 +249,7 @@ export class MonitorDetail extends Component {
                 <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
                     <div className="btn-group">
                         {this.props.monitor && this.props.monitor.probes.map((location,index) => (<button
+                            key={`probes-btn${index}`}
                             id={`probes-btn${index}`}
                             disabled={false}
                             onClick={() => this.selectbutton(index)}
@@ -322,7 +323,9 @@ MonitorDetail.propTypes = {
     index: PropTypes.string,
     openModal: PropTypes.func,
     create: PropTypes.bool,
-    closeModal: PropTypes.func
+    closeModal: PropTypes.func,
+    selectedProbe: PropTypes.func.isRequired,
+    activeProbe: PropTypes.number
 }
 
 MonitorDetail.contextTypes = {

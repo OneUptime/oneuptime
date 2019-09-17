@@ -474,7 +474,7 @@ module.exports = {
         }
         return 'Monitor(s) removed successfully!';
     },
-// yet to be edited
+    // yet to be edited
     async getManualMonitorTime(monitorId) {
         var _this = this;
         try {
@@ -544,7 +544,6 @@ module.exports = {
 
 var MonitorModel = require('../models/monitor');
 var MonitorTimeModel = require('../models/monitorTime');
-var MonitorLogModel = require('../models/monitorLog');
 var MonitorCategoryService = require('../services/monitorCategoryService');
 var Plans = require('./../config/plans');
 var RealTimeService = require('./realTimeService');

@@ -50,7 +50,6 @@ BlockChart.propTypes = {
         PropTypes.object,
         PropTypes.bool
     ]).isRequired,
-    emptytime: PropTypes.number
 }
 
 export default BlockChart;

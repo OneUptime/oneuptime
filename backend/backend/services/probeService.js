@@ -186,7 +186,7 @@ module.exports = {
 
     setTime: async function (data) {
         var _this = this;
-        var mon,autoAcknowledge,autoResolve;
+        var mon, autoAcknowledge, autoResolve;
         try {
             var statuses = await MonitorStatusModel.find({ monitorId: data.monitorId, probeId: data.probeId })
                 .sort([['createdAt', -1]])
@@ -199,7 +199,7 @@ module.exports = {
                 mon = await _this.incidentCreateOrUpdate(data, lastStatus);
                 autoAcknowledge = lastStatus && lastStatus === 'degraded' ? mon.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? mon.criteria.down.autoAcknowledge : false;
                 autoResolve = lastStatus === 'degraded' ? mon.criteria.degraded.autoResolve : lastStatus === 'offline' ? mon.criteria.down.autoResolve : false;
-                await _this.incidentResolveOrAcknowledge(data,lastStatus,autoAcknowledge,autoResolve);
+                await _this.incidentResolveOrAcknowledge(data, lastStatus, autoAcknowledge, autoResolve);
             }
             else if (lastStatus && lastStatus !== data.status) {
                 if (lastStatusId) {
@@ -209,7 +209,7 @@ module.exports = {
                 mon = await _this.incidentCreateOrUpdate(data, lastStatus);
                 autoAcknowledge = lastStatus && lastStatus === 'degraded' ? mon.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? mon.criteria.down.autoAcknowledge : false;
                 autoResolve = lastStatus === 'degraded' ? mon.criteria.degraded.autoResolve : lastStatus === 'offline' ? mon.criteria.down.autoResolve : false;
-                await _this.incidentResolveOrAcknowledge(data,lastStatus,autoAcknowledge,autoResolve);
+                await _this.incidentResolveOrAcknowledge(data, lastStatus, autoAcknowledge, autoResolve);
             }
         } catch (error) {
             ErrorService.log('setTime.findOne', error);
@@ -234,7 +234,7 @@ module.exports = {
                                 status: true
                             })
                         });
-                    })
+                    });
                 }
                 else {
                     await IncidentService.create({
@@ -257,7 +257,7 @@ module.exports = {
                                 status: true
                             })
                         });
-                    })
+                    });
                 }
                 else {
                     await IncidentService.create({
@@ -280,7 +280,7 @@ module.exports = {
                                 status: true
                             })
                         });
-                    })
+                    });
                 }
                 else {
                     await IncidentService.create({
@@ -299,26 +299,26 @@ module.exports = {
         return monitor;
     },
 
-    incidentResolveOrAcknowledge: async function (data, lastStatus,autoAcknowledge,autoResolve) {
+    incidentResolveOrAcknowledge: async function (data, lastStatus, autoAcknowledge, autoResolve) {
         try {
             var incidents = await IncidentService.findBy({ monitorId: data.monitorId, incidentType: lastStatus, resolved: false });
             var incidentsV1 = [];
             var incidentsV2 = [];
             if (incidents && incidents.length) {
                 if (lastStatus && lastStatus !== data.status) {
-                    incidents.map(async (incident) =>{
+                    incidents.map(async (incident) => {
                         incident = incident.toObject();
-                        incident.probes.some(probe =>{
-                            if(probe.probeId === data.probeId.toString()){
+                        incident.probes.some(probe => {
+                            if (probe.probeId === data.probeId.toString()) {
                                 incidentsV1.push(incident);
                                 return true;
                             }
                             else return false;
-                        })
-                    })
+                        });
+                    });
                 }
             }
-            await Promise.all(incidentsV1.map(async (v1) =>{
+            await Promise.all(incidentsV1.map(async (v1) => {
                 let newIncident = await IncidentService.update({
                     _id: v1._id,
                     probes: v1.probes.concat([{
@@ -331,28 +331,28 @@ module.exports = {
                 return newIncident;
             }));
 
-            incidentsV2.map(async (v2) =>{
-              let trueArray = [];
-              let falseArray = [];
-              v2.probes.map(probe =>{
-                  if(probe.status){
-                    trueArray.push(probe);
-                  }
-                  else {
-                    falseArray.push(probe);
-                  }
-              })
-              if(trueArray.length === falseArray.length){
-                 if(autoAcknowledge){
-                    if (!v2.acknowledged) {
-                        await IncidentService.acknowledge(v2._id, null, 'fyipe');
+            incidentsV2.map(async (v2) => {
+                let trueArray = [];
+                let falseArray = [];
+                v2.probes.map(probe => {
+                    if (probe.status) {
+                        trueArray.push(probe);
                     }
-                 }
-                 if(autoResolve){
-                    await IncidentService.resolve(v2._id, null, 'fyipe');
+                    else {
+                        falseArray.push(probe);
+                    }
+                });
+                if (trueArray.length === falseArray.length) {
+                    if (autoAcknowledge) {
+                        if (!v2.acknowledged) {
+                            await IncidentService.acknowledge(v2._id, null, 'fyipe');
+                        }
+                    }
+                    if (autoResolve) {
+                        await IncidentService.resolve(v2._id, null, 'fyipe');
+                    }
                 }
-              }
-            })
+            });
         } catch (error) {
             ErrorService.log('ProbeService.resolveOrAcknowledge', error);
             throw error;
@@ -414,7 +414,7 @@ module.exports = {
                 ErrorService.log('probeService.find', error);
                 throw error;
             }
-        }))
+        }));
         return newProbes;
     },
 

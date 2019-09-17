@@ -87,6 +87,7 @@ export class MonitorViewHeader extends Component {
                     <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
                     <div className="btn-group">
                         {this.props.monitor && this.props.monitor.probes.map((location,index) => (<button
+                            key={`probes-btn${index}`}
                             id={`probes-btn${index}`}
                             disabled={false}
                             onClick={() => this.selectbutton(index)}
@@ -113,6 +114,8 @@ MonitorViewHeader.propTypes = {
     index: PropTypes.string.isRequired,
     subProjects: PropTypes.array.isRequired,
     currentProject: PropTypes.object.isRequired,
+    activeProbe: PropTypes.number,
+    selectedProbe: PropTypes.func.isRequired
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(

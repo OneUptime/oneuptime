@@ -3,8 +3,6 @@ import Dashboard from '../components/Dashboard';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { FormLoader } from '../components/basic/Loader';
-import ShouldRender from '../components/basic/ShouldRender';
 import ProbeList from '../components/probe/ProbeList';
 import { getProbes} from '../actions/probe';
 

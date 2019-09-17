@@ -295,8 +295,7 @@ module.exports = {
 
         return { investigationNotes, count };
     },
-/*
-    getMonitorTime: async function (monitorId) {
+    /*getMonitorTime: async function (monitorId) {
         var date = new Date();
         var thisObj = this;
         var time;
@@ -328,8 +327,7 @@ module.exports = {
 
         }
         return time;
-    },
-*/
+    },*/
     getStatus: async function (query, user) {
         var thisObj = this;
         if (!query) {
