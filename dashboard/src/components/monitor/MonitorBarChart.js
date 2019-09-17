@@ -64,7 +64,7 @@ export function MonitorBarChart(props) {
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
 
-    let monitorType = props.monitor.type;
+    let monitorType = props.monitor && props.monitor.type;
 
     let responseTime = props.probe && props.probe.responseTime ? props.probe.responseTime : '0';
     let monitorStatus = props.probe && props.probe.status ? toPascalCase(props.probe.status) : 'Online';
