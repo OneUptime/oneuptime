@@ -1,36 +1,27 @@
 const axios = require('axios');
 const { apiUrl } = require('./config');
 
-const postApi = (url, data) => {
-
-  axios({
+const postApi = (url, data, apiKey) => {
+  return axios({
     method: 'POST',
     url: `${apiUrl}/${url}`,
-    data: data
+    headers: { apiKey },
+    data
   })
-  .then(function (res) {
-    return res
-  })
-  .catch(function (error) {
-    console.error(error)
-  });
-}
+    .then(({ status, data }) => status === 200 ? data : null);
+};
 
 // Testing the getAPI
-const getApi = (url) => {
-  axios({
+const getApi = (url, apiKey) => {
+  return axios({
     method: 'GET',
-    url: `${apiUrl}/${url}`
+    url: `${apiUrl}/${url}`,
+    headers: { apiKey }
   })
-  .then(function (res) {
-    if (res.data === 'Server Error.') console.log('success')
-  })
-  .catch(function (error) {
-    console.error(error)
-  });
-}
+    .then(({ status, data }) => status === 200 ? data : null);
+};
 
-module.exports = { 
+module.exports = {
   postApi,
   getApi
-}
+};

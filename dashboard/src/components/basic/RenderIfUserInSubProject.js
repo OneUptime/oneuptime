@@ -11,13 +11,13 @@ export function RenderIfUserInSubProject(props) {
     var renderItems = null;
     if (
         currentProject && 
-        currentProject.users.filter(user => user.userId === userId && user.role != 'Viewer').length > 0)
+        currentProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0)
     {
         renderItems = children
     }else{
         if(subProjects){
             subProjects.forEach((subProject)=>{
-                if (subProject._id === subProjectId && subProject.users.filter(user => user.userId === userId && user.role != 'Viewer').length > 0){
+                if (subProject._id === subProjectId && subProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0){
                     renderItems = children
                 }
             });

@@ -172,7 +172,7 @@ export class RenderOption extends Component {
                                 onClick={() => addField()}
                                 style={{ borderRadius: '50%', padding: '0px 6px' }}
                             >
-                                <img src='/assets/img/plus.svg' style={{ height: '10px', width: '10px' }} />
+                                <img src='/assets/img/plus.svg' style={{ height: '10px', width: '10px' }} alt="" />
                             </button>
                         </div>
                     </div>
@@ -187,7 +187,7 @@ export class RenderOption extends Component {
                                 onClick={() => removeField(removeArrayField)}
                                 style={{ borderRadius: '50%', padding: '0px 6px' }}
                             >
-                                <img src='/assets/img/minus.svg' style={{ height: '10px', width: '10px' }} />
+                                <img src='/assets/img/minus.svg' style={{ height: '10px', width: '10px' }} alt="" />
                             </button>
                         </div>
                     </div>
@@ -202,7 +202,7 @@ export class RenderOption extends Component {
                                 onClick={() => addArrayField(fieldnameprop)}
                                 style={{ borderRadius: '50%', padding: '0px 6px' }}
                             >
-                                <img src='/assets/img/more.svg' style={{ height: '10px', width: '10px' }} />
+                                <img src='/assets/img/more.svg' style={{ height: '10px', width: '10px' }} alt="" />
                             </button>
                         </div>
                     </div>

@@ -3389,6 +3389,7 @@ html.db-NewChrome body {
 .db-Trend-colValue {
   color: #14aad9;
   font-weight: 500;
+  line-height: 1;
 }
 .db-Trend-colSecondary {
   color: #8898aa;

@@ -1,4 +1,4 @@
-# This is the production Kubectl config which is used to run the production cluster in Kubernetes.
+# This is the staging Kubectl config which is used to run the staging cluster in Kubernetes.
 #
 # IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO test-server.yaml
 #
@@ -27,6 +27,14 @@ spec:
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: "https://staging-dashboard.fyipe.com"
+        - name: ACCOUNTS_HOST
+          value: "https://staging-accounts.fyipe.com"
+        - name: BACKEND_HOST
+          value: "https://staging-api.fyipe.com"
+        - name: DOMAIN
+          value: ".fyipe.com"
         ports:
         - containerPort: 3000
           hostPort: 3000
@@ -70,12 +78,20 @@ spec:
         app: accounts
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/accounts:latest
+      - image: registry.gitlab.com/fyipe-project/accounts:master
         name: accounts
         imagePullPolicy: IfNotPresent
         env:
         - name: FYIPE_HOSTED
           value: "true"
+        - name: HOST
+          value: "https://staging-accounts.fyipe.com"
+        - name: DASHBOARD_HOST
+          value: "https://staging-dashboard.fyipe.com"
+        - name: BACKEND_HOST
+          value: "https://staging-api.fyipe.com"
+        - name: DOMAIN
+          value: ".fyipe.com"
         ports:
         - containerPort: 3003
           hostPort: 3003
@@ -130,11 +146,29 @@ spec:
         - name: MONGO_URL
           value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
         - name: STRIPE_PUBLIC_KEY
-          value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
+          value: "pk_test_4I2S0sD0TYJxEWQTYlC2Rk6E"
         - name: STRIPE_PRIVATE_KEY
-          value: "sk_live_ADLzzMrOCz0kyYTsxWatAqxh"
+          value: "sk_test_YxwnzywggtAd8jDaHecNmHiN"
         - name: PORT
           value: "3002"
+        - name: MAIL_USER
+          value: "testmail@fyipe.com"
+        - name: MAIL_PASSWORD
+          value: "66WEPsk4FJCqUnbCFeZrFYCRWg"
+        - name: MAIL_SERVER_SMTP
+          value: "mail.hackerbay.io"
+        - name: MAIL_PORT_SMTP
+          value: "587"
+        - name: MAIL_SERVER_IMAP
+          value: "mail.hackerbay.io"
+        - name: MAIL_PORT_IMAP
+          value: "993"
+        - name: MAIL_FROM
+          value: "testmail@fyipe.com"
+        - name: EMAIL_VERIFY_TIME
+          value: "3600"
+        - name: MAIL_SECURE
+          value: "false"
         ports:
         - containerPort: 3002
           hostPort: 3002
@@ -250,151 +284,6 @@ spec:
     targetPort: 3006
   selector:
     app: status-page
-  type: LoadBalancer
----
-# Probe service and deployement
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: probe
-  labels:
-    app: probe
-spec:
-  selector:
-    matchLabels:
-      app: probe
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: probe
-    spec:
-      containers:
-      - image: registry.gitlab.com/fyipe-project/probe:master
-        name: probe
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        - name: SERVER_URL
-          value: "http://backend"
-        - name: PORT
-          value: "3008"
-        ports:
-        - containerPort: 3008
-          hostPort: 3008
-          name: probe
-      restartPolicy: Always
-      imagePullSecrets:
-      - name: gitlabcredv2
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: probe
-  name: probe
-spec:
-  ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 3008
-  selector:
-    app: probe
-  type: LoadBalancer
-
-# API docs deployment and service
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: api-docs
-  labels:
-    app: api-docs
-spec:
-  selector:
-    matchLabels:
-      app: api-docs
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: api-docs
-    spec:
-      containers:
-      - image: registry.gitlab.com/fyipe-project/api-docs:master
-        name: api-docs
-        imagePullPolicy: Always
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        ports:
-        - containerPort: 1445
-          hostPort: 1445
-          name: api-docs
-      restartPolicy: Always
-      imagePullSecrets:
-      - name: gitlabcredv2
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: api-docs
-  name: api-docs
-spec:
-  ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 1445
-  selector:
-    app: api-docs
-  type: LoadBalancer
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: admin-dashboard
-  labels:
-    app: admin-dashboard
-spec:
-  selector:
-    matchLabels:
-      app: admin-dashboard
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: admin-dashboard
-    spec:
-      containers:
-      - image: registry.gitlab.com/fyipe-project/admin-dashboard:master
-        name: admin-dashboard
-        imagePullPolicy: Always
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        ports:
-        - containerPort: 3100
-          hostPort: 3100
-          name: admin-dashboard
-      restartPolicy: Always
-      imagePullSecrets:
-      - name: gitlabcredv2
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: admin-dashboard
-  name: admin-dashboard
-spec:
-  ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 3100
-  selector:
-    app: admin-dashboard
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -589,4 +478,3 @@ parameters:
   type: pd-standard
 reclaimPolicy: Retain
 ---
-

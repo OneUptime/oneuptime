@@ -14,10 +14,10 @@ const TeamSelector = ({ input, meta: { touched, error }, members }) => (
             <option value="">{input.defaultValue || 'Select Team Member...'}</option>
             {
                 members.map(member => {
-                    return member.role != 'Viewer' ? (
-                        <option value={member.userId} key={member.name}>
-                            {member.name}
-                        </option>
+                    return member.role !== 'Viewer' ? (
+                      <option value={member.userId} key={member.name}>
+                        {member.name}
+                      </option>
                     ) : false;
                 })
             }
