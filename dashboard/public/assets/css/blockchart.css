@@ -7,16 +7,39 @@ div.block-chart-main {
   margin-top: -15px;
   margin-left: 10px;
 }
+div.block-chart-main.line-chart {
+  height: 76px;
+  margin-left: 0;
+  flex-basis: 50%;
+  display: flex;
+  flex-flow: column wrap;
+  justify-content: center;
+}
+.custom-tooltip {
+  position: relative;
+  display: inline-block;
+  background-color: rgba(255, 255, 255, 0.7);
+  color: #333;
+  font-size: 14px;
+  font-weight: normal;
+  text-transform: capitalize;
+  padding: 10px;
+  border-radius: 6px;
+  z-index: 1;
+}
 div.block-chart-side {
   flex-grow: 1;
-  height: 96px;
-  padding-left: 3%;
+  height: 76px;
+  flex-basis: 50%;
+}
+div.block-chart-side.line-chart {
+  height: auto;
 }
 .db-TrendRow {
   position: relative;
   display: flex;
   z-index: 1000;
-  justify-content: space-around;
+  justify-content: stretch;
 }
 .db-TrendRow .db-Trend-colInformation {
   flex-grow: 1;

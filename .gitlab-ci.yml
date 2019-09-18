@@ -6,194 +6,194 @@
 
 # Define stages
 stages:
-  # - BuildAndTest
-  # - E2E
+  - BuildAndTest
+  - E2E
   - DeployStaging
   - DeployProduction
   - SmokeTest
   - RollbackStaging
   - RollbackProduction
-# #BACKEND
-# lint_n_audit_backend:
-#   stage: BuildAndTest
-#   script:
-#     - sudo apt-get install nodejs -y
-#     - cd backend
-#     - npm install --dev
-#     - npm run lint
-#     # - npm run audit
-#     - cd ..
+#BACKEND
+lint_n_audit_backend:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd backend
+    - npm install --dev
+    - npm run lint
+    # - npm run audit
+    - cd ..
 
-# build_n_test_backend:
-#   stage: BuildAndTest
-#   script:
-#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-#     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-#     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-#     - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
+build_n_test_backend:
+  stage: BuildAndTest
+  script:
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
+    - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
 
-# ##DASHBOARD
-# lint_n_audit_dashboard:
-#   stage: BuildAndTest
-#   script:
-#     - sudo apt-get install nodejs -y
-#     - cd dashboard
-#     - npm install --dev
-#     - npm run lint
-#     # - npm run audit
-#     - cd ..
+##DASHBOARD
+lint_n_audit_dashboard:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd dashboard
+    - npm install --dev
+    - npm run lint
+    # - npm run audit
+    - cd ..
 
-# build_n_test_dashboard:
-#   stage: BuildAndTest
-#   script:
-#     - echo "Setup machine for running puppeteer tests"
-#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-#     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-#     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-#     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
-#     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
-#     - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
-#     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-#     - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
-#     - sudo docker ps
-#     - cd dashboard
-#     - npm install
-#     - npm run jest
+build_n_test_dashboard:
+  stage: BuildAndTest
+  script:
+    - echo "Setup machine for running puppeteer tests"
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
+    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
+    - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+    - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker ps
+    - cd dashboard
+    - npm install
+    - npm run jest
 
-# ##ZAPIER
-# lint_n_audit_zapier:
-#   stage: BuildAndTest
-#   script:
-#     - sudo apt-get install nodejs -y
-#     - cd zapier
-#     - npm install --dev
-#     - npm run lint
-#     - npm run audit
-#     - cd ..
+##ZAPIER
+lint_n_audit_zapier:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd zapier
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
 
-# build_n_test_zapier:
-#   stage: BuildAndTest
-#   script:
-#     - echo "No test implemented"
+build_n_test_zapier:
+  stage: BuildAndTest
+  script:
+    - echo "No test implemented"
 
-# ## STATUS PAGE
-# lint_n_audit_statuspage:
-#   stage: BuildAndTest
-#   script:
-#     - sudo apt-get install nodejs -y
-#     - cd status-page
-#     - npm install --dev
-#     - npm run lint
-#     - npm run audit
-#     - cd ..
+## STATUS PAGE
+lint_n_audit_statuspage:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd status-page
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
 
-# build_n_test_statuspage:
-#   stage: BuildAndTest
-#   script:
-#     - echo "Setup machine for running puppeteer tests"
-#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-#     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-#     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-#     - sudo docker run --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
-#     - sudo docker build -t fyipe-project/status-page:3.0.$CI_PIPELINE_IID ./status-page
-#     - sudo docker run -p 3006:3006 -d fyipe-project/status-page:3.0.$CI_PIPELINE_IID
-#     - sudo docker ps
-#     - cd backend
-#     - npm install
-#     - cd ..
-#     - cd status-page
-#     - npm install
-#     - curl localhost:3006
-#     - npm run jest
+build_n_test_statuspage:
+  stage: BuildAndTest
+  script:
+    - echo "Setup machine for running puppeteer tests"
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
+    - sudo docker run --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipe-project/status-page:3.0.$CI_PIPELINE_IID ./status-page
+    - sudo docker run -p 3006:3006 -d fyipe-project/status-page:3.0.$CI_PIPELINE_IID
+    - sudo docker ps
+    - cd backend
+    - npm install
+    - cd ..
+    - cd status-page
+    - npm install
+    - curl localhost:3006
+    - npm run jest
 
-# ## ACCOUNTS
-# lint_n_audit_accounts:
-#   stage: BuildAndTest
-#   script:
-#     - sudo apt-get install nodejs -y
-#     - cd accounts
-#     - npm install --dev
-#     - npm run lint
-#     - npm run audit
-#     - cd ..
+## ACCOUNTS
+lint_n_audit_accounts:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd accounts
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
 
-# build_n_test_accounts:
-#   stage: BuildAndTest
-#   script:
-#     - echo "Setup machine for running puppeteer tests"
-#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-#     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-#     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-#     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
-#     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
-#     - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
-#     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-#     - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
-#     - sudo docker ps
-#     - cd accounts
-#     - npm install
-#     - npm run jest
+build_n_test_accounts:
+  stage: BuildAndTest
+  script:
+    - echo "Setup machine for running puppeteer tests"
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
+    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
+    - sudo docker run -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+    - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker ps
+    - cd accounts
+    - npm install
+    - npm run jest
 
-# ## HOME
-# lint_n_audit_home:
-#   stage: BuildAndTest
-#   script:
-#     - sudo apt-get install nodejs -y
-#     - cd home
-#     - npm install --dev
-#     - npm run lint
-#     - npm run audit
-#     - cd ..
+## HOME
+lint_n_audit_home:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd home
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
 
-# build_n_test_home:
-#   stage: BuildAndTest
-#   script:
-#     - echo "No test implemented"
+build_n_test_home:
+  stage: BuildAndTest
+  script:
+    - echo "No test implemented"
 
-# ## PROBE
-# lint_n_audit_probe:
-#   stage: BuildAndTest
-#   script:
-#     - sudo apt-get install nodejs -y
-#     - cd probe
-#     - npm install --dev
-#     - npm run lint
-#     - npm run audit
-#     - cd ..
+## PROBE
+lint_n_audit_probe:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd probe
+    - npm install --dev
+    - npm run lint
+    - npm run audit
+    - cd ..
 
-# build_n_test_probe:
-#   stage: BuildAndTest
-#   script:
-#     - echo "No test implemented"
+build_n_test_probe:
+  stage: BuildAndTest
+  script:
+    - echo "No test implemented"
 
-# ##E2E Stage.
-# e2e_test:
-#   stage: E2E
-#   script:
-#     - chmod +x ./kubernetes/ci/setup-machine.sh
-#     - ./kubernetes/ci/setup-machine.sh
-#     - chmod +x ./kubernetes/ci/setup.sh
-#     - ./kubernetes/ci/setup.sh
-#     - export HOME_URL=http://home.app.local:1444
-#     - export ACCOUNTS_URL=http://accounts.app.local:3003
-#     - export DASHBOARD_URL=http://dashboard.app.local:3000
-#     - export BACKEND_URL=http://backend.app.local:3002
-#     - export STATUSPAGE_URL=http://status-page.app.local:3006
-#     - export APIDOCS_URL=http://api-docs.app.local:1445
-#     - chmod +x ./kubernetes/ci/hosts-setup.sh
-#     - ./kubernetes/ci/hosts-setup.sh
-#     - cd smoke-test
-#     - npm i
-#     - npm run test
+##E2E Stage.
+e2e_test:
+  stage: E2E
+  script:
+    - chmod +x ./kubernetes/ci/setup-machine.sh
+    - ./kubernetes/ci/setup-machine.sh
+    - chmod +x ./kubernetes/ci/setup.sh
+    - ./kubernetes/ci/setup.sh
+    - export HOME_URL=http://home.app.local:1444
+    - export ACCOUNTS_URL=http://accounts.app.local:3003
+    - export DASHBOARD_URL=http://dashboard.app.local:3000
+    - export BACKEND_URL=http://backend.app.local:3002
+    - export STATUSPAGE_URL=http://status-page.app.local:3006
+    - export APIDOCS_URL=http://api-docs.app.local:1445
+    - chmod +x ./kubernetes/ci/hosts-setup.sh
+    - ./kubernetes/ci/hosts-setup.sh
+    - cd smoke-test
+    - npm i
+    - npm run test
 
-#   only:
-#     refs:
-#       - release
-#       - master
+  only:
+    refs:
+      - release
+      - master
 
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
@@ -216,6 +216,7 @@ deploy_staging_backend:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -262,6 +263,7 @@ deploy_staging_api-docs:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -308,6 +310,7 @@ deploy_staging_home:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -354,6 +357,7 @@ deploy_staging_probe:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -400,6 +404,7 @@ deploy_staging_status-page:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -446,6 +451,7 @@ deploy_staging_admin-dashboard:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -492,6 +498,7 @@ deploy_staging_accounts:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -538,6 +545,7 @@ deploy_staging_dashboard:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -590,6 +598,7 @@ smoke_test_staging:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: production
 
@@ -604,7 +613,7 @@ staging_rollback_dashboard:
     # Rollback dashboard
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/dashboard
   only:
     refs:
@@ -623,7 +632,7 @@ staging_rollback_accounts:
     # Rollback accounts 
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/accounts
   only:
     refs:
@@ -641,7 +650,7 @@ staging_rollback_backend:
     # Rollback backend
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
   only:
     refs:
@@ -659,7 +668,7 @@ staging_rollback_home:
     # Rollback home
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
   only:
     refs:
@@ -677,7 +686,7 @@ staging_rollback_status-page:
     # Rollback status-page
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/status-page
   only:
     refs:
@@ -695,7 +704,7 @@ staging_rollback_api-docs:
     # Rollback api-docs
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/api-docs
   only:
     refs:
@@ -713,7 +722,7 @@ staging_rollback_admin-dashboard:
     # Rollback admin-dashboard
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/admin-dashboard
   only:
     refs:
@@ -731,7 +740,7 @@ staging_rollback_probe:
     # Rollback probe
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status  == "success" ]]; then exit 0; fi
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
   only:
     refs:
