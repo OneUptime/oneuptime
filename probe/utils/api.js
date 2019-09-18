@@ -6,7 +6,7 @@ var headers = {
     'Accept': 'application/json',
     'Content-Type': 'application/json;charset=UTF-8',
     'probeName': config.probeName,
-    'probeKey': config.accessKey
+    'probeKey': config.clusterKey
 };
 
 module.exports = {
