@@ -1,0 +1,40 @@
+{
+	"info": {
+		"_postman_id": "539bc589-0dc4-4d9a-bd75-1595aed7179f",
+		"name": "Fyipe",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create new probe",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"probeName\": \"US East\",\n\t\"clusterKey\": \"33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3002/probe/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3002",
+					"path": [
+						"probe",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
