@@ -6,7 +6,7 @@ var headers = {
     'Accept': 'application/json',
     'Content-Type': 'application/json;charset=UTF-8',
     'probeName': config.probeName,
-    'probeKey': config.accessKey
+    'probeKey': config.probeKey
 };
 
 module.exports = {
@@ -18,17 +18,17 @@ module.exports = {
                 headers,
                 data
             })
-                .then(function (response) {
-                    resolve(response.data);
-                })
-                .catch(function (error) {
-                    if (error && error.response && error.response.data)
-                        error = error.response.data;
-                    if (error && error.data) {
-                        error = error.data;
-                    }
-                    reject(error);
-                });
+            .then(function (response) {
+                resolve(response.data);
+            })
+            .catch(function (error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                reject(error);
+            });
         });
     },
 

@@ -29,5 +29,6 @@ app.get('/*', function (req, res) {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-
-app.listen(3003);
+var PORT = 3003
+console.log(`This project is running on port ${PORT}`)
+app.listen(PORT);
