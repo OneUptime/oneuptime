@@ -30,5 +30,6 @@ app.get('/*', function (req, res) {
 });
 
 var PORT = 3003
+/* eslint-disable no-console */
 console.log(`This project is running on port ${PORT}`)
 app.listen(PORT);
