@@ -33,6 +33,11 @@ import {
     ADD_USER_NOTE_RESET,
     ADD_USER_NOTE_SUCCESS,
     ADD_USER_NOTE_FAILURE,
+
+    SEARCH_USERS_REQUEST, 
+    SEARCH_USERS_RESET,
+    SEARCH_USERS_SUCCESS,
+    SEARCH_USERS_FAILURE,
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -76,6 +81,11 @@ const INITIAL_STATE = {
         error: null,
         success: false,
     },
+    searchUsers: {
+        requesting: false,
+        error: null,
+        success: false
+    }
 };
 
 export default function user(state = INITIAL_STATE, action) {
@@ -398,6 +408,53 @@ export default function user(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...INITIAL_STATE
             });
+
+        // search users list
+        case SEARCH_USERS_REQUEST:
+
+            return Object.assign({}, state, {
+                searchUsers: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+
+            });
+
+        case SEARCH_USERS_SUCCESS:
+            return Object.assign({}, state, {
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: action.payload.data,
+                    count: action.payload.count,
+                    limit: action.payload.limit,
+                    skip: action.payload.skip
+                },
+                searchUsers: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                }
+            });
+
+        case SEARCH_USERS_FAILURE:
+
+            return Object.assign({}, state, {
+                searchUsers: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case SEARCH_USERS_RESET:
+
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
+
 
         default: return state;
     }

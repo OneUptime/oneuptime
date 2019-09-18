@@ -293,7 +293,7 @@ router.post('/forgot-password', async function (req, res) {
 });
 
 // Route
-// Description: reset password function for  user
+// Description: reset password function for user
 // Params:
 // Param 1: req.body-> {password}; req.params-> {token}
 // Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
@@ -740,6 +740,21 @@ router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function (req,
         });
     }
 
+});
+
+router.post('/users/search', getUser, isUserMasterAdmin, async function(req, res){
+    const filter = req.body.filter;
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+
+    try{
+        const users = await UserService.searchUsers({ deleted: { $ne: null }, $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }, { email: { $regex: new RegExp(filter), $options: 'i' } }]}, skip, limit);
+        const count = await UserService.countBy({ deleted: { $ne: null }, $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }, { email: { $regex: new RegExp(filter), $options: 'i' } }]});
+        
+        return sendListResponse(req, res, users, count);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
 });
 
 module.exports = router;

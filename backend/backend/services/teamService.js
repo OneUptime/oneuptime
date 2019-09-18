@@ -38,9 +38,6 @@ module.exports = {
             users.push(user);
         }
 
-        // eslint-disable-next-line no-console
-        console.log('users: ', users);
-
         var response = [];
         for (let i = 0; i < users.length; i++) {
             if(users[i]){

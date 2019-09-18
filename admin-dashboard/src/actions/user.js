@@ -406,3 +406,65 @@ export function addUserNote(userId, values) {
 		return promise;
 	};
 }
+
+//Search Users
+export function searchUsersRequest() {
+	return {
+		type: types.SEARCH_USERS_REQUEST,
+	};
+}
+
+export function searchUsersReset() {
+	return {
+		type: types.SEARCH_USERS_RESET,
+	};
+}
+
+export function searchUsersSuccess(users) {
+	return {
+		type: types.SEARCH_USERS_SUCCESS,
+		payload: users
+	};
+}
+
+export function searchUsersError(error) {
+	return {
+		type: types.SEARCH_USERS_FAILURE,
+		payload: error
+	};
+}
+
+// Calls the search users
+export function searchUsers(filter, skip, limit) {
+	const values = {
+		filter
+	};
+
+	return function (dispatch) {
+		var promise;
+		skip = skip ? parseInt(skip) : 0
+		limit = limit ? parseInt(limit) : 10
+
+		promise = postApi(`user/users/search?skip=${skip}&limit=${limit}`, values);
+		
+		dispatch(searchUsersRequest());
+		promise.then(function (response) {
+			const data = response.data;
+			dispatch(searchUsersSuccess(data));
+
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}else{
+				error = 'Network Error';
+			}
+			dispatch(searchUsersError(errors(error)));
+		});
+		return promise;
+	};
+}
