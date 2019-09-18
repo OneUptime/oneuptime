@@ -19,7 +19,7 @@ lint_n_audit_backend:
   script:
     - sudo apt-get install nodejs -y
     - cd backend
-    - npm install --dev
+    - npm ci 
     - npm run lint
     # - npm run audit
     - cd ..
@@ -39,7 +39,7 @@ lint_n_audit_dashboard:
   script:
     - sudo apt-get install nodejs -y
     - cd dashboard
-    - npm install --dev
+    - npm ci 
     - npm run lint
     # - npm run audit
     - cd ..
@@ -59,7 +59,7 @@ build_n_test_dashboard:
     - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker ps
     - cd dashboard
-    - npm install
+    - npm ci
     - npm run jest
 
 ##ZAPIER
@@ -68,7 +68,7 @@ lint_n_audit_zapier:
   script:
     - sudo apt-get install nodejs -y
     - cd zapier
-    - npm install --dev
+    - npm ci 
     - npm run lint
     - npm run audit
     - cd ..
@@ -84,7 +84,7 @@ lint_n_audit_statuspage:
   script:
     - sudo apt-get install nodejs -y
     - cd status-page
-    - npm install --dev
+    - npm ci 
     - npm run lint
     - npm run audit
     - cd ..
@@ -102,10 +102,10 @@ build_n_test_statuspage:
     - sudo docker run -p 3006:3006 -d fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker ps
     - cd backend
-    - npm install
+    - npm ci
     - cd ..
     - cd status-page
-    - npm install
+    - npm ci
     - curl localhost:3006
     - npm run jest
 
@@ -115,7 +115,7 @@ lint_n_audit_accounts:
   script:
     - sudo apt-get install nodejs -y
     - cd accounts
-    - npm install --dev
+    - npm ci 
     - npm run lint
     - npm run audit
     - cd ..
@@ -135,7 +135,7 @@ build_n_test_accounts:
     - sudo docker run -p 3000:3000 -d fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker ps
     - cd accounts
-    - npm install
+    - npm ci
     - npm run jest
 
 ## HOME
@@ -144,7 +144,7 @@ lint_n_audit_home:
   script:
     - sudo apt-get install nodejs -y
     - cd home
-    - npm install --dev
+    - npm ci 
     - npm run lint
     - npm run audit
     - cd ..
@@ -160,7 +160,7 @@ lint_n_audit_probe:
   script:
     - sudo apt-get install nodejs -y
     - cd probe
-    - npm install --dev
+    - npm ci 
     - npm run lint
     - npm run audit
     - cd ..
@@ -187,7 +187,7 @@ e2e_test:
     - chmod +x ./kubernetes/ci/hosts-setup.sh
     - ./kubernetes/ci/hosts-setup.sh
     - cd smoke-test
-    - npm i
+    - npm ci
     - npm run test
 
   only:
@@ -584,7 +584,7 @@ smoke_test_staging:
     - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
     - export APIDOCS_URL=https://staging-api-docs.fyipe.com
     - cd smoke-test
-    - npm install
+    - npm ci
     - npm run test
   only:
     refs:
