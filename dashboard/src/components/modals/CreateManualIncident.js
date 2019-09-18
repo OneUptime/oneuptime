@@ -14,9 +14,9 @@ import { RenderSelect } from '../basic/RenderSelect';
 class CreateManualIncident extends Component {
 
 	submitForm = (values) => {
-		const { createNewIncident, currentProject, createIncidentModalId, closeModal, monitorId } = this.props;
-
-		createNewIncident(currentProject._id, monitorId, values.incidentType)
+		const { createNewIncident, createIncidentModalId, closeModal } = this.props;
+		const { projectId, monitorId } = this.props.data;
+		createNewIncident(projectId, monitorId, values.incidentType)
 			.then(() => {
 				closeModal({
 					id: createIncidentModalId
@@ -136,20 +136,18 @@ const mapDispatchToProps = (dispatch) => {
 function mapStateToProps(state) {
 	return {
 		newIncident: state.incident.newIncident,
-		currentProject: state.project.currentProject,
-		createIncidentModalId: state.modal.modals[0].id,
-		monitorId: state.modal.modals[0].monitorId
+		createIncidentModalId: state.modal.modals[0].id
 	};
 }
 
 CreateManualIncident.propTypes = {
 	newIncident: PropTypes.object,
-	currentProject: PropTypes.string,
 	createIncidentModalId: PropTypes.string,
 	monitorId: PropTypes.string,
 	createNewIncident: PropTypes.func.isRequired,
 	closeModal: PropTypes.func.isRequired,
-	handleSubmit: PropTypes.func.isRequired
+	handleSubmit: PropTypes.func.isRequired,
+	data: PropTypes.object
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(CreateManualIncidentForm);

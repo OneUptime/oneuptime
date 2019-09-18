@@ -214,8 +214,7 @@ export class MonitorDetail extends Component {
                                         onClick={() =>
                                             this.props.openModal({
                                                 id: createIncidentModalId,
-                                                monitorId: this.props.monitor._id,
-                                                content: DataPathHoC(CreateManualIncident)
+                                                content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
                                             })}>
                                         <ShouldRender if={!creating}>
                                             <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
