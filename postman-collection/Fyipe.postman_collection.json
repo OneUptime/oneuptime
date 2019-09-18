@@ -19,7 +19,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"probeName\": \"US East\",\n\t\"clusterKey\": \"33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4\"\n}"
+					"raw": "{\n\t\"probeName\": \"New Delhi\",\n\t\"clusterKey\": \"33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:3002/probe/",
