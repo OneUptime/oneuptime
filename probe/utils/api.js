@@ -18,17 +18,17 @@ module.exports = {
                 headers,
                 data
             })
-            .then(function (response) {
-                resolve(response.data);
-            })
-            .catch(function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                reject(error);
-            });
+                .then(function (response) {
+                    resolve(response.data);
+                })
+                .catch(function (error) {
+                    if (error && error.response && error.response.data)
+                        error = error.response.data;
+                    if (error && error.data) {
+                        error = error.data;
+                    }
+                    reject(error);
+                });
         });
     },
 
