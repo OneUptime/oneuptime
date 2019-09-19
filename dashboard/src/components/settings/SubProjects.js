@@ -36,6 +36,7 @@ function validate(values) {
 
 export class SubProjects extends Component {
     submitForm = (values) => {
+        console.log('values: ', values);
         this.props.createSubProject(this.props.currentProject._id, values);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('SubProjects Updated', values);
@@ -68,9 +69,8 @@ export class SubProjects extends Component {
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 <FieldArray 
-
-                                                name="subProjects" 
-                                                component={SubProject} 
+                                                    name="subProjects" 
+                                                    component={SubProject} 
                                                 />
                                             </div>
                                         </fieldset>

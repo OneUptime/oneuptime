@@ -11,8 +11,8 @@ stages:
   - DeployStaging
   - DeployProduction
   - SmokeTest
-  - Rollback
-
+  - RollbackStaging
+  - RollbackProduction
 #BACKEND
 lint_n_audit_backend:
   stage: BuildAndTest
@@ -216,6 +216,7 @@ deploy_staging_backend:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -262,6 +263,7 @@ deploy_staging_api-docs:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -308,6 +310,7 @@ deploy_staging_home:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -354,6 +357,7 @@ deploy_staging_probe:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -400,6 +404,7 @@ deploy_staging_status-page:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -446,6 +451,7 @@ deploy_staging_admin-dashboard:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -492,6 +498,7 @@ deploy_staging_accounts:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -538,6 +545,7 @@ deploy_staging_dashboard:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: staging
 
@@ -576,6 +584,7 @@ smoke_test_production:
 
 smoke_test_staging:
   stage: SmokeTest
+  allow_failure: true
   script:
     - export HOME_URL=https://staging.fyipe.com
     - export ACCOUNTS_URL=https://staging-accounts.fyipe.com
@@ -589,26 +598,163 @@ smoke_test_staging:
   only:
     refs:
       - master
+      - hotfix-master
   environment:
     name: production
 
-## ROLLBACK STAGE
+## STAGING ROLLBACK
+staging_rollback_dashboard:
+  stage: RollbackStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback dashboard
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/dashboard
+  only:
+    refs:
+      - master
+
+  environment:
+    name: production
+
+staging_rollback_accounts:
+  stage: RollbackStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback accounts 
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/accounts
+  only:
+    refs:
+      - master
+  environment:
+    name: production
+
+staging_rollback_backend:
+  stage: RollbackStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback backend
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
+  only:
+    refs:
+      - master
+  environment:
+    name: production
+
+staging_rollback_home:
+  stage: RollbackStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback home
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
+  only:
+    refs:
+      - master
+  environment:
+    name: production
+
+staging_rollback_status-page:
+  stage: RollbackStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback status-page
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/status-page
+  only:
+    refs:
+      - master
+  environment:
+    name: production
+
+staging_rollback_api-docs:
+  stage: RollbackStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback api-docs
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/api-docs
+  only:
+    refs:
+      - master
+  environment:
+    name: production
+
+staging_rollback_admin-dashboard:
+  stage: RollbackStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback admin-dashboard
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/admin-dashboard
+  only:
+    refs:
+      - master
+  environment:
+    name: production
+
+staging_rollback_probe:
+  stage: RollbackStaging
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback probe
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
+  only:
+    refs:
+      - master
+  environment:
+    name: production
+
+## PRODUCTION ROLLBACK
 production_rollback:
-  stage: Rollback
+  stage: RollbackProduction
   script:
     - echo "No rollback implemented"
   only:
     refs:
       - release
-  environment:
-    name: production
-
-staging_rollback:
-  stage: Rollback
-  script:
-    - echo "No rollback implemented"
-  only:
-    refs:
-      - master
   environment:
     name: production

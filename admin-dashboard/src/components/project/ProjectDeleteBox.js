@@ -6,11 +6,11 @@ import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { deleteUser } from '../../actions/user';
-import UserDeleteModal from './UserDeleteModal';
+import { deleteProject } from '../../actions/project';
+import ProjectDeleteModal from './ProjectDeleteModal';
 import { openModal, closeModal } from '../../actions/modal';
 
-export class UserDeleteBox extends Component {
+export class ProjectDeleteBox extends Component {
 
     constructor(props) {
         super(props);
@@ -19,22 +19,21 @@ export class UserDeleteBox extends Component {
     }
 
     handleClick = () => {
-        const { deleteUser, userId } = this.props;
-        const { deleteModalId } = this.state
+        const { deleteProject, projectId } = this.props;
         var thisObj = this;
+        const { deleteModalId } = this.state
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {
-               return deleteUser(userId)
+               return deleteProject(projectId)
                 .then(() =>{
                 if (window.location.href.indexOf('localhost') <= -1) {
-                    thisObj.context.mixpanel.track('User Deleted');
+                    thisObj.context.mixpanel.track('Project Deleted');
                 }
             })
             },
-            content: UserDeleteModal
+            content: ProjectDeleteModal
         })
-
     }
 
     handleKeyBoard = (e) => {
@@ -58,11 +57,13 @@ export class UserDeleteBox extends Component {
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        Delete This User
+                                        Delete This Project
                                     </span>
                                 </span>
                                 <p>
-                                    <span>Click the button to delete this user.</span>
+                                    <span>
+                                        Click the button to delete this project.
+                                    </span>
                                 </p>
                             </div>
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--0 Padding-vertical--12">
@@ -86,32 +87,33 @@ export class UserDeleteBox extends Component {
     }
 }
 
-UserDeleteBox.displayName = 'UserDeleteBox'
+ProjectDeleteBox.displayName = 'ProjectDeleteBox'
 
 const mapDispatchToProps = dispatch => (
-    bindActionCreators({ deleteUser, openModal, closeModal }, dispatch)
+    bindActionCreators({ deleteProject, openModal, closeModal }, dispatch)
 )
 
-const mapStateToProps = (state) => {
+const mapStateToProps = (state, props) => {
+    const project = state.project.projects.projects.find(project => project._id === props.projectId);
     return {
-        isRequesting: state.user && state.user.deleteUser && state.user.deleteUser.requesting,
+        project,
+        isRequesting: state.project && state.project.deleteProject && state.project.deleteProject.requesting,
     }
 }
 
-UserDeleteBox.propTypes = {
+ProjectDeleteBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    history: PropTypes.object.isRequired,
-    userId: PropTypes.oneOfType([
+    projectId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
     ]),
-    deleteUser: PropTypes.func.isRequired,
+    deleteProject: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
 }
 
-UserDeleteBox.contextTypes = {
+ProjectDeleteBox.contextTypes = {
     mixpanel: PropTypes.object.isRequired
 };
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(UserDeleteBox));
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(ProjectDeleteBox));

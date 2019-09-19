@@ -42,11 +42,9 @@ const IncidentProjectBox = (props) => (
                     <FormLoader />
                 </ShouldRender>
                 </button>
-
-
+                </div>
+             </div>
             </div>
-            </div>
-        </div>
         </div>
         <IncidentList incidents={props.subProjectIncident} prevClicked={props.prevClicked} nextClicked={props.nextClicked} />
     </div>

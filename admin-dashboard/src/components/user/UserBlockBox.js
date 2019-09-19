@@ -6,33 +6,33 @@ import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { deleteUser } from '../../actions/user';
-import UserDeleteModal from './UserDeleteModal';
+import { blockUser } from '../../actions/user';
+import UserBlockModal from './UserBlockModal';
 import { openModal, closeModal } from '../../actions/modal';
 
-export class UserDeleteBox extends Component {
+export class UserBlockBox extends Component {
 
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { deleteModalId: uuid.v4() }
+        this.state = { blockModalId: uuid.v4() }
     }
 
     handleClick = () => {
-        const { deleteUser, userId } = this.props;
-        const { deleteModalId } = this.state
+        const { blockUser, userId } = this.props;
+        const { blockModalId } = this.state
         var thisObj = this;
         this.props.openModal({
-            id: deleteModalId,
+            id: blockModalId,
             onConfirm: () => {
-               return deleteUser(userId)
+               return blockUser(userId)
                 .then(() =>{
                 if (window.location.href.indexOf('localhost') <= -1) {
-                    thisObj.context.mixpanel.track('User Deleted');
+                    thisObj.context.mixpanel.track('User Blocked');
                 }
             })
             },
-            content: UserDeleteModal
+            content: UserBlockModal
         })
 
     }
@@ -40,7 +40,7 @@ export class UserDeleteBox extends Component {
     handleKeyBoard = (e) => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({ id: this.state.deleteModalId })
+                return this.props.closeModal({ id: this.state.blockModalId })
             default:
                 return false;
         }
@@ -58,19 +58,19 @@ export class UserDeleteBox extends Component {
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        Delete This User
+                                        Block This User
                                     </span>
                                 </span>
                                 <p>
-                                    <span>Click the button to delete this user.</span>
+                                    <span>Click the button to block this project.</span>
                                 </p>
                             </div>
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--0 Padding-vertical--12">
                                 <span className="db-SettingsForm-footerMessage"></span>
                                 <div>
-                                    <button id="delete" className="bs-Button bs-Button--red Box-background--red" disabled={isRequesting} onClick={this.handleClick}>
+                                    <button id="block" className="bs-Button bs-Button--red Box-background--red" disabled={isRequesting} onClick={this.handleClick}>
                                         <ShouldRender if={!isRequesting}>
-                                            <span>Delete</span>
+                                            <span>Block</span>
                                         </ShouldRender>
                                         <ShouldRender if={isRequesting}>
                                             <FormLoader />
@@ -86,32 +86,29 @@ export class UserDeleteBox extends Component {
     }
 }
 
-UserDeleteBox.displayName = 'UserDeleteBox'
+UserBlockBox.displayName = 'UserBlockBox'
 
 const mapDispatchToProps = dispatch => (
-    bindActionCreators({ deleteUser, openModal, closeModal }, dispatch)
+    bindActionCreators({ blockUser, openModal, closeModal }, dispatch)
 )
 
 const mapStateToProps = (state) => {
     return {
-        isRequesting: state.user && state.user.deleteUser && state.user.deleteUser.requesting,
+        isRequesting: state.user && state.user.blockUser && state.user.blockUser.requesting,
     }
 }
 
-UserDeleteBox.propTypes = {
+UserBlockBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     history: PropTypes.object.isRequired,
-    userId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined])
-    ]),
-    deleteUser: PropTypes.func.isRequired,
+    blockUser: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
+    userId: PropTypes.string.isRequired,
 }
 
-UserDeleteBox.contextTypes = {
+UserBlockBox.contextTypes = {
     mixpanel: PropTypes.object.isRequired
 };
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(UserDeleteBox));
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(UserBlockBox));

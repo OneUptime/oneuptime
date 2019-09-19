@@ -97,9 +97,9 @@ export class MonitorViewHeader extends Component {
                         </button>)
                         )}
                     </div>
-                    <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
+                    <MonitorBarChart monitor={ this.props.monitor } showAll={true} probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
                     </ShouldRender>
-                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]}/> : ''}<br />
+                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart monitor={ this.props.monitor } showAll={true} probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]}/> : ''}<br />
                 </div>
             </div>
         );
