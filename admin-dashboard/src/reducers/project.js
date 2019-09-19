@@ -33,6 +33,11 @@ import {
     ADD_PROJECT_NOTE_REQUEST,
     ADD_PROJECT_NOTE_RESET,
     ADD_PROJECT_NOTE_SUCCESS,
+
+    SEARCH_PROJECTS_REQUEST, 
+    SEARCH_PROJECTS_RESET,
+    SEARCH_PROJECTS_SUCCESS,
+    SEARCH_PROJECTS_FAILURE,
 } from '../constants/project';
 
 const INITIAL_STATE = {
@@ -77,6 +82,11 @@ const INITIAL_STATE = {
     newProjectNote: {
         error: null,
         requesting: false,
+        success: false
+    },
+    searchUsers: {
+        requesting: false,
+        error: null,
         success: false
     }
 };
@@ -422,6 +432,52 @@ export default function project(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...INITIAL_STATE
             });
+
+        // search projects list
+        case SEARCH_PROJECTS_REQUEST:
+
+            return Object.assign({}, state, {
+                searchProjects: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+
+            });
+
+        case SEARCH_PROJECTS_SUCCESS:
+            return Object.assign({}, state, {
+                projects: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    projects: action.payload.data,
+                    count: action.payload.count,
+                    limit: action.payload.limit,
+                    skip: action.payload.skip
+                },
+                searchProjects: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                }
+            });
+
+        case SEARCH_PROJECTS_FAILURE:
+
+            return Object.assign({}, state, {
+                searchProjects: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case SEARCH_PROJECTS_RESET:
+
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+                    });
 
         default: return state;
     }

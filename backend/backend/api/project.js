@@ -678,4 +678,19 @@ router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (r
 
 });
 
+router.post('/projects/search', getUser, isUserMasterAdmin, async function(req, res){
+    const filter = req.body.filter;
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+
+    try{
+        const users = await ProjectService.searchProjects({ parentProjectId: null, deleted: { $ne: null }, name: { $regex: new RegExp(filter), $options: 'i' } }, skip, limit);
+        const count = await ProjectService.countBy({ parentProjectId: null, deleted: { $ne: null }, name: { $regex: new RegExp(filter), $options: 'i' } });
+        
+        return sendListResponse(req, res, users, count);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;

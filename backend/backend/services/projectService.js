@@ -604,6 +604,22 @@ module.exports = {
         })).adminNotes;
         return adminNotes;
     },
+
+    searchProjects: async function(query, skip, limit){
+        var _this = this;
+        let projects = await _this.findBy(query, limit, skip);
+
+        projects = await Promise.all(projects.map(async(project) => {
+            // get both sub-project users and project users
+            let users = await TeamService.getTeamMembersBy({parentProjectId: project._id});
+            if(users.length < 1){
+                users = await TeamService.getTeamMembersBy({_id: project._id});
+            }
+            const projectObj = Object.assign({}, project._doc, { users });
+            return projectObj;
+        }));
+        return projects;
+    },
 };
 
 var ProjectModel = require('../models/project');

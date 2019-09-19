@@ -434,7 +434,7 @@ export function searchUsersError(error) {
 	};
 }
 
-// Calls the search users
+// Calls the search users api
 export function searchUsers(filter, skip, limit) {
 	const values = {
 		filter

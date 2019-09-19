@@ -379,3 +379,65 @@ export function addProjectNote(projectId, values) {
 		return promise;
 	};
 }
+
+//Search Projects
+export function searchProjectsRequest() {
+	return {
+		type: types.SEARCH_PROJECTS_REQUEST,
+	};
+}
+
+export function searchProjectsReset() {
+	return {
+		type: types.SEARCH_PROJECTS_RESET,
+	};
+}
+
+export function searchProjectsSuccess(projects) {
+	return {
+		type: types.SEARCH_PROJECTS_SUCCESS,
+		payload: projects
+	};
+}
+
+export function searchProjectsError(error) {
+	return {
+		type: types.SEARCH_PROJECTS_FAILURE,
+		payload: error
+	};
+}
+
+// Calls the search projects api
+export function searchProjects(filter, skip, limit) {
+	const values = {
+		filter
+	};
+
+	return function (dispatch) {
+		var promise;
+		skip = skip ? parseInt(skip) : 0
+		limit = limit ? parseInt(limit) : 10
+
+		promise = postApi(`project/projects/search?skip=${skip}&limit=${limit}`, values);
+		
+		dispatch(searchProjectsRequest());
+		promise.then(function (response) {
+			const data = response.data;
+			dispatch(searchProjectsSuccess(data));
+
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}else{
+				error = 'Network Error';
+			}
+			dispatch(searchProjectsError(errors(error)));
+		});
+		return promise;
+	};
+}

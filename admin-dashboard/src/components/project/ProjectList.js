@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -21,12 +21,11 @@ export class ProjectList extends Component {
         let canNext = (this.props.projects && this.props.projects.count) && (this.props.projects.count > (this.props.projects.skip + this.props.projects.limit)) ? true : false;
         let canPrev = (this.props.projects && this.props.projects.skip <= 0) ? false : true;
 
-        if (this.props.projects && (this.props.projects.requesting || !this.props.projects.projects)) {
+        if (this.props.projects && (this.props.requesting || !this.props.projects.projects)) {
             canNext = false;
             canPrev = false;
         }
-
-        return (
+        return(
             <div>
                 <table className="Table">
                     <thead className="Table-body">
@@ -55,7 +54,21 @@ export class ProjectList extends Component {
                         </tr>
                     </thead>
                     <tbody className="Table-body">
-                        {
+                        { this.props.requesting ?
+                            <Fragment> 
+                                <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink" >
+                                    <td colSpan={7} className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                        <a className="db-ListViewItem-link" >
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <div className="Box-root"><ListLoader /></div>
+                                                </span>
+                                            </div>
+                                        </a>
+                                    </td>
+                                </tr> 
+                            </Fragment>
+                        :
                             this.props.projects && this.props.projects.projects && this.props.projects.projects.length > 0 ? (
                                 this.props.projects.projects.map((project, i) => (
                                         <tr key={project._id} className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink" onClick={() => { history.push('/projects/' + project._id) }} >
@@ -140,10 +153,8 @@ export class ProjectList extends Component {
 
                 </table>
 
-                { this.props.projects && this.props.projects.requesting ? <ListLoader /> : null}
-
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                    {this.props.projects && (!this.props.projects.projects || !this.props.projects.projects.length) && !this.props.projects.requesting && !this.props.projects.error ? 'We don\'t have any projects yet' : null}
+                    {this.props.projects && (!this.props.projects.projects || !this.props.projects.projects.length) && !this.props.requesting && !this.props.projects.error ? 'We don\'t have any projects yet' : null}
                     {this.props.projects && this.props.projects.error ? this.props.projects.error : null}
                 </div>
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
