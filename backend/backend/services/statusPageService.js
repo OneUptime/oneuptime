@@ -163,7 +163,7 @@ module.exports = {
             }
         } else {
             try{
-                var oldStatusPage = await _this.findOneBy({ _id: data._id });
+                var oldStatusPage = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
             }catch(error){
                 ErrorService.log('StatusPageService.findOneBy', error);
                 throw error;
@@ -579,6 +579,36 @@ module.exports = {
         }
         return 'Status Page(s) Removed Successfully!';
     },
+    restoreBy: async function (query){
+        const _this = this;
+        query.deleted = true;
+        let statusPage = await _this.findBy(query);
+        if(statusPage && statusPage.length > 1){
+            const statusPages = await Promise.all(statusPage.map(async (statusPage) => {
+                const statusPageId = statusPage._id;
+                statusPage = await _this.update({_id: statusPageId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await SubscriberService.restoreBy({statusPageId, deleted: true});
+                return statusPage;
+            }));
+            return statusPages;
+        }else{
+            statusPage = statusPage[0];
+            if(statusPage){
+                const statusPageId = statusPage._id;
+                statusPage = await _this.update({_id: statusPage, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await SubscriberService.restoreBy({statusPageId, deleted: true});
+            }
+            return statusPage;
+        }
+    }
 };
 
 var StatusPageModel = require('../models/statusPage');

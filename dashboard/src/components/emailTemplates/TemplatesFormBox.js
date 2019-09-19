@@ -1,8 +1,8 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { Field, reduxForm } from 'redux-form';
+import { bindActionCreators } from 'redux';
 import { Component } from 'react';
-import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import { emailTemplateTitles, emailTemplateDescriptions } from '../basic/EmailTitleList';

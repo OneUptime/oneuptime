@@ -45,6 +45,14 @@ var userSchema = new Schema({
         type: String,
         enum: ['master-admin']
     },
+    isBlocked: {
+        type: Boolean,
+        default: false
+    },
+    adminNotes: [{
+        note: { type: String },
+        createdAt: { type: Date }
+    }],
 
     deleted: { type: Boolean, default: false},
     

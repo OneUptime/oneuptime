@@ -29,16 +29,6 @@ var token, userId, projectId, subProjectId, incidentId, alertId, monitorId, moni
 
 describe('Alert API', function () {
 
-    // afterAll(function (done) {
-    //     try {
-    //         done();
-    //         process.exit();
-    //     } catch (e) {
-    //         console.error(e);
-    //     }
-    // });
-
-
     describe('Alert API without subprojects', function () {
         this.timeout(30000);
 
@@ -160,7 +150,7 @@ describe('Alert API', function () {
                             request.post(`/team/${subProjectId}`).set('Authorization', authorization).send({
                                 emails: userData.newUser.email,
                                 role: 'Member'
-                            }).end(function () {
+                            }).end(function (err, res) {
                                 done();
                             });
                         });

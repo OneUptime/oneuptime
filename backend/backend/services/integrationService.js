@@ -10,7 +10,7 @@ module.exports = {
 
         if(!query) query = {};
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var integrations = await IntegrationModel.find(query)
                 .sort([['createdAt, -1']])
@@ -59,7 +59,7 @@ module.exports = {
         if(!query){
             query = {};
         }
-        query.deleted = false;
+        if(query.deleted) query.deleted = false;
         try{
             var count = await IntegrationModel.count(query);
         }catch(error){
@@ -73,7 +73,7 @@ module.exports = {
         if(!query){
             query = {};
         }
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var integration = await IntegrationModel.findOneAndUpdate(query, {
                 $set:{
@@ -93,7 +93,7 @@ module.exports = {
 
         if(!query) query = {};
 
-        query.deleted = false;
+        if(query.deleted) query.deleted = false;
 
         try{
             var integration = await IntegrationModel.findOne(query)
@@ -121,7 +121,7 @@ module.exports = {
             }
         }else{
             try{
-                var integration = await _this.findOneBy({_id: data._id});
+                var integration = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
             }catch(error){
                 ErrorService.log('IntegrationService.findOneBy', error);
                 throw error;
@@ -167,6 +167,36 @@ module.exports = {
         return integration;
     },
 
+    restoreBy: async function(query){
+        const _this = this;
+        query.deleted = true;
+        let integration = await _this.findBy(query);
+        if(integration && integration.length > 1){
+            const integrations = await Promise.all(integration.map(async (integration) => {
+                const integrationId = integration._id;
+                integration = await _this.update({
+                    _id: integrationId,
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                return integration;
+            }));
+            return integrations;
+        }else{
+            integration = integration[0];
+            if(integration){
+                const integrationId = integration._id;
+                integration = await _this.update({
+                    _id: integrationId,
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+            }
+            return integration;
+        }
+    }
 };
 var IntegrationModel = require('../models/integration');
 var ErrorService = require('./errorService');

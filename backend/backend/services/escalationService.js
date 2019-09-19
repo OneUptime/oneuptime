@@ -10,7 +10,7 @@ module.exports = {
 
         if(!query) query = {};
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var escalations = await EscalationModel.find(query)
                 .sort([['createdAt', -1]])
@@ -31,7 +31,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var escalation = await EscalationModel.findOne(query)
                 .populate('projectId', 'name')
@@ -106,7 +106,7 @@ module.exports = {
             }
         }else{
             try{
-                var escalation = await _this.findOneBy({_id: data._id});
+                var escalation = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
             }catch(error){
                 ErrorService.log('EscalationService.findOneBy', error);
                 throw error;
@@ -165,6 +165,35 @@ module.exports = {
         }
         return 'Escalation(s) removed successfully';
     },
+
+    restoreBy: async function (query) {
+        const _this = this;
+        query.deleted = true;
+        let escalation = await _this.findBy(query);
+        if(escalation && escalation.length > 1){
+            const escalations = await Promise.all(escalation.map(async (escalation) => {
+                const escalationId = escalation._id;
+                escalation = await _this.update({_id: escalationId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                return escalation;
+            }));
+            return escalations;
+        }else{
+            escalation = escalation[0];
+            if(escalation){
+                const escalationId = escalation._id;
+                escalation = await _this.update({_id: escalationId, deleted: true }, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+            }
+            return escalation;
+        }
+    }
 };
 
 var EscalationModel = require('../models/escalation');

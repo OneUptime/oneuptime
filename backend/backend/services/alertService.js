@@ -42,7 +42,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var alerts = await AlertModel.find(query)
                 .sort([['createdAt', sort]])
@@ -81,7 +81,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var count = await AlertModel.count(query);
         }catch(error){
@@ -90,6 +90,62 @@ module.exports = {
         }
 
         return count;
+    },
+
+    update: async function (data) {
+        var _this = this;
+        if(!data._id){
+            try{
+                var alert = await _this.create(data);
+            }catch(error){
+                ErrorService.log('AlertService.create', error);
+                throw error;
+            }
+            return alert;
+        }else{
+            try{
+                var oldAlert = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
+            }catch(error){
+                ErrorService.log('AlertService.findOneBy', error);
+                throw error;
+            }
+            var projectId = data.projectId || oldAlert.projectId;
+            var monitorId = data.monitorId || oldAlert.monitorId;
+            var userId = data.userId || oldAlert.userId;
+            var incidentId = data.incidentId || oldAlert.incidentId;
+            var alertVia = data.alertVia || oldAlert.alertVia;
+            var alertStatus = data.alertStatus || oldAlert.alertStatus;
+            var deleted = oldAlert.deleted;
+            var deletedById = oldAlert.deletedById;
+            var deletedAt = oldAlert.deletedAt;
+
+            if(data.deleted === false){
+                deleted = false;
+                deletedById = null;
+                deletedAt = null;
+            }
+            try{
+                var updatedAlert = await AlertModel.findByIdAndUpdate(data._id, {
+                    $set: {
+                        projectId,
+                        monitorId,
+                        userId,
+                        incidentId,
+                        alertVia,
+                        alertStatus,
+                        deleted,
+                        deletedById,
+                        deletedAt
+                    }
+                }, {
+                    new: true
+                });
+            }catch(error){
+                ErrorService.log('AlertModel.findByIdAndUpdate', error);
+                throw error;
+            }
+            return updatedAlert;
+        }
     },
 
     deleteBy : async function (query, userId) {
@@ -101,8 +157,9 @@ module.exports = {
         try{
             var alerts = await AlertModel.findOneAndUpdate(query, {
                 $set:{
-                    deleted: true, deletedAt: Date.now(),
-                    deletedById:userId
+                    deleted: true, 
+                    deletedAt: Date.now(),
+                    deletedById: userId
                 }
             },{
                 new: true
@@ -427,6 +484,37 @@ module.exports = {
         }
         return 'Alert(s) removed successfully';
     },
+
+    restoreBy: async function(query){
+        const _this = this;
+        query.deleted = true;
+        let alert = await _this.findBy(query);
+        if(alert && alert.length > 1){
+            const alerts = await Promise.all(alert.map(async (alert) => {
+                const alertId = alert._id;
+                alert = await _this.update({
+                    _id: alertId,
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                return alert;
+            }));
+            return alerts;
+        }else{
+            alert = alert[0];
+            if(alert){
+                const alertId = alert._id;
+                alert = await _this.update({
+                    _id: alertId,
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+            }
+            return alert;
+        }
+    }
 };
 
 let AlertModel = require('../models/alert');

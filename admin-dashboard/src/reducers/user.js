@@ -12,7 +12,32 @@ import {
     DELETE_USER_FAILED,
     DELETE_USER_REQUEST,
     DELETE_USER_RESET,
-    DELETE_USER_SUCCESS
+    DELETE_USER_SUCCESS,
+
+    RESTORE_USER_FAILED,
+    RESTORE_USER_REQUEST,
+    RESTORE_USER_RESET,
+    RESTORE_USER_SUCCESS,
+
+    BLOCK_USER_FAILED,
+    BLOCK_USER_REQUEST,
+    BLOCK_USER_RESET,
+    BLOCK_USER_SUCCESS,
+
+    UNBLOCK_USER_FAILED,
+    UNBLOCK_USER_REQUEST,
+    UNBLOCK_USER_RESET,
+    UNBLOCK_USER_SUCCESS,
+
+    ADD_USER_NOTE_REQUEST, 
+    ADD_USER_NOTE_RESET,
+    ADD_USER_NOTE_SUCCESS,
+    ADD_USER_NOTE_FAILURE,
+
+    SEARCH_USERS_REQUEST, 
+    SEARCH_USERS_RESET,
+    SEARCH_USERS_SUCCESS,
+    SEARCH_USERS_FAILURE,
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -34,6 +59,31 @@ const INITIAL_STATE = {
     deleteUser: {
         error: null,
         requesting: false,
+        success: false
+    },
+    restoreUser: {
+        error: null,
+        requesting: false,
+        success: false
+    },
+    blockUser: {
+        error: null,
+        requesting: false,
+        success: false
+    },
+    unblockUser: {
+        error: null,
+        requesting: false,
+        success: false
+    },
+    newUserNote: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
+    searchUsers: {
+        requesting: false,
+        error: null,
         success: false
     }
 };
@@ -142,10 +192,7 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: state.users.users.map(user => {
-                        user.deleted = user._id === action.payload.userId ? true : user.deleted;
-                        return user;
-                    }),
+                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
                     count: state.users.count,
                     limit: state.users.limit,
                     skip: state.users.skip
@@ -178,6 +225,236 @@ export default function user(state = INITIAL_STATE, action) {
                     error: null,
                 }
             });
+
+        case RESTORE_USER_SUCCESS:
+            return Object.assign({}, state, {
+                restoreUser: {
+                    requesting: false,
+                    success: true,
+                    error: null
+                },
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
+                    count: state.users.count,
+                    limit: state.users.limit,
+                    skip: state.users.skip
+                }
+            });
+
+        case RESTORE_USER_REQUEST:
+            return Object.assign({}, state, {
+                restoreUser: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case RESTORE_USER_FAILED:
+            return Object.assign({}, state, {
+                restoreUser: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case RESTORE_USER_RESET:
+            return Object.assign({}, state, {
+                restoreUser: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                }
+            });
+
+        case BLOCK_USER_SUCCESS:
+            return Object.assign({}, state, {
+                blockUser: {
+                    requesting: false,
+                    success: true,
+                    error: null
+                },
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
+                    count: state.users.count,
+                    limit: state.users.limit,
+                    skip: state.users.skip
+                }
+            });
+    
+        case BLOCK_USER_REQUEST:
+            return Object.assign({}, state, {
+                blockUser: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case BLOCK_USER_FAILED:
+            return Object.assign({}, state, {
+                blockUser: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case BLOCK_USER_RESET:
+            return Object.assign({}, state, {
+                blockUser: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                }
+            });
+
+        case UNBLOCK_USER_SUCCESS:
+            return Object.assign({}, state, {
+                unblockUser: {
+                    requesting: false,
+                    success: true,
+                    error: null
+                },
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
+                    count: state.users.count,
+                    limit: state.users.limit,
+                    skip: state.users.skip
+                }
+            });
+
+        case UNBLOCK_USER_REQUEST:
+            return Object.assign({}, state, {
+                unblockUser: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case UNBLOCK_USER_FAILED:
+            return Object.assign({}, state, {
+                unblockUser: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case UNBLOCK_USER_RESET:
+            return Object.assign({}, state, {
+                unblockUser: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                }
+            });
+            // add user admin notes
+        case ADD_USER_NOTE_REQUEST:
+
+            return Object.assign({}, state, {
+                newUserNote: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+
+            });
+
+        case ADD_USER_NOTE_SUCCESS:
+            return Object.assign({}, state, {
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: state.users.users.map(user=> {
+                        user.adminNotes = user._id === action.payload.projectId ? action.payload.notes : user.adminNotes;
+                        return user;
+                    }),
+                    count: state.users.count,
+                    limit: state.users.limit,
+                    skip: state.users.skip
+                },
+                newUserNote:{
+                    requesting: false,
+                    error: null,
+                    success: true
+                }
+            });
+
+        case ADD_USER_NOTE_FAILURE:
+
+            return Object.assign({}, state, {
+                newUserNote: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case ADD_USER_NOTE_RESET:
+
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
+
+        // search users list
+        case SEARCH_USERS_REQUEST:
+
+            return Object.assign({}, state, {
+                searchUsers: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+
+            });
+
+        case SEARCH_USERS_SUCCESS:
+            return Object.assign({}, state, {
+                users: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    users: action.payload.data,
+                    count: action.payload.count,
+                    limit: action.payload.limit,
+                    skip: action.payload.skip
+                },
+                searchUsers: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                }
+            });
+
+        case SEARCH_USERS_FAILURE:
+
+            return Object.assign({}, state, {
+                searchUsers: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case SEARCH_USERS_RESET:
+
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
+
 
         default: return state;
     }
