@@ -1,16 +1,12 @@
 # Pull base image nodejs image.
-FROM node:boron
-
-#Maintainer.
-MAINTAINER Rex Raphael <rex.raphael@outlook.com>
-
+FROM node:10
 
 RUN mkdir -p /usr/src/app
 
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY package.json /usr/src/app/
+COPY package*.json /usr/src/app/
 RUN npm ci
 
 # Bundle app source
