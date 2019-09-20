@@ -23,31 +23,31 @@ then
 fi
 
 cd accounts
-npm install
+npm ci
 cd ..
 
 cd api-docs
-npm install
+npm ci
 cd ..
 
 cd backend
-npm install
+npm ci
 cd ..
 
 cd dashboard
-npm install
+npm ci
 cd ..
 
 cd home
-npm install
+npm ci
 cd ..
 
 cd status-page
-npm install
+npm ci
 cd ..
 
 cd probe
-npm install
+npm ci
 cd ..
 
 

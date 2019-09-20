@@ -22,7 +22,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY package.json /usr/src/app/
-RUN npm install
+RUN npm ci
 
 
 # Bundle app source

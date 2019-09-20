@@ -295,8 +295,7 @@ module.exports = {
 
         return { investigationNotes, count };
     },
-
-    getMonitorTime: async function (monitorId) {
+    /*getMonitorTime: async function (monitorId) {
         var date = new Date();
         var thisObj = this;
         var time;
@@ -328,8 +327,7 @@ module.exports = {
 
         }
         return time;
-    },
-
+    },*/
     getStatus: async function (query, user) {
         var thisObj = this;
         if (!query) {
@@ -340,7 +338,7 @@ module.exports = {
         try{
             var statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId', 'name')          
+                .populate('projectId', 'name')
                 .populate({
                     path: 'monitorIds',
                     select: 'name data type monitorCategoryId',

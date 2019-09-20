@@ -73,7 +73,7 @@ export function createMonitor(projectId, values) {
         dispatch(createMonitorRequest());
 
         promise.then(function (monitor) {
-            dispatch(createMonitorSuccess(monitor.data));
+            dispatch(createMonitorSuccess(monitor.data && monitor.data.length ? monitor.data[0]: monitor.data));
         }, function (error) {
             if (error && error.response && error.response.data) {
                 error = error.response.data;
@@ -133,7 +133,7 @@ export function editMonitor(projectId, values) {
         dispatch(editMonitorRequest());
 
         promise.then(function (monitor) {
-            dispatch(editMonitorSuccess(monitor.data));
+            dispatch(editMonitorSuccess(monitor.data && monitor.data.length ? monitor.data[0]: monitor.data));
         }, function (error) {
             if (error && error.response && error.response.data) {
                 error = error.response.data;
@@ -469,5 +469,14 @@ export function removeArrayField(val) {
     return function (dispatch) {
         dispatch(change('NewMonitor', `${val}.field3`, false));
         dispatch(autofill('NewMonitor', `${val}.collection`, undefined));
+    };
+}
+
+export function selectedProbe(val) {
+    return function (dispatch) {
+        dispatch({
+            type: types.SELECT_PROBE,
+            payload: val
+        });
     };
 }
