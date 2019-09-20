@@ -14,8 +14,8 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
-        try {
+        if(!query.deleted) query.deleted = false;
+        try{
             var incidents = await IncidentModel.find(query)
                 .limit(limit)
                 .skip(skip)
@@ -108,8 +108,8 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
-        try {
+        if(!query.deleted) query.deleted = false;
+        try{
             var count = await IncidentModel.count(query);
         } catch (error) {
             ErrorService.log('IncidentModel.count', error);
@@ -171,10 +171,10 @@ module.exports = {
                 throw error;
             }
             return incident;
-        } else {
-            try {
-                var oldIncident = await _this.findOneBy({ _id: data._id });
-            } catch (error) {
+        }else{
+            try{
+                var oldIncident = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
+            }catch(error){
                 ErrorService.log('IncidentService.findOneBy', error);
                 throw error;
             }
@@ -199,7 +199,16 @@ module.exports = {
                 notClosedBy = notClosedBy.concat(data.notClosedBy);
             }
             var manuallyCreated = data.manuallyCreated || oldIncident.manuallyCreated || false;
-            try {
+            var deleted = oldIncident.deleted;
+            var deletedById = oldIncident.deletedById;
+            var deletedAt = oldIncident.deletedAt;
+
+            if(data.deleted === false){
+                deleted = false;
+                deletedById = null;
+                deletedAt = null;
+            }
+            try{
                 var updatedIncident = await IncidentModel.findByIdAndUpdate(data._id, {
                     $set: {
                         projectId: projectId,
@@ -219,7 +228,10 @@ module.exports = {
                         resolvedByZapier: resolvedByZapier,
                         createdByZapier: createdByZapier,
                         incidentType,
-                        probes
+                        probes,
+                        deleted,
+                        deletedById,
+                        deletedAt
                     }
                 }, { new: true });
             } catch (error) {
@@ -559,97 +571,7 @@ module.exports = {
             }
         }
     },
-    /*
-        _mapIncidentsWithUsersAndMonitors: async function (incidents) {
-            if (incidents.length == 0)
-                return [];
-            else {
-                try {
-                    var project = await ProjectService.findOneBy({ _id: incidents[0].projectId });
-                } catch (error) {
-                    ErrorService.log('ProjectService.findOneBy', error);
-                    throw error;
-                }
-                let userIds = [];
-                project.users.map((user) => {
-                    userIds.push(user.userId);
-                    return user;
-                });
-                try {
-                    var users = UserService.findBy({
-                        '_id': {
-                            $in: userIds
-                        }
-                    });
-                } catch (error) {
-                    ErrorService.log('UserService.findBy', error);
-                    throw error;
-                }
-                if (users.length > 0) {
-                    try {
-                        var monitors = await MonitorService.findBy({ projectId: incidents[0].projectId });
-                    } catch (error) {
-                        ErrorService.log('MonitorService.findBy', error);
-                        throw error;
-                    }
-                    if (monitors.length > 0) {
-                        incidents = incidents.map((incident) => {
     
-                            //map incident to plain object
-                            if (incident) {
-                                incident = incident._doc;
-                            }
-    
-                            if (incident.acknowledgedBy) {
-                                for (let i = 0; i < users.length; i++) {
-                                    if (users[i]._id.toString() === incident.acknowledgedBy) {
-                                        incident.acknowledgedBy = users[i];
-                                    }
-                                }
-                            }
-                            if (incident.resolvedBy) {
-                                for (let i = 0; i < users.length; i++) {
-                                    if (users[i]._id.toString() === incident.resolvedBy) {
-                                        incident.resolvedBy = users[i];
-                                    }
-                                }
-                            }
-                            if (incident.createdById) {
-                                for (let i = 0; i < users.length; i++) {
-                                    if (users[i]._id.toString() === incident.createdById) {
-                                        incident.createdById = users[i];
-                                    }
-                                }
-                            }
-                            if (incident.monitorId) {
-                                for (let i = 0; i < monitors.length; i++) {
-                                    if (monitors[i]._id.toString() === incident.monitorId) {
-                                        incident.monitor = monitors[i];
-                                    }
-                                }
-                            }
-    
-                            return incident;
-    
-                        });
-    
-                        return incidents;
-                    } else {
-                        let error = new Error('Incident cannot load because there are no monitors for this project');
-                        error.code = 400;
-                        ErrorService.log('IncidentService._mapIncidentsWithUsersAndMonitors', error);
-                        throw error;
-                    }
-    
-                } else {
-                    let error = new Error('Incident cannot load because there are no users in the project');
-                    error.code = 400;
-                    ErrorService.log('IncidentService._mapIncidentsWithUsersAndMonitors', error);
-                    throw error;
-                }
-            }
-        },
-    */
     getMonitorsWithIncidentsBy: async function (query) {
         var thisObj = this;
         var newmonitors = [];
@@ -706,6 +628,37 @@ module.exports = {
         }
         return 'Incident(s) removed successfully!';
     },
+
+    restoreBy: async function(query){
+        const _this = this;
+        query.deleted = true;
+        let incident = await _this.findBy(query);
+        if(incident && incident.length > 1){
+            const incidents = await Promise.all(incident.map(async (incident) => {
+                const incidentId = incident._id;
+                incident = await _this.update({
+                    _id: incidentId,
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                return incident;
+            }));
+            return incidents;
+        }else{
+            incident = incident[0];
+            if(incident){
+                const incidentId = incident._id;
+                incident = await _this.update({
+                    _id: incidentId,
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+            }
+            return incident;
+        }
+    }
 };
 
 var IncidentModel = require('../models/incident');

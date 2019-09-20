@@ -293,7 +293,7 @@ router.post('/forgot-password', async function (req, res) {
 });
 
 // Route
-// Description: reset password function for  user
+// Description: reset password function for user
 // Params:
 // Param 1: req.body-> {password}; req.params-> {token}
 // Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
@@ -649,10 +649,7 @@ router.get('/users', getUser, isUserMasterAdmin, async function(req, res) {
         const count = await UserService.countBy({ _id: { $ne: null }, deleted: { $ne: null }});
         return sendListResponse(req, res, users, count);
     }catch(error){
-        return sendErrorResponse(req, res, {
-            code: 500,
-            message: 'Server Error'
-        });
+        return sendErrorResponse(req, res, error);
     }
 });
 
@@ -663,10 +660,100 @@ router.delete('/:userId', getUser, isUserMasterAdmin, async function(req, res) {
         const user = await UserService.deleteBy({_id: userId}, masterUserId);
         return sendItemResponse(req, res, user);
     }catch(error){
-        return sendErrorResponse(req, res, {
-            code: 500,
-            message: 'Server Error'
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function(req, res){
+    const userId = req.params.userId;
+    try{
+        const user = await UserService.restoreBy({ _id: userId, deleted: true });
+        return sendItemResponse(req, res, user);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function(req, res){
+    const userId = req.params.userId;
+    try{
+        const user = await UserService.update({_id: userId, isBlocked: true});
+        return sendItemResponse(req, res, user);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function (req, res){
+    const userId = req.params.userId;
+    try{
+        const user = await UserService.update({_id: userId, isBlocked: false});
+        return sendItemResponse(req, res, user);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function (req, res){
+    const userId = req.params.userId;
+    if(Array.isArray(req.body)){
+        let data = [];
+        if(req.body.length > 0){
+            for(let val of req.body){
+                if(!val._id){
+                    // Sanitize
+                    if (!val.note) {
+                        return sendErrorResponse( req, res, {
+                            code: 400,
+                            message: 'User note must be present.'
+                        });
+                    }
+        
+                    if (typeof val.note !== 'string') {
+                        return sendErrorResponse( req, res, {
+                            code: 400,
+                            message: 'User note is not in string format.'
+                        });
+                    }
+                }
+                data.push(val);
+            }
+        
+            try{
+                let adminNotes = await UserService.addNotes(userId, data);
+                return sendItemResponse(req, res, adminNotes);
+            }catch(error){
+                return sendErrorResponse(req, res, error);
+            }
+        }else{
+            try{
+                let adminNotes = await UserService.addNotes(userId, data);
+                return sendItemResponse(req, res, adminNotes);
+            }catch(error){
+                return sendErrorResponse(req, res, error);
+            }
+        }
+    }else{
+        return sendErrorResponse( req, res, {
+            code: 400,
+            message: 'Admin notes are expected in array format.'
         });
+    }
+
+});
+
+router.post('/users/search', getUser, isUserMasterAdmin, async function(req, res){
+    const filter = req.body.filter;
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+
+    try{
+        const users = await UserService.searchUsers({ deleted: { $ne: null }, $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }, { email: { $regex: new RegExp(filter), $options: 'i' } }]}, skip, limit);
+        const count = await UserService.countBy({ deleted: { $ne: null }, $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }, { email: { $regex: new RegExp(filter), $options: 'i' } }]});
+        
+        return sendListResponse(req, res, users, count);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
     }
 });
 

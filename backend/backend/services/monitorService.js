@@ -113,7 +113,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
 
         try {
             var monitor = await MonitorModel.findOneAndUpdate(query,
@@ -162,7 +162,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try {
             var monitors = await MonitorModel.find(query)
                 .sort([['createdAt', -1]])
@@ -181,7 +181,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try {
             var monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name');
@@ -198,7 +198,7 @@ module.exports = {
             query = {};
         }
 
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try {
             var count = await MonitorModel.count(query)
                 .populate('project', 'name');
@@ -540,6 +540,78 @@ module.exports = {
         return times;
     },
 
+    addUpTime: async function (monitor) {
+        if (monitor && monitor._doc) {
+            monitor = monitor._doc;
+        }
+        var _this = this;
+        var time = [];
+        var responseTime = 0;
+        try {
+            time = await StatusPageService.getMonitorTime(monitor._id);
+        } catch (error) {
+            ErrorService.log('StatusPageService.getMonitorTime', error);
+            throw error;
+        }
+        try {
+            responseTime = await _this.getResponseTime(monitor._id);
+        } catch (error) {
+            ErrorService.log('MonitorService.getResponseTime', error);
+            throw error;
+        }
+        var uptime = 0;
+        var downtime = 0;
+        var status = 'offline';
+        var uptimePercent = 0;
+
+        time.forEach(el => {
+            uptime += el.upTime;
+            downtime += el.downTime;
+        });
+        if (uptime === 0 && downtime === 0) {
+            uptimePercent = 100;
+        }
+        else {
+            uptimePercent = uptime / (uptime + downtime) * 100;
+        }
+        if (time && time[time.length - 1] && time[time.length - 1].status) {
+            status = time[time.length - 1].status;
+        }
+        let updatedMonitor = Object.assign({}, monitor, { time, responseTime, uptimePercent, status });
+        return updatedMonitor;
+    },
+    restoreBy: async function(query){
+        const _this = this;
+        query.deleted = true;
+        let monitor = await _this.findBy(query);
+        if(monitor && monitor.length > 1){
+            const monitors = await Promise.all(monitor.map(async (monitor) => {
+                const monitorId = monitor._id;
+                monitor = await _this.update({_id: monitorId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await IncidentService.restoreBy({monitorId, deleted: true});
+                await AlertService.restoreBy({monitorId, deleted: true});
+                return monitor;
+            }));
+            return monitors;
+        }else{
+            monitor = monitor[0];
+            if(monitor){
+                const monitorId = monitor._id;
+                monitor = await _this.update({_id: monitorId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await IncidentService.restoreBy({monitorId, deleted: true});
+                await AlertService.restoreBy({monitorId, deleted: true});
+            }
+            return monitor;
+        }
+    }
 };
 
 var MonitorModel = require('../models/monitor');
