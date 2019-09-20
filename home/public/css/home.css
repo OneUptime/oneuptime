@@ -1091,3 +1091,23 @@ main header{
         width: 650px;
     }
 }
+
+#cookie-consent{
+    bottom: 0; 
+    top: auto; 
+    background: #00c2ff; 
+    position: fixed; 
+    width: 100%; 
+    z-index: 500; 
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap
+}
+
+.p-White{
+    color: #fff;
+}
+
+.flex-Box{
+    display: flex;
+}

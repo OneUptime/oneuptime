@@ -217,16 +217,45 @@
 
     </div>
 
-
-
-
+    <div id="cookies-notification">
+        <% include ./cookie-consent %>
+    </div>
     <% include ./footer %>
     <script>
         $(document).ready(function () {
             $(function () {
                 $('[data-toggle="tooltip"]').tooltip()
             })
+            let acceptCookies = getCookie("acceptCookies");
+            if (acceptCookies != "") {
+                $('#cookies-notification').css({ display: 'none' });
+            } else {
+                $('#cookies-notification').css({ display: 'block' });
+            }
         })
+
+        function setCookie(cookieName, cookieValue, expiringDate) {
+            let date = new Date();
+            date.setTime(date.getTime() + (expiringDate * 24 * 60 * 60 * 1000));
+            let expires = "expires="+date.toUTCString();
+            document.cookie = cookieName + "=" + cookieValue + ";" + expires + ";path=/";
+            document.getElementById("cookies-notification").style.display = "none";
+        }
+
+        function getCookie(cookieName) {
+            let name = cookieName + "=";
+            let ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
     </script>
 
     <!--     linkedin code    -->
