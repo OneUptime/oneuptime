@@ -42,9 +42,9 @@ export class IncidentStatus extends Component {
     }
 
     render() {
-        const subProject = this.props.subProjects.filter(subProject => subProject._id === this.props.incident.projectId)[0];
+        const subProject = this.props.subProjects && this.props.subProjects.filter(subProject => subProject._id === this.props.incident.projectId)[0];
         const loggedInUser = User.getUserId();
-        var isUserInProject = this.props.currentProject.users.some(user => user.userId === loggedInUser);
+        var isUserInProject = this.props.currentProject && this.props.currentProject.users.some(user => user.userId === loggedInUser);
         var isUserInSubProject = false;
         if(isUserInProject) isUserInSubProject = true;
         else isUserInSubProject = subProject.users.some(user => user.userId === loggedInUser);

@@ -46,7 +46,7 @@ describe('Status page monitors check', function () {
 
         var monitorRequest = await request.post(`/monitor/${projectId}`)
             .set('Authorization', authorization).send(monitor)
-        monitorId = monitorRequest.body._id;
+        monitorId = monitorRequest.body[0]._id;
         statusPage.projectId = projectId;
         statusPage.monitorIds = [monitorId];
 
@@ -85,7 +85,7 @@ describe('Status page monitors check', function () {
         monitor.name = 'New monitor Second'
         var monitorRequest = await request.post(`/monitor/${projectId}`)
             .set('Authorization', authorization).send(monitor)
-        monitorId = monitorRequest.body._id;
+        monitorId = monitorRequest.body[0]._id;
         statusPage.monitorIds.push(monitorId);
         await request.put(`/statusPage/${projectId}`)
             .set('Authorization', authorization).send({
@@ -107,7 +107,7 @@ describe('Status page monitors check', function () {
         delete monitor.monitorCategoryId;
         var monitorRequest = await request.post(`/monitor/${projectId}`)
             .set('Authorization', authorization).send(monitor)
-        monitorId = monitorRequest.body._id;
+        monitorId = monitorRequest.body[0]._id;
         statusPage.monitorIds.push(monitorId);
         await request.put(`/statusPage/${projectId}`)
             .set('Authorization', authorization).send({

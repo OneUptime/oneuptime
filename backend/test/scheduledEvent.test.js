@@ -57,7 +57,7 @@ describe('Scheduled event API', function () {
                         token = res.body.tokens.jwtAccessToken;
                         var authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-                            monitorId = res.body._id;
+                            monitorId = res.body[0]._id;
                             done();
                         });
                     });
@@ -493,7 +493,7 @@ describe('Scheduled events APIs for status page', function () {
 
         var monitorRequest = await request.post(`/monitor/${projectId}`)
             .set('Authorization', authorization).send(monitor);
-        monitorId = monitorRequest.body._id;
+        monitorId = monitorRequest.body[0]._id;
 
         await request.post(`/scheduledEvent/${projectId}/${monitorId}`)
             .set('Authorization', authorization).send(scheduledEvent);

@@ -4,9 +4,9 @@ var path = require('path');
 var http = require('http').createServer(app);
 var bodyParser = require('body-parser');
 var cors = require('cors');
-var { fork } = require('child_process');
+//var { fork } = require('child_process');
 
-fork('./backend/workers/cronjob.js');
+//fork('./backend/workers/cronjob.js');
 
 var { NODE_ENV } = process.env;
 

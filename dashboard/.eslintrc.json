@@ -17,7 +17,8 @@
     },
 
     "plugins": [
-        "react"
+        "react",
+        "jsx-a11y"
     ],
     "extends": ["eslint:recommended", "plugin:react/recommended"],
 
