@@ -3,13 +3,14 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import MonitorBarChart from './MonitorBarChart';
+import uuid from 'uuid';
 import MonitorTitle from './MonitorTitle';
 import moment from 'moment';
 import { editMonitorSwitch } from '../../actions/monitor';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
-import {selectedProbe} from '../../actions/monitor';
+import { selectedProbe } from '../../actions/monitor';
 
 export class MonitorViewHeader extends Component {
 
@@ -29,7 +30,7 @@ export class MonitorViewHeader extends Component {
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
-            backgroundColor : 'rgb(117, 211, 128)'// "green-status"
+            backgroundColor: 'rgb(117, 211, 128)'// "green-status"
         }
         var yellowBackground = {
             display: 'inline-block',
@@ -37,7 +38,7 @@ export class MonitorViewHeader extends Component {
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
-            backgroundColor : 'rgb(255, 222, 36)'// "yellow-status"
+            backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
         }
         var redBackground = {
             display: 'inline-block',
@@ -45,7 +46,7 @@ export class MonitorViewHeader extends Component {
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
-            backgroundColor : 'rgb(250, 117, 90)'// "red-status"
+            backgroundColor: 'rgb(250, 117, 90)'// "red-status"
         }
         var enddate = new Date();
         var startdate = new Date().setDate(enddate.getDate() - 90);
@@ -64,7 +65,7 @@ export class MonitorViewHeader extends Component {
                 }
                 <div className="Box-root">
                     <div className="db-Trends-header">
-                        <MonitorTitle monitor={ this.props.monitor } />
+                        <MonitorTitle monitor={this.props.monitor} />
                         <div className="db-Trends-controls">
                             <div className="db-Trends-timeControls">
 
@@ -85,21 +86,21 @@ export class MonitorViewHeader extends Component {
                         </div>
                     </div>
                     <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
-                    <div className="btn-group">
-                        {this.props.monitor && this.props.monitor.probes.map((location,index) => (<button
-                            key={`probes-btn${index}`}
-                            id={`probes-btn${index}`}
-                            disabled={false}
-                            onClick={() => this.selectbutton(index)}
-                            className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-                            <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
-                            <span>{location.probeName}</span>
-                        </button>)
-                        )}
-                    </div>
-                    <MonitorBarChart monitor={ this.props.monitor } showAll={true} probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
+                        <div className="btn-group">
+                            {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
+                                key={`probes-btn${index}`}
+                                id={`probes-btn${index}`}
+                                disabled={false}
+                                onClick={() => this.selectbutton(index)}
+                                className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+                                <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
+                                <span>{location.probeName}</span>
+                            </button>)
+                            )}
+                        </div>
+                        <MonitorBarChart key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
                     </ShouldRender>
-                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart monitor={ this.props.monitor } showAll={true} probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]}/> : ''}<br />
+                    {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} /> : ''}<br />
                 </div>
             </div>
         );
@@ -119,14 +120,14 @@ MonitorViewHeader.propTypes = {
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-    { editMonitorSwitch,selectedProbe }, dispatch
+    { editMonitorSwitch, selectedProbe }, dispatch
 )
 
 const mapStateToProps = (state) => {
     return {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,
-        activeProbe : state.monitor.activeProbe,
+        activeProbe: state.monitor.activeProbe,
     };
 }
 

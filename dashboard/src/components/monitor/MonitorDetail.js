@@ -102,7 +102,7 @@ export class MonitorDetail extends Component {
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
-            backgroundColor : 'rgb(117, 211, 128)'// "green-status"
+            backgroundColor: 'rgb(117, 211, 128)'// "green-status"
         }
         var yellowBackground = {
             display: 'inline-block',
@@ -110,7 +110,7 @@ export class MonitorDetail extends Component {
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
-            backgroundColor : 'rgb(255, 222, 36)'// "yellow-status"
+            backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
         }
         var redBackground = {
             display: 'inline-block',
@@ -118,7 +118,7 @@ export class MonitorDetail extends Component {
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
-            backgroundColor : 'rgb(250, 117, 90)'// "red-status"
+            backgroundColor: 'rgb(250, 117, 90)'// "red-status"
         }
         let { createIncidentModalId, deleteModalId } = this.state;
         let creating = this.props.create ? this.props.create : false;
@@ -209,22 +209,22 @@ export class MonitorDetail extends Component {
                             }
                             <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
 
-                                    <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
-                                        id={`create_incident_${this.props.monitor.name}`}
-                                        onClick={() =>
-                                            this.props.openModal({
-                                                id: createIncidentModalId,
-                                                content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
-                                            })}>
-                                        <ShouldRender if={!creating}>
-                                            <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                <span>Create New Incident</span>
-                                            </span>
-                                        </ShouldRender>
-                                        <ShouldRender if={creating}>
-                                            <FormLoader />
-                                        </ShouldRender>
-                                    </button>
+                            <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
+                                id={`create_incident_${this.props.monitor.name}`}
+                                onClick={() =>
+                                    this.props.openModal({
+                                        id: createIncidentModalId,
+                                        content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
+                                    })}>
+                                <ShouldRender if={!creating}>
+                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                        <span>Create New Incident</span>
+                                    </span>
+                                </ShouldRender>
+                                <ShouldRender if={creating}>
+                                    <FormLoader />
+                                </ShouldRender>
+                            </button>
                             <RenderIfSubProjectAdmin subProjectId={this.props.monitor.projectId._id || this.props.monitor.projectId}>
                                 <button id={`edit_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' disabled={deleting} onClick={this.editMonitor}><span>Edit</span></button>
                                 <button id={`delete_${this.props.monitor.name}`} className={deleting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'} type="button" disabled={deleting}
@@ -247,7 +247,7 @@ export class MonitorDetail extends Component {
                 </div>
                 <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
                     <div className="btn-group">
-                        {this.props.monitor && this.props.monitor.probes.map((location,index) => (<button
+                        {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
                             key={`probes-btn${index}`}
                             id={`probes-btn${index}`}
                             disabled={false}
@@ -258,9 +258,9 @@ export class MonitorDetail extends Component {
                         </button>)
                         )}
                     </div>
-                    <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
-                    </ShouldRender>
-                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart probe={ this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                    <MonitorBarChart key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
+                </ShouldRender>
+                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
 
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
@@ -308,7 +308,7 @@ function mapStateToProps(state) {
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,
         subProject: state.subProject,
-        activeProbe : state.monitor.activeProbe,
+        activeProbe: state.monitor.activeProbe,
     };
 }
 
