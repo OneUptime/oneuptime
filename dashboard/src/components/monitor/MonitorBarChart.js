@@ -67,13 +67,17 @@ export function MonitorBarChart(props) {
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
 
-    let monitorType = props.monitor.type;
-    let checkLogs = props.monitor.logs && props.monitor.logs.length > 0;
-    let data = props.monitor.logs;
+    let { startDate, endDate } = props;
+
+    let range = moment.range(new Date(startDate), new Date(endDate));
+    let data = props.monitor.logs && props.monitor.logs.length > 0 ? props.monitor.logs.filter(log => range.contains(new Date(log.createdAt))) : [];
+    let checkLogs = data && data.length > 0;
 
     let responseTime = props.probe && props.probe.responseTime ? props.probe.responseTime : '0';
     let monitorStatus = props.probe && props.probe.status ? toPascalCase(props.probe.status) : 'Online';
     let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
+
+    let monitorType = props.monitor.type;
 
     let monitorInfo = monitorType === 'server-monitor' ? (
         <Fragment>
@@ -85,7 +89,7 @@ export function MonitorBarChart(props) {
                                 <div className="db-Trend-title"><span className="chart-font">Current CPU Load</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatDecimal(props.monitor.logs[0].data.load.currentload, 2) : 0} %</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatDecimal(data[0].data.load.currentload, 2) : 0} %</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -93,7 +97,7 @@ export function MonitorBarChart(props) {
                                 <div className="db-Trend-title"><span className="chart-font">Average CPU Load</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatDecimal(props.monitor.logs[0].data.load.avgload, 2) : 0} %</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatDecimal(data[0].data.load.avgload, 2) : 0} %</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -101,7 +105,7 @@ export function MonitorBarChart(props) {
                                 <div className="db-Trend-title"><span className="chart-font">CPU Cores</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? props.monitor.logs[0].data.load.cpus.length : 0}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.load.cpus.length : 0}</span></span></div>
                             </div>
                         </div>
                     </div>
@@ -118,7 +122,7 @@ export function MonitorBarChart(props) {
                                 <div className="db-Trend-title"><span className="chart-font">Memory Used</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(props.monitor.logs[0].data.memory.used) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.memory.used) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -126,7 +130,7 @@ export function MonitorBarChart(props) {
                                 <div className="db-Trend-title"><span className="chart-font">Memory Available</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(props.monitor.logs[0].data.memory.total) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.memory.total) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -134,7 +138,7 @@ export function MonitorBarChart(props) {
                                 <div className="db-Trend-title"><span className="chart-font">Swap Used</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(props.monitor.logs[0].data.memory.swapused) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.memory.swapused) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                     </div>
@@ -151,7 +155,7 @@ export function MonitorBarChart(props) {
                                 <div className="db-Trend-title"><span className="chart-font">Storage Used</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(props.monitor.logs[0].data.disk[0].used) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.disk[0].used) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -159,7 +163,7 @@ export function MonitorBarChart(props) {
                                 <div className="db-Trend-title"><span className="chart-font">Storage Available</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(props.monitor.logs[0].data.disk[0].size) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.disk[0].size) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -167,7 +171,7 @@ export function MonitorBarChart(props) {
                                 <div className="db-Trend-title"><span className="chart-font">Storage Usage</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? props.monitor.logs[0].data.disk[0].use : 0} %</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.disk[0].use : 0} %</span></span></div>
                             </div>
                         </div>
                     </div>
@@ -185,7 +189,7 @@ export function MonitorBarChart(props) {
                                     <div className="db-Trend-title"><span className="chart-font">Main Temperature</span></div>
                                 </div>
                                 <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? props.monitor.logs[0].data.temperature.main : 0} &deg;C</span></span></div>
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.temperature.main : 0} &deg;C</span></span></div>
                                 </div>
                             </div>
                             <div className="db-Trend-colInformation">
@@ -193,7 +197,7 @@ export function MonitorBarChart(props) {
                                     <div className="db-Trend-title"><span className="chart-font">Max. Temperature</span></div>
                                 </div>
                                 <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? props.monitor.logs[0].data.temperature.max : 0} &deg;C</span></span></div>
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.temperature.max : 0} &deg;C</span></span></div>
                                 </div>
                             </div>
                             <div className="db-Trend-colInformation"></div>
@@ -246,7 +250,7 @@ export function MonitorBarChart(props) {
         </div>
     </div>;
 
-    return chart;  
+    return chart;
 }
 
 MonitorBarChart.displayName = 'MonitorBarChart'
