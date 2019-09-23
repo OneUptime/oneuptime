@@ -4,6 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
 import uuid from 'uuid';
+import DateRangeWrapper from './DateRangeWrapper';
 import { editMonitorSwitch, selectedProbe, deleteMonitor, fetchMonitorsIncidents } from '../../actions/monitor';
 import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
@@ -19,7 +20,8 @@ import Badge from '../common/Badge';
 import { history } from '../../store';
 import MonitorBarChart from './MonitorBarChart';
 
-
+let endDate = moment().format('YYYY-MM-DD');
+let startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
 
 export class MonitorDetail extends Component {
 
@@ -28,14 +30,25 @@ export class MonitorDetail extends Component {
         this.props = props;
         this.state = {
             deleteModalId: uuid.v4(),
-            createIncidentModalId: uuid.v4()
+            createIncidentModalId: uuid.v4(),
+            monitorStart: startDate,
+            monitorEnd: endDate
         }
         this.deleteMonitor = this.deleteMonitor.bind(this);
         this.selectbutton = this.selectbutton.bind(this);
     }
+
+    handleMonitorChange = (startDate, endDate) => {
+        this.setState({
+            monitorStart: startDate,
+            monitorEnd: endDate
+        });
+    }
+
     selectbutton = (data) => {
         this.props.selectedProbe(data);
     }
+
     prevClicked = () => {
         this.props.fetchMonitorsIncidents(this.props.monitor.projectId._id, this.props.monitor._id, (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) - 3) : 3), 3);
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -131,8 +144,6 @@ export class MonitorDetail extends Component {
         }
         monitor.success = this.props.monitorState.monitorsList.success;
         monitor.requesting = this.props.monitorState.monitorsList.requesting;
-        var enddate = new Date();
-        var startdate = new Date().setDate(enddate.getDate() - 90);
 
         let deleting = false;
         if (this.props.monitorState && this.props.monitorState.deleteMonitor && this.props.monitorState.deleteMonitor === this.props.monitor._id) {
@@ -181,15 +192,11 @@ export class MonitorDetail extends Component {
                     </div>
                     <div className="db-Trends-controls">
                         <div className="db-Trends-timeControls">
-
-                            <div className="db-DateRangeInputWithComparison">
-                                <div className="db-DateRangeInput bs-Control" style={{ cursor: 'default' }}>
-                                    <div className="db-DateRangeInput-input" role="button" tabIndex="0" style={{ cursor: 'default' }}>
-                                        <span className="db-DateRangeInput-start" style={{ padding: '3px' }}>{moment(startdate).format('ll')}</span>
-                                        <span className="db-DateRangeInput-input-arrow" style={{ padding: '3px' }}></span>
-                                        <span className="db-DateRangeInput-end" style={{ padding: '3px' }}>{moment(enddate).format('ll')}</span></div>
-                                </div>
-                            </div>
+                            <DateRangeWrapper
+                                selected={this.state.monitorStart}
+                                onChange={this.handleMonitorChange}
+                                dateRange={30}
+                            />
                         </div>
                         <div>
                             {this.props.monitor.type === 'device' &&
@@ -258,9 +265,9 @@ export class MonitorDetail extends Component {
                         </button>)
                         )}
                     </div>
-                    <MonitorBarChart key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
+                    <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
                 </ShouldRender>
-                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
 
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">

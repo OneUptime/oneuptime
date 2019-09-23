@@ -50760,6 +50760,11 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 
 }
 
+.DateRangePicker-left {
+  left: 0;
+  right: auto !important;
+}
+
 .DateRangePicker {
   display: inline-block;
   margin-bottom: 10px;
@@ -50767,7 +50772,7 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   position: absolute;
   background: white;
   right: 0px;
-  z-index: 1;
+  z-index: 10000000;
   -webkit-user-select: none;
      -moz-user-select: none;
       -ms-user-select: none;
