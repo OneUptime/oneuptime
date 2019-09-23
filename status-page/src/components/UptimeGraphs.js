@@ -56,12 +56,8 @@ class UptimeGraphs extends Component {
     var currentMonitorId  = this.props.monitor._id;
     var monitorData = monitorState && monitorState[0].monitors.filter(monitor => monitor._id === currentMonitorId);
     var probe = monitorData[0].probes.filter(probe => probe._id === activeProbe);
-    console.log(currentMonitorId, probe);
     var { timeBlock, uptimePercent } = probe && probe.probeStatus ? calculateTime(probe.probeStatus) : calculateTime([]);
 
-
-
-    let responseTime = probe && probe.responseTime ? probe.responseTime : '0';
     let monitorStatus = probe && probe.status ? toPascalCase(probe.status) : 'Online';
     let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
@@ -69,8 +65,7 @@ class UptimeGraphs extends Component {
     const upDays = timeBlock.length;
     let status = {};
 
-
-    if (this.props.monitor && this.props.monitor.stat && this.props.monitor.stat === 'offline') {
+    if (monitorStatus === 'offline') {
       status = {
         display: 'inline-block',
         borderRadius: '2px',
@@ -128,7 +123,9 @@ function mapStateToProps(state) {
 
 UptimeGraphs.propTypes = {
   monitor: PropTypes.object,
-  id: PropTypes.string
+  id: PropTypes.string,
+  activeProbe: PropTypes.string,
+  monitorState: PropTypes.object
 }
 
 export default connect(mapStateToProps)(UptimeGraphs);

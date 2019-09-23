@@ -304,6 +304,9 @@ Main.propTypes = {
 	status: PropTypes.object,
 	getStatusPage: PropTypes.func,
 	login: PropTypes.object.isRequired,
+	monitorState: PropTypes.object,
+	selectedProbe: PropTypes.func,
+	activeProbe: PropTypes.string
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);
