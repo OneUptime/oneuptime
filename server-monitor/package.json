@@ -7,18 +7,23 @@
     "fyipe": "index.js"
   },
   "scripts": {
-    "start": "node index -p 5d64d59cae46131619708309 -a 'b02798c0-c898-11e9-9f14-4963dc67e2ab'",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "pretest": "eslint --fix --ignore-path .gitignore .",
+    "start": "node index",
+    "dev": "NODE_ENV=development nodemon index",
+    "test": "NODE_ENV=development mocha --exit",
+    "audit": "npm-audit-ci-wrapper --threshold=high",
+    "lint": "eslint ."
   },
   "author": "@twumm",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.18.0",
+    "axios": "^0.18.1",
     "commander": "^2.19.0",
     "cron": "^1.6.0",
     "eslint": "^5.10.0",
     "inquirer": "^6.2.1",
     "node-cron": "^2.0.3",
+    "npm-audit-ci-wrapper": "^2.3.0",
     "os-utils": "0.0.14",
     "q": "^1.5.1",
     "systeminformation": "^4.14.8"
