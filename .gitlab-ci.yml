@@ -19,7 +19,7 @@ lint_n_audit_backend:
   script:
     - sudo apt-get install nodejs -y
     - cd backend
-    - npm ci 
+    - npm ci
     - npm run lint
     # - npm run audit
     - cd ..
@@ -39,7 +39,7 @@ lint_n_audit_dashboard:
   script:
     - sudo apt-get install nodejs -y
     - cd dashboard
-    - npm ci 
+    - npm ci
     - npm run lint
     # - npm run audit
     - cd ..
@@ -68,7 +68,7 @@ lint_n_audit_zapier:
   script:
     - sudo apt-get install nodejs -y
     - cd zapier
-    - npm ci 
+    - npm ci
     - npm run lint
     - npm run audit
     - cd ..
@@ -84,7 +84,7 @@ lint_n_audit_statuspage:
   script:
     - sudo apt-get install nodejs -y
     - cd status-page
-    - npm ci 
+    - npm ci
     - npm run lint
     - npm run audit
     - cd ..
@@ -116,7 +116,7 @@ lint_n_audit_accounts:
   script:
     - sudo apt-get install nodejs -y
     - cd accounts
-    - npm ci 
+    - npm ci
     - npm run lint
     - npm run audit
     - cd ..
@@ -145,7 +145,7 @@ lint_n_audit_home:
   script:
     - sudo apt-get install nodejs -y
     - cd home
-    - npm ci 
+    - npm ci
     - npm run lint
     - npm run audit
     - cd ..
@@ -161,7 +161,7 @@ lint_n_audit_probe:
   script:
     - sudo apt-get install nodejs -y
     - cd probe
-    - npm ci 
+    - npm ci
     - npm run lint
     - npm run audit
     - cd ..
@@ -170,6 +170,17 @@ build_n_test_probe:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+
+#BACKEND
+lint_n_audit_server-monitor:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd server-monitor
+    - npm ci
+    - npm run lint
+    - npm run audit
+    - cd ..
 
 ##E2E Stage.
 e2e_test:
@@ -630,7 +641,7 @@ staging_rollback_accounts:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
-    # Rollback accounts 
+    # Rollback accounts
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
