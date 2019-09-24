@@ -10,7 +10,8 @@ import {
     MORE_NOTES_FAILURE,
     STATUSPAGE_NOTES_RESET,
     INDIVIDUAL_NOTES_ENABLE,
-    INDIVIDUAL_NOTES_DISABLE
+    INDIVIDUAL_NOTES_DISABLE,
+    SELECT_PROBE
 } from '../actions/status';
 
 const INITIAL_STATE = {
@@ -25,7 +26,8 @@ const INITIAL_STATE = {
     },
     requestingmore: false,
     individualnote: null,
-    notesmessage: null
+    notesmessage: null,
+    activeProbe: 0
 };
 
 
@@ -136,6 +138,11 @@ export default (state = INITIAL_STATE, action) => {
                 notesmessage: null
             });
 
+        case SELECT_PROBE:
+            return Object.assign({}, state, {
+                activeProbe: action.payload
+            });
+            
         default:
             return state;
     }
