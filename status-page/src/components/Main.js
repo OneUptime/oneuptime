@@ -11,12 +11,13 @@ import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPage, getStatusPageIndividualNote } from '../actions/status';
+import { getStatusPage, getStatusPageIndividualNote, selectedProbe } from '../actions/status';
 import { Redirect } from 'react-router-dom';
 
 class Main extends Component {
 
 	componentDidMount() {
+
 		let projectId;
 		let url;
 
@@ -31,14 +32,17 @@ class Main extends Component {
 			projectId = 'null';
 			url = window.location.host;
 		}
-		this.props.getStatusPage(projectId, url);
+		this.props.getStatusPage(projectId, url).then(() => {
+			const probes  = this.props.monitorState && this.props.monitorState[0].monitors[0].probes;
+			this.selectbutton(probes[0]._id)
+		})
 	}
-	
+
 	groupBy(collection, property) {
 		var i = 0, val, index,
 			values = [], result = [];
 		for (; i < collection.length; i++) {
-			val =  collection[i][property] ? collection[i][property]['name'] :'no-category';
+			val = collection[i][property] ? collection[i][property]['name'] : 'no-category';
 			index = values.indexOf(val);
 			if (index > -1)
 				result[index].push(collection[i]);
@@ -57,32 +61,36 @@ class Main extends Component {
 			let monitorCategoryStyle = {
 				display: 'inline-block',
 				marginBottom: 10,
-				fontSize:10,
+				fontSize: 10,
 				color: '#8898aa',
 				fontWeight: 'Bold'
 			}
 			let monitorCategoryGroupContainerStyle = {
-				marginBottom:40
+				marginBottom: 40
 			}
 			return groupedMonitorData.map((groupedMonitors, i) => {
 				return (
-				<div key={i} style = {monitorCategoryGroupContainerStyle} className="uptime-graph-header">
-					<div id={`monitorCategory${i}`} style={monitorCategoryStyle}>
-						<span>{groupedMonitors[0].monitorCategoryId ? groupedMonitors[0].monitorCategoryId.name.toUpperCase() : 'Uncategorized'.toUpperCase()}</span>
+					<div key={i} style={monitorCategoryGroupContainerStyle} className="uptime-graph-header">
+						<div id={`monitorCategory${i}`} style={monitorCategoryStyle}>
+							<span>{groupedMonitors[0].monitorCategoryId ? groupedMonitors[0].monitorCategoryId.name.toUpperCase() : 'Uncategorized'.toUpperCase()}</span>
+						</div>
+						{groupedMonitors.map((monitor, i) => {
+							return (<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />)
+						})}
 					</div>
-					{groupedMonitors.map((monitor, i) => {
-						return (<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`}/>)
-					})}
-				</div>
 				)
 			})
 		} else {
 			return <NoMonitor />
 		}
 	}
-	render() {
-		const { loginRequired } = this.props.login
 
+	selectbutton = (data) => {
+		this.props.selectedProbe(data);
+	}
+	render() {
+		const { loginRequired } = this.props.login;
+		const probes  = this.props.monitorState && this.props.monitorState[0].monitors[0].probes;
 		const date = new Date();
 		let view = false;
 		let status = '';
@@ -116,6 +124,31 @@ class Main extends Component {
 				faviconurl = '/yellowfavicon.ico';
 			}
 			view = true;
+
+			var greenBackground = {
+				display: 'inline-block',
+				borderRadius: '50%',
+				height: '8px',
+				width: '8px',
+				margin: '0 8px 1px 0',
+				backgroundColor: 'rgb(117, 211, 128)'// "green-status"
+			}
+			var yellowBackground = {
+				display: 'inline-block',
+				borderRadius: '50%',
+				height: '8px',
+				width: '8px',
+				margin: '0 8px 1px 0',
+				backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
+			}
+			var redBackground = {
+				display: 'inline-block',
+				borderRadius: '50%',
+				height: '8px',
+				width: '8px',
+				margin: '0 8px 1px 0',
+				backgroundColor: 'rgb(250, 117, 90)'// "red-status"
+			}
 		}
 
 		return (
@@ -137,11 +170,30 @@ class Main extends Component {
 									</label>
 								</div>
 							</div>
-
+							<div className="btn-group">
+									{probes.map((probe, index) => 
+									(<button
+										onClick={() => this.selectbutton(probe._id)}
+										key={`probes-btn${index}`}
+										id={`probes-btn${index}`}
+										className={this.props.activeProbe === probe._id ? 'icon-container selected' : 'icon-container'}>
+										<span style={probe.status === 'offline' ? redBackground : probe.status === 'degraded' ? yellowBackground : greenBackground}></span>
+										<span>{probe.probeName}</span>
+									</button>)
+									)}
+								</div>
 							<div className="statistics">
 								<div className="inner-gradient"></div>
 								<div className="uptime-graphs box-inner">
-									{isGroupedByMonitorCategory ? this.groupedMonitors() : (this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0 ? this.props.statusData.monitorIds.map((monitor, i) => <UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />) : <NoMonitor />)}
+									{isGroupedByMonitorCategory ?
+										this.groupedMonitors() :
+										(this.props.statusData &&
+											this.props.statusData.monitorIds != undefined &&
+											this.props.statusData.monitorIds.length > 0 ?
+											this.props.statusData.monitorIds
+												.map((monitor, i) =>
+													<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />) :
+											<NoMonitor />)}
 								</div>
 								{this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0 ? <UptimeLegend /> : ''}
 							</div>
@@ -237,11 +289,14 @@ const mapStateToProps = (state) => ({
 	status: state.status,
 	statusData: state.status.statusPage,
 	login: state.login,
+	activeProbe: state.status.activeProbe,
+	monitorState: state.status.statusPage.monitorsData
 });
 
 const mapDispatchToProps = (dispatch) => bindActionCreators({
 	getStatusPage,
 	getStatusPageIndividualNote,
+	selectedProbe
 }, dispatch);
 
 Main.propTypes = {
@@ -249,6 +304,9 @@ Main.propTypes = {
 	status: PropTypes.object,
 	getStatusPage: PropTypes.func,
 	login: PropTypes.object.isRequired,
+	monitorState: PropTypes.object,
+	selectedProbe: PropTypes.func,
+	activeProbe: PropTypes.string
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

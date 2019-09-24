@@ -55,6 +55,7 @@ export const getStatusPage = (statusPageId, url) => {
 			dispatch(statusPageFailure(errors(error)));
 			dispatch(loginError(errors(error)));
 		});
+		return promise;
 	};
 }
 
@@ -221,4 +222,16 @@ export const getMoreNote = (projectId,statusPageId,skip) => {
 			dispatch(moreNoteFailure(errors(error)));
 		});
 	};
+}
+
+
+export const SELECT_PROBE = 'SELECT_PROBE';
+
+export function selectedProbe(val) {
+  return function (dispatch) {
+      dispatch({
+          type: SELECT_PROBE,
+          payload: val
+      });
+  };
 }
