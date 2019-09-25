@@ -1,8 +1,13 @@
 # Fyipe Server Monitor
 
-## For development - this doc will be changed in final version
- - Make a copy of the project.
- - `cd` into the project.
- - Run `node index.js start`.
- - Enter projectId and apiKEY - Get these from your fyipe dashboard.
- - Server will be pinged every minute and the data stored in your project.
+## Installation
+
+- `cd` into your project.
+- Run `npm install fyipe-server-monitor`.
+
+## Usage
+
+- Run `fyipe-server-monitor`.
+- Enter your projectID and apiKey - Get these from your Fyipe Dashboard.
+- Select Server Monitor from list of Server Monitors added on your Fyipe Dashboard.
+- Server will be pinged every minute and the data stored in your project.

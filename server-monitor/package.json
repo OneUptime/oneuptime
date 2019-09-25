@@ -1,6 +1,6 @@
 {
-  "name": "@twumm/fyipe-server-monitor",
-  "version": "0.0.1",
+  "name": "fyipe-server-monitor",
+  "version": "0.0.2",
   "description": "A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.",
   "main": "index.js",
   "bin": {
@@ -14,7 +14,7 @@
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "lint": "eslint ."
   },
-  "author": "@twumm",
+  "author": "HackerBay, Inc.",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.18.1",
