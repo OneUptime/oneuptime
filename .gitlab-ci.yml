@@ -171,7 +171,7 @@ build_n_test_probe:
   script:
     - echo "No test implemented"
 
-#BACKEND
+## SERVER MONITOR
 lint_n_audit_server-monitor:
   stage: BuildAndTest
   script:
@@ -181,6 +181,11 @@ lint_n_audit_server-monitor:
     - npm run lint
     - npm run audit
     - cd ..
+
+build_n_test_server-monitor:
+  stage: BuildAndTest
+  script:
+    - echo "No test implemented"
 
 ##E2E Stage.
 e2e_test:
