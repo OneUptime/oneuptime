@@ -212,7 +212,7 @@ module.exports = {
             throw error;
         }
         if (verificationToken) {
-            var verificationTokenURL = `${FYIPE_BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
+            var verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
             MailService.sendVerifyEmail(verificationTokenURL, user.name, user.email);
         }
         return verificationToken.token;
@@ -708,6 +708,6 @@ var ErrorService = require('./errorService');
 var jwt = require('jsonwebtoken');
 var iplocation = require('iplocation').default;
 var jwtKey = require('../config/keys');
-var { FYIPE_BACKEND_HOST } = process.env;
+var { BACKEND_HOST } = process.env;
 var VerificationTokenModel = require('../models/verificationToken');
 var MailService = require('../services/mailService');

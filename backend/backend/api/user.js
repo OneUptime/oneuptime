@@ -17,7 +17,7 @@ var constants = require('../config/constants.json');
 var { emaildomains } = require('../config/emaildomains');
 var randToken = require('rand-token');
 var VerificationTokenModel = require('../models/verificationToken');
-var { FYIPE_ACCOUNT_HOST } = process.env;
+var { ACCOUNTS_HOST } = process.env;
 var UserModel = require('../models/user');
 var ErrorService = require('../services/errorService');
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
@@ -584,16 +584,16 @@ router.get('/confirmation/:token', async function (req, res) {
     if (req.params && req.params.token) {
         var token = await VerificationTokenModel.findOne({ token: req.params.token });
         if (!token) {
-            return res.redirect(FYIPE_ACCOUNT_HOST+'/user-verify/resend?status=Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq');
+            return res.redirect(ACCOUNTS_HOST+'/user-verify/resend?status=Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq');
         }
         var user = await UserModel.findOne({
             _id: token.userId
         });
         if (!user) {
-            return res.redirect(FYIPE_ACCOUNT_HOST+'/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk');
+            return res.redirect(ACCOUNTS_HOST+'/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk');
         }
         if (user.isVerified) {
-            return res.redirect(FYIPE_ACCOUNT_HOST+'/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC');
+            return res.redirect(ACCOUNTS_HOST+'/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC');
         }
         try{
             await UserModel.findByIdAndUpdate(user._id, {
@@ -601,14 +601,14 @@ router.get('/confirmation/:token', async function (req, res) {
                     isVerified:true
                 }
             });
-            return res.redirect(FYIPE_ACCOUNT_HOST+'/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP');
+            return res.redirect(ACCOUNTS_HOST+'/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP');
         } catch (error){
             ErrorService.log('user.confirm', error);
             throw error;
         }
     }
     else {
-        return res.redirect(FYIPE_ACCOUNT_HOST+'/user-verify/resend?status=eG5aFRDeZXgOkjEfdhOYbFb2lA3Z0OJm');
+        return res.redirect(ACCOUNTS_HOST+'/user-verify/resend?status=eG5aFRDeZXgOkjEfdhOYbFb2lA3Z0OJm');
     }
 });
 
