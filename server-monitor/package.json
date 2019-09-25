@@ -4,12 +4,12 @@
   "description": "A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.",
   "main": "index.js",
   "bin": {
-    "fyipe": "index.js"
+    "fyipe-server-monitor": "index.js"
   },
   "scripts": {
     "pretest": "eslint --fix --ignore-path .gitignore .",
-    "start": "node index",
-    "dev": "NODE_ENV=development nodemon index",
+    "start": "node index.js",
+    "dev": "NODE_ENV=development nodemon index.js",
     "test": "NODE_ENV=development mocha --exit",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "lint": "eslint ."

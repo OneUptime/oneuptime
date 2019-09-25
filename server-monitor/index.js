@@ -2,7 +2,7 @@
 
 const program = require('commander');
 const { prompt } = require('inquirer');
-const { authenticateUser, pingServer } = require('./src/server-monitor');
+const { authenticateUser, pingServer } = require('./lib/server-monitor');
 
 program
   .version('0.0.1', '-v, --version')
