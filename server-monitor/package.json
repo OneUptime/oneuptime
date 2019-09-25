@@ -12,7 +12,8 @@
     "dev": "NODE_ENV=development nodemon index.js",
     "test": "NODE_ENV=development mocha --exit",
     "audit": "npm-audit-ci-wrapper --threshold=high",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "postversion": "git push --follow-tags"
   },
   "author": "HackerBay, Inc.",
   "license": "ISC",

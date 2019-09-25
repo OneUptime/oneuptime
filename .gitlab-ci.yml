@@ -7,6 +7,7 @@
 # Define stages
 stages:
   - BuildAndTest
+  - Publish
   - E2E
   - DeployStaging
   - DeployProduction
@@ -186,6 +187,18 @@ build_n_test_server-monitor:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+
+## PUBLISH STAGE - SERVER MONITOR
+publish_server-monitor:
+  stage: Publish
+  only:
+    - tags
+  script:
+    - sudo apt-get install nodejs -y
+    - cd server-monitor
+    - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+    - npm publish
+    - cd ..
 
 ##E2E Stage.
 e2e_test:
