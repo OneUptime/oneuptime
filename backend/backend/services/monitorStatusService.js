@@ -42,12 +42,12 @@ module.exports = {
             })
                 .lean();
             return monitorStatus;
-        } catch (err) {
+        } catch (error) {
             ErrorService.log('MonitorStatusService.findOneBy', error);
             throw error;
         }
     }
-}
+};
 
 var MonitorStatusModel = require('../models/monitorStatus');
 var ErrorService = require('../services/errorService');
