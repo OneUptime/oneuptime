@@ -73,6 +73,10 @@ module.exports = {
             }
             if (data.type) {
                 incident.type = data.type;
+                await MonitorStatusService.create({
+                    status: data.type,
+                    monitorId: data.monitorId
+                });
             }
             try {
                 incident = await incident.save();
@@ -672,3 +676,4 @@ var ZapierService = require('./zapierService');
 var ProjectService = require('../services/projectService');
 var ProbeService = require('../services/probeService');
 var ErrorService = require('../services/errorService');
+var MonitorStatusService = require('../services/monitorStatusService');
