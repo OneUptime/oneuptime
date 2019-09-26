@@ -169,6 +169,12 @@ spec:
           value: "3600"
         - name: MAIL_SECURE
           value: "false"
+        - name: DASHBOARD_HOST
+          value: "https://staging-dashboard.fyipe.com"
+        - name: BACKEND_HOST
+          value: "https://staging-api.fyipe.com"
+        - name: ACCOUNTS_HOST
+          value: "https://staging-accounts.fyipe.com"
         ports:
         - containerPort: 3002
           hostPort: 3002
