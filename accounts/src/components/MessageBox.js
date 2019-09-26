@@ -7,12 +7,15 @@ export default function MessageBox(props) {
             <div className="inner">
                 <div className="request-reset-step step" >
                     <div className="title">
-                        <h2>
+                        <h2 style={{ marginBottom: 0 }}>
                             {props.title}
                         </h2>
                     </div>
                     <p className="error-message hidden" />
-                    <p className="message">{props.message}</p>
+                    <p className="message">
+                        {props.message}
+                        {props.children}
+                    </p>
                 </div>
             </div>
         </div>
@@ -24,4 +27,5 @@ MessageBox.displayName = 'MessageBox'
 MessageBox.propTypes = {
     title: PropTypes.string,
     message: PropTypes.string,
+    children: PropTypes.node
 }
