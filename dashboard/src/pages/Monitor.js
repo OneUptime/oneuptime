@@ -103,6 +103,7 @@ class DashboardView extends Component {
             ) : false;
         });
 
+
         // Add Project Monitors to Monitors List
         var projectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === currentProjectId)
         allMonitors = IsUserInSubProject(currentProject) ? allMonitors : allMonitors.filter(monitor => monitor.projectId !== currentProject._id || monitor.projectId._id !== currentProject._id)
@@ -254,7 +255,7 @@ DashboardView.propTypes = {
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
-    subProjects: PropTypes.array.isRequired,
+    subProjects: PropTypes.array,
 }
 
 DashboardView.displayName = 'DashboardView'

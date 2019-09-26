@@ -163,7 +163,7 @@ module.exports = {
             }
         } else {
             try{
-                var oldStatusPage = await _this.findOneBy({ _id: data._id });
+                var oldStatusPage = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
             }catch(error){
                 ErrorService.log('StatusPageService.findOneBy', error);
                 throw error;
@@ -295,8 +295,7 @@ module.exports = {
 
         return { investigationNotes, count };
     },
-
-    getMonitorTime: async function (monitorId) {
+    /*getMonitorTime: async function (monitorId) {
         var date = new Date();
         var thisObj = this;
         var time;
@@ -328,8 +327,7 @@ module.exports = {
 
         }
         return time;
-    },
-
+    },*/
     getStatus: async function (query, user) {
         var thisObj = this;
         if (!query) {
@@ -340,13 +338,19 @@ module.exports = {
         try{
             var statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId', 'name')          
+                .populate('projectId', 'name')
                 .populate({
                     path: 'monitorIds',
                     select: 'name data type monitorCategoryId',
                     populate: { path: 'monitorCategoryId', select: 'name' }
                 })
                 .lean();
+            var projectId = statusPage.projectId._id;
+            var subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
+            var subProjectIds = subProjects ? subProjects.map(project => project._id) : null;
+            var monitors = await MonitorService.getMonitors(subProjectIds, 0, 0);
+            statusPage.monitorsData = monitors;
+
         }catch(error){
             ErrorService.log('StatusPageModel.findOne', error);
             throw error;
@@ -579,6 +583,36 @@ module.exports = {
         }
         return 'Status Page(s) Removed Successfully!';
     },
+    restoreBy: async function (query){
+        const _this = this;
+        query.deleted = true;
+        let statusPage = await _this.findBy(query);
+        if(statusPage && statusPage.length > 1){
+            const statusPages = await Promise.all(statusPage.map(async (statusPage) => {
+                const statusPageId = statusPage._id;
+                statusPage = await _this.update({_id: statusPageId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await SubscriberService.restoreBy({statusPageId, deleted: true});
+                return statusPage;
+            }));
+            return statusPages;
+        }else{
+            statusPage = statusPage[0];
+            if(statusPage){
+                const statusPageId = statusPage._id;
+                statusPage = await _this.update({_id: statusPage, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                await SubscriberService.restoreBy({statusPageId, deleted: true});
+            }
+            return statusPage;
+        }
+    }
 };
 
 var StatusPageModel = require('../models/statusPage');

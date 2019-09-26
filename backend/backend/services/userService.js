@@ -44,6 +44,7 @@ module.exports = {
         userModel.timezone = data.timezone || null;
         userModel.lastActive = data.lastActive || Date.now();
         userModel.coupon = data.coupon || null;
+        userModel.adminNotes = data.adminNotes || null;
         try{
             var user = await userModel.save();
         }catch(error){
@@ -77,14 +78,14 @@ module.exports = {
         query.deleted = false;
 
         try{
-            var user = await UserModel.updateMany(query, {
-                $set:{
+            var user = await UserModel.findOneAndUpdate(query, {
+                $set: {
                     deleted: true,
                     deletedById: userId,
                     deletedAt: Date.now()
                 }
             }, {
-                $new: true
+                new: true
             });
         }catch(error){
             ErrorService.log('UserModel.updateMany', error);
@@ -97,7 +98,7 @@ module.exports = {
         if(!query){
             query = {};
         }
-        query.deleted = false;
+        if(!query.deleted) query.deleted = false;
         try{
             var user = await UserModel.findOne(query)
                 .sort([['createdAt', -1]]);
@@ -120,7 +121,7 @@ module.exports = {
             }
         }else{
             try{
-                var user = await _this.findOneBy({_id: data._id});
+                var user = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
             }catch(error){
                 ErrorService.log('UserService.findOneBy', error);
                 throw error;
@@ -144,6 +145,22 @@ module.exports = {
             var lastActive = data.lastActive || user.lastActive;
             var coupon = data.coupon || user.coupon;
             var disabled = data.disabled || false;
+            var adminNotes = data.adminNotes || user.adminNotes;
+
+            var isBlocked = user.isBlocked;
+            if(typeof data.isBlocked === 'boolean'){
+                isBlocked = data.isBlocked;
+            }
+
+            var deleted = user.deleted;
+            var deletedById = user.deletedById;
+            var deletedAt = user.deletedAt;
+            if(data.deleted === false){
+                deleted = false;
+                deletedById = null;
+                deletedAt = null;
+            }
+
             try{
                 var updatedUser = await UserModel.findOneAndUpdate({_id: data._id}, {
                     $set:{
@@ -165,7 +182,12 @@ module.exports = {
                         timezone: timezone,
                         lastActive: lastActive,
                         coupon: coupon,
-                        disabled: disabled
+                        disabled: disabled,
+                        deleted,
+                        deletedById,
+                        deletedAt,
+                        isBlocked,
+                        adminNotes
                     }
                 }, {
                     new: true
@@ -190,7 +212,7 @@ module.exports = {
             throw error;
         }
         if (verificationToken) {
-            var verificationTokenURL = `${FYIPE_BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
+            var verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
             MailService.sendVerifyEmail(verificationTokenURL, user.name, user.email);
         }
         return verificationToken.token;
@@ -579,6 +601,7 @@ module.exports = {
             throw error;
         }
     },
+
     getAllUsers: async function(skip, limit){
         var _this = this;
         let users = await _this.findBy({ _id: { $ne: null }, deleted: { $ne: null }}, skip, limit);
@@ -598,6 +621,68 @@ module.exports = {
         }));
         return users;
     },
+
+    restoreBy: async function(query){
+        const _this = this;
+        query.deleted = true;
+
+        let user = await _this.findBy(query);
+        if(user && user.length > 1){
+            const users = await Promise.all(user.map(async (user) => {
+                const userId = user._id;
+                user = await _this.update({
+                    _id: userId, 
+                    deleted: false, 
+                    deletedBy: null, 
+                    deletedAt: null,
+                });
+                return user;
+            }));
+            return users;
+        }else{
+            user = user[0];
+            if(user){
+                const userId = user._id;
+                user = await _this.update({
+                    _id: userId, 
+                    deleted: false, 
+                    deletedBy: null, 
+                    deletedAt: null,
+                });
+            }
+            return user;
+        }
+    },
+
+    addNotes: async function(userId, notes){
+        const _this = this;
+        let adminNotes = (await _this.update({
+            _id: userId,
+            adminNotes: notes
+        })).adminNotes;
+        return adminNotes;
+    },
+
+    searchUsers: async function(query, skip, limit){
+        var _this = this;
+        let users = await _this.findBy(query, skip, limit);
+        users = await Promise.all(users.map(async (user)=>{
+            // find user subprojects and parent projects
+            var userProjects = await ProjectService.findBy({'users.userId': user._id});
+            var parentProjectIds = [];
+            var projectIds = [];
+            if(userProjects.length > 0){
+                var subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
+                parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
+                var projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
+                projectIds = projects.map(project => project._id);
+            }
+            userProjects = await ProjectService.findBy({ $or: [ { _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } } ] });
+            return await Object.assign({}, user._doc, { projects: userProjects });
+        }));
+        return users;
+    },
+
     hardDeleteBy: async function(query){
         try{
             await UserModel.deleteMany(query);
@@ -623,6 +708,6 @@ var ErrorService = require('./errorService');
 var jwt = require('jsonwebtoken');
 var iplocation = require('iplocation').default;
 var jwtKey = require('../config/keys');
-var { FYIPE_BACKEND_HOST } = process.env;
+var { BACKEND_HOST } = process.env;
 var VerificationTokenModel = require('../models/verificationToken');
 var MailService = require('../services/mailService');

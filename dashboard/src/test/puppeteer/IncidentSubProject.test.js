@@ -122,6 +122,7 @@ describe('Incident API With SubProjects', () => {
         await page.waitForSelector(`#create_incident_${projectMonitorName}`);
         await page.click(`#create_incident_${projectMonitorName}`);
         await page.waitForSelector('#createIncident');
+        await init.selectByText('#incidentType','Offline', page);
         await page.click('#createIncident');
         await page.waitForSelector('#incident_span_0');
         const incidentTitleSelector = await page.$('#incident_span_0');
@@ -135,6 +136,7 @@ describe('Incident API With SubProjects', () => {
         await newPage.waitForSelector(`#create_incident_${subProjectMonitorName}`);
         await newPage.click(`#create_incident_${subProjectMonitorName}`);
         await newPage.waitForSelector('#createIncident');
+        await init.selectByText('#incidentType','Offline', newPage);
         await newPage.click('#createIncident');
         await newPage.waitForSelector('#incident_span_0');
         const incidentTitleSelector = await newPage.$('#incident_span_0');

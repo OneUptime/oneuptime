@@ -3,6 +3,14 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
+import ShouldRender from '../components/basic/ShouldRender';
+import ProjectDetails from '../components/project/ProjectDetails';
+import ProjectDeleteBox from '../components/project/ProjectDeleteBox';
+import ProjectRestoreBox from '../components/project/ProjectRestoreBox';
+import ProjectBlockBox from '../components/project/ProjectBlockBox';
+import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
+import AdminNotes from '../components/adminNote/AdminNotes';
+import { addProjectNote } from '../actions/project';
 
 class Project extends Component {
 
@@ -13,6 +21,9 @@ class Project extends Component {
     }
 
     ready = () => {
+        if(!this.props.project){
+            this.props.history.push('/projects');
+        }
     }
 
     render() {
@@ -26,9 +37,32 @@ class Project extends Component {
                                 <div className="react-settings-view react-view">
                                     <span data-reactroot="">
                                         <div>
-                                            <div>
-                                                
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectDetails projectId={this.props.project ? this.props.project._id : ''} />
                                             </div>
+                                            <div className="Box-root Margin-bottom--12">
+                                                <AdminNotes id={this.props.project ? this.props.project._id : ''} addNote={this.props.addProjectNote} initialValues={this.props.initialValues} />
+                                            </div>
+                                            <ShouldRender if={this.props.project && !this.props.project.deleted && !this.props.project.isBlocked}>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <ProjectBlockBox projectId={this.props.project ? this.props.project._id : ''} />
+                                                </div>
+                                            </ShouldRender>
+                                            <ShouldRender if={this.props.project && !this.props.project.deleted && this.props.project.isBlocked}>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <ProjectUnblockBox projectId={this.props.project ? this.props.project._id : ''} />
+                                                </div>
+                                            </ShouldRender>
+                                            <ShouldRender if={this.props.project && !this.props.project.deleted}>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <ProjectDeleteBox projectId={this.props.project ? this.props.project._id : ''} />
+                                                </div>
+                                            </ShouldRender>
+                                            <ShouldRender if={this.props.project && this.props.project.deleted}>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <ProjectRestoreBox projectId={this.props.project ? this.props.project._id : ''} />
+                                                </div>
+                                            </ShouldRender>
                                         </div>
                                     </span>
                                 </div>
@@ -42,12 +76,15 @@ class Project extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ }, dispatch)
+    return bindActionCreators({ addProjectNote }, dispatch)
 }
 
-const mapStateToProps = (state) => {
+const mapStateToProps = (state, props) => {
+    const project = state.project.projects.projects.find(project => project._id === props.match.params.projectId);
     return {
-        
+        project,
+        adminNote: state.adminNote,
+        initialValues: { adminNotes: project.adminNotes || []}
     }
 }
 
@@ -56,6 +93,8 @@ Project.contextTypes = {
 };
 
 Project.propTypes = {
+    history: PropTypes.object.isRequired,
+    addProjectNote: PropTypes.func.isRequired,
 }
 
 Project.displayName = 'Project'

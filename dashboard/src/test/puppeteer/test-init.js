@@ -147,6 +147,7 @@ module.exports = {
         let elemHandler = await page.$(selector);
         if(elemHandler){
             let properties = await elemHandler.getProperties();
+            /* eslint-disable no-unused-vars */
             for (const property of properties.values()) {
                 const element = property.asElement();
                 if (element){

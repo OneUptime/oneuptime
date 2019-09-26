@@ -141,9 +141,9 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
             var schedule = await ScheduleService.findOneBy({ _id: data.callScheduleId });
             var monitors = schedule.monitorIds;
             if (monitors.length > 0) {
-                monitors.push({ _id: monitor._id, name: monitor.name });
+                monitors.push({ _id: monitor[0]._id, name: monitor[0].name });
             } else {
-                monitors = Array(monitor._id);
+                monitors = Array(monitor[0]._id);
             }
             var scheduleData = {
                 _id: data.callScheduleId,

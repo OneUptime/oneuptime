@@ -735,22 +735,27 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 .btn-group{
   display:flex;
-  max-width:300px;
+  flex-direction:row;
+  flex-wrap: nowrap;
+  width:100%;
 }
 .btn-group .icon-container {
-  background-color: #f8f8f8; /* Green background */
-  border: 1px solid #e0e0e0; /* Green border */
-  color: black; /* White text */
-  padding: 10px 22px; /* Some padding */
+  background-color: #f6f9fc; /* Green background */
+  border: 2px solid #e6ebf1; /* Green border */
+  color: #525f7f; /* White text */
+  padding: 6px; /* Some padding */
   cursor: pointer; /* Pointer/hand icon */
-  width:20%;
-  height:40px;
   box-sizing: border-box;
   outline: none;
+  width:100%;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .btn-group .icon-container.selected{
-  background-color: #666;
+  background-color: #f6f9fc;
+  border-bottom: none;
+  color: black;
 }
 .btn-group .icon-container {
   border-right: none; /* Prevent double borders */
