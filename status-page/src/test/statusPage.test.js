@@ -21,7 +21,7 @@ describe('Status page monitors check', function () {
     this.timeout(30000);
     before(async function () {
         this.enableTimeouts(false);
-
+        await UserService.hardDeleteBy({ email: testData.user.email });
         var signUpRequest = await request.post('/user/signup').send(testData.user);
         projectId = signUpRequest.body.project._id;
 
