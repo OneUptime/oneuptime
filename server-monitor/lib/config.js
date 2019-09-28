@@ -2,6 +2,6 @@
 // connect to a route at the backend to validate api and projectId
 // update serverStat model based on the projectId
 
-const apiUrl = 'http://localhost:3002';
+const apiUrl = process.env.API_URL || 'http://localhost:3002';
 
 module.exports = { apiUrl };

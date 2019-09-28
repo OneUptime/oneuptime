@@ -1,32 +1,26 @@
 {
   "name": "fyipe-server-monitor",
-  "version": "0.0.2",
+  "version": "0.0.7",
   "description": "A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.",
-  "main": "index.js",
+  "main": "./lib/monitor.js",
   "bin": {
-    "fyipe-server-monitor": "index.js"
+    "fyipe-server-monitor": "./bin/server-monitor.js"
   },
   "scripts": {
+    "start": "node ./bin/server-monitor.js",
+    "dev": "NODE_ENV=development nodemon ./bin/server-monitor.js",
     "pretest": "eslint --fix --ignore-path .gitignore .",
-    "start": "node index.js",
-    "dev": "NODE_ENV=development nodemon index.js",
     "test": "NODE_ENV=development mocha --exit",
     "audit": "npm-audit-ci-wrapper --threshold=high",
-    "lint": "eslint .",
-    "postversion": "git push --follow-tags"
+    "lint": "eslint ."
   },
   "author": "HackerBay, Inc.",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.18.1",
-    "commander": "^2.19.0",
-    "cron": "^1.6.0",
-    "eslint": "^5.10.0",
-    "inquirer": "^6.2.1",
-    "node-cron": "^2.0.3",
-    "npm-audit-ci-wrapper": "^2.3.0",
-    "os-utils": "0.0.14",
-    "q": "^1.5.1",
+    "commander": "^2.20.0",
+    "cron": "^1.7.2",
+    "inquirer": "^6.5.2",
     "systeminformation": "^4.14.8"
   },
   "keywords": [
@@ -34,5 +28,15 @@
     "server",
     "server monitor",
     "server stats"
-  ]
+  ],
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "eslint": "^5.16.0",
+    "mocha": "^6.2.0",
+    "npm-audit-ci-wrapper": "^2.3.0"
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  }
 }

@@ -96,3 +96,8 @@ function getParamValue(params, name) {
     }
   });
 }
+
+module.exports = {
+  checkParams,
+  getParamValue
+};
