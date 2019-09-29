@@ -35,7 +35,7 @@ describe('Status page monitors check', function () {
 
         var loginRequest = await request.post('/user/login')
             .send({ email: testData.user.email, password: testData.user.password })
-        token = loginRequest.body.tokens.jwtAccessToken;
+        token = loginRequest.body.tokens ? loginRequest.body.tokens.jwtAccessToken : null;
 
         authorization = `Basic ${token}`;
 
