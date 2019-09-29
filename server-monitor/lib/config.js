@@ -1,7 +1,12 @@
-// get the projectId and api Key and monitor name and send to backend to authenticate
-// connect to a route at the backend to validate api and projectId
-// update serverStat model based on the projectId
+/**
+ * @fileoverview Main application config module.
+ * @author HackerBay, Inc.
+ * @module config
+ */
 
-const apiUrl = process.env.API_URL || 'http://localhost:3002';
+'use strict';
 
-module.exports = { apiUrl };
+/** The api url to send server information. */
+const API_URL = process.env.API_URL || 'http://localhost:3002';
+
+module.exports = { API_URL };
