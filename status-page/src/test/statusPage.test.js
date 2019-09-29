@@ -46,7 +46,7 @@ describe('Status page monitors check', function () {
 
         var monitorRequest = await request.post(`/monitor/${projectId}`)
             .set('Authorization', authorization).send(monitor)
-        monitorId = monitorRequest.body[0]._id;
+        monitorId = monitorRequest.body && monitorRequest.body.length > 0 ? monitorRequest.body[0]._id : null;
         statusPage.projectId = projectId;
         statusPage.monitorIds = [monitorId];
 
