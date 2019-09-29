@@ -20,8 +20,8 @@ import Badge from '../common/Badge';
 import { history } from '../../store';
 import MonitorBarChart from './MonitorBarChart';
 
-let endDate = moment().format('YYYY-MM-DD');
-let startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
+const endDate = moment().format('YYYY-MM-DD');
+const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
 
 export class MonitorDetail extends Component {
 
