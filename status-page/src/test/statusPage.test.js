@@ -23,7 +23,7 @@ describe('Status page monitors check', function () {
         this.enableTimeouts(false);
         await UserService.hardDeleteBy({ email: testData.user.email });
         var signUpRequest = await request.post('/user/signup').send(testData.user);
-        projectId = signUpRequest.body.project ? signUpRequest.body.project._id : null;
+        projectId = signUpRequest.body.project._id;
 
         userId = signUpRequest.body.id;
         var verificationToken = await VerificationTokenModel.findOne({ userId });
@@ -35,7 +35,7 @@ describe('Status page monitors check', function () {
 
         var loginRequest = await request.post('/user/login')
             .send({ email: testData.user.email, password: testData.user.password })
-        token = loginRequest.body.tokens ? loginRequest.body.tokens.jwtAccessToken : null;
+        token = loginRequest.body.tokens.jwtAccessToken;
 
         authorization = `Basic ${token}`;
 
@@ -46,7 +46,7 @@ describe('Status page monitors check', function () {
 
         var monitorRequest = await request.post(`/monitor/${projectId}`)
             .set('Authorization', authorization).send(monitor)
-        monitorId = monitorRequest.body && monitorRequest.body.length > 0 ? monitorRequest.body[0]._id : null;
+        monitorId = monitorRequest.body[0]._id;
         statusPage.projectId = projectId;
         statusPage.monitorIds = [monitorId];
 
