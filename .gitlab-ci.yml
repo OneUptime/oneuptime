@@ -616,7 +616,7 @@ deploy_production_server-monitor:
     - cd ..
   only:
     refs:
-      -release
+      - release
   environment:
     name: production
 
@@ -644,7 +644,7 @@ smoke_test_staging:
     - cd smoke-test
     - npm ci
     - npm run test
-     # if job is successs, cancel the next jobs in pipeline.
+      # if job is successs, cancel the next jobs in pipeline.
     - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
   only:
     refs:
