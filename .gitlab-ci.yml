@@ -95,6 +95,8 @@ build_n_test_statuspage:
     - echo "Setup machine for running puppeteer tests"
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - echo "Remove k8s deployments"
+    - microk8s.reset || echo 'No deployments'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
@@ -127,8 +129,6 @@ build_n_test_accounts:
     - echo "Setup machine for running puppeteer tests"
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - echo "Remove k8s deployments"
-    - microk8s.reset || echo 'No deployments'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
