@@ -97,7 +97,7 @@ build_n_test_statuspage:
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/status-page:3.0.$CI_PIPELINE_IID ./status-page
     - sudo docker run -p 3006:3006 -d fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker ps
@@ -651,8 +651,6 @@ smoke_test_staging:
     refs:
       - master
       - hotfix-master
-  environment:
-    name: production
 
 ## STAGING ROLLBACK
 staging_rollback_dashboard:
@@ -671,9 +669,6 @@ staging_rollback_dashboard:
     refs:
       - master
 
-  environment:
-    name: production
-
 staging_rollback_accounts:
   stage: RollbackStaging
   script:
@@ -689,8 +684,6 @@ staging_rollback_accounts:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_backend:
   stage: RollbackStaging
@@ -707,8 +700,6 @@ staging_rollback_backend:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_home:
   stage: RollbackStaging
@@ -725,8 +716,6 @@ staging_rollback_home:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_status-page:
   stage: RollbackStaging
@@ -743,8 +732,6 @@ staging_rollback_status-page:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_api-docs:
   stage: RollbackStaging
@@ -761,8 +748,6 @@ staging_rollback_api-docs:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_admin-dashboard:
   stage: RollbackStaging
@@ -779,8 +764,6 @@ staging_rollback_admin-dashboard:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_probe:
   stage: RollbackStaging
@@ -797,8 +780,6 @@ staging_rollback_probe:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 ## PRODUCTION ROLLBACK
 production_rollback:
