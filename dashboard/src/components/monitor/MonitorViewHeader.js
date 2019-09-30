@@ -13,8 +13,8 @@ import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { selectedProbe } from '../../actions/monitor';
 
-let endDate = moment().format('YYYY-MM-DD');
-let startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
+const endDate = moment().format('YYYY-MM-DD');
+const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -117,7 +117,7 @@ export class MonitorViewHeader extends Component {
                         </div>
                         <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
                     </ShouldRender>
-                    {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} /> : ''}<br />
+                    {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} /> : ''}<br />
                 </div>
             </div>
         );

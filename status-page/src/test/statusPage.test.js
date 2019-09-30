@@ -72,7 +72,9 @@ describe('Status page monitors check', function () {
     });
 
     after(async function () {
-        await browser.close();
+        if (browser) {
+            await browser.close();
+        }
         await UserService.hardDeleteBy({ _id: userId })
     });
 
@@ -131,8 +133,8 @@ describe('Status page monitors check', function () {
                 isGroupedByMonitorCategory: true
             });
         await page.reload({
-                waitUntil: 'networkidle0'
-            });
+            waitUntil: 'networkidle0'
+        });
         let monitorCategoryNameSelector = '#monitorCategory0';
         let monitorCategoryName = await page.$eval(monitorCategoryNameSelector, el => el.textContent);
         expect(monitorCategoryName).to.be.equal(monitorCategory.monitorCategoryName.toUpperCase());

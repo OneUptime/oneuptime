@@ -69,8 +69,9 @@ export function MonitorBarChart(props) {
 
     let { startDate, endDate } = props;
 
-    let range = moment.range(new Date(startDate), new Date(endDate));
-    let data = props.monitor.logs && props.monitor.logs.length > 0 ? props.monitor.logs.filter(log => range.contains(new Date(log.createdAt))) : [];
+    let data = props.monitor.logs && props.monitor.logs.length > 0 ? props.monitor.logs.filter(
+        log => moment(new Date(log.createdAt)).isBetween(new Date(startDate), new Date(endDate), 'day', '[]')
+    ) : [];
     let checkLogs = data && data.length > 0;
 
     let responseTime = props.probe && props.probe.responseTime ? props.probe.responseTime : '0';
