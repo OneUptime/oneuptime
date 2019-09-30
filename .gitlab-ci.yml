@@ -597,6 +597,7 @@ deploy_staging_server-monitor:
     - sudo npm install -g json
     - json -I -f package.json -e 'this.name="fyipe-server-monitor-staging"'
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+    - npm version patch
     - npm publish
     - cd ..
   only:
