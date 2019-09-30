@@ -604,8 +604,6 @@ smoke_test_staging:
     refs:
       - master
       - hotfix-master
-  environment:
-    name: production
 
 ## STAGING ROLLBACK
 staging_rollback_dashboard:
@@ -624,9 +622,6 @@ staging_rollback_dashboard:
     refs:
       - master
 
-  environment:
-    name: production
-
 staging_rollback_accounts:
   stage: RollbackStaging
   script:
@@ -642,8 +637,6 @@ staging_rollback_accounts:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_backend:
   stage: RollbackStaging
@@ -660,8 +653,6 @@ staging_rollback_backend:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_home:
   stage: RollbackStaging
@@ -678,8 +669,6 @@ staging_rollback_home:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_status-page:
   stage: RollbackStaging
@@ -696,8 +685,6 @@ staging_rollback_status-page:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_api-docs:
   stage: RollbackStaging
@@ -714,8 +701,6 @@ staging_rollback_api-docs:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_admin-dashboard:
   stage: RollbackStaging
@@ -732,8 +717,6 @@ staging_rollback_admin-dashboard:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 staging_rollback_probe:
   stage: RollbackStaging
@@ -750,8 +733,6 @@ staging_rollback_probe:
   only:
     refs:
       - master
-  environment:
-    name: production
 
 ## PRODUCTION ROLLBACK
 production_rollback:
