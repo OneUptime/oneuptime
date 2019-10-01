@@ -295,39 +295,7 @@ module.exports = {
 
         return { investigationNotes, count };
     },
-    /*getMonitorTime: async function (monitorId) {
-        var date = new Date();
-        var thisObj = this;
-        var time;
-        try{
-            var statusTime = await StatusPageTimeModel.find({ monitorId: monitorId }).sort({ date: 'desc' }).limit(89);
-        }catch(error){
-            ErrorService.log('StatusPageTimeModel.find', error);
-            throw error;
-        }
-        try{
-            var timeBase = await thisObj.calcTime(monitorId, date);
-        }catch(error){
-            ErrorService.log('StatusPageService.calcTime', error);
-            throw error;
-        }
-        if (statusTime) {
-            time = statusTime;
-        } else {
-            time = [];
-        }
-        if (timeBase) {
-            time.unshift({
-                date: new Date().toISOString(),
-                monitorId: timeBase.monitorId,
-                upTime: timeBase.uptime,
-                downTime: timeBase.downtime,
-                status: timeBase.status,
-            });
 
-        }
-        return time;
-    },*/
     getStatus: async function (query, user) {
         var thisObj = this;
         if (!query) {
@@ -363,22 +331,7 @@ module.exports = {
                 ErrorService.log('StatusPageService.isPermitted', error);
                 throw error;
             }
-            if (permitted) {
-                try{
-                    statusPage = await thisObj.mapStatusWithTime(statusPage);
-                }catch(error){
-                    ErrorService.log('StatusPageService.mapStatusWithTime', error);
-                    throw error;
-                }
-                try{
-                    statusPage = await thisObj.calcUptime(statusPage);
-                }catch(error){
-                    ErrorService.log('StatusPageService.calcUptime', error);
-                    throw error;
-                }
-                return statusPage;
-            }
-            else {
+            if (!permitted) {
                 let error = new Error('You are unauthorized to access the page please login to continue.');
                 error.code = 401;
                 ErrorService.log('StatusPageService.getStatus', error);
@@ -391,6 +344,7 @@ module.exports = {
             ErrorService.log('StatusPageService.getStatus', error);
             throw error;
         }
+        return statusPage;
     },
 
     isPermitted: async function (user, statusPage) {
@@ -425,145 +379,6 @@ module.exports = {
         });
     },
 
-    // Maps statuspage object with time
-    mapStatusWithTime: async function (statusobj) {
-        var thisObj = this;
-        if (statusobj) {
-            if(!statusobj.monitorIds) statusobj.monitorIds = [];
-            var status = statusobj.monitorIds.map(async (monitors) => {
-                try{
-                    return thisObj.addTimeToMonitors(monitors);
-                }catch(error){
-                    ErrorService.log('StatusPageService.addTimeToMonitors', error);
-                    throw error;
-                }
-            });
-            var data = await Promise.all(status);
-            statusobj.monitorIds = data;
-            return statusobj;
-        }
-    },
-
-    addTimeToMonitors: async function (monitor) {
-        var date = new Date();
-        var thisObj = this;
-        var monitorId = '';
-        if (monitor.id) {
-            monitorId = monitor.id;
-        }
-        else {
-            monitorId = monitor._id;
-        }
-
-        var statusTime = [];
-        var timeBase = {};
-
-        /* if(monitor.type === 'manual'){
-             statusTime = await MonitorService.getManualMonitorTime(monitorId);
-         }
-         else{
-             statusTime = await StatusPageTimeModel.find({ monitorId }).sort({ date: 'desc' }).limit(89);
-             timeBase = await thisObj.calcTime(monitorId, date);
-         }*/
-        try{
-            statusTime = await StatusPageTimeModel.find({ monitorId }).sort({ date: 'desc' }).limit(89);
-        }catch(error){
-            ErrorService.log('StatusPageTimeModel.find', error);
-            throw error;
-        }
-        try{
-            timeBase = await thisObj.calcTime(monitorId, date);
-        }catch(error){
-            ErrorService.log('StatusPageService.calcTime', error);
-            throw error;
-        }
-        if (statusTime && statusTime.length) {
-            monitor.time = statusTime;
-        } else {
-            monitor.time = [];
-        }
-        if (timeBase && (timeBase.downtime || timeBase.uptime)) {
-            monitor.time.unshift({
-                date: new Date().toISOString(),
-                monitorId: timeBase.monitorId,
-                upTime: timeBase.uptime,
-                downTime: timeBase.downtime,
-            });
-
-            monitor.stat = timeBase.status;
-        } else if (statusTime && statusTime.length) {
-            monitor.stat = statusTime[0].status;
-        }
-        if (!(statusTime && statusTime.length) && !(timeBase && (timeBase.downtime || timeBase.uptime))) {
-            monitor.stat = 'online';
-        }
-        return monitor;
-    },
-
-
-    //Calculate time for whole day
-    calcTime: async function (monitorId, date) {
-        try{
-            var monitorTime = await MonitorService.getMonitorTime(monitorId, date);
-        }catch(error){
-            ErrorService.log('MonitorService.getMonitorTime', error);
-            throw error;
-        }
-        var uptime = 0;
-        var downtime = 0;
-        var stat = 'online';
-        monitorTime.forEach((time, itr) => {
-            if (itr === monitorTime.length - 1) {
-                stat = time.status;
-            }
-            if (time.status === 'online')
-                uptime++;
-            else if (time.status === 'offline')
-                downtime++;
-        });
-        var data = { uptime, downtime, monitorId, status: stat };
-        return data;
-    },
-
-    calcUptime: async function (data) {
-        data.monitorIds.forEach((element, itr) => {
-            var uptime = 0;
-            var downtime = 0;
-            element.time.forEach(function (el) {
-                uptime += el.upTime;
-                downtime += el.downTime;
-            });
-            if (uptime === 0 && downtime === 0) {
-                data.monitorIds[itr].totalUptimePercent = 0;
-            }
-            else {
-                data.monitorIds[itr].totalUptimePercent = uptime / (uptime + downtime) * 100;
-            }
-            if (itr === data.monitorIds.length - 1) {
-                return data;
-            }
-        });
-        return data;
-    },
-
-    // Records and stores time in database
-    recordTime: async function (uptime, downtime, monitorId, stat, yesterday) {
-
-        var StatusPageTimeData = new StatusPageTimeModel();
-        StatusPageTimeData.monitorId = monitorId;
-        StatusPageTimeData.upTime = uptime;
-        StatusPageTimeData.downTime = downtime;
-        StatusPageTimeData.status = stat;
-        StatusPageTimeData.date = yesterday;
-        try{
-            await StatusPageTimeData.save();
-        }catch(error){
-            ErrorService.log('StatusPageTimeData.save', error);
-            throw error;
-        }
-        return monitorId;
-    },
-
     getSubProjectStatusPages: async function(subProjectIds){
         var _this = this;
         let subProjectStatusPages = await Promise.all(subProjectIds.map(async (id)=>{
@@ -583,6 +398,7 @@ module.exports = {
         }
         return 'Status Page(s) Removed Successfully!';
     },
+
     restoreBy: async function (query){
         const _this = this;
         query.deleted = true;
@@ -616,7 +432,6 @@ module.exports = {
 };
 
 var StatusPageModel = require('../models/statusPage');
-var StatusPageTimeModel = require('../models/statusPageTime');
 var IncidentService = require('./incidentService');
 var MonitorService = require('./monitorService');
 var ErrorService = require('./errorService');
