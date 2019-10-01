@@ -10,6 +10,7 @@ stages:
   - E2E
   - VersionUpdate
   - DeployStaging
+  - RollbackIfStagingDeploymentFail
   - DeployProduction
   - SmokeTest
   - RollbackStaging
@@ -639,6 +640,20 @@ deploy_production_server-monitor:
       - release
   environment:
     name: production
+
+rollback_if_staging_deployment_fails:
+    stage: RollbackIfStagingDeploymentFail
+    script:
+      - chmod +x ./kubernetes/ci/deployment-setup.sh
+      - ./kubernetes/ci/deployment-setup.sh
+      - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+      - ./kubernetes/ci/deployment-staging-setup.sh
+      - chmod ./kubernetes/ci/staging-rollback.sh
+      - ./kubernetes/ci/staging-rollback.sh
+    only:
+      refs:
+        - master
+        - hotfix-master
 
 ## SMOKE TEST STAGE
 smoke_test_production:
