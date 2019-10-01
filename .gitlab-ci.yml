@@ -8,8 +8,8 @@
 stages:
   # - BuildAndTest
   # - E2E
-  # - VersionUpdate
-  # - DeployStaging
+  - VersionUpdate
+  - DeployStaging
   - RollbackIfStagingDeploymentFail
   # - DeployProduction
   # - SmokeTest
