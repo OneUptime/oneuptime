@@ -23,7 +23,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
- 
+
 const selector = formValueSelector('NewMonitor');
 
 class NewMonitor extends Component {
@@ -101,12 +101,12 @@ class NewMonitor extends Component {
 
         if (postObj.type === 'api')
             postObj.data.url = values[`url_${this.props.index}`];
-        
-        if (postObj.type === 'script'){
+
+        if (postObj.type === 'script') {
             postObj.data.script = thisObj.state.script;
         }
 
-        if (postObj.type === 'url' || postObj.type === 'api') {
+        if (postObj.type === 'url' || postObj.type === 'api' || postObj.type === 'server-monitor') {
             if (values && values[`up_${this.props.index}`] && values[`up_${this.props.index}`].length) {
                 postObj.criteria.up = makeCriteria(values[`up_${this.props.index}`]);
                 postObj.criteria.up.createAlert = values && values[`up_${this.props.index}_createAlert`] ? true : false;
@@ -209,7 +209,7 @@ class NewMonitor extends Component {
     }
 
     scriptTextChange = (newValue) => {
-        this.setState({script: newValue});
+        this.setState({ script: newValue });
     }
 
     render() {
@@ -431,7 +431,7 @@ class NewMonitor extends Component {
                                                             />
                                                         </div>
                                                     </div>}
-                                                    <ShouldRender if={type && (type === 'api' || type === 'url') && !this.state.advance}>
+                                                    <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'server-monitor') && !this.state.advance}>
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label"></label>
                                                             <div className="bs-Fieldset-fields">
@@ -440,7 +440,7 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </ShouldRender>
                                                     <ShouldRender if={type === 'script'}>
-                                                    <div className="bs-Fieldset-row">
+                                                        <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">Script</label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <span>
@@ -462,7 +462,7 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
                                                     </ShouldRender>
-                                                    <ShouldRender if={this.state.advance && (type === 'api' || type === 'url')}>
+                                                    <ShouldRender if={this.state.advance && (type === 'api' || type === 'url' || type === 'server-monitor')}>
                                                         <ShouldRender if={this.state.advance && type === 'api'}>
                                                             <ApiAdvance index={this.props.index} />
                                                         </ShouldRender>
