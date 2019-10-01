@@ -8,6 +8,7 @@
 stages:
   - BuildAndTest
   - E2E
+  - VersionUpdate
   - DeployStaging
   - DeployProduction
   - SmokeTest
@@ -211,6 +212,24 @@ e2e_test:
     refs:
       - release
       - master
+
+# VERSION BUMP
+version_update:
+  stage: VersionUpdate
+  script:
+    - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+    - sudo apt install nodejs  
+    - chmod +x ./kubernetes/ci/version-setup.sh
+    - ./kubernetes/ci/version-setup.sh
+    - git add . 
+    - git commit -m 'Version Update [skip ci]'
+    - git push https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
+  only:
+    refs:
+      - master
+      - release
+      - hotfix-master
+      - hotfix-release
 
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
@@ -595,6 +614,7 @@ deploy_staging_server-monitor:
     - sudo apt-get install nodejs -y
     - cd server-monitor
     - sudo npm install -g json
+    - git pull https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
     - json -I -f package.json -e 'this.name="fyipe-server-monitor-staging"'
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
     - npm publish
