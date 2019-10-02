@@ -8,7 +8,7 @@
 stages:
   # - BuildAndTest
   # - E2E
-  - VersionUpdate
+  # - VersionUpdate
   - DeployStaging
   - RollbackIfStagingDeploymentFail
   - DeployProduction
@@ -214,25 +214,25 @@ stages:
 #       - release
 #       - master
 
-# VERSION UPDATE
-version_update:
-  stage: VersionUpdate
-  script:
-    - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-    - sudo apt install nodejs  
-    - git checkout $CI_COMMIT_REF_NAME
-    - chmod +x ./kubernetes/ci/version-setup.sh
-    - ./kubernetes/ci/version-setup.sh
-    - git add . 
-    - git commit -m 'Version Update [skip ci]'
-    - git push https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
-  only:
-    refs:
-      - master
-      - release
-      - hotfix-master
-      - hotfix-release
-      - CI/CD-refactor
+# # VERSION UPDATE
+# version_update:
+#   stage: VersionUpdate
+#   script:
+#     - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+#     - sudo apt install nodejs  
+#     - git checkout $CI_COMMIT_REF_NAME
+#     - chmod +x ./kubernetes/ci/version-setup.sh
+#     - ./kubernetes/ci/version-setup.sh
+#     - git add . 
+#     - git commit -m 'Version Update [skip ci]'
+#     - git push https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
+#   only:
+#     refs:
+#       - master
+#       - release
+#       - hotfix-master
+#       - hotfix-release
+#       - CI/CD-refactor
 
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
