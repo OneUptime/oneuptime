@@ -30,6 +30,8 @@ function check {
         rollback probe
         rollback admin-dashboard
         exit 1
+    else
+        echo "$1 Deployment successful"
   fi
 }
 
@@ -41,3 +43,4 @@ check status-page
 check api-docs
 check probe
 check admin-dashboard
+check server-monitor
