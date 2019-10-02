@@ -237,6 +237,7 @@ stages:
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -285,6 +286,7 @@ deploy_production_backend:
 # DEPLOYMENT STAGE - Api docs
 deploy_staging_api-docs:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -333,6 +335,7 @@ deploy_production_api-docs:
 # DEPLOYMENT STAGE - Home
 deploy_staging_home:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -381,6 +384,7 @@ deploy_production_home:
 # DEPLOYMENT STAGE - Probe
 deploy_staging_probe:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -429,6 +433,7 @@ deploy_production_probe:
 # DEPLOYMENT STAGE - status-page
 deploy_staging_status-page:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -477,6 +482,7 @@ deploy_production_status-page:
 # DEPLOYMENT STAGE - Admin Dashboard
 deploy_staging_admin-dashboard:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -525,6 +531,7 @@ deploy_production_admin-dashboard:
 # DEPLOYMENT STAGE - Accounts
 deploy_staging_accounts:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -573,6 +580,7 @@ deploy_production_accounts:
 # DEPLOYMENT STAGE - Dashboard
 deploy_staging_dashboard:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -621,6 +629,7 @@ deploy_production_dashboard:
 ## DEPLOYMENT STAGE - Server Monitor
 deploy_staging_server-monitor:
   stage: DeployStaging
+  allow_failure: true
   script:
     - sudo apt-get install nodejs -y
     - cd server-monitor
