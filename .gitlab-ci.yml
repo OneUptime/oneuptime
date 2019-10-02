@@ -220,9 +220,9 @@ version_update:
   script:
     - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
     - sudo apt install nodejs  
+    - git checkout $CI_COMMIT_REF_NAME
     - chmod +x ./kubernetes/ci/version-setup.sh
     - ./kubernetes/ci/version-setup.sh
-    - git checkout $CI_COMMIT_REF_NAME
     - git add . 
     - git commit -m 'Version Update [skip ci]'
     - git push https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
