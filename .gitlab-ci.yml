@@ -660,7 +660,7 @@ rollback_if_staging_deployment_fails:
       - ./kubernetes/ci/deployment-setup.sh
       - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
       - ./kubernetes/ci/deployment-staging-setup.sh
-      - chmod ./kubernetes/ci/staging-rollback.sh
+      - chmod +x ./kubernetes/ci/staging-rollback.sh
       - ./kubernetes/ci/staging-rollback.sh
     only:
       refs:
