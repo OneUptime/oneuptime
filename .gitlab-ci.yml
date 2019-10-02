@@ -227,6 +227,7 @@ version_update:
     - ./kubernetes/ci/version-setup.sh
     - git add . 
     - git commit -m 'Version Update [skip ci]'
+    - git pull origin $CI_COMMIT_REF_NAME
     - git push origin $CI_COMMIT_REF_NAME
   only:
     refs:
