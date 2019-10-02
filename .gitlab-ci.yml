@@ -220,6 +220,7 @@ version_update:
     - cd ..
     - rm -rf app
     - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
+    - cd app
     - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
   stage: VersionUpdate
   script:
