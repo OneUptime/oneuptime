@@ -218,7 +218,6 @@ stages:
 version_update:
   before_script:
     - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
-    - git pull origin $CI_COMMIT_REF_NAME
   stage: VersionUpdate
   script:
     - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
@@ -226,6 +225,7 @@ version_update:
     - git checkout $CI_COMMIT_REF_NAME
     - chmod +x ./kubernetes/ci/version-setup.sh
     - ./kubernetes/ci/version-setup.sh
+    - git pull --no-commit origin $CI_COMMIT_REF_NAME
     - git add . 
     - git commit -m 'Version Update [skip ci]'
     - git push origin $CI_COMMIT_REF_NAME
