@@ -6,6 +6,7 @@
 
 # Define stages
 stages:
+  - CleanEnvVars
   - BuildAndTest
   - E2E
   - VersionUpdate
@@ -16,6 +17,21 @@ stages:
   - SmokeTest
   - RollbackStaging
   - RollbackProduction
+
+clean_job_status_env_vars:
+  stage: CleanEnvVars
+  script: 
+    # cleanup
+    - curl --request DELETE --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS
+    # create new var
+    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=SMOKE_TEST_STATUS" --form "value=failed"
+
+  only:
+    refs:
+      - master
+      - release
+      - hotfix-master
+      - hotfix-release
 #BACKEND
 lint_n_audit_backend:
   stage: BuildAndTest
@@ -730,8 +746,9 @@ smoke_test_staging:
     - cd smoke-test
     - npm ci
     - npm run test
-      # if job is successs, cancel the next jobs in pipeline.
-    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
+    # if job is successs, update smoke test status variable
+    - curl --request PUT --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS --form "value=success"
+
   only:
     refs:
       - master
@@ -753,6 +770,8 @@ staging_rollback_dashboard:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_accounts:
   stage: RollbackStaging
@@ -769,6 +788,8 @@ staging_rollback_accounts:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_backend:
   stage: RollbackStaging
@@ -785,7 +806,9 @@ staging_rollback_backend:
   only:
     refs:
       - master
-
+  except:
+    - $SMOKE_TEST_STATUS == "success"
+    
 staging_rollback_home:
   stage: RollbackStaging
   script:
@@ -801,6 +824,8 @@ staging_rollback_home:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_status-page:
   stage: RollbackStaging
@@ -817,6 +842,8 @@ staging_rollback_status-page:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_api-docs:
   stage: RollbackStaging
@@ -833,6 +860,8 @@ staging_rollback_api-docs:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_admin-dashboard:
   stage: RollbackStaging
@@ -849,6 +878,8 @@ staging_rollback_admin-dashboard:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_probe:
   stage: RollbackStaging
@@ -865,6 +896,8 @@ staging_rollback_probe:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 ## PRODUCTION ROLLBACK
 production_rollback_dashboard:
