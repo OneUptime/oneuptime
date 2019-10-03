@@ -692,8 +692,8 @@ rollback_if_production_deployment_fails:
       - ./kubernetes/ci/production-rollback.sh
     only:
       refs:
-        - master
-        - hotfix-master
+        - release
+        - hotfix-release
 
 ## SMOKE TEST STAGE
 smoke_test_production:
