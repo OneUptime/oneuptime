@@ -12,6 +12,7 @@ stages:
   - DeployStaging
   - RollbackIfStagingDeploymentFail
   - DeployProduction
+  - RollbackIfProductionDeploymentFail
   - SmokeTest
   - RollbackStaging
   - RollbackProduction
@@ -230,7 +231,7 @@ version_update:
     - chmod +x ./kubernetes/ci/version-setup.sh
     - ./kubernetes/ci/version-setup.sh
     - git add . 
-    - git commit -m 'Version Update [skip ci]'
+    - git commit -m "Version Update 3.0.$CI_PIPELINE_IID [skip ci]"
     - git push origin $CI_COMMIT_REF_NAME
   only:
     refs:
@@ -284,6 +285,7 @@ deploy_production_backend:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -332,6 +334,7 @@ deploy_production_api-docs:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -380,6 +383,7 @@ deploy_production_home:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -428,6 +432,7 @@ deploy_production_probe:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -476,6 +481,7 @@ deploy_production_status-page:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -524,6 +530,7 @@ deploy_production_admin-dashboard:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -572,6 +579,7 @@ deploy_production_accounts:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -620,6 +628,7 @@ deploy_production_dashboard:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -655,6 +664,7 @@ deploy_production_server-monitor:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -671,15 +681,39 @@ rollback_if_staging_deployment_fails:
       refs:
         - master
         - hotfix-master
+rollback_if_production_deployment_fails:
+    stage: RollbackIfProductionDeploymentFail
+    script:
+      - chmod +x ./kubernetes/ci/deployment-setup.sh
+      - ./kubernetes/ci/deployment-setup.sh
+      - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+      - ./kubernetes/ci/deployment-production-setup.sh
+      - chmod +x ./kubernetes/ci/production-rollback.sh
+      - ./kubernetes/ci/production-rollback.sh
+    only:
+      refs:
+        - master
+        - hotfix-master
 
 ## SMOKE TEST STAGE
 smoke_test_production:
   stage: SmokeTest
   script:
-    - echo "No test implemented"
+    - export HOME_URL=https://www.fyipe.com
+    - export ACCOUNTS_URL=https://accounts.fyipe.com
+    - export DASHBOARD_URL=https://dashboard.fyipe.com
+    - export BACKEND_URL=https://api.fyipe.com
+    - export STATUSPAGE_URL=https://statuspage.fyipe.com
+    - export APIDOCS_URL=https://docs.fyipe.com
+    - cd smoke-test
+    - npm ci
+    - npm run test
+      # if job is successs, cancel the next jobs in pipeline.
+    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -833,12 +867,130 @@ staging_rollback_probe:
       - master
 
 ## PRODUCTION ROLLBACK
-production_rollback:
+production_rollback_dashboard:
   stage: RollbackProduction
   script:
-    - echo "No rollback implemented"
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback dashboard
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/dashboard
   only:
     refs:
       - release
-  environment:
-    name: production
+
+production_rollback_accounts:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback accounts
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/accounts
+  only:
+    refs:
+      - release
+
+production_rollback_backend:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback backend
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
+  only:
+    refs:
+      - release
+
+production_rollback_home:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback home
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
+  only:
+    refs:
+      - release
+
+production_rollback_status-page:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback status-page
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/status-page
+  only:
+    refs:
+      - release
+
+production_rollback_api-docs:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback api-docs
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/api-docs
+  only:
+    refs:
+      - release
+
+production_rollback_admin-dashboard:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback admin-dashboard
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/admin-dashboard
+  only:
+    refs:
+      - release
+
+production_rollback_probe:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback probe
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
+  only:
+    refs:
+      - release
