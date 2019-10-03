@@ -24,7 +24,7 @@ clean_job_status_env_vars:
     # cleanup
     - curl --request DELETE --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS
     # create new var
-    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/CI_PROJECT_ID/variables --form "key=SMOKE_TEST_STATUS" --form "value=failed"
+    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=SMOKE_TEST_STATUS" --form "value=failed"
 
   only:
     refs:
@@ -747,7 +747,7 @@ smoke_test_staging:
     - npm ci
     - npm run test
     # if job is successs, update smoke test status variable
-    - curl --request PUT --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/CI_PROJECT_ID/variables/SMOKE_TEST_STATUS --form "value=success"
+    - curl --request PUT --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS --form "value=success"
 
   only:
     refs:
