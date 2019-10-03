@@ -87,12 +87,7 @@ class UptimeGraphs extends Component {
     }
 
     for (let i = 0; i < 90; i++) {
-      if (i < this.props.monitor.time.length) {
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} monitorName={this.props.monitor.name} />);
-      }
-    else {
-        block.unshift(<BlockChart time={false} emptytime={new Date().setDate(new Date(this.props.monitor.time[0] != undefined && this.props.monitor.time[0].date ? this.props.monitor.time[0].date : new Date()).getDate() - i)} key={i} id={i} monitorName={this.props.monitor.name}/>);
-      }
     }
 
     return (
