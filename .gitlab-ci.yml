@@ -6,14 +6,30 @@
 
 # Define stages
 stages:
+  - CleanEnvVars
   - BuildAndTest
   - E2E
   - VersionUpdate
   - DeployStaging
+  - RollbackIfStagingDeploymentFail
   - DeployProduction
+  - RollbackIfProductionDeploymentFail
   - SmokeTest
   - RollbackStaging
   - RollbackProduction
+
+clean_job_status_env_vars:
+  stage: CleanEnvVars
+  script: 
+    # cleanup
+    - curl --request DELETE --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS
+    # create new var
+    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=SMOKE_TEST_STATUS" --form "value=failed"
+
+  only:
+    refs:
+      - master
+      - release
 #BACKEND
 lint_n_audit_backend:
   stage: BuildAndTest
@@ -24,6 +40,10 @@ lint_n_audit_backend:
     - npm run lint
     # - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_backend:
   stage: BuildAndTest
@@ -33,7 +53,10 @@ build_n_test_backend:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
-
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 ##DASHBOARD
 lint_n_audit_dashboard:
   stage: BuildAndTest
@@ -44,6 +67,10 @@ lint_n_audit_dashboard:
     - npm run lint
     # - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_dashboard:
   stage: BuildAndTest
@@ -62,6 +89,10 @@ build_n_test_dashboard:
     - cd dashboard
     - npm ci
     - npm run jest
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ##ZAPIER
 lint_n_audit_zapier:
@@ -73,11 +104,19 @@ lint_n_audit_zapier:
     - npm run lint
     - npm run audit
     - cd ..
-
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+      
 build_n_test_zapier:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## STATUS PAGE
 lint_n_audit_statuspage:
@@ -89,6 +128,10 @@ lint_n_audit_statuspage:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_statuspage:
   stage: BuildAndTest
@@ -110,6 +153,10 @@ build_n_test_statuspage:
     - sleep 1m
     - curl localhost:3006
     - npm run jest
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## ACCOUNTS
 lint_n_audit_accounts:
@@ -121,6 +168,10 @@ lint_n_audit_accounts:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_accounts:
   stage: BuildAndTest
@@ -139,6 +190,10 @@ build_n_test_accounts:
     - cd accounts
     - npm ci
     - npm run jest
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## HOME
 lint_n_audit_home:
@@ -150,11 +205,19 @@ lint_n_audit_home:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_home:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## PROBE
 lint_n_audit_probe:
@@ -166,11 +229,19 @@ lint_n_audit_probe:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_probe:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## SERVER MONITOR
 lint_n_audit_server-monitor:
@@ -182,11 +253,19 @@ lint_n_audit_server-monitor:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_server-monitor:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ##E2E Stage.
 e2e_test:
@@ -213,17 +292,33 @@ e2e_test:
       - release
       - master
 
-# VERSION BUMP
+# VERSION UPDATE
 version_update:
+  before_script:
+    - cd ..
+    - rm -rf app
+    - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
+    - cd app
+    - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
   stage: VersionUpdate
   script:
     - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+<<<<<<< HEAD
     - sudo apt install nodejs
     - chmod +x ./kubernetes/ci/version-setup.sh
     - ./kubernetes/ci/version-setup.sh
     - git add .
     - git commit -m 'Version Update [skip ci]'
     - git push https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
+=======
+    - sudo apt install nodejs  
+    - git checkout $CI_COMMIT_REF_NAME
+    - chmod +x ./kubernetes/ci/version-setup.sh
+    - ./kubernetes/ci/version-setup.sh
+    - git add . 
+    - git commit -m "Version Update 3.0.$CI_PIPELINE_IID [skip ci]"
+    - git push origin $CI_COMMIT_REF_NAME
+>>>>>>> master
   only:
     refs:
       - master
@@ -234,6 +329,7 @@ version_update:
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -275,12 +371,14 @@ deploy_production_backend:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
 # DEPLOYMENT STAGE - Api docs
 deploy_staging_api-docs:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -322,12 +420,14 @@ deploy_production_api-docs:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
 # DEPLOYMENT STAGE - Home
 deploy_staging_home:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -369,12 +469,14 @@ deploy_production_home:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
 # DEPLOYMENT STAGE - Probe
 deploy_staging_probe:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -416,12 +518,14 @@ deploy_production_probe:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
 # DEPLOYMENT STAGE - status-page
 deploy_staging_status-page:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -463,12 +567,14 @@ deploy_production_status-page:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
 # DEPLOYMENT STAGE - Admin Dashboard
 deploy_staging_admin-dashboard:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -510,12 +616,14 @@ deploy_production_admin-dashboard:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
 # DEPLOYMENT STAGE - Accounts
 deploy_staging_accounts:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -557,12 +665,14 @@ deploy_production_accounts:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
 # DEPLOYMENT STAGE - Dashboard
 deploy_staging_dashboard:
   stage: DeployStaging
+  allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -604,16 +714,19 @@ deploy_production_dashboard:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
 ## DEPLOYMENT STAGE - Server Monitor
 deploy_staging_server-monitor:
   stage: DeployStaging
+  allow_failure: true
   script:
     - sudo apt-get install nodejs -y
     - cd server-monitor
     - sudo npm install -g json
+    - git checkout $CI_COMMIT_REF_NAME
     - git pull https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
     - json -I -f package.json -e 'this.name="fyipe-server-monitor-staging"'
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
@@ -642,14 +755,51 @@ deploy_production_server-monitor:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
+
+rollback_if_staging_deployment_fails:
+    stage: RollbackIfStagingDeploymentFail
+    script:
+      - chmod +x ./kubernetes/ci/deployment-setup.sh
+      - ./kubernetes/ci/deployment-setup.sh
+      - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+      - ./kubernetes/ci/deployment-staging-setup.sh
+      - chmod +x ./kubernetes/ci/staging-rollback.sh
+      - ./kubernetes/ci/staging-rollback.sh
+    only:
+      refs:
+        - master
+        
+rollback_if_production_deployment_fails:
+    stage: RollbackIfProductionDeploymentFail
+    script:
+      - chmod +x ./kubernetes/ci/deployment-setup.sh
+      - ./kubernetes/ci/deployment-setup.sh
+      - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+      - ./kubernetes/ci/deployment-production-setup.sh
+      - chmod +x ./kubernetes/ci/production-rollback.sh
+      - ./kubernetes/ci/production-rollback.sh
+    only:
+      refs:
+        - release
 
 ## SMOKE TEST STAGE
 smoke_test_production:
   stage: SmokeTest
   script:
-    - echo "No test implemented"
+    - export HOME_URL=https://www.fyipe.com
+    - export ACCOUNTS_URL=https://accounts.fyipe.com
+    - export DASHBOARD_URL=https://dashboard.fyipe.com
+    - export BACKEND_URL=https://api.fyipe.com
+    - export STATUSPAGE_URL=https://statuspage.fyipe.com
+    - export APIDOCS_URL=https://docs.fyipe.com
+    - cd smoke-test
+    - npm ci
+    - npm run test
+      # if job is successs, cancel the next jobs in pipeline.
+    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
   only:
     refs:
       - release
@@ -669,12 +819,12 @@ smoke_test_staging:
     - cd smoke-test
     - npm ci
     - npm run test
-      # if job is successs, cancel the next jobs in pipeline.
-    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
+    # if job is successs, update smoke test status variable
+    - curl --request PUT --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS --form "value=success"
+
   only:
     refs:
       - master
-      - hotfix-master
 
 ## STAGING ROLLBACK
 staging_rollback_dashboard:
@@ -692,6 +842,8 @@ staging_rollback_dashboard:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_accounts:
   stage: RollbackStaging
@@ -708,6 +860,8 @@ staging_rollback_accounts:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_backend:
   stage: RollbackStaging
@@ -724,7 +878,9 @@ staging_rollback_backend:
   only:
     refs:
       - master
-
+  except:
+    - $SMOKE_TEST_STATUS == "success"
+    
 staging_rollback_home:
   stage: RollbackStaging
   script:
@@ -740,6 +896,8 @@ staging_rollback_home:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_status-page:
   stage: RollbackStaging
@@ -756,6 +914,8 @@ staging_rollback_status-page:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_api-docs:
   stage: RollbackStaging
@@ -772,6 +932,8 @@ staging_rollback_api-docs:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_admin-dashboard:
   stage: RollbackStaging
@@ -788,6 +950,8 @@ staging_rollback_admin-dashboard:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_probe:
   stage: RollbackStaging
@@ -804,14 +968,134 @@ staging_rollback_probe:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 ## PRODUCTION ROLLBACK
-production_rollback:
+production_rollback_dashboard:
   stage: RollbackProduction
   script:
-    - echo "No rollback implemented"
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback dashboard
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/dashboard
   only:
     refs:
       - release
-  environment:
-    name: production
+
+production_rollback_accounts:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback accounts
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/accounts
+  only:
+    refs:
+      - release
+
+production_rollback_backend:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback backend
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
+  only:
+    refs:
+      - release
+
+production_rollback_home:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback home
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
+  only:
+    refs:
+      - release
+
+production_rollback_status-page:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback status-page
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/status-page
+  only:
+    refs:
+      - release
+
+production_rollback_api-docs:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback api-docs
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/api-docs
+  only:
+    refs:
+      - release
+
+production_rollback_admin-dashboard:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback admin-dashboard
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/admin-dashboard
+  only:
+    refs:
+      - release
+
+production_rollback_probe:
+  stage: RollbackProduction
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback probe
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
+  only:
+    refs:
+      - release
