@@ -18,7 +18,7 @@ const calculateTime = (probeStatus) => {
           upTime: 0,
           degradedTime: 0
       };
-      probeStatus.map(day => {
+      probeStatus.forEach(day => {
           var start;
           var end;
           if (day.endTime === null) {
@@ -36,9 +36,6 @@ const calculateTime = (probeStatus) => {
               else if (day.status === 'online') {
                   timeObj.upTime = timeObj.upTime + end.diff(start, 'minutes');
               }
-          }
-          else {
-              return
           }
       })
       totalUptime = totalUptime + timeObj.upTime;

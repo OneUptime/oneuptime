@@ -18,13 +18,13 @@ class NotesMain extends Component {
         this.subscribebutton = this.subscribebutton.bind(this);
     }
     componentDidMount() {
-        this.props.getStatusPageNote(this.props.projectId,this.props.statusPageId,0);
+        this.props.getStatusPageNote(this.props.projectId, this.props.statusPageId, 0);
     }
     getAll = () => {
-        this.props.getStatusPageNote(this.props.projectId,this.props.statusPageId, 0);
+        this.props.getStatusPageNote(this.props.projectId, this.props.statusPageId, 0);
     }
     more = () => {
-        this.props.getMoreNote(this.props.projectId,this.props.statusPageId, (this.props.skip + 5));
+        this.props.getMoreNote(this.props.projectId, this.props.statusPageId, (this.props.skip + 5));
     }
 
     subscribebutton = () => {
@@ -51,11 +51,11 @@ class NotesMain extends Component {
                                     <span className="feed-title">Incidents for {this.props.individualnote ? this.props.individualnote.name : ''} on {this.props.individualnote ? moment(this.props.individualnote.date).format('LL') : ''}</span>
                                 </ShouldRender>
                                 <ShouldRender if={this.props.isEnabled === true}>
-                                    <button className="bs-Button-subscribe" type="submit" onClick={() =>this.subscribebutton()} style={{ marginLeft: 'auto', marginRight: '18px',marginTop:'-8px' }}><span>Subscribe</span></button>
+                                    <button className="bs-Button-subscribe" type="submit" onClick={() => this.subscribebutton()} style={{ marginLeft: 'auto', marginRight: '18px', marginTop: '-8px' }}><span>Subscribe</span></button>
                                 </ShouldRender>
                             </div>
                             <ShouldRender if={this.props.subscribed}>
-                                <SubscribeBox/>
+                                <SubscribeBox />
                             </ShouldRender>
                             <ShouldRender if={this.props.noteData && !this.props.noteData.requesting && this.props.noteData.notes && this.props.noteData.notes.length}>
                                 <ul className="feed-contents plain">
@@ -102,7 +102,7 @@ class NotesMain extends Component {
                                 !this.props.individualnote
                             }
                         >
-                            <a onClick={() => this.more()} className="more">More</a>
+                            <button className="more button-as-anchor" onClick={() => this.more()}>More</button>
                         </ShouldRender>
 
                         <ShouldRender
@@ -113,7 +113,7 @@ class NotesMain extends Component {
                                 this.props.individualnote
                             }
                         >
-                            <a onClick={() =>this.getAll()} className="more">Get all incidents</a>
+                            <button className="more button-as-anchor" onClick={() => this.getAll()}>Get all incidents</button>
                         </ShouldRender>
 
                         <ShouldRender if={this.props.noteData && this.props.noteData.requesting}>
@@ -145,22 +145,23 @@ NotesMain.displayName = 'NotesMain';
 const mapStateToProps = (state) => {
     var skip = state.status.notes && state.status.notes.skip ? state.status.notes.skip : 0;
     var count = state.status.notes && state.status.notes.count ? state.status.notes.count : 0;
-    if(typeof skip === 'string'){
+    if (typeof skip === 'string') {
         skip = parseInt(skip, 10);
     }
-    if(typeof count === 'string'){
+    if (typeof count === 'string') {
         count = parseInt(count, 10);
     }
 
     return {
-    noteData: state.status.notes,
-    requestingmore: state.status.requestingmore,
-    individualnote: state.status.individualnote,
-    notesmessage: state.status.notesmessage,
-    subscribed: state.subscribe.subscribeMenu,
-    skip,count,
-    isEnabled: state.status.statusPage.isSubscriberEnabled
-}};
+        noteData: state.status.notes,
+        requestingmore: state.status.requestingmore,
+        individualnote: state.status.individualnote,
+        notesmessage: state.status.notesmessage,
+        subscribed: state.subscribe.subscribeMenu,
+        skip, count,
+        isEnabled: state.status.statusPage.isSubscriberEnabled
+    }
+};
 
 const mapDispatchToProps = (dispatch) => bindActionCreators({ getStatusPageNote, getMoreNote, openSubscribeMenu }, dispatch)
 
@@ -172,11 +173,11 @@ NotesMain.propTypes = {
     getMoreNote: PropTypes.func,
     requestingmore: PropTypes.bool,
     projectId: PropTypes.string,
-    openSubscribeMenu:PropTypes.func,
-    subscribed:PropTypes.bool,
-    skip:PropTypes.number,
-    count:PropTypes.number,
-    statusPageId:PropTypes.string,
+    openSubscribeMenu: PropTypes.func,
+    subscribed: PropTypes.bool,
+    skip: PropTypes.number,
+    count: PropTypes.number,
+    statusPageId: PropTypes.string,
     isEnabled: PropTypes.bool.isRequired
 }
 
