@@ -19,7 +19,7 @@ function validate(values) {
     if (values.OnCallAlertBox) {
         for (var i = 0; i < values.OnCallAlertBox.length; i++) {
             var repeatErrors = {};
-            var escalationArrayErrors = [];
+            let escalationArrayErrors = [];
             if (values.OnCallAlertBox[i]) {
                 if (values.OnCallAlertBox[i].callFrequency === '') {
                     repeatErrors.callFrequency = 'Please enter call frequency.';
