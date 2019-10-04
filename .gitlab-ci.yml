@@ -63,6 +63,8 @@ build_n_test_dashboard:
     - sudo docker ps
     - cd dashboard
     - npm ci
+    # try building, if there are warnings then this will fail
+    - npm run build
     - npm run jest
 
 ##ADMINDASHBOARD
@@ -79,6 +81,8 @@ lint_n_audit_admin-dashboard:
 build_n_test_admin-dashboard:
   stage: BuildAndTest
   script:
+      # try building, if there are warnings then this will fail
+    - npm run build
     - echo "No test implemented"
 
 ##ZAPIER
@@ -127,6 +131,8 @@ build_n_test_statuspage:
     - npm ci
     - sleep 1m
     - curl localhost:3006
+    # try building, if there are warnings then this will fail
+    - npm run build
     - npm run jest
 
 ## ACCOUNTS
@@ -156,6 +162,8 @@ build_n_test_accounts:
     - sudo docker ps
     - cd accounts
     - npm ci
+    # try building, if there are warnings then this will fail
+    - npm run build
     - npm run jest
 
 ## HOME
