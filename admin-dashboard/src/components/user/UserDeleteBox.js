@@ -100,7 +100,6 @@ const mapStateToProps = (state) => {
 
 UserDeleteBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    history: PropTypes.object.isRequired,
     userId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])

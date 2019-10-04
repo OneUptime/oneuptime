@@ -70,7 +70,7 @@ export class ProjectList extends Component {
                             </Fragment>
                         :
                             this.props.projects && this.props.projects.projects && this.props.projects.projects.length > 0 ? (
-                                this.props.projects.projects.map((project, i) => (
+                                this.props.projects.projects.map((project) => (
                                         <tr key={project._id} className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink" onClick={() => { history.push('/projects/' + project._id) }} >
                                             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '270px' }}>
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -83,7 +83,7 @@ export class ProjectList extends Component {
                                                 <a className="db-ListViewItem-link" >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root"><span>{ `${project.users[0] ? project.users[0].name : ''}`} { (project.users.length - 1) > 0 ? project.users.length - 1 > 1 ? `and ${project.users.length - 1} others` : `and 1 other` : ''}</span></div>
+                                                            <div className="Box-root"><span>{ `${project.users[0] ? project.users[0].name : ''}`} { (project.users.length - 1) > 0 ? project.users.length - 1 > 1 ? `and ${project.users.length - 1} others` : 'and 1 other' : ''}</span></div>
                                                         </span>
                                                     </div>
                                                 </a>
@@ -204,7 +204,7 @@ ProjectList.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null,undefined])
     ]),
-    users: PropTypes.object.isRequired
+    requesting: PropTypes.bool
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectList);

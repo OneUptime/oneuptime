@@ -100,7 +100,6 @@ const mapStateToProps = (state) => {
 
 ProjectBlockBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    history: PropTypes.object.isRequired,
     projectId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])

@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
-import ClickOutside from 'react-click-outside';
 import { API_URL,User } from '../../config';
 
 class TopContent extends Component {

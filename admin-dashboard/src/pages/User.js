@@ -101,6 +101,8 @@ User.propTypes = {
     match: PropTypes.object.isRequired,
     fetchUserProjects: PropTypes.func.isRequired,
     user: PropTypes.object.isRequired,
+    addUserNote: PropTypes.func.isRequired,
+    initialValues: PropTypes.object
 }
 
 User.displayName = 'User'

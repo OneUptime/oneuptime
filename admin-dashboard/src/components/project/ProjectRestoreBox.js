@@ -78,15 +78,11 @@ const mapStateToProps = (state, props) => {
 
 ProjectRestoreBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    history: PropTypes.object.isRequired,
     projectId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
     ]),
-    restoreProject: PropTypes.func.isRequired,
-    closeModal: PropTypes.func,
-    openModal: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired,
+    restoreProject: PropTypes.func.isRequired
 }
 
 ProjectRestoreBox.contextTypes = {

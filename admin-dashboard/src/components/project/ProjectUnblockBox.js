@@ -78,15 +78,11 @@ const mapStateToProps = (state, props) => {
 
 ProjectUnblockBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    history: PropTypes.object.isRequired,
     projectId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
     ]),
-    unblockProject: PropTypes.func.isRequired,
-    closeModal: PropTypes.func,
-    openModal: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired,
+    unblockProject: PropTypes.func.isRequired
 }
 
 ProjectUnblockBox.contextTypes = {
