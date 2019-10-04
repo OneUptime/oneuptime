@@ -58,13 +58,13 @@ export class ProjectList extends Component {
                             <Fragment> 
                                 <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink" >
                                     <td colSpan={7} className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                        <a className="db-ListViewItem-link" >
+                                        <div className="db-ListViewItem-link" >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root"><ListLoader /></div>
                                                 </span>
                                             </div>
-                                        </a>
+                                        </div>
                                     </td>
                                 </tr> 
                             </Fragment>
@@ -80,21 +80,21 @@ export class ProjectList extends Component {
                                                 </div>
                                             </td>
                                             <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                                <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-link" >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root"><span>{ `${project.users[0] ? project.users[0].name : ''}`} { (project.users.length - 1) > 0 ? project.users.length - 1 > 1 ? `and ${project.users.length - 1} others` : 'and 1 other' : ''}</span></div>
                                                         </span>
                                                     </div>
-                                                </a>
+                                                </div>
                                             </td>
                                             <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                                <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-link" >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-                                                </a>
+                                                </div>
                                             </td>
                                             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                                <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-link" >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex-flex">
@@ -127,20 +127,20 @@ export class ProjectList extends Component {
                                                             </div>
                                                         </span>
                                                     </div>
-                                                </a>
+                                                </div>
                                             </td>
 
                                             <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                                <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-link" >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-                                                </a>
+                                                </div>
                                             </td>
                                             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                                <a className="db-ListViewItem-link" >
+                                                <div className="db-ListViewItem-link" >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         {moment(project.createdAt).fromNow()}
                                                     </div>
-                                                </a>
+                                                </div>
                                             </td>
                                             <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell">
                                             </td>
