@@ -30,7 +30,7 @@ function validate(values) {
                     alertArrayErrors[i] = repeatErrors;
                 }
             }
-            values.OnCallAlertBox[i] && values.OnCallAlertBox[i].teamMember.map((val, j) => {
+            values.OnCallAlertBox[i] && values.OnCallAlertBox[i].teamMember.forEach((val, j) => {
                 const escalationErrors = {}
                 if (val) {
                     if (val.member === '') {
@@ -61,7 +61,6 @@ function validate(values) {
                         escalationArrayErrors[j] = escalationErrors;
                     }
                 }
-
             })
             repeatErrors.escalation = escalationArrayErrors;
             alertArrayErrors[i] = repeatErrors;
