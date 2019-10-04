@@ -38,30 +38,58 @@ const placeholders = {
     'greaterThan': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '50',
+        'memoryUsage': '4',
+        'storage Usage': '64',
+        'temperature': '40'
     },
     'lessThan': {
         'responseTime': '4000',
         'statusCode': '400',
+        'cpuLoad': '100',
+        'memoryUsage': '8',
+        'storage Usage': '128',
+        'temperature': '80'
     },
     'inBetween': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '50',
+        'memoryUsage': '4',
+        'storage Usage': '64',
+        'temperature': '40'
     },
     'equalTo': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '50',
+        'memoryUsage': '4',
+        'storage Usage': '64',
+        'temperature': '40'
     },
     'notEqualTo': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '50',
+        'memoryUsage': '4',
+        'storage Usage': '64',
+        'temperature': '40'
     },
     'gtEqualTo': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '50',
+        'memoryUsage': '4',
+        'storage Usage': '64',
+        'temperature': '40'
     },
     'ltEqualTo': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '50',
+        'memoryUsage': '4',
+        'storage Usage': '64',
+        'temperature': '40'
     },
     'contains': {
         'responseBody': 'Contains'
@@ -76,7 +104,7 @@ const placeholders = {
 
 export class RenderOption extends Component {
     render() {
-        const { addArrayField, removeArrayField, fieldnameprop, bodyfield, addField, removeField, level } = this.props;
+        const { addArrayField, removeArrayField, fieldnameprop, bodyfield, addField, removeField, level, type } = this.props;
         const filterval = bodyfield && bodyfield.filter && bodyfield.filter !== '' ? bodyfield.filter : '';
         return (
             <li>
@@ -94,10 +122,21 @@ export class RenderOption extends Component {
                             validate={ValidateField.select}
                         >
                             <option value="">None</option>
-                            <option value="responseTime">Response Time</option>
-                            <option value="doesRespond">Does Respond</option>
-                            <option value="statusCode">Status Code</option>
-                            <option value="responseBody">Response Body</option>
+                            {type === 'server-monitor' ?
+                                <React.Fragment>
+                                    <option value="cpuLoad">CPU Load</option>
+                                    <option value="memoryUsage">Memory Usage</option>
+                                    <option value="storageUsage">Storage Usage</option>
+                                    <option value="temperature">Temperature</option>
+                                </React.Fragment>
+                                :
+                                <React.Fragment>
+                                    <option value="responseTime">Response Time</option>
+                                    <option value="doesRespond">Does Respond</option>
+                                    <option value="statusCode">Status Code</option>
+                                    <option value="responseBody">Response Body</option>
+                                </React.Fragment>
+                            }
                         </Field>
                     </div>
                 </div>
@@ -114,15 +153,15 @@ export class RenderOption extends Component {
                             validate={ValidateField.select}
                         >
                             <option value="">None</option>
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="greaterThan">Greater Than</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="lessThan">Less Than</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="inBetween">In Between</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="greaterThan">Greater Than</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="lessThan">Less Than</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="inBetween">In Between</option> : ''}
                             {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isUp">Is Up</option> : ''}
                             {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isDown">Is Down</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="equalTo">Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="notEqualTo">Not Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="gtEqualTo">Greater Than Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="ltEqualTo">Less Than Equal To</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="equalTo">Equal To</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="notEqualTo">Not Equal To</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="gtEqualTo">Greater Than Equal To</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="ltEqualTo">Less Than Equal To</option> : ''}
                             {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="contains">Contains</option> : ''}
                             {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="doesNotContain">Does not Contain</option> : ''}
                             {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="jsExpression">Javascript Expression</option> : ''}
@@ -220,7 +259,7 @@ export class RenderOption extends Component {
     }
 }
 
-RenderOption.displayName = 'RenderOption'
+RenderOption.displayName = 'RenderOption';
 
 RenderOption.propTypes = {
     bodyfield: PropTypes.oneOfType([
@@ -231,9 +270,10 @@ RenderOption.propTypes = {
     removeArrayField: PropTypes.func,
     addField: PropTypes.func,
     removeField: PropTypes.func,
-    level:PropTypes.number,
-    fieldnameprop:PropTypes.string,
-}
+    level: PropTypes.number,
+    fieldnameprop: PropTypes.string,
+    type: PropTypes.string
+};
 
 const mapDispatchToProps = dispatch => bindActionCreators(
     { addArrayField, removeArrayField }, dispatch);

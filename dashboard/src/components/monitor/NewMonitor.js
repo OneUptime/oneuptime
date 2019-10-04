@@ -33,7 +33,8 @@ class NewMonitor extends Component {
         this.state = {
             upgradeModalId: uuid.v4(),
             advance: false,
-            script: ''
+            script: '',
+            type: ''
         }
     }
 
@@ -204,8 +205,8 @@ class NewMonitor extends Component {
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
     }
-    changeBox = () => {
-        this.setState({ advance: false });
+    changeBox = (e) => {
+        this.setState({ advance: false, type: e.target.value });
     }
 
     scriptTextChange = (newValue) => {
@@ -296,7 +297,7 @@ class NewMonitor extends Component {
                                                                 id="type"
                                                                 placeholder="Monitor Type"
                                                                 disabled={requesting}
-                                                                onChange={() => this.changeBox()}
+                                                                onChange={(e) => this.changeBox(e)}
                                                                 validate={ValidateField.select}
                                                             >
                                                                 <option value="">Select monitor type</option>
@@ -466,9 +467,9 @@ class NewMonitor extends Component {
                                                         <ShouldRender if={this.state.advance && type === 'api'}>
                                                             <ApiAdvance index={this.props.index} />
                                                         </ShouldRender>
-                                                        <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} />
-                                                        <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} />
-                                                        <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} />
+                                                        <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} type={this.state.type} />
+                                                        <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} type={this.state.type} />
+                                                        <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} type={this.state.type} />
                                                     </ShouldRender>
                                                 </ShouldRender>
                                             </div>
@@ -587,7 +588,7 @@ const mapStateToProps = (state, ownProps) => {
             schedules: state.schedule.schedules.data
         };
     }
-}
+};
 
 NewMonitor.propTypes = {
     index: PropTypes.number.isRequired,
@@ -607,7 +608,7 @@ NewMonitor.propTypes = {
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
     monitorId: PropTypes.string.isRequired
-}
+};
 
 NewMonitor.contextTypes = {
     mixpanel: PropTypes.object.isRequired
