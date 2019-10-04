@@ -51013,3 +51013,16 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
       list-style-type: disc;
       list-style-position: inside;
       }
+
+.button-as-anchor {
+  display: inline !important;
+  border: none; 
+  margin: 0; 
+  padding: 0; 
+  font: inherit; 
+  text-decoration: none; 
+  cursor: pointer; 
+  text-align: inherit;
+  background-color: inherit;
+  color: #3297d3;
+}
