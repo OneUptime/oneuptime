@@ -227,14 +227,14 @@ CustomerBalance.contextTypes = {
     mixpanel: PropTypes.object.isRequired
 };
 
-const _CustomerBalanceForm = injectStripe(connect(mapStateToProps, mapDispatchToProps)(CustomerBalanceForm));
+const CustomerBalanceFormStripe = injectStripe(connect(mapStateToProps, mapDispatchToProps)(CustomerBalanceForm));
 
 export default class CustomerBalanceWithCheckout extends Component {
     render() {
         return (
             <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
                     <Elements>
-                        <_CustomerBalanceForm />
+                        <CustomerBalanceFormStripe />
                     </Elements>
             </StripeProvider>
         )

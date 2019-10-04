@@ -3,7 +3,7 @@ import { storiesOf, action } from '@storybook/react';
 import { reduxForm } from 'redux-form'
 import { MonitorBox } from '../../../components/schedule/MonitorBox'
 
-let MonitorBox_Decorated = new reduxForm({
+let MonitorBoxDecorated = new reduxForm({
     form: 'AddUsersForm',
     enableReinitialize: true
 })(MonitorBox);
@@ -140,10 +140,10 @@ storiesOf('Schedule', module)
             {story()}</div>
     ))
     .add('MonitorBox No Monitors', () =>
-        <MonitorBox_Decorated  {...props} />
+        <MonitorBoxDecorated  {...props} />
     )
     .add('MonitorBox With Monitors', () =>
-        <MonitorBox_Decorated {...props_with_users} />
+        <MonitorBoxDecorated {...props_with_users} />
     )
     
 
