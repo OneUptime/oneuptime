@@ -65,6 +65,22 @@ build_n_test_dashboard:
     - npm ci
     - npm run jest
 
+##ADMINDASHBOARD
+lint_n_audit_admin-dashboard:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd admin-dashboard
+    - npm ci
+    - npm run lint
+    # - npm run audit
+    - cd ..
+
+build_n_test_admin-dashboard:
+  stage: BuildAndTest
+  script:
+    - echo "No test implemented"
+
 ##ZAPIER
 lint_n_audit_zapier:
   stage: BuildAndTest
