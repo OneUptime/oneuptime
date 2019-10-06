@@ -573,9 +573,9 @@ const mapStateToProps = (state, ownProps) => {
     }
     else {
         const initialvalue = {
-            up_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isUp', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
-            down_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isDown', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
-            degraded_1000: [{ match: 'all', responseType: 'responseTime', filter: 'greaterThan', field1: '5000', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
+            up_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
+            down_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
+            degraded_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
         }
         return {
             initialValues: initialvalue,
