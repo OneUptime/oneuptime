@@ -76,7 +76,7 @@ module.exports = {
                 }
                 monitor.visibleOnStatusPage = data.visibleOnStatusPage;
                 monitor.projectId = data.projectId;
-                if (data.type === 'url' || data.type === 'api') {
+                if (data.type === 'url' || data.type === 'api' || data.type === 'server-monitor') {
                     monitor.criteria = data.criteria || {};
                 }
                 if (data.type === 'api') {
