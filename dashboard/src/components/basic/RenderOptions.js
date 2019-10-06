@@ -20,7 +20,7 @@ const flexStylehidden = {
 }
 
 const firstField = ['greaterThan', 'lessThan', 'inBetween', 'equalTo', 'notEqualto', 'gtEqualTo', 'ltEqualTo', 'contains', 'doesNotContain', 'jsExpression'];
-const placeholderfilter = ['isUp', 'isDown', 'empty', 'notEmpty'];
+const placeholderfilter = ['greaterThan', 'lessThan', 'inBetween', 'isUp', 'isDown', 'empty', 'notEmpty'];
 const mapValue = {
     'greaterThan': 'Greater Than',
     'lessThan': 'Less Than',
@@ -38,58 +38,58 @@ const placeholders = {
     'greaterThan': {
         'responseTime': '2000',
         'statusCode': '200',
-        'cpuLoad': '50',
-        'memoryUsage': '4',
-        'storage Usage': '64',
-        'temperature': '40'
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'lessThan': {
         'responseTime': '4000',
         'statusCode': '400',
         'cpuLoad': '100',
-        'memoryUsage': '8',
-        'storage Usage': '128',
-        'temperature': '80'
+        'memoryUsage': '100',
+        'storageUsage': '100',
+        'temperature': '100'
     },
     'inBetween': {
         'responseTime': '2000',
         'statusCode': '200',
-        'cpuLoad': '50',
-        'memoryUsage': '4',
-        'storage Usage': '64',
-        'temperature': '40'
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'equalTo': {
         'responseTime': '2000',
         'statusCode': '200',
-        'cpuLoad': '50',
-        'memoryUsage': '4',
-        'storage Usage': '64',
-        'temperature': '40'
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'notEqualTo': {
         'responseTime': '2000',
         'statusCode': '200',
-        'cpuLoad': '50',
-        'memoryUsage': '4',
-        'storage Usage': '64',
-        'temperature': '40'
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'gtEqualTo': {
         'responseTime': '2000',
         'statusCode': '200',
-        'cpuLoad': '50',
-        'memoryUsage': '4',
-        'storage Usage': '64',
-        'temperature': '40'
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'ltEqualTo': {
         'responseTime': '2000',
         'statusCode': '200',
-        'cpuLoad': '50',
-        'memoryUsage': '4',
-        'storage Usage': '64',
-        'temperature': '40'
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'contains': {
         'responseBody': 'Contains'
@@ -185,22 +185,29 @@ export class RenderOption extends Component {
                     </div>
                 </div>
                 {bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' ? <span style={{ display: 'inline-block' }}>ms</span> : ''}
+                {bodyfield && filterval !== '' && (bodyfield.responseType === 'cpuLoad' || bodyfield.responseType === 'memoryUsage' || bodyfield.responseType === 'storageUsage') ? <span style={{ display: 'inline-block' }}>%</span> : ''}
+                {bodyfield && filterval !== '' && bodyfield.responseType === 'temperature' ? <span style={{ display: 'inline-block' }}>&deg;c</span> : ''}
                 {filterval !== '' && filterval === 'jsExpression' ? '' :
-                    <div className="bs-Fieldset-row" style={filterval !== '' && filterval === 'inBetween' ? flexStyle : flexStylehidden}>
-                        <label className="bs-Fieldset-label" style={{ padding: '6px' }}>End Value</label>
-                        <div className="bs-Fieldset-fields">
-                            <Field
-                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                type="text"
-                                name={`${fieldnameprop}.field2`}
-                                component={RenderField}
-                                validate={filterval !== '' && filterval === 'inBetween' ? [ValidateField.required, ValidateField.maxValue10000] : undefined}
-                                placeholder={bodyfield && bodyfield.responseType === 'statusCode' ? '400' : '4000'}
-                                style={bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? { width: '180px' } : { width: '200px' }}
-                            />
+                    <React.Fragment>
+                        <div className="bs-Fieldset-row" style={filterval !== '' && filterval === 'inBetween' ? flexStyle : flexStylehidden}>
+                            <label className="bs-Fieldset-label" style={{ padding: '6px' }}>End Value</label>
+                            <div className="bs-Fieldset-fields">
+                                <Field
+                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                    type="text"
+                                    name={`${fieldnameprop}.field2`}
+                                    component={RenderField}
+                                    validate={filterval !== '' && filterval === 'inBetween' ? [ValidateField.required, ValidateField.maxValue10000] : undefined}
+                                    placeholder={bodyfield && filterval && bodyfield.responseType && placeholderfilter.indexOf(filterval) <= -1 && placeholders[filterval][bodyfield.responseType] ? placeholders['lessThan'][bodyfield.responseType] : ''}
+                                    style={bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? { width: '180px' } : { width: '200px' }}
+                                />
+                            </div>
                         </div>
-                    </div>}
-                {bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? <span style={{ display: 'inline-block' }}>ms</span> : ''}
+                        {bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? <span style={{ display: 'inline-block' }}>ms</span> : ''}
+                        {bodyfield && filterval !== '' && (bodyfield.responseType === 'cpuLoad' || bodyfield.responseType === 'memoryUsage' || bodyfield.responseType === 'storageUsage') && filterval === 'inBetween' ? <span style={{ display: 'inline-block' }}>%</span> : ''}
+                        {bodyfield && filterval !== '' && bodyfield.responseType === 'temperature' && filterval === 'inBetween' ? <span style={{ display: 'inline-block' }}>&deg;c</span> : ''}
+                    </React.Fragment>
+                }
                 <div className="bs-Fieldset-row" style={{ display: 'inline-block', padding: '4px' }}>
                     <label className="bs-Fieldset-label" style={{ padding: '6px' }}></label>
                     <div className="bs-Fieldset-fields">

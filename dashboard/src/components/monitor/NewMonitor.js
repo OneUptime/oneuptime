@@ -34,10 +34,9 @@ class NewMonitor extends Component {
             upgradeModalId: uuid.v4(),
             advance: false,
             script: '',
-            type: ''
+            type: props.edit ? props.editMonitorProp.type : props.type
         }
     }
-
 
     componentDidMount() {
         const userId = User.getUserId();
