@@ -68,10 +68,11 @@ export class Monitors extends Component {
                                                             <MonitorInputs monitors={this.props.monitors} subProject={this.props.currentProject} /> : false
                                                         }
                                                         {
-                                                            subProjects.forEach((subProject, i)=>{
+                                                            subProjects.map((subProject, i)=>{
                                                                 if((subProject._id === status.projectId._id) || (subProject._id === status.projectId)){
                                                                     return (<MonitorInputs monitors={this.props.monitors} subProject={subProject} key={i} />)
                                                                 }
+                                                                return false;
                                                             }) 
                                                         } 
                                                         </div>

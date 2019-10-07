@@ -79,10 +79,11 @@ export function MonitorBox(props) {
                                                                 <MonitorInputs monitors={props.monitors} subProject={currentProject} /> : false
                                                             }
                                                             {
-                                                                props.subProjects.forEach((subProject, i)=>{
+                                                                props.subProjects.map((subProject, i)=>{
                                                                     if(subProject._id === props.subProjectId){
                                                                         return <MonitorInputs monitors={props.monitors} project={props.currentProject} subProject={subProject} key={i}/>
                                                                     }
+                                                                    return false;
                                                                 })
                                                             }
                                                         </div>
