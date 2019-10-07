@@ -55,7 +55,7 @@ class Main extends Component {
 	}
 
 	groupedMonitors = () => {
-		if (this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0) {
+		if (this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0) {
 			let monitorData = this.props.statusData.monitorIds;
 			let groupedMonitorData = this.groupBy(monitorData, 'monitorCategoryId')
 			let monitorCategoryStyle = {
@@ -188,14 +188,14 @@ class Main extends Component {
 									{isGroupedByMonitorCategory ?
 										this.groupedMonitors() :
 										(this.props.statusData &&
-											this.props.statusData.monitorIds != undefined &&
+											this.props.statusData.monitorIds !== undefined &&
 											this.props.statusData.monitorIds.length > 0 ?
 											this.props.statusData.monitorIds
 												.map((monitor, i) =>
 													<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />) :
 											<NoMonitor />)}
 								</div>
-								{this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0 ? <UptimeLegend /> : ''}
+								{this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0 ? <UptimeLegend /> : ''}
 							</div>
 						</div>
 					</div>

@@ -2,8 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { User } from '../../config';
+    import { User } from '../../config';
 import { hideProfileMenu } from '../../actions/profile'
 
 export class ProfileMenu extends Component {
@@ -74,7 +73,6 @@ const mapDispatchToProps = dispatch => {
 
 ProfileMenu.propTypes = {
     visible: PropTypes.bool,
-    hideProfileMenu: PropTypes.func.isRequired
 }
 
 ProfileMenu.contextTypes = {

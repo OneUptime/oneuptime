@@ -3,7 +3,7 @@ import { storiesOf, action } from '@storybook/react';
 import { reduxForm } from 'redux-form'
 import { ProfileSetting } from '../../../components/profileSettings/Profile'
 
-let ProfileSetting_Decorated = new reduxForm({
+let ProfileSettingDecorated = new reduxForm({
     form: 'Profile',
     enableReinitialize: true
 })(ProfileSetting);
@@ -98,10 +98,10 @@ storiesOf('Profile Settings', module)
             {story()}</div>
     ))
     .add('Profile Settings', () =>
-        <ProfileSetting_Decorated  {...props} />
+        <ProfileSettingDecorated  {...props} />
     )
     .add('Profile Error', () =>
-        <ProfileSetting_Decorated  {...props_error} />
+        <ProfileSettingDecorated  {...props_error} />
     )
 
 

@@ -587,7 +587,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                             if (monitor._id === action.payload.monitorId._id) {
                                 var incidents = monitor.incidents || [];
 
-                                if (incidents && incidents.length && incidents !== undefined || incidents !== null) {
+                                if (incidents && incidents.length) {
                                     if (incidents.length > 2) {
                                         incidents.splice(-1, 1);
                                     }

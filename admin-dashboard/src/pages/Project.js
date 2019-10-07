@@ -95,6 +95,8 @@ Project.contextTypes = {
 Project.propTypes = {
     history: PropTypes.object.isRequired,
     addProjectNote: PropTypes.func.isRequired,
+    project: PropTypes.object.isRequired,
+    initialValues: PropTypes.object
 }
 
 Project.displayName = 'Project'

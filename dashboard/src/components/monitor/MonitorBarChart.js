@@ -8,26 +8,27 @@ import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 
 const calculateTime = (probeStatus) => {
-    var timeBlock = [];
-    var dayStart = moment(Date.now()).startOf('day');
-    var totalUptime = 0;
-    var totalTime = 0;
-    for (var i = 0; i < 90; i++) {
-        var dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
-        var timeObj = {
+    let timeBlock = [];
+    let dayStart = moment(Date.now()).startOf('day');
+    let totalUptime = 0;
+    let totalTime = 0;
+    for (let i = 0; i < 90; i++) {
+        let dayStartIn = dayStart;
+        let dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
+        let timeObj = {
             date: dayStart,
             downTime: 0,
             upTime: 0,
             degradedTime: 0
         };
-        probeStatus.map(day => {
-            var start;
-            var end;
+        probeStatus.forEach(day => {
+            let start;
+            let end;
             if (day.endTime === null) {
                 day.endTime = Date.now();
             }
-            if (moment(day.startTime).isBefore(dayEnd) && moment(day.endTime).isAfter(dayStart)) {
-                start = moment(day.startTime).isBefore(dayStart) ? dayStart : moment(day.startTime);
+            if (moment(day.startTime).isBefore(dayEnd) && moment(day.endTime).isAfter(dayStartIn)) {
+                start = moment(day.startTime).isBefore(dayStartIn) ? dayStartIn : moment(day.startTime);
                 end = moment(day.endTime).isAfter(dayEnd) ? dayEnd : moment(day.endTime);
                 if (day.status === 'offline') {
                     timeObj.downTime = timeObj.downTime + end.diff(start, 'minutes');
@@ -38,9 +39,6 @@ const calculateTime = (probeStatus) => {
                 else if (day.status === 'online') {
                     timeObj.upTime = timeObj.upTime + end.diff(start, 'minutes');
                 }
-            }
-            else {
-                return
             }
         })
         totalUptime = totalUptime + timeObj.upTime;
@@ -79,7 +77,7 @@ export function MonitorBarChart(props) {
     let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
     let monitorType = props.monitor.type;
-
+        
     let monitorInfo = monitorType === 'server-monitor' ? (
         <Fragment>
             <div className="db-Trend">
