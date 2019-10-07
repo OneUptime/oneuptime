@@ -81,6 +81,8 @@ lint_n_audit_admin-dashboard:
 build_n_test_admin-dashboard:
   stage: BuildAndTest
   script:
+    - cd admin-dashboard
+    - npm ci
       # try building, if there are warnings then this will fail
     - npm run build
     - echo "No test implemented"
