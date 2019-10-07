@@ -23,7 +23,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
- 
+
 const selector = formValueSelector('NewMonitor');
 
 class NewMonitor extends Component {
@@ -93,16 +93,16 @@ class NewMonitor extends Component {
         postObj.monitorCategoryId = values[`monitorCategoryId_${this.props.index}`]
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
         if (!postObj.projectId) postObj.projectId = this.props.currentProject._id;
-        if (postObj.type === 'url' || postObj.type === 'manual')
-            postObj.data.url = values[`url_${this.props.index}`] || null;
+        if (postObj.type === 'manual')
+            postObj.data.description = values[`description_${this.props.index}`] || null;
 
         if (postObj.type === 'device')
             postObj.data.deviceId = values[`deviceId_${this.props.index}`];
 
-        if (postObj.type === 'api')
+        if (postObj.type === 'url' || postObj.type === 'api')
             postObj.data.url = values[`url_${this.props.index}`];
-        
-        if (postObj.type === 'script'){
+
+        if (postObj.type === 'script') {
             postObj.data.script = thisObj.state.script;
         }
 
@@ -163,7 +163,6 @@ class NewMonitor extends Component {
                     }
                 })
         } else {
-
             this.props.createMonitor(postObj.projectId, postObj)
                 .then(() => {
                     thisObj.props.reset();
@@ -209,7 +208,7 @@ class NewMonitor extends Component {
     }
 
     scriptTextChange = (newValue) => {
-        this.setState({script: newValue});
+        this.setState({ script: newValue });
     }
 
     render() {
@@ -382,41 +381,37 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
                                                     </ShouldRender>
-
-                                                    {/**  <div className="bs-Fieldset-row">
-                                                    {/**  <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">Sub project</label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={'select'}
-                                                            name={`type_${this.props.index}`}
-                                                            id="type"
-                                                            placeholder="Monitor Type"
-                                                            required="required"
-                                                            disabled={requesting}
-                                                        >
-                                                            <option value="">Select monitor type</option>
-                                                            <option value="url">URL</option>
-                                                            <option value="device">Device</option>
-                                                            <option value="manual">Manual</option>
-                                                        </Field>
-                                                    </div>
-                                                </div> */}
-                                                    {(type === 'url' || type === 'manual' || type === 'api') && <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">URL{type === 'manual' && '(optional)'}</label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={RenderField}
-                                                                type="url"
-                                                                name={`url_${this.props.index}`}
-                                                                id="url"
-                                                                placeholder="https://mywebsite.com"
-                                                                disabled={requesting}
-                                                                validate={[ValidateField.required, ValidateField.url]}
-                                                            />
+                                                    <ShouldRender if={type === 'url' || type === 'api'}>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">URL</label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={RenderField}
+                                                                    type="url"
+                                                                    name={`url_${this.props.index}`}
+                                                                    id="url"
+                                                                    placeholder="https://mywebsite.com"
+                                                                    disabled={requesting}
+                                                                    validate={[ValidateField.required, ValidateField.url]}
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>}
-
+                                                    </ShouldRender>
+                                                    <ShouldRender if={type === 'manual'}>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">Description (optional)</label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={RenderField}
+                                                                    type="text"
+                                                                    name={`description_${this.props.index}`}
+                                                                    id="description"
+                                                                    placeholder="Home Page's Monitor"
+                                                                    disabled={requesting}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
                                                     {type === 'device' && <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Device ID</label>
                                                         <div className="bs-Fieldset-fields">
@@ -440,7 +435,7 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </ShouldRender>
                                                     <ShouldRender if={type === 'script'}>
-                                                    <div className="bs-Fieldset-row">
+                                                        <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">Script</label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <span>
@@ -453,7 +448,7 @@ class NewMonitor extends Component {
                                                                             name={`script_${this.props.index}`}
                                                                             id="script"
                                                                             editorProps={{ $blockScrolling: true }}
-                                                                            height={150}
+                                                                            height="150px"
                                                                             highlightActiveLine={true}
                                                                             onChange={this.scriptTextChange}
                                                                         />
@@ -590,7 +585,7 @@ const mapStateToProps = (state, ownProps) => {
 }
 
 NewMonitor.propTypes = {
-    index: PropTypes.number.isRequired,
+    index: PropTypes.oneOfType([PropTypes.string.isRequired, PropTypes.number.isRequired]),
     editMonitorSwitch: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     editMonitor: PropTypes.func.isRequired,
@@ -606,7 +601,7 @@ NewMonitor.propTypes = {
     subProjects: PropTypes.array,
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
-    monitorId: PropTypes.string.isRequired
+    monitorId: PropTypes.string
 }
 
 NewMonitor.contextTypes = {

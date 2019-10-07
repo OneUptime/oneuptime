@@ -7,11 +7,15 @@ import uuid from 'uuid';
 import DateRangeWrapper from './DateRangeWrapper';
 import MonitorTitle from './MonitorTitle';
 import moment from 'moment';
-import { editMonitorSwitch } from '../../actions/monitor';
+import { editMonitorSwitch, deleteMonitor } from '../../actions/monitor';
+import DeleteMonitor from '../modals/DeleteMonitor';
+import { FormLoader } from '../basic/Loader';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { selectedProbe } from '../../actions/monitor';
+import { openModal, closeModal } from '../../actions/modal';
+import { history } from '../../store';
 
 const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
@@ -21,9 +25,12 @@ export class MonitorViewHeader extends Component {
         super(props);
         this.props = props;
         this.state = {
+            deleteModalId: uuid.v4(),
             monitorStart: startDate,
             monitorEnd: endDate
         }
+
+        this.deleteMonitor = this.deleteMonitor.bind(this);
     }
 
     handleMonitorChange = (startDate, endDate) => {
@@ -40,8 +47,29 @@ export class MonitorViewHeader extends Component {
         }
     }
 
+    deleteMonitor = () => {
+        let promise = this.props.deleteMonitor(this.props.monitor._id, this.props.monitor.projectId._id || this.props.monitor.projectId);
+        history.push(`/project/${this.props.currentProject._id}/monitoring`);
+        if (window.location.href.indexOf('localhost') <= -1) {
+            this.context.mixpanel.track('Monitor Deleted', {
+                ProjectId: this.props.currentProject._id,
+                monitorId: this.props.monitor._id
+            });
+        }
+        return promise;
+    }
+
     selectbutton = (data) => {
         this.props.selectedProbe(data);
+    }
+
+    handleKeyBoard = (e) => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({ id: this.state.deleteModalId })
+            default:
+                return false;
+        }
     }
 
     render() {
@@ -73,8 +101,14 @@ export class MonitorViewHeader extends Component {
         const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
         const subProject = this.props.subProjects.find(subProject => subProject._id === subProjectId);
 
+        let { deleteModalId } = this.state;
+        let deleting = false;
+        if (this.props.monitorState && this.props.monitorState.deleteMonitor && this.props.monitorState.deleteMonitor === this.props.monitor._id) {
+            deleting = true;
+        }
+
         return (
-            <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
+            <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium" onKeyDown={this.handleKeyBoard}>
                 {
                     this.props.currentProject._id === subProjectId ?
                         <div className="Box-root Padding-top--20 Padding-left--20">
@@ -98,6 +132,21 @@ export class MonitorViewHeader extends Component {
                             <div>
                                 <RenderIfSubProjectAdmin subProjectId={subProjectId}>
                                     <button className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' onClick={this.editMonitor}><span>Edit</span></button>
+                                    <button id={`delete_${this.props.monitor.name}`} className={deleting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'} type="button" disabled={deleting}
+                                        onClick={() =>
+                                            this.props.openModal({
+                                                id: deleteModalId,
+                                                onClose: () => '',
+                                                onConfirm: () => this.deleteMonitor(),
+                                                content: DeleteMonitor
+                                            })}>
+                                        <ShouldRender if={!deleting}>
+                                            <span>Delete</span>
+                                        </ShouldRender>
+                                        <ShouldRender if={deleting}>
+                                            <FormLoader />
+                                        </ShouldRender>
+                                    </button>
                                 </RenderIfSubProjectAdmin>
                             </div>
                         </div>
@@ -129,6 +178,10 @@ MonitorViewHeader.displayName = 'MonitorViewHeader'
 MonitorViewHeader.propTypes = {
     monitor: PropTypes.object.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
+    monitorState: PropTypes.object.isRequired,
+    deleteMonitor: PropTypes.func.isRequired,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
     index: PropTypes.string.isRequired,
     subProjects: PropTypes.array.isRequired,
     currentProject: PropTypes.object.isRequired,
@@ -136,12 +189,17 @@ MonitorViewHeader.propTypes = {
     selectedProbe: PropTypes.func.isRequired
 }
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    { editMonitorSwitch, selectedProbe }, dispatch
-)
+const mapDispatchToProps = dispatch => bindActionCreators({
+    editMonitorSwitch,
+    deleteMonitor,
+    selectedProbe,
+    openModal,
+    closeModal
+}, dispatch);
 
 const mapStateToProps = (state) => {
     return {
+        monitorState: state.monitor,
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,
         activeProbe: state.monitor.activeProbe,

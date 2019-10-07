@@ -37,7 +37,7 @@ const createOptions = (fontSize, padding) => {
 class _CardForm extends React.Component {
 
     handleSubmit = async (e) => {
-        const { projectId, stripe , addCardSuccess, addCardFailed, addCardRequest } = this.props;
+        const { projectId, stripe, addCardSuccess, addCardFailed, addCardRequest } = this.props;
         e.preventDefault();
         var cardId = '';
         var tok = {};
@@ -46,11 +46,11 @@ class _CardForm extends React.Component {
             stripe
                 .createToken()
                 .then(({ token }) => {
-                    if(token){
+                    if (token) {
                         tok = token;
-                        return postApi(`stripe/${projectId}/creditCard/${token.id}/pi`); 
+                        return postApi(`stripe/${projectId}/creditCard/${token.id}/pi`);
                     }
-                    else{
+                    else {
                         throw new Error('Invalid card Details.');
                     }
                 })
@@ -95,10 +95,10 @@ class _CardForm extends React.Component {
                                         <span>Add Card</span>
                                     </span>
                                     <p>
-                                    <span>
-                                        We will charge 1$ to make sure that this card is billable.
-                                    </span>
-                                </p>
+                                        <span>
+                                            We will charge 1$ to make sure this card is billable.
+                                        </span>
+                                    </p>
                                 </div>
                             </div>
                             <div className="bs-Modal-content Padding-horizontal--12">
@@ -115,7 +115,7 @@ class _CardForm extends React.Component {
                                 </div>
                             </div>
                             <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions" style={{width: 280}}>
+                                <div className="bs-Modal-footer-actions" style={{ width: 280 }}>
                                     <ShouldRender if={error}>
                                         <div className="bs-Tail-copy">
                                             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
@@ -131,17 +131,17 @@ class _CardForm extends React.Component {
                                     </ShouldRender>
                                 </div>
                                 <button className="bs-Button bs-DeprecatedButton" type="button" onClick={() => this.props.closeModal({
-                                        id: this.props.CreateCardModalId
-                                    })}>
-                                        <span>Cancel</span></button>
-                                    <button
-                                        id="addCardButtonSubmit"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                        disabled={requesting}
-                                        type="submit">
-                                        {!requesting && <span>Add</span>}
-                                        {requesting && <FormLoader />}
-                                    </button>
+                                    id: this.props.CreateCardModalId
+                                })}>
+                                    <span>Cancel</span></button>
+                                <button
+                                    id="addCardButtonSubmit"
+                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                    disabled={requesting}
+                                    type="submit">
+                                    {!requesting && <span>Add</span>}
+                                    {requesting && <FormLoader />}
+                                </button>
                             </div>
                         </div>
                     </div>
