@@ -75,7 +75,7 @@ lint_n_audit_admin-dashboard:
     - cd admin-dashboard
     - npm ci
     - npm run lint
-    # - npm run audit
+    - npm run audit
     - cd ..
 
 build_n_test_admin-dashboard:
