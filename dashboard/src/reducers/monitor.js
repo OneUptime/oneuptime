@@ -85,14 +85,14 @@ export default function monitor(state = INITIAL_STATE, action) {
                         return subProjectMonitors._id === action.payload.projectId._id ?
                             {
                                 _id: action.payload.projectId._id,
-                                monitors: [...subProjectMonitors.monitors, action.payload],
+                                monitors: [action.payload, ...subProjectMonitors.monitors],
                                 count: subProjectMonitors.count + 1,
                                 skip: subProjectMonitors.skip,
                                 limit: subProjectMonitors.limit
                             }
                             : subProjectMonitors
                     }) : [{ _id: action.payload.projectId, monitors: [action.payload], count: 1, skip: 0, limit: 0 }]
-                        : state.monitorsList.monitors.concat([{ _id: action.payload.projectId, monitors: [action.payload], count: 1, skip: 0, limit: 0 }])
+                        : [{ _id: action.payload.projectId, monitors: [action.payload], count: 1, skip: 0, limit: 0 }].concat(state.monitorsList.monitors)
                 }
             });
 
