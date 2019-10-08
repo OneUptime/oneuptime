@@ -6,6 +6,10 @@ var monitorStatusSchema = new Schema({
     probeId: { type: String, ref: 'Probe' }, //which probe does this belong to.
     responseTime: Number, // Time taken for ping
     status: String,
+    manuallyCreated: {
+        type: Boolean,
+        default: false
+    },
     startTime: {
         type: Date,
         default: Date.now,

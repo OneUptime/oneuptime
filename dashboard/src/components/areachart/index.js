@@ -58,7 +58,7 @@ class AreaChart extends Component {
         const b = a.data[name];
         const c = b.length > 0 ? b[0] : b;
         return { name: this.parseDate(a.createdAt), v: this.getValue(c, name), display: this.getValue(c, name, true) };
-      }).splice(0, 90).reverse();
+      }).reverse();
 
       return (
         <ResponsiveContainer width="100%" height={75}>

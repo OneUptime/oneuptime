@@ -158,14 +158,14 @@ NotificationMenu.contextTypes = {
     mixpanel: PropTypes.object.isRequired
 };
 
-const _NotificationMenu = injectStripe(connect(mapStateToProps, mapDispatchToProps)(NotificationMenu));
+const NotificationMenuStripe = injectStripe(connect(mapStateToProps, mapDispatchToProps)(NotificationMenu));
 
 export default class NotificationWithCheckout extends Component {
     render() {
         return (
             <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
                     <Elements>
-                        <_NotificationMenu />
+                        <NotificationMenuStripe />
                     </Elements>
             </StripeProvider>
         )

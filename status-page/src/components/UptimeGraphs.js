@@ -1,17 +1,69 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import BlockChart from './BlockChart';
+import moment from 'moment';
+import { connect } from 'react-redux';
+import toPascalCase from 'to-pascal-case';
+
+const calculateTime = (probeStatus) => {
+  let timeBlock = [];
+  let dayStart = moment(Date.now()).startOf('day');
+  let totalUptime = 0;
+  let totalTime = 0;
+  for (let i = 0; i < 90; i++) {
+      let dayStartIn = dayStart;
+      let dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
+      let timeObj = {
+          date: dayStart,
+          downTime: 0,
+          upTime: 0,
+          degradedTime: 0
+      };
+      probeStatus.forEach(day => {
+          let start;
+          let end;
+          if (day.endTime === null) {
+              day.endTime = Date.now();
+          }
+          if (moment(day.startTime).isBefore(dayEnd) && moment(day.endTime).isAfter(dayStartIn)) {
+              start = moment(day.startTime).isBefore(dayStartIn) ? dayStartIn : moment(day.startTime);
+              end = moment(day.endTime).isAfter(dayEnd) ? dayEnd : moment(day.endTime);
+              if (day.status === 'offline') {
+                  timeObj.downTime = timeObj.downTime + end.diff(start, 'minutes');
+              }
+              else if (day.status === 'degraded') {
+                  timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'minutes');
+              }
+              else if (day.status === 'online') {
+                  timeObj.upTime = timeObj.upTime + end.diff(start, 'minutes');
+              }
+          }
+      })
+      totalUptime = totalUptime + timeObj.upTime;
+      totalTime = totalTime + timeObj.upTime + timeObj.degradedTime + timeObj.downTime;
+      timeBlock.push(Object.assign({}, timeObj));
+      dayStart = dayStart.subtract(1, 'days');
+  }
+  return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
+}
 
 class UptimeGraphs extends Component {
   render() {
-    const upDays = this.props.monitor.time.length;
-    let totalUptime = Math.floor(this.props.monitor.totalUptimePercent);
+    var block = [];
+    var { monitorState, activeProbe } = this.props;
+    var currentMonitorId  = this.props.monitor._id;
+    var monitorData = monitorState && monitorState[0].monitors.filter(monitor => monitor._id === currentMonitorId);
+    var probe = monitorData[0].probes.filter(probe => probe._id === activeProbe);
+    var { timeBlock, uptimePercent } = probe && probe.probeStatus ? calculateTime(probe.probeStatus) : calculateTime([]);
+
+    let monitorStatus = probe && probe.status ? toPascalCase(probe.status) : 'Online';
+    let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
+
+
+    const upDays = timeBlock.length;
     let status = {};
 
-    if (this.props.monitor.time.length === 1 && !this.props.monitor.time[0].upTime && !this.props.monitor.time[0].downTime) {
-      totalUptime = 100;
-    }
-    if (this.props.monitor && this.props.monitor.stat && this.props.monitor.stat === 'offline') {
+    if (monitorStatus === 'offline') {
       status = {
         display: 'inline-block',
         borderRadius: '2px',
@@ -31,15 +83,9 @@ class UptimeGraphs extends Component {
         backgroundColor: 'rgb(117, 211, 128)'
       }// "green-status";
     }
-    const block = [];
 
     for (let i = 0; i < 90; i++) {
-      if (i < this.props.monitor.time.length) {
-        block.unshift(<BlockChart time={this.props.monitor.time[i]} key={i} id={i} monitorName={this.props.monitor.name}/>);
-      }
-    else {
-        block.unshift(<BlockChart time={false} emptytime={new Date().setDate(new Date(this.props.monitor.time[0] != undefined && this.props.monitor.time[0].date ? this.props.monitor.time[0].date : new Date()).getDate() - i)} key={i} id={i} monitorName={this.props.monitor.name}/>);
-      }
+        block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} monitorName={this.props.monitor.name} />);
     }
 
     return (
@@ -49,7 +95,7 @@ class UptimeGraphs extends Component {
           <span className="uptime-stat-name">{this.props.monitor.name}</span>
           <span className="url" style={{ paddingLeft: '0px' }}>{this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? <a style={{ color: '#8898aa', textDecoration: 'none', paddingLeft: '0px' }}
             href={this.props.monitor.data.url} target="_blank" rel="noopener noreferrer">{this.props.monitor.data.url}</a> :<span style={{ color: '#8898aa', textDecoration: 'none', paddingLeft: '0px' }}>{this.props.monitor.type}</span> }</span>
-          <span className="percentage"><em>{totalUptime}%</em> uptime for the last {upDays > 90 ? 90 : upDays} day{upDays > 1 ? 's' : ''}</span>
+          <span className="percentage"><em>{uptime}%</em> uptime for the last {upDays > 90 ? 90 : upDays} day{upDays > 1 ? 's' : ''}</span>
         </div>
         <div className="block-chart">
           {block}
@@ -61,9 +107,18 @@ class UptimeGraphs extends Component {
 
 UptimeGraphs.displayName = 'UptimeGraphs';
 
-UptimeGraphs.propTypes = {
-  monitor: PropTypes.object,
-  id: PropTypes.string
+function mapStateToProps(state) {
+  return {
+      monitorState: state.status.statusPage.monitorsData,
+      activeProbe: state.status.activeProbe
+  };
 }
 
-export default UptimeGraphs;
+UptimeGraphs.propTypes = {
+  monitor: PropTypes.object,
+  id: PropTypes.string,
+  activeProbe: PropTypes.string,
+  monitorState: PropTypes.object
+}
+
+export default connect(mapStateToProps)(UptimeGraphs);

@@ -1,6 +1,6 @@
 {
   "name": "fyipe-admin-dashboard",
-  "version": "0.1.0",
+  "version": "3.0.358",
   "private": true,
   "dependencies": {
     "@trendmicro/react-dropdown": "^1.3.0",

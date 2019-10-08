@@ -374,14 +374,14 @@ AlertAdvanceOption.contextTypes = {
 
 
 
-const _AlertAdvanceOptionForm = injectStripe(connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm));
+const AlertAdvanceOptionFormStripe = injectStripe(connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm));
 
 export default class AlertAdvanceOptionWithCheckout extends Component {
     render() {
         return (
             <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
                     <Elements>
-                        <_AlertAdvanceOptionForm />
+                        <AlertAdvanceOptionFormStripe />
                     </Elements>
             </StripeProvider>
         )

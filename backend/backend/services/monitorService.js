@@ -61,9 +61,12 @@ module.exports = {
                 monitor.name = data.name;
                 monitor.type = data.type;
                 monitor.createdById = data.createdById;
-                if (data.type === 'url' || data.type === 'manual' || data.type === 'api') {
+                if (data.type === 'url' || data.type === 'api') {
                     monitor.data = {};
-                    monitor.data.url = data.data.url || null;
+                    monitor.data.url = data.data.url;
+                } else if (data.type === 'manual') {
+                    monitor.data = {};
+                    monitor.data.description = data.data.description || null;
                 } else if (data.type === 'device') {
                     monitor.data = {};
                     monitor.data.deviceId = data.data.deviceId;
@@ -93,9 +96,9 @@ module.exports = {
                     throw error;
                 }
                 var fetchedMonitor = await IncidentService.getMonitorsWithIncidentsBy({
-                    query: {_id: savedMonitor._id},
-                    skip:0,
-                    limit:0
+                    query: { _id: savedMonitor._id },
+                    skip: 0,
+                    limit: 0
                 });
                 return fetchedMonitor;
             }
@@ -113,7 +116,7 @@ module.exports = {
             query = {};
         }
 
-        if(!query.deleted) query.deleted = false;
+        if (!query.deleted) query.deleted = false;
 
         try {
             var monitor = await MonitorModel.findOneAndUpdate(query,
@@ -127,9 +130,9 @@ module.exports = {
             throw error;
         }
         monitor = await IncidentService.getMonitorsWithIncidentsBy({
-            query: {_id: monitor._id},
-            skip:0,
-            limit:0
+            query: { _id: monitor._id },
+            skip: 0,
+            limit: 0
         });
         try {
             await RealTimeService.monitorEdit(monitor);
@@ -162,7 +165,7 @@ module.exports = {
             query = {};
         }
 
-        if(!query.deleted) query.deleted = false;
+        if (!query.deleted) query.deleted = false;
         try {
             var monitors = await MonitorModel.find(query)
                 .sort([['createdAt', -1]])
@@ -181,7 +184,7 @@ module.exports = {
             query = {};
         }
 
-        if(!query.deleted) query.deleted = false;
+        if (!query.deleted) query.deleted = false;
         try {
             var monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name');
@@ -198,7 +201,7 @@ module.exports = {
             query = {};
         }
 
-        if(!query.deleted) query.deleted = false;
+        if (!query.deleted) query.deleted = false;
         try {
             var count = await MonitorModel.count(query)
                 .populate('project', 'name');
@@ -409,6 +412,35 @@ module.exports = {
         }
     },
 
+    // Description: Add Server Monitor Log Data
+    async addMonitorLog(monitorId, data) {
+        // var _this = this;
+        var monitorLogData = new MonitorLogModel();
+        monitorLogData.monitorId = monitorId;
+        monitorLogData.status = 'online';
+        monitorLogData.data = data;
+        try {
+            var monitorData = await monitorLogData.save();
+        } catch (error) {
+            ErrorService.log('monitorLogData.save', error);
+            throw error;
+        }
+
+        return monitorData;
+    },
+
+    async getMonitorLogs(monitorId) {
+        try {
+            var monitorData = await MonitorLogModel.find({ monitorId: monitorId })
+                .sort([['createdAt', -1]]);
+        } catch (error) {
+            ErrorService.log('monitorLogModel.find', error);
+            throw error;
+        }
+
+        return monitorData;
+    },
+
     async sendResponseTime(monitorsData) {
         try {
             var monitor = await MonitorModel.findOne({ _id: monitorsData.monitorId, deleted: false });
@@ -424,17 +456,6 @@ module.exports = {
                 throw error;
             }
         }
-    },
-
-    // Get monitor times from database
-    async getMonitorTime(monitorId, date) {
-        try {
-            var monitorTime = await MonitorTimeModel.find({ monitorId: monitorId, timestamp: { $lt: date } });
-        } catch (error) {
-            ErrorService.log('MonitorTimeModel.find', error);
-            throw error;
-        }
-        return monitorTime;
     },
 
     addSeat: async function (query) {
@@ -540,74 +561,34 @@ module.exports = {
         return times;
     },
 
-    addUpTime: async function (monitor) {
-        if (monitor && monitor._doc) {
-            monitor = monitor._doc;
-        }
-        var _this = this;
-        var time = [];
-        var responseTime = 0;
-        try {
-            time = await StatusPageService.getMonitorTime(monitor._id);
-        } catch (error) {
-            ErrorService.log('StatusPageService.getMonitorTime', error);
-            throw error;
-        }
-        try {
-            responseTime = await _this.getResponseTime(monitor._id);
-        } catch (error) {
-            ErrorService.log('MonitorService.getResponseTime', error);
-            throw error;
-        }
-        var uptime = 0;
-        var downtime = 0;
-        var status = 'offline';
-        var uptimePercent = 0;
-
-        time.forEach(el => {
-            uptime += el.upTime;
-            downtime += el.downTime;
-        });
-        if (uptime === 0 && downtime === 0) {
-            uptimePercent = 100;
-        }
-        else {
-            uptimePercent = uptime / (uptime + downtime) * 100;
-        }
-        if (time && time[time.length - 1] && time[time.length - 1].status) {
-            status = time[time.length - 1].status;
-        }
-        let updatedMonitor = Object.assign({}, monitor, { time, responseTime, uptimePercent, status });
-        return updatedMonitor;
-    },
-    restoreBy: async function(query){
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         let monitor = await _this.findBy(query);
-        if(monitor && monitor.length > 1){
+        if (monitor && monitor.length > 1) {
             const monitors = await Promise.all(monitor.map(async (monitor) => {
                 const monitorId = monitor._id;
-                monitor = await _this.update({_id: monitorId, deleted: true}, {
+                monitor = await _this.update({ _id: monitorId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
                 });
-                await IncidentService.restoreBy({monitorId, deleted: true});
-                await AlertService.restoreBy({monitorId, deleted: true});
+                await IncidentService.restoreBy({ monitorId, deleted: true });
+                await AlertService.restoreBy({ monitorId, deleted: true });
                 return monitor;
             }));
             return monitors;
-        }else{
+        } else {
             monitor = monitor[0];
-            if(monitor){
+            if (monitor) {
                 const monitorId = monitor._id;
-                monitor = await _this.update({_id: monitorId, deleted: true}, {
+                monitor = await _this.update({ _id: monitorId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
                 });
-                await IncidentService.restoreBy({monitorId, deleted: true});
-                await AlertService.restoreBy({monitorId, deleted: true});
+                await IncidentService.restoreBy({ monitorId, deleted: true });
+                await AlertService.restoreBy({ monitorId, deleted: true });
             }
             return monitor;
         }
@@ -615,7 +596,7 @@ module.exports = {
 };
 
 var MonitorModel = require('../models/monitor');
-var MonitorTimeModel = require('../models/monitorTime');
+var MonitorLogModel = require('../models/monitorLog');
 var MonitorCategoryService = require('../services/monitorCategoryService');
 var Plans = require('./../config/plans');
 var RealTimeService = require('./realTimeService');

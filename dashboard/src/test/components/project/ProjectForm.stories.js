@@ -159,7 +159,7 @@ let props = {
     hideForm:action('hideForm')
 }
 
-let ProjectForm_Decorated = new reduxForm({
+let ProjectFormDecorated = new reduxForm({
     form: 'ProjectForm',
     validate
 })(ProjectForm);
@@ -172,5 +172,5 @@ storiesOf('Project', module)
             {story()}</div>
     ))
     .add('ProjectForm', () =>
-        <ProjectForm_Decorated submitting={boolean('submitting', false)}  {...props} />
+        <ProjectFormDecorated submitting={boolean('submitting', false)}  {...props} />
     )

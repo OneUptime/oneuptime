@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>Fyipe Server Monitor</h1>
+<p>A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.</p>
+<h2>Installation</h2>
+<p>You can install to use on the CLI:</p>
+<pre class="prettyprint source"><code>$ npm install -g fyipe-server-monitor
+</code></pre>
+<p>You can install to use in your project:</p>
+<pre class="prettyprint source"><code>$ cd project
+$ npm install fyipe-server-monitor
+</code></pre>
+<h2>CLI Usage</h2>
+<p>You can use on the CLI:</p>
+<ul>
+<li>Run <code>fyipe-server-monitor</code>.</li>
+<li>Enter your Project ID and API key - Get these from your Fyipe Dashboard.</li>
+<li>Select Server Monitor from the list of Server Monitors.</li>
+<li>Server will be pinged every minute and the data stored in your project.</li>
+</ul>
+<p>You can also use like so:</p>
+<pre class="prettyprint source"><code>$ fyipe-server-monitor -p 5d64d59cae46131619708309 -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
+</code></pre>
+<p><a name="module_api"></a></p>
+<h2>Basic Usage</h2>
+<pre class="prettyprint source lang-javascript"><code>const serverMonitor = require(&quot;fyipe-server-monitor&quot;);
+
+const monitor = serverMonitor({
+  projectId: &quot;5d64d59cae46131619708309&quot;,
+  apiKey: &quot;b02798c0-c898-11e9-9f14-4963dc67e2ab&quot;,
+  monitorId: &quot;5d7775e9f14a531364ba6917&quot;,
+  interval: &quot;*/5 * * * * *&quot;, // cron job interval
+  timeout: 10000 // milliseconds
+});
+
+monitor.start();
+</code></pre>
+<h2>API Documentation</h2>
+<p>Main API to authenticate user, start and stop server monitoring.</p>
+<p><strong>See</strong></p>
+<ul>
+<li>module:helpers</li>
+<li>module:logger</li>
+</ul>
+<p><strong>Author</strong>: HackerBay, Inc.</p>
+<ul>
+<li><a href="#module_api">api</a>
+<ul>
+<li><a href="#exp_module_api--module.exports">module.exports(config, apiKey, monitorId)</a> ⇒ <code>Object</code> ⏏
+<ul>
+<li><a href="#module_api--module.exports..ping">~ping(projectId, monitorId, apiKey, interval)</a> ⇒ <code>Object</code></li>
+<li><a href="#module_api--module.exports..start">~start(id)</a></li>
+<li><a href="#module_api--module.exports..stop">~stop()</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><a name="exp_module_api--module.exports"></a></p>
+<h3>module.exports(config, apiKey, monitorId) ⇒ <code>Object</code> ⏏</h3>
+<p>Authenticate user and get list of server monitors if monitor id not provided.</p>
+<p><strong>Kind</strong>: Exported function
+<strong>Returns</strong>: <code>Object</code> - The server monitor handlers.</p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>config</td>
+<td><code>string</code> | <code>Object</code></td>
+<td>The project id or config of the project.</td>
+</tr>
+<tr>
+<td>apiKey</td>
+<td><code>string</code></td>
+<td>The api key of the project.</td>
+</tr>
+<tr>
+<td>monitorId</td>
+<td><code>string</code> | <code>function</code></td>
+<td>The monitor id or function to resolve monitor id of the server monitor.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_api--module.exports..ping"></a></p>
+<h4>module.exports~ping(projectId, monitorId, apiKey, interval) ⇒ <code>Object</code></h4>
+<p>Get system information at interval and upload to server.</p>
+<p><strong>Kind</strong>: inner method of <a href="#exp_module_api--module.exports"><code>module.exports</code></a>
+<strong>Returns</strong>: <code>Object</code> - The ping server cron job.</p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>projectId</td>
+<td><code>string</code></td>
+<td></td>
+<td>The project id of the project.</td>
+</tr>
+<tr>
+<td>monitorId</td>
+<td><code>string</code></td>
+<td></td>
+<td>The monitor id of the server monitor.</td>
+</tr>
+<tr>
+<td>apiKey</td>
+<td><code>string</code></td>
+<td></td>
+<td>The api key of the project.</td>
+</tr>
+<tr>
+<td>interval</td>
+<td><code>string</code></td>
+<td><code>&quot;* * * * *&quot;</code></td>
+<td>The interval of the cron job, must ba a valid cron format.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_api--module.exports..start"></a></p>
+<h4>module.exports~start(id)</h4>
+<p>Start server monitor.</p>
+<p><strong>Kind</strong>: inner method of <a href="#exp_module_api--module.exports"><code>module.exports</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td><code>string</code></td>
+<td>The monitor id of the server monitor.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_api--module.exports..stop"></a></p>
+<h4>module.exports~stop()</h4>
+<p>Stop server monitor.</p>
+<p><strong>Kind</strong>: inner method of <a href="#exp_module_api--module.exports"><code>module.exports</code></a></p>
+<pre class="prettyprint source"><code>
+</code></pre></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-api.html">api</a></li><li><a href="module-config.html">config</a></li><li><a href="module-helpers.html">helpers</a></li><li><a href="module-logger.html">logger</a></li><li><a href="module-server-monitor.html">server-monitor</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sun Sep 29 2019 22:14:31 GMT+0100 (WAT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
