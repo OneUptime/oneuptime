@@ -14,8 +14,6 @@ const user = {
 let callSchedule = utils.generateRandomString();
 let subProjectName = utils.generateRandomString();
 
-
-
 describe('Monitor API', () => {
     const operationTimeOut = 50000;
 
@@ -50,12 +48,10 @@ describe('Monitor API', () => {
         await init.registerUser(user, page);
         await init.loginUser(user, page);
         await init.addSchedule(callSchedule, page);
-
     });
 
     afterAll(async () => {
         await browser.close();
-
     });
 
     it('Should create new monitor with correct details', async () => {
@@ -76,7 +72,6 @@ describe('Monitor API', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly(monitorName);
-
     }, operationTimeOut);
 
     it('Should create new monitor with call schedule', async () => {
@@ -97,11 +92,9 @@ describe('Monitor API', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly(monitorName);
-
     }, operationTimeOut);
 
     it('Should not create new monitor when details that are incorrect', async () => {
-
         await page.waitFor(10000);
         await page.waitForSelector('#name');
         await page.select('select[name=type_1000]', 'url');
@@ -114,6 +107,5 @@ describe('Monitor API', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly('This field cannot be left blank');
-
     }, operationTimeOut);
 });

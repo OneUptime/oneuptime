@@ -25,8 +25,6 @@ const newUser = {
 
 let subProjectName = utils.generateRandomString();
 
-
-
 describe('Monitor API With SubProjects', () => {
     const operationTimeOut = 50000;
 
