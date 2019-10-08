@@ -164,6 +164,7 @@ describe('Incident API With SubProjects', () => {
     it('should update internal and investigation notes of incident in sub-project', async () =>{
         let investigationNote = utils.generateRandomString();
         let internalNote = utils.generateRandomString();
+        await newPage.reload({ waitUntil: 'networkidle2'});
         await newPage.waitForSelector(`#incident_${subProjectMonitorName}_0`);
         await newPage.click(`#incident_${subProjectMonitorName}_0`);
         await newPage.waitForSelector('#txtInternalNote');

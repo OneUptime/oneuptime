@@ -104,7 +104,7 @@ export class SidebarNavItem extends Component {
 
 SidebarNavItem.displayName = 'SidebarNavItem'
 
-let mapStateToProps = state => ({})
+let mapStateToProps = state_Ignored => ({})
 
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,

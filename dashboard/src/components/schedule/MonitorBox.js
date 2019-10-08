@@ -83,6 +83,7 @@ export function MonitorBox(props) {
                                                                     if(subProject._id === props.subProjectId){
                                                                         return <MonitorInputs monitors={props.monitors} project={props.currentProject} subProject={subProject} key={i}/>
                                                                     }
+                                                                    return false;
                                                                 })
                                                             }
                                                         </div>

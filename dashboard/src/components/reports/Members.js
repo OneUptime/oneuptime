@@ -74,8 +74,8 @@ class MembersList extends Component {
     let canPrev = (this.props.activeMembers && this.state.skip <= 0) ? false : true;
 
     if (this.props.activeMembers && (this.props.activeMembers.requesting || !this.props.activeMembers.members)) {
-        canNext = false;
-        canPrev = false;
+      canNext = false;
+      canPrev = false;
     }
     return (
       <div>
@@ -184,7 +184,7 @@ class MembersList extends Component {
                       height: '1px'
                     }}
                   >
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8" style={{ textAlign: 'center'}}>
+                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8" style={{ textAlign: 'center' }}>
                       ⁣{' '}
                       <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root Flex-inlineFlex Flex-alignItems--center">
@@ -197,7 +197,7 @@ class MembersList extends Component {
                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                     style={{ height: '1px' }}
                   >
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8" style={{ textAlign: 'center'}}>
+                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8" style={{ textAlign: 'center' }}>
                       <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root Flex-inlineFlex Flex-alignItems--center">
                           <div>{incidents}</div>
@@ -213,7 +213,7 @@ class MembersList extends Component {
                       <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root Flex-inlineFlex Flex-alignItems--center">
                           <div style={{ color: 'darkorange' }}>
-                          { humanize(averageAcknowledgeTime, { round: true, largest: 2 }) }
+                            {humanize(averageAcknowledgeTime, { round: true, largest: 2 })}
                           </div>
                         </div>
                       </span>
@@ -227,7 +227,7 @@ class MembersList extends Component {
                       <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root Flex-inlineFlex Flex-alignItems--center">
                           <div style={{ color: 'green' }}>
-                          { humanize(averageResolved, { round: true, largest: 2 }) }
+                            {humanize(averageResolved, { round: true, largest: 2 })}
                           </div>
                         </div>
                       </span>
@@ -239,32 +239,32 @@ class MembersList extends Component {
           </tbody>
         </table>
         {(this.props.activeMembers && this.props.activeMembers.requesting)
-        ? (
-          <ListLoader />
-        ) : null}
+          ? (
+            <ListLoader />
+          ) : null}
         <div style={{ textAlign: 'center', marginTop: '10px' }}>
           {this.props.activeMembers && (!this.props.activeMembers.members || !this.props.activeMembers.members.length) && !this.props.activeMembers.requesting && !this.props.activeMembers.error ? 'We don\'t have any reports for this period' : null}
           {this.props.activeMembers && this.props.activeMembers.error ? this.props.activeMembers.error : null}
         </div>
         <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
           <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
-              <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                  <span>
-                      <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{this.props.activeMembers && this.props.activeMembers.count ? this.props.activeMembers.count + (this.props.activeMembers && this.props.activeMembers.count > 1 ? ' Members' : ' Member') : null}</span>
-                  </span>
+            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+              <span>
+                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{this.props.activeMembers && this.props.activeMembers.count ? this.props.activeMembers.count + (this.props.activeMembers && this.props.activeMembers.count > 1 ? ' Members' : ' Member') : null}</span>
               </span>
+            </span>
           </div>
           <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
               <div className="Box-root Margin-right--8">
-                  <button onClick={this.handlePrevious} className={'Button bs-ButtonLegacy' + (canPrev ? '' : 'Is--disabled')} disabled={!canPrev} data-db-analytics-name="list_view.pagination.previous" type="button">
-                      <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Previous</span></span></div>
-                  </button>
+                <button onClick={this.handlePrevious} className={'Button bs-ButtonLegacy' + (canPrev ? '' : 'Is--disabled')} disabled={!canPrev} data-db-analytics-name="list_view.pagination.previous" type="button">
+                  <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Previous</span></span></div>
+                </button>
               </div>
               <div className="Box-root">
-                  <button onClick={this.handleNext} className={'Button bs-ButtonLegacy' + (canNext ? '' : 'Is--disabled')} disabled={!canNext} data-db-analytics-name="list_view.pagination.next" type="button">
-                      <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Next</span></span></div>
-                  </button>
+                <button onClick={this.handleNext} className={'Button bs-ButtonLegacy' + (canNext ? '' : 'Is--disabled')} disabled={!canNext} data-db-analytics-name="list_view.pagination.next" type="button">
+                  <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Next</span></span></div>
+                </button>
               </div>
             </div>
           </div>
@@ -298,7 +298,7 @@ MembersList.propTypes = {
   activeMembers: PropTypes.object,
   startDate: PropTypes.string,
   endDate: PropTypes.string,
-  currentProject: PropTypes.object
+  currentProject: PropTypes.oneOfType([PropTypes.object, PropTypes.string])
 };
 
 export default connect(
