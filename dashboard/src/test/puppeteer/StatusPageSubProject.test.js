@@ -123,7 +123,6 @@ describe('StatusPage API With SubProjects', () => {
         await newPage.click(`#statusPages > a`);
         const createButton = await newPage.$(`#btnCreateStatusPage_${subProjectName}`);
         expect(createButton).toBe(null);
-        ;
     });
 
     it('should create a status page in sub-project for sub-project `admin`', async () => {
@@ -141,7 +140,6 @@ describe('StatusPage API With SubProjects', () => {
         let textContent = await statusPageCountSelector.getProperty('innerText');
         textContent = await textContent.jsonValue();
         await expect(textContent).toEqual('1 status page');
-        ;
     }, operationTimeOut);
 
     it('should get list of status pages in sub-projects and paginate status pages in sub-project', async ()=>{
@@ -166,7 +164,6 @@ describe('StatusPage API With SubProjects', () => {
         await newPage.waitFor(5000);
         countStatusPages = (await newPage.$$('tr.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')).length;
         expect(countStatusPages).toEqual(10);
-        ;
     }, 120000);
 
     it('should update sub-project status page settings', async ()=>{
@@ -190,7 +187,6 @@ describe('StatusPage API With SubProjects', () => {
         await page.type('#url_0', 'https://fyipe.com');
         await page.click('#btnSaveLinks');
         await page.waitFor(5000);
-        ;
     }, operationTimeOut);
 
     it('should delete sub-project status page', async ()=>{
@@ -199,6 +195,5 @@ describe('StatusPage API With SubProjects', () => {
         await page.waitForSelector('#confirmDelete');
         await page.click('#confirmDelete');
         await page.waitFor(5000);
-        ;
     }, operationTimeOut);
 });     
