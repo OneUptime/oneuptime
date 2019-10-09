@@ -48,8 +48,8 @@ class PaymentCard extends Component {
                                                 </span>
                                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <span>
-                                                        These cards will be used for billing.
-                                                            </span>
+                                                        Add multiple backup cards which will be used for billing if your primary card is unbillable.
+                                                    </span>
                                                 </span>
                                             </div>
                                             <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
@@ -211,17 +211,17 @@ class PaymentCard extends Component {
                                                                                     className="Button bs-ButtonLegacy"
                                                                                     type="button"
                                                                                     disabled={settingDefaultCard}>
-                                                                                {requestingDefaultCardId === card.id ?
-                                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                                        <div style={{ marginTop: -20 }}>
-                                                                                            <ListLoader />
-                                                                                        </div>
-                                                                                    </div> :
-                                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                                        <span className="Button-label Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                                            <span>Set as default</span>
-                                                                                        </span>
-                                                                                    </div>}
+                                                                                    {requestingDefaultCardId === card.id ?
+                                                                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                                            <div style={{ marginTop: -20 }}>
+                                                                                                <ListLoader />
+                                                                                            </div>
+                                                                                        </div> :
+                                                                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                                            <span className="Button-label Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                                                <span>Set as default</span>
+                                                                                            </span>
+                                                                                        </div>}
                                                                                 </button>
                                                                             </div>
                                                                         </div>}

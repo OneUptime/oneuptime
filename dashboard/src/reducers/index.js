@@ -25,6 +25,7 @@ import scheduledEvent from './scheduledEvent';
 import monitorCategories from './monitorCategories';
 import card from './card';
 import probe from './probe';
+import version from './version';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -52,7 +53,8 @@ const appReducer = combineReducers({
     subscriber,
     scheduledEvent,
     card,
-    probe
+    probe,
+    version
 });
 
 export default (state, action) => {

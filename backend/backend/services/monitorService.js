@@ -61,9 +61,12 @@ module.exports = {
                 monitor.name = data.name;
                 monitor.type = data.type;
                 monitor.createdById = data.createdById;
-                if (data.type === 'url' || data.type === 'manual' || data.type === 'api') {
+                if (data.type === 'url' || data.type === 'api') {
                     monitor.data = {};
-                    monitor.data.url = data.data.url || null;
+                    monitor.data.url = data.data.url;
+                } else if (data.type === 'manual') {
+                    monitor.data = {};
+                    monitor.data.description = data.data.description || null;
                 } else if (data.type === 'device') {
                     monitor.data = {};
                     monitor.data.deviceId = data.data.deviceId;

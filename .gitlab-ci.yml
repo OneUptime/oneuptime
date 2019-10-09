@@ -88,11 +88,33 @@ build_n_test_dashboard:
     - sudo docker ps
     - cd dashboard
     - npm ci
+    # try building, if there are warnings then this will fail
+    - npm run build
     - npm run jest
   except:
     refs:
       - hotfix-master
       - hotfix-release
+
+##ADMINDASHBOARD
+lint_n_audit_admin-dashboard:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd admin-dashboard
+    - npm ci
+    - npm run lint
+    # - npm run audit
+    - cd ..
+
+build_n_test_admin-dashboard:
+  stage: BuildAndTest
+  script:
+    - cd admin-dashboard
+    - npm ci
+      # try building, if there are warnings then this will fail
+    - npm run build
+    - echo "No test implemented"
 
 ##ZAPIER
 lint_n_audit_zapier:
@@ -152,6 +174,8 @@ build_n_test_statuspage:
     - npm ci
     - sleep 1m
     - curl localhost:3006
+    # try building, if there are warnings then this will fail
+    - npm run build
     - npm run jest
   except:
     refs:
@@ -189,6 +213,8 @@ build_n_test_accounts:
     - sudo docker ps
     - cd accounts
     - npm ci
+    # try building, if there are warnings then this will fail
+    - npm run build
     - npm run jest
   except:
     refs:

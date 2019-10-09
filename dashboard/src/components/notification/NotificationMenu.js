@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { markAsRead, billingActionTaken} from '../../actions/notification';
+import { markAsRead, billingActionTaken } from '../../actions/notification';
 import { User } from '../../config';
 import moment from 'moment';
 import {
@@ -16,7 +16,7 @@ import uuid from 'uuid';
 
 class NotificationMenu extends Component {
 
-    state = { 
+    state = {
         MessageBoxId: uuid.v4()
     }
 
@@ -38,17 +38,17 @@ class NotificationMenu extends Component {
         stripe.handleCardPayment(client_secret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    var creditedBalance = result.paymentIntent.amount / 100; 
+                    var creditedBalance = result.paymentIntent.amount / 100;
                     billingActionTaken(projectId, _id, {
                         meta: {},
                         icon: 'success',
-                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
+                        message: `Transaction successful, your balance is now ${balance + creditedBalance}$`
                     })
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
                         title: 'Message',
-                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
+                        message: `Transaction successful, your balance is now ${balance + creditedBalance}$`
                     })
                 }
                 else {
@@ -112,7 +112,7 @@ class NotificationMenu extends Component {
                                             })
                                             :
                                             <div className="Box-root" style={{ padding: '10px', fontWeight: '500', marginTop: '-12px' }}>
-                                                <span>No notifications at this time</span>
+                                                <span style={{ paddingLeft: '15px' }}>No notifications at this time</span>
                                             </div>
                                         }
                                     </div>
@@ -158,15 +158,15 @@ NotificationMenu.contextTypes = {
     mixpanel: PropTypes.object.isRequired
 };
 
-const _NotificationMenu = injectStripe(connect(mapStateToProps, mapDispatchToProps)(NotificationMenu));
+const NotificationMenuStripe = injectStripe(connect(mapStateToProps, mapDispatchToProps)(NotificationMenu));
 
 export default class NotificationWithCheckout extends Component {
     render() {
         return (
             <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
-                    <Elements>
-                        <_NotificationMenu />
-                    </Elements>
+                <Elements>
+                    <NotificationMenuStripe />
+                </Elements>
             </StripeProvider>
         )
     }

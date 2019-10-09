@@ -77,13 +77,13 @@ TD1.propTypes = {
  function TD2({ text }) {
     return (
         <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-            <a className="db-ListViewItem-link" >
+            <div className="db-ListViewItem-link" >
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root"><span>{text}</span></div>
                     </span>
                 </div>
-            </a>
+            </div>
         </td>
     )
 }
@@ -96,16 +96,16 @@ TD2.propTypes = {
  function TD3() {
     return (
         <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-            <a className="db-ListViewItem-link">
+            <div className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-            </a>
+            </div>
         </td>
     )
 }
  function TD4({ text }) {
     return (
         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-            <a className="db-ListViewItem-link">
+            <div className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root Flex-flex">
@@ -117,7 +117,7 @@ TD2.propTypes = {
                         </div>
                     </span>
                 </div>
-            </a>
+            </div>
         </td>
     )
 }
@@ -129,9 +129,9 @@ TD4.propTypes = {
  function TD5() {
     return (
         <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-            <a className="db-ListViewItem-link">
+            <div className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-            </a>
+            </div>
         </td>
     )
 }
@@ -139,9 +139,9 @@ TD4.propTypes = {
  function TD6({ text }) {
     return (
         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-            <a className="db-ListViewItem-link">
+            <div className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"><span>{moment(text).format('lll')}</span></span></div>
-            </a>
+            </div>
         </td>
     )
 }

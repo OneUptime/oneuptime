@@ -94,7 +94,7 @@ export class TemplatesFormBox extends Component {
 
                                             <ShouldRender if={!(this.props.revealVariable && this.props.revealVariable === template.emailType)}>
                                                 <span style={{ display: 'block', marginLeft: '120px' }}>
-                                                    <a onClick={() => this.props.setRevealVariable(template.emailType)} style={{cursor:'pointer'}}> Click here to reveal available variables.</a>
+                                                    <button className="button-as-anchor" onClick={() => this.props.setRevealVariable(template.emailType)} > Click here to reveal available variables.</button>
                                                 </span>
                                             </ShouldRender>
                                             <ShouldRender if={(this.props.revealVariable && this.props.revealVariable === template.emailType)}>

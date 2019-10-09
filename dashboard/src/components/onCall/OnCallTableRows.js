@@ -77,7 +77,7 @@ function OnCallTableRows({ schedules, isRequesting, match, subProjectId }) {
 
     return schedules.length > 0 ? (
         schedules.map((schedule, index) => {
-            if(Array.isArray(schedule)) return;
+            if(Array.isArray(schedule)) return null;
             schedule = parseSchedule(schedule);
             return (
                 <Row

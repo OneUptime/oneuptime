@@ -70,7 +70,7 @@ export class IncidentList extends Component {
                                             </div>
                                         </td>
                                         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                            <a className="db-ListViewItem-link" >
+                                            <div className="db-ListViewItem-link" >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Flex-flex">
@@ -106,24 +106,24 @@ export class IncidentList extends Component {
                                                         </div>
                                                     </span>
                                                 </div>
-                                            </a>
+                                            </div>
                                         </td>
                                         <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                            <a className="db-ListViewItem-link" >
+                                            <div className="db-ListViewItem-link" >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root"><span>{moment(incident.createdAt).fromNow()}</span></div>
                                                     </span>
                                                 </div>
-                                            </a>
+                                            </div>
                                         </td>
                                         <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                            <a className="db-ListViewItem-link" >
+                                            <div className="db-ListViewItem-link" >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-                                            </a>
+                                            </div>
                                         </td>
                                         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                            <a className="db-ListViewItem-link" >
+                                            <div className="db-ListViewItem-link" >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Flex-flex">
@@ -145,16 +145,16 @@ export class IncidentList extends Component {
                                                         </div>
                                                     </span>
                                                 </div>
-                                            </a>
+                                            </div>
                                         </td>
 
                                         <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                            <a className="db-ListViewItem-link" >
+                                            <div className="db-ListViewItem-link" >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-                                            </a>
+                                            </div>
                                         </td>
                                         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                            <a className="db-ListViewItem-link" >
+                                            <div className="db-ListViewItem-link" >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     {
                                                         !incident.resolved ? (
@@ -174,7 +174,7 @@ export class IncidentList extends Component {
                                                             )
                                                     }
                                                 </div>
-                                            </a>
+                                            </div>
                                         </td>
                                         <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell">
                                         </td>
