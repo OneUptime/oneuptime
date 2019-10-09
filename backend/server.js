@@ -66,6 +66,7 @@ app.use('/smsSmtp', require('./backend/api/smsSmtp'));
 app.use('/monitorCategory', require('./backend/api/monitorCategory'));
 app.use('/scheduledEvent', require('./backend/api/scheduledEvent'));
 app.use('/probe', require('./backend/api/probe'));
+app.use('/version', require('./backend/api/version'));
 app.set('port', process.env.PORT || 3002);
 
 http.listen(app.get('port'), function () {

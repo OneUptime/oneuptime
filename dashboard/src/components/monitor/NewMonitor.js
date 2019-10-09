@@ -250,7 +250,7 @@ class NewMonitor extends Component {
                                 <p>
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
-                                            Monitor pings your website every minute and checks uptime, performance and notifies you when things are down.
+                                            Monitor any resource like API&apos;s, Websites, Servers, Containers, IoT device or more.
                                         </span>
                                     </ShouldRender>
                                     <ShouldRender if={this.props.edit}>
