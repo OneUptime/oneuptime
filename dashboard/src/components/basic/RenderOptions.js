@@ -20,7 +20,7 @@ const flexStylehidden = {
 }
 
 const firstField = ['greaterThan', 'lessThan', 'inBetween', 'equalTo', 'notEqualto', 'gtEqualTo', 'ltEqualTo', 'contains', 'doesNotContain', 'jsExpression'];
-const placeholderfilter = ['isUp', 'isDown', 'empty', 'notEmpty'];
+const placeholderfilter = ['greaterThan', 'lessThan', 'inBetween', 'isUp', 'isDown', 'empty', 'notEmpty'];
 const mapValue = {
     'greaterThan': 'Greater Than',
     'lessThan': 'Less Than',
@@ -38,30 +38,58 @@ const placeholders = {
     'greaterThan': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'lessThan': {
         'responseTime': '4000',
         'statusCode': '400',
+        'cpuLoad': '100',
+        'memoryUsage': '100',
+        'storageUsage': '100',
+        'temperature': '100'
     },
     'inBetween': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'equalTo': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'notEqualTo': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'gtEqualTo': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'ltEqualTo': {
         'responseTime': '2000',
         'statusCode': '200',
+        'cpuLoad': '20',
+        'memoryUsage': '20',
+        'storageUsage': '20',
+        'temperature': '20'
     },
     'contains': {
         'responseBody': 'Contains'
@@ -76,7 +104,7 @@ const placeholders = {
 
 export class RenderOption extends Component {
     render() {
-        const { addArrayField, removeArrayField, fieldnameprop, bodyfield, addField, removeField, level } = this.props;
+        const { addArrayField, removeArrayField, fieldnameprop, bodyfield, addField, removeField, level, type } = this.props;
         const filterval = bodyfield && bodyfield.filter && bodyfield.filter !== '' ? bodyfield.filter : '';
         return (
             <li>
@@ -94,10 +122,21 @@ export class RenderOption extends Component {
                             validate={ValidateField.select}
                         >
                             <option value="">None</option>
-                            <option value="responseTime">Response Time</option>
-                            <option value="doesRespond">Does Respond</option>
-                            <option value="statusCode">Status Code</option>
-                            <option value="responseBody">Response Body</option>
+                            {type === 'server-monitor' ?
+                                <React.Fragment>
+                                    <option value="cpuLoad">CPU Load</option>
+                                    <option value="memoryUsage">Memory Usage</option>
+                                    <option value="storageUsage">Storage Usage</option>
+                                    <option value="temperature">Temperature</option>
+                                </React.Fragment>
+                                :
+                                <React.Fragment>
+                                    <option value="responseTime">Response Time</option>
+                                    <option value="doesRespond">Does Respond</option>
+                                    <option value="statusCode">Status Code</option>
+                                    <option value="responseBody">Response Body</option>
+                                </React.Fragment>
+                            }
                         </Field>
                     </div>
                 </div>
@@ -114,15 +153,15 @@ export class RenderOption extends Component {
                             validate={ValidateField.select}
                         >
                             <option value="">None</option>
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="greaterThan">Greater Than</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="lessThan">Less Than</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="inBetween">In Between</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="greaterThan">Greater Than</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="lessThan">Less Than</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="inBetween">In Between</option> : ''}
                             {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isUp">Is Up</option> : ''}
                             {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isDown">Is Down</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="equalTo">Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="notEqualTo">Not Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="gtEqualTo">Greater Than Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="ltEqualTo">Less Than Equal To</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="equalTo">Equal To</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="notEqualTo">Not Equal To</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="gtEqualTo">Greater Than Equal To</option> : ''}
+                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="ltEqualTo">Less Than Equal To</option> : ''}
                             {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="contains">Contains</option> : ''}
                             {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="doesNotContain">Does not Contain</option> : ''}
                             {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="jsExpression">Javascript Expression</option> : ''}
@@ -146,22 +185,29 @@ export class RenderOption extends Component {
                     </div>
                 </div>
                 {bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' ? <span style={{ display: 'inline-block' }}>ms</span> : ''}
+                {bodyfield && filterval !== '' && (bodyfield.responseType === 'cpuLoad' || bodyfield.responseType === 'memoryUsage' || bodyfield.responseType === 'storageUsage') ? <span style={{ display: 'inline-block' }}>%</span> : ''}
+                {bodyfield && filterval !== '' && bodyfield.responseType === 'temperature' ? <span style={{ display: 'inline-block' }}>&deg;c</span> : ''}
                 {filterval !== '' && filterval === 'jsExpression' ? '' :
-                    <div className="bs-Fieldset-row" style={filterval !== '' && filterval === 'inBetween' ? flexStyle : flexStylehidden}>
-                        <label className="bs-Fieldset-label" style={{ padding: '6px' }}>End Value</label>
-                        <div className="bs-Fieldset-fields">
-                            <Field
-                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                type="text"
-                                name={`${fieldnameprop}.field2`}
-                                component={RenderField}
-                                validate={filterval !== '' && filterval === 'inBetween' ? [ValidateField.required, ValidateField.maxValue10000] : undefined}
-                                placeholder={bodyfield && bodyfield.responseType === 'statusCode' ? '400' : '4000'}
-                                style={bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? { width: '180px' } : { width: '200px' }}
-                            />
+                    <React.Fragment>
+                        <div className="bs-Fieldset-row" style={filterval !== '' && filterval === 'inBetween' ? flexStyle : flexStylehidden}>
+                            <label className="bs-Fieldset-label" style={{ padding: '6px' }}>End Value</label>
+                            <div className="bs-Fieldset-fields">
+                                <Field
+                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                    type="text"
+                                    name={`${fieldnameprop}.field2`}
+                                    component={RenderField}
+                                    validate={filterval !== '' && filterval === 'inBetween' ? [ValidateField.required, ValidateField.maxValue10000] : undefined}
+                                    placeholder={bodyfield && filterval && bodyfield.responseType && placeholderfilter.indexOf(filterval) <= -1 && placeholders[filterval][bodyfield.responseType] ? placeholders['lessThan'][bodyfield.responseType] : ''}
+                                    style={bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? { width: '180px' } : { width: '200px' }}
+                                />
+                            </div>
                         </div>
-                    </div>}
-                {bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? <span style={{ display: 'inline-block' }}>ms</span> : ''}
+                        {bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? <span style={{ display: 'inline-block' }}>ms</span> : ''}
+                        {bodyfield && filterval !== '' && (bodyfield.responseType === 'cpuLoad' || bodyfield.responseType === 'memoryUsage' || bodyfield.responseType === 'storageUsage') && filterval === 'inBetween' ? <span style={{ display: 'inline-block' }}>%</span> : ''}
+                        {bodyfield && filterval !== '' && bodyfield.responseType === 'temperature' && filterval === 'inBetween' ? <span style={{ display: 'inline-block' }}>&deg;c</span> : ''}
+                    </React.Fragment>
+                }
                 <div className="bs-Fieldset-row" style={{ display: 'inline-block', padding: '4px' }}>
                     <label className="bs-Fieldset-label" style={{ padding: '6px' }}></label>
                     <div className="bs-Fieldset-fields">
@@ -220,7 +266,7 @@ export class RenderOption extends Component {
     }
 }
 
-RenderOption.displayName = 'RenderOption'
+RenderOption.displayName = 'RenderOption';
 
 RenderOption.propTypes = {
     bodyfield: PropTypes.oneOfType([
@@ -231,9 +277,10 @@ RenderOption.propTypes = {
     removeArrayField: PropTypes.func,
     addField: PropTypes.func,
     removeField: PropTypes.func,
-    level:PropTypes.number,
-    fieldnameprop:PropTypes.string,
-}
+    level: PropTypes.number,
+    fieldnameprop: PropTypes.string,
+    type: PropTypes.string
+};
 
 const mapDispatchToProps = dispatch => bindActionCreators(
     { addArrayField, removeArrayField }, dispatch);
