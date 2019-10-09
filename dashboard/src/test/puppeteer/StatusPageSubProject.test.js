@@ -163,7 +163,7 @@ describe('StatusPage API With SubProjects', () => {
         await prevSelector.click();
         await newPage.waitFor(5000);
         countStatusPages = (await newPage.$$('tr.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')).length;
-        expect(countStatusPages).toEqual(10);
+        expect(countStatusPages).toEqual(10); 
     }, 120000);
 
     it('should update sub-project status page settings', async ()=>{
