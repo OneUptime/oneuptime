@@ -245,13 +245,15 @@ module.exports = {
                                             }
                                             if (teamMember.sms) {
                                                 try{
-                                                    let alertStatus;
+                                                    let alertStatus, alert;
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
                                                     if(balanceCheckStatus){
                                                         let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
                                                         if(alertSuccess){
                                                             alertStatus = 'success';
-                                                            await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
+                                                            alert = await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
+                                                            var balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.SMS);
+                                                            AlertChargeModelService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id);
                                                         }
                                                     } else { 
                                                         alertStatus = 'Blocked - Low balance';
@@ -264,13 +266,15 @@ module.exports = {
                                             }
                                             if (teamMember.call) {
                                                 try{
-                                                    let alertStatus;
+                                                    let alertStatus, alert;
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
                                                     if(balanceCheckStatus){
                                                         let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
                                                         if(alertSuccess){
                                                             alertStatus = 'success';
-                                                            await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
+                                                            alert = await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
+                                                            var balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.Call);
+                                                            AlertChargeModelService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id);
                                                         }
                                                     } else { 
                                                         alertStatus = 'Blocked - Low balance';
@@ -514,7 +518,18 @@ module.exports = {
             }
             return alert;
         }
-    }
+    },
+    getBalanceStatus: async function (projectId, alertPhoneNumber, alertType) { 
+        var project = await ProjectService.findOneBy({_id: projectId});
+        var balance = project.balance;
+        var countryCode = alertPhoneNumber.split(' ')[0];
+        var countryType = getCountryType(countryCode);
+        var alertChargeAmount = getAlertChargeAmount(alertType, countryType);
+        return {
+            chargeAmount: alertChargeAmount.price,
+            closingBalance: balance
+        }
+    },
 };
 
 let AlertModel = require('../models/alert');
@@ -533,6 +548,7 @@ let MonitorService = require('./monitorService');
 let TwilioService = require('./twilioService');
 let ErrorService = require('./errorService');
 let StatusPageService = require('./statusPageService');
+let AlertChargeModelService = require('./alertChargeService');
 let jwtKey = require('../config/keys');
 let countryCode = require('../config/countryCode');
 let jwt = require('jsonwebtoken');
