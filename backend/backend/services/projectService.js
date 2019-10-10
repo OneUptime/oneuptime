@@ -241,36 +241,39 @@ module.exports = {
 
         if (!data.alertEnable) {
             updatedProject = await ProjectModel.findByIdAndUpdate(
-                projectId, {
-                $set: {
-                    alertEnable: false,
-                }
-            }, { new: true });
+                projectId,
+                {
+                    $set: {
+                        alertEnable: false,
+                    }
+                }, { new: true });
             return updatedProject;
         }
 
         if (currentBalance >= minimumBalance) {
             // update settings, the current balance satisfies incoming project's alert settings
             updatedProject = await ProjectModel.findByIdAndUpdate(
-                projectId, {
-                $set: {
-                    alertEnable: data.alertEnable,
-                    alertOptions: data.alertOptions
-                }
-            }, { new: true });
+                projectId,
+                {
+                    $set: {
+                        alertEnable: data.alertEnable,
+                        alertOptions: data.alertOptions
+                    }
+                }, { new: true });
             return updatedProject;
         }
         var chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, projectId, data.alertOptions);
         if (chargeForBalance && chargeForBalance.paid) {
             var newBalance = rechargeToBalance + currentBalance;
             updatedProject = await ProjectModel.findByIdAndUpdate(
-                projectId, {
-                $set: {
-                    balance: newBalance,
-                    alertEnable: data.alertEnable,
-                    alertOptions: data.alertOptions
-                }
-            }, { new: true });
+                projectId,
+                {
+                    $set: {
+                        balance: newBalance,
+                        alertEnable: data.alertEnable,
+                        alertOptions: data.alertOptions
+                    }
+                }, { new: true });
             return updatedProject;
         }
         else if (chargeForBalance && chargeForBalance.client_secret) {
