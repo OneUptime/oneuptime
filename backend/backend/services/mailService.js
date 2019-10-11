@@ -142,6 +142,7 @@ module.exports = {
         }
         return info;
     },
+
     sendUserFeedbackResponse: async function (userEmail, name) {
 
         var mailOptions = {
@@ -314,7 +315,7 @@ module.exports = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
             subject: 'You\'ve been added to a project on Fyipe',
-            template: 'exiting_user_added_to_project_body',
+            template: 'existing_user_added_to_project_body',
             context: {
                 projectName: project.name,
                 userName: addedByUser.name
@@ -335,8 +336,8 @@ module.exports = {
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
-            subject: 'You\'ve been added to a subproject on Fyipe',
-            template: 'exiting_viewer_added_to_project_body',
+            subject: 'You\'ve been added to a sub-project on Fyipe',
+            template: 'existing_viewer_added_to_project_body',
             context: {
                 subProjectName: subProject.name,
                 userName: addedByUser.name
@@ -353,7 +354,7 @@ module.exports = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
             subject: 'You\'ve been added to a subproject on Fyipe',
-            template: 'exiting_user_added_to_subproject_body',
+            template: 'existing_user_added_to_subproject_body',
             context: {
                 projectName: project.name,
                 userName: addedByUser.name
@@ -386,7 +387,7 @@ module.exports = {
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
-            subject: 'You\'ve been added to a project on Fyipe',
+            subject: 'You\'ve been assigned a new role',
             template: 'change_role',
             context: {
                 projectName: project.name,

@@ -444,7 +444,6 @@ module.exports = {
             error.code = 400;
             ErrorService.log('TeamService.updateTeamMemberRole', error);
             throw error;
-
         } else {
             if(subProject){
                 previousRole = subProject.users[index].role;

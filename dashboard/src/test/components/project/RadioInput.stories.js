@@ -13,7 +13,7 @@ let props = {
     value: 'Value here',
 }
 
-let RadioInput_Decorated = new reduxForm({
+let RadioInputDecorated = new reduxForm({
     form: 'RadioInput',
 })(RadioInput);
 
@@ -24,5 +24,5 @@ storiesOf('Project', module)
             {story()}</div>
     ))
     .add('RadioInput', () =>
-        <RadioInput_Decorated  {...props} />
+        <RadioInputDecorated  {...props} />
     )

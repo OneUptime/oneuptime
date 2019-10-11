@@ -195,6 +195,8 @@ Users.propTypes = {
     user: PropTypes.object.isRequired,
     users: PropTypes.array,
     fetchUsers: PropTypes.func.isRequired,
+    searchUsers: PropTypes.func.isRequired,
+    requesting: PropTypes.bool
 }
 
 Users.displayName = 'Users'

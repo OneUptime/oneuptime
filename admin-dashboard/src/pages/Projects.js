@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ProjectList from '../components/project/ProjectList';
@@ -128,6 +129,14 @@ const mapStateToProps = state => {
         projects,
         requesting
     };
+}
+
+Projects.propTypes = {
+    fetchProjects: PropTypes.func.isRequired,
+    searchProjects: PropTypes.func.isRequired,
+    requesting: PropTypes.bool,
+    projects: PropTypes.object,
+    userId: PropTypes.string
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Projects);

@@ -1,9 +1,6 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Field } from 'redux-form';
-import { RenderField } from '../basic/RenderField';
-import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
@@ -141,10 +138,6 @@ function mapStateToProps(state, props) {
 }
 
 UserSetting.propTypes = {
-    userSettings: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined])
-    ]),
     user: PropTypes.object.isRequired
 }
 

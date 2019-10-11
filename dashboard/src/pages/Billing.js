@@ -6,6 +6,8 @@ import CustomerBalance from '../components/paymentCard/CustomerBalance';
 import Invoice from '../components/invoice/Invoice';
 import PaymentCard from '../components/paymentCard/PaymentCard';
 import AlertCharges from '../components/alert/AlertCharges';
+import RenderIfOwner from '../components/basic/RenderIfOwner';
+import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 import PropTypes from 'prop-types';
 
 class Billing extends Component {
@@ -26,7 +28,13 @@ class Billing extends Component {
       <Dashboard>
         <CustomerBalance />
         <AlertCharges/>
+
+        <RenderIfOwner>
+          <AlertAdvanceOption />
+        </RenderIfOwner>
+
         <Invoice />
+
         <PaymentCard />
       </Dashboard>
     );

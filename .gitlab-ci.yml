@@ -6,6 +6,7 @@
 
 # Define stages
 stages:
+  - CleanEnvVars
   - BuildAndTest
   - E2E
   - VersionUpdate
@@ -16,6 +17,19 @@ stages:
   - SmokeTest
   - RollbackStaging
   - RollbackProduction
+
+clean_job_status_env_vars:
+  stage: CleanEnvVars
+  script:
+    # cleanup
+    - curl --request DELETE --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS
+    # create new var
+    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=SMOKE_TEST_STATUS" --form "value=failed"
+
+  only:
+    refs:
+      - master
+      - release
 #BACKEND
 lint_n_audit_backend:
   stage: BuildAndTest
@@ -26,6 +40,10 @@ lint_n_audit_backend:
     - npm run lint
     # - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_backend:
   stage: BuildAndTest
@@ -35,7 +53,10 @@ build_n_test_backend:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
-
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 ##DASHBOARD
 lint_n_audit_dashboard:
   stage: BuildAndTest
@@ -46,6 +67,10 @@ lint_n_audit_dashboard:
     - npm run lint
     # - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_dashboard:
   stage: BuildAndTest
@@ -63,7 +88,33 @@ build_n_test_dashboard:
     - sudo docker ps
     - cd dashboard
     - npm ci
+    # try building, if there are warnings then this will fail
+    - npm run build
     - npm run jest
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
+##ADMINDASHBOARD
+lint_n_audit_admin-dashboard:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get install nodejs -y
+    - cd admin-dashboard
+    - npm ci
+    - npm run lint
+    # - npm run audit
+    - cd ..
+
+build_n_test_admin-dashboard:
+  stage: BuildAndTest
+  script:
+    - cd admin-dashboard
+    - npm ci
+      # try building, if there are warnings then this will fail
+    - npm run build
+    - echo "No test implemented"
 
 ##ZAPIER
 lint_n_audit_zapier:
@@ -75,11 +126,19 @@ lint_n_audit_zapier:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_zapier:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## STATUS PAGE
 lint_n_audit_statuspage:
@@ -91,6 +150,10 @@ lint_n_audit_statuspage:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_statuspage:
   stage: BuildAndTest
@@ -111,7 +174,13 @@ build_n_test_statuspage:
     - npm ci
     - sleep 1m
     - curl localhost:3006
+    # try building, if there are warnings then this will fail
+    - npm run build
     - npm run jest
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## ACCOUNTS
 lint_n_audit_accounts:
@@ -123,6 +192,10 @@ lint_n_audit_accounts:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_accounts:
   stage: BuildAndTest
@@ -140,7 +213,13 @@ build_n_test_accounts:
     - sudo docker ps
     - cd accounts
     - npm ci
+    # try building, if there are warnings then this will fail
+    - npm run build
     - npm run jest
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## HOME
 lint_n_audit_home:
@@ -152,11 +231,19 @@ lint_n_audit_home:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_home:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## PROBE
 lint_n_audit_probe:
@@ -168,11 +255,19 @@ lint_n_audit_probe:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_probe:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ## SERVER MONITOR
 lint_n_audit_server-monitor:
@@ -184,11 +279,19 @@ lint_n_audit_server-monitor:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_server-monitor:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ##E2E Stage.
 e2e_test:
@@ -226,11 +329,11 @@ version_update:
   stage: VersionUpdate
   script:
     - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-    - sudo apt install nodejs  
+    - sudo apt install nodejs
     - git checkout $CI_COMMIT_REF_NAME
     - chmod +x ./kubernetes/ci/version-setup.sh
     - ./kubernetes/ci/version-setup.sh
-    - git add . 
+    - git add .
     - git commit -m "Version Update 3.0.$CI_PIPELINE_IID [skip ci]"
     - git push origin $CI_COMMIT_REF_NAME
   only:
@@ -659,6 +762,7 @@ deploy_production_server-monitor:
     - sudo apt-get install nodejs -y
     - cd server-monitor
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+    # - git checkout server-monitor-staging
     - npm publish
     - cd ..
   only:
@@ -669,31 +773,30 @@ deploy_production_server-monitor:
     name: production
 
 rollback_if_staging_deployment_fails:
-    stage: RollbackIfStagingDeploymentFail
-    script:
-      - chmod +x ./kubernetes/ci/deployment-setup.sh
-      - ./kubernetes/ci/deployment-setup.sh
-      - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-      - ./kubernetes/ci/deployment-staging-setup.sh
-      - chmod +x ./kubernetes/ci/staging-rollback.sh
-      - ./kubernetes/ci/staging-rollback.sh
-    only:
-      refs:
-        - master
-        - hotfix-master
+  stage: RollbackIfStagingDeploymentFail
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./kubernetes/ci/staging-rollback.sh
+    - ./kubernetes/ci/staging-rollback.sh
+  only:
+    refs:
+      - master
+
 rollback_if_production_deployment_fails:
-    stage: RollbackIfProductionDeploymentFail
-    script:
-      - chmod +x ./kubernetes/ci/deployment-setup.sh
-      - ./kubernetes/ci/deployment-setup.sh
-      - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-      - ./kubernetes/ci/deployment-production-setup.sh
-      - chmod +x ./kubernetes/ci/production-rollback.sh
-      - ./kubernetes/ci/production-rollback.sh
-    only:
-      refs:
-        - release
-        - hotfix-release
+  stage: RollbackIfProductionDeploymentFail
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./kubernetes/ci/production-rollback.sh
+    - ./kubernetes/ci/production-rollback.sh
+  only:
+    refs:
+      - release
 
 ## SMOKE TEST STAGE
 smoke_test_production:
@@ -713,7 +816,6 @@ smoke_test_production:
   only:
     refs:
       - release
-      - hotfix-release
   environment:
     name: production
 
@@ -730,12 +832,12 @@ smoke_test_staging:
     - cd smoke-test
     - npm ci
     - npm run test
-      # if job is successs, cancel the next jobs in pipeline.
-    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
+    # if job is successs, update smoke test status variable
+    - curl --request PUT --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS --form "value=success"
+
   only:
     refs:
       - master
-      - hotfix-master
 
 ## STAGING ROLLBACK
 staging_rollback_dashboard:
@@ -753,6 +855,8 @@ staging_rollback_dashboard:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_accounts:
   stage: RollbackStaging
@@ -769,6 +873,8 @@ staging_rollback_accounts:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_backend:
   stage: RollbackStaging
@@ -785,6 +891,8 @@ staging_rollback_backend:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_home:
   stage: RollbackStaging
@@ -801,6 +909,8 @@ staging_rollback_home:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_status-page:
   stage: RollbackStaging
@@ -817,6 +927,8 @@ staging_rollback_status-page:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_api-docs:
   stage: RollbackStaging
@@ -833,6 +945,8 @@ staging_rollback_api-docs:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_admin-dashboard:
   stage: RollbackStaging
@@ -849,6 +963,8 @@ staging_rollback_admin-dashboard:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_probe:
   stage: RollbackStaging
@@ -865,6 +981,8 @@ staging_rollback_probe:
   only:
     refs:
       - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
 
 ## PRODUCTION ROLLBACK
 production_rollback_dashboard:
