@@ -23,7 +23,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
- 
+
 const selector = formValueSelector('NewMonitor');
 
 class NewMonitor extends Component {
@@ -33,10 +33,10 @@ class NewMonitor extends Component {
         this.state = {
             upgradeModalId: uuid.v4(),
             advance: false,
-            script: ''
+            script: '',
+            type: props.edit ? props.editMonitorProp.type : props.type
         }
     }
-
 
     componentDidMount() {
         const userId = User.getUserId();
@@ -93,20 +93,20 @@ class NewMonitor extends Component {
         postObj.monitorCategoryId = values[`monitorCategoryId_${this.props.index}`]
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
         if (!postObj.projectId) postObj.projectId = this.props.currentProject._id;
-        if (postObj.type === 'url' || postObj.type === 'manual')
-            postObj.data.url = values[`url_${this.props.index}`] || null;
+        if (postObj.type === 'manual')
+            postObj.data.description = values[`description_${this.props.index}`] || null;
 
         if (postObj.type === 'device')
             postObj.data.deviceId = values[`deviceId_${this.props.index}`];
 
-        if (postObj.type === 'api')
+        if (postObj.type === 'url' || postObj.type === 'api')
             postObj.data.url = values[`url_${this.props.index}`];
-        
-        if (postObj.type === 'script'){
+
+        if (postObj.type === 'script') {
             postObj.data.script = thisObj.state.script;
         }
 
-        if (postObj.type === 'url' || postObj.type === 'api') {
+        if (postObj.type === 'url' || postObj.type === 'api' || postObj.type === 'server-monitor') {
             if (values && values[`up_${this.props.index}`] && values[`up_${this.props.index}`].length) {
                 postObj.criteria.up = makeCriteria(values[`up_${this.props.index}`]);
                 postObj.criteria.up.createAlert = values && values[`up_${this.props.index}_createAlert`] ? true : false;
@@ -163,7 +163,6 @@ class NewMonitor extends Component {
                     }
                 })
         } else {
-
             this.props.createMonitor(postObj.projectId, postObj)
                 .then(() => {
                     thisObj.props.reset();
@@ -204,12 +203,12 @@ class NewMonitor extends Component {
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
     }
-    changeBox = () => {
-        this.setState({ advance: false });
+    changeBox = (e) => {
+        this.setState({ advance: false, type: e.target.value });
     }
 
     scriptTextChange = (newValue) => {
-        this.setState({script: newValue});
+        this.setState({ script: newValue });
     }
 
     render() {
@@ -251,7 +250,7 @@ class NewMonitor extends Component {
                                 <p>
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
-                                            Monitor pings your website every minute and checks uptime, performance and notifies you when things are down.
+                                            Monitor any resource like API&apos;s, Websites, Servers, Containers, IoT device or more.
                                         </span>
                                     </ShouldRender>
                                     <ShouldRender if={this.props.edit}>
@@ -296,7 +295,7 @@ class NewMonitor extends Component {
                                                                 id="type"
                                                                 placeholder="Monitor Type"
                                                                 disabled={requesting}
-                                                                onChange={() => this.changeBox()}
+                                                                onChange={(e) => this.changeBox(e)}
                                                                 validate={ValidateField.select}
                                                             >
                                                                 <option value="">Select monitor type</option>
@@ -382,41 +381,37 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
                                                     </ShouldRender>
-
-                                                    {/**  <div className="bs-Fieldset-row">
-                                                    {/**  <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">Sub project</label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={'select'}
-                                                            name={`type_${this.props.index}`}
-                                                            id="type"
-                                                            placeholder="Monitor Type"
-                                                            required="required"
-                                                            disabled={requesting}
-                                                        >
-                                                            <option value="">Select monitor type</option>
-                                                            <option value="url">URL</option>
-                                                            <option value="device">Device</option>
-                                                            <option value="manual">Manual</option>
-                                                        </Field>
-                                                    </div>
-                                                </div> */}
-                                                    {(type === 'url' || type === 'manual' || type === 'api') && <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">URL{type === 'manual' && '(optional)'}</label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={RenderField}
-                                                                type="url"
-                                                                name={`url_${this.props.index}`}
-                                                                id="url"
-                                                                placeholder="https://mywebsite.com"
-                                                                disabled={requesting}
-                                                                validate={[ValidateField.required, ValidateField.url]}
-                                                            />
+                                                    <ShouldRender if={type === 'url' || type === 'api'}>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">URL</label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={RenderField}
+                                                                    type="url"
+                                                                    name={`url_${this.props.index}`}
+                                                                    id="url"
+                                                                    placeholder="https://mywebsite.com"
+                                                                    disabled={requesting}
+                                                                    validate={[ValidateField.required, ValidateField.url]}
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>}
-
+                                                    </ShouldRender>
+                                                    <ShouldRender if={type === 'manual'}>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">Description (optional)</label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={RenderField}
+                                                                    type="text"
+                                                                    name={`description_${this.props.index}`}
+                                                                    id="description"
+                                                                    placeholder="Home Page's Monitor"
+                                                                    disabled={requesting}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
                                                     {type === 'device' && <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Device ID</label>
                                                         <div className="bs-Fieldset-fields">
@@ -431,7 +426,7 @@ class NewMonitor extends Component {
                                                             />
                                                         </div>
                                                     </div>}
-                                                    <ShouldRender if={type && (type === 'api' || type === 'url') && !this.state.advance}>
+                                                    <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'server-monitor') && !this.state.advance}>
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label"></label>
                                                             <div className="bs-Fieldset-fields">
@@ -440,7 +435,7 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </ShouldRender>
                                                     <ShouldRender if={type === 'script'}>
-                                                    <div className="bs-Fieldset-row">
+                                                        <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">Script</label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <span>
@@ -453,7 +448,7 @@ class NewMonitor extends Component {
                                                                             name={`script_${this.props.index}`}
                                                                             id="script"
                                                                             editorProps={{ $blockScrolling: true }}
-                                                                            height={150}
+                                                                            height="150px"
                                                                             highlightActiveLine={true}
                                                                             onChange={this.scriptTextChange}
                                                                         />
@@ -462,13 +457,13 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
                                                     </ShouldRender>
-                                                    <ShouldRender if={this.state.advance && (type === 'api' || type === 'url')}>
+                                                    <ShouldRender if={this.state.advance && (type === 'api' || type === 'url' || type === 'server-monitor')}>
                                                         <ShouldRender if={this.state.advance && type === 'api'}>
                                                             <ApiAdvance index={this.props.index} />
                                                         </ShouldRender>
-                                                        <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} />
-                                                        <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} />
-                                                        <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} />
+                                                        <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} type={this.state.type} />
+                                                        <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} type={this.state.type} />
+                                                        <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} type={this.state.type} />
                                                     </ShouldRender>
                                                 </ShouldRender>
                                             </div>
@@ -573,9 +568,9 @@ const mapStateToProps = (state, ownProps) => {
     }
     else {
         const initialvalue = {
-            up_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isUp', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
-            down_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isDown', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
-            degraded_1000: [{ match: 'all', responseType: 'responseTime', filter: 'greaterThan', field1: '5000', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
+            up_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
+            down_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
+            degraded_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
         }
         return {
             initialValues: initialvalue,
@@ -587,10 +582,10 @@ const mapStateToProps = (state, ownProps) => {
             schedules: state.schedule.schedules.data
         };
     }
-}
+};
 
 NewMonitor.propTypes = {
-    index: PropTypes.number.isRequired,
+    index: PropTypes.oneOfType([PropTypes.string.isRequired, PropTypes.number.isRequired]),
     editMonitorSwitch: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     editMonitor: PropTypes.func.isRequired,
@@ -607,7 +602,7 @@ NewMonitor.propTypes = {
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
     monitorId: PropTypes.string.isRequired
-}
+};
 
 NewMonitor.contextTypes = {
     mixpanel: PropTypes.object.isRequired

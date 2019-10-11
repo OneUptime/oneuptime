@@ -20,7 +20,7 @@ stages:
 
 clean_job_status_env_vars:
   stage: CleanEnvVars
-  script: 
+  script:
     # cleanup
     - curl --request DELETE --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/STAGING_SMOKE_TEST_STATUS
   only:
@@ -127,7 +127,7 @@ lint_n_audit_zapier:
     refs:
       - hotfix-master
       - hotfix-release
-      
+
 build_n_test_zapier:
   stage: BuildAndTest
   script:
@@ -326,11 +326,11 @@ version_update:
   stage: VersionUpdate
   script:
     - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-    - sudo apt install nodejs  
+    - sudo apt install nodejs
     - git checkout $CI_COMMIT_REF_NAME
     - chmod +x ./kubernetes/ci/version-setup.sh
     - ./kubernetes/ci/version-setup.sh
-    - git add . 
+    - git add .
     - git commit -m "Version Update 3.0.$CI_PIPELINE_IID [skip ci]"
     - git push origin $CI_COMMIT_REF_NAME
   only:
@@ -759,6 +759,7 @@ deploy_production_server-monitor:
     - sudo apt-get install nodejs -y
     - cd server-monitor
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+    # - git checkout server-monitor-staging
     - npm publish
     - cd ..
   only:
@@ -769,30 +770,30 @@ deploy_production_server-monitor:
     name: production
 
 rollback_if_staging_deployment_fails:
-    stage: RollbackIfStagingDeploymentFail
-    script:
-      - chmod +x ./kubernetes/ci/deployment-setup.sh
-      - ./kubernetes/ci/deployment-setup.sh
-      - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-      - ./kubernetes/ci/deployment-staging-setup.sh
-      - chmod +x ./kubernetes/ci/staging-rollback.sh
-      - ./kubernetes/ci/staging-rollback.sh
-    only:
-      refs:
-        - master
-        
+  stage: RollbackIfStagingDeploymentFail
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./kubernetes/ci/staging-rollback.sh
+    - ./kubernetes/ci/staging-rollback.sh
+  only:
+    refs:
+      - master
+
 rollback_if_production_deployment_fails:
-    stage: RollbackIfProductionDeploymentFail
-    script:
-      - chmod +x ./kubernetes/ci/deployment-setup.sh
-      - ./kubernetes/ci/deployment-setup.sh
-      - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-      - ./kubernetes/ci/deployment-production-setup.sh
-      - chmod +x ./kubernetes/ci/production-rollback.sh
-      - ./kubernetes/ci/production-rollback.sh
-    only:
-      refs:
-        - release
+  stage: RollbackIfProductionDeploymentFail
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./kubernetes/ci/production-rollback.sh
+    - ./kubernetes/ci/production-rollback.sh
+  only:
+    refs:
+      - release
 
 ## SMOKE TEST STAGE
 smoke_test_production:
@@ -888,8 +889,8 @@ staging_rollback_backend:
     refs:
       - master
   except:
-    - $STAGING_SMOKE_TEST_STATUS
-    
+    - $SMOKE_TEST_STATUS == "success"
+
 staging_rollback_home:
   stage: RollbackStaging
   script:

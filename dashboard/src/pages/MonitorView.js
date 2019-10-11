@@ -37,7 +37,7 @@ class MonitorView extends React.Component {
 
   render() {
     const { initialValues } = this.props;
-    const subProjectId = this.props.monitor ? this.props.monitor.projectId._id || this.props.monitor.projectId: null;
+    const subProjectId = this.props.monitor ? this.props.monitor.projectId._id || this.props.monitor.projectId : null;
     return (
       <Dashboard ready={this.ready}>
         <div className="db-World-contentPane Box-root Padding-bottom--48">
@@ -88,15 +88,16 @@ class MonitorView extends React.Component {
 const mapStateToProps = (state, props) => {
   const { monitorId } = props.match.params;
   const monitor = state.monitor.monitorsList.monitors.map(monitor =>
-      monitor.monitors.find(monitor =>
+    monitor.monitors.find(monitor =>
       monitor._id === monitorId)).filter(monitor => monitor)[0];
   let initialValues = {};
   if (monitor) {
     initialValues[`name_${monitor._id}`] = monitor.name;
     initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
+    initialValues[`description_${monitor._id}`] = monitor.data && monitor.data.description;
     initialValues[`subProject_${monitor._id}`] = monitor.projectId._id;
     initialValues[`monitorCategoryId_${monitor._id}`] = monitor.monitorCategoryId;
-    if (monitor.type === 'url' || monitor.type === 'api') {
+    if (monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'server-monitor') {
       if (monitor.criteria && monitor.criteria.up) {
         initialValues[`up_${monitor._id}`] = mapCriteria(monitor.criteria.up);
         initialValues[`up_${monitor._id}_createAlert`] = monitor.criteria && monitor.criteria.up && monitor.criteria.up.createAlert;

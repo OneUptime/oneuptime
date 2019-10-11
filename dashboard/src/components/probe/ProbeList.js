@@ -78,7 +78,7 @@ export class ProbeList extends Component {
                                                     <div className="Box-root Flex-flex">
                                                         <div className="Box-root Flex-flex">
                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                {probesData && probesData.lastAlive && moment(Date.now()).diff(moment(probesData.lastAlive),'minutes') > 5 ?
+                                                                {probesData && probesData.lastAlive && moment(Date.now()).diff(moment(probesData.lastAlive), 'minutes') > 5 ?
                                                                     (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                         <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                             <span>OFFLINE</span>
@@ -114,14 +114,14 @@ export class ProbeList extends Component {
                 {this.props.probesList && this.props.probesList.requesting ? <ListLoader /> : null}
 
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                    {this.props.probesList && (!this.props.probesList.data || !this.props.probesList.data.length) && !this.props.probesList.requesting && !this.props.probesList.error ? 'We don\'t have any probes yet' : null}
+                    {this.props.probesList && (!this.props.probesList.data || !this.props.probesList.data.length) && !this.props.probesList.requesting && !this.props.probesList.error ? 'Probes does not exist. Please contact admin to add one.' : null}
                     {this.props.probesList && this.props.probesList.error ? this.props.probesList.error : null}
                 </div>
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{this.props.probesList && this.props.probesList.count ? this.props.probesList.count : '0'}</span>
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{this.props.probesList && this.props.probesList.count ? this.props.probesList.count : '0'} Probes</span>
                             </span>
                         </span>
                     </div>
@@ -158,15 +158,15 @@ function mapStateToProps(state) {
 ProbeList.displayName = 'ProbeList'
 
 ProbeList.propTypes = {
-    probesList:PropTypes.object,
-    skip:PropTypes.number,
-    limit:PropTypes.number,
-    count:PropTypes.number,
-    requesting:PropTypes.bool,
-    data:PropTypes.array,
-    error:PropTypes.object,
-    prevClicked:PropTypes.func,
-    nextClicked:PropTypes.func,
+    probesList: PropTypes.object,
+    skip: PropTypes.number,
+    limit: PropTypes.number,
+    count: PropTypes.number,
+    requesting: PropTypes.bool,
+    data: PropTypes.array,
+    error: PropTypes.object,
+    prevClicked: PropTypes.func,
+    nextClicked: PropTypes.func,
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProbeList);
