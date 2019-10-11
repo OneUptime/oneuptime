@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 
-export function DeleteRequestModal(props) { 
+export function DeleteRequestModal(props) {
 
     const { closeNotice, requesting } = props;
     return (
