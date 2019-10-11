@@ -383,16 +383,15 @@ export function deleteProjectError(error) {
 	};
 }
 
-export function deleteProject(projectId) {
+export function deleteProject(projectId, feedback) {
 
 	return function (dispatch) {
 
-		var promise = deleteApi(`project/${projectId}/deleteProject`, { projectId });
+		var promise = deleteApi(`project/${projectId}/deleteProject`, { projectId, feedback });
 
 		dispatch(deleteProjectRequest());
 
 		promise.then(function () {
-			dispatch(hideDeleteModal())
 			dispatch(deleteProjectSuccess(projectId));
 			dispatch(deleteProjectIncidents(projectId));
 			dispatch(deleteProjectSchedules(projectId));
