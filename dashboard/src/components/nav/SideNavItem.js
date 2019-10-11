@@ -11,7 +11,7 @@ export class SidebarNavItem extends Component {
 
         this.RenderListItems = this.RenderListItems.bind(this);
     }
-    
+
     camalize = function camalize(str) {
         return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
     }
@@ -21,11 +21,11 @@ export class SidebarNavItem extends Component {
         const { route, location, schedule, match, currentProject } = this.props;
         var path = route.path.replace(':projectId', match.params.projectId || (currentProject || {})._id);
         path = path.replace(':subProjectId', match.params.subProjectId);
-        const isLinkActive = location.pathname === path 
-        || (location.pathname.match(/project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/) && route.title === 'Status Pages') 
-        || (location.pathname.match(/project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/) && route.title === 'Call Schedules') 
-        || (location.pathname.match(/project\/([0-9]|[a-z])*\/monitors\/([0-9]|[a-z])*/) && route.title === 'Monitors')
-        
+        const isLinkActive = location.pathname === path
+            || (location.pathname.match(/project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/) && route.title === 'Status Pages')
+            || (location.pathname.match(/project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/) && route.title === 'Call Schedules')
+            || (location.pathname.match(/project\/([0-9]|[a-z])*\/monitors\/([0-9]|[a-z])*/) && route.title === 'Monitors')
+
         const isChildLinkActive = route.subRoutes.some(link => {
             let newPath = link.path.replace(/:projectId/, match.params.projectId);
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
@@ -84,7 +84,7 @@ export class SidebarNavItem extends Component {
 
             if (child.visible) {
                 let link = child.path.replace(':projectId', projectId);
-                link = schedule && schedule._id ? link.replace(':scheduleId',  schedule._id) : link;
+                link = schedule && schedule._id ? link.replace(':scheduleId', schedule._id) : link;
                 let incidentLogLink = active.match(/project\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/) ? active : false;
                 return (
                     <li id={this.camalize(child.title)} key={`nav ${index}`}>
@@ -129,7 +129,7 @@ SidebarNavItem.propTypes = {
     route: PropTypes.object.isRequired,
     schedule: PropTypes.oneOfType([
         PropTypes.object,
-        PropTypes.oneOf([null,undefined])
+        PropTypes.oneOf([null, undefined])
     ]),
     currentProject: PropTypes.object
 }

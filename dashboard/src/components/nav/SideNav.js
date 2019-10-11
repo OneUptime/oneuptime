@@ -12,38 +12,38 @@ import { showProjectSwitcher, hideProjectSwitcher, hideForm } from '../../action
 class SideNav extends Component {
 
 	hideSwitcher = () => {
-		if (this.props.project.projectSwitcherVisible){
+		if (this.props.project.projectSwitcherVisible) {
 			this.props.hideProjectSwitcher();
-			if(window.location.href.indexOf('localhost') <= -1){
+			if (window.location.href.indexOf('localhost') <= -1) {
 				this.context.mixpanel.track('Project Switcher hidden', {});
 			}
 		}
 	}
 
 	showSwitcher = () => {
-		if (!this.props.project.projectSwitcherVisible){
+		if (!this.props.project.projectSwitcherVisible) {
 			this.props.showProjectSwitcher();
-			if(window.location.href.indexOf('localhost') <= -1){
+			if (window.location.href.indexOf('localhost') <= -1) {
 				this.context.mixpanel.track('Project Switcher Visible', {});
 			}
 		}
 	}
 
-	handleKeyBoard = (e)=>{
-		switch(e.key){
+	handleKeyBoard = (e) => {
+		switch (e.key) {
 			case 'Escape':
-			this.hideSwitcher()
-			this.props.hideForm()
-			return true;
+				this.hideSwitcher()
+				this.props.hideForm()
+				return true;
 			default:
-			return false;
+				return false;
 		}
 	}
 
 	render() {
-		
+
 		return (
-			<div onKeyDown={this.handleKeyBoard}  className="db-World-sideNavContainer">
+			<div onKeyDown={this.handleKeyBoard} className="db-World-sideNavContainer">
 				<div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
 					<div className="Box-root Margin-bottom--20">
 						<div>
@@ -138,6 +138,6 @@ SideNav.propTypes = {
 	hideForm: PropTypes.func.isRequired
 }
 SideNav.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
+	mixpanel: PropTypes.object.isRequired
 };
 export default connect(mapStateToProps, mapDispatchToProps)(SideNav);
