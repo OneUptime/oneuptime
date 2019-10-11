@@ -5,6 +5,7 @@ import Dashboard from '../components/Dashboard';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
 import Invoice from '../components/invoice/Invoice';
 import PaymentCard from '../components/paymentCard/PaymentCard';
+import AlertCharges from '../components/alert/AlertCharges';
 import PropTypes from 'prop-types';
 
 class Billing extends Component {
@@ -24,6 +25,7 @@ class Billing extends Component {
     return (
       <Dashboard>
         <CustomerBalance />
+        <AlertCharges/>
         <Invoice />
         <PaymentCard />
       </Dashboard>

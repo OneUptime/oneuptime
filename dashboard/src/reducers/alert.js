@@ -27,6 +27,22 @@ const initialState = {
         skip:0,
         limit:10,
         data: []
+    },
+    alertCharges: {
+        requesting: false,
+        error: null,
+        success: false,
+        count:0,
+        skip:0,
+        limit:10,
+        data: []
+    },
+    downloadedAlertCharges: {
+        requesting: false,
+        error: null,
+        success: false,
+        count:0,
+        data: []
     }
 };
 
@@ -231,6 +247,88 @@ export default  (state = initialState, action) => {
                     data: []
                 },
             });
+        case types.FETCH_ALERT_CHARGES_SUCCESS:
+            return Object.assign({}, state, {
+                alertCharges: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    count : action.payload.count,
+                    skip : action.payload.skip,
+                    limit : action.payload.limit,
+                    data: action.payload.data
+                }
+            });
+
+        case types.FETCH_ALERT_CHARGES_REQUEST:
+            return Object.assign({}, state, {
+                alertCharges: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                    skip : state.alertCharges.skip,
+                    limit : state.alertCharges.limit,
+                    count: state.alertCharges.count,
+                    data: state.alertCharges.data
+                }
+            });
+
+        case types.FETCH_ALERT_CHARGES_FAILED:
+            return Object.assign({}, state, {
+                alertCharges: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    count: 0,
+                    skip:state.alertCharges.skip,
+                    limit:state.alertCharges.limit,
+                    data: []
+                }
+            });
+
+        case types.DOWNLOAD_ALERT_CHARGES_SUCCESS:
+            return Object.assign({}, state, {
+                downloadedAlertCharges: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    count : action.payload.count,
+                    data: action.payload.data.map(alertCharge => {
+                        return {
+                            ChargeAmount: alertCharge.chargeAmount,
+                            ClosingAccountBalance: alertCharge.closingAccountBalance,
+                            MonitorName: alertCharge.monitorId.name,
+                            AlertType: alertCharge.alertId.alertVia,
+                            Time: alertCharge.createdAt,
+                            IncidentId: alertCharge.incidentId,
+                            SentTo: alertCharge.sentTo
+                        }
+                    })
+                }
+            });
+
+        case types.DOWNLOAD_ALERT_CHARGES_REQUEST:
+            return Object.assign({}, state, {
+                downloadedAlertCharges: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                    count: state.downloadedAlertCharges.count,
+                    data: state.downloadedAlertCharges.data
+                }
+            });
+
+        case types.DOWNLOAD_ALERT_CHARGES_FAILED:
+            return Object.assign({}, state, {
+                downloadedAlertCharges: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    count: 0,
+                    data: []
+                }
+            });
+
         default: return state;
     }
 }

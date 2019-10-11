@@ -245,15 +245,15 @@ module.exports = {
                                             }
                                             if (teamMember.sms) {
                                                 try{
-                                                    let alertStatus, alert;
+                                                    let alertStatus, alert, balanceStatus;
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
                                                     if(balanceCheckStatus){
                                                         let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
                                                         if(alertSuccess){
                                                             alertStatus = 'success';
                                                             alert = await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
-                                                            var balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.SMS);
-                                                            AlertChargeModelService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id);
+                                                            balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.SMS);
+                                                            AlertChargeModelService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
                                                         }
                                                     } else { 
                                                         alertStatus = 'Blocked - Low balance';
@@ -266,15 +266,15 @@ module.exports = {
                                             }
                                             if (teamMember.call) {
                                                 try{
-                                                    let alertStatus, alert;
+                                                    let alertStatus, alert, balanceStatus;
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
                                                     if(balanceCheckStatus){
                                                         let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
                                                         if(alertSuccess){
                                                             alertStatus = 'success';
                                                             alert = await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
-                                                            var balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.Call);
-                                                            AlertChargeModelService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id);
+                                                            balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.Call);
+                                                            AlertChargeModelService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
                                                         }
                                                     } else { 
                                                         alertStatus = 'Blocked - Low balance';
@@ -528,7 +528,7 @@ module.exports = {
         return {
             chargeAmount: alertChargeAmount.price,
             closingBalance: balance
-        }
+        };
     },
 };
 

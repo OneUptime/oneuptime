@@ -82,8 +82,9 @@ router.delete('/:projectId', getUser, isUserOwner, async function(req, res){
 router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(req, res) {
     var projectId = req.params.projectId;
     try {
-        var alertCharges = await alertChargeService.findBy({ projectId }, req.query.skip || 0, req.query.limit || 10);
-        return sendItemResponse(req, res, alertCharges);
+        var alertCharges = await alertChargeService.findBy({ projectId }, req.query.skip , req.query.limit );
+        var count = await alertChargeService.countBy({});
+        return sendListResponse(req, res, alertCharges, count);
     } catch(error){
         return sendErrorResponse(req, res, error);
     }
