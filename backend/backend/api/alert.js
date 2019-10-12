@@ -83,7 +83,7 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(re
     var projectId = req.params.projectId;
     try {
         var alertCharges = await alertChargeService.findBy({ projectId }, req.query.skip , req.query.limit );
-        var count = await alertChargeService.countBy({});
+        var count = await alertChargeService.countBy({ projectId });
         return sendListResponse(req, res, alertCharges, count);
     } catch(error){
         return sendErrorResponse(req, res, error);
