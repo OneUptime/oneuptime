@@ -10,7 +10,7 @@ import UpgradePlanModal from './project/UpgradePlanModal'
 import DeleteProjectModal from './project/DeleteProjectModal';
 import { withRouter } from 'react-router';
 import ShouldRender from './basic/ShouldRender';
-import ProfileMenu from './profile/ProfileMenu'; 
+import ProfileMenu from './profile/ProfileMenu';
 import { showForm } from '../actions/project';
 import ClickOutside from 'react-click-outside';
 import { hideProfileMenu } from '../actions/profile';
@@ -19,7 +19,7 @@ import { closeNotificationMenu } from '../actions/notification';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
-    constructor(props){
+    constructor(props) {
         super(props);
     }
 
@@ -38,7 +38,7 @@ export class DashboardApp extends Component {
 
         const { project, match, ready, getProjects } = this.props;
 
-        if (project.projects && project.projects.projects && project.projects.projects.length === 0 && !project.projects.requesting){
+        if (project.projects && project.projects.projects && project.projects.projects.length === 0 && !project.projects.requesting) {
 
             getProjects(match.params.projectId || null).then(() => ready && ready());
 
@@ -49,35 +49,35 @@ export class DashboardApp extends Component {
 
     showProjectForm = () => {
         this.props.showForm();
-        if(window.location.href.indexOf('localhost') <= -1){
+        if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Project Form Opened');
         }
     }
 
     hideProfileMenu = () => {
         this.props.hideProfileMenu();
-        if(window.location.href.indexOf('localhost') <= -1){
+        if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Profile Menu Closed');
         }
     }
     closeNotificationMenu = () => {
         this.props.closeNotificationMenu();
-        if(window.location.href.indexOf('localhost') <= -1){
+        if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Notification Menu Closed');
         }
     }
 
     handleKeyBoard = (e) => {
-		switch(e.key){
-			case 'Escape':
-            this.props.closeNotificationMenu();
-            this.props.hideProfileMenu();
-			return true;
-			default:
-			return false;
-		}
+        switch (e.key) {
+            case 'Escape':
+                this.props.closeNotificationMenu();
+                this.props.hideProfileMenu();
+                return true;
+            default:
+                return false;
+        }
     }
-    
+
     render() {
         const { location, project, children } = this.props
 
@@ -125,7 +125,7 @@ export class DashboardApp extends Component {
                         <ShouldRender if={!project.projects.requesting && project.projects.success && location.pathname !== '/profile/settings'}>
                             <div className="db-World-scrollWrapper" >
 
-                                <ShouldRender if={ project.projects.projects !== undefined && project.projects.projects[0]}>
+                                <ShouldRender if={project.projects.projects !== undefined && project.projects.projects[0]}>
 
                                     <SideNav />
 
@@ -134,7 +134,7 @@ export class DashboardApp extends Component {
                                         {children}
 
                                     </div>
-                                    
+
                                 </ShouldRender>
 
                                 <TopNav />
@@ -154,12 +154,12 @@ export class DashboardApp extends Component {
                         </ShouldRender>
 
                         <ShouldRender if={project.projects.error}>
-                            <div id="app-loading" style={{ 'backgroundColor':'#E6EBF1', 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
+                            <div id="app-loading" style={{ 'backgroundColor': '#E6EBF1', 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
                                 <div>Cannot connect to server.</div>
                             </div>
                         </ShouldRender>
 
-                        <ShouldRender if={ project.projects.success && project.projects.projects.length === 0 && location.pathname !== '/profile/settings'}>
+                        <ShouldRender if={project.projects.success && project.projects.projects.length === 0 && location.pathname !== '/profile/settings'}>
 
                             <div>
 

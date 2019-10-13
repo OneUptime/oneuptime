@@ -44,10 +44,10 @@ export const resetCreateFeedback = () => {
 };
 
 // Calls the API to register a user.
-export function createFeedback(projectId,values) {
+export function createFeedback(projectId, feedback, page) {
 	return function (dispatch) {
 
-		var promise = postApi(`feedback/${projectId}`, values);
+		var promise = postApi(`feedback/${projectId}`, { feedback, page });
 
 		dispatch(createFeedbackRequest());
 
@@ -60,10 +60,10 @@ export function createFeedback(projectId,values) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(createFeedbackError(errors(error)));
