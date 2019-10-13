@@ -9,6 +9,7 @@ import TeamMemberProjectBox from '../components/team/TeamMemberProjectBox';
 import PropTypes from 'prop-types';
 import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
+import ShouldRender from '../components/basic/ShouldRender';
 
 const LoadingState = () => (
 	<div className="Box-root Margin-bottom--12">
@@ -67,11 +68,11 @@ const LoadedTeam = props => {
 				<div className="bs-BIM" key={i}>
 						<div className="Box-root Margin-bottom--12">
 							<div className="bs-ContentSection Card-root Card-shadow--medium">
-								{ 
+								<ShouldRender if={ subProjects.length > 0}>
 									<div className="Box-root Padding-top--20 Padding-left--20">
 										<Badge color={'blue'}>{subProject.name}</Badge>
 									</div>
-								}
+								</ShouldRender>
 								<TeamMemberProjectBox
 									paginate = {props.paginate}
 									canPaginateBackward = {canPaginateBackward}
@@ -99,11 +100,11 @@ const LoadedTeam = props => {
 			<div className="bs-BIM">
 					<div className="Box-root Margin-bottom--12">
 						<div className="bs-ContentSection Card-root Card-shadow--medium">
-							{ 
+							<ShouldRender if={ subProjects.length > 0}>
 								<div className="Box-root Padding-top--20 Padding-left--20">
 									<Badge color={'red'}>Project</Badge>
 								</div>
-							}
+							</ShouldRender>
 							<TeamMemberProjectBox
 								paginate = {props.paginate}
 								canPaginateBackward = {canPaginateBackward}
@@ -115,7 +116,8 @@ const LoadedTeam = props => {
 								inviteModalId = {inviteModalId}
 								openModal = {props.openModal}
 								pages = {pages}
-								membersPerPage = {membersPerPage}
+								membersPerPage = { membersPerPage }
+								subProjects = { subProjects }
 								/>
 						</div>
 					</div>

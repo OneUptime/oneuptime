@@ -92,11 +92,11 @@ class DashboardView extends Component {
             return subProjectMonitor && subProjectMonitor.monitors.length > 0 ? (
                 <div id={`box_${subProject.name}`} className="Box-root Margin-vertical--12" key={i}>
                     <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
-                        {
+                        <ShouldRender if={ subProjects && subProjects.length > 0}>
                             <div id={`badge_${subProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
                                 <Badge color={'blue'}>{subProject.name}</Badge>
                             </div>
-                        }
+                        </ShouldRender>
                         <MonitorList monitors={subProjectMonitor.monitors} />
                     </div>
                 </div>
@@ -110,11 +110,11 @@ class DashboardView extends Component {
         projectMonitor = projectMonitor && projectMonitor.monitors.length > 0 ? (
             <div id={`box_${currentProject.name}`} key={`box_${currentProject.name}`} className="Box-root Margin-vertical--12">
                 <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
-                    {
-                        <div id={`badge_${currentProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
-                            <Badge color={'red'}>Project</Badge>
-                        </div>
-                    }
+                        <ShouldRender if={ subProjects && subProjects.length > 0}>
+                            <div id={`badge_${currentProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
+                                <Badge color={'red'}>Project</Badge>
+                            </div>
+                        </ShouldRender>
                     <MonitorList monitors={projectMonitor.monitors} />
                 </div>
             </div>

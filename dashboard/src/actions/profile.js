@@ -29,11 +29,15 @@ export function updateProfileSettingError(error) {
 // Calls the API to update setting.
 
 export function updateProfileSetting(values) {
-
+	
 	return function (dispatch) {
 		let data = new FormData();
 		if (values.profilePic && values.profilePic[0]) {
-			data.append('profilePic', values.profilePic[0], values.profilePic[0].name);
+			if(!values.removedPic){
+				data.append('profilePic', values.profilePic[0], values.profilePic[0].name);
+			}else{
+				data.append('profilePic', null);
+			}
 		}
 
 		data.append('name', values.name);

@@ -10,7 +10,7 @@ import { openModal, closeModal } from '../actions/modal';
 import Badge from '../components/common/Badge';
 import ScheduleProjectBox from '../components/schedule/ScheduleProjectBox';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
-
+import ShouldRender from '../components/basic/ShouldRender';
 export class OnCall extends Component {
 
     constructor(props){
@@ -109,11 +109,11 @@ export class OnCall extends Component {
                    <div className="bs-BIM" key={i}>
                             <div className="Box-root Margin-bottom--12">
                                 <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                    { 
+                                    <ShouldRender if={ subProjects.length > 0}>
                                         <div className="Box-root Padding-top--20 Padding-left--20">
                                             <Badge color={'blue'}>{subProject.name}</Badge>
                                         </div>
-                                    }
+                                    </ShouldRender>
                                     <ScheduleProjectBox
                                         projectId = {subProject._id}
                                         currentProject = {currentProject}
@@ -160,11 +160,11 @@ export class OnCall extends Component {
                 <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                { 
+                                <ShouldRender if={ subProjects.length > 0}>
                                     <div className="Box-root Padding-top--20 Padding-left--20">
                                         <Badge color={'red'}>Project</Badge>
                                     </div>
-                                }
+                                </ShouldRender>
                                 <ScheduleProjectBox
                                     projectId = {currentProject._id}
                                     currentProject = {currentProject}
@@ -183,6 +183,7 @@ export class OnCall extends Component {
                                     nextClicked = {this.nextClicked}
                                     canPaginateBackward = {canPaginateBackward}
                                     canPaginateForward = {canPaginateForward}
+                                    subProjects = { subProjects }
                                     />
                             </div>
                         </div>

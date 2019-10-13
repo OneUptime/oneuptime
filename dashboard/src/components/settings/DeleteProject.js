@@ -28,7 +28,7 @@ export class DeleteProjectBox extends Component {
                                     </span>
                                 </span>
                                 <p>
-                                    <span>Click the button to permanently delete this project.</span>
+                                    <span>This project will be deleted PERMANENTLY and will no longer be recoverable.</span>
                                 </p>
                             </div>
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--0 Padding-vertical--12">
