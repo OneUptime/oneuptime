@@ -26,7 +26,7 @@ export default (state = initialState, action) => {
         case PAGE_LOAD_RESET:
             return Object.assign({}, state, {
                 requesting: false,
-                title: ''
+                title: 'Monitors'
             });
         default: return state;
     }
