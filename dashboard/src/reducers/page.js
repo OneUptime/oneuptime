@@ -6,7 +6,7 @@ import {
 
 const initialState = {
     requesting: false,
-    title: 'Monitors'
+    title: ''
 };
 
 export default (state = initialState, action) => {
@@ -26,7 +26,7 @@ export default (state = initialState, action) => {
         case PAGE_LOAD_RESET:
             return Object.assign({}, state, {
                 requesting: false,
-                title: 'Monitors'
+                title: ''
             });
         default: return state;
     }

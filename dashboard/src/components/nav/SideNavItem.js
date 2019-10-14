@@ -23,7 +23,7 @@ export class SidebarNavItem extends Component {
         const { route, location, schedule, match, currentProject, loadPage } = this.props;
         var path = route.path.replace(':projectId', match.params.projectId || (currentProject || {})._id);
         path = path.replace(':subProjectId', match.params.subProjectId);
-        
+
         const isLinkActive = location.pathname === path
             || (location.pathname.match(/project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/) && route.title === 'Status Pages')
             || (location.pathname.match(/project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/) && route.title === 'Call Schedules')
@@ -70,6 +70,7 @@ export class SidebarNavItem extends Component {
                                     projectId={match.params.projectId}
                                     schedule={schedule}
                                     active={match.url}
+                                    onLoad={title => loadPage(title)}
                                 />
                             </ul>
                         </ShouldRender>
@@ -79,7 +80,7 @@ export class SidebarNavItem extends Component {
         );
     }
 
-    RenderListItems({ projectId, schedule, active }) {
+    RenderListItems({ projectId, schedule, active, onLoad }) {
         return this.props.route.subRoutes.map((child, index) => {
             const removedLinks = ['Schedule', 'Incident', 'Monitor View', 'Status Page'];
 
@@ -92,7 +93,7 @@ export class SidebarNavItem extends Component {
                 return (
                     <li id={this.camalize(child.title)} key={`nav ${index}`}>
                         <div style={{ position: 'relative' }}>
-                            <Link to={link} onClick={() => loadPage(child.title)}>
+                            <Link to={link} onClick={() => onLoad(child.title)}>
                                 <div style={{ outline: 'none' }}>
                                     <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
                                         <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32">
