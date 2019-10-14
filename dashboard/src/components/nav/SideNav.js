@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import NavItem from './SideNavItem';
 import { groups } from '../../routes';
 import { openModal, closeModal } from '../../actions/modal';
-import ProjectSwitcher from '../project/ProjectSwitcher'
+import ProjectSwitcher from '../project/ProjectSwitcher';
 import ClickOutside from 'react-click-outside';
-import { showProjectSwitcher, hideProjectSwitcher, hideForm } from '../../actions/project'
+import { showProjectSwitcher, hideProjectSwitcher, hideForm } from '../../actions/project';
 
 class SideNav extends Component {
 
