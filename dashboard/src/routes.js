@@ -12,6 +12,7 @@ const {
 	IncidentLog,
 	Incident,
 	Billing,
+	Monitors,
 	Schedule,
 	Integrations,
 	EmailTemplates,
@@ -40,7 +41,7 @@ export const groups = [
 					subRoutes: [],
 					component: IncidentLog,
 					index: 1
-				},{
+				}, {
 					title: 'Incident',
 					path: '/project/:projectId/incidents/:incidentId',
 					icon: 'radar',
@@ -48,7 +49,7 @@ export const groups = [
 					subRoutes: [],
 					component: Incident,
 					index: 2
-				},{
+				}, {
 					title: 'Monitor View',
 					path: '/project/:projectId/monitors/:monitorId',
 					icon: 'radar',
@@ -107,7 +108,7 @@ export const groups = [
 			{
 				title: 'Reports',
 				path: '/project/:projectId/reports',
-				icon: 'atlas',
+				icon: 'report',
 				visible: true,
 				subRoutes: [],
 				component: Reports,
@@ -145,13 +146,22 @@ export const groups = [
 						index: 1
 					},
 					{
+						title: 'Monitors',
+						path: '/project/:projectId/monitors',
+						icon: 'atlas',
+						visible: true,
+						subRoutes: [],
+						component: Monitors,
+						index: 2
+					},
+					{
 						title: 'Integrations',
 						path: '/project/:projectId/integrations',
 						icon: 'radar',
 						visible: true,
 						subRoutes: [],
 						component: Integrations,
-						index: 2
+						index: 3
 					},
 					{
 						title: 'Email Settings',
@@ -160,7 +170,7 @@ export const groups = [
 						visible: true,
 						subRoutes: [],
 						component: EmailTemplates,
-						index: 3
+						index: 4
 					},
 					{
 						title: 'SMS Settings',
@@ -169,7 +179,7 @@ export const groups = [
 						visible: true,
 						subRoutes: [],
 						component: SmsTemplates,
-						index: 4
+						index: 5
 					},
 					{
 						title: 'Probe Settings',
@@ -178,7 +188,7 @@ export const groups = [
 						visible: true,
 						subRoutes: [],
 						component: Probe,
-						index: 5
+						index: 6
 					}
 				],
 				component: Settings,

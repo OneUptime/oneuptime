@@ -24,6 +24,7 @@ import subscriber from './subscriber';
 import scheduledEvent from './scheduledEvent';
 import monitorCategories from './monitorCategories';
 import card from './card';
+import page from './page';
 import probe from './probe';
 import version from './version';
 
@@ -53,6 +54,7 @@ const appReducer = combineReducers({
     subscriber,
     scheduledEvent,
     card,
+    page,
     probe,
     version
 });

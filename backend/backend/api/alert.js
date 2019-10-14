@@ -6,6 +6,7 @@
 
 var express = require('express');
 var alertService = require('../services/alertService');
+var alertChargeService = require('../services/alertChargeService');
 
 var router = express.Router();
 const {
@@ -74,6 +75,17 @@ router.delete('/:projectId', getUser, isUserOwner, async function(req, res){
         var alert = await alertService.deleteBy({projectId: projectId}, userId);
         return sendItemResponse(req, res, alert);
     }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(req, res) {
+    var projectId = req.params.projectId;
+    try {
+        var alertCharges = await alertChargeService.findBy({ projectId }, req.query.skip , req.query.limit );
+        var count = await alertChargeService.countBy({});
+        return sendListResponse(req, res, alertCharges, count);
+    } catch(error){
         return sendErrorResponse(req, res, error);
     }
 });
