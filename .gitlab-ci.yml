@@ -31,7 +31,9 @@ clean_job_status_env_vars:
 lint_n_audit_backend:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd backend
     - npm ci
     - npm run lint
@@ -58,7 +60,9 @@ build_n_test_backend:
 lint_n_audit_dashboard:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd dashboard
     - npm ci
     - npm run lint
@@ -97,7 +101,9 @@ build_n_test_dashboard:
 lint_n_audit_admin-dashboard:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd admin-dashboard
     - npm ci
     - npm run lint
@@ -117,7 +123,9 @@ build_n_test_admin-dashboard:
 lint_n_audit_zapier:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd zapier
     - npm ci
     - npm run lint
@@ -141,7 +149,9 @@ build_n_test_zapier:
 lint_n_audit_statuspage:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd status-page
     - npm ci
     - npm run lint
@@ -183,7 +193,9 @@ build_n_test_statuspage:
 lint_n_audit_accounts:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd accounts
     - npm ci
     - npm run lint
@@ -222,7 +234,9 @@ build_n_test_accounts:
 lint_n_audit_home:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd home
     - npm ci
     - npm run lint
@@ -246,7 +260,9 @@ build_n_test_home:
 lint_n_audit_probe:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd probe
     - npm ci
     - npm run lint
@@ -270,7 +286,9 @@ build_n_test_probe:
 lint_n_audit_server-monitor:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd server-monitor
     - npm ci
     - npm run lint
@@ -737,7 +755,9 @@ deploy_staging_server-monitor:
   stage: DeployStaging
   allow_failure: true
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd server-monitor
     - sudo npm install -g json
     - git checkout $CI_COMMIT_REF_NAME
@@ -756,7 +776,9 @@ deploy_staging_server-monitor:
 deploy_production_server-monitor:
   stage: DeployProduction
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd server-monitor
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
     # - git checkout server-monitor-staging
