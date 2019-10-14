@@ -9,13 +9,16 @@
 
 'use strict';
 
+const dotenv = require('dotenv');
 const program = require('commander');
 const Promise = require('promise');
 const { prompt } = require('inquirer');
 const serverMonitor = require('../lib/api');
 
+dotenv.config();
+
 program
-  .version('0.1.0', '-v, --version')
+  .version(process.env.npm_package_version, '-v, --version')
   .description('Fyipe Monitoring Shell');
 
 program

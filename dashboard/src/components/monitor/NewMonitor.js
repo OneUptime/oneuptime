@@ -602,7 +602,7 @@ NewMonitor.propTypes = {
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
     monitorId: PropTypes.string
-};
+}
 
 NewMonitor.contextTypes = {
     mixpanel: PropTypes.object.isRequired

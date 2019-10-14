@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types'
+import { bindActionCreators } from 'redux';
+import PropTypes from 'prop-types';
 import { Link, withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
+import { loadPage } from '../../actions/page';
 
 export class SidebarNavItem extends Component {
 
@@ -18,7 +20,7 @@ export class SidebarNavItem extends Component {
 
     render() {
         const { RenderListItems } = this;
-        const { route, location, schedule, match, currentProject } = this.props;
+        const { route, location, schedule, match, currentProject, loadPage } = this.props;
         var path = route.path.replace(':projectId', match.params.projectId || (currentProject || {})._id);
         path = path.replace(':subProjectId', match.params.subProjectId);
         const isLinkActive = location.pathname === path
@@ -42,7 +44,7 @@ export class SidebarNavItem extends Component {
         return (
             <div id={this.camalize(route.title)} style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
-                    <Link to={path}>
+                    <Link to={path} onClick={() => loadPage(route.title)}>
                         <div style={{ outline: 'none' }}>
                             <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
                                 <div className="Box-root Flex-flex Flex-alignItems--center">
@@ -67,6 +69,7 @@ export class SidebarNavItem extends Component {
                                     projectId={match.params.projectId}
                                     schedule={schedule}
                                     active={match.url}
+                                    onLoad={title => loadPage(title)}
                                 />
                             </ul>
                         </ShouldRender>
@@ -76,7 +79,7 @@ export class SidebarNavItem extends Component {
         );
     }
 
-    RenderListItems({ projectId, schedule, active }) {
+    RenderListItems({ projectId, schedule, active, onLoad }) {
         return this.props.route.subRoutes.map((child, index) => {
             const removedLinks = ['Schedule', 'Incident', 'Monitor View', 'Status Page'];
 
@@ -89,7 +92,7 @@ export class SidebarNavItem extends Component {
                 return (
                     <li id={this.camalize(child.title)} key={`nav ${index}`}>
                         <div style={{ position: 'relative' }}>
-                            <Link to={link}>
+                            <Link to={link} onClick={() => onLoad(child.title)}>
                                 <div style={{ outline: 'none' }}>
                                     <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
                                         <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32">
@@ -123,6 +126,10 @@ let mapStateToProps = state => ({
     schedule: state.schedule && state.schedule.schedules && state.schedule.schedules.data && state.schedule.schedules.data[0],
 })
 
+const mapDispatchToProps = dispatch => (
+    bindActionCreators({ loadPage }, dispatch)
+);
+
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
@@ -131,7 +138,8 @@ SidebarNavItem.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined])
     ]),
-    currentProject: PropTypes.object
+    currentProject: PropTypes.object,
+    loadPage: PropTypes.func.isRequired,
 }
 
-export default withRouter(connect(mapStateToProps)(SidebarNavItem));
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(SidebarNavItem));

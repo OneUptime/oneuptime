@@ -13,7 +13,7 @@ const initialState = {
         requesting: false,
         success: false,
         server: '',
-        client: version
+        client: ''
     }
 };
 
@@ -27,7 +27,7 @@ export default (state = initialState, action) => {
                     error: action.payload,
                     success: false,
                     server: '',
-                    client: version
+                    client: ''
                 },
             });
 
@@ -49,7 +49,7 @@ export default (state = initialState, action) => {
                     error: null,
                     success: false,
                     server: '',
-                    client: version
+                    client: ''
                 },
             });
 
@@ -60,7 +60,7 @@ export default (state = initialState, action) => {
                     requesting: false,
                     success: false,
                     server: '',
-                    client: version
+                    client: ''
                 }
             });
 

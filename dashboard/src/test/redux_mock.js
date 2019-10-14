@@ -198,21 +198,21 @@ export const state = {
 				'projectId': '5b5b3cd6759d8814a7162676',
 				'__v': 0,
 				'time': [{
-						'date': '2018-07-27T21:00:05.216Z',
-						'upTime': 171,
-						'downTime': 32,
-						'_id': '5b5b87d578da1f14addb56a2',
-						'monitorId': '5b5b3d09759d8814a7162679',
-						'status': 'offline',
-						'__v': 0
-					},
-					{
-						'date': '2018-07-27T21:00:05.216Z',
-						'monitorId': '5b5b3d09759d8814a7162679',
-						'upTime': 258,
-						'downTime': 28,
-						'status': 'offline'
-					}
+					'date': '2018-07-27T21:00:05.216Z',
+					'upTime': 171,
+					'downTime': 32,
+					'_id': '5b5b87d578da1f14addb56a2',
+					'monitorId': '5b5b3d09759d8814a7162679',
+					'status': 'offline',
+					'__v': 0
+				},
+				{
+					'date': '2018-07-27T21:00:05.216Z',
+					'monitorId': '5b5b3d09759d8814a7162679',
+					'upTime': 258,
+					'downTime': 28,
+					'status': 'offline'
+				}
 				],
 				'count': 0,
 				'incidents': [],
@@ -446,47 +446,47 @@ export const state = {
 			'requesting': false,
 			'success': false,
 			'teams': [{
-					'_id': '5b9947fd82730b0ed0c48200',
-					'projectId': '5b9283e1c5d4132324cd92e2',
-					'createdBy': '5b9283dbc5d4132324cd92e1',
-					'integrationType': 'slack',
-					'data': {
-						'teamId': 'T77SZHUHH',
-						'channelId': 'CBUSZPNUT',
-						'teamName': 'Gueva',
-						'accessToken': 'xoxp-245917606595-245991995746-430319582274-1c624bec5306c36ef546768181e66954',
-						'botAccessToken': 'xoxb-245917606595-430319585874-r66lbqsdLXE1OHMnpCmKzYZT',
-					},
-					'__v': 0
+				'_id': '5b9947fd82730b0ed0c48200',
+				'projectId': '5b9283e1c5d4132324cd92e2',
+				'createdBy': '5b9283dbc5d4132324cd92e1',
+				'integrationType': 'slack',
+				'data': {
+					'teamId': 'T77SZHUHH',
+					'channelId': 'CBUSZPNUT',
+					'teamName': 'Gueva',
+					'accessToken': 'xoxp-245917606595-245991995746-430319582274-1c624bec5306c36ef546768181e66954',
+					'botAccessToken': 'xoxb-245917606595-430319585874-r66lbqsdLXE1OHMnpCmKzYZT',
 				},
-				{
-					'_id': '5b9947fd82730b0ed0c48204',
-					'projectId': '5b9283e1c5d4132324cd92e2',
-					'createdBy': '5b9283dbc5d4132324cd92e1',
-					'integrationType': 'slack',
-					'data': {
-						'teamId': 'T77SZHUHH',
-						'channelId': 'CBUSZPNUT',
-						'teamName': 'Gueva',
-						'accessToken': 'xoxp-245917606595-245991995746-430319582274-1c624bec5306c36ef546768181e66954',
-						'botAccessToken': 'xoxb-245917606595-430319585874-r66lbqsdLXE1OHMnpCmKzYZT',
-					},
-					'__v': 0
+				'__v': 0
+			},
+			{
+				'_id': '5b9947fd82730b0ed0c48204',
+				'projectId': '5b9283e1c5d4132324cd92e2',
+				'createdBy': '5b9283dbc5d4132324cd92e1',
+				'integrationType': 'slack',
+				'data': {
+					'teamId': 'T77SZHUHH',
+					'channelId': 'CBUSZPNUT',
+					'teamName': 'Gueva',
+					'accessToken': 'xoxp-245917606595-245991995746-430319582274-1c624bec5306c36ef546768181e66954',
+					'botAccessToken': 'xoxb-245917606595-430319585874-r66lbqsdLXE1OHMnpCmKzYZT',
 				},
-				{
-					'_id': '5b9947fd82730b0ed0c48289',
-					'projectId': '5b9283e1c5d4132324cd92e2',
-					'createdBy': '5b9283dbc5d4132324cd92e1',
-					'integrationType': 'slack',
-					'data': {
-						'teamId': 'T77SZHUHH',
-						'channelId': 'CBUSZPNUT',
-						'teamName': 'Gueva',
-						'accessToken': 'xoxp-245917606595-245991995746-430319582274-1c624bec5306c36ef546768181e66954',
-						'botAccessToken': 'xoxb-245917606595-430319585874-r66lbqsdLXE1OHMnpCmKzYZT',
-					},
-					'__v': 0
-				}
+				'__v': 0
+			},
+			{
+				'_id': '5b9947fd82730b0ed0c48289',
+				'projectId': '5b9283e1c5d4132324cd92e2',
+				'createdBy': '5b9283dbc5d4132324cd92e1',
+				'integrationType': 'slack',
+				'data': {
+					'teamId': 'T77SZHUHH',
+					'channelId': 'CBUSZPNUT',
+					'teamName': 'Gueva',
+					'accessToken': 'xoxp-245917606595-245991995746-430319582274-1c624bec5306c36ef546768181e66954',
+					'botAccessToken': 'xoxb-245917606595-430319585874-r66lbqsdLXE1OHMnpCmKzYZT',
+				},
+				'__v': 0
+			}
 			]
 		},
 		'deleteTeam': {
@@ -501,136 +501,136 @@ export const state = {
 			'requesting': false,
 			'success': true,
 			'webHooks': [{
-					'monitors': [{
-							'createdAt': '2018-09-25T07:17:22.109Z',
-							'pollTime': '2018-09-25T16:12:21.716Z',
-							'updateTime': '2018-09-25T07:17:22.109Z',
-							'_id': '5ba9e102135d59258e5537b5',
-							'createdBy': '5b9283dbc5d4132324cd92e1',
-							'name': 'Unizonn',
-							'type': 'url',
-							'data': {
-								'url': 'http://unizon.co.uk'
-							},
-							'projectId': '5b9283e1c5d4132324cd92e2',
-							'__v': 0
-						},
-						{
-							'createdAt': '2018-09-24T11:05:31.577Z',
-							'pollTime': '2018-09-25T16:12:21.716Z',
-							'updateTime': '2018-09-24T11:05:31.577Z',
-							'_id': '5ba8c4fb70db043291facc8b',
-							'createdBy': '5b9283dbc5d4132324cd92e1',
-							'name': 'Test 2',
-							'type': 'url',
-							'data': {
-								'url': 'http://sjdshdjhdjshdj.com'
-							},
-							'projectId': '5b9283e1c5d4132324cd92e2',
-							'__v': 0
-						}
-					],
-					'_id': '5baa16d7257dac3486eeab7e',
-					'projectId': {
-						'users': [{
-							'userId': '5b9283dbc5d4132324cd92e1',
-							'role': 'Administrator',
-							'_id': '5b9283e1c5d4132324cd92e3'
-						}],
-						'createdAt': '2018-09-07T13:57:53.039Z',
-						'_id': '5b9283e1c5d4132324cd92e2',
-						'name': 'Demo Project',
-						'apiKey': '03a74810-b2a6-11e8-968d-bd7238e8faae',
-						'stripePlanId': 'plan_CpIUcLDhD1HKKA',
-						'stripeSubscriptionId': 'sub_DYsDt2GNgkhCtg',
-						'stripeMeteredSubscriptionId': 'sub_DYsDZuTuf6YnuU',
-						'__v': 0
-					},
-					'createdBy': {
-						'onCallAlert': [],
-						'createdAt': '2018-09-07T13:57:47.747Z',
-						'lastActive': '2018-09-25T16:12:37.921Z',
-						'_id': '5b9283dbc5d4132324cd92e1',
-						'name': 'Rex Raphael',
-						'email': 'juicycleff@gmail.com',
-						'password': '$2b$10$HxIjRcTEa441YPZNp3bt.etH7KQkLdo4wlPXjxwruxefetAqV6B/.',
-						'companyName': 'Boldsofts',
-						'companyRole': 'Boldsofts',
-						'referral': 'Google',
-						'companyPhoneNumber': '+2348162611815',
-						'coupon': null,
-						'jwtRefreshToken': '5i9FGzQWkFlXutLsCud0lyoAlOmVVrXJcI8kFtC84ViqXkTBug8IOHWxquhnFy1w9kK323OhUm32lsMyfAW8mIzQisnenD184HhzWqcbBPmeQJ36YX4qpRzBruYesKvMsRNcRNwIC9UdmxwAduP2T9FZKOFB1DChjYttPk5jJkdWzZDsKI9OAToO1tbQDskm3gpxuhhXLRxh40P7qcP4bEQcQetjVq9vtwvouMDbPGZuLYO1Iuq7xgp74H7fCrbJ',
-						'stripeCustomerId': 'cus_DYsD7P2LbpMwsb',
-						'__v': 0
-					},
-					'integrationType': 'webhook',
+				'monitors': [{
+					'createdAt': '2018-09-25T07:17:22.109Z',
+					'pollTime': '2018-09-25T16:12:21.716Z',
+					'updateTime': '2018-09-25T07:17:22.109Z',
+					'_id': '5ba9e102135d59258e5537b5',
+					'createdBy': '5b9283dbc5d4132324cd92e1',
+					'name': 'Unizonn',
+					'type': 'url',
 					'data': {
-						'userId': '5b9283dbc5d4132324cd92e1',
-						'endpoint': 'http://localhost:3002/webhook/test',
-						'monitorIds': [
-							'5ba9e102135d59258e5537b5'
-						]
+						'url': 'http://unizon.co.uk'
 					},
+					'projectId': '5b9283e1c5d4132324cd92e2',
 					'__v': 0
 				},
 				{
-					'monitors': [{
-						'createdAt': '2018-09-24T11:05:31.577Z',
-						'pollTime': '2018-09-25T16:12:21.716Z',
-						'updateTime': '2018-09-24T11:05:31.577Z',
-						'_id': '5ba8c4fb70db043291facc8b',
-						'createdBy': '5b9283dbc5d4132324cd92e1',
-						'name': 'Test 2',
-						'type': 'url',
-						'data': {
-							'url': 'http://sjdshdjhdjshdj.com'
-						},
-						'projectId': '5b9283e1c5d4132324cd92e2',
-						'__v': 0
-					}],
-					'_id': '5baa5e1cec56371108c647ce',
-					'projectId': {
-						'users': [{
-							'userId': '5b9283dbc5d4132324cd92e1',
-							'role': 'Administrator',
-							'_id': '5b9283e1c5d4132324cd92e3'
-						}],
-						'createdAt': '2018-09-07T13:57:53.039Z',
-						'_id': '5b9283e1c5d4132324cd92e2',
-						'name': 'Demo Project',
-						'apiKey': '03a74810-b2a6-11e8-968d-bd7238e8faae',
-						'stripePlanId': 'plan_CpIUcLDhD1HKKA',
-						'stripeSubscriptionId': 'sub_DYsDt2GNgkhCtg',
-						'stripeMeteredSubscriptionId': 'sub_DYsDZuTuf6YnuU',
-						'__v': 0
-					},
-					'createdBy': {
-						'onCallAlert': [],
-						'createdAt': '2018-09-07T13:57:47.747Z',
-						'lastActive': '2018-09-25T16:12:37.921Z',
-						'_id': '5b9283dbc5d4132324cd92e1',
-						'name': 'Rex Raphael',
-						'email': 'juicycleff@gmail.com',
-						'password': '$2b$10$HxIjRcTEa441YPZNp3bt.etH7KQkLdo4wlPXjxwruxefetAqV6B/.',
-						'companyName': 'Boldsofts',
-						'companyRole': 'Boldsofts',
-						'referral': 'Google',
-						'companyPhoneNumber': '+2348162611815',
-						'coupon': null,
-						'jwtRefreshToken': '5i9FGzQWkFlXutLsCud0lyoAlOmVVrXJcI8kFtC84ViqXkTBug8IOHWxquhnFy1w9kK323OhUm32lsMyfAW8mIzQisnenD184HhzWqcbBPmeQJ36YX4qpRzBruYesKvMsRNcRNwIC9UdmxwAduP2T9FZKOFB1DChjYttPk5jJkdWzZDsKI9OAToO1tbQDskm3gpxuhhXLRxh40P7qcP4bEQcQetjVq9vtwvouMDbPGZuLYO1Iuq7xgp74H7fCrbJ',
-						'stripeCustomerId': 'cus_DYsD7P2LbpMwsb',
-						'__v': 0
-					},
-					'integrationType': 'webhook',
+					'createdAt': '2018-09-24T11:05:31.577Z',
+					'pollTime': '2018-09-25T16:12:21.716Z',
+					'updateTime': '2018-09-24T11:05:31.577Z',
+					'_id': '5ba8c4fb70db043291facc8b',
+					'createdBy': '5b9283dbc5d4132324cd92e1',
+					'name': 'Test 2',
+					'type': 'url',
 					'data': {
-						'userId': '5b9283dbc5d4132324cd92e1',
-						'endpoint': 'http://localhost:3000/test/webhook',
-						'monitorIds': [
-							'5ba8c4fb70db043291facc8b'
-						]
+						'url': 'http://sjdshdjhdjshdj.com'
 					},
+					'projectId': '5b9283e1c5d4132324cd92e2',
+					'__v': 0
+				}
+				],
+				'_id': '5baa16d7257dac3486eeab7e',
+				'projectId': {
+					'users': [{
+						'userId': '5b9283dbc5d4132324cd92e1',
+						'role': 'Administrator',
+						'_id': '5b9283e1c5d4132324cd92e3'
+					}],
+					'createdAt': '2018-09-07T13:57:53.039Z',
+					'_id': '5b9283e1c5d4132324cd92e2',
+					'name': 'Demo Project',
+					'apiKey': '03a74810-b2a6-11e8-968d-bd7238e8faae',
+					'stripePlanId': 'plan_CpIUcLDhD1HKKA',
+					'stripeSubscriptionId': 'sub_DYsDt2GNgkhCtg',
+					'stripeMeteredSubscriptionId': 'sub_DYsDZuTuf6YnuU',
 					'__v': 0
 				},
+				'createdBy': {
+					'onCallAlert': [],
+					'createdAt': '2018-09-07T13:57:47.747Z',
+					'lastActive': '2018-09-25T16:12:37.921Z',
+					'_id': '5b9283dbc5d4132324cd92e1',
+					'name': 'Rex Raphael',
+					'email': 'juicycleff@gmail.com',
+					'password': '$2b$10$HxIjRcTEa441YPZNp3bt.etH7KQkLdo4wlPXjxwruxefetAqV6B/.',
+					'companyName': 'Boldsofts',
+					'companyRole': 'Boldsofts',
+					'referral': 'Google',
+					'companyPhoneNumber': '+2348162611815',
+					'coupon': null,
+					'jwtRefreshToken': '5i9FGzQWkFlXutLsCud0lyoAlOmVVrXJcI8kFtC84ViqXkTBug8IOHWxquhnFy1w9kK323OhUm32lsMyfAW8mIzQisnenD184HhzWqcbBPmeQJ36YX4qpRzBruYesKvMsRNcRNwIC9UdmxwAduP2T9FZKOFB1DChjYttPk5jJkdWzZDsKI9OAToO1tbQDskm3gpxuhhXLRxh40P7qcP4bEQcQetjVq9vtwvouMDbPGZuLYO1Iuq7xgp74H7fCrbJ',
+					'stripeCustomerId': 'cus_DYsD7P2LbpMwsb',
+					'__v': 0
+				},
+				'integrationType': 'webhook',
+				'data': {
+					'userId': '5b9283dbc5d4132324cd92e1',
+					'endpoint': 'http://localhost:3002/webhook/test',
+					'monitorIds': [
+						'5ba9e102135d59258e5537b5'
+					]
+				},
+				'__v': 0
+			},
+			{
+				'monitors': [{
+					'createdAt': '2018-09-24T11:05:31.577Z',
+					'pollTime': '2018-09-25T16:12:21.716Z',
+					'updateTime': '2018-09-24T11:05:31.577Z',
+					'_id': '5ba8c4fb70db043291facc8b',
+					'createdBy': '5b9283dbc5d4132324cd92e1',
+					'name': 'Test 2',
+					'type': 'url',
+					'data': {
+						'url': 'http://sjdshdjhdjshdj.com'
+					},
+					'projectId': '5b9283e1c5d4132324cd92e2',
+					'__v': 0
+				}],
+				'_id': '5baa5e1cec56371108c647ce',
+				'projectId': {
+					'users': [{
+						'userId': '5b9283dbc5d4132324cd92e1',
+						'role': 'Administrator',
+						'_id': '5b9283e1c5d4132324cd92e3'
+					}],
+					'createdAt': '2018-09-07T13:57:53.039Z',
+					'_id': '5b9283e1c5d4132324cd92e2',
+					'name': 'Demo Project',
+					'apiKey': '03a74810-b2a6-11e8-968d-bd7238e8faae',
+					'stripePlanId': 'plan_CpIUcLDhD1HKKA',
+					'stripeSubscriptionId': 'sub_DYsDt2GNgkhCtg',
+					'stripeMeteredSubscriptionId': 'sub_DYsDZuTuf6YnuU',
+					'__v': 0
+				},
+				'createdBy': {
+					'onCallAlert': [],
+					'createdAt': '2018-09-07T13:57:47.747Z',
+					'lastActive': '2018-09-25T16:12:37.921Z',
+					'_id': '5b9283dbc5d4132324cd92e1',
+					'name': 'Rex Raphael',
+					'email': 'juicycleff@gmail.com',
+					'password': '$2b$10$HxIjRcTEa441YPZNp3bt.etH7KQkLdo4wlPXjxwruxefetAqV6B/.',
+					'companyName': 'Boldsofts',
+					'companyRole': 'Boldsofts',
+					'referral': 'Google',
+					'companyPhoneNumber': '+2348162611815',
+					'coupon': null,
+					'jwtRefreshToken': '5i9FGzQWkFlXutLsCud0lyoAlOmVVrXJcI8kFtC84ViqXkTBug8IOHWxquhnFy1w9kK323OhUm32lsMyfAW8mIzQisnenD184HhzWqcbBPmeQJ36YX4qpRzBruYesKvMsRNcRNwIC9UdmxwAduP2T9FZKOFB1DChjYttPk5jJkdWzZDsKI9OAToO1tbQDskm3gpxuhhXLRxh40P7qcP4bEQcQetjVq9vtwvouMDbPGZuLYO1Iuq7xgp74H7fCrbJ',
+					'stripeCustomerId': 'cus_DYsD7P2LbpMwsb',
+					'__v': 0
+				},
+				'integrationType': 'webhook',
+				'data': {
+					'userId': '5b9283dbc5d4132324cd92e1',
+					'endpoint': 'http://localhost:3000/test/webhook',
+					'monitorIds': [
+						'5ba8c4fb70db043291facc8b'
+					]
+				},
+				'__v': 0
+			},
 			],
 			'count': 2,
 			'limit': 10,
@@ -653,6 +653,19 @@ export const state = {
 		},
 		'pages': {
 			'counter': 0
+		}
+	},
+	'page': {
+		'requesting': false,
+		'title': 'Home'
+	},
+	'version': {
+		'versions': {
+			'error': null,
+			'requesting': false,
+			'success': true,
+			'server': '3.0.0',
+			'client': '3.0.0'
 		}
 	}
 }

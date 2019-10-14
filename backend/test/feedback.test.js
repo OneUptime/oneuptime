@@ -48,7 +48,8 @@ describe('Feedback API', function () {
 
         var authorization = `Basic ${token}`;
         var testFeedback = {
-            feedback: 'test feedback'
+            feedback: 'test feedback',
+            page: 'test page'
         };
         request.post(`/feedback/${projectId}`).set('Authorization', authorization).send(testFeedback).end(function (err, res) {
             expect(res).to.have.status(200);
@@ -67,6 +68,7 @@ describe('Feedback API', function () {
                                     emailContent = await JSON.parse(parsedMail.text);
                                     expect(emailContent).to.be.an('object');
                                     expect(emailContent.message).to.be.equal(testFeedback.feedback);
+                                    expect(emailContent.page).to.be.equal(testFeedback.page);
                                 }
                                 if (parsedMail.subject === 'Thank you for your feedback!') {
                                     emailContent = (parsedMail.text);

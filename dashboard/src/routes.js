@@ -108,7 +108,7 @@ export const groups = [
 			{
 				title: 'Reports',
 				path: '/project/:projectId/reports',
-				icon: 'atlas',
+				icon: 'report',
 				visible: true,
 				subRoutes: [],
 				component: Reports,
