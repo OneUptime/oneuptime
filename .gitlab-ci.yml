@@ -2,20 +2,17 @@
 #
 # This CI/CD will run on an Ubuntu VM. After this script runs, the VM will retain the state.
 # It's your responsibility to clean the VM up in the cleanup stage after job finishes executing.
-# This script runs on Microk8s. since our deployments are on Kubernetes, our aim is to create EXACT same replica for test, staging and production.
+# This script runs on Microk8s. Since our deployments are on Kubernetes, our aim is to create EXACT same replica for test, staging and production.
 
 # Define stages
 stages:
   - BuildAndTest
   - E2E
   - VersionUpdate
-  - DeployStaging
-  - RollbackIfStagingDeploymentFail
-  - DeployProduction
-  - RollbackIfProductionDeploymentFail
+  - Deploy
+  - RollbackIfDeploymentFail
   - SmokeTest
-  - RollbackStaging
-  - RollbackProduction
+  - RollbackIfSmokeTestFail
 
 #BACKEND
 lint_n_audit_backend:
@@ -357,8 +354,8 @@ version_update:
     - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
   stage: VersionUpdate
   script:
-    - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-    - sudo apt install nodejs
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - git checkout $CI_COMMIT_REF_NAME
     - chmod +x ./kubernetes/ci/version-setup.sh
     - ./kubernetes/ci/version-setup.sh
@@ -374,7 +371,7 @@ version_update:
 
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -399,7 +396,7 @@ deploy_staging_backend:
     name: staging
 
 deploy_production_backend:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -423,7 +420,7 @@ deploy_production_backend:
 
 # DEPLOYMENT STAGE - Api docs
 deploy_staging_api-docs:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -448,7 +445,7 @@ deploy_staging_api-docs:
     name: staging
 
 deploy_production_api-docs:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -472,7 +469,7 @@ deploy_production_api-docs:
 
 # DEPLOYMENT STAGE - Home
 deploy_staging_home:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -497,7 +494,7 @@ deploy_staging_home:
     name: staging
 
 deploy_production_home:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -521,7 +518,7 @@ deploy_production_home:
 
 # DEPLOYMENT STAGE - Probe
 deploy_staging_probe:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -546,7 +543,7 @@ deploy_staging_probe:
     name: staging
 
 deploy_production_probe:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -570,7 +567,7 @@ deploy_production_probe:
 
 # DEPLOYMENT STAGE - status-page
 deploy_staging_status-page:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -595,7 +592,7 @@ deploy_staging_status-page:
     name: staging
 
 deploy_production_status-page:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -619,7 +616,7 @@ deploy_production_status-page:
 
 # DEPLOYMENT STAGE - Admin Dashboard
 deploy_staging_admin-dashboard:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -644,7 +641,7 @@ deploy_staging_admin-dashboard:
     name: staging
 
 deploy_production_admin-dashboard:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -668,7 +665,7 @@ deploy_production_admin-dashboard:
 
 # DEPLOYMENT STAGE - Accounts
 deploy_staging_accounts:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -693,7 +690,7 @@ deploy_staging_accounts:
     name: staging
 
 deploy_production_accounts:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -717,7 +714,7 @@ deploy_production_accounts:
 
 # DEPLOYMENT STAGE - Dashboard
 deploy_staging_dashboard:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -742,7 +739,7 @@ deploy_staging_dashboard:
     name: staging
 
 deploy_production_dashboard:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -766,7 +763,7 @@ deploy_production_dashboard:
 
 ## DEPLOYMENT STAGE - Server Monitor
 deploy_staging_server-monitor:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - sudo apt-get update
@@ -790,7 +787,7 @@ deploy_staging_server-monitor:
     name: staging
 
 deploy_production_server-monitor:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
@@ -810,7 +807,7 @@ deploy_production_server-monitor:
     name: production
 
 rollback_if_staging_deployment_fails:
-  stage: RollbackIfStagingDeploymentFail
+  stage: RollbackIfDeploymentFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -823,7 +820,7 @@ rollback_if_staging_deployment_fails:
       - master
 
 rollback_if_production_deployment_fails:
-  stage: RollbackIfProductionDeploymentFail
+  stage: RollbackIfDeploymentFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -871,14 +868,13 @@ smoke_test_staging:
     - npm run test
     # if job is successs, create smoke test status variable
     - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=STAGING_SMOKE_TEST_STATUS" --form "value=success"
-
   only:
     refs:
       - master
 
 ## STAGING ROLLBACK
 staging_rollback_dashboard:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -896,7 +892,7 @@ staging_rollback_dashboard:
     - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_accounts:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -914,7 +910,7 @@ staging_rollback_accounts:
     - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_backend:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -932,7 +928,7 @@ staging_rollback_backend:
     - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_home:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -950,7 +946,7 @@ staging_rollback_home:
     - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_status-page:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -968,7 +964,7 @@ staging_rollback_status-page:
     - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_api-docs:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -986,7 +982,7 @@ staging_rollback_api-docs:
     - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_admin-dashboard:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1004,7 +1000,7 @@ staging_rollback_admin-dashboard:
     - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_probe:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1023,7 +1019,7 @@ staging_rollback_probe:
 
 ## PRODUCTION ROLLBACK
 production_rollback_dashboard:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1039,7 +1035,7 @@ production_rollback_dashboard:
       - release
 
 production_rollback_accounts:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1055,7 +1051,7 @@ production_rollback_accounts:
       - release
 
 production_rollback_backend:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1071,7 +1067,7 @@ production_rollback_backend:
       - release
 
 production_rollback_home:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1087,7 +1083,7 @@ production_rollback_home:
       - release
 
 production_rollback_status-page:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1103,7 +1099,7 @@ production_rollback_status-page:
       - release
 
 production_rollback_api-docs:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1119,7 +1115,7 @@ production_rollback_api-docs:
       - release
 
 production_rollback_admin-dashboard:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1135,7 +1131,7 @@ production_rollback_admin-dashboard:
       - release
 
 production_rollback_probe:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
