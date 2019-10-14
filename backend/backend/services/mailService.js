@@ -102,8 +102,8 @@ module.exports = {
         }
         return info;
     },
-    sendVerifyEmail: async function(tokenVerifyURL, name, email){
-        
+    sendVerifyEmail: async function (tokenVerifyURL, name, email) {
+
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
@@ -330,7 +330,7 @@ module.exports = {
         }
         return info;
     },
-    
+
     sendExistingStatusPageViewerMail: async function (subProject, addedByUser, email) {
 
         var mailOptions = {
@@ -364,7 +364,7 @@ module.exports = {
         var info = await mailer.sendMail(mailOptions);
         return info;
     },
-    
+
     sendNewStatusPageViewerMail: async function (project, addedByUser, email) {
 
         var mailOptions = {

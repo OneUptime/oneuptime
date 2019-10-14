@@ -40,7 +40,7 @@ export const groups = [
 					subRoutes: [],
 					component: IncidentLog,
 					index: 1
-				},{
+				}, {
 					title: 'Incident',
 					path: '/project/:projectId/incidents/:incidentId',
 					icon: 'radar',
@@ -48,7 +48,7 @@ export const groups = [
 					subRoutes: [],
 					component: Incident,
 					index: 2
-				},{
+				}, {
 					title: 'Monitor View',
 					path: '/project/:projectId/monitors/:monitorId',
 					icon: 'radar',
@@ -107,7 +107,7 @@ export const groups = [
 			{
 				title: 'Reports',
 				path: '/project/:projectId/reports',
-				icon: 'atlas',
+				icon: 'report',
 				visible: true,
 				subRoutes: [],
 				component: Reports,
