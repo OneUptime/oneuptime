@@ -6,7 +6,6 @@
 
 # Define stages
 stages:
-  - CleanEnvVars
   - BuildAndTest
   - E2E
   - VersionUpdate
@@ -18,15 +17,6 @@ stages:
   - RollbackStaging
   - RollbackProduction
 
-clean_job_status_env_vars:
-  stage: CleanEnvVars
-  script:
-    # cleanup
-    - curl --request DELETE --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/STAGING_SMOKE_TEST_STATUS
-  only:
-    refs:
-      - master
-      - release
 #BACKEND
 lint_n_audit_backend:
   stage: BuildAndTest
