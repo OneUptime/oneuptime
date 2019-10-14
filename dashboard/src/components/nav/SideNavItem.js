@@ -23,7 +23,6 @@ export class SidebarNavItem extends Component {
         const { route, location, schedule, match, currentProject, loadPage } = this.props;
         var path = route.path.replace(':projectId', match.params.projectId || (currentProject || {})._id);
         path = path.replace(':subProjectId', match.params.subProjectId);
-
         const isLinkActive = location.pathname === path
             || (location.pathname.match(/project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/) && route.title === 'Status Pages')
             || (location.pathname.match(/project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/) && route.title === 'Call Schedules')

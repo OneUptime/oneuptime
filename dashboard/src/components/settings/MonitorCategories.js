@@ -88,7 +88,7 @@ export class MonitorCategories extends Component {
 										</div>
                                     </header>
                                     {monitorCategories.map(({ createdAt, name, _id }) =>
-                                        (<div key={_id}className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
+                                        (<div key={_id} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
                                             <div className="bs-ObjectList-cell bs-u-v-middle">
                                                 <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{this.props.name}</div>
                                                 <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
@@ -114,7 +114,7 @@ export class MonitorCategories extends Component {
                             <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        <span id="monitorCategoryCount"className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{ this.props.count ? this.props.count + (this.props.count > 1 ? ' Monitor Categories' : ' Monitor Category') : '0 Monitor Category'}</span>
+                                        <span id="monitorCategoryCount" className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{this.props.count ? this.props.count + (this.props.count > 1 ? ' Monitor Categories' : ' Monitor Category') : '0 Monitor Category'}</span>
                                     </span>
                                 </span>
                             </div>
