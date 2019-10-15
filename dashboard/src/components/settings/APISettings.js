@@ -60,7 +60,11 @@ export class APISettings extends Component {
                                             </div>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">API Key</label>
-                                                <div className="bs-Fieldset-fields" style={{ flex: 'none' }}>
+                                                <div className="bs-Fieldset-fields"
+                                                    onClick={() => this.setState(state => ({
+                                                        hidden: !state.hidden
+                                                    }))}
+                                                >
                                                     <ShouldRender if={hidden}>
                                                         <span className="value" style={{ marginTop: '6px' }}>
                                                             XXXX - XXXX - XXXX - XXXX
@@ -71,13 +75,6 @@ export class APISettings extends Component {
                                                             {this.props.currentProject !== null ? this.props.currentProject.apiKey : 'LOADING...'}
                                                         </span>
                                                     </ShouldRender>
-                                                </div>
-                                                <div className="bs-Fieldset-fields">
-                                                    <span style={{ display: 'block', marginLeft: '120px' }}>
-                                                        <button className="button-as-anchor" onClick={() => this.setState(state => ({
-                                                            hidden: !state.hidden
-                                                        }))} > { hidden ? 'Show' : 'Hide' } </button>
-                                                    </span>
                                                 </div>
                                             </div>
                                         </div>

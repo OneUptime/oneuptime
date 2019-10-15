@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, FieldArray } from 'redux-form';
 import { createSubProject, createSubProjectRequest, createSubProjectSuccess, createSubProjectError, getSubProjects } from '../../actions/subProject';
-import { SubProject } from './SubProject';
+import SubProject from './SubProject';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
