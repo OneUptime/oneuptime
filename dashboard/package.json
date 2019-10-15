@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.383",
+  "version": "3.0.390",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
@@ -40,6 +40,7 @@
     "react": "^16.5.2",
     "react-ace": "^7.0.4",
     "react-click-outside": "github:tj/react-click-outside",
+    "react-csv": "^1.1.1",
     "react-daterange-picker": "^2.0.1",
     "react-dom": "^16.5.2",
     "react-frontload": "^1.0.3",

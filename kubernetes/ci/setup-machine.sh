@@ -83,7 +83,7 @@ sudo microk8s.inspect
 echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl k"
 sudo snap alias microk8s.kubectl k
 echo "RUNNING COMMAND: microk8s.kubectl config view --raw > $HOME/.kube/config"
-microk8s.kubectl config view --raw > $HOME/.kube/config
+sudo microk8s.kubectl config view --raw > $HOME/.kube/config
 #Kubectl version.
 echo "RUNNING COMMAND: sudo k version"
 sudo k version
@@ -102,8 +102,8 @@ sudo apt-get install -y jq
 # Install nodeJS
 echo "RUNNING COMMAND: curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -"
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-echo "RUNNING COMMAND: sudo apt install nodejs"
-sudo apt install nodejs
+echo "RUNNING COMMAND: sudo apt-get install -y nodejs"
+sudo apt-get install -y nodejs
 # npm and node version check
 echo "RUNNING COMMAND: node -v"
 node -v
@@ -121,9 +121,6 @@ libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 li
 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 \
 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 \
 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils
-
-echo "RUNNING COMMAND: curl localhost:32000/v2"
-curl localhost:32000/v2
 
 echo "RUNNING COMMAND: sleep 2m"
 sleep 2m

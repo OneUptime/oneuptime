@@ -613,8 +613,8 @@ NewMonitor.propTypes = {
     subProjects: PropTypes.array,
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
-    monitorId: PropTypes.string.isRequired
-};
+    monitorId: PropTypes.string
+}
 
 NewMonitor.contextTypes = {
     mixpanel: PropTypes.object.isRequired
