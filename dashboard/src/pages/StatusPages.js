@@ -4,6 +4,8 @@ import { connect } from 'react-redux';
 import Dashboard from '../components/Dashboard';
 import StatusPagesTable from '../components/statusPage/StatusPagesTable'
 import PropTypes from 'prop-types';
+import ShouldRender from '../components/basic/ShouldRender';
+import TutorialBox from '../components/tutorial/TutorialBox';
 
 class StatusPage extends Component {
 
@@ -20,6 +22,10 @@ class StatusPage extends Component {
         return (
             <Dashboard>
                 <div className="db-World-contentPane Box-root Padding-bottom--48">
+                    <ShouldRender if={true}>
+                        <TutorialBox type="status-page" />
+                    </ShouldRender>
+
                     <StatusPagesTable projectId={projectId} />
                 </div>
             </Dashboard>
