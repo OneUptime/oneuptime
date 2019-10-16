@@ -77,7 +77,7 @@ export class SmsTemplatesFormBox extends Component {
 
                                             <ShouldRender if={!(this.props.revealVariable && this.props.revealVariable === template.smsType)}>
                                                 <span style={{ display: 'block', marginLeft: '120px' }}>
-                                                    <a onClick={() => this.props.setRevealVariable(template.smsType)}> Click here to reveal available variables.</a>
+                                                    <button className="button-as-anchor" onClick={() => this.props.setRevealVariable(template.smsType)}> Click here to reveal available variables.</button>
                                                 </span>
                                             </ShouldRender>
                                             <ShouldRender if={(this.props.revealVariable && this.props.revealVariable === template.smsType)}>

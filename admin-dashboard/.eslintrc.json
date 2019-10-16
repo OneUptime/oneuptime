@@ -1,0 +1,95 @@
+{
+    "parserOptions": {
+        "ecmaVersion": 8,
+        "ecmaFeatures": {
+            "experimentalObjectRestSpread": true,
+            "jsx": true,
+            "spread": true
+        },
+        "sourceType": "module"
+    },
+    "env": {
+        "browser": true,
+        "node": true,
+        "jquery": true,
+        "es6": true
+    },
+    "plugins": [
+        "react",
+        "jsx-a11y"
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:react/recommended"
+    ],
+    "parser": "babel-eslint",
+    "rules": {
+        "no-fallthrough": "error",
+        "no-unreachable": "error",
+        "no-cond-assign": "error",
+        "valid-typeof": "error",
+        "no-func-assign": "error",
+        "no-extra-semi": "error",
+        "no-unused-vars": [
+            "error",
+            {
+                "varsIgnorePattern": "[iI]gnored",
+                "vars": "all",
+                "args": "after-used",
+                "ignoreRestSiblings": true,
+                "argsIgnorePattern": "[iI]gnored"
+            }
+        ],
+        "no-undef": "error",
+        "no-empty": "error",
+        "no-case-declarations": "error",
+        "no-mixed-spaces-and-tabs": "error",
+        "no-useless-escape": "error",
+        "react/jsx-no-undef": "error",
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "react/jsx-no-bind": [
+            "error",
+            {
+                "allowArrowFunctions": true,
+                "allowBind": false,
+                "ignoreRefs": false
+            }
+        ],
+        "react/no-children-prop": "error",
+        "react/no-deprecated": "error",
+        "react/no-array-index-key": "off",
+        "react/boolean-prop-naming": "error",
+        "react/no-is-mounted": "error",
+        "react/no-find-dom-node": "error",
+        "react/no-did-update-set-state": "error",
+        "react/no-unknown-property": "error",
+        "react/no-unused-prop-types": "error",
+        "react/jsx-no-duplicate-props": "error",
+        "react/no-unused-state": "error",
+        "react/jsx-uses-vars": "error",
+        "react/prop-types": "error",
+        "react/react-in-jsx-scope": "error",
+        "react/no-string-refs": "error",
+        "jsx-a11y/href-no-hash": [
+            0
+        ],
+        "react/no-unescaped-entities": "error",
+        "react/display-name": [
+            "error",
+            {
+                "ignoreTranspilerName": true
+            }
+        ],
+        "react/jsx-pascal-case": "error",
+        "array-callback-return": "error",
+        "no-loop-func": "error",
+        "jsx-a11y/anchor-is-valid": "error",
+        "no-mixed-operators": "error",
+        "no-useless-constructor": "error",
+        "no-duplicate-case": "error",
+        "no-dupe-keys": "error"
+    }   
+}

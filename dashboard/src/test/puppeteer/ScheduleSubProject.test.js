@@ -115,7 +115,6 @@ describe('Schedule API With SubProjects', () => {
     afterAll(async () => {
         await browser1.close();
         await browser2.close();
-        ;
     });
 
     it('should not display create schedule button for subproject `member` role.', async () => {

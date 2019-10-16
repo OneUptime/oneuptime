@@ -12,33 +12,33 @@ describe('Monitor API', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
+
         // intercept request and mock response for login
         await page.setRequestInterception(true);
-        await page.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
+        await page.on('request', async (request) => {
+            if ((await request.url()).match(/user\/login/)) {
                 request.respond({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify(userCredentials)
                 });
-            }else{
+            } else {
                 request.continue();
             }
         });
-        await page.on('response', async (response)=>{
-            try{
+        await page.on('response', async (response) => {
+            try {
                 const res = await response.json();
-                if(res && res.tokens){
+                if (res && res.tokens) {
                     userCredentials = res;
                 }
-            }catch(error){}
-        });        
+            } catch (error) { }
+        });
     });
-    
+
     afterAll(async () => {
         await browser.close();
-        
+
     });
 
     it('Should login valid User', async () => {
@@ -109,7 +109,7 @@ describe('Monitor API', () => {
         await page.waitForSelector('#frmNewMonitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await page.select('select[name=type_1000]','url');
+        await page.select('select[name=type_1000]', 'url');
         await page.waitForSelector('#url');
         await page.click('#url');
         await page.type('#url', 'https://google.com');
@@ -120,17 +120,21 @@ describe('Monitor API', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly(monitorName);
-        
+
     }, operationTimeOut);
 
     it('Should delete monitor', async () => {
         await page.waitForSelector('#name');
+        await page.evaluate(() => {
+            document.querySelector('div.Box-root div.db-Trends-header div.db-Trends-controls div button.bs-Button.bs-DeprecatedButton.db-Trends-editButton.bs-Button--icon.bs-Button--help').click();
+        });
+        await page.waitFor(10000);
         await page.evaluate(() => {
             document.querySelector('div.Box-root div.db-Trends-header div.db-Trends-controls div button.bs-Button.bs-DeprecatedButton.db-Trends-editButton.bs-Button--icon.bs-Button--delete').click();
         });
         await page.evaluate(() => {
             document.querySelector('button.bs-DeprecatedButton:nth-child(2)').click();
         });
-        
+
     }, operationTimeOut);
 });

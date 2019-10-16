@@ -2,8 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import ShouldRender from '../basic/ShouldRender';
-import { FormLoader } from '../basic/Loader';
 
 export class ProjectDetails extends Component {
 
@@ -114,7 +112,6 @@ const mapDispatchToProps = dispatch => (
 
 ProjectDetails.propTypes = {
     project: PropTypes.object.isRequired,
-    isRequesting: PropTypes.oneOf([null,undefined,true,false]),
 }
 
 ProjectDetails.contextTypes = {
