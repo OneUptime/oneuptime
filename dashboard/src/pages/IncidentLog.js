@@ -8,7 +8,8 @@ import uuid from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import IncidentProjectBox from '../components/incident/IncidentProjectBox'
 import Badge from '../components/common/Badge';
-import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
+import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
+import ShouldRender from '../components/basic/ShouldRender';
 
 class IncidentLog extends React.Component {
 
@@ -69,11 +70,11 @@ class IncidentLog extends React.Component {
                     <div className="bs-BIM" key={i}>
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                {
+                                <ShouldRender if={subProjects.length > 0}>
                                     <div className="Box-root Padding-top--20 Padding-left--20">
                                         <Badge color={'blue'}>{subProject.name}</Badge>
                                     </div>
-                                }
+                                </ShouldRender>
                                 <IncidentProjectBox
                                     subProjectIncident={subProjectIncident}
                                     creating={creating}
@@ -88,7 +89,6 @@ class IncidentLog extends React.Component {
                         </div>
                     </div>
                 </RenderIfUserInSubProject>
-
             ) : false;
         });
 
@@ -124,12 +124,11 @@ class IncidentLog extends React.Component {
                     </div>
                 </div>
             </RenderIfUserInSubProject>
-
         ) : false;
 
-        allIncidents && allIncidents.unshift(projectIncident)
-        return (
+        allIncidents && allIncidents.unshift(projectIncident);
 
+        return (
             <Dashboard ready={this.ready}>
                 <div className="db-World-contentPane Box-root Padding-bottom--48">
                     <div>
@@ -144,7 +143,6 @@ class IncidentLog extends React.Component {
                 </div>
             </Dashboard>
         );
-
     }
 }
 

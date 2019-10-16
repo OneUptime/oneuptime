@@ -211,6 +211,15 @@ class NewMonitor extends Component {
         this.setState({ script: newValue });
     }
 
+    monitorTypeDescription = {
+        'url': 'Monitor any resources (Websites, API, Servers, IoT Devices and more) constantly and notify your team when they do not behave the way you want.',
+        'device': 'Monitor IoT devices constantly and notify your team when they do not behave the way you want.',
+        'manual': 'Manual monitors do not monitor any resource. You can change monitor status by using Fyipe’s API <link to docs>. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.',
+        'api': 'Monitor REST endpoints constantly and notify your team when they do not behave the way you want.',
+        'script': 'Run custom script when monitor status changes.',
+        'server-monitor': 'Monitor servers constantly and notify your team when they do not behave the way you want.',
+    }
+
     render() {
         let requesting = ((this.props.monitor.newMonitor.requesting && !this.props.edit) || (this.props.monitor.editMonitor.requesting && this.props.edit));
 
@@ -288,7 +297,7 @@ class NewMonitor extends Component {
                                                 <ShouldRender if={!this.props.edit}>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Monitor Type</label>
-                                                        <div className="bs-Fieldset-fields">
+                                                        <div className="bs-Fieldset-fields" style={{ maxWidth: 500 }}>
                                                             <Field className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 component={RenderSelect}
                                                                 name={`type_${this.props.index}`}
@@ -299,13 +308,16 @@ class NewMonitor extends Component {
                                                                 validate={ValidateField.select}
                                                             >
                                                                 <option value="">Select monitor type</option>
-                                                                <option value="url">URL</option>
-                                                                <option value="device">Device</option>
+                                                                <option value="url">Website</option>
+                                                                <option value="device">IoT Device</option>
                                                                 <option value="manual">Manual</option>
                                                                 <option value="api">API</option>
                                                                 <option value="script">Script</option>
-                                                                <option value="server-monitor">Server Monitor</option>
+                                                                <option value="server-monitor">Server</option>
                                                             </Field>
+                                                            <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                <span>{ this.monitorTypeDescription[[this.state.type]] }</span>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     <ShouldRender if={subProjects && subProjects.length > 0}>

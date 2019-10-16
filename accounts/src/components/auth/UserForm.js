@@ -28,7 +28,7 @@ class UserForm extends Component {
 	render() {
 		const { serverResponse } = this.state;
 		return (
-			<div id="main-body" className="box css">
+			<div id="main-body" className="box css" style={{ width: 500 }}>
 				<div className="inner">
 					<div className="title extra">
 						<h2>
@@ -39,97 +39,100 @@ class UserForm extends Component {
 						</h2>
 					</div>
 					<form onSubmit={this.props.handleSubmit(this.props.submitForm)}>
+						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span id="ema">
+									<label htmlFor="email">Email</label>
+									<Field
+										type="email"
+										id="email"
+										name="email"
+										component={RenderField}
+										placeholder="jeff@example.com"
+										required="required"
+										value={this.props.register.user.email || ''}
+									/>
+								</span>
+							</p>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="name">Full Name</label>
+									<Field
+										type="text"
+										component={RenderField}							  
+										name="name"
+										id="name"
+										placeholder="Jeff Smith"
+										required="required"
+										value={this.props.register.user.name || ''}
 
-						<p className="text">
-							<span id="ema">
-								<label htmlFor="email">Email</label>
-								<Field
-									type="email"
-									id="email"
-									name="email"
-									component={RenderField}
-									placeholder="jeff@example.com"
-									required="required"
-									value={this.props.register.user.email || ''}
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="name">Full Name</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="name"
-									id="name"
-									placeholder="Jeff Smith"
-									required="required"
-									value={this.props.register.user.name || ''}
+									/>
+								</span>
+							</p>
+						</div>
+						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="companyName">Company Name</label>
+									<Field
+										type="text"
+										name="companyName"
+										id="companyName"
+										component={RenderField}
+										placeholder="Company Name"
+									/>
+								</span>
+							</p>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="companyPhoneNumber">Phone Number</label>
+									<Field
+										type="text"
+										component={RenderField}
+										name="companyPhoneNumber"
+										id="companyPhoneNumber"
+										placeholder="+1-123-456-7890"
+									/>
+								</span>
+							</p>
+						</div>
+						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="password">Password</label>
+									<Field
+										type="password"
+										component={RenderField}
+										name="password"
+										id="password"
+										placeholder="Your Password"
+										className="password-strength-input"
+										required="required"
+										value={this.props.register.user.password || ''}
+									/>
+								</span>
+							</p>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="confirmPassword">Confirm Password</label>
+									<Field
+										type="password"
+										component={RenderField}
+										name="confirmPassword"
+										id="confirmPassword"
+										placeholder="Confirm Password"
+										required="required"
+										value={this.props.register.user.confirmPassword || ''}
+									/>
+								</span>
+							</p>
+						</div>
 
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="companyName">Company Name</label>
-								<Field
-									type="text"
-									name="companyName"
-									id="companyName"
-									component={RenderField}
-									placeholder="Company Name"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="companyPhoneNumber">Phone Number</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="companyPhoneNumber"
-									id="companyPhoneNumber"
-									placeholder="+1-123-456-7890"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="password">Password</label>
-								<Field
-									type="password"
-									component={RenderField}
-									name="password"
-									id="password"
-									placeholder="Your Password"
-									className="password-strength-input"
-									required="required"
-									value={this.props.register.user.password || ''}
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="confirmPassword">Confirm Password</label>
-								<Field
-									type="password"
-									component={RenderField}
-									name="confirmPassword"
-									id="confirmPassword"
-									placeholder="Confirm Password"
-									required="required"
-									value={this.props.register.user.confirmPassword || ''}
-								/>
-							</span>
-						</p>
-						<div>
-
-							<p className="submit">
-								<button type="submit" className="button blue medium" id="create-account-button" disabled={this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting )}>
+							<p className="submit" style={{ width: '100%', maxWidth: '100%' }}>
+								<button style={{ width: '100%' }} type="submit" className="button blue medium" id="create-account-button" disabled={this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting )}>
 									{this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting ) ? <FlatLoader /> : <span>Create Fyipe Account</span>}
 								</button>
 							</p>
-						</div>
 					</form>
 				</div>
 			</div>

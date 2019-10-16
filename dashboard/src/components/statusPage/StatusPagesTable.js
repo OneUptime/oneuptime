@@ -9,7 +9,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import Badge from '../common/Badge';
 import StatuspageProjectBox from './StatuspageProjectBox'
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject'
-
+import ShouldRender from '../basic/ShouldRender';
 class StatusPagesTable extends Component {
 
     constructor(props){
@@ -71,11 +71,11 @@ class StatusPagesTable extends Component {
                         <div className="bs-BIM" key={i}>
                             <div className="Box-root Margin-bottom--12">
                                 <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                    { 
+                                    <ShouldRender if={ subProjects.length > 0}>
                                         <div className="Box-root Padding-top--20 Padding-left--20">
                                             <Badge color={'blue'}>{subProject.name}</Badge>
                                         </div>
-                                    }
+                                    </ShouldRender>
                                     <StatuspageProjectBox
                                         switchStatusPages = {this.switchStatusPages}
                                         subProjectStatusPage = {subProjectStatusPage}
@@ -118,11 +118,11 @@ class StatusPagesTable extends Component {
                 <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                { 
+                                <ShouldRender if={ subProjects.length > 0}>
                                     <div className="Box-root Padding-top--20 Padding-left--20">
                                         <Badge color={'red'}>Project</Badge>
                                     </div>
-                                }
+                                </ShouldRender>
                                 <StatuspageProjectBox
                                     switchStatusPages = {this.switchStatusPages}
                                     subProjectStatusPage = {projectStatusPage}
@@ -138,6 +138,7 @@ class StatusPagesTable extends Component {
                                     statusPage = {this.props.statusPage}
                                     prevClicked = {this.prevClicked}
                                     nextClicked = {this.nextClicked}
+                                    subProjects={ subProjects }
                                     />
                             </div>
                         </div>

@@ -14,7 +14,7 @@ class CardForm extends Component {
 		this.plan = PricingPlan.getPlanById(this.props.planId);
 
 		return (
-			<div id="main-body" className="box css">
+			<div id="main-body" className="box css" style={{ width: 500 }}>
 				<div className="inner">
 					<div className="title extra">
 						<div>
@@ -26,147 +26,159 @@ class CardForm extends Component {
 						</div>
 					</div>
 					<form id="card-form" onSubmit={this.props.handleSubmit(this.props.submitForm)}>
-						<p className="text">
-							<span>
-								<label htmlFor="cardName">Card Holder Name</label>
-								<Field
-									type="text"
-									name="cardName"
-									id="cardName"
-									placeholder="Card Holder Name"
-									component={RenderField}
-									required="required"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="cardNumber">Card Number</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="cardNumber"
-									id="cardNumber"
-									placeholder="1234 4534 2322 1234"
-									required="required"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="cvv">CVV</label>
-								<Field
-									type="password"
-									component={RenderField}
-									name="cvc"
-									id="cvv"
-									placeholder="CVV"
-									required="required"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="expiry">Expiry Date</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="expiry"
-									id="expiry"
-									placeholder="01/2019"
-									required="required"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="address1">Street Address 1</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="address1"
-									id="address1"
-									placeholder="Street Address 1"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="address2">Street Address 2</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="address2"
-									id="address2"
-									placeholder="Street Address 2"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="city">City</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="city"
-									id="city"
-									placeholder="City"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="state">State</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="state"
-									id="state"
-									placeholder="State (Optional)"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="zipCode">Zip Code / Postal Code</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="zipCode"
-									id="zipCode"
-									placeholder="Zip Code or Postal Code"
-									required="required"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="country">Country</label>
-								<Field
-									type="text"
-									component={RenderCountrySelector}
-									name="country"
-									id="country"
-									placeholder="Select Country"
-									required="required"
-								/>
-							</span>
-						</p>
-						<p className="text">
-							<span>
-								<label htmlFor="promocode">Promo Code(optional)</label>
-								<Field
-									type="text"
-									component={RenderField}
-									name="promocode"
-									id="promocode"
-									placeholder="Promocode (Optional)"
-								/>
-							</span>
-						</p>
+						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="cardName">Card Holder Name</label>
+									<Field
+										type="text"
+										name="cardName"
+										id="cardName"
+										placeholder="Card Holder Name"
+										component={RenderField}
+										required="required"
+									/>
+								</span>
+							</p>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="cardNumber">Card Number</label>
+									<Field
+										type="text"
+										component={RenderField}
+										name="cardNumber"
+										id="cardNumber"
+										placeholder="1234 4534 2322 1234"
+										required="required"
+									/>
+								</span>
+							</p>
+						</div>
+						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="cvv">CVV</label>
+									<Field
+										type="password"
+										component={RenderField}
+										name="cvc"
+										id="cvv"
+										placeholder="CVV"
+										required="required"
+									/>
+								</span>
+							</p>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="expiry">Expiry Date</label>
+									<Field
+										type="text"
+										component={RenderField}
+										name="expiry"
+										id="expiry"
+										placeholder="01/2019"
+										required="required"
+									/>
+								</span>
+							</p>
+						</div>
+						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="address1">Street Address 1</label>
+									<Field
+										type="text"
+										component={RenderField}
+										name="address1"
+										id="address1"
+										placeholder="Street Address 1"
+									/>
+								</span>
+							</p>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="address2">Street Address 2</label>
+									<Field
+										type="text"
+										component={RenderField}
+										name="address2"
+										id="address2"
+										placeholder="Street Address 2"
+									/>
+								</span>
+							</p>
+						</div>
+						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="city">City</label>
+									<Field
+										type="text"
+										component={RenderField}
+										name="city"
+										id="city"
+										placeholder="City"
+									/>
+								</span>
+							</p>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="state">State</label>
+									<Field
+										type="text"
+										component={RenderField}
+										name="state"
+										id="state"
+										placeholder="State (Optional)"
+									/>
+								</span>
+							</p>
+						</div>
+						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="zipCode">Zip Code / Postal Code</label>
+									<Field
+										type="text"
+										component={RenderField}
+										name="zipCode"
+										id="zipCode"
+										placeholder="Zip Code or Postal Code"
+										required="required"
+									/>
+								</span>
+							</p>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="country">Country</label>
+									<Field
+										type="text"
+										component={RenderCountrySelector}
+										name="country"
+										id="country"
+										placeholder="Select Country"
+										required="required"
+									/>
+								</span>
+							</p>
+						</div>
+						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+								<span>
+									<label htmlFor="promocode">Promo Code(optional)</label>
+									<Field
+										type="text"
+										component={RenderField}
+										name="promocode"
+										id="promocode"
+										placeholder="Promocode (Optional)"
+									/>
+								</span>
+							</p>
+						</div>
 						<div>
-							<p className="submit">
-								<button type="submit" className="button blue medium" id="create-account-button" disabled={this.props.register.requesting}>
+							<p className="submit" style={{ width: '100%', maxWidth: '100%' }}>
+								<button style={{ width: '100%' }} type="submit" className="button blue medium" id="create-account-button" disabled={this.props.register.requesting}>
 									{!this.props.register.requesting && <span>Create Fyipe Account</span>}
 									{this.props.register.requesting && <FlatLoader />}
 								</button>
