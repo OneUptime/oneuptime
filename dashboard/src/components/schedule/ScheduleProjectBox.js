@@ -17,7 +17,7 @@ const ScheduleProjectBox = (props) => (
                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                         <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                        <span style={{'textTransform':'capitalize'}}>{props.currentProject._id !== props.subProjectSchedule._id ? props.subProjectName : 'Project'} call schedules</span>
+                        <span style={{'textTransform':'capitalize'}}>{props.currentProject._id !== props.subProjectSchedule._id ? props.subProjectName : props.subProjects.length > 0 ? 'Project' : ''} call schedules</span>
                         </span>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
@@ -147,6 +147,7 @@ ScheduleProjectBox.propTypes = {
     subProject: PropTypes.object.isRequired,
     projectId: PropTypes.string.isRequired,
     scheduleModalId: PropTypes.string.isRequired,
+    subProjects: PropTypes.array
 };
 
 export default ScheduleProjectBox;

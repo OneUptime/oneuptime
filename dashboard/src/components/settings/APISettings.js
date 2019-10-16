@@ -9,6 +9,14 @@ import RenderIfAdmin from '../../components/basic/RenderIfAdmin';
 
 export class APISettings extends Component {
 
+    constructor(props){
+        super(props);
+
+        this.state = {
+            hidden: true
+        }
+    }
+
     resetToken =()=> {
         this.props.resetProjectToken(this.props.currentProject._id);
         if(window.location.href.indexOf('localhost') <= -1){
@@ -17,6 +25,8 @@ export class APISettings extends Component {
     }
 
     render() {
+        const { hidden } = this.state;
+
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -50,10 +60,21 @@ export class APISettings extends Component {
                                             </div>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">API Key</label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <span className="value" style={{ marginTop: '6px' }}>
-                                                        {this.props.currentProject !== null ? this.props.currentProject.apiKey : 'LOADING...'}
-                                                    </span>
+                                                <div className="bs-Fieldset-fields"
+                                                    onClick={() => this.setState(state => ({
+                                                        hidden: !state.hidden
+                                                    }))}
+                                                >
+                                                    <ShouldRender if={hidden}>
+                                                        <span className="value" style={{ marginTop: '6px' }}>
+                                                            XXXX - XXXX - XXXX - XXXX
+                                                        </span>
+                                                    </ShouldRender>
+                                                    <ShouldRender if={!hidden}>
+                                                        <span className="value" style={{ marginTop: '6px' }}>
+                                                            {this.props.currentProject !== null ? this.props.currentProject.apiKey : 'LOADING...'}
+                                                        </span>
+                                                    </ShouldRender>
                                                 </div>
                                             </div>
                                         </div>

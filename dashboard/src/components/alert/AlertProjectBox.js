@@ -4,14 +4,14 @@ import PropTypes from 'prop-types';
 import { AlertTableRows, AlertTableHeader } from '../alert/AlertTable';
 import { ListLoader } from '../basic/Loader';
 
-const AlertProjectBox = ({currentProjectId, subProjectAlert, subProjectName, canPrev, canNext, nextClicked, prevClicked, isRequesting, error}) => (
+const AlertProjectBox = ({currentProjectId, subProjectAlert, subProjectName, canPrev, canNext, nextClicked, prevClicked, isRequesting, error, subProjects }) => (
     <div className="Box-root">
     <div>
         <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                     <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                    <span style={{'textTransform':'capitalize'}}>{ currentProjectId !== subProjectAlert._id ? subProjectName : 'Project'} Alert Log</span>
+                    <span style={{'textTransform':'capitalize'}}>{ currentProjectId !== subProjectAlert._id ? subProjectName : subProjects.length > 0 ? 'Project' : ''} Alert Log</span>
                     </span>
                     <span style={{'textTransform':'lowercase'}} className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <span>Here&#39;s a log of all the alerts that were sent to {currentProjectId !== subProjectAlert._id ? `${subProjectName} sub-project` : `${subProjectName} project`} team.</span>
@@ -110,6 +110,7 @@ AlertProjectBox.propTypes = {
     error: PropTypes.string.isRequired,
     currentProjectId: PropTypes.string.isRequired,
     isRequesting: PropTypes.bool.isRequired,
+    subProjects: PropTypes.array
 };
 
 export default AlertProjectBox;

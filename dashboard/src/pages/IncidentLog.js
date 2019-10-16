@@ -9,7 +9,7 @@ import { openModal, closeModal } from '../actions/modal';
 import IncidentProjectBox from '../components/incident/IncidentProjectBox'
 import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
-
+import ShouldRender from '../components/basic/ShouldRender';
 class IncidentLog extends React.Component {
 
   constructor(props) {
@@ -69,11 +69,11 @@ class IncidentLog extends React.Component {
                     <div className="bs-BIM" key={i}>
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                { 
+                                  <ShouldRender if={ subProjects.length > 0}>
                                     <div className="Box-root Padding-top--20 Padding-left--20">
                                         <Badge color={'blue'}>{subProject.name}</Badge>
                                     </div>
-                                }
+                                  </ShouldRender>
                                 <IncidentProjectBox
                                     subProjectIncident = {subProjectIncident}
                                     creating = {creating}
@@ -105,11 +105,11 @@ class IncidentLog extends React.Component {
               <div className="bs-BIM">
                   <div className="Box-root Margin-bottom--12">
                       <div className="bs-ContentSection Card-root Card-shadow--medium">
-                          { 
-                              <div className="Box-root Padding-top--20 Padding-left--20">
-                                  <Badge color={'red'}>Project</Badge>
-                              </div>
-                          }
+                          <ShouldRender if={ subProjects.length > 0}>
+                            <div className="Box-root Padding-top--20 Padding-left--20">
+                                <Badge color={'red'}>Project</Badge>
+                            </div>
+                          </ShouldRender>
                           <IncidentProjectBox
                               subProjectIncident = {projectIncident}
                               creating = {creating}
@@ -119,6 +119,7 @@ class IncidentLog extends React.Component {
                               currentProjectId = {currentProjectId}
                               prevClicked = {this.prevClicked}
                               nextClicked = {this.nextClicked}
+                              subProjects= {subProjects}
                               />
                       </div>
                   </div>
