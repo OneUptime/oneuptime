@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 import AlertProjectBox from '../components/alert/AlertProjectBox'
 import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
-
+import ShouldRender from '../components/basic/ShouldRender';
 class AlertLog extends Component {
 
     componentDidMount() {
@@ -64,11 +64,11 @@ class AlertLog extends Component {
                         <div className="bs-BIM" key={i}>
                             <div className="Box-root Margin-bottom--12">
                                 <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                    { 
-                                        <div className="Box-root Padding-top--20 Padding-left--20">
-                                            <Badge color={'blue'}>{subProject.name}</Badge>
-                                        </div>
-                                    }
+                                       <ShouldRender if={ subProjects.length > 0}>
+                                            <div className="Box-root Padding-top--20 Padding-left--20">
+                                                <Badge color={'blue'}>{subProject.name}</Badge>
+                                            </div>
+                                        </ShouldRender>
                                     <AlertProjectBox
                                         subProjectAlert = {subProjectAlert}
                                         subProjectName = {subProject.name}
@@ -111,11 +111,11 @@ class AlertLog extends Component {
                     <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                { 
+                                <ShouldRender if={ subProjects.length > 0}>
                                     <div className="Box-root Padding-top--20 Padding-left--20">
                                         <Badge color={'red'}>Project</Badge>
                                     </div>
-                                }
+                                </ShouldRender>
                                 <AlertProjectBox
                                     subProjectAlert = {projectAlert}
                                     subProjectName = {currentProject.name}
@@ -126,6 +126,7 @@ class AlertLog extends Component {
                                     canPrev = {canPrev}
                                     isRequesting = {isRequesting}
                                     error = {error}
+                                    subProjects = { subProjects }
                                     />
                             </div>
                         </div>

@@ -50,7 +50,10 @@ export class ProfileSetting extends Component {
     state = {
         alertPhoneNumber: this.props.initialValues.alertPhoneNumber,
         initPhoneVerification: false,
-        verified: false
+        verified: false,
+        profilePic: null,
+        removedPic: false,
+        fileInputKey: null
     }
 
     handleOnChange = (value) =>  {
@@ -77,6 +80,7 @@ export class ProfileSetting extends Component {
     handleSendVerificationSMS = () => {
         const { projectId, sendVerificationSMS } = this.props;
         const { alertPhoneNumber } = this.state;
+
         sendVerificationSMS(projectId, {
             to: alertPhoneNumber
         })
@@ -87,6 +91,39 @@ export class ProfileSetting extends Component {
             this.context.mixpanel.track('Profile settings page Loaded');
         }
         this.props.userSettings();
+        const profilePic = this.props.profileSettings && 
+            this.props.profileSettings.data && 
+            this.props.profileSettings.data.profilePic && 
+            this.props.profileSettings.data.profilePic !== '' ? this.props.profileSettings.data.profilePic : null;
+        
+        this.setState({
+            profilePic,
+            fileInputKey : new Date()
+        })
+    }
+
+    componentDidUpdate(prevProps){
+        const prevProfilePic = prevProps.profileSettings && 
+            prevProps.profileSettings.data &&
+            prevProps.profileSettings.data.profilePic ?
+            prevProps.profileSettings.data.profilePic : null;
+        const currentProfilePic = this.props.profileSettings && 
+            this.props.profileSettings.data &&
+            this.props.profileSettings.data.profilePic ?
+            this.props.profileSettings.data.profilePic : null;
+
+        if(prevProfilePic !== currentProfilePic){
+            this.updateProfilePic(currentProfilePic)
+        }
+    }
+
+    updateProfilePic(profilePic){
+        const { resetFile } = this.props;
+
+        this.setState({
+            profilePic
+        })
+        resetFile();
     }
 
     changefile = (e) => {
@@ -100,6 +137,10 @@ export class ProfileSetting extends Component {
         }
         try {
             reader.readAsDataURL(file)
+            this.setState({
+                profilePic: file,
+                removedPic: false
+            })
         } catch (error) {
             return
         }
@@ -111,8 +152,9 @@ export class ProfileSetting extends Component {
 
     submitForm = (values) => {
         const initialAlertPhoneNumber = this.props.initialValues.alertPhoneNumber;
-        const { alertPhoneNumber, verified } = this.state;
+        const { alertPhoneNumber, verified, removedPic } = this.state;
         const { sendVerificationSMSError, verifySMSCodeError } = this.props;
+        
         if (initialAlertPhoneNumber !== alertPhoneNumber
             && !verified && !sendVerificationSMSError && !verifySMSCodeError) {
             this.setState({
@@ -121,12 +163,24 @@ export class ProfileSetting extends Component {
         }
         const { updateProfileSetting, resetFile } = this.props;
 
+        values.removedPic = removedPic;
         updateProfileSetting(values).then(function () {
             resetFile();
         });
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Update Profile', values);
         }
+    }
+
+    removeProfilePic = () => {
+        const { resetFile } = this.props;
+
+        this.setState({
+            profilePic: null,
+            removedPic: true,
+            fileInputKey: new Date()
+        })
+        resetFile();
     }
 
     render() {
@@ -136,10 +190,15 @@ export class ProfileSetting extends Component {
                 sendVerificationSMSRequesting, 
                 verifySMSCodeRequesting, sendVerificationSMSError,
                 verifySMSCodeError } = this.props;
-                
-        var fileData = this.props.fileUrl ? this.props.fileUrl : this.props.profileSettings && this.props.profileSettings.data && this.props.profileSettings.data.profilePic ? `${API_URL}/file/${this.props.profileSettings.data.profilePic}` : '';
+
+        var profilePic = this.state.profilePic;
+
+        profilePic = profilePic === 'null' ?  null : profilePic;   
+
+        var fileData = this.props.fileUrl ? this.props.fileUrl : profilePic ? `${API_URL}/file/${profilePic}` : 'https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404';
         var profileImage = <span />;
-        if ((this.props.profileSettings && this.props.profileSettings.data && this.props.profileSettings.data.profilePic) || this.props.fileUrl) {
+
+        if (profilePic || this.props.fileUrl) {
             profileImage = <img src={fileData} alt="" className="image-small-circle" style={{ marginTop: '10px' }} />;
         }
         return (
@@ -189,20 +248,6 @@ export class ProfileSetting extends Component {
                                             </div>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Phone</label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <Field
-                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                        type="text"
-                                                        name="companyPhoneNumber"
-                                                        id="companyPhoneNumber"
-                                                        placeholder="Phone Number"
-                                                        component={RenderField}
-                                                        disabled={profileSettings && profileSettings.requesting}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">Phone for Alerts</label>
                                                 <div className="bs-Fieldset-fields">
                                                     <ReactPhoneInput
                                                         defaultCountry={'us'}
@@ -310,13 +355,13 @@ export class ProfileSetting extends Component {
                                                                 className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
                                                                 type="button"
                                                             >
-                                                                <ShouldRender if={!(this.props.profileSettings && this.props.profileSettings.data && this.props.profileSettings.data.profilePic)}>
+                                                                <ShouldRender if={!profilePic}>
                                                                     <span className="bs-Button--icon bs-Button--new"></span>
                                                                     <span>
                                                                         Upload Profile Picture
                                                                     </span>
                                                                 </ShouldRender>
-                                                                <ShouldRender if={this.props.profileSettings && this.props.profileSettings.data && this.props.profileSettings.data.profilePic}>
+                                                                <ShouldRender if={profilePic}>
                                                                     <span className="bs-Button--icon bs-Button--edit"></span>
                                                                     <span>
                                                                         Change Profile Picture
@@ -329,13 +374,28 @@ export class ProfileSetting extends Component {
                                                                         id="profilePic"
                                                                         accept="image/jpeg, image/jpg, image/png"
                                                                         onChange={this.changefile}
+                                                                        fileInputKey={this.state.fileInputKey}
                                                                     />
                                                                 </div>
                                                             </label>
 
                                                         </div>
+                                                        <ShouldRender if={profilePic}>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <label
+                                                                    className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                    type="button"
+                                                                    onClick={this.removeProfilePic}
+                                                                >
+                                                                    <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                    <span>
+                                                                        Remove Profile Picture
+                                                                    </span>
+                                                                </label>
+                                                            </div>
+                                                        </ShouldRender>
                                                     </div>
-                                                    <ShouldRender if={(this.props.profileSettings && this.props.profileSettings.data && this.props.profileSettings.data.profilePic) || this.props.fileUrl}>
+                                                    <ShouldRender if={profilePic || this.props.fileUrl}>
                                                         {profileImage}
                                                     </ShouldRender>
                                                 </div>
