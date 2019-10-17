@@ -1,6 +1,6 @@
 import React from 'react';
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
-import { history, isServer } from './store';
+import store, { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import NotFound from './components/404';
@@ -11,6 +11,7 @@ import ReactGA from 'react-ga';
 import { User, ACCOUNTS_URL, DOMAIN_URL } from './config';
 import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
+import { loadPage } from './actions/page';
 
 if (!isServer) {
 	history.listen(location => {
@@ -22,17 +23,18 @@ if (!isServer) {
 var cookies = new Cookies();
 
 var userData = cookies.get('data');
-if (userData !== undefined){
+if (userData !== undefined) {
 	User.setUserId(userData.id);
 	User.setAccessToken(userData.tokens.jwtAccessToken);
 	User.setEmail(userData.email);
 	User.setName(userData.name);
 	User.setCardRegistered(userData.cardRegistered);
 }
-cookies.remove('data', {domain: DOMAIN_URL });
+cookies.remove('data', { domain: DOMAIN_URL });
 
-if (!User.isLoggedIn()){
+if (!User.isLoggedIn()) {
 	window.location = ACCOUNTS_URL;
+	store.dispatch(loadPage('Home'));
 }
 
 const App = () => (
@@ -40,8 +42,8 @@ const App = () => (
 		<Socket />
 		<Router history={history}>
 			<Switch>
-			{allRoutes.filter(route => route.visible).map((route, index) => {
-					return  (
+				{allRoutes.filter(route => route.visible).map((route, index) => {
+					return (
 						<Route
 							exact={route.exact}
 							path={route.path}

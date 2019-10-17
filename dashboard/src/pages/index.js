@@ -16,6 +16,7 @@ import Profile from './Profile';
 import Settings from './Settings';
 
 import Billing from './Billing';
+import Monitors from './Monitors';
 import Integrations from './Integrations';
 
 import EmailTemplates from './EmailTemplates';
@@ -39,6 +40,7 @@ export default {
     IncidentLog,
     Incident,
     Billing,
+    Monitors,
     Schedule,
     Integrations,
     EmailTemplates,

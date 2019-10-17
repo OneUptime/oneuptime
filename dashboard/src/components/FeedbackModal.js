@@ -11,14 +11,14 @@ import PropTypes from 'prop-types';
 export class FeedbackModal extends Component {
 
 	submitForm = (values) => {
-		const { reset } = this.props;
+		const { reset, page } = this.props;
 
 		if (values.feedback) {
-
-			this.props.createFeedback(this.props.currentProject._id,values).then(function () {
+			this.props.createFeedback(this.props.currentProject._id, values.feedback, page.title).then(function () {
 
 			}, function () {
 			});
+
 			if (window.location.href.indexOf('localhost') <= -1) {
 				this.context.mixpanel.track('Feedback Values', values);
 			}
@@ -34,7 +34,7 @@ export class FeedbackModal extends Component {
 
 		return this.props.feedback.feedbackModalVisble ?
 
-			(<div  className="db-FeedbackModal" style={{ position: 'absolute', right: '40px', top: '20px', zIndex: '999' }}>
+			(<div className="db-FeedbackModal" style={{ position: 'absolute', right: '40px', top: '20px', zIndex: '999' }}>
 				<div className="db-FeedbackModal-background" />
 				<div className="db-FeedbackModal-content">
 					<div className="db-FeedbackModal-contentInner">
@@ -86,7 +86,8 @@ let FeedbackModalForm = reduxForm({
 
 const mapStateToProps = state => ({
 	feedback: state.feedback,
-	currentProject : state.project.currentProject,
+	page: state.page,
+	currentProject: state.project.currentProject,
 });
 
 const mapDispatchToProps = dispatch => (
@@ -98,6 +99,7 @@ FeedbackModal.contextTypes = {
 };
 
 FeedbackModal.propTypes = {
+	page: PropTypes.object,
 	createFeedback: PropTypes.func.isRequired,
 	closeFeedbackModal: PropTypes.func.isRequired,
 	reset: PropTypes.func.isRequired,

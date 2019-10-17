@@ -2,39 +2,27 @@
 #
 # This CI/CD will run on an Ubuntu VM. After this script runs, the VM will retain the state.
 # It's your responsibility to clean the VM up in the cleanup stage after job finishes executing.
-# This script runs on Microk8s. since our deployments are on Kubernetes, our aim is to create EXACT same replica for test, staging and production.
+# This script runs on Microk8s. Since our deployments are on Kubernetes, our aim is to create EXACT same replica for test, staging and production.
 
 # Define stages
 stages:
-  - CleanEnvVars
   - BuildAndTest
   - E2E
   - VersionUpdate
-  - DeployStaging
-  - RollbackIfStagingDeploymentFail
-  - DeployProduction
-  - RollbackIfProductionDeploymentFail
+  - Deploy
+  - RollbackIfDeploymentFail
   - SmokeTest
-  - RollbackStaging
-  - RollbackProduction
+  - RollbackIfSmokeTestFail
 
-clean_job_status_env_vars:
-  stage: CleanEnvVars
-  script:
-    # cleanup
-    - curl --request DELETE --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS
-    # create new var
-    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=SMOKE_TEST_STATUS" --form "value=failed"
-
-  only:
-    refs:
-      - master
-      - release
 #BACKEND
 lint_n_audit_backend:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd backend
     - npm ci
     - npm run lint
@@ -48,6 +36,7 @@ lint_n_audit_backend:
 build_n_test_backend:
   stage: BuildAndTest
   script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker. 
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
@@ -61,7 +50,11 @@ build_n_test_backend:
 lint_n_audit_dashboard:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd dashboard
     - npm ci
     - npm run lint
@@ -75,6 +68,9 @@ lint_n_audit_dashboard:
 build_n_test_dashboard:
   stage: BuildAndTest
   script:
+    - sudo apt-get update
+    - curl -sSL https://get.docker.com/ | sh #Install docker. 
+    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
     - echo "Setup machine for running puppeteer tests"
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -100,16 +96,21 @@ build_n_test_dashboard:
 lint_n_audit_admin-dashboard:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd admin-dashboard
     - npm ci
     - npm run lint
-    # - npm run audit
+    - npm run audit
     - cd ..
 
 build_n_test_admin-dashboard:
   stage: BuildAndTest
   script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker. 
     - cd admin-dashboard
     - npm ci
       # try building, if there are warnings then this will fail
@@ -120,7 +121,11 @@ build_n_test_admin-dashboard:
 lint_n_audit_zapier:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd zapier
     - npm ci
     - npm run lint
@@ -144,7 +149,11 @@ build_n_test_zapier:
 lint_n_audit_statuspage:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd status-page
     - npm ci
     - npm run lint
@@ -158,6 +167,9 @@ lint_n_audit_statuspage:
 build_n_test_statuspage:
   stage: BuildAndTest
   script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker. 
+    - sudo apt-get update
+    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
     - echo "Setup machine for running puppeteer tests"
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -186,7 +198,11 @@ build_n_test_statuspage:
 lint_n_audit_accounts:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd accounts
     - npm ci
     - npm run lint
@@ -200,6 +216,9 @@ lint_n_audit_accounts:
 build_n_test_accounts:
   stage: BuildAndTest
   script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker. 
+    - sudo apt-get update
+    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
     - echo "Setup machine for running puppeteer tests"
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -225,7 +244,11 @@ build_n_test_accounts:
 lint_n_audit_home:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd home
     - npm ci
     - npm run lint
@@ -249,7 +272,11 @@ build_n_test_home:
 lint_n_audit_probe:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd probe
     - npm ci
     - npm run lint
@@ -273,7 +300,11 @@ build_n_test_probe:
 lint_n_audit_server-monitor:
   stage: BuildAndTest
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd server-monitor
     - npm ci
     - npm run lint
@@ -328,8 +359,8 @@ version_update:
     - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
   stage: VersionUpdate
   script:
-    - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-    - sudo apt install nodejs
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - git checkout $CI_COMMIT_REF_NAME
     - chmod +x ./kubernetes/ci/version-setup.sh
     - ./kubernetes/ci/version-setup.sh
@@ -345,7 +376,7 @@ version_update:
 
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -370,7 +401,7 @@ deploy_staging_backend:
     name: staging
 
 deploy_production_backend:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -394,7 +425,7 @@ deploy_production_backend:
 
 # DEPLOYMENT STAGE - Api docs
 deploy_staging_api-docs:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -419,7 +450,7 @@ deploy_staging_api-docs:
     name: staging
 
 deploy_production_api-docs:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -443,7 +474,7 @@ deploy_production_api-docs:
 
 # DEPLOYMENT STAGE - Home
 deploy_staging_home:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -468,7 +499,7 @@ deploy_staging_home:
     name: staging
 
 deploy_production_home:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -492,7 +523,7 @@ deploy_production_home:
 
 # DEPLOYMENT STAGE - Probe
 deploy_staging_probe:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -517,7 +548,7 @@ deploy_staging_probe:
     name: staging
 
 deploy_production_probe:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -541,7 +572,7 @@ deploy_production_probe:
 
 # DEPLOYMENT STAGE - status-page
 deploy_staging_status-page:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -566,7 +597,7 @@ deploy_staging_status-page:
     name: staging
 
 deploy_production_status-page:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -590,7 +621,7 @@ deploy_production_status-page:
 
 # DEPLOYMENT STAGE - Admin Dashboard
 deploy_staging_admin-dashboard:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -615,7 +646,7 @@ deploy_staging_admin-dashboard:
     name: staging
 
 deploy_production_admin-dashboard:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -639,7 +670,7 @@ deploy_production_admin-dashboard:
 
 # DEPLOYMENT STAGE - Accounts
 deploy_staging_accounts:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -664,7 +695,7 @@ deploy_staging_accounts:
     name: staging
 
 deploy_production_accounts:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -688,7 +719,7 @@ deploy_production_accounts:
 
 # DEPLOYMENT STAGE - Dashboard
 deploy_staging_dashboard:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
@@ -713,7 +744,7 @@ deploy_staging_dashboard:
     name: staging
 
 deploy_production_dashboard:
-  stage: DeployProduction
+  stage: Deploy
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -737,10 +768,14 @@ deploy_production_dashboard:
 
 ## DEPLOYMENT STAGE - Server Monitor
 deploy_staging_server-monitor:
-  stage: DeployStaging
+  stage: Deploy
   allow_failure: true
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc 
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd server-monitor
     - sudo npm install -g json
     - git checkout $CI_COMMIT_REF_NAME
@@ -757,9 +792,13 @@ deploy_staging_server-monitor:
     name: staging
 
 deploy_production_server-monitor:
-  stage: DeployProduction
+  stage: Deploy
   script:
-    - sudo apt-get install nodejs -y
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
     - cd server-monitor
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
     # - git checkout server-monitor-staging
@@ -773,7 +812,7 @@ deploy_production_server-monitor:
     name: production
 
 rollback_if_staging_deployment_fails:
-  stage: RollbackIfStagingDeploymentFail
+  stage: RollbackIfDeploymentFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -786,7 +825,7 @@ rollback_if_staging_deployment_fails:
       - master
 
 rollback_if_production_deployment_fails:
-  stage: RollbackIfProductionDeploymentFail
+  stage: RollbackIfDeploymentFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -832,16 +871,15 @@ smoke_test_staging:
     - cd smoke-test
     - npm ci
     - npm run test
-    # if job is successs, update smoke test status variable
-    - curl --request PUT --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables/SMOKE_TEST_STATUS --form "value=success"
-
+    # if job is successs, create smoke test status variable
+    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=STAGING_SMOKE_TEST_STATUS" --form "value=success"
   only:
     refs:
       - master
 
 ## STAGING ROLLBACK
 staging_rollback_dashboard:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -856,10 +894,10 @@ staging_rollback_dashboard:
     refs:
       - master
   except:
-    - $SMOKE_TEST_STATUS == "success"
+    - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_accounts:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -874,10 +912,10 @@ staging_rollback_accounts:
     refs:
       - master
   except:
-    - $SMOKE_TEST_STATUS == "success"
+    - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_backend:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -895,7 +933,7 @@ staging_rollback_backend:
     - $SMOKE_TEST_STATUS == "success"
 
 staging_rollback_home:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -910,10 +948,10 @@ staging_rollback_home:
     refs:
       - master
   except:
-    - $SMOKE_TEST_STATUS == "success"
+    - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_status-page:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -928,10 +966,10 @@ staging_rollback_status-page:
     refs:
       - master
   except:
-    - $SMOKE_TEST_STATUS == "success"
+    - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_api-docs:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -946,10 +984,10 @@ staging_rollback_api-docs:
     refs:
       - master
   except:
-    - $SMOKE_TEST_STATUS == "success"
+    - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_admin-dashboard:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -964,10 +1002,10 @@ staging_rollback_admin-dashboard:
     refs:
       - master
   except:
-    - $SMOKE_TEST_STATUS == "success"
+    - $STAGING_SMOKE_TEST_STATUS
 
 staging_rollback_probe:
-  stage: RollbackStaging
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -982,11 +1020,11 @@ staging_rollback_probe:
     refs:
       - master
   except:
-    - $SMOKE_TEST_STATUS == "success"
+    - $STAGING_SMOKE_TEST_STATUS
 
 ## PRODUCTION ROLLBACK
 production_rollback_dashboard:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1002,7 +1040,7 @@ production_rollback_dashboard:
       - release
 
 production_rollback_accounts:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1018,7 +1056,7 @@ production_rollback_accounts:
       - release
 
 production_rollback_backend:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1034,7 +1072,7 @@ production_rollback_backend:
       - release
 
 production_rollback_home:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1050,7 +1088,7 @@ production_rollback_home:
       - release
 
 production_rollback_status-page:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1066,7 +1104,7 @@ production_rollback_status-page:
       - release
 
 production_rollback_api-docs:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1082,7 +1120,7 @@ production_rollback_api-docs:
       - release
 
 production_rollback_admin-dashboard:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh
@@ -1098,7 +1136,7 @@ production_rollback_admin-dashboard:
       - release
 
 production_rollback_probe:
-  stage: RollbackProduction
+  stage: RollbackIfSmokeTestFail
   script:
     - chmod +x ./kubernetes/ci/deployment-setup.sh
     - ./kubernetes/ci/deployment-setup.sh

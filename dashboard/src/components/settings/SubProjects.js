@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, FieldArray } from 'redux-form';
 import { createSubProject, createSubProjectRequest, createSubProjectSuccess, createSubProjectError, getSubProjects } from '../../actions/subProject';
-import { SubProject } from './SubProject';
+import SubProject from './SubProject';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -36,7 +36,6 @@ function validate(values) {
 
 export class SubProjects extends Component {
     submitForm = (values) => {
-        console.log('values: ', values);
         this.props.createSubProject(this.props.currentProject._id, values);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('SubProjects Updated', values);
@@ -57,8 +56,8 @@ export class SubProjects extends Component {
                                 </span>
                                 <p>
                                     <span>
-                                    Subprojects let’s you have flexible access controls between Fyipe resources and your team.
-                                </span>
+                                        Subprojects let’s you have flexible access controls between Fyipe resources and your team.
+                                    </span>
                                 </p>
                             </div>
                         </div>

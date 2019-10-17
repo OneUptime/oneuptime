@@ -83,7 +83,7 @@ export class ScheduledEventBox extends Component {
                                             </div>
                                         </div>
                                         <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                            <span>Create new scheduled event</span>
+                                            <span>Create New Scheduled Event</span>
                                         </span>
                                     </div>
                                 </button>

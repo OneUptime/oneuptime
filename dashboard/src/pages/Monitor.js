@@ -13,6 +13,7 @@ import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
 import { fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors } from '../actions/monitor';
+import { loadPage } from '../actions/page';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import Badge from '../components/common/Badge';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
@@ -20,6 +21,7 @@ import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 class DashboardView extends Component {
 
     componentDidMount() {
+        this.props.loadPage('Monitors');
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Main monitor page Loaded');
         }
@@ -92,11 +94,11 @@ class DashboardView extends Component {
             return subProjectMonitor && subProjectMonitor.monitors.length > 0 ? (
                 <div id={`box_${subProject.name}`} className="Box-root Margin-vertical--12" key={i}>
                     <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
-                        {
+                        <ShouldRender if={ subProjects && subProjects.length > 0}>
                             <div id={`badge_${subProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
                                 <Badge color={'blue'}>{subProject.name}</Badge>
                             </div>
-                        }
+                        </ShouldRender>
                         <MonitorList monitors={subProjectMonitor.monitors} />
                     </div>
                 </div>
@@ -110,11 +112,11 @@ class DashboardView extends Component {
         projectMonitor = projectMonitor && projectMonitor.monitors.length > 0 ? (
             <div id={`box_${currentProject.name}`} key={`box_${currentProject.name}`} className="Box-root Margin-vertical--12">
                 <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
-                    {
-                        <div id={`badge_${currentProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
-                            <Badge color={'red'}>Project</Badge>
-                        </div>
-                    }
+                        <ShouldRender if={ subProjects && subProjects.length > 0}>
+                            <div id={`badge_${currentProject.name}`} className="Box-root Padding-top--20 Padding-left--20">
+                                <Badge color={'red'}>Project</Badge>
+                            </div>
+                        </ShouldRender>
                     <MonitorList monitors={projectMonitor.monitors} />
                 </div>
             </div>
@@ -188,7 +190,7 @@ class DashboardView extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ destroy, fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors }, dispatch)
+    return bindActionCreators({ destroy, fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors, loadPage }, dispatch)
 }
 
 const mapStateToProps = state => {
@@ -251,6 +253,7 @@ DashboardView.propTypes = {
             PropTypes.oneOf([null, undefined])
         ]
     ),
+    loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,

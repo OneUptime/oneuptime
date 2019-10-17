@@ -15,10 +15,10 @@ const StatusPageProjectBox = (props) => (
                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                         <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                            <span style={{'textTransform':'capitalize'}}>{props.currentProjectId !== props.subProjectStatusPage._id ? props.subProjectName : 'Project'} statuspages</span>
+                            <span style={{'textTransform':'capitalize'}}>{props.currentProjectId !== props.subProjectStatusPage._id ? props.subProjectName : props.subProjects.length > 0 ? 'Project' : ''} status page</span>
                         </span>
-                        <span style={{'textTransform':'lowercase'}} className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                            <span>Here are all the status pages you have for {props.currentProjectId !== props.subProjectStatusPage._id ? `${props.subProjectName} sub-project.` : `${props.subProjectName} project.`}</span>
+                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                            <span>Status Pages helps your team and your customers to view real-time status and health of your monitors. Status Page helps improve transparency and trust in your organization and with your customers. </span>
                         </span>
                     </div>
                     <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
@@ -81,7 +81,7 @@ const StatusPageProjectBox = (props) => (
         </table>
         <ShouldRender if={!props.statusPage.requesting && props.statusPages.length === 0}>
             <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
-                You don&#39;t have any statuspage at this time!
+                You don&#39;t have any status page at this time!
             </div>
         </ShouldRender>
         <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
@@ -89,7 +89,7 @@ const StatusPageProjectBox = (props) => (
                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                     <span>
                         <span id={`status_page_count_${props.subProjectName}`} className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        {props.subProjectStatusPage.count} status page{props.subProjectStatusPage.count === 1 ? '' : 's'}
+                        {props.subProjectStatusPage.count} Status Page{props.subProjectStatusPage.count === 1 ? '' : 's'}
                         </span>
                     </span>
                 </span>
@@ -151,6 +151,7 @@ StatusPageProjectBox.propTypes = {
     currentProjectId: PropTypes.string.isRequired,
     statusPageModalId: PropTypes.string.isRequired,
     statusPage: PropTypes.object.isRequired,
+    subProjects: PropTypes.array
 };
 
 export default StatusPageProjectBox;
