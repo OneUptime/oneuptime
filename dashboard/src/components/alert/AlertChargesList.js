@@ -112,7 +112,7 @@ export class AlertChargesList extends Component {
                 </table>
                 {isRequesting ? <ListLoader /> : null}
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                    { (!alertCharges || alertCharges.length === 0) && !isRequesting && !error ? 'No Alert charge' : null}
+                    {(!alertCharges || alertCharges.length === 0) && !isRequesting && !error ? 'No Alert charge' : null}
                     {error && error ? error : null}
                     { error && error === 'You cannot edit the project because you\'re not an owner.' ? 'Alert Charges are available to only owners.' : error }
                 </div>
