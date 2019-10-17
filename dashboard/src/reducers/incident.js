@@ -22,12 +22,12 @@ const initialState = {
         success: false,
         incident: null,
     },
-    investigationNotes:{
+    investigationNotes: {
         requesting: false,
         error: null,
         success: false,
     },
-    internalNotes :{
+    internalNotes: {
         requesting: false,
         error: null,
         success: false,
@@ -105,30 +105,31 @@ export default function incident(state = initialState, action) {
             });
 
         case types.CREATE_INCIDENT_SUCCESS:
-                isExistingIncident = state.incidents.incidents.find(incident => incident._id === action.payload.projectId);
-                return Object.assign({}, state, {
-                    newIncident: {
-                        requesting: false,
-                        error: null,
-                        success: false,
-                    },
-                    incidents: {
-                        incidents: isExistingIncident ? state.incidents.incidents.length > 0 ? state.incidents.incidents.map((incident)=>{
-                            return incident._id === action.payload.projectId ? 
+            isExistingIncident = state.incidents.incidents.find(incident => incident._id === action.payload.projectId);
+            return Object.assign({}, state, {
+                newIncident: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                },
+                incidents: {
+                    incidents: isExistingIncident ? state.incidents.incidents.length > 0 ? state.incidents.incidents.map((incident) => {
+                        return incident._id === action.payload.projectId ?
                             {
-                                _id: action.payload.projectId, 
-                                incidents: [action.payload, ...incident.incidents.filter((inc, index) => index < 9)], 
-                                count: incident.count + 1, 
-                                skip: incident.skip, 
-                                limit: incident.limit} 
+                                _id: action.payload.projectId,
+                                incidents: [action.payload, ...incident.incidents.filter((inc, index) => index < 9)],
+                                count: incident.count + 1,
+                                skip: incident.skip,
+                                limit: incident.limit
+                            }
                             : incident
-                        }) : [{_id: action.payload.projectId, incidents: [action.payload], count: 1, skip: 0, limit: 0 }]
-                        : state.incidents.incidents.concat([{_id: action.payload.projectId, incidents: [action.payload], count: 1, skip: 0, limit: 0 }]),
-                        error: null,
-                        requesting: false,
-                        success: true
-                    }
-                });
+                    }) : [{ _id: action.payload.projectId, incidents: [action.payload], count: 1, skip: 0, limit: 0 }]
+                        : state.incidents.incidents.concat([{ _id: action.payload.projectId, incidents: [action.payload], count: 1, skip: 0, limit: 0 }]),
+                    error: null,
+                    requesting: false,
+                    success: true
+                }
+            });
 
         case types.CREATE_INCIDENT_REQUEST:
             return Object.assign({}, state, {
@@ -199,23 +200,24 @@ export default function incident(state = initialState, action) {
                     incident: null
                 },
             });
-            
+
         case types.PROJECT_INCIDENTS_SUCCESS:
             return Object.assign({}, state, {
                 incidents: {
-                    incidents: state.incidents.incidents.map((incident)=>{
-                        return incident._id === action.payload.projectId ? 
-                        {
-                            _id: action.payload.projectId, 
-                            incidents: [...action.payload.data], 
-                            count: action.payload.count, 
-                            skip: action.payload.skip, 
-                            limit: action.payload.limit} 
-                        : incident
-                        }),
-                        error: null,
-                        requesting: false,
-                        success: true
+                    incidents: state.incidents.incidents.map((incident) => {
+                        return incident._id === action.payload.projectId ?
+                            {
+                                _id: action.payload.projectId,
+                                incidents: [...action.payload.data],
+                                count: action.payload.count,
+                                skip: action.payload.skip,
+                                limit: action.payload.limit
+                            }
+                            : incident
+                    }),
+                    error: null,
+                    requesting: false,
+                    success: true
                 },
             });
 
@@ -282,7 +284,7 @@ export default function incident(state = initialState, action) {
                         incidents: state.unresolvedincidents.incidents.map(incident => {
                             if (incident._id === action.payload.data._id) {
                                 return action.payload.data;
-                            }else {
+                            } else {
                                 return incident;
                             }
                         })
@@ -458,7 +460,7 @@ export default function incident(state = initialState, action) {
                 }
             });
 
-            case types.INVESTIGATION_NOTE_SUCCESS:
+        case types.INVESTIGATION_NOTE_SUCCESS:
             return Object.assign({}, state, {
                 incident: {
                     ...state.incident,
@@ -564,9 +566,9 @@ export default function incident(state = initialState, action) {
                         if (incident.monitorId._id === action.payload._id) {
                             return {
                                 ...incident,
-                                monitorId : {
+                                monitorId: {
                                     ...incident.monitorId,
-                                    name : action.payload.name
+                                    name: action.payload.name
                                 }
                             }
                         } else {
@@ -577,25 +579,25 @@ export default function incident(state = initialState, action) {
             });
 
         case types.CLOSE_INCIDENT_SUCCESS:
-                return Object.assign({}, state, {
-                    unresolvedincidents: {
-                        requesting: false,
-                        error: null,
-                        success: true,
-                        incidents: state.unresolvedincidents.incidents.filter(incident => {
-                            if (incident._id === action.payload._id) {
-                                return false;
-                            } else {
-                                return true;
-                            }
-                        })
-                    },
-                    closeincident :{
-                        requesting: false,
-                        success: true,
-                        error: null,
-                    }
-                })
+            return Object.assign({}, state, {
+                unresolvedincidents: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    incidents: state.unresolvedincidents.incidents.filter(incident => {
+                        if (incident._id === action.payload._id) {
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    })
+                },
+                closeincident: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                }
+            })
 
         case types.CLOSE_INCIDENT_REQUEST:
             return Object.assign({}, state, {
