@@ -29,7 +29,7 @@ export function resetFetchTutorial() {
     return {
         type: types.FETCH_TUTORIAL_RESET,
     };
-};
+}
 
 export function closeTutorialRequest(promise) {
     return {
@@ -56,7 +56,7 @@ export function resetCloseTutorial() {
     return {
         type: types.CLOSE_TUTORIAL_RESET,
     };
-};
+}
 
 export function fetchTutorial() {
     return function (dispatch) {
