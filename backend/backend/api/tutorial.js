@@ -8,38 +8,41 @@
 const express = require('express');
 const router = express.Router();
 
-const getUser = require('../middlewares/user').getUser;
+const UserService = require('../services/userService');
 
+const getUser = require('../middlewares/user').getUser;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.get('/', getUser, function (req, res) {
-    var userId = req.user ? req.user.id : null;
+router.get('/', getUser, async function (req, res) {
+    const userId = req.user ? req.user.id : null;
 
     try {
-        return sendItemResponse(req, res, {
-            _id: userId,
-            data: {
-                
-            }
-        });
+        const user = await UserService.findOneBy({ _id: userId });
+        const tutorialObj = {
+            _id: user._id,
+            data: { ...user.tutorial }
+        };
+
+        return sendItemResponse(req, res, tutorialObj);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.put('/', getUser, async function (req, res) {
-    var userId = req.user ? req.user.id : null;
+    const userId = req.user ? req.user.id : null;
 
     try {
-        return sendItemResponse(req, res, {
-            _id: userId,
-            data: {
-                monitor: {
-                    show: false
-                }
-            }
-        });
+        let user = await UserService.findOneBy({ _id: userId });
+        user = await UserService.closeTutorialBy({ _id: userId }, req.body.type, user.tutorial);
+        
+        const tutorialObj = {
+            _id: user._id,
+            data: { ...user.tutorial }
+        };
+
+        return sendItemResponse(req, res, tutorialObj);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
