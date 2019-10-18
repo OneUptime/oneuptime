@@ -11,7 +11,8 @@ import SubscriberAlert from '../components/subscriber/subscriberAlert';
 import IncidentInvestigation from '../components/incident/IncidentInvestigation';
 import IncidentInternal from '../components/incident/IncidentInternal';
 import PropTypes from 'prop-types';
-
+import IncidentDeleteBox from '../components/incident/IncidentDeleteBox'
+import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 
 class Incident extends React.Component {
 
@@ -107,6 +108,9 @@ class Incident extends React.Component {
           <SubscriberAlert next={this.nextSubscribers} previous={this.previousSubscribers} incident={this.props.incident}/>
           <IncidentInvestigation incident={this.props.incident} setdata={this.investigationNote} />
           <IncidentInternal incident={this.props.incident} setdata={this.internalNote} />
+          <RenderIfSubProjectAdmin>
+            <IncidentDeleteBox incident={this.props.incident} deleting={this.props.deleting} currentProject={this.props.currentProject} />
+          </RenderIfSubProjectAdmin>
         </div>;
     } else {
       variable = <div id="app-loading" style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'backgroundColor': '#e6ebf1', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
@@ -145,6 +149,7 @@ const mapStateToProps = state => {
     skip: state.alert.incidentalerts.skip,
     limit: state.alert.incidentalerts.limit,
     subscribersAlerts: state.alert.subscribersAlert,
+    deleting: state.incident.incident.deleteIncident ? state.incident.incident.deleteIncident.requesting : false
   };
 };
 
@@ -173,6 +178,8 @@ Incident.propTypes = {
     PropTypes.number
   ]),
   subscribersAlerts: PropTypes.object.isRequired,
+  deleting: PropTypes.bool.isRequired,
+  currentProject: PropTypes.object.isRequired,
 }
 
 Incident.displayName = 'Incident'

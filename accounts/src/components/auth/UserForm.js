@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Validate } from '../../config';
 import { RenderField } from '../basic/RenderField';
-import { FlatLoader } from '../basic/Loader.js';
+import { ButtonSpinner } from '../basic/Loader.js';
 import { removeQuery } from '../../store';
 import queryString from 'query-string';
 
@@ -130,7 +130,7 @@ class UserForm extends Component {
 
 							<p className="submit" style={{ width: '100%', maxWidth: '100%' }}>
 								<button style={{ width: '100%' }} type="submit" className="button blue medium" id="create-account-button" disabled={this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting )}>
-									{this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting ) ? <FlatLoader /> : <span>Create Fyipe Account</span>}
+									{this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting ) ? <ButtonSpinner /> : <span>Create Fyipe Account</span>}
 								</button>
 							</p>
 					</form>

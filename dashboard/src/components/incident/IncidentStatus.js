@@ -74,9 +74,9 @@ export class IncidentStatus extends Component {
                                         <div className="bs-Fieldset-rows">
 
                                             <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">Created At</label>
+                                                <label className="bs-Fieldset-label">Created At:</label>
                                                 <div className="bs-Fieldset-fields" style={{ marginTop: '6px' }}>
-                                                    <span className="value">{moment(this.props.incident.createdAt).format('MMMM Do YYYY, h:mm:ss a')}</span>
+                                                    <span className="value">{`${moment(this.props.incident.createdAt).fromNow()} (${moment(this.props.incident.createdAt).format('MMMM Do YYYY, h:mm:ss a')})`}</span>
                                                 </div>
                                             </div>
 
@@ -86,7 +86,7 @@ export class IncidentStatus extends Component {
                                                     <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                         <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                             <span id={`AcknowledgeText_${this.props.count}`}>
-                                                                Acknowledged by {this.props.incident.acknowledgedBy === null ? this.props.incident.acknowledgedByZapier ? 'Zapier' : 'Fyipe' : this.props.incident.acknowledgedBy.name} {moment(this.props.incident.acknowledgedAt).fromNow() + ' ago.'}
+                                                                Acknowledged by {this.props.incident.acknowledgedBy === null ? this.props.incident.acknowledgedByZapier ? 'Zapier' : 'Fyipe' : this.props.incident.acknowledgedBy.name} {moment(this.props.incident.acknowledgedAt).fromNow() + '.'}
                                                             </span>
                                                         </span>
                                                     </div>
@@ -123,7 +123,7 @@ export class IncidentStatus extends Component {
                                                     <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                             <span id={`ResolveText_${this.props.count}`}>
-                                                                Resolved by {this.props.incident.resolvedBy === null ? this.props.incident.resolvedByZapier ? 'Zapier' : 'Fyipe' : this.props.incident.resolvedBy.name} {moment(this.props.incident.resolvedAt).fromNow() + ' ago.'}
+                                                                Resolved by {this.props.incident.resolvedBy === null ? this.props.incident.resolvedByZapier ? 'Zapier' : 'Fyipe' : this.props.incident.resolvedBy.name} {moment(this.props.incident.resolvedAt).fromNow() + '.'}
                                                             </span>
                                                         </span>
                                                     </div>

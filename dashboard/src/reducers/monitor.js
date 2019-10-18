@@ -592,6 +592,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                                         incidents.splice(-1, 1);
                                     }
                                     incidents.unshift(action.payload);
+                                }else{
+                                    incidents = [action.payload]
                                 }
                                 return {
                                     ...monitor,

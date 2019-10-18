@@ -3,7 +3,7 @@ import { Field, reduxForm } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { connect } from 'react-redux';
 import { Validate } from '../../config';
-import { FlatLoader } from '../basic/Loader.js';
+import { ButtonSpinner } from '../basic/Loader.js';
 import { loginError, loginSuccess, loginUser, resetLogin } from '../../actions/login';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -81,7 +81,7 @@ export class LoginForm extends Component {
 								<p className="submit">
 									<button type="submit" className="button blue medium" id="login-button" disabled={this.props.login.requesting}>
 										{!this.props.login.requesting && <span>Sign in to your account</span>}
-										{this.props.login.requesting && <FlatLoader />}
+										{this.props.login.requesting && <ButtonSpinner />}
 									</button>
 								</p>
 							</div>
