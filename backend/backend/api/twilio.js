@@ -31,7 +31,7 @@ router.get('/voice/incident', async function (req, res) {
 
     // Twilio says this message first. The gather listens for keyboard clicks
     const message = '<Say voice=\'alice\'>This is an alert from Fyipe. Your monitor ' + req.query.monitorName + ' is down. Press one to acknowledge or two to resolve.</Say>';
-    const gather = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" > ` + message + '</Gather>';
+    const gather = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" timeout="15"> ` + message + '</Gather>';
 
     // This is said when user hits no key.
     const onNoKeyPress = '<Say voice=\'alice\'>No response received. This call will end.</Say>';
