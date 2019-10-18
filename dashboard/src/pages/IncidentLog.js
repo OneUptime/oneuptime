@@ -159,7 +159,6 @@ const mapStateToProps = state => {
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects = subProjectNames && subProjectNames.map(name => subProjects.find(subProject => subProject.name === name))
-
     return {
         currentProject: state.project.currentProject,
         incidents: state.incident.incidents,

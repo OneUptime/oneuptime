@@ -13,9 +13,9 @@ const IncidentProjectBox = (props) => (
                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                         <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                            <span style={{ 'textTransform': 'capitalize' }}>{props.currentProjectId !== props.subProjectIncident._id ? props.subProjectName : props.subProjects.length > 0 ? 'Project' : ''} Incident Log</span>
+                            <span style={{ 'textTransform': 'capitalize' }}>{props.currentProjectId !== props.subProjectIncident._id ? props.subProjectName : 'Project'} Incident Log</span>
                         </span>
-                        <span style={{ 'textTransform': 'lowercase' }} className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 Incidents are automatically created when your monitor goes down. Here&#39;s a log of all of your incidents for {props.currentProjectId !== props.subProjectIncident._id ? `${props.subProjectName} sub-project` : `${props.subProjectName} project`}.
                             </span>
