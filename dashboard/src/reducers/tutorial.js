@@ -34,7 +34,7 @@ export default (state = initialState, action) => {
                 ...state,
                 error: null,
                 requesting: true,
-                success: false,
+                success: false
             });
 
         case FETCH_TUTORIAL_SUCCESS:
@@ -51,7 +51,7 @@ export default (state = initialState, action) => {
                 ...state,
                 error: action.payload,
                 requesting: false,
-                success: false,
+                success: false
             });
 
         case FETCH_TUTORIAL_RESET:
@@ -78,7 +78,7 @@ export default (state = initialState, action) => {
                 ...state,
                 error: null,
                 requesting: true,
-                success: false,
+                success: false
             });
 
         case CLOSE_TUTORIAL_SUCCESS:
@@ -95,7 +95,7 @@ export default (state = initialState, action) => {
                 ...state,
                 error: action.payload,
                 requesting: false,
-                success: false,
+                success: false
             });
 
         case CLOSE_TUTORIAL_RESET:
@@ -103,7 +103,7 @@ export default (state = initialState, action) => {
                 ...state,
                 error: null,
                 requesting: false,
-                success: false,
+                success: false
             });
 
         default: return state;
