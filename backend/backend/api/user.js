@@ -241,7 +241,6 @@ router.post('/login', async function (req, res) {
             },
             role: user.role || null
         };
-
         return sendItemResponse(req, res, authUserObj);
     } catch (error) {
         return sendErrorResponse(req, res, error);

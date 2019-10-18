@@ -55,8 +55,8 @@ module.exports = {
             incident.monitorId = data.monitorId || null;
             incident.createdById = data.createdById || null;
             incident.notClosedBy = users;
-            if (data.incidentType) {
-                incident.incidentType = data.incidentType;
+            if (data.incidentType || data.type) {
+                incident.incidentType = data.incidentType || data.type;
             }
             if (data.probeId) {
                 incident.probes = [{

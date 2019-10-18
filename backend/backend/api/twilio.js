@@ -31,20 +31,13 @@ router.get('/voice/incident', async function (req, res) {
 
     // Twilio says this message first. The gather listens for keyboard clicks
     const message = '<Say voice=\'alice\'>This is an alert from Fyipe. Your monitor ' + req.query.monitorName + ' is down. Press one to acknowledge or two to resolve.</Say>';
-    const firstGather = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" > ` + message + '</Gather>';
-
-    // This message is said when the first gather ends with no key.
-    const onFirstTimeout = '<Say voice=\'alice\'>You did not press any key, Please press 1 to acknowledge or 2 to resolve.</Say>';
-    const secondGather = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" > ` + onFirstTimeout + '</Gather>';
-
-    // This message is said when the first and second gather ends with no key.
-    const onSecTimeout = '<Say voice=\'alice\'>Are you still there? Please press 1 to acknowledge or 2 to resolve.</Say>';
-    const thirdGather = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" > ` + onSecTimeout + '</Gather>';
+    const gather = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" > ` + message + '</Gather>';
 
     // This is said when user hits no key.
-    const onNoKeyPress = '<Say voice=\'alice\'>You did not press any key, Good bye.</Say>';
+    const onNoKeyPress = '<Say voice=\'alice\'>No response received. This call will end.</Say>';
+    const hangUp = '<Hangup />';
     res.set('Content-Type', 'text/xml');
-    return sendItemResponse(req, res, '<Response> ' + firstGather + secondGather + thirdGather + onNoKeyPress + '</Response>');
+    return sendItemResponse(req, res, '<Response> ' + gather + onNoKeyPress + hangUp + '</Response>');
 });
 
 router.get('/voice/status', async (req, res) => {
@@ -57,7 +50,7 @@ router.get('/voice/status', async (req, res) => {
         case 'failed':
         case 'busy':
         case 'no-answer':
-            // redial call in 45 seconds. upo 5 times.
+            // redial call in 45 seconds. upon 5 times.
             if (newRedialCount > 5) return sendItemResponse(req, res, { status: 'call redial reached maximum' });
             setTimeout(() => sendIncidentCreatedCall(null, monitorName, To, accessToken, incidentId, projectId, newRedialCount), 1000 * 60);
             return sendItemResponse(req, res, { status: 'call redial success' });

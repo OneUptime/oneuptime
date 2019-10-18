@@ -12,8 +12,9 @@ var router = express.Router();
 const {
     isAuthorized
 } = require('../middlewares/authorization');
-
+var isUserAdmin = require('../middlewares/project').isUserAdmin;
 var getUser = require('../middlewares/user').getUser;
+
 var getSubProjects = require('../middlewares/subProject').getSubProjects;
 
 var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -223,6 +224,25 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
         return sendErrorResponse(req, res, error);
     }
 
+});
+
+router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(req, res){
+    const { projectId, incidentId } = req.params;
+
+    // eslint-disable-next-line no-console
+    console.log('projectId: ', projectId);
+    // eslint-disable-next-line no-console
+    console.log('incidentId: ', incidentId);
+    // try {
+    var incident = await IncidentService.deleteBy({ _id: incidentId, projectId }, req.user.id);
+    if (incident) {
+        return sendItemResponse(req, res, incident);
+    } else {
+        return sendErrorResponse(req, res, { message: 'Incident not found' });
+    }
+    // } catch (error) {
+    //     return sendErrorResponse(req, res, error);
+    // }
 });
 
 
