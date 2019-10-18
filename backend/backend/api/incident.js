@@ -29,7 +29,7 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req, res) {
     var monitorId = req.params.monitorId;
     var projectId = req.params.projectId;
-    var type = req.body.type;
+    var incidentType = req.body.incidentType;
     var userId = req.user ? req.user.id : null;
 
     if (!monitorId) {
@@ -60,8 +60,8 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
         });
     }
 
-    if (type) {
-        if (!(['offline', 'online', 'degraded'].includes(type))) {
+    if (incidentType) {
+        if (!(['offline', 'online', 'degraded'].includes(incidentType))) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Invalid incident type.'
@@ -71,7 +71,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
 
     try {
         // Call the IncidentService
-        var incident = await IncidentService.create({ projectId: projectId, monitorId: monitorId, createdById: userId, manuallyCreated: true, type });
+        var incident = await IncidentService.create({ projectId: projectId, monitorId: monitorId, createdById: userId, manuallyCreated: true, incidentType });
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
