@@ -16,13 +16,12 @@ class StatusPage extends Component {
     }
 
     render() {
-
         const { projectId } = this.props;
 
         return (
             <Dashboard>
                 <div className="db-World-contentPane Box-root Padding-bottom--48">
-                    <ShouldRender if={true}>
+                    <ShouldRender if={this.props.statusPageTutorial.show}>
                         <TutorialBox type="status-page" />
                     </ShouldRender>
 
@@ -35,26 +34,29 @@ class StatusPage extends Component {
 
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({}, dispatch)
-}
+    return bindActionCreators({}, dispatch);
+};
 
 
 function mapStateToProps(state, props) {
     const { projectId } = props.match.params;
+
     return {
         statusPage: state.statusPage,
-        projectId
+        projectId,
+        statusPageTutorial: state.tutorial.statusPage
     };
 }
 
 StatusPage.propTypes = {
     projectId: PropTypes.string.isRequired,
-}
+    statusPageTutorial: PropTypes.object
+};
 
 StatusPage.contextTypes = {
     mixpanel: PropTypes.object.isRequired
 };
 
-StatusPage.displayName = 'StatusPage'
+StatusPage.displayName = 'StatusPage';
 
 export default connect(mapStateToProps, mapDispatchToProps)(StatusPage);

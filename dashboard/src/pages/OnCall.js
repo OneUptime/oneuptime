@@ -17,7 +17,7 @@ export class OnCall extends Component {
 
     constructor(props) {
         super(props);
-        this.state = { scheduleModalId: uuid.v4() }
+        this.state = { scheduleModalId: uuid.v4() };
     }
 
     ready() {
@@ -106,6 +106,7 @@ export class OnCall extends Component {
                 canPaginateForward = false;
                 canPaginateBackward = false;
             }
+
             return subProjectSchedule && subProjectSchedule.schedules ? (
                 <RenderIfUserInSubProject subProjectId={subProjectSchedule._id}>
                     <div className="bs-BIM" key={i}>
@@ -157,8 +158,9 @@ export class OnCall extends Component {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
+
         projectSchedule = projectSchedule && projectSchedule.schedules ? (
-            <RenderIfUserInSubProject subProjectId={currentProject._id}>
+            <RenderIfUserInSubProject subProjectId={currentProject._id} key={() => uuid.v4()}>
                 <div className="bs-BIM">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -193,13 +195,14 @@ export class OnCall extends Component {
             </RenderIfUserInSubProject>
         ) : false;
 
-        allSchedules && allSchedules.unshift(projectSchedule)
+        allSchedules && allSchedules.unshift(projectSchedule);
+
         return (
             <Dashboard>
                 <div tabIndex='0' onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
                     <div>
                         <div>
-                            <ShouldRender if={true}>
+                            <ShouldRender if={this.props.callScheduleTutorial.show}>
                                 <TutorialBox type="call-schedule" />
                             </ShouldRender>
 
@@ -210,13 +213,13 @@ export class OnCall extends Component {
                     </div>
                 </div>
             </Dashboard>
-        )
+        );
     }
 }
 
 const mapDispatchToProps = dispatch => (
     bindActionCreators({ openModal, closeModal, fetchProjectSchedule, createSchedule, paginate, fetchSubProjectSchedules }, dispatch)
-)
+);
 
 const mapStateToProps = (state, props) => {
     const { projectId } = props.match.params;
@@ -239,7 +242,9 @@ const mapStateToProps = (state, props) => {
         var schedule = schedules.find(schedule => schedule._id === subProject._id);
         return schedule ? schedule : { _id: subProject._id, schedules: [], count: 0, skip: 0, limit: 10 };
     });
+
     subProjectSchedules && subProjectSchedules.unshift(projectSchedule);
+
     return {
         currentProjectId,
         subProjectSchedules,
@@ -247,9 +252,10 @@ const mapStateToProps = (state, props) => {
         pages: state.schedule.pages,
         projectId,
         subProjects,
-        currentProject: state.project.currentProject
-    }
-}
+        currentProject: state.project.currentProject,
+        callScheduleTutorial: state.tutorial.callSchedule
+    };
+};
 
 OnCall.propTypes = {
     subProjectSchedules: PropTypes.array.isRequired,
@@ -267,12 +273,13 @@ OnCall.propTypes = {
     pages: PropTypes.object.isRequired,
     openModal: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
-}
+    callScheduleTutorial: PropTypes.object
+};
 
 OnCall.contextTypes = {
     mixpanel: PropTypes.object.isRequired
 };
 
-OnCall.displayName = 'OnCall'
+OnCall.displayName = 'OnCall';
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(OnCall));

@@ -14,6 +14,7 @@ import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
 import { fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors } from '../actions/monitor';
 import { loadPage } from '../actions/page';
+import { fetchTutorial } from '../actions/tutorial';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import Badge from '../components/common/Badge';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
@@ -45,6 +46,7 @@ class DashboardView extends Component {
                 this.props.fetchMonitorsIncidents(monitor.projectId._id || monitor.projectId, monitor._id, 0, 3);
             });
         });
+        this.props.fetchTutorial();
     }
 
     render() {
@@ -83,6 +85,7 @@ class DashboardView extends Component {
                 )
             })
         }
+
         const { subProjects, currentProject } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
         var allMonitors = this.props.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
@@ -105,7 +108,6 @@ class DashboardView extends Component {
             ) : false;
         });
 
-
         // Add Project Monitors to Monitors List
         var projectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === currentProjectId)
         allMonitors = IsUserInSubProject(currentProject) ? allMonitors : allMonitors.filter(monitor => monitor.projectId !== currentProject._id || monitor.projectId._id !== currentProject._id)
@@ -120,8 +122,10 @@ class DashboardView extends Component {
                     <MonitorList monitors={projectMonitor.monitors} />
                 </div>
             </div>
-        ) : false
+        ) : false;
+
         monitors && monitors.unshift(projectMonitor);
+
         return (
             <Dashboard ready={this.ready}>
                 <div className="db-World-contentPane Box-root Padding-bottom--48">
@@ -133,7 +137,7 @@ class DashboardView extends Component {
                                         <div>
                                             <span>
                                                 <ShouldRender if={!this.props.monitor.monitorsList.requesting}>
-                                                    <ShouldRender if={true}>
+                                                    <ShouldRender if={this.props.monitorTutorial.show}>
                                                         <TutorialBox type="monitor" />
                                                     </ShouldRender>
 
@@ -189,8 +193,8 @@ class DashboardView extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ destroy, fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors, loadPage }, dispatch)
-}
+    return bindActionCreators({ destroy, fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors, loadPage, fetchTutorial }, dispatch);
+};
 
 const mapStateToProps = state => {
     const monitor = state.monitor;
@@ -219,9 +223,10 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,
-        subProjects
+        subProjects,
+        monitorTutorial: state.tutorial.monitor
     };
-}
+};
 
 DashboardView.contextTypes = {
     mixpanel: PropTypes.object.isRequired
@@ -258,8 +263,10 @@ DashboardView.propTypes = {
     fetchMonitorLogs: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
-}
+    monitorTutorial: PropTypes.object,
+    fetchTutorial: PropTypes.func
+};
 
-DashboardView.displayName = 'DashboardView'
+DashboardView.displayName = 'DashboardView';
 
 export default connect(mapStateToProps, mapDispatchToProps)(DashboardView);

@@ -17,7 +17,7 @@ class IncidentLog extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { createIncidentModalId: uuid.v4() }
+        this.state = { createIncidentModalId: uuid.v4() };
     }
 
     componentDidMount() {
@@ -90,7 +90,6 @@ class IncidentLog extends React.Component {
                         </div>
                     </div>
                 </RenderIfUserInSubProject>
-
             ) : false;
         });
 
@@ -137,7 +136,7 @@ class IncidentLog extends React.Component {
                     <div>
                         <div>
                             <div className="db-RadarRulesLists-page">
-                                <ShouldRender if={true}>
+                                <ShouldRender if={this.props.incidentTutorial.show}>
                                     <TutorialBox type="incident" />
                                 </ShouldRender>
 
@@ -160,12 +159,14 @@ const mapStateToProps = state => {
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects = subProjectNames && subProjectNames.map(name => subProjects.find(subProject => subProject.name === name))
+
     return {
         currentProject: state.project.currentProject,
         incidents: state.incident.incidents,
         create: state.incident.newIncident.requesting,
         subProjects,
-        subProjectIncidents: state.incident.incidents.incidents
+        subProjectIncidents: state.incident.incidents.incidents,
+        incidentTutorial: state.tutorial.incident
     };
 };
 
@@ -180,7 +181,7 @@ const mapDispatchToProps = dispatch => {
         openModal,
         closeModal,
     }, dispatch);
-}
+};
 
 IncidentLog.contextTypes = {
     mixpanel: PropTypes.object.isRequired
@@ -195,8 +196,9 @@ IncidentLog.propTypes = {
     openModal: PropTypes.func,
     subProjects: PropTypes.array.isRequired,
     subProjectIncidents: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
-}
+    incidentTutorial: PropTypes.object
+};
 
-IncidentLog.displayName = 'IncidentLog'
+IncidentLog.displayName = 'IncidentLog';
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentLog);
