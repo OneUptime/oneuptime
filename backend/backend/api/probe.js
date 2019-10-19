@@ -30,7 +30,7 @@ router.get('/', isAuthorizedAdmin, async function (req, res) {
     try {
         let probe = await ProbeService.findBy({});
         let count = await ProbeService.countBy({});
-        return sendListResponse(req, res, probe,count);
+        return sendListResponse(req, res, probe, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -40,7 +40,7 @@ router.put('/:id', isAuthorizedAdmin, async function (req, res) {
     let data = req.body;
     data._id = req.params.id;
     try {
-        let probe = await ProbeService.update({_id:req.params.id},data);
+        let probe = await ProbeService.update({ _id: req.params.id }, data);
         return sendItemResponse(req, res, probe);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -49,7 +49,7 @@ router.put('/:id', isAuthorizedAdmin, async function (req, res) {
 
 router.delete('/:id', isAuthorizedAdmin, async function (req, res) {
     try {
-        let probe = await ProbeService.deleteBy({_id:req.params.id});
+        let probe = await ProbeService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, probe);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -59,9 +59,42 @@ router.delete('/:id', isAuthorizedAdmin, async function (req, res) {
 router.get('/monitors', isAuthorizedProbe, async function (req, res) {
     try {
         let monitors = await MonitorService.getProbeMonitors(new Date(new Date().getTime() - (60 * 1000)));
-        return sendListResponse(req, res, monitors,monitors.length);
+        return sendListResponse(req, res, monitors, monitors.length);
     } catch (error) {
         return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response) {
+    const { monitor, res, resp } = req.body;
+
+    let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(res, resp, monitor.criteria.up) : false);
+    let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(res, resp, monitor.criteria.degraded) : false);
+    let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(res, resp, monitor.criteria.down) : false);
+    let status;
+
+    if (validDown) {
+        status = 'offline';
+    } else if (validDegraded) {
+        status = 'degraded';
+    } else if (validUp) {
+        status = 'online';
+    } else {
+        status = 'unknown';
+    }
+
+    let data = req.body;
+    data.responseTime = res;
+    data.responseStatus = resp.status;
+    data.status = status;
+    data.probeId = req.probe.id;
+    data.monitorId = req.params.monitorId;
+
+    try {
+        let probe = await ProbeService.setTime(data);
+        return sendItemResponse(req, response, probe);
+    } catch (error) {
+        return sendErrorResponse(req, response, error);
     }
 });
 
@@ -89,13 +122,13 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) 
     }
 });
 
-router.get('/:projectId/probes', getUser,isAuthorized, async function (req, res) {
+router.get('/:projectId/probes', getUser, isAuthorized, async function (req, res) {
     var limit = req.query.limit || null;
     var skip = req.query.skip || null;
     try {
-        let probe = await ProbeService.findBy({},limit,skip);
+        let probe = await ProbeService.findBy({}, limit, skip);
         let count = await ProbeService.countBy({});
-        return sendListResponse(req, res, probe,count);
+        return sendListResponse(req, res, probe, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
