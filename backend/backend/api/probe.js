@@ -66,26 +66,36 @@ router.get('/monitors', isAuthorizedProbe, async function (req, res) {
 });
 
 router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response) {
-    const { monitor, res, resp } = req.body;
-
-    let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(res, resp, monitor.criteria.up) : false);
-    let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(res, resp, monitor.criteria.degraded) : false);
-    let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(res, resp, monitor.criteria.down) : false);
+    const { monitor, res, resp, type } = req.body;
     let status;
 
-    if (validDown) {
-        status = 'offline';
-    } else if (validDegraded) {
-        status = 'degraded';
-    } else if (validUp) {
-        status = 'online';
-    } else {
-        status = 'unknown';
+    if (type === 'api' || type === 'url') {
+        let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(res, resp, monitor.criteria.up) : false);
+        let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(res, resp, monitor.criteria.degraded) : false);
+        let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(res, resp, monitor.criteria.down) : false);
+
+        if (validDown) {
+            status = 'offline';
+        } else if (validDegraded) {
+            status = 'degraded';
+        } else if (validUp) {
+            status = 'online';
+        } else {
+            status = 'unknown';
+        }
+    }
+
+    if (type === 'device') {
+        if (res) {
+            status = 'online';
+        } else {
+            status = 'offline';
+        }
     }
 
     let data = req.body;
-    data.responseTime = res;
-    data.responseStatus = resp.status;
+    data.responseTime = res || 0;
+    data.responseStatus = resp && resp.status ? resp.status : null;
     data.status = status;
     data.probeId = req.probe.id;
     data.monitorId = req.params.monitorId;
