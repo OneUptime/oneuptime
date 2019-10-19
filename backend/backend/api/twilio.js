@@ -30,11 +30,11 @@ router.get('/voice/incident', async function (req, res) {
     let actionPath = `${baseApiUrl}/twilio/voice/incident/action?projectId=${projectId}&amp;incidentId=${incidentId}&amp;accessToken=${accessToken}`;
 
     // Twilio says this message first. The gather listens for keyboard clicks
-    const message = '<Say voice=\'alice\'>This is an alert from Fyipe. Your monitor ' + req.query.monitorName + ' is down. Press one to acknowledge or two to resolve.</Say>';
+    const message = '<Say voice="alice">This is an alert from Fyipe. Your monitor ' + req.query.monitorName + ' is down. Press one to acknowledge or two to resolve.</Say>';
     const gather = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" timeout="15"> ` + message + '</Gather>';
 
     // This is said when user hits no key.
-    const onNoKeyPress = '<Say voice=\'alice\'>No response received. This call will end.</Say>';
+    const onNoKeyPress = '<Say voice="alice">No response received. This call will end.</Say>';
     const hangUp = '<Hangup />';
     res.set('Content-Type', 'text/xml');
     return sendItemResponse(req, res, '<Response> ' + gather + onNoKeyPress + hangUp + '</Response>');
@@ -57,7 +57,7 @@ router.get('/voice/status', async (req, res) => {
         default:
             // call is okay. check if incident was not ack, if not redial upto 5 times else  Exit with no redial
             if (incident && !incident.acknowledged && newRedialCount < 6) {
-                setTimeout(() => sendIncidentCreatedCall(null, monitorName, To, accessToken, incidentId, projectId, redialCount, newRedialCount), 1000 * 60);
+                setTimeout(() => sendIncidentCreatedCall(null, monitorName, To, accessToken, incidentId, projectId, newRedialCount), 1000 * 60);
                 return sendItemResponse(req, res, { status: 'call redial success' });
             }
             return sendItemResponse(req, res, { staus: 'initial call was okay' });
@@ -100,19 +100,29 @@ router.post('/voice/incident/action', getUser, isAuthorized, async function (req
             // Call the IncidentService
             await IncidentService.acknowledge(incidentId, userId, req.user.name);
             // Ask the user to resolve incident after acknowledging
-            const onAcknowledge = `<Gather numDigits="1" input="dtmf"  action="${actionPath}"> <Say voice="alice">The incident status has been acknowledged. Press 2 to resolve this incident</Say> </Gather>`;
-            const onTimeout = `<Gather numDigits="1" input="dtmf"  action="${actionPath}"> <Say voice="alice">You did not press any key. Press 2 to resolve this incident.</Say> </Gather>`;
-            const exitMessage = '<Say voice="alice">You did not press any key, Good bye.</Say>';
-            return sendItemResponse(req, res, '<Response>' + onAcknowledge + onTimeout + exitMessage + '</Response>');
+            const onAcknowledge = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" timeout="15"> <Say voice="alice">The incident status has been acknowledged. Press 2 to resolve this incident</Say> </Gather>`;
+            // This is said when user hits no key.
+            const onNoKeyPress = '<Say voice="alice">No response received. This call will end.</Say>';
+            const hangUp = '<Hangup />';
+            return sendItemResponse(req, res, '<Response>' + onAcknowledge + onNoKeyPress + hangUp + '</Response>');
         }
         case '2': {
             // Call the IncidentService
             await IncidentService.resolve(incidentId, userId);
-            return sendItemResponse(req, res, '<Response><Say voice="alice">The incident status has been resolved. Log on to your dashboard to see the status. Thank you for using Fyipe.</Say></Response>');
+            // incident resolve success message
+            const message = '<Say voice="alice">The incident status has been resolved. Log on to your dashboard to see the status. Thank you for using Fyipe.</Say>';
+            const hangUp = '<Hangup />';
+            return sendItemResponse(req, res, '<Response>'+ message + hangUp +'</Response>');
         }
         default: {
             // Request user to press 1 or 2
-            return sendItemResponse(req, res, `<Response><Gather numDigits="1" input="dtmf"  action="${actionPath}" ><Say voice="alice">You have pressed unknown key, Please press 1 to acknowledge or 2 to resolve the incident.</Say></Gather></Response>`);
+            const message = '<Say voice="alice">You have pressed unknown key, Please press 1 to acknowledge or 2 to resolve the incident.</Say>';
+            const gather = `<Gather numDigits="1" input="dtmf" action="${actionPath}" timeout="15">${message}</Gather>`;
+            
+            // This is said when user hits no key.
+            const onNoKeyPress = '<Say voice="alice">No response received. This call will end.</Say>';
+            const hangUp = '<Hangup />';
+            return sendItemResponse(req, res, '<Response>'+ gather + onNoKeyPress + hangUp +'</Response>');
         }
         }
     } catch (error) {
