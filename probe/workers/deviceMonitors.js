@@ -52,14 +52,14 @@ module.exports = {
 var pingService = async (monitor, res) => {
     if (res) {
         try {
-            await ApiService.setMonitorTime(monitor._id, res,null, 'online');
+            await ApiService.setMonitorTime(monitor._id, res, null, 'online');
         } catch (error) {
             ErrorService.log('ApiService.setMonitorTime', error);
             throw error;
         }
     } else {
         try {
-            await ApiService.setMonitorTime(monitor._id, 0,null, 'offline');
+            await ApiService.setMonitorTime(monitor._id, 0, null, 'offline');
         } catch (error) {
             ErrorService.log('ApiService.setMonitorTime', error);
             throw error;
