@@ -21,7 +21,7 @@ module.exports = {
                     throw error;
                 }
                 try {
-                    await ApiService.ping(monitor._id, { monitor, res, resp, type: 'api' });
+                    await ApiService.ping(monitor._id, { monitor, res, resp, type: monitor.type });
                 } catch (error) {
                     ErrorService.log('ApiService.ping', error);
                     throw error;
