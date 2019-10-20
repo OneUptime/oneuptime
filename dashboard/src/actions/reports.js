@@ -35,7 +35,7 @@ export const getActiveMembers = (projectId, startDate, endDate, skip, limit) => 
   catch (error) {
     let newerror = error;
     if (newerror && newerror.response && newerror.response.data)
-    newerror = newerror.response.data;
+      newerror = newerror.response.data;
     if (newerror && newerror.data) {
       newerror = newerror.data;
     }
@@ -72,7 +72,7 @@ export const getActiveMonitorsError = error => {
 
 export const getActiveMonitors = (projectId, startDate, endDate, skip, limit) => async dispatch => {
   try {
-    const promise = getApi(`reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${skip}&limit=${limit}`);
+    const promise = getApi(`reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${skip || 0}&limit=${limit || 0}`);
     dispatch(getActiveMonitorsRequest(promise));
     const monitors = await promise;
     dispatch(getActiveMonitorsSuccess(monitors.data));
@@ -80,7 +80,7 @@ export const getActiveMonitors = (projectId, startDate, endDate, skip, limit) =>
   catch (error) {
     let newerror = error;
     if (newerror && newerror.response && newerror.response.data)
-    newerror = newerror.response.data;
+      newerror = newerror.response.data;
     if (newerror && newerror.data) {
       newerror = newerror.data;
     }
@@ -125,7 +125,7 @@ export const getMonthlyIncidents = (projectId) => async dispatch => {
   catch (error) {
     let newerror = error;
     if (newerror && newerror.response && newerror.response.data)
-    newerror = newerror.response.data;
+      newerror = newerror.response.data;
     if (newerror && newerror.data) {
       newerror = newerror.data;
     }
@@ -170,7 +170,7 @@ export const getMonthlyResolveTime = (projectId) => async dispatch => {
   catch (error) {
     let newerror = error;
     if (newerror && newerror.response && newerror.response.data)
-    newerror = newerror.response.data;
+      newerror = newerror.response.data;
     if (newerror && newerror.data) {
       newerror = newerror.data;
     }

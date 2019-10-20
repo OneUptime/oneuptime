@@ -10,6 +10,7 @@ import IncidentProjectBox from '../components/incident/IncidentProjectBox'
 import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
 import ShouldRender from '../components/basic/ShouldRender';
+import TutorialBox from '../components/tutorial/TutorialBox';
 
 class IncidentLog extends React.Component {
 
@@ -119,6 +120,7 @@ class IncidentLog extends React.Component {
                                 currentProjectId={currentProjectId}
                                 prevClicked={this.prevClicked}
                                 nextClicked={this.nextClicked}
+                                subProjects={subProjects}
                             />
                         </div>
                     </div>
@@ -134,6 +136,10 @@ class IncidentLog extends React.Component {
                     <div>
                         <div>
                             <div className="db-RadarRulesLists-page">
+                                <ShouldRender if={this.props.incidentTutorial.show}>
+                                    <TutorialBox type="incident" />
+                                </ShouldRender>
+
                                 {
                                     allIncidents
                                 }
@@ -145,7 +151,6 @@ class IncidentLog extends React.Component {
         );
     }
 }
-
 
 const mapStateToProps = state => {
     var subProjects = state.subProject.subProjects.subProjects;
@@ -159,7 +164,8 @@ const mapStateToProps = state => {
         incidents: state.incident.incidents,
         create: state.incident.newIncident.requesting,
         subProjects,
-        subProjectIncidents: state.incident.incidents.incidents
+        subProjectIncidents: state.incident.incidents.incidents,
+        incidentTutorial: state.tutorial.incident
     };
 };
 
@@ -174,7 +180,7 @@ const mapDispatchToProps = dispatch => {
         openModal,
         closeModal,
     }, dispatch);
-}
+};
 
 IncidentLog.contextTypes = {
     mixpanel: PropTypes.object.isRequired
@@ -188,9 +194,10 @@ IncidentLog.propTypes = {
     create: PropTypes.bool,
     openModal: PropTypes.func,
     subProjects: PropTypes.array.isRequired,
-    subProjectIncidents: PropTypes.oneOfType([PropTypes.object.isRequired, PropTypes.array.isRequired]),
-}
+    subProjectIncidents: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+    incidentTutorial: PropTypes.object
+};
 
-IncidentLog.displayName = 'IncidentLog'
+IncidentLog.displayName = 'IncidentLog';
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentLog);
