@@ -506,6 +506,13 @@ router.put('/changePassword', getUser, async function (req, res) {
         });
     }
 
+    if (data.currentPassword === data.newPassword) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'New password should not be the same as current password.'
+        });
+    }
+
     try {
         var user = await UserService.changePassword(data);
         let userObj = {
