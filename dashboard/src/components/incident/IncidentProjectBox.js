@@ -61,7 +61,7 @@ IncidentProjectBox.propTypes = {
     subProjectName: PropTypes.string.isRequired,
     currentProjectId: PropTypes.string.isRequired,
     creating: PropTypes.bool.isRequired,
-    createIncidentModalId: PropTypes.string.isRequired
+    createIncidentModalId: PropTypes.string.isRequired,
 };
 
 export default IncidentProjectBox;

@@ -21,6 +21,11 @@ const initialState = {
         error: null,
         success: false,
         incident: null,
+        deleteIncident: {
+            requesting: false,
+            error: null,
+            success: false
+        }
     },
     investigationNotes: {
         requesting: false,
@@ -616,6 +621,58 @@ export default function incident(state = initialState, action) {
                     success: false,
                 },
             });
+
+        case types.DELETE_INCIDENT_SUCCESS:
+            return Object.assign({}, state, {
+                incident: {
+                    ...state.incident,
+                    deleteIncident:{
+                        requesting: false,
+                        success: true,
+                        error: null
+                    }
+                },
+                unresolvedincidents: {
+                    ...state.unresolvedincidents,
+                    incidents: state.unresolvedincidents.incidents.filter(incident => incident._id !== action.payload)
+                },
+            })
+
+        case types.DELETE_INCIDENT_FAILURE:
+            return Object.assign({}, state, {
+                incident: {
+                    ...state.incident,
+                    deleteIncident:{
+                        requesting: false,
+                        success: false,
+                        error: action.payload
+                    }
+                }
+            })
+
+        case types.DELETE_INCIDENT_REQUEST:
+            return Object.assign({}, state, {
+                incident: {
+                    ...state.incident,
+                    deleteIncident:{
+                        requesting: true,
+                        success: false,
+                        error: null
+                    }
+                }
+            })
+
+        case types.DELETE_INCIDENT_RESET:
+            return Object.assign({}, state, {
+                incident: {
+                    ...state.incident,
+                    deleteIncident:{
+                        requesting: false,
+                        success: false,
+                        error: null
+                    }
+                }
+            })
         default: return state;
     }
 }
