@@ -200,6 +200,23 @@ module.exports = {
         }
     },
 
+    closeTutorialBy: async function (query, type, data) {
+        if (!query) query = {};
+        if (!data) data = {};
+
+        type = type.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
+        data[type] = { show: false };
+
+        try {
+            var tutorial = await UserModel.findOneAndUpdate(query, { $set: { tutorial: data } }, { new: true });
+        } catch (error) {
+            ErrorService.log('UserModel.findOneAndUpdate', error);
+            throw error;
+        }
+
+        return tutorial || null;
+    },
+
     sendToken: async function (user) {
         var verificationTokenModel = new VerificationTokenModel({
             userId: user._id,

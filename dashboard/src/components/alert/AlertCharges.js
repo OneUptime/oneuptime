@@ -70,19 +70,19 @@ class AlertCharge extends Component {
                                                                     </div>
                                                                 </button>
                                                                 <CSVLink
-                                                                        data={downloadedAlertCharges}
-                                                                        filename="data.csv"
-                                                                        className="hidden"
-                                                                        ref={this.csvLink}
-                                                                        target="_blank"
-                                                                    />
+                                                                    data={downloadedAlertCharges}
+                                                                    filename="data.csv"
+                                                                    className="hidden"
+                                                                    ref={this.csvLink}
+                                                                    target="_blank"
+                                                                />
                                                             </div>
 
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <AlertChargesList/>
+                                            <AlertChargesList />
                                         </div>
                                     </div>
                                 </div>
@@ -111,7 +111,7 @@ const mapDispatchToProps = dispatch => {
 AlertCharge.propTypes = {
     projectId: PropTypes.string,
     downloadAlertCharges: PropTypes.func.isRequired,
-    downloadedAlertCharges: PropTypes.object
+    downloadedAlertCharges: PropTypes.oneOfType([PropTypes.object, PropTypes.array])
 }
 
 AlertCharge.contextTypes = {
