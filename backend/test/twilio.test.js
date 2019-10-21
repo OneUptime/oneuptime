@@ -88,7 +88,7 @@ describe('Twilio API', function () {
             Digits: '5'
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.text).to.eql(`<Response><Gather numDigits="1" input="dtmf"  action="${actionPath}" ><Say voice="alice">You have pressed unknown key, Please press 1 to acknowledge or 2 to resolve the incident.</Say></Gather></Response>`);
+            expect(res.text).to.eql(`<Response><Gather numDigits="1" input="dtmf" action="${actionPath}" timeout="15"><Say voice="alice">You have pressed unknown key, Please press 1 to acknowledge or 2 to resolve the incident.</Say></Gather><Say voice="alice">No response received. This call will end.</Say><Hangup /></Response>`);
             done();
         });
     });
@@ -99,7 +99,7 @@ describe('Twilio API', function () {
             Digits: '2'
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.text).to.eql('<Response><Say voice="alice">The incident status has been resolved. Log on to your dashboard to see the status. Thank you for using Fyipe.</Say></Response>');
+            expect(res.text).to.eql('<Response><Say voice="alice">The incident status has been resolved. Log on to your dashboard to see the status. Thank you for using Fyipe.</Say><Hangup /></Response>');
             done();
         });
     });

@@ -29,6 +29,7 @@ function validate(values) {
 class CreateSchedule extends React.Component {
 
     state = {
+        currentDate: moment(),
         startDate: moment(),
         endDate: moment(),
         startDateCleared: false,
@@ -36,9 +37,17 @@ class CreateSchedule extends React.Component {
     };
 
     handleChangeStartDate = (moment) => {
-        this.setState({
-            startDate: moment,
-            startDateCleared: false
+        this.setState(state => {
+            let { endDate } = state;
+
+            if(endDate < moment){
+                endDate = moment;
+            }
+            return{
+                startDate: moment,
+                startDateCleared: false,
+                endDate,
+            }
         });
     }
 
@@ -85,7 +94,7 @@ class CreateSchedule extends React.Component {
     }
 
     render() {
-        const { startDate, startDateCleared, endDate, endDateCleared } = this.state;
+        const { startDate, startDateCleared, endDate, endDateCleared, currentDate } = this.state;
         const { requesting, error } = this.props;
 
         const valueStartDate = !startDateCleared && startDate ? startDate.format('MMMM Do YYYY, h:mm a') : '';
@@ -142,13 +151,14 @@ class CreateSchedule extends React.Component {
                                                             <span>Start date and time</span>
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <div className="bs-Fieldset-field">
+                                                            <div className="bs-Fieldset-field" style={{ width: '70%' }}>
                                                                 <DatetimePickerTrigger
+                                                                    minDate={currentDate}
                                                                     moment={startDate}
                                                                     onChange={this.handleChangeStartDate}
                                                                     showTimePicker={true}
                                                                     closeOnSelectDay={true}>
-                                                                    <input type="text" value={valueStartDate} style={{width:200}}/>
+                                                                    <input type="text" className="bs-TextInput" value={valueStartDate} style={{ width: 300, padding: '3px 5px' }}/>
                                                                 </DatetimePickerTrigger>
                                                             </div>
                                                         </div>
@@ -162,13 +172,14 @@ class CreateSchedule extends React.Component {
                                                             <span>End date and time</span>
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <div className="bs-Fieldset-field">
+                                                            <div className="bs-Fieldset-field" style={{ width: '70%' }}>
                                                                 <DatetimePickerTrigger
+                                                                    minDate={startDate}
                                                                     moment={endDate}
                                                                     onChange={this.handleChangeEndDate}
                                                                     showTimePicker={true}
                                                                     closeOnSelectDay={true}>
-                                                                    <input type="text" value={valueEndDate}  style={{width:200}} />
+                                                                    <input type="text" className="bs-TextInput" value={valueEndDate}  style={{ width: 300, padding: '3px 5px' }} />
                                                                 </DatetimePickerTrigger>
                                                             </div>
                                                         </div>
@@ -182,7 +193,7 @@ class CreateSchedule extends React.Component {
                                                             <span>Event Description</span>
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <div className="bs-Fieldset-field" style={{ width: '300px', }}>
+                                                            <div className="bs-Fieldset-field" style={{ width: '70%' }}>
                                                                 <Field className="bs-TextArea"
                                                                     component={RenderTextArea}
                                                                     type="text"
@@ -190,7 +201,7 @@ class CreateSchedule extends React.Component {
                                                                     rows="5"
                                                                     id="description"
                                                                     placeholder="Event Description"
-                                                                    style={{ width: '250px', resize: 'none' }}
+                                                                    style={{ width: 300, resize: 'none' }}
                                                                 />
                                                             </div>
                                                         </div>
@@ -242,7 +253,7 @@ class CreateSchedule extends React.Component {
                                                                 </div>
                                                             </div>
                                                             <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Execute call schedule when this event occurs</span></label>
+                                                                <label><span>Alert your team members who are on call when this event starts</span></label>
                                                             </div>
                                                         </label>
                                                     </div>

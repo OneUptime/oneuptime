@@ -106,11 +106,11 @@ class IncidentLog extends React.Component {
                 <div className="bs-BIM">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">
-                            {
+                            <ShouldRender if={subProjects.length > 0}>
                                 <div className="Box-root Padding-top--20 Padding-left--20">
                                     <Badge color={'red'}>Project</Badge>
                                 </div>
-                            }
+                            </ShouldRender>
                             <IncidentProjectBox
                                 subProjectIncident={projectIncident}
                                 creating={creating}
