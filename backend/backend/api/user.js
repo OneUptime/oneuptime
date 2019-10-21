@@ -502,7 +502,7 @@ router.put('/changePassword', getUser, async function (req, res) {
     if (data.confirmPassword !== data.newPassword) {
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'New and Confirm password is not same.'
+            message: 'New Password does not match confirm password.'
         });
     }
 
