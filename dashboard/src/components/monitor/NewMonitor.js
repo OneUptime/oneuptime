@@ -228,7 +228,7 @@ class NewMonitor extends Component {
         let type = '';
         if (this.props.edit) {
             type = this.props.editMonitorProp.type;
-        }
+        }   
         else {
             type = this.props.type;
         }
@@ -294,6 +294,24 @@ class NewMonitor extends Component {
                                                         />
                                                     </div>
                                                 </div>
+                                                <ShouldRender if={monitorCategoryList && monitorCategoryList.length > 0}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Monitor Category</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={'select'}
+                                                                name={`monitorCategoryId_${this.props.index}`}
+                                                                id="monitorCategory"
+                                                                placeholder="Choose Monitor Category"
+                                                                disabled={requesting}
+                                                                validate={ValidateField.select}
+                                                            >
+                                                                <option value="">Select monitor category</option>
+                                                                {monitorCategoryList && monitorCategoryList.map(monitorCategory => <option key={monitorCategory._id} value={monitorCategory._id}>{monitorCategory.name}</option>)}
+                                                            </Field>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
                                                 <ShouldRender if={!this.props.edit}>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Monitor Type</label>
@@ -316,7 +334,7 @@ class NewMonitor extends Component {
                                                                 <option value="server-monitor">Server</option>
                                                             </Field>
                                                             <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                                <span>{ this.monitorTypeDescription[[this.state.type]] }</span>
+                                                                <span>{this.monitorTypeDescription[[this.state.type]]}</span>
                                                             </span>
                                                         </div>
                                                     </div>
@@ -353,25 +371,7 @@ class NewMonitor extends Component {
                                                                 </Field>
                                                             </div>
                                                         </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={monitorCategoryList && monitorCategoryList.length > 0}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">Monitor Category</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={'select'}
-                                                                    name={`monitorCategoryId_${this.props.index}`}
-                                                                    id="monitorCategory"
-                                                                    placeholder="Choose Monitor Category"
-                                                                    disabled={requesting}
-                                                                    validate={ValidateField.select}
-                                                                >
-                                                                    <option value="">Select monitor category</option>
-                                                                    {monitorCategoryList && monitorCategoryList.map(monitorCategory => <option key={monitorCategory._id} value={monitorCategory._id}>{monitorCategory.name}</option>)}
-                                                                </Field>
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
+                                                    </ShouldRender> 
                                                     <ShouldRender if={type === 'api'}>
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">HTTP Method</label>
@@ -575,6 +575,7 @@ const mapStateToProps = (state, ownProps) => {
             type: selector(state, 'type_1000'),
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
+            monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
             monitorId
         };
     }
