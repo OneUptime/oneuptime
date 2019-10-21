@@ -33,6 +33,7 @@ export class LoginForm extends Component {
 	render() {
 		const { handleSubmit } = this.props;
 		const { serverResponse } = this.state;
+		const loginError = this.props.login.error;
 
 		return (
 			<div id="main-body" className="box css">
@@ -41,8 +42,8 @@ export class LoginForm extends Component {
 						<form onSubmit={handleSubmit(this.props.onSubmit)}>
 							<div className="step email-password-step">
 								<h2>
-									{serverResponse ? (<span>{serverResponse}</span>) :
-										(<span > {this.props.login.error ? <span className="error" >{this.props.login.error}</span> : 'Welcome back!'} </span>
+									{loginError ? (<span className="error" >{loginError}</span>) :
+										(<span > {serverResponse ? <span>{serverResponse}</span> : 'Welcome back!'} </span>
 										)}
 								</h2>
 
