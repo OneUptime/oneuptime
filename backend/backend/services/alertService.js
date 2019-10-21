@@ -267,7 +267,8 @@ module.exports = {
                                                     let alertStatus, alert, balanceStatus;
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
                                                     if (balanceCheckStatus) {
-                                                        let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
+                                                        
+                                                        let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, accessToken, incident._id, incident.projectId);
                                                         if (alertSuccess) {
                                                             alertStatus = 'success';
                                                             alert = await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);

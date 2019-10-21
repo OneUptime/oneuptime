@@ -23,7 +23,7 @@ module.exports = {
         country: 'Iceland',
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
-        companyPhoneNumber: '+1255609726',
+        companyPhoneNumber: '+919910568840',
         reference: 'Github'
     },
 
@@ -51,7 +51,7 @@ module.exports = {
         country: 'Iceland',
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
-        companyPhoneNumber: '+1255609726',
+        companyPhoneNumber: '+919910568840',
         reference: 'Github'
     },
 
@@ -79,7 +79,7 @@ module.exports = {
         country: 'Iceland',
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
-        companyPhoneNumber: '+1255609726',
+        companyPhoneNumber: '+919910568840',
         reference: 'Github'
     },
 
@@ -116,7 +116,7 @@ module.exports = {
         email: 'lekan@fyipe.com',
         timezone: 'London GMT +00:00',
         profilePic: 'Image.jpg',
-        companyPhoneNumber: '+01234567890',
-        alertPhoneNumber: '+01234567890'
+        companyPhoneNumber: '+919910568840',
+        alertPhoneNumber: '+919910568840'
     }
 };

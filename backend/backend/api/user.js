@@ -241,7 +241,6 @@ router.post('/login', async function (req, res) {
             },
             role: user.role || null
         };
-
         return sendItemResponse(req, res, authUserObj);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -275,8 +274,9 @@ router.post('/forgot-password', async function (req, res) {
     try {
         // Call the UserService.
         var user = await UserService.forgotPassword(data.email);
+        var forgotPasswordURL = `${ACCOUNTS_HOST}/change-password/${user.resetPasswordToken}`;
         // Call the MailService.
-        await MailService.sendForgotPasswordMail(req.headers.host, user.email, user.resetPasswordToken);
+        await MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
 
         return sendItemResponse(req, res, {
             message: 'User received mail succcessfully.'

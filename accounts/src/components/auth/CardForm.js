@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import { RenderField } from '../basic/RenderField'
 import { PricingPlan } from '../../config';
 import { Validate } from '../../config';
-import { FlatLoader } from '../basic/Loader.js';
+import { ButtonSpinner } from '../basic/Loader.js';
 
 class CardForm extends Component {
 
@@ -180,7 +180,7 @@ class CardForm extends Component {
 							<p className="submit" style={{ width: '100%', maxWidth: '100%' }}>
 								<button style={{ width: '100%' }} type="submit" className="button blue medium" id="create-account-button" disabled={this.props.register.requesting}>
 									{!this.props.register.requesting && <span>Create Fyipe Account</span>}
-									{this.props.register.requesting && <FlatLoader />}
+									{this.props.register.requesting && <ButtonSpinner />}
 								</button>
 							</p>
 						</div>
