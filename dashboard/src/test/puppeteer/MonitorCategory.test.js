@@ -116,6 +116,7 @@ describe('Monitor Category', () => {
     }, operationTimeOut);
 
     it('should delete the created monitor category', async () => {
+        await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
         await page.waitForSelector('#monitors:nth-of-type(2)');
         await page.click('#monitors:nth-of-type(2)');
@@ -123,7 +124,9 @@ describe('Monitor Category', () => {
         var deleteButtonSelector = '#monitorCategoryList > div > div > div:nth-child(2) > div:nth-child(3) > button'
         await page.waitForSelector(deleteButtonSelector);
         await page.click(deleteButtonSelector);
-        await page.waitFor(1000);
+        await page.waitForSelector('#deleteMonitorCategory');
+        await page.click('#deleteMonitorCategory');
+        await page.waitFor(5000);
 
         var monitorCategoryCounterSelector = '#monitorCategoryCount'
         var monitorCategoryCount = await page.$eval(monitorCategoryCounterSelector, el => el.textContent);
