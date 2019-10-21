@@ -14,7 +14,7 @@ const appReducer = combineReducers({
     profileSettings,
     notifications,
     user,
-    project
+    project,
 });
 
 export default (state, action) => {

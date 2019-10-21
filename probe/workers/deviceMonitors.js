@@ -20,9 +20,9 @@ module.exports = {
                 }
                 if (time.status === 'online') {
                     try {
-                        await pingService(monitor);
+                        await ApiService.ping(monitor._id, { monitor, type: monitor.type });
                     } catch (error) {
-                        ErrorService.log('ping.pingService', error);
+                        ErrorService.log('ApiService.ping', error);
                         throw error;
                     }
                 }
@@ -36,33 +36,15 @@ module.exports = {
                 }
                 if (newTime.status === 'offline') {
                     try {
-                        await pingService(monitor, res);
+                        await ApiService.ping(monitor._id, { monitor, res, type: monitor.type });
                     } catch (error) {
-                        ErrorService.log('ping.pingService', error);
+                        ErrorService.log('ApiService.ping', error);
                         throw error;
                     }
                 }
             }
         } else {
             return;
-        }
-    }
-};
-
-var pingService = async (monitor, res) => {
-    if (res) {
-        try {
-            await ApiService.setMonitorTime(monitor._id, res,null, 'online');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
-        }
-    } else {
-        try {
-            await ApiService.setMonitorTime(monitor._id, 0,null, 'offline');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
         }
     }
 };

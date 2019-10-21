@@ -1,10 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 import { Field } from 'redux-form';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
+import { openModal, closeModal } from '../../actions/modal';
+import RemoveSubProject from '../modals/RemoveSubProject';
+import uuid from 'uuid';
 
-const SubProject = ({ fields, meta: { error, submitFailed } }) => {
-
+const removeModalId = uuid.v4();
+const SubProject = ({ fields, meta: { error, submitFailed }, ...props }) => {
     return (
         <ul>
             {
@@ -32,7 +37,24 @@ const SubProject = ({ fields, meta: { error, submitFailed } }) => {
                                                 id={`btnRemoveSubproject${i}`}
                                                 className="bs-Button bs-DeprecatedButton"
                                                 type="button"
-                                                onClick={() => fields.remove(i)}
+                                                onClick={() => {
+                                                    if(fields.get(i)._id){
+                                                        props.openModal({
+                                                            id: removeModalId,
+                                                            onClose: () => '',
+                                                            onConfirm: () => {
+                                                                return new Promise((resolve)=>{
+                                                                    fields.remove(i)
+                                                                    resolve(true)
+                                                                })
+                                                            },
+                                                            content: RemoveSubProject
+                                                        })      
+                                                    }else{
+                                                        fields.remove(i)
+                                                    }
+                                                }
+                                                }
                                             >
                                                 Remove
                                             </button>
@@ -80,12 +102,24 @@ const SubProject = ({ fields, meta: { error, submitFailed } }) => {
 
 SubProject.displayName = 'SubProject'
 
+const mapStateToProps = () => {
+    return {}
+}
+
+const mapDispatchToProps = dispatch => bindActionCreators(
+    {
+        openModal,
+        closeModal,
+    }, dispatch
+)
+
 SubProject.propTypes = {
     meta: PropTypes.object.isRequired,
     fields: PropTypes.oneOfType([
         PropTypes.array,
         PropTypes.object
     ]).isRequired,
+    openModal: PropTypes.func.isRequired
 }
 
-export {SubProject}
+export default connect(mapStateToProps, mapDispatchToProps)(SubProject)

@@ -102,8 +102,8 @@ module.exports = {
         }
         return info;
     },
-    sendVerifyEmail: async function(tokenVerifyURL, name, email){
-        
+    sendVerifyEmail: async function (tokenVerifyURL, name, email) {
+
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
@@ -142,6 +142,7 @@ module.exports = {
         }
         return info;
     },
+
     sendUserFeedbackResponse: async function (userEmail, name) {
 
         var mailOptions = {
@@ -240,7 +241,7 @@ module.exports = {
     // Param 2: email: Email of user
     // Param 3: token: Password reset token
     // Returns: promise
-    sendForgotPasswordMail: async function (host, email, token) {
+    sendForgotPasswordMail: async function (forgotPasswordURL, email) {
 
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
@@ -248,7 +249,7 @@ module.exports = {
             subject: 'Password Reset for Fyipe',
             template: 'forgot_password_body',
             context: {
-                token: token
+                forgotPasswordURL
             }
         };
         try {
@@ -314,7 +315,7 @@ module.exports = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
             subject: 'You\'ve been added to a project on Fyipe',
-            template: 'exiting_user_added_to_project_body',
+            template: 'existing_user_added_to_project_body',
             context: {
                 projectName: project.name,
                 userName: addedByUser.name
@@ -329,14 +330,14 @@ module.exports = {
         }
         return info;
     },
-    
+
     sendExistingStatusPageViewerMail: async function (subProject, addedByUser, email) {
 
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
-            subject: 'You\'ve been added to a subproject on Fyipe',
-            template: 'exiting_viewer_added_to_project_body',
+            subject: 'You\'ve been added to a sub-project on Fyipe',
+            template: 'existing_viewer_added_to_project_body',
             context: {
                 subProjectName: subProject.name,
                 userName: addedByUser.name
@@ -353,7 +354,7 @@ module.exports = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
             subject: 'You\'ve been added to a subproject on Fyipe',
-            template: 'exiting_user_added_to_subproject_body',
+            template: 'existing_user_added_to_subproject_body',
             context: {
                 projectName: project.name,
                 userName: addedByUser.name
@@ -363,7 +364,7 @@ module.exports = {
         var info = await mailer.sendMail(mailOptions);
         return info;
     },
-    
+
     sendNewStatusPageViewerMail: async function (project, addedByUser, email) {
 
         var mailOptions = {
@@ -386,7 +387,7 @@ module.exports = {
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
-            subject: 'You\'ve been added to a project on Fyipe',
+            subject: 'You\'ve been assigned a new role',
             template: 'change_role',
             context: {
                 projectName: project.name,

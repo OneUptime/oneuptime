@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux'
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend  } from 'recharts';
+import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import {
   getMonthlyResolveTime,
   getMonthlyResolveTimeError,
@@ -19,9 +19,9 @@ class CustomTooltip extends Component {
     if (active) {
       const { payload, label } = this.props;
       return (
-        <div style={{width: '100%', height: '100%',}} className="custom-tooltip">
+        <div style={{ width: '100%', height: '100%', }} className="custom-tooltip">
           <p className="intro">{label}</p>
-          <p className="label" style={ { color: '#8884d8'} }>{`average-resolve-time : ${payload && payload[0]? payload[0].value : 0} secs`}</p>
+          <p className="label" style={{ color: '#8884d8' }}>{`average-resolve-time : ${payload && payload[0] ? payload[0].value : 0} secs`}</p>
         </div>
       );
     }
@@ -50,9 +50,9 @@ class AverageTimeChart extends Component {
     const { getMonthlyResolveTime, currentProject } = this.props;
     getMonthlyResolveTime(currentProject);
   }
-  
+
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if(this.state.months !== nextProps.averageTime.months) {
+    if (this.state.months !== nextProps.averageTime.months) {
       this.setState({
         months: nextProps.averageTime.months
       })
@@ -63,13 +63,13 @@ class AverageTimeChart extends Component {
     return (
       <div>
         <LineChart width={1000} height={300} data={this.state.months}
-            margin={{top: 15, right: 10, left: 20, bottom: 15}}>
-          <XAxis dataKey="month" padding={{left: 30, right: 30}} />
-          <YAxis/>
-          <CartesianGrid strokeDasharray="3 3"/>
-          <Tooltip content={<CustomTooltip/>} />
+          margin={{ top: 15, right: 10, left: 20, bottom: 15 }}>
+          <XAxis dataKey="month" padding={{ left: 30, right: 30 }} />
+          <YAxis />
+          <CartesianGrid strokeDasharray="3 3" />
+          <Tooltip content={<CustomTooltip />} />
           <Legend verticalAlign="top" height={36} />
-          <Line type="monotone" dataKey="averageResolved" stroke="#8884d8" activeDot={{r: 8}} />
+          <Line type="monotone" dataKey="averageResolved" stroke="#8884d8" activeDot={{ r: 8 }} />
         </LineChart>
       </div>
     );
@@ -95,7 +95,7 @@ const mapDispatchToProps = dispatch => ({
 
 AverageTimeChart.propTypes = {
   getMonthlyResolveTime: PropTypes.func,
-  currentProject: PropTypes.object,
+  currentProject: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
   averageTime: PropTypes.object
 };
 

@@ -31,99 +31,98 @@ describe('StatusPage API With SubProjects', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async () => {
-        jest.setTimeout(150000);
+        jest.setTimeout(300000);
         // browser for parent user
         browser1 = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser1.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
+
         // intercept request and mock response for login
         await page.setRequestInterception(true);
-        await page.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
+        await page.on('request', async (request) => {
+            if ((await request.url()).match(/user\/login/)) {
                 request.respond({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify(userCredentials)
                 });
-            }else{
+            } else {
                 request.continue();
             }
         });
-        await page.on('response', async (response)=>{
-            try{
+        await page.on('response', async (response) => {
+            try {
                 var res = await response.json();
-                if(res && res.tokens){
+                if (res && res.tokens) {
                     userCredentials = res;
                 }
-            }catch(error){}
+            } catch (error) { }
         });
-    
+
         // browser sub-project user
         browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig);
         newPage = await browser2.newPage();
         await newPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
+
         // intercept request and mock response for login
         await newPage.setRequestInterception(true);
-        await newPage.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
+        await newPage.on('request', async (request) => {
+            if ((await request.url()).match(/user\/login/)) {
                 request.respond({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify(userCredentials)
                 });
-            }else{
+            } else {
                 request.continue();
             }
         });
-        await newPage.on('response', async (response)=>{
-            try{
+        await newPage.on('response', async (response) => {
+            try {
                 var res = await response.json();
-                if(res && res.tokens){
+                if (res && res.tokens) {
                     userCredentials = res;
                 }
-            }catch(error){}
+            } catch (error) { }
         });
-    
+
         // parent user
         await init.registerUser(user, page);
         await init.loginUser(user, page);
-    
+
         // rename default project
         await init.renameProject(projectName, page);
-    
+
         // add sub-project
         await init.addSubProject(subProjectName, page);
-    
+
         // new user (sub-project user)
         await init.registerUser(newUser, newPage);
         await init.loginUser(newUser, newPage);
-    
+
         // add new user to sub-project
-        await init.addUserToProject({email: newUser.email, role: 'Member', subProjectName}, page);
-        
+        await init.addUserToProject({ email: newUser.email, role: 'Member', subProjectName }, page);
+
         // switch to invited project for new user
         await init.switchProject(projectName, newPage);
-    
+
         // add new monitor to parent project and sub-project
         await init.addMonitorToProject(subProjectMonitorName, subProjectName, page);
-        
+
         ;
     });
-    
+
     afterAll(async () => {
         await browser1.close();
         await browser2.close();
         ;
     });
 
-    it('should not display create status page button for subproject `member` role.', async ()=>{
+    it('should not display create status page button for subproject `member` role.', async () => {
         await newPage.waitForSelector(`#statusPages > a`);
         await newPage.click(`#statusPages > a`);
         const createButton = await newPage.$(`#btnCreateStatusPage_${subProjectName}`);
         expect(createButton).toBe(null);
-        ;
     });
 
     it('should create a status page in sub-project for sub-project `admin`', async () => {
@@ -140,17 +139,16 @@ describe('StatusPage API With SubProjects', () => {
         const statusPageCountSelector = await page.$(`#status_page_count_${subProjectName}`);
         let textContent = await statusPageCountSelector.getProperty('innerText');
         textContent = await textContent.jsonValue();
-        await expect(textContent).toEqual('1 status page');
-        ;
+        await expect(textContent).toEqual('1 Status Page');
     }, operationTimeOut);
 
-    it('should get list of status pages in sub-projects and paginate status pages in sub-project', async ()=>{
+    it('should get list of status pages in sub-projects and paginate status pages in sub-project', async () => {
         // add 10 more statuspages to sub-project to test for pagination
-        for(let i = 0; i < 10; i++){
+        for (let i = 0; i < 10; i++) {
             const statuspageName = utils.generateRandomString();
             await init.addStatusPageToProject(statuspageName, subProjectName, page);
         }
-        await newPage.reload({ waitUntil: 'networkidle2'});
+        await newPage.reload({ waitUntil: 'networkidle2' });
         await newPage.waitForSelector(`#statusPages > a`);
         await newPage.click(`#statusPages > a`);
         await newPage.waitFor(5000);
@@ -166,10 +164,9 @@ describe('StatusPage API With SubProjects', () => {
         await newPage.waitFor(5000);
         countStatusPages = (await newPage.$$('tr.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')).length;
         expect(countStatusPages).toEqual(10);
-        ;
     }, 120000);
 
-    it('should update sub-project status page settings', async ()=>{
+    it('should update sub-project status page settings', async () => {
         await page.waitForSelector('.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')
         await page.click('.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink');
         await page.waitFor(5000);
@@ -190,15 +187,13 @@ describe('StatusPage API With SubProjects', () => {
         await page.type('#url_0', 'https://fyipe.com');
         await page.click('#btnSaveLinks');
         await page.waitFor(5000);
-        ;
     }, operationTimeOut);
 
-    it('should delete sub-project status page', async ()=>{
+    it('should delete sub-project status page', async () => {
         await page.waitForSelector('#delete');
         await page.click('#delete');
         await page.waitForSelector('#confirmDelete');
         await page.click('#confirmDelete');
         await page.waitFor(5000);
-        ;
     }, operationTimeOut);
 });     

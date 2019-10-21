@@ -205,6 +205,34 @@ module.exports = {
         }
         return 'Subscriber(s) removed successfully';
     },
+    restoreBy: async function (query){
+        const _this = this;
+        query.deleted = true;
+        let subscriber = await _this.findBy(query);
+        if(subscriber && subscriber.length > 1){
+            const subscribers = await Promise.all(subscriber.map(async (subscriber) => {
+                const subscriberId = subscriber._id;
+                subscriber = await _this.update({_id: subscriberId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+                return subscriber;
+            }));
+            return subscribers;
+        }else{
+            subscriber = subscriber[0];
+            if(subscriber){
+                const subscriberId = subscriber._id;
+                subscriber = await _this.update({_id: subscriberId, deleted: true}, {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null
+                });
+            }
+            return subscriber;
+        }
+    }
 };
 
 var SubscriberModel = require('../models/subscriber');

@@ -14,11 +14,12 @@ export class UserDeleteBox extends Component {
 
     constructor(props) {
         super(props);
+        this.props = props;
         this.state = { deleteModalId: uuid.v4() }
     }
 
     handleClick = () => {
-        const { deleteUser, history, userId } = this.props;
+        const { deleteUser, userId } = this.props;
         const { deleteModalId } = this.state
         var thisObj = this;
         this.props.openModal({
@@ -29,7 +30,6 @@ export class UserDeleteBox extends Component {
                 if (window.location.href.indexOf('localhost') <= -1) {
                     thisObj.context.mixpanel.track('User Deleted');
                 }
-                history.push(`/users`);
             })
             },
             content: UserDeleteModal
@@ -100,7 +100,6 @@ const mapStateToProps = (state) => {
 
 UserDeleteBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    history: PropTypes.object.isRequired,
     userId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])

@@ -2,18 +2,8 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { resetProjectToken } from '../../actions/project';
-import ShouldRender from '../basic/ShouldRender';
-import { FormLoader } from '../basic/Loader';
 
 export class ProjectDetails extends Component {
-
-    resetToken =()=> {
-        this.props.resetProjectToken(this.props.currentProject._id);
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Project Token Reset', {projectId:this.props.currentProject._id});
-        }
-    }
 
     render() {
         return (
@@ -23,6 +13,30 @@ export class ProjectDetails extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                <div>
+                                    {
+                                        this.props.project.deleted ? 
+                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span>Deleted</span>
+                                            </span>
+                                        </div>
+                                        :
+                                        this.props.project.isBlocked ?
+                                        <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span>Blocked</span>
+                                            </span>
+                                        </div> :
+                                            <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span>
+                                                    Active
+                                                </span>
+                                            </span>
+                                        </div>
+                                    }
+                                    </div>
                                     <span>
                                         Project Details
                                     </span>
@@ -40,10 +54,18 @@ export class ProjectDetails extends Component {
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
                                             <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Project Name</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <span className="value" style={{ marginTop: '6px' }}>
+                                                        {this.props.project !== null ? this.props.project.name : 'LOADING...'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Project ID</label>
                                                 <div className="bs-Fieldset-fields">
                                                     <span className="value" style={{ marginTop: '6px' }}>
-                                                        {this.props.currentProject !== null ? this.props.currentProject._id : 'LOADING...'}
+                                                        {this.props.project !== null ? this.props.project._id : 'LOADING...'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -51,7 +73,7 @@ export class ProjectDetails extends Component {
                                                 <label className="bs-Fieldset-label">API Key</label>
                                                 <div className="bs-Fieldset-fields">
                                                     <span className="value" style={{ marginTop: '6px' }}>
-                                                        {this.props.currentProject !== null ? this.props.currentProject.apiKey : 'LOADING...'}
+                                                        {this.props.project !== null ? this.props.project.apiKey : 'LOADING...'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -64,19 +86,6 @@ export class ProjectDetails extends Component {
                             <span className="db-SettingsForm-footerMessage"></span>
 
                             <div>
-                                <RenderIfAdmin>
-                                    <button
-                                        className="bs-Button bs-Button--blue"
-                                        onClick={this.resetToken}
-                                    >
-                                        <ShouldRender if={!this.props.isRequesting}>
-                                            <span>Reset API Key</span>
-                                        </ShouldRender>
-                                        <ShouldRender if={this.props.isRequesting}>
-                                            <FormLoader />
-                                        </ShouldRender>
-                                    </button>
-                                </RenderIfAdmin>
                             </div>
                         </div>
                     </div>
@@ -88,24 +97,21 @@ export class ProjectDetails extends Component {
 
 ProjectDetails.displayName = 'ProjectDetails'
 
-const mapStateToProps = state => (
-    {
-        currentProject: state.project.currentProject,
-        isRequesting: state.project.resetToken.requesting
+const mapStateToProps = (state, props) => {
+    const projectId = props.projectId;
+    const project = state.project.projects.projects.find(project => project._id === projectId) || {}
+    return {
+        project,
+        isRequesting: state.project.projects.requesting
     }
-);
+}
 
 const mapDispatchToProps = dispatch => (
-    bindActionCreators({ resetProjectToken }, dispatch)
+    bindActionCreators({ }, dispatch)
 );
 
 ProjectDetails.propTypes = {
-    resetProjectToken:PropTypes.func.isRequired,
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null,undefined])
-    ]),
-    isRequesting: PropTypes.oneOf([null,undefined,true,false]),
+    project: PropTypes.object.isRequired,
 }
 
 ProjectDetails.contextTypes = {

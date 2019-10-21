@@ -44,7 +44,7 @@ describe('Status API', function () {
                                 monitorCategoryId = res.body._id;
                                 monitor.monitorCategoryId = monitorCategoryId;
                                 request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-                                    monitorId = res.body._id;
+                                    monitorId = res.body[0]._id;
                                     done();
                                 });
                             });

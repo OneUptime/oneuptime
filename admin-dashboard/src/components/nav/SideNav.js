@@ -5,16 +5,15 @@ import { connect } from 'react-redux';
 import NavItem from './SideNavItem';
 import { groups } from '../../routes';
 import { openModal, closeModal } from '../../actions/modal';
-import ClickOutside from 'react-click-outside';
 
 class SideNav extends Component {
 
-	handleKeyBoard = (e)=>{
-		switch(e.key){
+	handleKeyBoard = (e) => {
+		switch (e.key) {
 			case 'Escape':
-			return true;
+				return true;
 			default:
-			return false;
+				return false;
 		}
 	}
 
@@ -89,9 +88,9 @@ class SideNav extends Component {
 	}
 }
 
-SideNav.displayName = 'SideNav'
+SideNav.displayName = 'SideNav';
 
-let mapStateToProps = function (state) {
+let mapStateToProps = function (state_Ignored) {
 	return { };
 }
 

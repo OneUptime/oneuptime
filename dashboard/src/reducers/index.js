@@ -24,7 +24,10 @@ import subscriber from './subscriber';
 import scheduledEvent from './scheduledEvent';
 import monitorCategories from './monitorCategories';
 import card from './card';
+import page from './page';
 import probe from './probe';
+import version from './version';
+import tutorial from './tutorial';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -52,7 +55,10 @@ const appReducer = combineReducers({
     subscriber,
     scheduledEvent,
     card,
-    probe
+    page,
+    probe,
+    version,
+    tutorial
 });
 
 export default (state, action) => {

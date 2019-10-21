@@ -5,7 +5,7 @@ var userSchema = new Schema({
     name: String,
     email: String,
     password: String,
-    isVerified: { 
+    isVerified: {
         type: Boolean,
         default: false
     },
@@ -33,7 +33,7 @@ var userSchema = new Schema({
     },
     coupon: String,
 
-    disabled: { 
+    disabled: {
         type: Boolean,
         default: false
     },
@@ -45,9 +45,17 @@ var userSchema = new Schema({
         type: String,
         enum: ['master-admin']
     },
+    isBlocked: {
+        type: Boolean,
+        default: false
+    },
+    adminNotes: [{
+        note: { type: String },
+        createdAt: { type: Date }
+    }],
 
-    deleted: { type: Boolean, default: false},
-    
+    deleted: { type: Boolean, default: false },
+
     deletedAt: {
         type: Date
     },
@@ -56,7 +64,9 @@ var userSchema = new Schema({
     alertPhoneNumber: {
         type: String,
         default: ''
-    }
+    },
+
+    tutorial: Object
 });
 
 module.exports = mongoose.model('User', userSchema);

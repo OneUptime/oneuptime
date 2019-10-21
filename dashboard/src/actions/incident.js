@@ -1,4 +1,4 @@
-import { postApi, getApi, putApi } from '../api';
+import { postApi, getApi, putApi, deleteApi } from '../api';
 import * as types from '../constants/incident'
 import errors from '../errors'
 
@@ -152,9 +152,9 @@ export const resetCreateIncident = () => {
 };
 
 // Calls the API to create new incident.
-export function createNewIncident(projectId, monitorId) {
+export function createNewIncident(projectId, monitorId, incidentType) {
     return function (dispatch) {
-        var promise = postApi(`incident/${projectId}/${monitorId}`, {monitorId, projectId});
+        var promise = postApi(`incident/${projectId}/${monitorId}`, { monitorId, projectId, incidentType });
 
         dispatch(createIncidentRequest(promise));
 
@@ -621,4 +621,62 @@ export function setinternalNote(projectId, incidentId, internalNote) {
             dispatch(internalNoteError(errors(error)));
         });
     };
+}
+
+export function deleteIncidentSuccess(incidentId) {
+    return {
+        type: types.DELETE_INCIDENT_SUCCESS,
+        payload: incidentId
+    };
+}
+
+export function deleteIncidentRequest(incidentId) {
+    return {
+        type: types.DELETE_INCIDENT_REQUEST,
+        payload: incidentId,
+    };
+}
+
+export function deleteIncidentFailure(error) {
+    return {
+        type: types.DELETE_INCIDENT_FAILURE,
+        payload: error
+    };
+}
+
+export function deleteIncidentReset(error) {
+    return {
+        type: types.DELETE_INCIDENT_RESET,
+        payload: error
+    };
+}
+
+//Delete an incident
+export function deleteIncident(projectId, incidentId) {
+    return function (dispatch) {
+
+        var promise = deleteApi(`incident/${projectId}/${incidentId}`);
+        dispatch(deleteIncidentRequest(incidentId));
+
+        promise.then(function (incident) {
+
+            dispatch(deleteIncidentSuccess(incident.data._id));
+        }, function (error) {
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            } else {
+                error = 'Network Error';
+            }
+            dispatch(deleteIncidentFailure({ error: errors(error), incidentId }));
+        });
+
+        return promise;
+
+    };
+
 }

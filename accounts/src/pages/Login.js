@@ -41,7 +41,22 @@ class LoginPage extends React.Component {
 				</div>
 
 				{/* LOGIN BOX */}
-				{!this.props.login.success && this.props.login.error && this.props.login.error === 'Verify your email first.' ? <MessageBox title={'Your email is not verified.'} message={'An email is on its way to you with new verification link. Please don&apos;t forget to check spam. '} /> : <LoginForm onSubmit={this.submitHandler} {...this.props} />}
+				{!this.props.login.success
+					&& this.props.login.error
+					&& this.props.login.error === 'Verify your email first.' ?
+					<div>
+						<MessageBox
+							title='Your email is not verified.'
+							//eslint-disable-next-line 
+							message={`An email is on its way to you with new verification link. Please don't forget to check spam.`} >
+							<div className="below-box">
+								<p>
+									Click <Link to="/user-verify/resend">here</Link> to resend verification link to your email.
+								</p>
+							</div>
+						</MessageBox>
+					</div> :
+					<LoginForm onSubmit={this.submitHandler} {...this.props} />}
 
 				{/* FOOTER */}
 				<div className="below-box">

@@ -16,7 +16,7 @@ module.exports = {
         if(projects && projects.length > 0){
             // check for parentProject and add parent project users
             if(query.parentProjectId && projects[0]){
-                var parentProject = await ProjectService.findOneBy({ _id: projects[0].parentProjectId });
+                var parentProject = await ProjectService.findOneBy({ _id: projects[0].parentProjectId, deleted: { $ne: null } });
                 projectMembers = projectMembers.concat(parentProject.users);
             }
             var projectUsers = projects.map(project => project.users);
@@ -444,7 +444,6 @@ module.exports = {
             error.code = 400;
             ErrorService.log('TeamService.updateTeamMemberRole', error);
             throw error;
-
         } else {
             if(subProject){
                 previousRole = subProject.users[index].role;

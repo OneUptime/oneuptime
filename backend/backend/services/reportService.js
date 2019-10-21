@@ -1,3 +1,4 @@
+/* eslint-disable quotes */
 
 /**
  * 
@@ -25,21 +26,22 @@ module.exports = {
             limit = parseInt(limit);
         }
         // Use aggregate to proccess data
-        try{
+        try {
             var result = await IncidentModel.aggregate([
-                { $match: { $and: [ { projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } } ] } },
+                { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, acknowledgeTime: { $subtract: ['$acknowledgedAt', '$createdAt'] }, createdAt: 1, resolvedBy: 1 } },
-                { $group: { _id: '$resolvedBy', incidents: { $sum: 1 }, averageAcknowledge: { $avg: '$acknowledgeTime' }, averageResolved: { $avg: '$resolveTime'} } },
+                { $group: { _id: '$resolvedBy', incidents: { $sum: 1 }, averageAcknowledge: { $avg: '$acknowledgeTime' }, averageResolved: { $avg: '$resolveTime' } } },
                 { $sort: { incidents: -1 } },
                 {
                     $facet: {
-                        members:[
+                        members: [
                             { $skip: skip || 0 }, { $limit: limit || 10 }
                         ],
-                        total: [{ $count: 'count'}]
-                    }}
+                        total: [{ $count: 'count' }]
+                    }
+                }
             ]);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('IncidentModel.aggregate', error);
             throw error;
         }
@@ -47,13 +49,13 @@ module.exports = {
         let wrapper = {};
         const filterMembers = result[0].members.filter(member => member._id !== null);
         for (const member of filterMembers) {
-            try{
-                var response = await UserService.findOneBy({_id: member._id});
-            }catch(error){
+            try {
+                var response = await UserService.findOneBy({ _id: member._id });
+            } catch (error) {
                 ErrorService.log('', error);
                 throw error;
             }
-            let result = {memberId: member._id, memberName: response.name, incidents: member.incidents, averageAcknowledgeTime: member.averageAcknowledge, averageResolved: member.averageResolved };
+            let result = { memberId: member._id, memberName: response.name, incidents: member.incidents, averageAcknowledgeTime: member.averageAcknowledge, averageResolved: member.averageResolved };
             arr.push(result);
         }
         wrapper['members'] = arr;
@@ -79,33 +81,35 @@ module.exports = {
             limit = parseInt(limit);
         }
         // Use aggregate to proccess data
-        try{
+        try {
             var result = await IncidentModel.aggregate([
-                { $match: { $and: [ { projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } } ] } },
+                { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, acknowledgeTime: { $subtract: ['$acknowledgedAt', '$createdAt'] }, createdAt: 1, monitorId: 1 } },
-                { $group: { _id: '$monitorId', incidents: { $sum: 1 }, averageAcknowledge: { $avg: '$acknowledgeTime' }, averageResolved: { $avg: '$resolveTime'} } },
+                { $group: { _id: '$monitorId', incidents: { $sum: 1 }, averageAcknowledge: { $avg: '$acknowledgeTime' }, averageResolved: { $avg: '$resolveTime' } } },
                 { $sort: { incidents: -1 } },
                 {
                     $facet: {
-                        monitors:[
+                        monitors: [
                             { $skip: skip || 0 }, { $limit: limit || 10 }
                         ],
-                        total: [{ $count: 'count'}]
-                    }}
+                        total: [{ $count: 'count' }]
+                    }
+                }
             ]);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('IncidentModel.aggregate', error);
             throw error;
         }
         let arr = [];
         let wrapper = {};
         for (const monitor of result[0].monitors) {
-            try{
-                var response = await MonitorService.findOneBy({_id: monitor._id});
-            }catch(error){
+            try {
+                var response = await MonitorService.findOneBy({ _id: monitor._id });
+            } catch (error) {
                 ErrorService.log('', error);
                 throw error;
             }
+            if (!response) response = {};
             let monitorObj = { monitorId: monitor._id, monitorName: response.name, incidents: monitor.incidents, averageAcknowledgeTime: monitor.averageAcknowledge, averageResolved: monitor.averageResolved };
             arr.push(monitorObj);
         }
@@ -121,14 +125,14 @@ module.exports = {
     async getAverageTimeMonth(subProjectIds) {
         const endDate = new Date();
         const startDate = moment(endDate).subtract(11, 'months').toDate();
-        try{
+        try {
             var result = await IncidentModel.aggregate([
-                { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: startDate, $lte: endDate } } ] } },
+                { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: startDate, $lte: endDate } }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, createdAt: 1 } },
-                { $group: { _id: { month: { $month: '$createdAt'} }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime'} } },
-                { $sort: {  '_id.month': 1} }
+                { $group: { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } } },
+                { $sort: { '_id.month': 1 } }
             ]);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('IncidentModel.aggregate', error);
             throw error;
         }
@@ -150,13 +154,13 @@ module.exports = {
     async getMonthlyIncidentCount(subProjectIds) {
         const endDate = new Date();
         const startDate = moment(endDate).subtract(11, 'months').toDate();
-        try{
+        try {
             var result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { createdAt: { $gte: startDate, $lte: endDate } }] } },
-                { $group: { _id: { month: { $month: '$createdAt'} }, count: { $sum: 1 } } },
-                { $sort: {  '_id.month': 1} }
+                { $group: { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+                { $sort: { '_id.month': 1 } }
             ]);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('IncidentModel.aggregate', error);
             throw error;
         }
@@ -169,11 +173,11 @@ module.exports = {
         }
         return formarted;
     },
-    
+
 };
 
 const moment = require('moment');
-const IncidentModel = require('../models/incident');             
+const IncidentModel = require('../models/incident');
 const UserService = require('./userService');
 const MonitorService = require('./monitorService');
 const ErrorService = require('./errorService');

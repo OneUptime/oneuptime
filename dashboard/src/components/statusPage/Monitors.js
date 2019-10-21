@@ -18,6 +18,7 @@ export class Monitors extends Component {
         const { status } = this.props.statusPage;
         const { projectId } = status;
         const monitorIds = [];
+        /* eslint-disable no-unused-vars */
         for (const id in values) {
             if (Object.prototype.hasOwnProperty.call(values, id)) {
                 values[id] && monitorIds.push(id);
@@ -71,6 +72,7 @@ export class Monitors extends Component {
                                                                 if((subProject._id === status.projectId._id) || (subProject._id === status.projectId)){
                                                                     return (<MonitorInputs monitors={this.props.monitors} subProject={subProject} key={i} />)
                                                                 }
+                                                                return false;
                                                             }) 
                                                         } 
                                                         </div>

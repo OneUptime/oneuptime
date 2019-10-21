@@ -1,8 +1,8 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { Field, reduxForm } from 'redux-form';
+import { bindActionCreators } from 'redux';
 import { Component } from 'react';
-import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import { emailTemplateTitles, emailTemplateDescriptions } from '../basic/EmailTitleList';
@@ -94,7 +94,7 @@ export class TemplatesFormBox extends Component {
 
                                             <ShouldRender if={!(this.props.revealVariable && this.props.revealVariable === template.emailType)}>
                                                 <span style={{ display: 'block', marginLeft: '120px' }}>
-                                                    <a onClick={() => this.props.setRevealVariable(template.emailType)} style={{cursor:'pointer'}}> Click here to reveal available variables.</a>
+                                                    <button className="button-as-anchor" onClick={() => this.props.setRevealVariable(template.emailType)} > Click here to reveal available variables.</button>
                                                 </span>
                                             </ShouldRender>
                                             <ShouldRender if={(this.props.revealVariable && this.props.revealVariable === template.emailType)}>

@@ -19,6 +19,7 @@ export class ResponseComponent extends Component {
         this.props.pushArray('NewMonitor', this.props.fieldname, { match: '', responseType: '', filter: '', field1: '', field2: '', field3: false });
     }
     render() {
+        const { type } = this.props;
         let status = {
             display: 'inline-block',
             borderRadius: '2px',
@@ -69,7 +70,7 @@ export class ResponseComponent extends Component {
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                 <fieldset className="bs-Fieldset">
                                     <div className="bs-Fieldset-rows">
-                                        <FieldArray name={this.props.fieldname} component={ResponseParent} type={this.props.type} bodyfield={this.props.bodyfield} level={1} />
+                                        <FieldArray name={this.props.fieldname} component={ResponseParent} bodyfield={this.props.bodyfield} level={1} type={type} />
                                     </div>
                                 </fieldset>
                             </div>
@@ -97,50 +98,50 @@ export class ResponseComponent extends Component {
                                     </div>
                                 </label>
                             </div>
-                            <div className="bs-Fieldset-row">
-                            <label className="Checkbox" htmlFor={`${this.props.fieldname}_autoAcknowledge`}>
-                                <Field
-                                    component="input"
-                                    type="checkbox"
-                                    name={`${this.props.fieldname}_autoAcknowledge`}
-                                    data-test="RetrySettings-failedPaymentsCheckbox"
-                                    className="Checkbox-source"
-                                    id={`${this.props.fieldname}_autoAcknowledge`}
-                                />
-                                <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                    <div className="Checkbox-target Box-root">
-                                        <div className="Checkbox-color Box-root"></div>
-                                    </div>
+                                <div className="bs-Fieldset-row">
+                                    <label className="Checkbox" htmlFor={`${this.props.fieldname}_autoAcknowledge`}>
+                                        <Field
+                                            component="input"
+                                            type="checkbox"
+                                            name={`${this.props.fieldname}_autoAcknowledge`}
+                                            data-test="RetrySettings-failedPaymentsCheckbox"
+                                            className="Checkbox-source"
+                                            id={`${this.props.fieldname}_autoAcknowledge`}
+                                        />
+                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                            <div className="Checkbox-target Box-root">
+                                                <div className="Checkbox-color Box-root"></div>
+                                            </div>
+                                        </div>
+                                        <div className="Checkbox-label Box-root Margin-left--8">
+                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <span>Automatically acknowledge an incident when monitor is back up.</span>
+                                            </span>
+                                        </div>
+                                    </label>
                                 </div>
-                                <div className="Checkbox-label Box-root Margin-left--8">
-                                    <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                        <span>Automatically acknowledge an incident when monitor is back up.</span>
-                                    </span>
-                                </div>
-                            </label>
-                        </div>
-                        <div className="bs-Fieldset-row">
-                        <label className="Checkbox" htmlFor={`${this.props.fieldname}_autoResolve`}>
-                            <Field
-                                component="input"
-                                type="checkbox"
-                                name={`${this.props.fieldname}_autoResolve`}
-                                data-test="RetrySettings-failedPaymentsCheckbox"
-                                className="Checkbox-source"
-                                id={`${this.props.fieldname}_autoResolve`}
-                            />
-                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                <div className="Checkbox-target Box-root">
-                                    <div className="Checkbox-color Box-root"></div>
-                                </div>
-                            </div>
-                            <div className="Checkbox-label Box-root Margin-left--8">
-                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <span>Automatically resolve an incident when monitor is back up.</span>
-                                </span>
-                            </div>
-                        </label>
-                    </div></div>
+                                <div className="bs-Fieldset-row">
+                                    <label className="Checkbox" htmlFor={`${this.props.fieldname}_autoResolve`}>
+                                        <Field
+                                            component="input"
+                                            type="checkbox"
+                                            name={`${this.props.fieldname}_autoResolve`}
+                                            data-test="RetrySettings-failedPaymentsCheckbox"
+                                            className="Checkbox-source"
+                                            id={`${this.props.fieldname}_autoResolve`}
+                                        />
+                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                            <div className="Checkbox-target Box-root">
+                                                <div className="Checkbox-color Box-root"></div>
+                                            </div>
+                                        </div>
+                                        <div className="Checkbox-label Box-root Margin-left--8">
+                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <span>Automatically resolve an incident when monitor is back up.</span>
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div></div>
                             :
                             <div className="bs-Fieldset-row">
                                 <div className="Box-root Margin-bottom--12">
@@ -167,7 +168,7 @@ export class ResponseComponent extends Component {
     }
 }
 
-ResponseComponent.displayName = 'ResponseComponent'
+ResponseComponent.displayName = 'ResponseComponent';
 
 ResponseComponent.propTypes = {
     pushArray: PropTypes.func,
@@ -175,13 +176,13 @@ ResponseComponent.propTypes = {
     fieldname: PropTypes.string,
     head: PropTypes.string,
     tagline: PropTypes.string,
-    index:PropTypes.number,
+    index: PropTypes.number,
     type: PropTypes.string
-}
+};
 
 const mapDispatchToProps = {
     pushArray: arrayPush,
-}
+};
 
 function mapStateToProps(state, ownProps) {
     return {

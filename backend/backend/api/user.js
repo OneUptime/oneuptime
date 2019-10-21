@@ -17,7 +17,7 @@ var constants = require('../config/constants.json');
 var { emaildomains } = require('../config/emaildomains');
 var randToken = require('rand-token');
 var VerificationTokenModel = require('../models/verificationToken');
-var { FYIPE_ACCOUNT_HOST } = process.env;
+var { ACCOUNTS_HOST } = process.env;
 var UserModel = require('../models/user');
 var ErrorService = require('../services/errorService');
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
@@ -38,7 +38,7 @@ router.post('/signup', async function (req, res) {
         });
     }
 
-    if (!emaildomains.test(data.email)){
+    if (!emaildomains.test(data.email)) {
         return sendErrorResponse(req, res, {
             code: 400,
             message: 'Business email address is required.'
@@ -115,9 +115,7 @@ router.post('/signup', async function (req, res) {
                     cardRegistered: user.stripeCustomerId ? true : false,
                     tokens: {
                         jwtAccessToken: `${jwt.sign({
-                            id: user._id,
-                            name: user.name,
-                            email: user.email
+                            id: user._id
                         }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
                         jwtRefreshToken: user.jwtRefreshToken,
                     },
@@ -174,9 +172,7 @@ router.post('/signup', async function (req, res) {
                 cardRegistered: user.stripeCustomerId ? true : false,
                 tokens: {
                     jwtAccessToken: `${jwt.sign({
-                        id: user._id,
-                        name: user.name,
-                        email: user.email
+                        id: user._id
                     }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
                     jwtRefreshToken: user.jwtRefreshToken,
                 },
@@ -239,15 +235,12 @@ router.post('/login', async function (req, res) {
             cardRegistered: user.stripeCustomerId ? true : false,
             tokens: {
                 jwtAccessToken: `${jwt.sign({
-                    id: user._id,
-                    name: user.name,
-                    email: user.email
+                    id: user._id
                 }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
             role: user.role || null
         };
-
         return sendItemResponse(req, res, authUserObj);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -281,9 +274,10 @@ router.post('/forgot-password', async function (req, res) {
     try {
         // Call the UserService.
         var user = await UserService.forgotPassword(data.email);
+        var forgotPasswordURL = `${ACCOUNTS_HOST}/change-password/${user.resetPasswordToken}`;
         // Call the MailService.
-        await MailService.sendForgotPasswordMail(req.headers.host, user.email, user.resetPasswordToken);
-        
+        await MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
+
         return sendItemResponse(req, res, {
             message: 'User received mail succcessfully.'
         });
@@ -293,7 +287,7 @@ router.post('/forgot-password', async function (req, res) {
 });
 
 // Route
-// Description: reset password function for  user
+// Description: reset password function for user
 // Params:
 // Param 1: req.body-> {password}; req.params-> {token}
 // Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
@@ -508,7 +502,14 @@ router.put('/changePassword', getUser, async function (req, res) {
     if (data.confirmPassword !== data.newPassword) {
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'New and Confirm password is not same.'
+            message: 'New Password does not match confirm password.'
+        });
+    }
+
+    if (data.currentPassword === data.newPassword) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'New password should not be the same as current password.'
         });
     }
 
@@ -521,9 +522,7 @@ router.put('/changePassword', getUser, async function (req, res) {
             redirect: data.redirect,
             tokens: {
                 jwtAccessToken: `${jwt.sign({
-                    id: user._id,
-                    name: user.name,
-                    email: user.email
+                    id: user._id
                 }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
@@ -567,9 +566,7 @@ router.get('/profile', getUser, async function (req, res) {
             timezone: user.timezone ? user.timezone : '',
             tokens: {
                 jwtAccessToken: `${jwt.sign({
-                    id: user._id,
-                    name: user.name,
-                    email: user.email
+                    id: user._id
                 }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
@@ -584,31 +581,31 @@ router.get('/confirmation/:token', async function (req, res) {
     if (req.params && req.params.token) {
         var token = await VerificationTokenModel.findOne({ token: req.params.token });
         if (!token) {
-            return res.redirect(FYIPE_ACCOUNT_HOST+'/user-verify/resend?status=Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq');
+            return res.redirect(ACCOUNTS_HOST + '/user-verify/resend?status=Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq');
         }
         var user = await UserModel.findOne({
             _id: token.userId
         });
         if (!user) {
-            return res.redirect(FYIPE_ACCOUNT_HOST+'/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk');
+            return res.redirect(ACCOUNTS_HOST + '/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk');
         }
         if (user.isVerified) {
-            return res.redirect(FYIPE_ACCOUNT_HOST+'/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC');
+            return res.redirect(ACCOUNTS_HOST + '/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC');
         }
-        try{
+        try {
             await UserModel.findByIdAndUpdate(user._id, {
-                $set:{
-                    isVerified:true
+                $set: {
+                    isVerified: true
                 }
             });
-            return res.redirect(FYIPE_ACCOUNT_HOST+'/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP');
-        } catch (error){
+            return res.redirect(ACCOUNTS_HOST + '/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP');
+        } catch (error) {
             ErrorService.log('user.confirm', error);
             throw error;
         }
     }
     else {
-        return res.redirect(FYIPE_ACCOUNT_HOST+'/user-verify/resend?status=eG5aFRDeZXgOkjEfdhOYbFb2lA3Z0OJm');
+        return res.redirect(ACCOUNTS_HOST + '/user-verify/resend?status=eG5aFRDeZXgOkjEfdhOYbFb2lA3Z0OJm');
     }
 });
 
@@ -629,7 +626,7 @@ router.post('/resend', async function (req, res) {
             });
         }
         var token = await UserService.sendToken(user);
-        if(token){
+        if (token) {
             res.status(200).send(`A verification email has been sent to ${user.email}`);
         }
     }
@@ -641,32 +638,119 @@ router.post('/resend', async function (req, res) {
     }
 });
 
-router.get('/users', getUser, isUserMasterAdmin, async function(req, res) {
+router.get('/users', getUser, isUserMasterAdmin, async function (req, res) {
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 10;
-    try{
+    try {
         const users = await UserService.getAllUsers(skip, limit);
-        const count = await UserService.countBy({ _id: { $ne: null }, deleted: { $ne: null }});
+        const count = await UserService.countBy({ _id: { $ne: null }, deleted: { $ne: null } });
         return sendListResponse(req, res, users, count);
-    }catch(error){
-        return sendErrorResponse(req, res, {
-            code: 500,
-            message: 'Server Error'
-        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
 });
 
-router.delete('/:userId', getUser, isUserMasterAdmin, async function(req, res) {
+router.delete('/:userId', getUser, isUserMasterAdmin, async function (req, res) {
     const userId = req.params.userId;
     const masterUserId = req.user.id || null;
-    try{
-        const user = await UserService.deleteBy({_id: userId}, masterUserId);
+    try {
+        const user = await UserService.deleteBy({ _id: userId }, masterUserId);
         return sendItemResponse(req, res, user);
-    }catch(error){
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function (req, res) {
+    const userId = req.params.userId;
+    try {
+        const user = await UserService.restoreBy({ _id: userId, deleted: true });
+        return sendItemResponse(req, res, user);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (req, res) {
+    const userId = req.params.userId;
+    try {
+        const user = await UserService.update({ _id: userId, isBlocked: true });
+        return sendItemResponse(req, res, user);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function (req, res) {
+    const userId = req.params.userId;
+    try {
+        const user = await UserService.update({ _id: userId, isBlocked: false });
+        return sendItemResponse(req, res, user);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function (req, res) {
+    const userId = req.params.userId;
+    if (Array.isArray(req.body)) {
+        let data = [];
+        if (req.body.length > 0) {
+            for (let val of req.body) {
+                if (!val._id) {
+                    // Sanitize
+                    if (!val.note) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'User note must be present.'
+                        });
+                    }
+
+                    if (typeof val.note !== 'string') {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'User note is not in string format.'
+                        });
+                    }
+                }
+                data.push(val);
+            }
+
+            try {
+                let adminNotes = await UserService.addNotes(userId, data);
+                return sendItemResponse(req, res, adminNotes);
+            } catch (error) {
+                return sendErrorResponse(req, res, error);
+            }
+        } else {
+            try {
+                let adminNotes = await UserService.addNotes(userId, data);
+                return sendItemResponse(req, res, adminNotes);
+            } catch (error) {
+                return sendErrorResponse(req, res, error);
+            }
+        }
+    } else {
         return sendErrorResponse(req, res, {
-            code: 500,
-            message: 'Server Error'
+            code: 400,
+            message: 'Admin notes are expected in array format.'
         });
+    }
+
+});
+
+router.post('/users/search', getUser, isUserMasterAdmin, async function (req, res) {
+    const filter = req.body.filter;
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+
+    try {
+        const users = await UserService.searchUsers({ deleted: { $ne: null }, $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }, { email: { $regex: new RegExp(filter), $options: 'i' } }] }, skip, limit);
+        const count = await UserService.countBy({ deleted: { $ne: null }, $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }, { email: { $regex: new RegExp(filter), $options: 'i' } }] });
+
+        return sendListResponse(req, res, users, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
 });
 

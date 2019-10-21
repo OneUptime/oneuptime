@@ -25,8 +25,6 @@ const newUser = {
 
 let subProjectName = utils.generateRandomString();
 
-
-
 describe('Monitor API With SubProjects', () => {
     const operationTimeOut = 50000;
 
@@ -36,82 +34,82 @@ describe('Monitor API With SubProjects', () => {
         browser1 = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser1.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
+
         // intercept request and mock response for login
         await page.setRequestInterception(true);
-        await page.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
+        await page.on('request', async (request) => {
+            if ((await request.url()).match(/user\/login/)) {
                 request.respond({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify(userCredentials)
                 });
-            }else{
+            } else {
                 request.continue();
             }
         });
-        await page.on('response', async (response)=>{
-            try{
+        await page.on('response', async (response) => {
+            try {
                 var res = await response.json();
-                if(res && res.tokens){
+                if (res && res.tokens) {
                     userCredentials = res;
                 }
-            }catch(error){}
+            } catch (error) { }
         });
-    
+
         // browser sub-project user
         browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig);
         newPage = await browser2.newPage();
         await newPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
+
         // intercept request and mock response for login
         await newPage.setRequestInterception(true);
-        await newPage.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
+        await newPage.on('request', async (request) => {
+            if ((await request.url()).match(/user\/login/)) {
                 request.respond({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify(userCredentials)
                 });
-            }else{
+            } else {
                 request.continue();
             }
         });
-        await newPage.on('response', async (response)=>{
-            try{
+        await newPage.on('response', async (response) => {
+            try {
                 var res = await response.json();
-                if(res && res.tokens){
+                if (res && res.tokens) {
                     userCredentials = res;
                 }
-            }catch(error){}
+            } catch (error) { }
         });
-    
+
         // parent user
         await init.registerUser(user, page);
         await init.loginUser(user, page);
-    
+
         // rename default project
         await init.renameProject(projectName, page);
-    
+
         // add sub-project
         await init.addSubProject(subProjectName, page);
-    
+
         // new user (sub-project user)
         await init.registerUser(newUser, newPage);
         await init.loginUser(newUser, newPage);
-    
+
         // add new user to sub-project
-        await init.addUserToProject({email: newUser.email, role: 'Member', subProjectName}, page);
-        
+        await init.addUserToProject({ email: newUser.email, role: 'Member', subProjectName }, page);
+
         // switch to invited project for new user
         await init.switchProject(projectName, newPage);
-        
+
     });
-    
+
     afterAll(async () => {
         await browser1.close();
         await browser2.close();
-        
+
     });
 
     it('should not display new monitor form for user that is not `admin` in sub-project.', async () => {
@@ -119,7 +117,7 @@ describe('Monitor API With SubProjects', () => {
         await newPage.click('#monitors');
         const newMonitorForm = await newPage.$('#frmNewMonitor');
         expect(newMonitorForm).toEqual(null);
-        
+
     }, operationTimeOut);
 
     it('should create a monitor in sub-project for valid `admin`', async () => {
@@ -128,7 +126,7 @@ describe('Monitor API With SubProjects', () => {
         await page.waitForSelector('#frmNewMonitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', subProjectMonitorName);
-        await page.select('select[name=type_1000]','url');
+        await page.select('select[name=type_1000]', 'url');
         await init.selectByText('#subProjectId', subProjectName, page);
         await page.waitForSelector('#url');
         await page.click('#url');
@@ -140,7 +138,7 @@ describe('Monitor API With SubProjects', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly(subProjectMonitorName);
-        
+
     }, operationTimeOut);
 
     it('should create a monitor in parent project for valid `admin`', async () => {
@@ -150,7 +148,7 @@ describe('Monitor API With SubProjects', () => {
         await page.waitForSelector('#frmNewMonitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await page.select('select[name=type_1000]','url');
+        await page.select('select[name=type_1000]', 'url');
         await page.waitForSelector('#url');
         await page.click('#url');
         await page.type('#url', 'https://fyipe.com');
@@ -161,22 +159,22 @@ describe('Monitor API With SubProjects', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly(monitorName);
-        
+
     }, operationTimeOut);
 
     it(`should get only sub-project's monitors for valid sub-project user`, async () => {
-        await newPage.reload({ waitUntil: 'networkidle2'});
+        await newPage.reload({ waitUntil: 'networkidle2' });
         const projectBadgeSelector = await newPage.$(`#badge_${projectName} > div > span > span.Text-color--white`);
         await expect(projectBadgeSelector).toEqual(null);
         const subProjectBadgeSelector = await newPage.$(`#badge_${subProjectName} > div > span > span.Text-color--white`);
         let textContent = await subProjectBadgeSelector.getProperty('innerText');
         textContent = await textContent.jsonValue();
         await expect(textContent).toEqual(subProjectName.toUpperCase());
-        
+
     }, operationTimeOut);
 
     it('should get both project and sub-project monitors for valid parent project user.', async () => {
-        
+
         const projectBadgeSelector = await page.$(`#badge_${projectName} > div > span > span.Text-color--white`);
         let textContent = await projectBadgeSelector.getProperty('innerText');
         textContent = await textContent.jsonValue();
@@ -187,26 +185,6 @@ describe('Monitor API With SubProjects', () => {
         textContent = await textContent.jsonValue();
         await expect(textContent).toEqual(subProjectName.toUpperCase());
 
-        
-    }, operationTimeOut);
-    
-    it('should not display `Edit` and `Delete` button on monitor for user that is not `admin` in sub-project.', async () => {
-        const editSelector = await newPage.$(`#edit_${subProjectMonitorName}`);
-        await expect(editSelector).toEqual(null);
 
-        const deleteSelector = await newPage.$(`#delete_${subProjectMonitorName}`);
-        await expect(deleteSelector).toEqual(null);
-        
-    }, operationTimeOut);
-
-    it('should delete sub-project monitor for user that is admin', async () => {
-        await page.waitForSelector(`#delete_${subProjectMonitorName}`);
-        await page.click(`#delete_${subProjectMonitorName}`);
-        await page.waitForSelector('#deleteMonitor');
-        await page.click('#deleteMonitor');
-        await page.waitFor(5000);
-        const subProjectSelector = await page.$(`#monitor_title_${subProjectMonitorName}`);
-        await expect(subProjectSelector).toEqual(null);
-        
     }, operationTimeOut);
 });

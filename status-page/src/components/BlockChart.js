@@ -33,7 +33,7 @@ class BlockChart extends Component {
         if (this.props.time) {
             if (this.props.time.downTime > 1 && this.props.time.downTime < 10) {
                 bar = 'bar mid';
-                title = moment((this.props.time.date).split('T')[0]).format('LL');
+                title = moment((this.props.time.date)).format('LL');
                 title1 = `<br>degraded for ${this.props.time.downTime} minutes`;
                 need = true;
             }
@@ -43,13 +43,13 @@ class BlockChart extends Component {
                     downtime = `${Math.floor(this.props.time.downTime / 60)} hrs ${this.props.time.downTime % 60} minutes`;
                 }
                 bar = 'bar down';
-                title = moment((this.props.time.date).split('T')[0]).format('LL');
+                title = moment((this.props.time.date)).format('LL');
                 title1 = `<br>down for ${downtime}`;
                 need = true;
             }
             else {
                 bar = 'bar';
-                title = this.props.time.date ? moment((this.props.time.date).split('T')[0]).format('LL') : moment((new Date()).split('T')[0]).format('LL');
+                title = this.props.time.date ? moment((this.props.time.date)).format('LL') : moment((new Date()).split('T')[0]).format('LL');
                 title1 = '<br>No downtime';
             }
         }

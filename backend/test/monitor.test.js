@@ -1,3 +1,4 @@
+/* eslint-disable */ 
 process.env.PORT = 3020;
 var expect = require('chai').expect;
 var userData = require('./data/user');
@@ -102,9 +103,9 @@ describe('Monitor API', function () {
     it('should create a new monitor when the correct data is given by an authenticated user', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-            monitorId = res.body._id;
+            monitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body.name).to.be.equal(monitor.name);
+            expect(res.body[0].name).to.be.equal(monitor.name);
             done();
         });
     });
@@ -118,7 +119,6 @@ describe('Monitor API', function () {
             callScheduleId: scheduleId,
             data: { url: 'http://www.tests.org' }
         }).end(function (err, res) {
-            monitorId = res.body._id;
             expect(res).to.have.status(400);
             done();
         });
@@ -137,9 +137,9 @@ describe('Monitor API', function () {
                 callScheduleId: scheduleId,
                 data: { url: 'http://www.tests.org' }
             }).end(function (err, res) {
-                monitorId = res.body._id;
+                monitorId = res.body[0]._id;
                 expect(res).to.have.status(200);
-                expect(res.body.name).to.be.equal(monitor.name);
+                expect(res.body[0].name).to.be.equal(monitor.name);
                 request.get(`/schedule/${projectId}`).set('Authorization', authorization).end(function (err, res) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
@@ -157,7 +157,7 @@ describe('Monitor API', function () {
         let scheduleId;
         var authorization = `Basic ${token}`;
         request.post(`/schedule/${projectId}`).set('Authorization', authorization).send({
-            name: 'Valid Schedule',
+            name: 'Valid Schedule for two monitors',
         }).end(function (err, res) {
             scheduleId = res.body._id;
             request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
@@ -166,14 +166,14 @@ describe('Monitor API', function () {
                 callScheduleId: scheduleId,
                 data: { url: 'http://www.tests.org' }
             }).end(function (err, res) {
-                monitorId = res.body._id;
+                monitorId = res.body[0]._id;
                 request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
                     name: 'New Monitor 2',
                     type: 'url',
                     callScheduleId: scheduleId,
                     data: { url: 'http://www.tests.org' }
                 }).end(function (err, res) {
-                    monitorId = res.body._id;
+                    monitorId = res.body[0]._id;
                     request.get(`/schedule/${projectId}`).set('Authorization', authorization).end(function (err, res) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
@@ -198,7 +198,7 @@ describe('Monitor API', function () {
             }
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body._id).to.be.equal(monitorId);
+            expect(res.body[0]._id).to.be.equal(monitorId);
             done();
         });
     });
@@ -272,10 +272,10 @@ describe('Monitor API with monitor Category', function () {
         var authorization = `Basic ${token}`;
         monitor.monitorCategoryId = monitorCategoryId;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-            monitorId = res.body._id;
+            monitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body.name).to.be.equal(monitor.name);
-            expect(res.body.monitorCategoryId).to.be.equal(monitor.monitorCategoryId);
+            expect(res.body[0].name).to.be.equal(monitor.name);
+            expect(res.body[0].monitorCategoryId).to.be.equal(monitor.monitorCategoryId);
             done();
         });
     });
@@ -353,9 +353,9 @@ describe('Monitor API with Sub-Projects', function () {
     it('should create a monitor in parent project by valid admin.', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-            monitorId = res.body._id;
+            monitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body.name).to.be.equal(monitor.name);
+            expect(res.body[0].name).to.be.equal(monitor.name);
             done();
         });
     });
@@ -363,9 +363,9 @@ describe('Monitor API with Sub-Projects', function () {
     it('should create a monitor in sub-project.', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/monitor/${subProjectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-            subProjectMonitorId = res.body._id;
+            subProjectMonitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body.name).to.be.equal(monitor.name);
+            expect(res.body[0].name).to.be.equal(monitor.name);
             done();
         });
     });
@@ -479,9 +479,9 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
     it('should create a monitor (project seats -> 3, monitors -> 11).', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-            monitorId = res.body._id;
+            monitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body.name).to.be.equal(monitor.name);
+            expect(res.body[0].name).to.be.equal(monitor.name);
             done();
         });
     });

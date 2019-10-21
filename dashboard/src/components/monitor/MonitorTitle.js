@@ -6,6 +6,10 @@ import Badge from '../common/Badge';
 
 export class MonitorTitle extends Component {
 
+    replaceDashWithSpace = (string) => {
+        return string.replace('-', ' ');
+    }
+
     render() {
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
         let badgeColor;
@@ -39,7 +43,7 @@ export class MonitorTitle extends Component {
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div className="Box-root">
-                                <Badge color={badgeColor}>{this.props.monitor.type}</Badge>
+                                <Badge color={badgeColor}>{this.replaceDashWithSpace(this.props.monitor.type)}</Badge>
                             </div>
                         </div>
                     </div>

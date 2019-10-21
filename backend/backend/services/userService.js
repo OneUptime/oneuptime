@@ -1,30 +1,30 @@
 module.exports = {
 
-    findBy: async function (query, skip, limit){
-        if(!skip) skip=0;
+    findBy: async function (query, skip, limit) {
+        if (!skip) skip = 0;
 
-        if(!limit) limit=0;
+        if (!limit) limit = 0;
 
-        if(typeof(skip) === 'string') skip = parseInt(skip);
+        if (typeof (skip) === 'string') skip = parseInt(skip);
 
-        if(typeof(limit) === 'string') limit = parseInt(limit);
+        if (typeof (limit) === 'string') limit = parseInt(limit);
 
-        if(!query) query = {};
+        if (!query) query = {};
 
-        if(!query.deleted) query.deleted = false;
-        try{
+        if (!query.deleted) query.deleted = false;
+        try {
             var users = await UserModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('UserModel.find', error);
             throw error;
         }
         return users;
     },
 
-    create: async function(data){
+    create: async function (data) {
         var userModel = new UserModel();
         userModel.name = data.name || null;
         userModel.email = data.email || null;
@@ -44,84 +44,85 @@ module.exports = {
         userModel.timezone = data.timezone || null;
         userModel.lastActive = data.lastActive || Date.now();
         userModel.coupon = data.coupon || null;
-        try{
+        userModel.adminNotes = data.adminNotes || null;
+        try {
             var user = await userModel.save();
-        }catch(error){
+        } catch (error) {
             ErrorService.log('userModel.save', error);
             throw error;
         }
         return user;
     },
 
-    countBy: async function(query){
-        if(!query){
+    countBy: async function (query) {
+        if (!query) {
             query = {};
         }
 
-        if(!query.deleted) query.deleted = false;
-        try{
+        if (!query.deleted) query.deleted = false;
+        try {
             var count = await UserModel.count(query);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('UserModel.count', error);
             throw error;
         }
         return count;
     },
 
-    deleteBy: async function(query, userId){
+    deleteBy: async function (query, userId) {
 
-        if(!query){
+        if (!query) {
             query = {};
         }
 
         query.deleted = false;
 
-        try{
-            var user = await UserModel.updateMany(query, {
-                $set:{
+        try {
+            var user = await UserModel.findOneAndUpdate(query, {
+                $set: {
                     deleted: true,
                     deletedById: userId,
                     deletedAt: Date.now()
                 }
             }, {
-                $new: true
+                new: true
             });
-        }catch(error){
+        } catch (error) {
             ErrorService.log('UserModel.updateMany', error);
             throw error;
         }
         return user;
     },
 
-    findOneBy: async function(query){
-        if(!query){
+    findOneBy: async function (query) {
+        if (!query) {
             query = {};
         }
-        query.deleted = false;
-        try{
+        if (!query.deleted) query.deleted = false;
+        try {
             var user = await UserModel.findOne(query)
                 .sort([['createdAt', -1]]);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('UserModel.findOne', error);
             throw error;
         }
         return user;
     },
 
-    update: async function(data){
+    update: async function (data) {
         var _this = this;
-        if(!data._id){
-            try{
+        if (!data._id) {
+            try {
                 let user = await _this.create(data);
                 return user;
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('UserService.create', error);
                 throw error;
             }
-        }else{
-            try{
-                var user = await _this.findOneBy({_id: data._id});
-            }catch(error){
+        } else {
+            try {
+                var user = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
+            } catch (error) {
                 ErrorService.log('UserService.findOneBy', error);
                 throw error;
             }
@@ -144,9 +145,25 @@ module.exports = {
             var lastActive = data.lastActive || user.lastActive;
             var coupon = data.coupon || user.coupon;
             var disabled = data.disabled || false;
-            try{
-                var updatedUser = await UserModel.findOneAndUpdate({_id: data._id}, {
-                    $set:{
+            var adminNotes = data.adminNotes || user.adminNotes;
+
+            var isBlocked = user.isBlocked;
+            if (typeof data.isBlocked === 'boolean') {
+                isBlocked = data.isBlocked;
+            }
+
+            var deleted = user.deleted;
+            var deletedById = user.deletedById;
+            var deletedAt = user.deletedAt;
+            if (data.deleted === false) {
+                deleted = false;
+                deletedById = null;
+                deletedAt = null;
+            }
+
+            try {
+                var updatedUser = await UserModel.findOneAndUpdate({ _id: data._id }, {
+                    $set: {
                         name: name,
                         email: email,
                         password: password,
@@ -165,17 +182,39 @@ module.exports = {
                         timezone: timezone,
                         lastActive: lastActive,
                         coupon: coupon,
-                        disabled: disabled
+                        disabled: disabled,
+                        deleted,
+                        deletedById,
+                        deletedAt,
+                        isBlocked,
+                        adminNotes
                     }
                 }, {
                     new: true
                 });
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('UserModel.findOneAndUpdate', error);
                 throw error;
             }
             return updatedUser;
         }
+    },
+
+    closeTutorialBy: async function (query, type, data) {
+        if (!query) query = {};
+        if (!data) data = {};
+
+        type = type.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
+        data[type] = { show: false };
+
+        try {
+            var tutorial = await UserModel.findOneAndUpdate(query, { $set: { tutorial: data } }, { new: true });
+        } catch (error) {
+            ErrorService.log('UserModel.findOneAndUpdate', error);
+            throw error;
+        }
+
+        return tutorial || null;
     },
 
     sendToken: async function (user) {
@@ -190,7 +229,7 @@ module.exports = {
             throw error;
         }
         if (verificationToken) {
-            var verificationTokenURL = `${FYIPE_BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
+            var verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
             MailService.sendVerifyEmail(verificationTokenURL, user.name, user.email);
         }
         return verificationToken.token;
@@ -206,9 +245,9 @@ module.exports = {
         var customerId;
 
         if (util.isEmailValid(email)) {
-            try{
-                var user = await _this.findOneBy({email: email});
-            }catch(error){
+            try {
+                var user = await _this.findOneBy({ email: email });
+            } catch (error) {
                 ErrorService.log('UserService.findOneBy', error);
                 throw error;
             }
@@ -218,9 +257,9 @@ module.exports = {
                 ErrorService.log('UserService.signup', error);
                 throw error;
             } else {
-                try{
+                try {
                     var hash = await bcrypt.hash(data.password, constants.saltRounds);
-                }catch(error){
+                } catch (error) {
                     ErrorService.log('bcrypt.hash', error);
                     throw error;
                 }
@@ -229,36 +268,36 @@ module.exports = {
                 // creating jwt refresh token
                 data.jwtRefreshToken = randToken.uid(256);
                 //save a user.
-                try{
+                try {
                     user = await _this.create(data);
-                }catch(error){
+                } catch (error) {
                     ErrorService.log('UserService.create', error);
                     throw error;
                 }
-                try{
+                try {
                     await _this.sendToken(user);
-                } catch(error){
+                } catch (error) {
                     ErrorService.log(' UserVerificationService.sendToken', error);
                     throw error;
                 }
 
-                if(!data.cardNumber || !data.cvc){
-                    try{
+                if (!data.cardNumber || !data.cvc) {
+                    try {
                         customerId = await PaymentService.createCustomer({}, user);
-                    }catch(error){
+                    } catch (error) {
                         ErrorService.log('PaymentService.createCustomer', error);
                         throw error;
                     }
-                }else{
-                    try{
+                } else {
+                    try {
                         var stripeToken = await PaymentService.createToken(data.cardNumber, data.cvc, data.expiry.split('/')[0], data.expiry.split('/')[1], data.zipCode);
-                    }catch(error){
+                    } catch (error) {
                         ErrorService.log('PaymentService.createToken', error);
                         throw error;
                     }
-                    try{
+                    try {
                         customerId = await PaymentService.createCustomer(stripeToken, user);
-                    }catch(error){
+                    } catch (error) {
                         ErrorService.log('PaymentService.createCustomer', error);
                         throw error;
                     }
@@ -266,16 +305,16 @@ module.exports = {
                 }
 
                 //update customer Id
-                try{
-                    user = await _this.update({_id: user._id, stripeCustomerId: customerId});
-                }catch(error){
+                try {
+                    user = await _this.update({ _id: user._id, stripeCustomerId: customerId });
+                } catch (error) {
                     ErrorService.log('UserService.update', error);
                     throw error;
                 }
 
-                try{
+                try {
                     var subscription = await PaymentService.subscribePlan(stripePlanId, customerId, data.coupon);
-                }catch(error){
+                } catch (error) {
                     ErrorService.log('PaymentService.subscribePlan', error);
                     throw error;
                 }
@@ -285,18 +324,18 @@ module.exports = {
                     userId: user._id,
                     stripePlanId: stripePlanId,
                     stripeSubscriptionId: subscription.stripeSubscriptionId,
-                    stripeExtraUserSubscriptionId:subscription.stripeExtraUserSubscriptionId,
+                    stripeExtraUserSubscriptionId: subscription.stripeExtraUserSubscriptionId,
                     stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
                 };
-                try{
+                try {
                     await ProjectService.create(projectData);
-                }catch(error){
+                } catch (error) {
                     ErrorService.log('ProjectService.create', error);
                     throw error;
                 }
-                try{
+                try {
                     await PaymentService.testCardCharge(customerId);
-                }catch(error){
+                } catch (error) {
                     ErrorService.log('PaymentService.testCharge', error);
                     throw error;
                 }
@@ -320,9 +359,9 @@ module.exports = {
         var _this = this;
         if (util.isEmailValid(email)) {
             // find user if present in db.
-            try{
-                var user = await _this.findOneBy({email: email});
-            }catch(error){
+            try {
+                var user = await _this.findOneBy({ email: email });
+            } catch (error) {
                 ErrorService.log('UserService.findOneBy', error);
                 throw error;
             }
@@ -333,11 +372,11 @@ module.exports = {
                 throw error;
             } else {
                 var ipLocation;
-                try{
+                try {
                     ipLocation = await iplocation(clientIP);
-                } catch(error){
+                } catch (error) {
                     ipLocation = {};
-                }   
+                }
                 await LoginIPLog.create({
                     userId: user._id,
                     ipLocation
@@ -348,9 +387,9 @@ module.exports = {
                     var daysAfterPaymentFailed = Math.round((new Date - user.paymentFailedDate) / oneDayInMilliSeconds);
 
                     if (daysAfterPaymentFailed >= 15) {
-                        try{
-                            user = await _this.update({_id: user._id, disabled: true});
-                        }catch(error){
+                        try {
+                            user = await _this.update({ _id: user._id, disabled: true });
+                        } catch (error) {
                             ErrorService.log('UserService.update', error);
                             throw error;
                         }
@@ -380,9 +419,9 @@ module.exports = {
                     ErrorService.log('UserService.login', error);
                     throw error;
                 } else {
-                    try{
+                    try {
                         var res = await bcrypt.compare(password, encryptedPassword);
-                    }catch(error){
+                    } catch (error) {
                         ErrorService.log('bcrypt.compare', error);
                         throw error;
                     }
@@ -412,9 +451,9 @@ module.exports = {
     forgotPassword: async function (email) {
         var _this = this;
         if (util.isEmailValid(email)) {
-            try{
-                var user = await this.findOneBy({email: email});
-            }catch(error){
+            try {
+                var user = await this.findOneBy({ email: email });
+            } catch (error) {
                 ErrorService.log('UserService.findOneBy', error);
                 throw error;
             }
@@ -423,23 +462,23 @@ module.exports = {
                 error.code = 400;
                 ErrorService.log('UserService.forgotPassword', error);
                 throw error;
-            }else{
-                try{
+            } else {
+                try {
                     var buf = await crypto.randomBytes(20);
-                }catch(error){
+                } catch (error) {
                     ErrorService.log('crypto.randomBytes', error);
                     throw error;
                 }
                 var token = buf.toString('hex');
 
                 //update a user.
-                try{
+                try {
                     user = await _this.update({
                         _id: user._id,
                         resetPasswordToken: token,
                         resetPasswordExpires: Date.now() + 3600000 // 1 hour
                     });
-                }catch(error){
+                } catch (error) {
                     ErrorService.log('UserService.update', error);
                     throw error;
                 }
@@ -461,14 +500,14 @@ module.exports = {
     //Returns: promise.
     resetPassword: async function (password, token) {
         var _this = this;
-        try{
+        try {
             var user = await _this.findOneBy({
                 resetPasswordToken: token,
                 resetPasswordExpires: {
                     $gt: Date.now()
                 }
             });
-        }catch(error){
+        } catch (error) {
             ErrorService.log('UserService.findOneBy', error);
             throw error;
         }
@@ -479,22 +518,22 @@ module.exports = {
             ErrorService.log('UserService.resetPassword', error);
             throw error;
         } else {
-            try{
+            try {
                 var hash = await bcrypt.hash(password, constants.saltRounds);
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('bcrypt.hash', error);
                 throw error;
             }
 
             //update a user.
-            try{
+            try {
                 user = await _this.update({
                     _id: user._id,
                     password: hash,
                     resetPasswordToken: null,
                     resetPasswordExpires: null
                 });
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('UserService.update', error);
                 throw error;
             }
@@ -508,9 +547,9 @@ module.exports = {
     //Returns: promise.
     getNewToken: async function (refreshToken) {
         var _this = this;
-        try{
-            var user = await _this.findOneBy({jwtRefreshToken: refreshToken});
-        }catch(error){
+        try {
+            var user = await _this.findOneBy({ jwtRefreshToken: refreshToken });
+        } catch (error) {
             ErrorService.log('UserService.findOneBy', error);
             throw error;
         }
@@ -525,9 +564,9 @@ module.exports = {
             };
             var accessToken = `${jwt.sign(userObj, jwtKey.jwtSecretKey, { expiresIn: 86400 })}`;
             var jwtRefreshToken = randToken.uid(256);
-            try{
-                user = await _this.update({_id: user._id, jwtRefreshToken: jwtRefreshToken});
-            }catch(error){
+            try {
+                user = await _this.update({ _id: user._id, jwtRefreshToken: jwtRefreshToken });
+            } catch (error) {
                 ErrorService.log('UserService.update', error);
                 throw error;
             }
@@ -540,34 +579,34 @@ module.exports = {
         }
     },
 
-    changePassword: async function(data){
+    changePassword: async function (data) {
         var _this = this;
         var currentPassword = data.currentPassword;
-        try{
-            var user = await _this.findOneBy({_id: data._id});
-        }catch(error){
+        try {
+            var user = await _this.findOneBy({ _id: data._id });
+        } catch (error) {
             ErrorService.log('UserService.findOneBy', error);
             throw error;
         }
         var encryptedPassword = user.password;
-        try{
+        try {
             var check = await bcrypt.compare(currentPassword, encryptedPassword);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('bcrypt.compare', error);
             throw error;
         }
         if (check) {
             var newPassword = data.newPassword;
-            try{
+            try {
                 var hash = await bcrypt.hash(newPassword, constants.saltRounds);
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('bcrypt.hash', error);
                 throw error;
             }
             data.password = hash;
-            try{
+            try {
                 user = await _this.update(data);
-            }catch(error){
+            } catch (error) {
                 ErrorService.log('UserService.update', error);
                 throw error;
             }
@@ -579,29 +618,92 @@ module.exports = {
             throw error;
         }
     },
-    getAllUsers: async function(skip, limit){
+
+    getAllUsers: async function (skip, limit) {
         var _this = this;
-        let users = await _this.findBy({ _id: { $ne: null }, deleted: { $ne: null }}, skip, limit);
-        users = await Promise.all(users.map(async (user)=>{
+        let users = await _this.findBy({ _id: { $ne: null }, deleted: { $ne: null } }, skip, limit);
+        users = await Promise.all(users.map(async (user) => {
             // find user subprojects and parent projects
-            var userProjects = await ProjectService.findBy({'users.userId': user._id});
+            var userProjects = await ProjectService.findBy({ 'users.userId': user._id });
             var parentProjectIds = [];
             var projectIds = [];
-            if(userProjects.length > 0){
+            if (userProjects.length > 0) {
                 var subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
                 parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
                 var projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
                 projectIds = projects.map(project => project._id);
             }
-            userProjects = await ProjectService.findBy({ $or: [ { _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } } ] });
+            userProjects = await ProjectService.findBy({ $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }] });
             return await Object.assign({}, user._doc, { projects: userProjects });
         }));
         return users;
     },
-    hardDeleteBy: async function(query){
-        try{
+
+    restoreBy: async function (query) {
+        const _this = this;
+        query.deleted = true;
+
+        let user = await _this.findBy(query);
+        if (user && user.length > 1) {
+            const users = await Promise.all(user.map(async (user) => {
+                const userId = user._id;
+                user = await _this.update({
+                    _id: userId,
+                    deleted: false,
+                    deletedBy: null,
+                    deletedAt: null,
+                });
+                return user;
+            }));
+            return users;
+        } else {
+            user = user[0];
+            if (user) {
+                const userId = user._id;
+                user = await _this.update({
+                    _id: userId,
+                    deleted: false,
+                    deletedBy: null,
+                    deletedAt: null,
+                });
+            }
+            return user;
+        }
+    },
+
+    addNotes: async function (userId, notes) {
+        const _this = this;
+        let adminNotes = (await _this.update({
+            _id: userId,
+            adminNotes: notes
+        })).adminNotes;
+        return adminNotes;
+    },
+
+    searchUsers: async function (query, skip, limit) {
+        var _this = this;
+        let users = await _this.findBy(query, skip, limit);
+        users = await Promise.all(users.map(async (user) => {
+            // find user subprojects and parent projects
+            var userProjects = await ProjectService.findBy({ 'users.userId': user._id });
+            var parentProjectIds = [];
+            var projectIds = [];
+            if (userProjects.length > 0) {
+                var subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
+                parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
+                var projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
+                projectIds = projects.map(project => project._id);
+            }
+            userProjects = await ProjectService.findBy({ $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }] });
+            return await Object.assign({}, user._doc, { projects: userProjects });
+        }));
+        return users;
+    },
+
+    hardDeleteBy: async function (query) {
+        try {
             await UserModel.deleteMany(query);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('UserModel.deleteMany', error);
             throw error;
         }
@@ -623,6 +725,6 @@ var ErrorService = require('./errorService');
 var jwt = require('jsonwebtoken');
 var iplocation = require('iplocation').default;
 var jwtKey = require('../config/keys');
-var { FYIPE_BACKEND_HOST } = process.env;
+var { BACKEND_HOST } = process.env;
 var VerificationTokenModel = require('../models/verificationToken');
 var MailService = require('../services/mailService');

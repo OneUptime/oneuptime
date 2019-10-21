@@ -4,9 +4,9 @@ var path = require('path');
 var http = require('http').createServer(app);
 var bodyParser = require('body-parser');
 var cors = require('cors');
-var { fork } = require('child_process');
+//var { fork } = require('child_process');
 
-fork('./backend/workers/cronjob.js');
+//fork('./backend/workers/cronjob.js');
 
 var { NODE_ENV } = process.env;
 
@@ -66,6 +66,8 @@ app.use('/smsSmtp', require('./backend/api/smsSmtp'));
 app.use('/monitorCategory', require('./backend/api/monitorCategory'));
 app.use('/scheduledEvent', require('./backend/api/scheduledEvent'));
 app.use('/probe', require('./backend/api/probe'));
+app.use('/version', require('./backend/api/version'));
+app.use('/tutorial', require('./backend/api/tutorial'));
 app.set('port', process.env.PORT || 3002);
 
 http.listen(app.get('port'), function () {

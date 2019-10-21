@@ -113,7 +113,7 @@ export class FormModal extends Component {
 										<div className="db-RoleRadioList-row">
 											<label className="bs-Radio" htmlFor={`Viewer_${data.subProjectName}`}>
 												<Field id={`Viewer_${data.subProjectName}`} className="bs-Radio-source" name="role" component="input" type="radio" value="Viewer" />
-												<span className="bs-Radio-button"></span><span className="bs-Radio-label"><div className="db-RoleRadioListLabel"><div className="db-RoleRadioListLabel-name"><span>Viewer</span></div><div className="db-RoleRadioListLabel-description"><span>Viewers are able to view private status pages of projects.</span></div><div className="db-RoleRadioListLabel-info"><div className="Box-root Flex-inlineFlex"><div className="Box-root Flex-flex"><div className="Box-root Flex-flex"></div></div></div></div></div></span></label></div>	
+												<span className="bs-Radio-button"></span><span className="bs-Radio-label"><div className="db-RoleRadioListLabel"><div className="db-RoleRadioListLabel-name"><span>Viewer</span></div><div className="db-RoleRadioListLabel-description"><span>Viewers are your internal team members or your customers who can only view private status page of this project.</span></div><div className="db-RoleRadioListLabel-info"><div className="Box-root Flex-inlineFlex"><div className="Box-root Flex-flex"><div className="Box-root Flex-flex"></div></div></div></div></div></span></label></div>	
 										<div className="db-RoleRadioList-row">
 											<label className="bs-Radio" htmlFor={`Member_${data.subProjectName}`}>
 												<Field id={`Member_${data.subProjectName}`} className="bs-Radio-source" name="role" component="input" type="radio" value="Member" />

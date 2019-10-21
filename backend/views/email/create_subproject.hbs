@@ -1,229 +1,659 @@
-<html xmlns="http://www.w3.org/1999/xhtml">
-
-<head>
-	<meta name="viewport" content="width=3Ddevice-width">
-	<meta http-equiv="Content-Type" content="text/html; charset=3DUTF-8">
-	<title>Welcome to Fyipe.</title>
-	<style>
-		/* -------------------------------------
-		GLOBAL
-------------------------------------- */
-
-		* {
-			margin: 0;
-			padding: 0;
-			font-family: "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif;
-			font-size: 100%;
-			line-height: 1.6;
-		}
-
-		img {
-			max-width: 100%;
-		}
-
-		body {
-			-webkit-font-smoothing: antialiased;
-			-webkit-text-size-adjust: none;
-			width: 100% !important;
-			height: 100%;
-		}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
+    <meta name="viewport" content="width=3Ddevice-width">
+    <title>Welcome To Fyipe.</title>
+    <style>
+      /**
+  * IMPORTANT:
+  * Please read before changing anything, CSS involved in our HTML emails is
+  * extremely specific and written a certain way for a reason. It might not make
+  * sense in a normal setting but Outlook loves it this way.
+  *
+  * !!! [override] prevents Yahoo Mail breaking media queries. It must be used
+  * !!! at the beginning of every line of CSS inside a media query.
+  * !!! Do not remove.
+  *
+  * !!! div[style*="margin: 16px 0"] allows us to target a weird margin
+  * !!! bug in Android's email client.
+  * !!! Do not remove.
+  *
+  * Also, the img files are hosted on S3. Please don't break these URLs!
+  * The images are also versioned by date, so please update the URLs accordingly
+  * if you create new versions
+  *
+***/
 
 
-		/* -------------------------------------
-		ELEMENTS
-------------------------------------- */
+/**
+  * # Root
+  * - CSS resets and general styles go here.
+**/
 
-		a {
-			color: #348eda;
-		}
+html, body,
+a, span, div[style*="margin: 16px 0"] {
+  border: 0 !important;
+  margin: 0 !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  text-decoration: none !important;
+}
 
-		.btn-primary,
-		.btn-secondary {
-			text-decoration: none;
-			color: #FFF;
-			background-color: #348eda;
-			padding: 10px 20px;
-			font-weight: bold;
-			margin: 20px 10px 20px 0;
-			text-align: center;
-			cursor: pointer;
-			display: inline-block;
-			border-radius: 25px;
-		}
+a, span,
+td, th {
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
 
-		.btn-secondary {
-			background: #aaa;
-		}
+/**
+  * # Delink
+  * - Classes for overriding clients which creates links out of things like
+  *   emails, addresses, phone numbers, etc.
+**/
 
-		.last {
-			margin-bottom: 0;
-		}
+span.st-Delink a {
+  color: #0080a8 !important;
+  text-decoration: none !important;
+}
 
-		.first {
-			margin-top: 0;
-		}
+/** Modifier: preheader */
+span.st-Delink.st-Delink--preheader a {
+  color: white !important;
+  text-decoration: none !important;
+}
+/** */
 
+/** Modifier: title */
+span.st-Delink.st-Delink--title a {
+  color: #0080a8 !important;
+  text-decoration: none !important;
+}
+/** */
 
-		/* -------------------------------------
-		BODY
-------------------------------------- */
+/** Modifier: footer */
+span.st-Delink.st-Delink--footer a {
+  color: #8898aa !important;
+  text-decoration: none !important;
+}
+/** */
 
-		table.body-wrap {
-			width: 100%;
-			padding: 20px;
-		}
+/**
+  * # Header
+**/
 
-		table.body-wrap .container {
-			border: 1px solid #f0f0f0;
-		}
+table.st-Header td.st-Header-background div.st-Header-area {
+  height: 76px !important;
+  width: 600px !important;
+  background-repeat: no-repeat !important;
+  background-size: 600px 76px !important;
+}
 
-
-		/* -------------------------------------
-		FOOTER
-------------------------------------- */
-
-		table.footer-wrap {
-			width: 100%;
-			clear: both !important;
-		}
-
-		.footer-wrap .container p {
-			font-size: 12px;
-			color: #666;
-
-		}
-
-		table.footer-wrap a {
-			color: #999;
-		}
+table.st-Header td.st-Header-logo div.st-Header-area {
+  height: 21px !important;
+  width: 49px !important;
+  background-repeat: no-repeat !important;
+  background-size: 49px 21px !important;
+}
 
 
-		/* -------------------------------------
-		TYPOGRAPHY
-------------------------------------- */
+table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
+  height: 21px !important;
+  width: 216px !important;
+  background-repeat: no-repeat !important;
+  background-size: 216px 21px !important;
+}
+.ii a[href] {
+    color: #0080a8;
+}
 
-		h1,
-		h2,
-		h3 {
-			font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-ser=if;
-			line-height: 1.1;
-			margin-bottom: 15px;
-			color: #000;
-			margin: 40px 0 10px;
-			line-height: 1.2;
-			font-weight: 200;
-		}
 
-		h1 {
-			font-size: 36px;
-		}
+/**
+  * # Retina
+  * - Targets high density displays and devices smaller than 768px.
+  *
+  * ! For mobile specific styling, see `# Mobile`.
+**/
 
-		h2 {
-			font-size: 28px;
-		}
+@media (-webkit-min-device-pixel-ratio: 1.25), (min-resolution: 120dpi), all and (max-width: 768px) {
 
-		h3 {
-			font-size: 22px;
-		}
+  /**
+    * # Target
+    * - Hides images in these devices to display the larger version as a
+    *   background image instead.
+  **/
 
-		p,
-		ul {
-			margin-bottom: 10px;
-			font-weight: normal;
-			font-size: 14px;
-		}
+  /** Modifier: mobile */
+  body[override] div.st-Target.st-Target--mobile img {
+    display: none !important;
+    margin: 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+    mso-hide: all !important;
+    padding: 0 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+  /** */
 
-		ul li {
-			margin-left: 5px;
-			list-style-position: inside;
-		}
+  /**
+    * # Header
+  **/
 
-		/* ---------------------------------------------------
-		RESPONSIVENESS
-		Nuke it from orbit. It's the only way to be sure.
------------------------------------------------------- */
+  body[override] table.st-Header td.st-Header-background div.st-Header-area{
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
+  }
 
-		/* Set a max-width, and make it display as block so it will automatically s=
-tretch to that width, but will also shrink down on a phone or something */
+  /** Modifier: white */
+  body[override] table.st-Header.st-Header--white td.st-Header-background div.st-Header-area {
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
+  }
 
-		.container {
-			display: block !important;
-			max-width: 600px !important;
-			margin: 0 auto !important;
-			/* makes it centered */
-			clear: both !important;
-		}
 
-		/* This should also be a block element, so that it will fill 100% of the .c=
-ontainer */
 
-		.content {
-			padding: 20px;
-			max-width: 600px;
-			margin: 0 auto;
-			display: block;
-		}
 
-		/* Let's make sure tables in the content area are 100% wide */
 
-		.content table {
-			width: 100%;
-		}
-	</style>
-</head>
+  /** */
 
-<body bgcolor="#f6f6f6">
+  /** Modifier: simplified */
+  body[override] table.st-Header.st-Header--simplified td.st-Header-logo div.st-Header-area {
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
+  }
+  /** */
 
-	<!-- body -->
-	<table class="body-wrap">
-		<tbody>
-			<tr>
-				<td></td>
-				<td class="container" bgcolor="#FFFFFF">
+  /** Modifier: simplified + atlasAzlo */
+  body[override] table.st-Header.st-Header--simplified td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
+  }
+  /** */
 
-					<!-- content -->
-					<div class="content">
-						<table>
-							<tbody>
-								<tr>
-									<td>
-										<h3>You have created a new SubProject!</h3>
+}
 
-										<p> 
-											Just a friendly email to notify you that you created subproject <b>{{subProjectName}}</b>. 
-										</p>
+/**
+  * # Mobile
+  * - This affects emails views in clients less than 600px wide.
+**/
 
-										<p>
-											Click the link below to login and add monitors to your new subproject.
-										</p>
+@media all and (max-width: 600px) {
 
-										<p>
-											<a href='https://dashboard.fyipe.com'>
-												<b>
-													Click Here To Login To Your Dashboard
-												</b>
-											</a>
-										</p>
+  /**
+    * # Wrapper
+  **/
 
-										<p>If you need any help, just send reply to this email and we will be there to help.</p>
+  body[override] table.st-Wrapper,
+  body[override] table.st-Width.st-Width--mobile {
+    min-width: 100% !important;
+    width: 100% !important;
+  }
 
-										<p>Thanks, have a great day.</p>
+  /**
+    * # Spacer
+  **/
 
-										<p>Fyipe Team.</p>
+  /** Modifier: gutter */
+  body[override] td.st-Spacer.st-Spacer--gutter {
+    width: 32px !important;
+  }
+  /** */
 
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-					<!-- /content -->
+  /** Modifier: kill */
+  body[override] td.st-Spacer.st-Spacer--kill {
+    width: 0 !important;
+  }
+  /** */
 
-				</td>
-				<td></td>
-			</tr>
-		</tbody>
-	</table>
-	<!-- /body -->
-</body>
+  /** Modifier: emailEnd */
+  body[override] td.st-Spacer.st-Spacer--emailEnd {
+    height: 32px !important;
+  }
+  /** */
 
-</html>
+  /**
+    * # Font
+  **/
+
+  /** Modifier: title */
+  body[override] td.st-Font.st-Font--title,
+  body[override] td.st-Font.st-Font--title span,
+  body[override] td.st-Font.st-Font--title a {
+    font-size: 28px !important;
+    line-height: 36px !important;
+  }
+  /** */
+
+  /** Modifier: header */
+  body[override] td.st-Font.st-Font--header,
+  body[override] td.st-Font.st-Font--header span,
+  body[override] td.st-Font.st-Font--header a {
+    font-size: 24px !important;
+    line-height: 32px !important;
+  }
+  /** */
+
+  /** Modifier: body */
+  body[override] td.st-Font.st-Font--body,
+  body[override] td.st-Font.st-Font--body span,
+  body[override] td.st-Font.st-Font--body a {
+    font-size: 18px !important;
+    line-height: 28px !important;
+  }
+  /** */
+
+  /** Modifier: caption */
+  body[override] td.st-Font.st-Font--caption,
+  body[override] td.st-Font.st-Font--caption span,
+  body[override] td.st-Font.st-Font--caption a {
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+  /** */
+
+  /**
+    * # Header
+  **/
+  body[override] table.st-Header td.st-Header-background div.st-Header-area{
+    margin: 0 auto !important;
+    width: auto !important;
+    background-position: 0 0 !important;
+  }
+
+  body[override] table.st-Header td.st-Header-background div.st-Header-area{
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
+  }
+
+  /** Modifier: white */
+  body[override] table.st-Header.st-Header--white td.st-Header-background div.st-Header-area {
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
+  }
+  /** */
+
+  /** Modifier: simplified */
+  body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
+    width: auto !important;
+  }
+
+  body[override] table.st-Header.st-Header--simplified td.st-Header-spacing{
+    width: 0 !important;
+  }
+
+  body[override] table.st-Header.st-Header--simplified td.st-Header-logo div.st-Header-area {
+    margin: 0 auto !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
+  }
+
+  body[override] table.st-Header.st-Header--simplified td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
+    margin: 0 auto !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
+  }
+  /** */
+
+  /**
+    * # Divider
+  **/
+
+  body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
+  body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
+    background-color: #0080a8;
+  }
+
+  /**
+    * # Blocks
+  **/
+
+  body[override] table.st-Blocks table.st-Blocks-inner {
+      border-radius: 0 !important;
+  }
+
+  body[override] table.st-Blocks table.st-Blocks-inner table.st-Blocks-item td.st-Blocks-item-cell {
+      display: block !important;
+  }
+
+  /**
+    * # Button
+  **/
+
+  body[override] table.st-Button {
+      margin: 0 auto !important;
+      width: 100% !important;
+  }
+
+  body[override] table.st-Button td.st-Button-area,
+  body[override] table.st-Button td.st-Button-area a.st-Button-link,
+  body[override] table.st-Button td.st-Button-area span.st-Button-internal{
+    height: 44px !important;
+    line-height: 44px !important;
+    font-size: 18px !important;
+    vertical-align: middle !important;
+  }
+}
+
+@media (-webkit-min-device-pixel-ratio: 1.25), (min-resolution: 120dpi), all and (max-width: 768px) {
+
+  /**
+    * # mobile image
+   **/
+  body[override] div.st-Target.st-Target--mobile img {
+    display: none !important;
+    margin: 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+    mso-hide: all !important;
+    padding: 0 !important;
+
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+
+  /**
+    * # document-list-item image
+   **/
+  body[override] div.st-Icon.st-Icon--document {
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
+  }
+}
+
+    </style>
+  </head>
+  <body class="st-Email" bgcolor="f6f9fc" style="border: 0; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; min-width: 100%; width: 100%;" override="fix">
+
+    <!-- Background -->
+    <table class="st-Background" bgcolor="f6f9fc" border="0" cellpadding="0" cellspacing="0" width="100%" style="border: 0; margin: 0; padding: 0;">
+      <tbody>
+        <tr>
+          <td style="border: 0; margin: 0; padding: 0;">
+
+            <!-- Wrapper -->
+            <table class="st-Wrapper" align="center" bgcolor="ffffff" border="0" cellpadding="0" cellspacing="0" width="600" style="border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; margin: 0 auto; min-width: 600px;">
+              <tbody>
+                <tr>
+                  <td style="border: 0; margin: 0; padding: 0;">
+
+
+  
+  <table class="st-Header st-Header--simplified st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--divider" colspan="4" height="19" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Header-logo" align="left" style="max-height:80px;width:70px; border: 0; margin: 0; padding: 0;">
+        <div class="st-Header-area st-Target st-Target--mobile">
+          <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
+            <img alt="Fyipe" border="0" class="st-Header-source" width="60" style="max-height:50px;width:50px; border: 0; margin: 0; padding: 0; color: #0080a8; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
+          </a>
+        </div>
+      </td>
+      <td class="st-Header-spacing" width="423" style="border: 0; margin: 0; padding: 0;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--divider" colspan="4" height="19" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr class="st-Divider">
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td bgcolor="#e6ebf1" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--divider" colspan="4" height="32" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="color: #0080a8 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
+
+     	<h3>You have created a new sub-project!</h3>
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+     
+    Just a friendly email to notify you that you created sub-project <strong￼ style="color: #0080a8 !important;">{{subProjectName}}</strong>
+ 
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+     
+    Click the link below to login and add monitors to your new sub-project.
+ 
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #0080a8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+        <!-- Button & Modifier: fullWidth -->
+        <table class="st-Button st-Button--fullWidth" border="0" cellpadding="0" cellspacing="0" width="100%">
+          <tbody>
+            <tr>
+              <td align="center" class="st-Button-area" height="38" valign="middle" style="border: 0; margin: 0; padding: 0; background-color: #0080a8; border-radius: 5px; text-align: center;">
+                <a class="st-Button-link" style="border: 0; margin: 0; padding: 0; color: #ffffff; display: block; height: 38px; text-align: center; text-decoration: none;" href="https://dashboard.fyipe.com">
+                  <span class="st-Button-internal" style="border: 0; margin: 0; padding: 0; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; font-weight: bold; height: 38px; line-height: 38px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: middle; white-space: nowrap; width: 100%;">Click Here To Login To Your Dashboard</span>
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- /Button & Modifier: fullWidth -->
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+     
+    	If you need any help, Send us an email at <strong style="color: #0080a8">support@fyipe.com</strong> and we'll be there to help.
+ 
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+     
+    	Thanks, have a great day.
+ 
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+     
+    	Fyipe Team.
+ 
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+  <table class="st-Footer st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--divider" colspan="3" height="20" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr class="st-Divider">
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td bgcolor="#e6ebf1" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--divider" colspan="3" height="31" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
+        <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
+          © 2019 Fyipe Inc.
+        </span>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--emailEnd" colspan="3" height="64" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <!-- /Wrapper -->
+
+          </td>
+        </tr>
+        <tr>
+          <td class="st-Spacer st-Spacer--emailEnd" height="64" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+            <div class="st-Spacer st-Spacer--filler">&nbsp;</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- /Background -->
+</body></html>

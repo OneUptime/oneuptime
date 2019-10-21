@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-const ConditionCheck = require('../utils/conditionCheck');
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fetch = require('node-fetch');
@@ -13,17 +12,17 @@ module.exports = {
         if (monitor && monitor.type) {
             if (monitor.data.url) {
                 try {
-                    let headers = await ConditionCheck.headers(monitor.headers, monitor.bodyType);
-                    let body = await ConditionCheck.body(monitor && monitor.text && monitor.text.length ? monitor.text : monitor.formData, monitor && monitor.text && monitor.text.length ?'text':'formData');
+                    let headers = await ApiService.headers(monitor.headers, monitor.bodyType);
+                    let body = await ApiService.body(monitor && monitor.text && monitor.text.length ? monitor.text : monitor.formData, monitor && monitor.text && monitor.text.length ? 'text' : 'formData');
                     var { res, resp } = await pingfetch(monitor.data.url, monitor.method, body, headers);
                 } catch (error) {
                     ErrorService.log('ping.pingFetch', error);
                     throw error;
                 }
                 try {
-                    await pingService(monitor, res, resp);
+                    await ApiService.ping(monitor._id, { monitor, res, resp, type: monitor.type });
                 } catch (error) {
-                    ErrorService.log('ping.pingService', error);
+                    ErrorService.log('ApiService.ping', error);
                     throw error;
                 }
             } else {
@@ -31,44 +30,6 @@ module.exports = {
             }
         } else {
             return;
-        }
-    }
-};
-
-var pingService = async (monitor, res, resp) => {
-    let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ConditionCheck.conditions(res, resp, monitor.criteria.up) : false);
-    let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ConditionCheck.conditions(res, resp, monitor.criteria.degraded) : false);
-    let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ConditionCheck.conditions(res, resp, monitor.criteria.down) : false);
-    if (validDown) {
-        try {
-            await ApiService.setMonitorTime(monitor._id, res, resp.status, 'offline');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
-        }
-    }
-    else if (validDegraded) {
-        try {
-            await ApiService.setMonitorTime(monitor._id, res, resp.status, 'degraded');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
-        }
-    }
-    else if (validUp) {
-        try {
-            await ApiService.setMonitorTime(monitor._id, res, resp.status, 'online');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
-        }
-    }
-    else {
-        try {
-            await ApiService.setMonitorTime(monitor._id, res, resp.status, 'unknown');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
         }
     }
 };

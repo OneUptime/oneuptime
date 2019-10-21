@@ -43,9 +43,9 @@ describe('Incident API', function () {
                         token = res.body.tokens.jwtAccessToken;
                         var authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-                            monitorId = res.body._id;
+                            monitorId = res.body[0]._id;
                             expect(res).to.have.status(200);
-                            expect(res.body.name).to.be.equal(monitor.name);
+                            expect(res.body[0].name).to.be.equal(monitor.name);
                             done();
                         });
                     });
@@ -180,6 +180,15 @@ describe('Incident API', function () {
         expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
     });
 
+    it('should not create an alert charge when an alert is not sent to a user.', async function () {
+        request.get(`alert/${projectId}/alert/charges`, function(err, res) {
+            expect(res).to.have.status(200);
+            expect(res.body).to.be.an('object');
+            expect(res.body).to.have.property('data');
+            expect(res.body.data).to.be.an('array');
+            expect(res.body.data.length).to.be.equal(0);
+        });
+    });
     it('should send incident alert when balance is above minimum amount ', async function () {
         var authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
@@ -205,10 +214,19 @@ describe('Incident API', function () {
         expect(alert).to.be.an('object');
         expect(alert.alertStatus).to.be.equal('success');
     });
+    it('should create an alert charge when an alert is sent to a user.', async function () {
+        request.get(`alert/${projectId}/alert/charges`, function(err, res) {
+            expect(res).to.have.status(200);
+            expect(res.body).to.be.an('object');
+            expect(res.body).to.have.property('data');
+            expect(res.body.data).to.be.an('array');
+            expect(res.body.data.length).to.be.equal(1);
+        });
+    });
 });
 
 // eslint-disable-next-line no-unused-vars
-var subProjectId, newUserToken, subProjectIncidentId;
+var subProjectId, newUserToken, subProjectIncidentId;   
 
 describe('Incident API with Sub-Projects', function () {
     this.timeout(30000);

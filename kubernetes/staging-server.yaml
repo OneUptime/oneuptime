@@ -169,6 +169,12 @@ spec:
           value: "3600"
         - name: MAIL_SECURE
           value: "false"
+        - name: DASHBOARD_HOST
+          value: "https://staging-dashboard.fyipe.com"
+        - name: BACKEND_HOST
+          value: "https://staging-api.fyipe.com"
+        - name: ACCOUNTS_HOST
+          value: "https://staging-accounts.fyipe.com"
         ports:
         - containerPort: 3002
           hostPort: 3002
@@ -303,13 +309,16 @@ spec:
 ---
 
 # stateful set config for mongo
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongo
 spec:
   serviceName: "mongo-headless"
   replicas: 3
+  selector:
+    matchLabels:
+      role: mongo
   template:
     metadata:
       labels:
@@ -319,7 +328,7 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
         - name: mongo
-          image: mongo
+          image: mongo:4.0
           command: ["/bin/sh","-c"]
           args: ["echo 2J2W5Jm7G38y169r8s5T1dW > mongo.key; chmod 600 mongo.key; mongod --replSet fyipe --keyFile mongo.key --smallfiles --noprealloc --bind_ip_all"]
           ports:
@@ -449,7 +458,7 @@ spec:
 
 
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: productiondata
 provisioner: kubernetes.io/gce-pd
@@ -460,7 +469,7 @@ reclaimPolicy: Retain
 
 
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: primarybackup
 provisioner: kubernetes.io/gce-pd
@@ -470,7 +479,7 @@ reclaimPolicy: Retain
 ---
 
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: secondbackup
 provisioner: kubernetes.io/gce-pd

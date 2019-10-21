@@ -1,6 +1,5 @@
 node_modules/
 kubernetes/
-package-lock.json
 .vscode/
 .DS_Store
 .env.local

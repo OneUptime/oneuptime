@@ -29,16 +29,6 @@ var token, userId, projectId, subProjectId, incidentId, alertId, monitorId, moni
 
 describe('Alert API', function () {
 
-    // afterAll(function (done) {
-    //     try {
-    //         done();
-    //         process.exit();
-    //     } catch (e) {
-    //         console.error(e);
-    //     }
-    // });
-
-
     describe('Alert API without subprojects', function () {
         this.timeout(30000);
 
@@ -56,9 +46,9 @@ describe('Alert API', function () {
                         token = res.body.tokens.jwtAccessToken;
                         var authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-                            monitorId = res.body._id;
+                            monitorId = res.body[0]._id;
                             expect(res).to.have.status(200);
-                            expect(res.body.name).to.be.equal(monitor.name);
+                            expect(res.body[0].name).to.be.equal(monitor.name);
                             done();
                         });
                     });
@@ -160,7 +150,7 @@ describe('Alert API', function () {
                             request.post(`/team/${subProjectId}`).set('Authorization', authorization).send({
                                 emails: userData.newUser.email,
                                 role: 'Member'
-                            }).end(function () {
+                            }).end(function (err, res) {
                                 done();
                             });
                         });

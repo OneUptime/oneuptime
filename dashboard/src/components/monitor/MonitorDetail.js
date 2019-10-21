@@ -4,12 +4,11 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
 import uuid from 'uuid';
-import { editMonitorSwitch, deleteMonitor, fetchMonitorsIncidents } from '../../actions/monitor';
-import { openModal, closeModal } from '../../actions/modal';
+import DateRangeWrapper from './DateRangeWrapper';
+import { editMonitorSwitch, selectedProbe, fetchMonitorsIncidents } from '../../actions/monitor';
+import { openModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
-import DeleteMonitor from '../modals/DeleteMonitor';
 import moment from 'moment';
-import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { FormLoader } from '../basic/Loader';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import ShouldRender from '../basic/ShouldRender';
@@ -19,7 +18,8 @@ import Badge from '../common/Badge';
 import { history } from '../../store';
 import MonitorBarChart from './MonitorBarChart';
 
-
+const endDate = moment().format('YYYY-MM-DD');
+const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
 
 export class MonitorDetail extends Component {
 
@@ -27,10 +27,22 @@ export class MonitorDetail extends Component {
         super(props);
         this.props = props;
         this.state = {
-            deleteModalId: uuid.v4(),
-            createIncidentModalId: uuid.v4()
+            createIncidentModalId: uuid.v4(),
+            monitorStart: startDate,
+            monitorEnd: endDate
         }
-        this.deleteMonitor = this.deleteMonitor;
+        this.selectbutton = this.selectbutton.bind(this);
+    }
+
+    handleMonitorChange = (startDate, endDate) => {
+        this.setState({
+            monitorStart: startDate,
+            monitorEnd: endDate
+        });
+    }
+
+    selectbutton = (data) => {
+        this.props.selectedProbe(data);
     }
 
     prevClicked = () => {
@@ -62,23 +74,10 @@ export class MonitorDetail extends Component {
         }
     }
 
-    deleteMonitor = () => {
-        let promise = this.props.deleteMonitor(this.props.monitor._id, this.props.monitor.projectId._id || this.props.monitor.projectId);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Monitor Deleted', {
-                ProjectId: this.props.currentProject._id,
-                monitorId: this.props.monitor._id
-            });
-        }
-        return promise;
-    }
-
     handleKeyBoard = (e) => {
         let canNext = (this.props.monitor && this.props.monitor.count) && this.props.monitor.count > this.props.monitor.skip + this.props.monitor.limit ? true : false;
         let canPrev = this.props.monitor && this.props.monitor.skip <= 0 ? false : true;
         switch (e.key) {
-            case 'Escape':
-                return this.props.closeModal({ id: this.state.deleteModalId })
             case 'ArrowRight':
                 return canNext && this.nextClicked()
             case 'ArrowLeft':
@@ -93,7 +92,31 @@ export class MonitorDetail extends Component {
     }
 
     render() {
-        let { createIncidentModalId, deleteModalId } = this.state;
+        var greenBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor: 'rgb(117, 211, 128)'// "green-status"
+        }
+        var yellowBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
+        }
+        var redBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor: 'rgb(250, 117, 90)'// "red-status"
+        }
+        let { createIncidentModalId } = this.state;
         let creating = this.props.create ? this.props.create : false;
         let monitor = this.props.monitor;
         monitor.error = null;
@@ -104,13 +127,6 @@ export class MonitorDetail extends Component {
         }
         monitor.success = this.props.monitorState.monitorsList.success;
         monitor.requesting = this.props.monitorState.monitorsList.requesting;
-        var enddate = new Date();
-        var startdate = new Date().setDate(enddate.getDate() - 90);
-
-        let deleting = false;
-        if (this.props.monitorState && this.props.monitorState.deleteMonitor && this.props.monitorState.deleteMonitor === this.props.monitor._id) {
-            deleting = true;
-        }
 
         let badgeColor;
         switch (this.props.monitor.type) {
@@ -125,7 +141,6 @@ export class MonitorDetail extends Component {
                 break;
         }
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
-        const projectId = this.props.monitor.projectId ? this.props.monitor.projectId._id || this.props.monitor.projectId : this.props.currentProject._id;
         return (
             <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
                 <div className="db-Trends-header">
@@ -155,21 +170,16 @@ export class MonitorDetail extends Component {
                     </div>
                     <div className="db-Trends-controls">
                         <div className="db-Trends-timeControls">
-
-                            <div className="db-DateRangeInputWithComparison">
-                                <div className="db-DateRangeInput bs-Control" style={{ cursor: 'default' }}>
-                                    <div className="db-DateRangeInput-input" role="button" tabIndex="0" style={{ cursor: 'default' }}>
-                                        <span className="db-DateRangeInput-start" style={{ padding: '3px' }}>{moment(startdate).format('ll')}</span>
-                                        <span className="db-DateRangeInput-input-arrow" style={{ padding: '3px' }}></span>
-                                        <span className="db-DateRangeInput-end" style={{ padding: '3px' }}>{moment(enddate).format('ll')}</span></div>
-                                </div>
-                            </div>
+                            <DateRangeWrapper
+                                selected={this.state.monitorStart}
+                                onChange={this.handleMonitorChange}
+                                dateRange={30}
+                            />
                         </div>
                         <div>
                             {this.props.monitor.type === 'device' &&
                                 <button
                                     className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
-                                    disabled={deleting}
                                     onClick={() =>
                                         this.props.openModal({
                                             id: this.props.monitor._id,
@@ -181,16 +191,12 @@ export class MonitorDetail extends Component {
                                     <span>Show URL</span>
                                 </button>
                             }
-                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
-
                             <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
                                 id={`create_incident_${this.props.monitor.name}`}
                                 onClick={() =>
                                     this.props.openModal({
                                         id: createIncidentModalId,
-                                        onClose: () => '',
-                                        onConfirm: () => this.props.createNewIncident(projectId, this.props.monitor._id),
-                                        content: DataPathHoC(CreateManualIncident, this.props.monitor._id)
+                                        content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
                                     })}>
                                 <ShouldRender if={!creating}>
                                     <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
@@ -201,28 +207,26 @@ export class MonitorDetail extends Component {
                                     <FormLoader />
                                 </ShouldRender>
                             </button>
-                            <RenderIfSubProjectAdmin subProjectId={this.props.monitor.projectId._id || this.props.monitor.projectId}>
-                                <button id={`edit_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' disabled={deleting} onClick={this.editMonitor}><span>Edit</span></button>
-                                <button id={`delete_${this.props.monitor.name}`} className={deleting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'} type="button" disabled={deleting}
-                                    onClick={() =>
-                                        this.props.openModal({
-                                            id: deleteModalId,
-                                            onClose: () => '',
-                                            onConfirm: () => this.deleteMonitor(),
-                                            content: DeleteMonitor
-                                        })}>
-                                    <ShouldRender if={!deleting}>
-                                        <span>Delete</span>
-                                    </ShouldRender>
-                                    <ShouldRender if={deleting}>
-                                        <FormLoader />
-                                    </ShouldRender>
-                                </button>
-                            </RenderIfSubProjectAdmin>
-                        </div></div>
+                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
+                        </div>
+                    </div>
                 </div>
-
-                <MonitorBarChart key={uuid.v4()} monitor={this.props.monitor} />
+                <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
+                    <div className="btn-group">
+                        {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
+                            key={`probes-btn${index}`}
+                            id={`probes-btn${index}`}
+                            disabled={false}
+                            onClick={() => this.selectbutton(index)}
+                            className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+                            <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
+                            <span>{location.probeName}</span>
+                        </button>)
+                        )}
+                    </div>
+                    <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
+                </ShouldRender>
+                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
 
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
@@ -252,7 +256,13 @@ export class MonitorDetail extends Component {
 MonitorDetail.displayName = 'MonitorDetail'
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ editMonitorSwitch, deleteMonitor, openModal, closeModal, fetchMonitorsIncidents, createNewIncident }, dispatch)
+    return bindActionCreators({
+        editMonitorSwitch,
+        openModal,
+        fetchMonitorsIncidents,
+        createNewIncident,
+        selectedProbe,
+    }, dispatch)
 }
 
 
@@ -261,7 +271,8 @@ function mapStateToProps(state) {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,
-        subProject: state.subProject
+        subProject: state.subProject,
+        activeProbe: state.monitor.activeProbe,
     };
 }
 
@@ -271,12 +282,11 @@ MonitorDetail.propTypes = {
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
-    deleteMonitor: PropTypes.func.isRequired,
-    index: PropTypes.number.isRequired,
+    index: PropTypes.string,
     openModal: PropTypes.func,
     create: PropTypes.bool,
-    closeModal: PropTypes.func,
-    createNewIncident: PropTypes.func.isRequired,
+    selectedProbe: PropTypes.func.isRequired,
+    activeProbe: PropTypes.number
 }
 
 MonitorDetail.contextTypes = {

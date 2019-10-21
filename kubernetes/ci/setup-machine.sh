@@ -26,7 +26,7 @@ echo "RUNNING COMMAND:  sudo apt-add-repository multiverse"
 sudo apt-add-repository multiverse
 echo "RUNNING COMMAND:  sudo apt-add-repository restricted"
 sudo apt-add-repository restricted
-# Iptables 
+# Iptables
 echo "RUNNING COMMAND:  sudo iptables -P FORWARD ACCEPT"
 sudo iptables -P FORWARD ACCEPT
 # Install Basic packages
@@ -38,31 +38,33 @@ sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl s
 if [[ ! $(which docker) ]]
 then
   echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
-  curl -sSL https://get.docker.com/ | sh
-  echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
-  sudo touch /etc/docker/daemon.json
-  echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
-  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
-  echo "RUNNING COMMAND: sudo systemctl restart docker"
-  sudo systemctl restart docker
+  curl -sSL https://get.docker.com/ | sh 
 fi
 
-if [[ ! $(which kubectl) ]]
-then
-  #Install Kubectl
-  echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-  echo "RUNNING COMMAND: chmod +x ./kubectl"
-  chmod +x ./kubectl 
-  echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
-  sudo mv ./kubectl /usr/local/bin/kubectl
-fi
+echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
+sudo touch /etc/docker/daemon.json
+echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
+echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
+echo "RUNNING COMMAND: sudo systemctl restart docker"
+sudo systemctl restart docker
+
+# We do not need to install kubectl here. 
+# if [[ ! $(which kubectl) ]]
+# then
+#   #Install Kubectl
+#   echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+#   curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+#   echo "RUNNING COMMAND: chmod +x ./kubectl"
+#   chmod +x ./kubectl 
+#   echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
+#   sudo mv ./kubectl /usr/local/bin/kubectl
+# fi
 
 #Install microK8s
 echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
 sudo snap set system refresh.retain=2
-echo "RUNNING COMMAND: sudo snap install microk8s --classic"
-sudo snap install microk8s --classic
+echo "RUNNING COMMAND: sudo snap install microk8s --channel=1.15/stable --classic"
+sudo snap install microk8s --channel=1.15/stable --classic
 echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
 sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND: microk8s.start"
@@ -71,21 +73,20 @@ echo "RUNNING COMMAND: microk8s.status --wait-ready"
 microk8s.status --wait-ready
 echo "RUNNING COMMAND: microk8s.enable registry"
 microk8s.enable registry
-echo "RUNNING COMMAND: iptables -P FORWARD ACCEPT"
-sudo iptables -P FORWARD ACCEPT
 echo "RUNNING COMMAND: microk8s.enable dns"
 microk8s.enable dns
 echo "RUNNING COMMAND: microk8s.enable ingress"
 microk8s.enable ingress
 echo "RUNNING COMMAND: sudo microk8s.inspect"
 sudo microk8s.inspect
-echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl kubectl"
-sudo snap alias microk8s.kubectl kubectl
+# Making 'k' as an alias to microk8s.kubectl 
+echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl k"
+sudo snap alias microk8s.kubectl k
 echo "RUNNING COMMAND: microk8s.kubectl config view --raw > $HOME/.kube/config"
-microk8s.kubectl config view --raw > $HOME/.kube/config
+sudo microk8s.kubectl config view --raw > $HOME/.kube/config
 #Kubectl version.
-echo "RUNNING COMMAND: sudo kubectl version"
-sudo kubectl version
+echo "RUNNING COMMAND: sudo k version"
+sudo k version
 # Install Mongo Shell
 echo "RUNNING COMMAND: sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4"
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4
@@ -101,8 +102,8 @@ sudo apt-get install -y jq
 # Install nodeJS
 echo "RUNNING COMMAND: curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -"
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-echo "RUNNING COMMAND: sudo apt install nodejs"
-sudo apt install nodejs
+echo "RUNNING COMMAND: sudo apt-get install -y nodejs"
+sudo apt-get install -y nodejs
 # npm and node version check
 echo "RUNNING COMMAND: node -v"
 node -v
@@ -120,3 +121,9 @@ libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 li
 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 \
 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 \
 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils
+
+echo "RUNNING COMMAND: sleep 2m"
+sleep 2m
+
+echo "RUNNING COMMAND: curl localhost:32000/v2"
+curl localhost:32000/v2

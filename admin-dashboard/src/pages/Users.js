@@ -1,13 +1,20 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import UserList from '../components/user/UserList'
-import { fetchUsers } from '../actions/user';
-
-
+import { fetchUsers, searchUsers } from '../actions/user';
+import { ListLoader } from '../components/basic/Loader';
 class Users extends Component {
+
+    constructor(props){
+        super(props);
+
+        this.state = {
+            searchBox: null
+        }
+    }
 
     componentDidMount() {
         if(window.location.href.indexOf('localhost') <= -1){
@@ -15,16 +22,42 @@ class Users extends Component {
         }
     }
 
+    ready = () => {
+        this.props.fetchUsers();
+    }
+
     prevClicked = (skip, limit) => {
-        this.props.fetchUsers((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
+        const { searchBox } = this.state;
+        const { fetchUsers, searchUsers } = this.props;
+
+        if(searchBox && searchBox !== ''){
+            searchUsers(searchBox, (skip || 0) > (limit || 10) ? skip - limit : 0, 10);
+        }else{
+            fetchUsers((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
+        }
     }
 
     nextClicked = (skip, limit) => {
-        this.props.fetchUsers(skip + limit, 10);
+        const { searchBox } = this.state;
+        const { fetchUsers, searchUsers } = this.props;
+
+        if(searchBox && searchBox !== ''){
+            searchUsers(searchBox, skip + limit, 10);
+        }else{
+            fetchUsers(skip + limit, 10);
+        }
+    }
+
+    onChange = (e) => {
+        const value = e.target.value;
+        const { searchUsers } = this.props;
+
+        this.setState({ searchBox: value });
+        searchUsers(value, 0, 10);
     }
 
     render() {
-        const { users, user } = this.props;
+        const { users, user, requesting } = this.props;
         let canNext = (this.props.user.users && this.props.user.users.count) && (this.props.user.users.count > (this.props.user.users.skip + this.props.user.users.limit)) ? true : false;
         let canPrev = (this.props.user.users && this.props.user.users.skip <= 0) ? false : true;
 
@@ -33,7 +66,7 @@ class Users extends Component {
             canPrev = false;
         }
         return (
-            <Dashboard>
+            <Dashboard ready={this.ready}>
                 <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
                     <div>
                         <div>
@@ -58,6 +91,15 @@ class Users extends Component {
                                                         </div>
                                                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                                             <div className="Box-root">
+                                                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                                    <div>
+                                                                        <input 
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            placeholder="search username or email"
+                                                                            onChange={this.onChange}
+                                                                        />
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -78,7 +120,20 @@ class Users extends Component {
                                                                 <div className="bs-ObjectList-cell"></div>
                                                                 <div className="bs-ObjectList-cell"></div>
                                                             </header>
-                                                            <UserList users={users} />
+                                                            { !requesting ? 
+                                                                <UserList users={ users } /> :
+                                                                <Fragment>
+                                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                        <div className="bs-ObjectList-cell-row">
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                        <div className="bs-ObjectList-cell-row">
+                                                                            <ListLoader />
+                                                                        </div>
+                                                                    </div> 
+                                                                </Fragment>
+                                                            }
                                                             </div>
                                                         </div>
                                                     </div>
@@ -119,13 +174,16 @@ class Users extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ fetchUsers }, dispatch)
+    return bindActionCreators({ fetchUsers, searchUsers }, dispatch)
 }
 
 const mapStateToProps = state => {
+    const requesting = state.user.users.requesting || state.user.searchUsers.requesting ? true : false;
+    
     return {
         user: state.user,
         users: state.user.users.users || [],
+        requesting
     };
 }
 
@@ -137,6 +195,8 @@ Users.propTypes = {
     user: PropTypes.object.isRequired,
     users: PropTypes.array,
     fetchUsers: PropTypes.func.isRequired,
+    searchUsers: PropTypes.func.isRequired,
+    requesting: PropTypes.bool
 }
 
 Users.displayName = 'Users'

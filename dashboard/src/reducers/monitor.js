@@ -30,7 +30,8 @@ import {
     ADD_SEAT_SUCCESS,
     ADD_SEAT_FAILURE,
     ADD_SEAT_REQUEST,
-    ADD_SEAT_RESET
+    ADD_SEAT_RESET,
+    SELECT_PROBE,
 } from '../constants/monitor';
 
 
@@ -58,10 +59,10 @@ const INITIAL_STATE = {
         success: false
     },
     fetchMonitorsIncidentRequest: false,
+    activeProbe: 0,
     fetchMonitorLogsRequest: false,
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
-
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
@@ -69,7 +70,7 @@ export default function monitor(state = INITIAL_STATE, action) {
     switch (action.type) {
 
         case CREATE_MONITOR_SUCCESS:
-            isExistingMonitor = state.monitorsList.monitors.find(monitor => monitor._id === action.payload.projectId);
+            isExistingMonitor = state.monitorsList.monitors.find(monitor => monitor._id === action.payload.projectId._id);
             return Object.assign({}, state, {
                 ...state,
                 newMonitor: {
@@ -81,17 +82,17 @@ export default function monitor(state = INITIAL_STATE, action) {
                 monitorsList: {
                     ...state.monitorsList,
                     monitors: isExistingMonitor ? state.monitorsList.monitors.length > 0 ? state.monitorsList.monitors.map((subProjectMonitors) => {
-                        return subProjectMonitors._id === action.payload.projectId ?
+                        return subProjectMonitors._id === action.payload.projectId._id ?
                             {
-                                _id: action.payload.projectId,
-                                monitors: [...subProjectMonitors.monitors, action.payload],
+                                _id: action.payload.projectId._id,
+                                monitors: [action.payload, ...subProjectMonitors.monitors],
                                 count: subProjectMonitors.count + 1,
                                 skip: subProjectMonitors.skip,
                                 limit: subProjectMonitors.limit
                             }
                             : subProjectMonitors
                     }) : [{ _id: action.payload.projectId, monitors: [action.payload], count: 1, skip: 0, limit: 0 }]
-                        : state.monitorsList.monitors.concat([{ _id: action.payload.projectId, monitors: [action.payload], count: 1, skip: 0, limit: 0 }])
+                        : [{ _id: action.payload.projectId, monitors: [action.payload], count: 1, skip: 0, limit: 0 }].concat(state.monitorsList.monitors)
                 }
             });
 
@@ -586,15 +587,18 @@ export default function monitor(state = INITIAL_STATE, action) {
                             if (monitor._id === action.payload.monitorId._id) {
                                 var incidents = monitor.incidents || [];
 
-                                if (incidents && incidents.length && incidents !== undefined || incidents !== null) {
+                                if (incidents && incidents.length) {
                                     if (incidents.length > 2) {
                                         incidents.splice(-1, 1);
                                     }
                                     incidents.unshift(action.payload);
+                                } else {
+                                    incidents = [action.payload];
                                 }
                                 return {
                                     ...monitor,
-                                    incidents: incidents
+                                    incidents: incidents,
+                                    count: monitor.count + 1
                                 };
                             } else {
                                 return monitor;
@@ -668,6 +672,11 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: false
                 },
 
+            });
+
+        case SELECT_PROBE:
+            return Object.assign({}, state, {
+                activeProbe: action.payload
             });
 
         default: return state;

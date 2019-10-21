@@ -203,14 +203,14 @@ export const PricingPlan = {
                 {
                     category: 'Basic',
                     planId: 'plan_EgTJMZULfh6THW',
-                    type: 'Month',
+                    type: 'month',
                     amount: 8,
                     details: '$8 / Month / User'
                 },
                 {
                     category: 'Basic',
                     planId: 'plan_EgTQAx3Z909Dne',
-                    type: 'Annual',
+                    type: 'annual',
                     amount: 80.4,
                     details: '$80.4 / Year / User'
                 },
@@ -248,14 +248,14 @@ export const PricingPlan = {
                 {
                     category: 'Basic',
                     planId: 'plan_EgT8cUrwsxaqCs',
-                    type: 'Month',
+                    type: 'month',
                     amount: 8,
                     details: '$8 / Month / User'
                 },
                 {
                     category: 'Basic',
                     planId: 'plan_EgT9hrq9GdIGQ6',
-                    type: 'Annual',
+                    type: 'annual',
                     amount: 80.4,
                     details: '$80.4 / Year / User'
                 },

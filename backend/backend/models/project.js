@@ -64,7 +64,15 @@ var projectSchema = new Schema({
             type: Boolean,
             default: false
         }
-    }
+    },
+    isBlocked: {
+        type: Boolean,
+        default: false
+    },
+    adminNotes: [{
+        note: { type: String },
+        createdAt: { type: Date }
+    }],
 });
 
 projectSchema.pre('save', function (next) {

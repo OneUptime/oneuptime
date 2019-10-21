@@ -1,4 +1,4 @@
-const cron = require('node-cron');
+/*const cron = require('node-cron');
 var accumulateTime = require('./accumulateTimeCron');
 var pingCron = require('./pingCron');
 var deviceMonitorsCron = require('./deviceMonitorsCron');
@@ -28,3 +28,4 @@ cron.schedule('0 0 * * *',() =>{
     setTimeout(()=> accumulateTime.accumulateTime(yesterday),
         Math.floor(Math.random() * Math.floor(30))*1000);
 });
+*/
