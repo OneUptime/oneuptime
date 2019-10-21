@@ -17,6 +17,7 @@ stages:
 #BACKEND
 lint_n_audit_backend:
   stage: BuildAndTest
+  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
@@ -95,6 +96,7 @@ build_n_test_dashboard:
 ##ADMINDASHBOARD
 lint_n_audit_admin-dashboard:
   stage: BuildAndTest
+  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
@@ -128,6 +130,7 @@ build_n_test_admin-dashboard:
 ##ZAPIER
 lint_n_audit_zapier:
   stage: BuildAndTest
+  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
@@ -156,6 +159,7 @@ build_n_test_zapier:
 ## STATUS PAGE
 lint_n_audit_statuspage:
   stage: BuildAndTest
+  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
@@ -205,6 +209,7 @@ build_n_test_statuspage:
 ## ACCOUNTS
 lint_n_audit_accounts:
   stage: BuildAndTest
+  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
@@ -251,6 +256,7 @@ build_n_test_accounts:
 ## HOME
 lint_n_audit_home:
   stage: BuildAndTest
+  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
@@ -279,6 +285,7 @@ build_n_test_home:
 ## PROBE
 lint_n_audit_probe:
   stage: BuildAndTest
+  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
@@ -307,6 +314,7 @@ build_n_test_probe:
 ## SERVER MONITOR
 lint_n_audit_server-monitor:
   stage: BuildAndTest
+  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
