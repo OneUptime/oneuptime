@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-const ConditionCheck = require('../utils/conditionCheck');
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fetch = require('node-fetch');
@@ -13,8 +12,8 @@ module.exports = {
         if (monitor && monitor.type) {
             if (monitor.data.url) {
                 try {
-                    let headers = await ConditionCheck.headers(monitor.headers, monitor.bodyType);
-                    let body = await ConditionCheck.body(monitor && monitor.text && monitor.text.length ? monitor.text : monitor.formData, monitor && monitor.text && monitor.text.length ? 'text' : 'formData');
+                    let headers = await ApiService.headers(monitor.headers, monitor.bodyType);
+                    let body = await ApiService.body(monitor && monitor.text && monitor.text.length ? monitor.text : monitor.formData, monitor && monitor.text && monitor.text.length ? 'text' : 'formData');
                     var { res, resp } = await pingfetch(monitor.data.url, monitor.method, body, headers);
                 } catch (error) {
                     ErrorService.log('ping.pingFetch', error);
