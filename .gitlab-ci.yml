@@ -106,6 +106,10 @@ lint_n_audit_admin-dashboard:
     - npm run lint
     - npm run audit
     - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 build_n_test_admin-dashboard:
   stage: BuildAndTest
@@ -116,6 +120,10 @@ build_n_test_admin-dashboard:
       # try building, if there are warnings then this will fail
     - npm run build
     - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
 
 ##ZAPIER
 lint_n_audit_zapier:
