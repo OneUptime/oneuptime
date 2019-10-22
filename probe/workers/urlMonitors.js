@@ -1,9 +1,7 @@
 /* eslint-disable no-console */
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
-const ConditionCheck = require('../utils/conditionCheck');
 const fetch = require('node-fetch');
-
 
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
@@ -19,9 +17,9 @@ module.exports = {
                     throw error;
                 }
                 try {
-                    await pingService(monitor, res, resp);
+                    await ApiService.ping(monitor._id, { monitor, res, resp, type: monitor.type });
                 } catch (error) {
-                    ErrorService.log('ping.pingService', error);
+                    ErrorService.log('ApiService.ping', error);
                     throw error;
                 }
             } else {
@@ -29,45 +27,6 @@ module.exports = {
             }
         } else {
             return;
-        }
-    }
-};
-
-
-var pingService = async (monitor, res, resp) => {
-    let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ConditionCheck.conditions(res, resp, monitor.criteria.up) : false);
-    let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ConditionCheck.conditions(res, resp, monitor.criteria.degraded) : false);
-    let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ConditionCheck.conditions(res, resp, monitor.criteria.down) : false);
-    if (validDown) {
-        try {
-            await ApiService.setMonitorTime(monitor._id, res, resp.status || null, 'offline');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
-        }
-    }
-    else if (validDegraded) {
-        try {
-            await ApiService.setMonitorTime(monitor._id, res, resp.status || null, 'degraded');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
-        }
-    }
-    else if (validUp) {
-        try {
-            await ApiService.setMonitorTime(monitor._id, res, resp.status || null, 'online');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
-        }
-    }
-    else {
-        try {
-            await ApiService.setMonitorTime(monitor._id, res, resp.status || null, 'unknown');
-        } catch (error) {
-            ErrorService.log('ApiService.setMonitorTime', error);
-            throw error;
         }
     }
 };

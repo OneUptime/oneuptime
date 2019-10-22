@@ -97,7 +97,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response
     data.responseTime = res || 0;
     data.responseStatus = resp && resp.status ? resp.status : null;
     data.status = status;
-    data.probeId = req.probe.id;
+    data.probeId = req.probe && req.probe.id ? req.probe.id : null;
     data.monitorId = req.params.monitorId;
 
     try {

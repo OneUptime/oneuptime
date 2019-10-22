@@ -26,9 +26,13 @@ module.exports = {
                     deletedById: userId
                 }
             }, { new: true });
-            await MonitorModel.findOneAndUpdate({monitorCategoryId:query._id}, {$set:{
-                monitorCategoryId:undefined
-            }});
+            
+            await MonitorModel.updateMany({ monitorCategoryId: query._id }, {
+                $set: {
+                    monitorCategoryId: ''
+                }
+            });
+            
         } catch (error) {
             ErrorService.log('monitorCategory.delete', error);
             throw error;

@@ -92,14 +92,6 @@ export class ResendTokenForm extends Component {
             </form>
           </div>
         </div>
-
-        <div className="below-box">
-          <p>
-            <Link to="/login">
-              Know your password? <strong>Sign in</strong>.
-						</Link>
-          </p>
-        </div>
         <div id="footer_spacer" />
         <div id="bottom">
           <ul>
