@@ -58,7 +58,7 @@ lint_n_audit_dashboard:
     - cd dashboard
     - npm ci
     - npm run lint
-    - npm run audit
+    # - npm run audit
     - cd ..
   except:
     refs:
