@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { markAsRead, billingActionTaken } from '../../actions/notification';
+import { markAsRead, markAllAsRead, billingActionTaken } from '../../actions/notification';
 import { User } from '../../config';
 import moment from 'moment';
 import {
@@ -18,6 +18,13 @@ class NotificationMenu extends Component {
 
     state = {
         MessageBoxId: uuid.v4()
+    }
+
+    markAllAsRead() {
+        this.props.markAllAsRead();
+        if (window.location.href.indexOf('localhost') <= -1) {
+            this.context.mixpanel.track('Notification Marked All As Read');
+        }
     }
 
     markAsRead(notification) {
@@ -81,8 +88,16 @@ class NotificationMenu extends Component {
                             <div className="ContextualPopover-contents">
                                 <div className="Box-root" id="notificationscroll" style={{ width: '450px', maxHeight: '300px', overflowX: 'scroll' }}>
                                     <div className="Box-root Box-divider--surface-bottom-1 Padding-all--12" style={{ boxShadow: '1px 1px rgba(188,188,188,0.5)' }}>
-                                        <div>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}
+                                        >
                                             <span style={{ color: '#24b47e', paddingLeft: '15px', fontSize: '14px', fontWeight: 'medium' }}>NOTIFICATIONS</span>
+
+                                            <span style={{ cursor: 'pointer' }} onClick={() => this.markAllAsRead()}>Mark All As Read</span>
                                         </div>
                                     </div>
                                     <div className="Box-root Padding-vertical--8">
@@ -136,11 +151,12 @@ const mapStateToProps = (state) => {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ markAsRead, billingActionTaken, openModal }, dispatch);
+    return bindActionCreators({ markAsRead, markAllAsRead, billingActionTaken, openModal }, dispatch);
 };
 
 NotificationMenu.propTypes = {
     markAsRead: PropTypes.func,
+    markAllAsRead: PropTypes.func,
     billingActionTaken: PropTypes.func,
     notifications: PropTypes.oneOfType([
         PropTypes.object,

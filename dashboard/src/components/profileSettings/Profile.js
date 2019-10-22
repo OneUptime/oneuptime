@@ -56,7 +56,7 @@ export class ProfileSetting extends Component {
         fileInputKey: null
     }
 
-    handleOnChange = (value) =>  {
+    handleOnChange = (value) => {
         this.setState({ alertPhoneNumber: value })
     }
 
@@ -68,7 +68,7 @@ export class ProfileSetting extends Component {
             to: alertPhoneNumber,
             code: otp
         }).then((result) => {
-            if(result.data.valid && result.data.status === 'approved'){
+            if (result.data.valid && result.data.status === 'approved') {
                 this.setState({
                     verified: true
                 })
@@ -85,39 +85,39 @@ export class ProfileSetting extends Component {
             to: alertPhoneNumber
         })
     }
- 
+
     componentDidMount() {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Profile settings page Loaded');
         }
         this.props.userSettings();
-        const profilePic = this.props.profileSettings && 
-            this.props.profileSettings.data && 
-            this.props.profileSettings.data.profilePic && 
+        const profilePic = this.props.profileSettings &&
+            this.props.profileSettings.data &&
+            this.props.profileSettings.data.profilePic &&
             this.props.profileSettings.data.profilePic !== '' ? this.props.profileSettings.data.profilePic : null;
-        
+
         this.setState({
             profilePic,
-            fileInputKey : new Date()
+            fileInputKey: new Date()
         })
     }
 
-    componentDidUpdate(prevProps){
-        const prevProfilePic = prevProps.profileSettings && 
+    componentDidUpdate(prevProps) {
+        const prevProfilePic = prevProps.profileSettings &&
             prevProps.profileSettings.data &&
             prevProps.profileSettings.data.profilePic ?
             prevProps.profileSettings.data.profilePic : null;
-        const currentProfilePic = this.props.profileSettings && 
+        const currentProfilePic = this.props.profileSettings &&
             this.props.profileSettings.data &&
             this.props.profileSettings.data.profilePic ?
             this.props.profileSettings.data.profilePic : null;
 
-        if(prevProfilePic !== currentProfilePic){
+        if (prevProfilePic !== currentProfilePic) {
             this.updateProfilePic(currentProfilePic)
         }
     }
 
-    updateProfilePic(profilePic){
+    updateProfilePic(profilePic) {
         const { resetFile } = this.props;
 
         this.setState({
@@ -154,7 +154,7 @@ export class ProfileSetting extends Component {
         const initialAlertPhoneNumber = this.props.initialValues.alertPhoneNumber;
         const { alertPhoneNumber, verified, removedPic } = this.state;
         const { sendVerificationSMSError, verifySMSCodeError } = this.props;
-        
+
         if (initialAlertPhoneNumber !== alertPhoneNumber
             && !verified && !sendVerificationSMSError && !verifySMSCodeError) {
             this.setState({
@@ -186,14 +186,14 @@ export class ProfileSetting extends Component {
     render() {
         const { initPhoneVerification, verified } = this.state;
 
-        const { handleSubmit, profileSettings, 
-                sendVerificationSMSRequesting, 
-                verifySMSCodeRequesting, sendVerificationSMSError,
-                verifySMSCodeError } = this.props;
+        const { handleSubmit, profileSettings,
+            sendVerificationSMSRequesting,
+            verifySMSCodeRequesting, sendVerificationSMSError,
+            verifySMSCodeError } = this.props;
 
         var profilePic = this.state.profilePic;
 
-        profilePic = profilePic === 'null' ?  null : profilePic;   
+        profilePic = profilePic === 'null' ? null : profilePic;
 
         var fileData = this.props.fileUrl ? this.props.fileUrl : profilePic ? `${API_URL}/file/${profilePic}` : 'https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404';
         var profileImage = <span />;
@@ -253,7 +253,7 @@ export class ProfileSetting extends Component {
                                                         defaultCountry={'us'}
                                                         value={this.state.alertPhoneNumber}
                                                         onChange={this.handleOnChange}
-                                                        inputStyle={{width: 250, height: 28, fontSize:14, color: '#525f7f', fontFamily:'camphor'}}
+                                                        inputStyle={{ width: 250, height: 28, fontSize: 14, color: '#525f7f', fontFamily: 'camphor' }}
                                                     />
                                                 </div>
                                             </div>
@@ -478,7 +478,7 @@ function mapStateToProps(state) {
         profileSettings: state.profileSettings.profileSetting,
         initialValues: state.profileSettings.profileSetting ? state.profileSettings.profileSetting.data : {},
         projectId: state.project.currentProject !== null && state.project.currentProject._id,
-        otp:  state.form.Profile && state.form.Profile.values && state.form.Profile.values.otp,
+        otp: state.form.Profile && state.form.Profile.values && state.form.Profile.values.otp,
         sendVerificationSMSError: state.profileSettings.smsVerification.error,
         sendVerificationSMSRequesting: state.profileSettings.smsVerification.requesting,
         verifySMSCodeError: state.profileSettings.smsVerificationResult.error,

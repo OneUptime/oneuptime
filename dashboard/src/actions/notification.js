@@ -1,21 +1,21 @@
 import {
-	getApi,putApi
+	getApi, putApi
 } from '../api';
 import * as types from '../constants/notification'
 import errors from '../errors'
 
 import { User } from '../config';
 
-export const openNotificationMenu = function() {
-  return {
-    type: types.OPEN_NOTIFICATION_MENU
-  };
+export const openNotificationMenu = function () {
+	return {
+		type: types.OPEN_NOTIFICATION_MENU
+	};
 }
-export const closeNotificationMenu = function(error) {
-  return {
-    type: types.CLOSE_NOTIFICATION_MENU,
-    payload : error
-  };
+export const closeNotificationMenu = function (error) {
+	return {
+		type: types.CLOSE_NOTIFICATION_MENU,
+		payload: error
+	};
 }
 
 // Create a new project
@@ -54,24 +54,24 @@ export function notificationReadSuccess(notificationId) {
 
 // Calls the API to get all notifications.
 export function fetchNotifications(projectId) {
-	return function(dispatch){
+	return function (dispatch) {
 
 		var promise = getApi(`notification/${projectId}`);
 
 		dispatch(fetchNotificationsRequest());
 
-		return promise.then(function(notifications){
+		return promise.then(function (notifications) {
 			dispatch(fetchNotificationsSuccess(notifications.data));
-		}, function(error){
-			if(error && error.response && error.response.data)
+		}, function (error) {
+			if (error && error.response && error.response.data)
 				error = error.response.data;
-			if(error && error.data){
+			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(fetchNotificationsError(errors(error)));
@@ -79,44 +79,50 @@ export function fetchNotifications(projectId) {
 	};
 }
 
-export function markAsRead(projectId,notificationId) {
-	return function(dispatch){
+export function markAsRead(projectId, notificationId) {
+	return function (dispatch) {
 		var userId = User.getUserId();
 		var promise = putApi(`notification/${projectId}/${notificationId}/read`);
-		return promise.then(function(notifications){
-			dispatch(notificationReadSuccess({notificationId : notifications.data,userId}));
-		}, function(error){
-			if(error && error.response && error.response.data)
+		return promise.then(function (notifications) {
+			dispatch(notificationReadSuccess({ notificationId: notifications.data, userId }));
+		}, function (error) {
+			if (error && error.response && error.response.data)
 				error = error.response.data;
-			if(error && error.data){
+			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(fetchNotificationsError(errors(error)));
 		});
 	};
+}
+
+export function markAllAsRead() {
+	return function (dispatch) {
+
+	}
 }
 
 export function billingActionTaken(projectId, notificationId, values) {
-	return function(dispatch){
+	return function (dispatch) {
 		var promise = putApi(`notification/${projectId}/${notificationId}`, values);
-		return promise.then(function(notification){
+		return promise.then(function (notification) {
 			dispatch(notificationReadSuccess(notification));
-		}, function(error){
-			if(error && error.response && error.response.data)
+		}, function (error) {
+			if (error && error.response && error.response.data)
 				error = error.response.data;
-			if(error && error.data){
+			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(fetchNotificationsError(errors(error)));
