@@ -18,7 +18,10 @@ import {
     SEND_VERIFICATION_SMS_FAILURE,
     VERIFY_SMS_CODE_REQUEST,
     VERIFY_SMS_CODE_SUCCESS,
-    VERIFY_SMS_CODE_FAILURE
+    VERIFY_SMS_CODE_FAILURE,
+    SEND_EMAIL_VERIFICATION_FAILURE,
+    SEND_EMAIL_VERIFICATION_REQUEST,
+    SEND_EMAIL_VERIFICATION_SUCCESS,
 } from '../constants/profile';
 
 const INITIAL_STATE = {
@@ -46,7 +49,13 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         data: {}
-    }
+    },
+    emailVerificationResult: {
+        error: null,
+        requesting: false,
+        success: false,
+        data: {}
+    },
 };
 
 export default function profileSettings(state = INITIAL_STATE, action) {
@@ -227,6 +236,40 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                     data: {}
                 }
             });
+        
+        case SEND_EMAIL_VERIFICATION_REQUEST:
+
+            return Object.assign({}, state, {
+                emailVerificationResult: {
+                    error: null,
+                    requesting: true,
+                    success: false,
+                    data: {}
+                }
+            });
+
+        case SEND_EMAIL_VERIFICATION_SUCCESS:
+
+            return Object.assign({}, state, {
+                emailVerificationResult: {
+                    error: null,
+                    requesting: false,
+                    success: true,
+                    data: action.payload
+                }
+            });
+
+        case SEND_EMAIL_VERIFICATION_FAILURE:
+
+            return Object.assign({}, state, {
+                emailVerificationResult: {
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                    data: {}
+                }
+            });
+        
         case VERIFY_SMS_CODE_REQUEST:
 
             return Object.assign({}, state, {
