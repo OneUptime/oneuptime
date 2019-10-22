@@ -32,7 +32,7 @@
     "jest": "^24.8.0",
     "lighthouse": "^2.9.4",
     "npm-audit-ci-wrapper": "^2.3.0",
-    "puppeteer": "^1.19.0",
+    "puppeteer": "^1.20.0",
     "start-server-and-test": "^1.9.1"
   }
 }
