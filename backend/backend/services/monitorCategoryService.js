@@ -29,7 +29,7 @@ module.exports = {
             
             await MonitorModel.updateMany({ monitorCategoryId: query._id }, {
                 $set: {
-                    monitorCategoryId: ''
+                    monitorCategoryId: null
                 }
             });
             
