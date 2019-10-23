@@ -4,10 +4,11 @@
 
 <head>
   <title>Fyipe | Legal Center</title>
-  <meta name="description" content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+  <meta name="description"
+    content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
   <% include ./head %>
-    <link rel="stylesheet" href="/css/common.css">
-    <link rel="stylesheet" href="/css/legal.css">
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/legal.css">
 </head>
 
 <body>
@@ -27,6 +28,9 @@
           </li>
           <li>
             <a href="/legal/sla">Service Level Agreement</a>
+          </li>
+          <li>
+            <a href="/legal/gdpr">GDPR Policy</a>
           </li>
 
         </ul>
@@ -56,9 +60,6 @@
               <a href="/support">Support</a>
             </li>
 
-
-
-
           </ul>
         </nav>
       </header>
@@ -66,18 +67,24 @@
 
 
         <% if(section === "terms") {%>
-          <% include ./terms %>
+        <% include ./terms %>
         <% }%>
 
 
         <% if(section === "privacy") {%>
-          <% include ./privacy %>
+        <% include ./privacy %>
+        <% }%>
+
+        <% if(section === "gdpr") {%>
+        <% include ./privacy %>
         <% }%>
 
 
         <% if(section === "sla") {%>
-          <% include ./sla %>
+        <% include ./sla %>
         <% }%>
+
+
 
       </article>
     </div>

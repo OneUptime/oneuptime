@@ -76,6 +76,10 @@ app.get('/legal/privacy', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'privacy',requestDemoCta:false});
 });
 
+app.get('/legal/gdpr', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'gdpr',requestDemoCta:false});
+});
+
 app.get('/legal/sla', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false, section: 'sla',requestDemoCta:false});
 });
