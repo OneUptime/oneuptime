@@ -18,7 +18,6 @@ if (!isServer) {
 
 if (User.isLoggedIn()) {
 	window.location = DASHBOARD_URL;
-	store.dispatch(loadPage('Home'));
 }
 
 const App = () => (
