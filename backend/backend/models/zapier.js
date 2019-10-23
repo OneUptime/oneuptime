@@ -18,9 +18,10 @@ var zapierSchema = new Schema({
     monitors: [String],
     deleted: {
         type: Boolean,
-        default: false
-    }
-    
+        default: false,
+        select: false
+    },
+    __v: { type: Number, select: false }
 });
 
 module.exports = mongoose.model('Zapier', zapierSchema);

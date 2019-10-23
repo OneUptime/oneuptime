@@ -16,8 +16,8 @@ export class ProjectRestoreBox extends Component {
     }
 
     handleClick = () => {
-        const { restoreProject, projectId } = this.props;
-        return restoreProject(projectId);
+        const { restoreProject, project } = this.props;
+        return restoreProject(project._id);
     }
 
     render() {
@@ -68,8 +68,8 @@ const mapDispatchToProps = dispatch => (
     bindActionCreators({ restoreProject, openModal, closeModal }, dispatch)
 )
 
-const mapStateToProps = (state, props) => {
-    const project = state.project.projects.projects.find(project => project._id === props.projectId);
+const mapStateToProps = (state) => {
+    const project = state.project.project.project;
     return {
         project,
         isRequesting: state.project && state.project.restoreProject && state.project.restoreProject.requesting,
@@ -78,10 +78,7 @@ const mapStateToProps = (state, props) => {
 
 ProjectRestoreBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined])
-    ]),
+    project: PropTypes.object.isRequired,
     restoreProject: PropTypes.func.isRequired
 }
 

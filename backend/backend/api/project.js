@@ -360,8 +360,13 @@ router.delete('/:projectId/deleteProject', getUser, isAuthorized, isUserOwner, a
     }
 
     try {
-        var project = await ProjectService.deleteBy({ _id: projectId }, userId);
-        return sendItemResponse(req, res, project);
+        if(req.authorizationType === 'MASTER-ADMIN'){
+            const project = await ProjectService.deleteBy({ _id: projectId }, userId, ['__v']);
+            return sendItemResponse(req, res, project);
+        }else{
+            const project = await ProjectService.deleteBy({ _id: projectId }, userId);
+            return sendItemResponse(req, res, project);
+        }
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -600,10 +605,22 @@ router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (
     }
 });
 
+router.get('/projects/:projectId', getUser, isUserMasterAdmin, async function(req, res) {
+    const projectId = req.params.projectId;
+
+    try{
+        const project = await ProjectService.findOneBy({ _id: projectId, deleted: { $ne: null } }, ['__v']);
+
+        return sendItemResponse(req, res, project);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async function (req, res) {
     const projectId = req.params.projectId;
     try {
-        const project = await ProjectService.update({ _id: projectId, isBlocked: true });
+        const project = await ProjectService.update({ _id: projectId, isBlocked: true }, ['__v']);
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -613,7 +630,7 @@ router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async functio
 router.put('/:projectId/unblockProject', getUser, isUserMasterAdmin, async function (req, res) {
     const projectId = req.params.projectId;
     try {
-        const project = await ProjectService.update({ _id: projectId, isBlocked: false });
+        const project = await ProjectService.update({ _id: projectId, isBlocked: false }, ['__v']);
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -684,8 +701,16 @@ router.post('/projects/search', getUser, isUserMasterAdmin, async function (req,
     const limit = req.query.limit || 10;
 
     try {
-        const users = await ProjectService.searchProjects({ parentProjectId: null, deleted: { $ne: null }, name: { $regex: new RegExp(filter), $options: 'i' } }, skip, limit);
-        const count = await ProjectService.countBy({ parentProjectId: null, deleted: { $ne: null }, name: { $regex: new RegExp(filter), $options: 'i' } });
+        const users = await ProjectService.searchProjects({ 
+            parentProjectId: null, 
+            deleted: { $ne: null }, 
+            name: { $regex: new RegExp(filter), $options: 'i' } }, 
+        skip, limit, ['__v']);
+        const count = await ProjectService.countBy({ 
+            parentProjectId: null, 
+            deleted: { $ne: null }, 
+            name: { $regex: new RegExp(filter), $options: 'i' } 
+        });
 
         return sendListResponse(req, res, users, count);
     } catch (error) {

@@ -15,13 +15,15 @@ var alertSchema = new Schema({
     monitorId: { type: String, ref: 'Monitor' },
     createdAt: { type: Date, default: Date.now },
     incidentId : { type: String, ref: 'Incident' },
-    deleted: { type: Boolean, default: false},
+    deleted: { type: Boolean, default: false, select: false },
     
     deletedAt: {
-        type: Date
+        type: Date,
+        select: false
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', select: false },
+    __v: { type: Number, select: false }
 });
 
 module.exports = mongoose.model('Alert', alertSchema);

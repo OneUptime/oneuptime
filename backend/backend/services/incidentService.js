@@ -200,7 +200,7 @@ module.exports = {
                 notClosedBy = notClosedBy.concat(data.notClosedBy);
             }
             var manuallyCreated = data.manuallyCreated || oldIncident.manuallyCreated || false;
-            var deleted = oldIncident.deleted;
+            var deleted = oldIncident.deleted || false;
             var deletedById = oldIncident.deletedById;
             var deletedAt = oldIncident.deletedAt;
 

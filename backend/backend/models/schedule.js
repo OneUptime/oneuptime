@@ -9,12 +9,14 @@ var scheduleSchema = new Schema({
     monitorIds: [{ type: String, ref: 'Monitor', default: [], alias: 'monitors' }],
     escalationIds: [{ type: String, ref: 'Escalation', default: [], alias: 'escalations'}],
     createdAt: { type: Date, default: Date.now },
-    deleted: { type: Boolean, default: false},
+    deleted: { type: Boolean, default: false, select: false },
     
     deletedAt: {
-        type: Date 
+        type: Date,
+        select: false
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', select: false },
+    __v: { type: Number, select: false }
 });
 module.exports = mongoose.model('Schedule', scheduleSchema);

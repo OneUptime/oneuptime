@@ -21,13 +21,15 @@ var incidentSMSActionSchema = new Schema({
         expires: 86400
     },
     
-    deleted: { type: Boolean, default: false},
+    deleted: { type: Boolean, default: false, select: false },
     
     deletedAt: {
-        type: Date
+        type: Date,
+        select: false
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', select: false },
+    __v: { type: Number, select: false }
 
 });
 

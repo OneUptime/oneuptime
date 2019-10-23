@@ -111,9 +111,12 @@ export class MonitorViewHeader extends Component {
             <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium" onKeyDown={this.handleKeyBoard}>
                 {
                     this.props.currentProject._id === subProjectId ?
-                        <div className="Box-root Padding-top--20 Padding-left--20">
-                            <Badge color={'red'}>Project</Badge>
-                        </div> :
+                        this.props.subProjects.length > 0 ?
+                            <div className="Box-root Padding-top--20 Padding-left--20">
+                                <Badge color={'red'}>Project</Badge>
+                            </div> : 
+                            null 
+                        :
                         <div className="Box-root Padding-top--20 Padding-left--20">
                             <Badge color={'blue'}>{subProject && subProject.name}</Badge>
                         </div>

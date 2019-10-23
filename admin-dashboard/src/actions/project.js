@@ -54,6 +54,56 @@ export function fetchProjects(skip, limit) {
 	};
 }
 
+export function fetchProjectRequest() {
+	return {
+		type: types.FETCH_PROJECT_REQUEST
+	};
+}
+
+export function fetchProjectSuccess(project) {
+
+	return {
+		type: types.FETCH_PROJECT_SUCCESS,
+		payload: project
+	};
+}
+
+export function fetchProjectError(error) {
+	return {
+		type: types.FETCH_PROJECT_FAILURE,
+		payload: error
+	};
+}
+
+// Calls the API to fetch a project.
+export function fetchProject(projectId) {
+	return function (dispatch) {
+		var promise = getApi(`project/projects/${projectId}`);
+		dispatch(fetchProjectRequest());
+		promise.then(function (response) {
+			var project = response.data;
+			dispatch(fetchProjectSuccess(project));
+
+		}, function (error) {
+
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if(error && error.message){
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(fetchProjectError(errors(error)));
+		});
+
+		return promise;
+	};
+}
+
 export function fetchUserProjectsRequest() {
 	return {
 		type: types.FETCH_USER_PROJECTS_REQUEST

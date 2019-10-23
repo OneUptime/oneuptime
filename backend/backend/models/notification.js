@@ -8,14 +8,16 @@ var notificationSchema = new Schema({
     message : String,
     read: [{type: String, ref: 'User'}],
     icon : String,
-    deleted: { type: Boolean, default: false},
+    deleted: { type: Boolean, default: false, select: false },
     meta: {
         type: Object
     },
     deletedAt: {
-        type: Date
+        type: Date,
+        select: false
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', select: false },
+    __v: { type: Number, select: false }
 });
 module.exports = mongoose.model('Notification', notificationSchema);

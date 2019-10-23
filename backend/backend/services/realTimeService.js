@@ -99,7 +99,7 @@ module.exports = {
         }
     },
 
-    updateResponseTime: async (data,projectId) =>{
+    updateResponseTime: async (data,projectId) => {
         try{
             var project = await ProjectService.findOneBy({ _id: projectId });
         }catch(error){

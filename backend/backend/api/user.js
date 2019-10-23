@@ -438,7 +438,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, 
 
         try {
             // Call the UserService
-            var user = await UserService.update(data);
+            var user = await UserService.update(data, ['__v']);
             return sendItemResponse(req, res, user);
         } catch (error) {
             return sendErrorResponse(error);
@@ -654,7 +654,7 @@ router.delete('/:userId', getUser, isUserMasterAdmin, async function (req, res) 
     const userId = req.params.userId;
     const masterUserId = req.user.id || null;
     try {
-        const user = await UserService.deleteBy({ _id: userId }, masterUserId);
+        const user = await UserService.deleteBy({ _id: userId }, masterUserId, ['__v']);
         return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -674,7 +674,7 @@ router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function (r
 router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (req, res) {
     const userId = req.params.userId;
     try {
-        const user = await UserService.update({ _id: userId, isBlocked: true });
+        const user = await UserService.update({ _id: userId, isBlocked: true }, ['__v']);
         return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -684,7 +684,7 @@ router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (req
 router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function (req, res) {
     const userId = req.params.userId;
     try {
-        const user = await UserService.update({ _id: userId, isBlocked: false });
+        const user = await UserService.update({ _id: userId, isBlocked: false }, ['__v']);
         return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -745,8 +745,17 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function (req, re
     const limit = req.query.limit || 10;
 
     try {
-        const users = await UserService.searchUsers({ deleted: { $ne: null }, $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }, { email: { $regex: new RegExp(filter), $options: 'i' } }] }, skip, limit);
-        const count = await UserService.countBy({ deleted: { $ne: null }, $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }, { email: { $regex: new RegExp(filter), $options: 'i' } }] });
+        const users = await UserService.searchUsers({ 
+            deleted: { $ne: null }, 
+            $or: [
+                { name: { $regex: new RegExp(filter), $options: 'i' } },
+                { email: { $regex: new RegExp(filter), $options: 'i' }
+                }] }, skip, limit, ['__v']);
+        const count = await UserService.countBy({ deleted: { $ne: null }, 
+            $or: [
+                { name: { $regex: new RegExp(filter), $options: 'i' } }, 
+                { email: { $regex: new RegExp(filter), $options: 'i' } }] 
+        });
 
         return sendListResponse(req, res, users, count);
     } catch (error) {

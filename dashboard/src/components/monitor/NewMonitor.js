@@ -214,7 +214,7 @@ class NewMonitor extends Component {
     monitorTypeDescription = {
         'url': 'Monitor any resources (Websites, API, Servers, IoT Devices and more) constantly and notify your team when they do not behave the way you want.',
         'device': 'Monitor IoT devices constantly and notify your team when they do not behave the way you want.',
-        'manual': 'Manual monitors do not monitor any resource. You can change monitor status by using Fyipe’s API <link to docs>. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.',
+        'manual': <span>Manual monitors do not monitor any resource. You can change monitor status by using Fyipe’s API <a href="https://docs.fyipe.com" target="_blank" rel="noopener noreferrer">documentation</a>. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.</span>,
         'api': 'Monitor REST endpoints constantly and notify your team when they do not behave the way you want.',
         'script': 'Run custom script when monitor status changes.',
         'server-monitor': 'Monitor servers constantly and notify your team when they do not behave the way you want.',

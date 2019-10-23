@@ -12,12 +12,14 @@ var twilioSchema = new Schema({
         default: Date.now
     },
 
-    deleted: { type: Boolean, default: false},
+    deleted: { type: Boolean, default: false, select: false },
 
     deletedAt: {
-        type: Date
+        type: Date,
+        select: false
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', select: false },
+    __v: { type: Number, select: false }
 });
 module.exports = mongoose.model('Twilio', twilioSchema);
