@@ -544,7 +544,6 @@ NewMonitor.displayName = 'NewMonitor';
 
 let NewMonitorForm = new reduxForm({
     form: 'NewMonitor',
-    enableReinitialize: true,
     destroyOnUnmount: false,
 })(NewMonitor);
 
