@@ -84,6 +84,26 @@ app.get('/legal/hipaa', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'hipaa',requestDemoCta:false});
 });
 
+app.get('/legal/iso-27001', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'iso-27001',requestDemoCta:false});
+});
+
+app.get('/legal/iso-27017', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'iso-27017',requestDemoCta:false});
+});
+
+app.get('/legal/iso-27018', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'iso-27018',requestDemoCta:false});
+});
+
+app.get('/legal/soc-2', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'soc-2',requestDemoCta:false});
+});
+
+app.get('/legal/soc-3', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'soc-3',requestDemoCta:false});
+});
+
 app.get('/legal/data-residency', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'data-residency',requestDemoCta:false});
 });
