@@ -32,6 +32,15 @@
           <li>
             <a href="/legal/gdpr">GDPR Policy</a>
           </li>
+          <li>
+            <a href="/legal/data-residency">Data Residency</a>
+          </li>
+          <li>
+            <a href="/legal/hipaa">HIPAA Compliance</a>
+          </li>
+          <li>
+            <a href="/legal/contact">Contact</a>
+          </li>
 
         </ul>
 
@@ -84,7 +93,17 @@
         <% include ./sla %>
         <% }%>
 
+        <% if(section === "data-residency") {%>
+        <% include ./data-residency %>
+        <% }%>
 
+        <% if(section === "contact") {%>
+        <% include ./contact %>
+        <% }%>
+
+        <% if(section === "hipaa") {%>
+        <% include ./hipaa %>
+        <% }%>
 
       </article>
     </div>

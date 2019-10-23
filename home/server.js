@@ -76,6 +76,18 @@ app.get('/legal/privacy', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'privacy',requestDemoCta:false});
 });
 
+app.get('/legal/contact', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'contact',requestDemoCta:false});
+});
+
+app.get('/legal/hipaa', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'hipaa',requestDemoCta:false});
+});
+
+app.get('/legal/data-residency', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'data-residency',requestDemoCta:false});
+});
+
 app.get('/legal/gdpr', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'gdpr',requestDemoCta:false});
 });
