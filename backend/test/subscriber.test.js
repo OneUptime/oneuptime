@@ -128,7 +128,6 @@ describe('Subscriber API', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/subscriber/${projectId}/${subscriberId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
