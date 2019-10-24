@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 import ShouldRender from '../basic/ShouldRender';
+import { Link } from 'react-router-dom';
 
  function IncidentDescription(props) {
     return (
@@ -29,7 +30,9 @@ import ShouldRender from '../basic/ShouldRender';
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">Monitor</label>
                                             <div className="bs-Fieldset-fields" style={{ marginTop: '6px' }}>
-                                                <span className="value">{props.incident.monitorId.name}</span>
+                                                <span className="value">
+                                                    <Link to={'/project/' + props.projectId + '/monitors/' + props.incident.monitorId._id}>{props.incident.monitorId.name}</Link>
+                                                </span>
                                             </div>
                                         </div>
                                             <ShouldRender if={props.incident.incidentType === 'online'}>
@@ -94,7 +97,8 @@ import ShouldRender from '../basic/ShouldRender';
 IncidentDescription.displayName = 'IncidentDescription'
 
 IncidentDescription.propTypes = {
-    incident: PropTypes.object.isRequired
+    incident: PropTypes.object.isRequired,
+    projectId: PropTypes.string.isRequired,
 }
 
 export default IncidentDescription
