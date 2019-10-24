@@ -66,8 +66,8 @@ export class APISettings extends Component {
                                                     }))}
                                                 >
                                                     <ShouldRender if={hidden}>
-                                                        <span className="value" style={{ marginTop: '6px' }}>
-                                                            XXXX - XXXX - XXXX - XXXX
+                                                        <span className="value" style={{ marginTop: '6px', cursor: 'pointer' }}>
+                                                            Click here to reveal API key
                                                         </span>
                                                     </ShouldRender>
                                                     <ShouldRender if={!hidden}>
