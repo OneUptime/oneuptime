@@ -242,6 +242,7 @@ module.exports = {
         var _this = this;
         var email = data.email;
         var stripePlanId = data.planId;
+        var companyName = data.companyName;
         var customerId;
 
         if (util.isEmailValid(email)) {
@@ -258,16 +259,36 @@ module.exports = {
                 throw error;
             } else {
                 try {
+                    var stripeToken = await PaymentService.createToken(data.cardNumber, data.cvc, data.expiry.split('/')[0], data.expiry.split('/')[1], data.zipCode);
+                } catch (error) {
+                    ErrorService.log('PaymentService.createToken', error);
+                    throw error;
+                }
+                try {
+                    customerId = await PaymentService.createCustomer(stripeToken, email, companyName);
+                } catch (error) {
+                    ErrorService.log('PaymentService.createCustomer', error);
+                    throw error;
+                }
+
+                try {
+                    await PaymentService.testCardCharge(customerId);
+                } catch (error) {
+                    ErrorService.log('PaymentService.testCharge', error);
+                    throw error;
+                }
+
+                try {
                     var hash = await bcrypt.hash(data.password, constants.saltRounds);
                 } catch (error) {
                     ErrorService.log('bcrypt.hash', error);
                     throw error;
                 }
-                data.password = hash;
 
+                data.password = hash;
                 // creating jwt refresh token
                 data.jwtRefreshToken = randToken.uid(256);
-                //save a user.
+                //save a user only when payment method is charged and then next steps
                 try {
                     user = await _this.create(data);
                 } catch (error) {
@@ -279,29 +300,6 @@ module.exports = {
                 } catch (error) {
                     ErrorService.log(' UserVerificationService.sendToken', error);
                     throw error;
-                }
-
-                if (!data.cardNumber || !data.cvc) {
-                    try {
-                        customerId = await PaymentService.createCustomer({}, user);
-                    } catch (error) {
-                        ErrorService.log('PaymentService.createCustomer', error);
-                        throw error;
-                    }
-                } else {
-                    try {
-                        var stripeToken = await PaymentService.createToken(data.cardNumber, data.cvc, data.expiry.split('/')[0], data.expiry.split('/')[1], data.zipCode);
-                    } catch (error) {
-                        ErrorService.log('PaymentService.createToken', error);
-                        throw error;
-                    }
-                    try {
-                        customerId = await PaymentService.createCustomer(stripeToken, user);
-                    } catch (error) {
-                        ErrorService.log('PaymentService.createCustomer', error);
-                        throw error;
-                    }
-
                 }
 
                 //update customer Id
@@ -318,6 +316,7 @@ module.exports = {
                     ErrorService.log('PaymentService.subscribePlan', error);
                     throw error;
                 }
+
                 var projectName = 'Unnamed Project';
                 var projectData = {
                     name: projectName,
@@ -331,12 +330,6 @@ module.exports = {
                     await ProjectService.create(projectData);
                 } catch (error) {
                     ErrorService.log('ProjectService.create', error);
-                    throw error;
-                }
-                try {
-                    await PaymentService.testCardCharge(customerId);
-                } catch (error) {
-                    ErrorService.log('PaymentService.testCharge', error);
                     throw error;
                 }
                 return user;
