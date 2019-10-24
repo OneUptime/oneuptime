@@ -32,6 +32,33 @@
           <li>
             <a href="/legal/gdpr">GDPR Policy</a>
           </li>
+          <li>
+            <a href="/legal/hipaa">HIPAA Compliance</a>
+          </li>
+          <li>
+            <a href="/legal/iso-27001">ISO/IEC 27001</a>
+          </li>
+          <li>
+            <a href="/legal/iso-27017">ISO/IEC 27017</a>
+          </li>
+          <li>
+            <a href="/legal/iso-27018">ISO/IEC 27018</a>
+          </li>
+          <li>
+            <a href="/legal/soc-2">SOC 2</a>
+          </li>
+          <li>
+            <a href="/legal/soc-3">SOC 3</a>
+          </li>
+          <li>
+            <a href="/legal/data-residency">Data Residency</a>
+          </li>
+          <li>
+            <a href="/legal/hipaa">HIPAA Compliance</a>
+          </li>
+          <li>
+            <a href="/legal/contact">Contact</a>
+          </li>
 
         </ul>
 
@@ -84,7 +111,24 @@
         <% include ./sla %>
         <% }%>
 
+        <% if(section === "data-residency") {%>
+        <% include ./data-residency %>
+        <% }%>
 
+        <% if(section === "contact") {%>
+        <% include ./contact %>
+        <% }%>
+
+        <% if(section === "hipaa") {%>
+        <% include ./hipaa %>
+        <% }%>
+
+        <% if(section.includes("soc")) {%>
+        <% include ./soc %>
+        <% }%>
+        <% if(section.includes("iso")) {%>
+        <% include ./iso %>
+        <% }%>
 
       </article>
     </div>
