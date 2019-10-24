@@ -108,6 +108,7 @@ describe('Email Template API', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/emailTemplate/${projectId}/emailTemplate/${emailTemplateId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
+            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
