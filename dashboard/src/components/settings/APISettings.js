@@ -1,3 +1,4 @@
+import uuid from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
@@ -6,6 +7,8 @@ import { resetProjectToken } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import RenderIfAdmin from '../../components/basic/RenderIfAdmin';
+import ResetAPIKey from '../modals/ResetAPIKey';
+import { openModal } from '../../actions/modal';
 
 export class APISettings extends Component {
 
@@ -13,15 +16,25 @@ export class APISettings extends Component {
         super(props);
 
         this.state = {
-            hidden: true
+            hidden: true,
+            resetModalId: uuid.v4()
         }
     }
 
-    resetToken =()=> {
-        this.props.resetProjectToken(this.props.currentProject._id);
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Project Token Reset', {projectId:this.props.currentProject._id});
-        }
+    apiResetModal =()=> {
+        this.props.openModal({
+            id: this.state.resetModalId,
+            onClose: () => '',
+            content: ResetAPIKey,
+            onConfirm: () => {
+                return this.props.resetProjectToken(this.props.currentProject._id)
+                    .then(() => {
+                        if(window.location.href.indexOf('localhost') <= -1){
+                            this.context.mixpanel.track('Project Token Reset', {projectId:this.props.currentProject._id});
+                        }
+                });
+             },
+        });
     }
 
     render() {
@@ -89,7 +102,7 @@ export class APISettings extends Component {
                                 <RenderIfAdmin>
                                     <button
                                         className="bs-Button bs-Button--blue"
-                                        onClick={this.resetToken}
+                                        onClick={this.apiResetModal}
                                     >
                                         <ShouldRender if={!this.props.isRequesting}>
                                             <span>Reset API Key</span>
@@ -118,7 +131,7 @@ const mapStateToProps = state => (
 );
 
 const mapDispatchToProps = dispatch => (
-    bindActionCreators({ resetProjectToken }, dispatch)
+    bindActionCreators({ resetProjectToken, openModal }, dispatch)
 );
 
 APISettings.propTypes = {
@@ -128,6 +141,7 @@ APISettings.propTypes = {
         PropTypes.oneOf([null,undefined])
     ]),
     isRequesting: PropTypes.oneOf([null,undefined,true,false]),
+    openModal: PropTypes.func.isRequired
 }
 
 APISettings.contextTypes = {
