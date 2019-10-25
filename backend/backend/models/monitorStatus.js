@@ -21,7 +21,6 @@ var monitorStatusSchema = new Schema({
     createdAt: {
         type: Date,
         default: Date.now,
-    },
-    __v: { type: Number, select: false }
+    }
 });
 module.exports = mongoose.model('MonitorStatus', monitorStatusSchema);

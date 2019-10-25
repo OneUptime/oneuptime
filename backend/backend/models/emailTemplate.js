@@ -17,15 +17,13 @@ var emailTemplateSchema = new Schema({
         required: true
     },
     allowedVariables: [{ type: String, required: true }],
-    deleted: { type: Boolean, default: false, select: false },
+    deleted: { type: Boolean, default: false },
 
     deletedAt: {
-        type: Date,
-        select: false
+        type: Date
     },
 
-    deletedById: { type: String, ref: 'User', select: false },
-    __v: { type: Number, select: false }
+    deletedById: { type: String, ref: 'User' },
 });
 
 module.exports = mongoose.model('EmailTemplate', emailTemplateSchema);

@@ -23,17 +23,14 @@ var scheduledEventsSchema = new Schema({
     },
     deleted: {
         type: Boolean,
-        default: false,
-        select: false
+        default: false
     },
     deletedAt: {
-        type: Date,
-        select: false
+        type: Date
     },
     deletedById: {
         type: String,
-        ref: 'User',
-        select: false
+        ref: 'User'
     },
     startDate: {
         type: Date
@@ -59,8 +56,7 @@ var scheduledEventsSchema = new Schema({
     alertSubscriber: {
         type: Boolean,
         default: false
-    },
-    __v: { type: Number, select: false }
+    }
 });
 
 module.exports = mongoose.model('ScheduledEvent', scheduledEventsSchema);

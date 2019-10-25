@@ -1,6 +1,6 @@
 module.exports = {
 
-    findBy: async function (query, skip, limit, exclude) {
+    findBy: async function (query, skip, limit) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -12,13 +12,8 @@ module.exports = {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
-
-        if(!exclude) exclude = schemaConfig.excludeDefault;
-
-        const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
-
         try {
-            var users = await UserModel.find(query, excludeFields)
+            var users = await UserModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -52,7 +47,6 @@ module.exports = {
         userModel.adminNotes = data.adminNotes || null;
         try {
             var user = await userModel.save();
-            user = await this.findOneBy({ _id: user._id });
         } catch (error) {
             ErrorService.log('userModel.save', error);
             throw error;
@@ -75,17 +69,13 @@ module.exports = {
         return count;
     },
 
-    deleteBy: async function (query, userId, exclude) {
+    deleteBy: async function (query, userId) {
 
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-
-        if(!exclude) exclude = schemaConfig.excludeDefault;
-
-        const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
 
         try {
             var user = await UserModel.findOneAndUpdate(query, {
@@ -95,8 +85,7 @@ module.exports = {
                     deletedAt: Date.now()
                 }
             }, {
-                new: true,
-                projection: excludeFields
+                new: true
             });
         } catch (error) {
             ErrorService.log('UserModel.updateMany', error);
@@ -105,18 +94,13 @@ module.exports = {
         return user;
     },
 
-    findOneBy: async function (query, exclude) {
+    findOneBy: async function (query) {
         if (!query) {
             query = {};
         }
         if (!query.deleted) query.deleted = false;
-
-        if(!exclude) exclude = schemaConfig.excludeDefault;
-
-        const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
-
         try {
-            var user = await UserModel.findOne(query, excludeFields)
+            var user = await UserModel.findOne(query)
                 .sort([['createdAt', -1]]);
         } catch (error) {
             ErrorService.log('UserModel.findOne', error);
@@ -125,7 +109,7 @@ module.exports = {
         return user;
     },
 
-    update: async function (data, exclude) {
+    update: async function (data) {
         var _this = this;
         if (!data._id) {
             try {
@@ -136,11 +120,6 @@ module.exports = {
                 throw error;
             }
         } else {
-            
-            if(!exclude) exclude = schemaConfig.excludeDefault;
-
-            const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
-
             try {
                 var user = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
             } catch (error) {
@@ -174,7 +153,7 @@ module.exports = {
                 isBlocked = data.isBlocked;
             }
 
-            var deleted = user.deleted || false;
+            var deleted = user.deleted;
             var deletedById = user.deletedById;
             var deletedAt = user.deletedAt;
             if (data.deleted === false) {
@@ -213,8 +192,7 @@ module.exports = {
                         adminNotes
                     }
                 }, {
-                    new: true,
-                    projection: excludeFields
+                    new: true
                 });
             } catch (error) {
                 ErrorService.log('UserModel.findOneAndUpdate', error);
@@ -224,19 +202,15 @@ module.exports = {
         }
     },
 
-    closeTutorialBy: async function (query, type, data, exclude) {
+    closeTutorialBy: async function (query, type, data) {
         if (!query) query = {};
         if (!data) data = {};
-        if(!exclude) exclude = schemaConfig.excludeDefault;
-
-        const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
-
 
         type = type.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
         data[type] = { show: false };
 
         try {
-            var tutorial = await UserModel.findOneAndUpdate(query, { $set: { tutorial: data } }, { new: true, projection: excludeFields });
+            var tutorial = await UserModel.findOneAndUpdate(query, { $set: { tutorial: data } }, { new: true });
         } catch (error) {
             ErrorService.log('UserModel.findOneAndUpdate', error);
             throw error;
@@ -649,7 +623,7 @@ module.exports = {
 
     getAllUsers: async function (skip, limit) {
         var _this = this;
-        let users = await _this.findBy({ _id: { $ne: null }, deleted: { $ne: null } }, skip, limit, ['__v']);
+        let users = await _this.findBy({ _id: { $ne: null }, deleted: { $ne: null } }, skip, limit);
         users = await Promise.all(users.map(async (user) => {
             // find user subprojects and parent projects
             var userProjects = await ProjectService.findBy({ 'users.userId': user._id });
@@ -671,7 +645,7 @@ module.exports = {
         const _this = this;
         query.deleted = true;
 
-        let user = await _this.findBy(query, null, null, ['__v']);
+        let user = await _this.findBy(query);
         if (user && user.length > 1) {
             const users = await Promise.all(user.map(async (user) => {
                 const userId = user._id;
@@ -680,7 +654,7 @@ module.exports = {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
-                }, ['__v']);
+                });
                 return user;
             }));
             return users;
@@ -693,7 +667,7 @@ module.exports = {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
-                }, ['__v']);
+                });
             }
             return user;
         }
@@ -704,13 +678,13 @@ module.exports = {
         let adminNotes = (await _this.update({
             _id: userId,
             adminNotes: notes
-        }, ['__v'])).adminNotes;
+        })).adminNotes;
         return adminNotes;
     },
 
-    searchUsers: async function (query, skip, limit, exclude) {
+    searchUsers: async function (query, skip, limit) {
         var _this = this;
-        let users = await _this.findBy(query, skip, limit, exclude);
+        let users = await _this.findBy(query, skip, limit);
         users = await Promise.all(users.map(async (user) => {
             // find user subprojects and parent projects
             var userProjects = await ProjectService.findBy({ 'users.userId': user._id });
@@ -756,4 +730,3 @@ var jwtKey = require('../config/keys');
 var { BACKEND_HOST } = process.env;
 var VerificationTokenModel = require('../models/verificationToken');
 var MailService = require('../services/mailService');
-var schemaConfig = require('../config/mongoSchema');

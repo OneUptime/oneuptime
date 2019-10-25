@@ -103,10 +103,10 @@ const mapStateToProps = (state) => {
 
 ProjectDeleteBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
+    project: PropTypes.object.isRequired, 
     deleteProject: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
-    project: PropTypes.object.isRequired
 }
 
 ProjectDeleteBox.contextTypes = {

@@ -15,8 +15,7 @@ var alertChargeSchema = new Schema({
     alertId : { type: String, ref: 'Alert' },
     monitorId: { type: String, ref: 'Monitor' },
     incidentId: { type: String, ref: 'Incident' },
-    sentTo: { type: String },
-    __v: { type: Number, select: false }
+    sentTo: { type: String }
 });
 
 module.exports = mongoose.model('AlertCharge', alertChargeSchema);

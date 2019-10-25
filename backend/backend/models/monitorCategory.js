@@ -18,19 +18,15 @@ var monitorCategorySchema = new Schema({
     },
     deleted: {
         type: Boolean,
-        default: false,
-        select: false
+        default: false
     },
     deletedAt: {
-        type: Date,
-        select: false
+        type: Date
     },
     deletedById: {
         type: String,
-        ref: 'User',
-        select: false
-    },
-    __v: { type: Number, select: false }
+        ref: 'User'
+    }
 });
 
 module.exports = mongoose.model('MonitorCategory', monitorCategorySchema);

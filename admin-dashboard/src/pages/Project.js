@@ -41,7 +41,7 @@ class Project extends Component {
                                                 <ProjectDetails />
                                             </div>
                                             <div className="Box-root Margin-bottom--12">
-                                                <AdminNotes id={this.props.project ? this.props.project._id : ''} addNote={this.props.addProjectNote} initialValues={this.props.initialValues} />
+                                            <AdminNotes id={this.props.project ? this.props.project._id : ''} addNote={this.props.addProjectNote} initialValues={this.props.initialValues} />
                                             </div>
                                             <ShouldRender if={this.props.project && !this.props.project.deleted && !this.props.project.isBlocked}>
                                                 <div className="Box-root Margin-bottom--12">
@@ -94,7 +94,6 @@ Project.contextTypes = {
 
 Project.propTypes = {
     addProjectNote: PropTypes.func.isRequired,
-    project: PropTypes.object.isRequired,
     initialValues: PropTypes.object,
     match: PropTypes.object.isRequired,
     fetchProject: PropTypes.func.isRequired,

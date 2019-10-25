@@ -94,7 +94,6 @@ const mapDispatchToProps = dispatch => (
 
 const mapStateToProps = (state) => {
     const project = state.project.project.project;
-    
     return {
         project,
         isRequesting: state.project && state.project.blockProject && state.project.blockProject.requesting,

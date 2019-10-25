@@ -14,15 +14,13 @@ var leadSchema = new Schema({
 
     createdAt: { type: Date, default: Date.now },
 
-    deleted: { type: Boolean, default: false, select: false },
+    deleted: { type: Boolean, default: false},
 
     deletedAt: {
-        type: Date,
-        select: false
+        type: Date
     },
 
-    deletedById: { type: String, ref: 'User', select: false },
-    __v: { type: Number, select: false }
+    deletedById: { type: String, ref: 'User' },
 
 });
 module.exports = mongoose.model('Lead', leadSchema);

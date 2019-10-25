@@ -1,6 +1,6 @@
 module.exports = {
 
-    findBy: async function (query, limit, skip, exclude) {
+    findBy: async function (query, limit, skip) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -12,13 +12,8 @@ module.exports = {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
-
-        if(!exclude) exclude = schemaConfig.excludeDefault;
-
-        const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
-
         try {
-            var projects = await ProjectModel.find(query, excludeFields)
+            var projects = await ProjectModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -56,7 +51,6 @@ module.exports = {
         projectModel.adminNotes = data.adminNotes || null;
         try {
             var project = await projectModel.save();
-            project = await this.findOneBy({ _id: project._id });
         } catch (error) {
             ErrorService.log('projectModel.save', error);
             throw error;
@@ -74,16 +68,11 @@ module.exports = {
         return count;
     },
 
-    deleteBy: async function (query, userId, exclude) {
+    deleteBy: async function (query, userId) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
-
-        if(!exclude) exclude = schemaConfig.excludeDefault;
-
-        const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
-
         try {
             var project = await ProjectModel.findOneAndUpdate(query, {
                 $set: {
@@ -92,8 +81,7 @@ module.exports = {
                     deletedAt: Date.now()
                 }
             }, {
-                new: true,
-                projection: excludeFields
+                new: true
             });
         } catch (error) {
             ErrorService.log('ProjectModel.findOneAndUpdate', error);
@@ -145,18 +133,14 @@ module.exports = {
         return project;
     },
 
-    findOneBy: async function (query, exclude) {
+    findOneBy: async function (query) {
         if (!query) {
             query = {};
         }
         if (!query.deleted) query.deleted = false;
 
-        if(!exclude) exclude = schemaConfig.excludeDefault;
-
-        const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
-
         try {
-            var project = await ProjectModel.findOne(query, excludeFields)
+            var project = await ProjectModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('userId', 'name')
                 .populate('parentProjectId', 'name');
@@ -167,7 +151,7 @@ module.exports = {
         return project;
     },
 
-    update: async function (data, exclude) {
+    update: async function (data) {
         var _this = this;
         if (!data._id) {
             try {
@@ -178,11 +162,6 @@ module.exports = {
             }
             return project;
         } else {
-
-            if(!exclude) exclude = schemaConfig.excludeDefault;
-
-            const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
-
             try {
                 var oldProject = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
             } catch (error) {
@@ -212,7 +191,7 @@ module.exports = {
                 isBlocked = data.isBlocked;
             }
 
-            var deleted = oldProject.deleted || false;
+            var deleted = oldProject.deleted;
             var deletedById = oldProject.deletedById;
             var deletedAt = oldProject.deletedAt;
             if (data.deleted === false) {
@@ -243,8 +222,7 @@ module.exports = {
                         adminNotes
                     }
                 }, {
-                    new: true,
-                    projection: excludeFields,
+                    new: true
                 });
             } catch (error) {
                 ErrorService.log('ProjectModel.findByIdAndUpdate', error);
@@ -253,17 +231,13 @@ module.exports = {
             return updatedProject;
         }
     },
-    updateAlertOptions: async function (data, exclude) {
+    updateAlertOptions: async function (data) {
         var projectId = data._id;
         var userId = data.userId;
         var project = await ProjectModel.findById(projectId).lean();
         var currentBalance = project.balance;
         var { minimumBalance, rechargeToBalance } = data.alertOptions;
         var updatedProject = {};
-
-        if(!exclude) exclude = schemaConfig.excludeDefault;
-
-        const excludeFields = schemaConfig.mapToMongodbProjectionDocument(exclude);
 
         if (!data.alertEnable) {
             updatedProject = await ProjectModel.findByIdAndUpdate(
@@ -272,7 +246,7 @@ module.exports = {
                     $set: {
                         alertEnable: false,
                     }
-                }, { new: true, projection: excludeFields });
+                }, { new: true });
             return updatedProject;
         }
 
@@ -285,7 +259,7 @@ module.exports = {
                         alertEnable: data.alertEnable,
                         alertOptions: data.alertOptions
                     }
-                }, { new: true, projection: excludeFields });
+                }, { new: true });
             return updatedProject;
         }
         var chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, projectId, data.alertOptions);
@@ -299,7 +273,7 @@ module.exports = {
                         alertEnable: data.alertEnable,
                         alertOptions: data.alertOptions
                     }
-                }, { new: true, projection: excludeFields });
+                }, { new: true });
             return updatedProject;
         }
         else if (chargeForBalance && chargeForBalance.client_secret) {
@@ -519,7 +493,7 @@ module.exports = {
 
     getAllProjects: async function (skip, limit) {
         var _this = this;
-        let projects = await _this.findBy({ parentProjectId: null, deleted: { $ne: null } }, limit, skip, ['__v']);
+        let projects = await _this.findBy({ parentProjectId: null, deleted: { $ne: null } }, limit, skip);
 
         projects = await Promise.all(projects.map(async (project) => {
             // get both sub-project users and project users
@@ -536,7 +510,7 @@ module.exports = {
     getUserProjects: async function (userId, skip, limit) {
         var _this = this;
         // find user subprojects and parent projects
-        var userProjects = await _this.findBy({ 'users.userId': userId }, null, null, ['__v']);
+        var userProjects = await _this.findBy({ 'users.userId': userId });
         var parentProjectIds = [];
         var projectIds = [];
         if (userProjects.length > 0) {
@@ -548,7 +522,7 @@ module.exports = {
 
         // query data
         const query = { $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }] };
-        projects = await _this.findBy(query, limit || 10, skip || 0, ['__v']);
+        projects = await _this.findBy(query, limit || 10, skip || 0);
         var count = await _this.countBy(query);
 
         // add project monitors
@@ -560,7 +534,7 @@ module.exports = {
                 project.users = users;
             } else {
                 users = await Promise.all(project.users.map(async (user) => {
-                    return await UserService.findOneBy({ _id: user.userId }, ['__v']);
+                    return await UserService.findOneBy({ _id: user.userId });
                 }));
                 project.users = users;
             }
@@ -573,7 +547,7 @@ module.exports = {
         const _this = this;
         query.deleted = true;
 
-        let project = await _this.findBy(query, null, null, ['__v']);
+        let project = await _this.findBy(query);
         if (project && project.length > 1) {
             const projects = await Promise.all(project.map(async (project) => {
                 const projectId = project._id;
@@ -588,7 +562,7 @@ module.exports = {
                     stripeSubscriptionId: subscription.stripeSubscriptionId,
                     stripeExtraUserSubscriptionId: subscription.stripeExtraUserSubscriptionId,
                     stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
-                }, ['__v']);
+                });
                 let projectSeats = project.seats;
                 await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
                 await ScheduleService.restoreBy({ projectId, deleted: true });
@@ -603,7 +577,7 @@ module.exports = {
             if (project) {
                 const projectId = project._id;
                 let projectOwner = project.users.find(user => user.role === 'Owner');
-                projectOwner = await UserService.findOneBy({ _id: projectOwner.userId, }, ['__v']);
+                projectOwner = await UserService.findOneBy({ _id: projectOwner.userId });
                 const subscription = await PaymentService.subscribePlan(project.stripePlanId, projectOwner.stripeCustomerId);
                 project = await _this.update({
                     _id: projectId,
@@ -613,7 +587,7 @@ module.exports = {
                     stripeSubscriptionId: subscription.stripeSubscriptionId,
                     stripeExtraUserSubscriptionId: subscription.stripeExtraUserSubscriptionId,
                     stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
-                }, ['__v']);
+                });
                 let projectSeats = project.seats;
                 await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
                 await integrationService.restoreBy({ projectId, deleted: true });
@@ -630,13 +604,13 @@ module.exports = {
         let adminNotes = (await _this.update({
             _id: projectId,
             adminNotes: notes
-        }, ['__v'])).adminNotes;
+        })).adminNotes;
         return adminNotes;
     },
 
-    searchProjects: async function (query, skip, limit, exclude) {
+    searchProjects: async function (query, skip, limit) {
         var _this = this;
-        let projects = await _this.findBy(query, limit, skip, exclude);
+        let projects = await _this.findBy(query, limit, skip);
 
         projects = await Promise.all(projects.map(async (project) => {
             // get both sub-project users and project users
@@ -665,4 +639,3 @@ var EscalationService = require('./escalationService');
 var StripeService = require('./stripeService');
 var TeamService = require('./teamService');
 var StatusPageService = require('./statusPageService');
-var schemaConfig = require('../config/mongoSchema');

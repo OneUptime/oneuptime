@@ -17,8 +17,7 @@ var verificationToken = new Schema({
         required: true,
         default: Date.now,
         expires: Number(EMAIL_VERIFY_TIME) || 3600
-    },
-    __v: { type: Number, select: false }
+    }
 });
 
 module.exports = mongoose.model('VerificationToken', verificationToken);

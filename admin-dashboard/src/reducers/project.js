@@ -147,7 +147,7 @@ export default function project(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE
             });
 
-            // fetch a project
+                        // fetch a project
         case FETCH_PROJECT_REQUEST:
 
             return Object.assign({}, state, {
@@ -186,6 +186,7 @@ export default function project(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...INITIAL_STATE
             });
+
 
         // fetch userProjects
         case FETCH_USER_PROJECTS_REQUEST:

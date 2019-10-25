@@ -12,8 +12,7 @@ var loginIPlogSchema = new Schema({
     },
     ipLocation: {
         type: Object
-    },
-    __v: { type: Number, select: false }
+    }
 });
 
 module.exports = mongoose.model('LoginIPLog', loginIPlogSchema);
