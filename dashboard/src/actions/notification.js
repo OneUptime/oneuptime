@@ -52,6 +52,13 @@ export function notificationReadSuccess(notificationId) {
 	};
 }
 
+export function allNotificationReadSuccess(userId) {
+	return {
+		type: types.ALL_NOTIFICATION_READ_SUCCESS,
+		payload: userId
+	};
+}
+
 // Calls the API to get all notifications.
 export function fetchNotifications(projectId) {
 	return function (dispatch) {
@@ -102,9 +109,26 @@ export function markAsRead(projectId, notificationId) {
 	};
 }
 
-export function markAllAsRead() {
+export function markAllAsRead(projectId) {
 	return function (dispatch) {
-
+		var userId = User.getUserId();
+		var promise = putApi(`notification/${projectId}/readAll`);
+		return promise.then(function () {
+			dispatch(allNotificationReadSuccess(userId));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else {
+				error = 'Network Error';
+			}
+			dispatch(fetchNotificationsError(errors(error)));
+		});
 	}
 }
 

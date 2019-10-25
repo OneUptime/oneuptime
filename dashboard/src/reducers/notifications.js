@@ -5,17 +5,18 @@ import {
     FETCH_NOTIFICATIONS_SUCCESS,
     FETCH_NOTIFICATIONS_REQUEST,
     FETCH_NOTIFICATIONS_RESET,
-    NOTIFICATION_READ_SUCCESS
+    NOTIFICATION_READ_SUCCESS,
+    ALL_NOTIFICATION_READ_SUCCESS
 } from '../constants/notification';
 
 const initialState = {
-    notifications:{
-        error:null, 
-        requesting: false, 
-        success:false,
-        notifications:[]
+    notifications: {
+        error: null,
+        requesting: false,
+        success: false,
+        notifications: []
     },
-    notificationsVisible:false
+    notificationsVisible: false
 };
 
 export default (state = initialState, action) => {
@@ -36,7 +37,7 @@ export default (state = initialState, action) => {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    notifications : []
+                    notifications: []
                 },
             });
 
@@ -56,47 +57,60 @@ export default (state = initialState, action) => {
                     requesting: true,
                     error: null,
                     success: false,
-                    notifications:[]
+                    notifications: []
                 },
             });
 
         case FETCH_NOTIFICATIONS_RESET:
             return Object.assign({}, state, {
-                notifications:{
-                    error:null, 
-                    requesting: false, 
-                    success:false,
-                    notifications:[]
+                notifications: {
+                    error: null,
+                    requesting: false,
+                    success: false,
+                    notifications: []
                 },
-                notificationsVisible:false
+                notificationsVisible: false
             });
 
         case 'ADD_NOTIFICATION_BY_SOCKET':
-        var notify = state.notifications.notifications;
-              notify.unshift(action.payload);
+            var notify = state.notifications.notifications;
+            notify.unshift(action.payload);
             return Object.assign({}, state, {
-                notifications:{
-                    error:null, 
-                    requesting: false, 
-                    success:true,
+                notifications: {
+                    error: null,
+                    requesting: false,
+                    success: true,
                     notifications: notify
                 }
             });
 
         case NOTIFICATION_READ_SUCCESS:
             return Object.assign({}, state, {
-                notifications:{
+                notifications: {
                     ...state.notifications,
-                    notifications:state.notifications.notifications.map(notification =>{
-                        if(notification._id === action.payload.notificationId._id){
+                    notifications: state.notifications.notifications.map(notification => {
+                        if (notification._id === action.payload.notificationId._id) {
                             return {
                                 ...notification,
                                 read: notification.read.concat([action.payload.userId])
                             }
                         }
-                        else{
-                          return notification;
+                        else {
+                            return notification;
                         }
+                    })
+                }
+            });
+
+        case ALL_NOTIFICATION_READ_SUCCESS:
+            return Object.assign({}, state, {
+                notifications: {
+                    ...state.notifications,
+                    notifications: state.notifications.notifications.map(notification => {
+                        return {
+                            ...notification,
+                            read: notification.read.concat([action.payload])
+                        };
                     })
                 }
             });

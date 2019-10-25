@@ -20,10 +20,12 @@ class NotificationMenu extends Component {
         MessageBoxId: uuid.v4()
     }
 
-    markAllAsRead() {
-        this.props.markAllAsRead();
+    markAllAsRead(projectId) {
+        this.props.markAllAsRead(projectId);
         if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Notification Marked All As Read');
+            this.context.mixpanel.track('Notification Marked All As Read', {
+                projectId: projectId
+            });
         }
     }
 
@@ -97,7 +99,7 @@ class NotificationMenu extends Component {
                                         >
                                             <span style={{ color: '#24b47e', paddingLeft: '15px', fontSize: '14px', fontWeight: 'medium' }}>NOTIFICATIONS</span>
 
-                                            <span style={{ cursor: 'pointer' }} onClick={() => this.markAllAsRead()}>Mark All As Read</span>
+                                            <span style={{ cursor: 'pointer' }} onClick={() => this.markAllAsRead(this.props.projectId)}>Mark All As Read</span>
                                         </div>
                                     </div>
                                     <div className="Box-root Padding-vertical--8">
@@ -146,7 +148,8 @@ const mapStateToProps = (state) => {
     return {
         notifications: state.notifications.notifications,
         notificationsVisible: state.notifications.notificationsVisible,
-        balance: state.project.currentProject && state.project.currentProject.balance
+        balance: state.project.currentProject && state.project.currentProject.balance,
+        projectId: state.project.currentProject && state.project.currentProject._id
     }
 }
 
@@ -167,7 +170,8 @@ NotificationMenu.propTypes = {
     stripe: PropTypes.object,
     notificationsVisible: PropTypes.bool,
     openModal: PropTypes.func,
-    balance: PropTypes.number
+    balance: PropTypes.number,
+    projectId: PropTypes.string
 }
 
 NotificationMenu.contextTypes = {
