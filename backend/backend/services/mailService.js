@@ -385,7 +385,7 @@ module.exports = {
     sendChangeRoleEmailToUser: async function (project, addedByUser, email, role) {
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
-            to: 'daviddisu8@gmail.com',
+            to: email,
             subject: 'You\'ve been assigned a new role',
             template: 'change_role',
             context: {
@@ -397,7 +397,6 @@ module.exports = {
 
         try {
             var info = await mailer.sendMail(mailOptions);
-            await this.sendIncidentCreatedMail(new Date, 'Sample Monitor', email, addedByUser._id, addedByUser.name, '56789gvfds6df78fd', 'https://fyipe.com', 'https://fyipe.com', '23456krewsasdfkgjfdksk343k');
         } catch (error) {
             ErrorService.log('mailer.sendMail', error);
             throw error;
