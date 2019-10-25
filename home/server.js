@@ -84,6 +84,10 @@ app.get('/legal/hipaa', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'hipaa',requestDemoCta:false});
 });
 
+app.get('/legal/pci', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'pci',requestDemoCta:false});
+});
+
 app.get('/legal/iso-27001', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'iso-27001',requestDemoCta:false});
 });

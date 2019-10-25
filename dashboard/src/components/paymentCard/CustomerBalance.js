@@ -134,7 +134,7 @@ export class CustomerBalance extends Component {
                                                         <label className="Checkbox">
                                                             <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
                                                                 <label>
-                                                                    <p>Balance: <span style={{ fontWeight: 'bold' }}>{`${balance}$`}</span></p>
+                                                                    <p>Current balance: <span style={{ fontWeight: 'bold' }}>{`${balance}$`}</span></p>
                                                                 </label>
                                                             </div>
                                                         </label>
