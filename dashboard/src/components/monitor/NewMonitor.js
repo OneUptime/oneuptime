@@ -214,8 +214,8 @@ class NewMonitor extends Component {
     monitorTypeDescription = {
         'url': 'Monitor any resources (Websites, API, Servers, IoT Devices and more) constantly and notify your team when they do not behave the way you want.',
         'device': 'Monitor IoT devices constantly and notify your team when they do not behave the way you want.',
-        'manual': 'Manual monitors do not monitor any resource. You can change monitor status by using Fyipe’s API <link to docs>. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.',
-        'api': 'Monitor REST endpoints constantly and notify your team when they do not behave the way you want.',
+        'manual': (<>Manual monitors do not monitor any resource. You can change monitor status by using <a href="https://docs.fyipe.com">Fyipe’s API</a>. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.</>),
+        'api': (<>Monitor <a href="https://en.wikipedia.org/wiki/Representational_state_transfer">REST</a> endpoints constantly and notify your team when they do not behave the way you want.</>),
         'script': 'Run custom script when monitor status changes.',
         'server-monitor': 'Monitor servers constantly and notify your team when they do not behave the way you want.',
     }
@@ -333,7 +333,7 @@ class NewMonitor extends Component {
                                                                 <option value="script">Script</option>
                                                                 <option value="server-monitor">Server</option>
                                                             </Field>
-                                                            <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                            <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ marginTop: 10 }}>
                                                                 <span>{this.monitorTypeDescription[[this.state.type]]}</span>
                                                             </span>
                                                         </div>
@@ -544,7 +544,6 @@ NewMonitor.displayName = 'NewMonitor';
 
 let NewMonitorForm = new reduxForm({
     form: 'NewMonitor',
-    enableReinitialize: true,
     destroyOnUnmount: false,
 })(NewMonitor);
 

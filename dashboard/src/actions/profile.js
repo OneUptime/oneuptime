@@ -232,6 +232,52 @@ export function sendVerificationSMSError(error) {
 	};
 }
 
+export function sendEmailVerificationRequest() {
+	return {
+		type: types.SEND_EMAIL_VERIFICATION_REQUEST,
+	};
+}
+
+export function sendEmailVerificationSuccess(payload) {
+	return {
+		type: types.SEND_EMAIL_VERIFICATION_SUCCESS,
+		payload
+	};
+}
+
+export function sendEmailVerificationError(error) {
+	return {
+		type: types.SEND_EMAIL_VERIFICATION_FAILURE,
+		payload: error
+	};
+}
+
+export function sendEmailVerificationLink(values) {
+	return function(dispatch){
+
+		var promise = postApi('user/resend', values);
+		dispatch(sendEmailVerificationRequest());
+
+		promise.then(function(data){
+			dispatch(sendEmailVerificationSuccess(data));
+		}, function(error){
+			if(error && error.response && error.response.data)
+				error = error.response.data;
+			if(error && error.data){
+				error = error.data;
+			}
+			if(error && error.message){
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(sendEmailVerificationError(errors(error)));
+		});
+
+	};
+}
+
 export function sendVerificationSMS(projectId, values) {
 
 	return function (dispatch) {

@@ -43,6 +43,21 @@ describe('Login API', () => {
         await browser.close();
     });
 
+    it('Users cannot login with incorrect credentials', async () => {
+        await page2.goto(utils.ACCOUNTS_URL + '/login');
+        await page2.waitForSelector('#login-button');
+        await page2.click('input[name=email]');
+        await page2.type('input[name=email]', utils.generateWrongEmail());
+        await page2.click('input[name=password]');
+        await page2.type('input[name=password]', utils.generatePassword());
+        await page2.click('button[type=submit]');
+        await page2.waitFor(10000);
+        const html = await page2.$eval('#main-body', (e) => {
+            return e.innerHTML;
+        });
+        html.should.containEql('User does not exist.');
+    }, 160000);
+
     it('Should login valid User', async () => {
         await page1.goto(utils.ACCOUNTS_URL + '/register', { waitUntil: 'networkidle2' });
         await page1.waitForSelector('#email');
@@ -103,20 +118,4 @@ describe('Login API', () => {
         localStorageData.should.have.property('email', email);
         page1.url().should.containEql(utils.DASHBOARD_URL);
     }, 160000);
-
-    it('Users cannot login with incorrect credentials', async () => {
-        await page2.goto(utils.ACCOUNTS_URL + '/login');
-        await page2.waitForSelector('#login-button');
-        await page2.click('input[name=email]');
-        await page2.type('input[name=email]', utils.generateWrongEmail());
-        await page2.click('input[name=password]');
-        await page2.type('input[name=password]', utils.generatePassword());
-        await page2.click('button[type=submit]');
-        await page2.waitFor(10000);
-        const html = await page2.$eval('#main-body', (e) => {
-            return e.innerHTML;
-        });
-        html.should.containEql('User does not exist.');
-    }, 160000);
-
 });
