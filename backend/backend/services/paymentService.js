@@ -30,17 +30,17 @@ module.exports = {
     //Returns: promise
     createCustomer: async function (stripeToken, email, companyName) {
 
-            try{
-                var customer = await stripe.customers.create({
-                    source: stripeToken,
-                    email: email,
-                    description: companyName
-                });
-                return customer.id;
-            }catch(error){
-                ErrorService.log('stripe.customers.create', error);
-                throw error;
-            }
+        try{
+            var customer = await stripe.customers.create({
+                source: stripeToken,
+                email: email,
+                description: companyName
+            });
+            return customer.id;
+        } catch(error) {
+            ErrorService.log('stripe.customers.create', error);
+            throw error;
+        }
     },
 
     // eslint-disable-next-line no-unused-vars
