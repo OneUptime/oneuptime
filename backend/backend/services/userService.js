@@ -167,6 +167,7 @@ module.exports = {
             var coupon = data.coupon || user.coupon;
             var disabled = data.disabled || false;
             var adminNotes = data.adminNotes || user.adminNotes;
+            var isVerified = data.email ? data.email === user.email && user.isVerified : user.isVerified;
 
             var isBlocked = user.isBlocked;
             if (typeof data.isBlocked === 'boolean') {
@@ -187,6 +188,7 @@ module.exports = {
                     $set: {
                         name: name,
                         email: email,
+                        isVerified: isVerified,
                         password: password,
                         companyName: companyName,
                         companyRole: companyRole,

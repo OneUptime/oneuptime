@@ -390,7 +390,6 @@ router.put('/profile', getUser, async function (req, res) {
         name: 'profilePic',
         maxCount: 1
     }]);
-
     upload(req, res, async function (error) {
         var userId = req.user ? req.user.id : null;
         var data = req.body;
@@ -399,7 +398,6 @@ router.put('/profile', getUser, async function (req, res) {
         if (error) {
             return sendErrorResponse(req, res, error);
         }
-
         if (req.files && req.files.profilePic && req.files.profilePic[0].filename) {
             data.profilePic = req.files.profilePic[0].filename;
         }
@@ -560,6 +558,7 @@ router.get('/profile', getUser, async function (req, res) {
             companyRole: user.companyRole,
             companySize: user.companySize,
             referral: user.referral,
+            isVerified: user.isVerified,
             companyPhoneNumber: user.companyPhoneNumber ? user.companyPhoneNumber : '',
             alertPhoneNumber: user.alertPhoneNumber ? user.alertPhoneNumber : '',
             profilePic: user.profilePic,
