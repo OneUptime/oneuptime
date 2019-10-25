@@ -213,7 +213,7 @@ class CreateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
+                                                        <label className="Checkbox" htmlFor="showEventOnStatusPage">
                                                             <Field
                                                                 component="input"
                                                                 type="checkbox"
@@ -226,8 +226,10 @@ class CreateSchedule extends React.Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Show this event on Status Page</span></label>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Show this event on Status Page</span>
+                                                                </span>
                                                             </div>
                                                         </label>
 
@@ -239,7 +241,7 @@ class CreateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
+                                                        <label className="Checkbox" htmlFor="callScheduleOnEvent">
                                                             <Field
                                                                 component="input"
                                                                 type="checkbox"
@@ -252,8 +254,10 @@ class CreateSchedule extends React.Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Alert your team members who are on call when this event starts</span></label>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Alert your team members who are on call when this event starts</span>
+                                                                </span>
                                                             </div>
                                                         </label>
                                                     </div>
@@ -264,7 +268,7 @@ class CreateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
+                                                        <label className="Checkbox" htmlFor="alertSubscriber">
                                                             <Field
                                                                 component="input"
                                                                 type="checkbox"
@@ -277,8 +281,10 @@ class CreateSchedule extends React.Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Alert subscribers about this scheduled event</span></label>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Alert subscribers about this scheduled event</span>
+                                                                </span>
                                                             </div>
                                                         </label>
 
@@ -290,7 +296,7 @@ class CreateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
+                                                        <label className="Checkbox" htmlFor="monitorDuringEvent">
                                                             <Field
                                                                 component="input"
                                                                 type="checkbox"
@@ -303,8 +309,10 @@ class CreateSchedule extends React.Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Do not monitor this monitor during this event</span></label>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Do not monitor this monitor during this event</span>
+                                                                </span>
                                                             </div>
                                                         </label>
 

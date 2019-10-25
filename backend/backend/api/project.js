@@ -125,7 +125,7 @@ router.post('/create', getUser, async function (req, res) {
 
             try {
                 var stripeToken = await PaymentService.createToken(data.cardNumber, data.cvc, data.expiry.split('/')[0], data.expiry.split('/')[1], data.zipCode);
-                var customerId = await PaymentService.createCustomer(stripeToken, user);
+                var customerId = await PaymentService.createCustomer(stripeToken, user.email, user.companyName);
                 user = await UserService.update({ _id: userId, stripeCustomerId: customerId });
                 var subscriptionnew = await PaymentService.subscribePlan(stripePlanId, customerId);
                 if (!data.stripeSubscriptionId) {
