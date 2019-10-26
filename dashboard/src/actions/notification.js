@@ -68,19 +68,20 @@ export function fetchNotifications(projectId) {
 			dispatch(fetchNotificationsRequest());
 			dispatch(fetchNotificationsSuccess(notifications.data));
 		} catch (error) {
+			let payload;
 			if (error && error.response && error.response.data)
-				error = error.response.data;
+				payload = error.response.data;
 			if (error && error.data) {
-				error = error.data;
+				payload = error.data;
 			}
 			if (error && error.message) {
-				error = error.message;
+				payload = error.message;
 			}
 			else {
-				error = 'Network Error';
+				payload = 'Network Error';
 			}
 
-			dispatch(fetchNotificationsError(errors(error)));
+			dispatch(fetchNotificationsError(errors(payload)));
 		}
 	};
 }
@@ -93,19 +94,20 @@ export function markAsRead(projectId, notificationId) {
 
 			dispatch(notificationReadSuccess({ notificationId: notifications.data, userId }));
 		} catch (error) {
+			let payload;
 			if (error && error.response && error.response.data)
-				error = error.response.data;
+				payload = error.response.data;
 			if (error && error.data) {
-				error = error.data;
+				payload = error.data;
 			}
 			if (error && error.message) {
-				error = error.message;
+				payload = error.message;
 			}
 			else {
-				error = 'Network Error';
+				payload = 'Network Error';
 			}
 
-			dispatch(fetchNotificationsError(errors(error)));
+			dispatch(fetchNotificationsError(errors(payload)));
 		}
 	};
 }
@@ -118,19 +120,20 @@ export function markAllAsRead(projectId) {
 
 			dispatch(allNotificationReadSuccess(userId));
 		} catch (error) {
+			let payload;
 			if (error && error.response && error.response.data)
-				error = error.response.data;
+				payload = error.response.data;
 			if (error && error.data) {
-				error = error.data;
+				payload = error.data;
 			}
 			if (error && error.message) {
-				error = error.message;
+				payload = error.message;
 			}
 			else {
-				error = 'Network Error';
+				payload = 'Network Error';
 			}
 
-			dispatch(fetchNotificationsError(errors(error)));
+			dispatch(fetchNotificationsError(errors(payload)));
 		}
 	};
 }
@@ -142,19 +145,20 @@ export function billingActionTaken(projectId, notificationId, values) {
 
 			dispatch(notificationReadSuccess(notification));
 		} catch (error) {
+			let payload;
 			if (error && error.response && error.response.data)
-				error = error.response.data;
+				payload = error.response.data;
 			if (error && error.data) {
-				error = error.data;
+				payload = error.data;
 			}
 			if (error && error.message) {
-				error = error.message;
+				payload = error.message;
 			}
 			else {
-				error = 'Network Error';
+				payload = 'Network Error';
 			}
 
-			dispatch(fetchNotificationsError(errors(error)));
+			dispatch(fetchNotificationsError(errors(payload)));
 		}
 	};
 }
