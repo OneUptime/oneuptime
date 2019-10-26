@@ -47,16 +47,6 @@ module.exports = {
         return count;
     },
 
-    get: async function (projectId, userId) {
-        try {
-            var notifications = await NotificationModel.find({ projectId, createdById: { $ne: userId } }).sort({ createdAt: -1 });
-        } catch (error) {
-            ErrorService.log('NotificationModel.find', error);
-            throw error;
-        }
-        return notifications;
-    },
-
     create: async function (projectId, message, userId, icon, meta) {
         if (!meta) {
             meta = {};
@@ -82,11 +72,11 @@ module.exports = {
         return notification;
     },
 
-    updateManyBy: async function (id, data) {
+    updateManyBy: async function (query, data) {
         try {
-            var notifications = await NotificationModel.updateMany({ projectId: id }, {
+            var notifications = await NotificationModel.updateMany(query, {
                 $addToSet: {
-                    read: data
+                    read: data.read
                 }
             });
         } catch (error) {

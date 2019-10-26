@@ -17,7 +17,6 @@ const getSubProjects = require('../middlewares/subProject').getSubProjects;
 var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 var sendListResponse = require('../middlewares/response').sendListResponse;
 var sendItemResponse = require('../middlewares/response').sendItemResponse;
-var sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 
 router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (req, res) {
     var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
@@ -51,10 +50,10 @@ router.put('/:projectId/readAll', getUser, isAuthorized, async function (req, re
     let projectId = req.params.projectId || null;
     let userId = req.user ? req.user.id : null;
     try {
-        let notifications = await NotificationService.updateManyBy(projectId, userId);
+        let notifications = await NotificationService.updateManyBy({ projectId }, { read: userId });
 
-        if (notifications) {
-            return sendEmptyResponse(req, res);
+        if (notifications.ok === 1 && notifications.n > 0) {
+            return sendItemResponse(req, res, { count: notifications.n, read: notifications.nModified });
         } else {
             var error = new Error('No notification found.');
             error.code = 400;

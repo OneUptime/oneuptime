@@ -61,15 +61,13 @@ export function allNotificationReadSuccess(userId) {
 
 // Calls the API to get all notifications.
 export function fetchNotifications(projectId) {
-	return function (dispatch) {
+	return async function (dispatch) {
+		try {
+			const notifications = await getApi(`notification/${projectId}`);
 
-		var promise = getApi(`notification/${projectId}`);
-
-		dispatch(fetchNotificationsRequest());
-
-		return promise.then(function (notifications) {
+			dispatch(fetchNotificationsRequest());
 			dispatch(fetchNotificationsSuccess(notifications.data));
-		}, function (error) {
+		} catch (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
 			if (error && error.data) {
@@ -81,18 +79,20 @@ export function fetchNotifications(projectId) {
 			else {
 				error = 'Network Error';
 			}
+
 			dispatch(fetchNotificationsError(errors(error)));
-		});
+		}
 	};
 }
 
 export function markAsRead(projectId, notificationId) {
-	return function (dispatch) {
-		var userId = User.getUserId();
-		var promise = putApi(`notification/${projectId}/${notificationId}/read`);
-		return promise.then(function (notifications) {
+	return async function (dispatch) {
+		try {
+			const userId = User.getUserId();
+			const notifications = await putApi(`notification/${projectId}/${notificationId}/read`);
+
 			dispatch(notificationReadSuccess({ notificationId: notifications.data, userId }));
-		}, function (error) {
+		} catch (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
 			if (error && error.data) {
@@ -104,18 +104,20 @@ export function markAsRead(projectId, notificationId) {
 			else {
 				error = 'Network Error';
 			}
+
 			dispatch(fetchNotificationsError(errors(error)));
-		});
+		}
 	};
 }
 
 export function markAllAsRead(projectId) {
-	return function (dispatch) {
-		var userId = User.getUserId();
-		var promise = putApi(`notification/${projectId}/readAll`);
-		return promise.then(function () {
+	return async function (dispatch) {
+		try {
+			const userId = User.getUserId();
+			await putApi(`notification/${projectId}/readAll`);
+
 			dispatch(allNotificationReadSuccess(userId));
-		}, function (error) {
+		} catch (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
 			if (error && error.data) {
@@ -127,17 +129,19 @@ export function markAllAsRead(projectId) {
 			else {
 				error = 'Network Error';
 			}
+
 			dispatch(fetchNotificationsError(errors(error)));
-		});
-	}
+		}
+	};
 }
 
 export function billingActionTaken(projectId, notificationId, values) {
-	return function (dispatch) {
-		var promise = putApi(`notification/${projectId}/${notificationId}`, values);
-		return promise.then(function (notification) {
+	return async function (dispatch) {
+		try {
+			var notification = putApi(`notification/${projectId}/${notificationId}`, values);
+
 			dispatch(notificationReadSuccess(notification));
-		}, function (error) {
+		} catch (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
 			if (error && error.data) {
@@ -149,7 +153,8 @@ export function billingActionTaken(projectId, notificationId, values) {
 			else {
 				error = 'Network Error';
 			}
+
 			dispatch(fetchNotificationsError(errors(error)));
-		});
+		}
 	};
 }
