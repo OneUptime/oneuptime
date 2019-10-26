@@ -58,6 +58,13 @@ class About extends Component {
                                                 </span>
                                             </td>
                                         </tr>
+                                        <tr>
+                                            <td style={{ paddingTop: '10px' }} colSpan={2}>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Fyipe is a product of <a href='https://hackerbay.io'>HackerBay, Inc.</a>. HackerBay, Inc. is a United States Delaware C Corporation.
+                                                </span>
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
