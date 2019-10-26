@@ -14,10 +14,6 @@ import { WebHookTableBody, WebHookBadgeTableBody } from './WebHookRow';
 
 class WebHookInput extends React.Component {
 
-	constructor(props) {
-		super(props);
-	}
-
 	deleteItem = () => {
 		return this.props.deleteWebHook(this.props.currentProject._id, this.props.data._id);
 	}
