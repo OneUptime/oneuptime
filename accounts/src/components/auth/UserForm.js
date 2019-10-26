@@ -149,6 +149,9 @@ let validate = function (values) {
 	if (!Validate.text(values.name))
 		error.name = 'Name is required.';
 
+	if(Validate.text(values.name) && !Validate.isValidName(values.name))
+		error.name = 'Name is not valid.';
+
 	if (!Validate.text(values.email))
 		error.email = 'Email is required.';
 

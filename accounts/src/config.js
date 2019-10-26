@@ -191,6 +191,13 @@ export const Validate = {
         }
 
         return true;
+    },
+
+    isValidName(name) { 
+        if(name.match("[A-Z][a-zA-Z][^#&<>\"~;$^%{}?]{1,20}$")) {
+            return true
+        }
+        return false;
     }
 }
 
