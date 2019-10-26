@@ -10,9 +10,11 @@ var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var MonitorCategoryService = require('../backend/services/monitorCategoryService');
 var MonitorCategoryModel = require('../backend/models/monitorCategory');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-var token, userId, projectId, monitorCategoryId, apiKey, monitorCategory = {
+var token, userId, airtableId, projectId, monitorCategoryId, apiKey, monitorCategory = {
     monitorCategoryName: 'New Monitor Category',
 };
 
@@ -25,8 +27,10 @@ describe('Monitor Category API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+            airtableId = res.body.airtableId;
+
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
                         email: userData.user.email,
                         password: userData.user.password
@@ -43,6 +47,7 @@ describe('Monitor Category API', function () {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should reject the request of an unauthenticated user', function (done) {
@@ -110,8 +115,8 @@ describe('User from other project have access to read / write and delete API.', 
             projectId = project._id;
             request.post('/user/signup').send(userData.newUser).end(function (err, res) {
                 userId = res.body.id;
-                VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                    request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+                VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                    request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                         request.post('/user/login').send({
                             email: userData.newUser.email,
                             password: userData.newUser.password
@@ -169,8 +174,8 @@ describe('Non-admin user access to create, delete and access monitor category.',
                 let project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                    request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+                VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                    request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                         request.post('/user/login').send({
                             email: userData.user.email,
                             password: userData.user.password
@@ -185,8 +190,8 @@ describe('Non-admin user access to create, delete and access monitor category.',
                                             projectIdSecondUser = res.body.project._id;
                                             emailToBeInvited = userData.newUser.email;
                                             userId = res.body.id;
-                                            VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                                                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+                                            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                                                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                                                     request.post(`/team/${projectId}`).set('Authorization', authorization).send({
                                                         emails: emailToBeInvited,
                                                         role: 'Member'
@@ -350,7 +355,7 @@ describe('Monitor Category API - Check pagination for 12 monitor categories', fu
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
-        await MonitorCategoryModel.deleteMany({ name: 'testPagination'});
+        await MonitorCategoryModel.deleteMany({ name: 'testPagination' });
     });
 
     it('should get first 10 monitor categories with data length 10, skip 0, limit 10 and count 12', async function () {

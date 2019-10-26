@@ -10,9 +10,11 @@ var request = chai.request.agent(app);
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var ScheduleService = require('../backend/services/scheduleService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-var token, projectId, scheduleId, userId;
+var token, projectId, scheduleId, userId, airtableId;
 
 describe('Schedule API', function () {
     this.timeout(30000);
@@ -22,6 +24,8 @@ describe('Schedule API', function () {
         request.post('/user/signup').send(userData.user).end(function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -37,7 +41,8 @@ describe('Schedule API', function () {
     });
 
     after(async function () {
-        await ScheduleService.hardDeleteBy({_id: scheduleId});
+        await ScheduleService.hardDeleteBy({ _id: scheduleId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     // 'post /schedule/:projectId/create'
@@ -104,7 +109,7 @@ describe('Schedule API', function () {
             request.delete(`/schedule/${projectId}/${res.body._id}`).set('Authorization', authorization).end(function (err, response) {
                 expect(response).to.have.status(200);
                 expect(response.body.deleted).to.be.equal(true);
-                ScheduleService.hardDeleteBy({_id: res.body._id});
+                ScheduleService.hardDeleteBy({ _id: res.body._id });
                 done();
             });
         });
@@ -114,13 +119,13 @@ describe('Schedule API', function () {
 // eslint-disable-next-line no-unused-vars
 var subProjectId, newUserToken, subProjectScheduleId;
 
-describe('Schedule API with Sub-Projects', function(){
+describe('Schedule API with Sub-Projects', function () {
     this.timeout(30000);
-    before(function(done){
+    before(function (done) {
         this.timeout(30000);
         var authorization = `Basic ${token}`;
         // create a subproject for parent project
-        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]).end(function(err, res){
+        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]).end(function (err, res) {
             subProjectId = res.body[0]._id;
             // sign up second user (subproject user)
             request.post('/user/signup').send(userData.newUser).end(function (err, res) {

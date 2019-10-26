@@ -8,7 +8,9 @@ var app = require('../server');
 var request = chai.request.agent(app);
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
-var token, projectId, userId;
+var AirtableService = require('../backend/services/airtableService');
+
+var token, projectId, userId, airtableId;
 var VerificationTokenModel = require('../backend/models/verificationToken');
 var payment = require('../backend/config/payment');
 var stripe = require('stripe')(payment.paymentPrivateKey);
@@ -28,6 +30,8 @@ describe('Stripe payment API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -43,12 +47,13 @@ describe('Stripe payment API', function () {
         });
     });
 
-    
+
     after(async function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
-        await ProjectService.hardDeleteBy({_id: projectId});
+        await ProjectService.hardDeleteBy({ _id: projectId });
         await ngrok.disconnect();
         await stripe.webhookEndpoints.del(webhookId);
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should sign up and a transaction of 1 $ should be made', function (done) {
@@ -65,7 +70,7 @@ describe('Stripe payment API', function () {
             done();
         });
     });
-    
+
     it('should return payment intent when valid details are passed ', function (done) {
         stripe.tokens.create({
             card: {
@@ -74,7 +79,7 @@ describe('Stripe payment API', function () {
                 exp_year: 2020,
                 cvc: '123'
             }
-        }, function (err, token){
+        }, function (err, token) {
             request.post(`/stripe/${projectId}/creditCard/${token.id}/pi`).set('Authorization', authorization).end(function (err, res) {
                 cardId = token.card.id;
                 expect(res).to.have.status(200);
@@ -85,7 +90,7 @@ describe('Stripe payment API', function () {
                 expect(res.body.source).not.to.be.null;
                 done();
             });
-        });       
+        });
     });
 
     it('should return 2 cards attached to customer', function (done) {
@@ -93,11 +98,11 @@ describe('Stripe payment API', function () {
             expect(res).to.have.status(200);
             expect(res.body).to.have.property('data');
             expect(res.body.data).to.be.an('array');
-            expect(res.body.data).to.have.length(2);                
+            expect(res.body.data).to.have.length(2);
             done();
-        });       
+        });
     });
-    it('should update default card for customer', function(done){
+    it('should update default card for customer', function (done) {
         request.put(`/stripe/${projectId}/creditCard/${cardId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -111,9 +116,9 @@ describe('Stripe payment API', function () {
             expect(res).to.have.status(200);
             expect(res.body).to.have.property('data');
             expect(res.body.data).to.be.an('array');
-            expect(res.body.data).to.have.length(2);                
+            expect(res.body.data).to.have.length(2);
             done();
-        });       
+        });
     });
 
     it('should fetch a single card', function (done) {
@@ -125,7 +130,7 @@ describe('Stripe payment API', function () {
             expect(res.body).to.have.property('customer');
             expect(res.body.customer).not.to.be.null;
             done();
-        });       
+        });
     });
 
     it('should delete a card', function (done) {
@@ -137,7 +142,7 @@ describe('Stripe payment API', function () {
             expect(res.body).to.have.property('deleted');
             expect(res.body.deleted).to.be.equal(true);
             done();
-        });       
+        });
     });
 
     it('should not delete a single left card', function (done) {
@@ -162,7 +167,7 @@ describe('Stripe payment API', function () {
         request.post(`/stripe/${projectId}/addBalance`)
             .set('Authorization', authorization)
             .send({
-                rechargeBalanceAmount:'43_'
+                rechargeBalanceAmount: '43_'
             })
             .end(function (err, res) {
                 expect(res).to.have.status(400);
@@ -201,11 +206,11 @@ describe('Stripe payment API', function () {
                 .send({
                     rechargeBalanceAmount: '100'
                 });
-            if (addBalanceRequest) { 
+            if (addBalanceRequest) {
                 await sleep(5000);
-                var project = await ProjectService.findOneBy({_id: projectId});
-                var { balance } = project;   
-                expect(balance).to.be.equal(100);          
+                var project = await ProjectService.findOneBy({ _id: projectId });
+                var { balance } = project;
+                expect(balance).to.be.equal(100);
             }
         }
     });

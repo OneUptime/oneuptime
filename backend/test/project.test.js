@@ -10,10 +10,12 @@ var plans = require('../backend/config/plans').getPlans();
 var log = require('./data/log');
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
 // var token, userId, projectId;
-var token, projectId, subProjectId, userId;
+var token, projectId, subProjectId, userId, airtableId;
 
 describe('Project API', function () {
     this.timeout(30000);
@@ -24,8 +26,10 @@ describe('Project API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+            airtableId = res.body.airtableId;
+
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
                         email: userData.user.email,
                         password: userData.user.password
@@ -41,6 +45,7 @@ describe('Project API', function () {
     after(async function () {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
+        await AirtableService.deleteUser(airtableId);
     });
 
     // 'post /user/signup'
@@ -129,7 +134,7 @@ describe('Project API', function () {
         request.post('/project/create').set('Authorization', authorization).send({
             projectName: 'Old Project',
             planId: plans[0].planId
-        }).end( function (err, res) {
+        }).end(function (err, res) {
             request.put(`/project/${res.body._id}/renameProject`).set('Authorization', authorization).send({
                 projectName: 'Renamed Project',
             }).end(function (err, res) {
@@ -182,16 +187,16 @@ describe('Project API', function () {
     });
 });
 
-describe('Projects SubProjects API', function(){
+describe('Projects SubProjects API', function () {
     this.timeout(30000);
-    before(function(done){
+    before(function (done) {
         this.timeout(30000);
         request.post('/user/signup').send(userData.user).end(function (err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
                         email: userData.user.email,
                         password: userData.user.password
@@ -209,35 +214,35 @@ describe('Projects SubProjects API', function(){
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
     });
 
-    it('should not create a subproject when subproject payload is an object and not an array.', function(done){
+    it('should not create a subproject when subproject payload is an object and not an array.', function (done) {
         var authorization = `Basic ${token}`;
-        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({}).end(function(err, res){
+        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({}).end(function (err, res) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('Subprojects are expected in array format.');
             done();
         });
     });
 
-    it('should not create a subproject without a name.', function(done){
+    it('should not create a subproject without a name.', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send(
             [
                 { name: '' }
             ]
-        ).end(function(err, res){
+        ).end(function (err, res) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('Subproject name must be present.');
             done();
         });
     });
 
-    it('should create a subproject.', function(done){
+    it('should create a subproject.', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send(
             [
                 { name: 'New SubProject' }
             ]
-        ).end(function(err, res){
+        ).end(function (err, res) {
             subProjectId = res.body[0]._id;
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('array');
@@ -245,17 +250,17 @@ describe('Projects SubProjects API', function(){
         });
     });
 
-    it('should not get subprojects for a user not present in the project.', function(done){
+    it('should not get subprojects for a user not present in the project.', function (done) {
         request.post('/user/signup').send(userData.newUser).end(function (err, res) {
             userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
                         email: userData.newUser.email,
                         password: userData.newUser.password
                     }).end(function (err, res) {
                         var authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
-                        request.get(`/project/${projectId}/subProjects`).set('Authorization', authorization).end(function(err, res){
+                        request.get(`/project/${projectId}/subProjects`).set('Authorization', authorization).end(function (err, res) {
                             expect(res).to.have.status(400);
                             expect(res.body.message).to.be.equal('You are not present in this project.');
                             done();
@@ -266,9 +271,9 @@ describe('Projects SubProjects API', function(){
         });
     });
 
-    it('should get subprojects for a valid user.', function(done){
+    it('should get subprojects for a valid user.', function (done) {
         var authorization = `Basic ${token}`;
-        request.get(`/project/${projectId}/subProjects`).set('Authorization', authorization).end(function(err, res){
+        request.get(`/project/${projectId}/subProjects`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body.data).to.be.an('array');
             expect(res.body.data[0]._id).to.be.equal(subProjectId);

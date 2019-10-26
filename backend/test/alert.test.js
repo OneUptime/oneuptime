@@ -14,14 +14,13 @@ var UserService = require('../backend/services/userService');
 var UserModel = require('../backend/models/user');
 var IncidentService = require('../backend/services/incidentService');
 var ProjectService = require('../backend/services/projectService');
-var ProjectModel = require('../backend/models/project');
 var StatusPageService = require('../backend/services/statusPageService');
 var MonitorService = require('../backend/services/monitorService');
 var AlertService = require('../backend/services/alertService');
 var NotificationService = require('../backend/services/notificationService');
+var AirtableService = require('../backend/services/airtableService');
 
-
-var token, userId, projectId, subProjectId, incidentId, alertId, monitorId, monitor = {
+var token, userId, airtableId, projectId, subProjectId, incidentId, alertId, monitorId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -38,6 +37,8 @@ describe('Alert API', function () {
                 let project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
+                airtableId = res.body.airtableId;
+
                 UserModel.findByIdAndUpdate(userId, { $set: { isVerified: true } }, function () {
                     request.post('/user/login').send({
                         email: userData.user.email,
@@ -59,7 +60,8 @@ describe('Alert API', function () {
         after(async function () {
             await StatusPageService.hardDeleteBy({ projectId: projectId });
             await NotificationService.hardDeleteBy({ projectId: projectId });
-            await AlertService.hardDeleteBy({ _id: alertId })
+            await AlertService.hardDeleteBy({ _id: alertId });
+            await AirtableService.deleteUser(airtableId);
         });
 
         // 'post /:projectId'
@@ -160,13 +162,13 @@ describe('Alert API', function () {
         });
 
         after(async function () {
-            
+
             await ProjectService.hardDeleteBy({ _id: { $in: [projectId, subProjectId] } });
             await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
             await MonitorService.hardDeleteBy({ _id: monitorId });
             await IncidentService.hardDeleteBy({ _id: incidentId });
             await AlertService.hardDeleteBy({ _id: alertId });
-            
+
         });
 
         it('should not create alert for user not in the project.', function (done) {

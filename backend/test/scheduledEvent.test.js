@@ -11,9 +11,12 @@ var ProjectService = require('../backend/services/projectService');
 var ScheduledEventService = require('../backend/services/scheduledEventService');
 var ScheduledEventModel = require('../backend/models/scheduledEvent');
 var MonitorService = require('../backend/services/monitorService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-var token, userId, token_, projectId, scheduleEventId, apiKey, monitorId, authorization, scheduledEvent = {
+var token, userId, airtableId, token_, projectId, scheduleEventId, apiKey, monitorId, authorization,
+    scheduledEvent = {
         name: 'New scheduled Event',
         startDate: '2019-06-11 11:01:52.178',
         endDate: '2019-06-26 11:31:53.302',
@@ -48,6 +51,8 @@ describe('Scheduled event API', function () {
             let project = res.body.project;
             userId = res.body.id;
             projectId = project._id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -71,6 +76,7 @@ describe('Scheduled event API', function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ScheduledEventService.hardDeleteBy({ _id: scheduleEventId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should reject the request of an unauthenticated user', function (done) {
@@ -218,9 +224,9 @@ describe('Scheduled Event API - Check pagination for 12 scheduled events', funct
         projectId = project._id;
         userId = signUp.body.id;
         var verificationToken = await VerificationTokenModel.findOne({ userId });
-        try{
+        try {
             await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
-        } catch(error){
+        } catch (error) {
             //catch
         }
         var login = await request.post('/user/login').send({
@@ -465,9 +471,9 @@ describe('Scheduled events APIs for status page', function () {
         userId = signUpRequest.body.id;
 
         var verificationToken = await VerificationTokenModel.findOne({ userId });
-        try{
+        try {
             await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
-        } catch(error){
+        } catch (error) {
             //catch
         }
 
@@ -479,9 +485,9 @@ describe('Scheduled events APIs for status page', function () {
         signUpRequest = await request.post('/user/signup').send(userData.newUser);
         userId = signUpRequest.body.id;
         verificationToken = await VerificationTokenModel.findOne({ userId });
-        try{
+        try {
             await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
-        } catch(error){
+        } catch (error) {
             //catch
         }
 

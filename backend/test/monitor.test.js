@@ -1,4 +1,4 @@
-/* eslint-disable */ 
+/* eslint-disable */
 process.env.PORT = 3020;
 var expect = require('chai').expect;
 var userData = require('./data/user');
@@ -13,9 +13,11 @@ var ProjectService = require('../backend/services/projectService');
 var MonitorService = require('../backend/services/monitorService');
 var MonitorCategoryService = require('../backend/services/monitorCategoryService');
 var NotificationService = require('../backend/services/notificationService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-var token, userId, projectId, monitorId, monitorCategoryId, monitor = {
+var token, userId, airtableId, projectId, monitorId, monitorCategoryId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -34,6 +36,8 @@ describe('Monitor API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -53,6 +57,7 @@ describe('Monitor API', function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should reject the request of an unauthenticated user', function (done) {
@@ -318,7 +323,7 @@ describe('Monitor API with Sub-Projects', function () {
         });
     });
 
-    after(async function () {  });
+    after(async function () { });
 
     it('should not create a monitor for user not present in project', function (done) {
         request.post('/user/signup').send(userData.anotherUser).end(function (err, res) {

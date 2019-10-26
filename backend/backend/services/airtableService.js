@@ -22,10 +22,10 @@ module.exports = {
         });
     },
 
-    deleteUser: function (userId) {
+    deleteUser: function (airtableId) {
         var base = new Airtable({ apiKey: apiKey.airtableApiKey }).base('appgek0ngJaHhppeJ');
 
-        return base('User').destroy(userId);
+        return base('User').destroy(airtableId);
     },
     //Description: Create new feedback entry on airtable.
     //Params: 

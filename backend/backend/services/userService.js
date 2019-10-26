@@ -299,15 +299,15 @@ module.exports = {
                 }
 
                 try {
+                    let createdAt = new Date(user.createdAt).toISOString().split('T', 1);
                     var record = await AirtableService.logUser({
                         name: data.name,
                         email: data.email,
                         phone: data.companyPhoneNumber,
                         company: data.companyName,
                         jobRole: data.companyRole,
-                        createdAt: user.createdAt
+                        createdAt
                     });
-                    user.airtableId = record.id || null;
                 } catch (error) {
                     ErrorService.log('AirtableService.logUser', error);
                     throw error;
@@ -350,6 +350,9 @@ module.exports = {
                     ErrorService.log('ProjectService.create', error);
                     throw error;
                 }
+
+                user.airtableId = record.id || null;
+
                 return user;
             }
 
