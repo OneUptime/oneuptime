@@ -9,6 +9,27 @@ var mongoose = require('../config/db');
 var Grid = require('gridfs-stream');
 var JsonToCsv = require('./jsonToCsv');
 
+function filterKeys (field){
+    field = field._doc ? field._doc : field;
+    if(field._id){
+        field._id = field._id.toString();
+    }
+
+    const filteredKeys = Object.keys(field).filter(key => key !== '__v' && key !== 'deleted' && key !== 'deletedAt' && key !== 'deletedById');
+    const filteredField = filteredKeys.reduce((resultField, key)=> {
+        if(Array.isArray(field[key])){
+            resultField[key] = field[key].map(value => typeof value === 'object' && value !== null && value.__v !== null ? filterKeys(value) : value);
+        }else if(typeof field[key] === 'object' && field[key] !== null && field[key].__v !== null){
+            resultField[key] = filterKeys(field[key]);
+        }else{
+            resultField[key] = field[key];
+        }
+        return resultField;
+    }, {});
+
+    return filteredField;
+}
+
 module.exports = {
 
     sendEmptyResponse(req, res) {
@@ -52,7 +73,17 @@ module.exports = {
 
     sendListResponse: async function (req, res, list, count) {
 
+        // remove __v, deleted, deletedAt and deletedById if not Master Admin
+        if(req.authorizationType !== 'MASTER-ADMIN'){
+            if(Array.isArray(list)){
+                list = list.map(field=> typeof field === 'object' && field !== null ? filterKeys(field) : field);
+            }else if(typeof list === 'object' && list !== null){
+                list = filterKeys(list);
+            }
+        }
+
         var response = {};
+
         if (!list){
             list=[];
         }
@@ -118,8 +149,15 @@ module.exports = {
     },
 
     async sendItemResponse(req, res, item) {
-        //purge request.
-        // req = null;
+        
+        // remove __v, deleted, deletedAt and deletedById if not Master Admin
+        if(req.authorizationType !== 'MASTER-ADMIN'){
+            if(Array.isArray(item)){
+                item = item.map(field=> typeof field === 'object' && field !== null ? filterKeys(field) : field);
+            }else if(typeof list === 'object' && item !== null){
+                item = filterKeys(item);
+            }
+        }
 
         if (req.query['output-type'] === 'csv') {
             if (!Array.isArray(item)) {
