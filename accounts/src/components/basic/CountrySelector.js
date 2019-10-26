@@ -9,7 +9,7 @@ let errorStyle = {
 
 const CountrySelector =  ({ input, meta: { touched, error } }) => (
     <span>
-      <select {...input} className="selector" id="country">
+      <select {...input} className="selector" id="country" style={{ width: 222 }}>
         <option value="">Select Country...</option>
         {countries.map(val => (
           <option value={val.name} key={val.code}>

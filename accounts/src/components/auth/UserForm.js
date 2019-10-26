@@ -34,14 +34,14 @@ class UserForm extends Component {
 						<h2>
 							{
 								serverResponse ? <span>{serverResponse}</span> :
-								<span> {this.props.register.error ? <span id="error-msg" className="error" >{this.props.register.error}</span> : 'Create your Fyipe account.'} </span>
+								<span> {this.props.register.error ? <span id="error-msg" className="error" >{this.props.register.error}</span> : 'Create your Fyipe account'} </span>
 							}
 						</h2>
 					</div>
 					<form onSubmit={this.props.handleSubmit(this.props.submitForm)}>
 						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
 							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
-								<span id="ema">
+								<span id="email">
 									<label htmlFor="email">Email</label>
 									<Field
 										type="email"
@@ -130,7 +130,7 @@ class UserForm extends Component {
 
 							<p className="submit" style={{ width: '100%', maxWidth: '100%' }}>
 								<button style={{ width: '100%' }} type="submit" className="button blue medium" id="create-account-button" disabled={this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting )}>
-									{this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting ) ? <ButtonSpinner /> : <span>Create Fyipe Account</span>}
+									{this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting ) ? <ButtonSpinner /> : <span>Sign Up</span>}
 								</button>
 							</p>
 					</form>

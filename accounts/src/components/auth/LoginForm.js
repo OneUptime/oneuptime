@@ -81,7 +81,7 @@ export class LoginForm extends Component {
 
 								<p className="submit">
 									<button type="submit" className="button blue medium" id="login-button" disabled={this.props.login.requesting}>
-										{!this.props.login.requesting && <span>Sign in to your account</span>}
+										{!this.props.login.requesting && <span>Sign in</span>}
 										{this.props.login.requesting && <ButtonSpinner />}
 									</button>
 								</p>

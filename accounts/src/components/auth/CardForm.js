@@ -163,7 +163,7 @@ class CardForm extends Component {
 							</p>
 						</div>
 						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
-							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0, marginBottom: 30 }}>
 								<span>
 									<label htmlFor="promocode">Promo Code(optional)</label>
 									<Field
