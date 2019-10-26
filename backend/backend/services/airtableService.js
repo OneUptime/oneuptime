@@ -7,21 +7,39 @@
 module.exports = {
     //Description: Create new feedback entry on airtable.
     //Params: 
-    //Param 1: message: Feedback text.
-    //Param 2: userName: User name.
-    //Param 3: userEmail: User email.
-    //Param 4: projectName: Project name.
-    //Param 5: page: Feedback page.
+    //Param 1: data: User data.
     //Returns: promise
-    logFeedback: function (message, userName, userEmail, projectName, page) {
+    logUser: function (data) {
+        var base = new Airtable({ apiKey: apiKey.airtableApiKey }).base('appgek0ngJaHhppeJ');
+
+        return base('User').create({
+            'Name': data.name,
+            'Email': data.email,
+            'Phone': data.phone,
+            'Company': data.company,
+            'Job Role': data.jobRole,
+            'Created At': data.createdAt
+        });
+    },
+
+    deleteUser: function (userId) {
+        var base = new Airtable({ apiKey: apiKey.airtableApiKey }).base('appgek0ngJaHhppeJ');
+
+        return base('User').destroy(userId);
+    },
+    //Description: Create new feedback entry on airtable.
+    //Params: 
+    //Param 1: data: Feedback data.
+    //Returns: promise
+    logFeedback: function (data) {
         var base = new Airtable({ apiKey: apiKey.airtableApiKey }).base('appgek0ngJaHhppeJ');
 
         return base('Feedback').create({
-            'Feedback Text': message,
-            'User Full Name': userName,
-            'User Email': userEmail,
-            'Project Name': projectName,
-            'Page Name': page
+            'Feedback Text': data.message,
+            'User Full Name': data.name,
+            'User Email': data.email,
+            'Project Name': data.project,
+            'Page Name': data.page
         });
     },
 

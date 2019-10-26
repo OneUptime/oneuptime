@@ -297,6 +297,22 @@ module.exports = {
                     ErrorService.log('UserService.create', error);
                     throw error;
                 }
+
+                try {
+                    var record = await AirtableService.logUser({
+                        name: data.name,
+                        email: data.email,
+                        phone: data.companyPhoneNumber,
+                        company: data.companyName,
+                        jobRole: data.companyRole,
+                        createdAt: user.createdAt
+                    });
+                    user.airtableId = record.id || null;
+                } catch (error) {
+                    ErrorService.log('AirtableService.logUser', error);
+                    throw error;
+                }
+
                 try {
                     await _this.sendToken(user);
                 } catch (error) {
@@ -723,3 +739,4 @@ var jwtKey = require('../config/keys');
 var { BACKEND_HOST } = process.env;
 var VerificationTokenModel = require('../models/verificationToken');
 var MailService = require('../services/mailService');
+var AirtableService = require('./airtableService');
