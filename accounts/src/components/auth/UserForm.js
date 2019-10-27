@@ -167,8 +167,14 @@ let validate = function (values) {
 	if (!Validate.text(values.companyPhoneNumber))
 		error.companyPhoneNumber = 'Phone number is required.';
 
+	if (Validate.text(values.companyPhoneNumber) && !Validate.isValidNumber(values.companyPhoneNumber))
+		error.companyPhoneNumber = 'Phone number is invalid.';
+
 	if (!Validate.text(values.password))
 		error.password = 'Password is required.';
+	if (Validate.text(values.password) && !Validate.isStrongPassword(values.password)) {
+		error.password = 'Password should be atleast 8 characters long'
+	}
 
 	if (!Validate.text(values.confirmPassword))
 		error.confirmPassword = 'Confirm Password is required.';

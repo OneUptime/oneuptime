@@ -139,6 +139,20 @@ export const Validate = {
         }
     },
 
+    isValidNumber(number) {
+        if(number.match('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$')) {
+            return true;
+        }
+        return false;
+    },
+
+    isStrongPassword(password) {
+        if(password.match("^(?=.{8,})")) { 
+            return true;
+        }
+        return false;
+    },
+
     email(email) {
         if (this.text(email))
             return isEmail(email);
