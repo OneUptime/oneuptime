@@ -93,6 +93,20 @@ describe('Notification API', function () {
         });
     });
 
+    it('should mark all project notifications as read', function (done) {
+        var authorization = `Basic ${token}`;
+        request.post(`/notification/${projectId}`).set('Authorization', authorization).send({
+            message: 'New Notification',
+            icon: 'bell'
+        }).end(function () {
+            request.put(`/notification/${projectId}/readAll`)
+                .set('Authorization', authorization).end(function (err, res) {
+                    expect(res).to.have.status(200);
+                    done();
+                });
+        });
+    });
+
     it('should reject request if the notification param is invalid ', function (done) {
         request.put(`/notification/${projectId}/${projectData.fakeProject._id}/read`).send().end(function (err, res) {
             expect(res).to.have.status(401);

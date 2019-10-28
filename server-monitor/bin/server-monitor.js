@@ -12,13 +12,14 @@
 const dotenv = require('dotenv');
 const program = require('commander');
 const Promise = require('promise');
+const { version } = require('../package.json');
 const { prompt } = require('inquirer');
 const serverMonitor = require('../lib/api');
 
 dotenv.config();
 
 program
-  .version(process.env.npm_package_version, '-v, --version')
+  .version(version, '-v, --version')
   .description('Fyipe Monitoring Shell');
 
 program
