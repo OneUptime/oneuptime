@@ -97,6 +97,7 @@ Project.propTypes = {
     initialValues: PropTypes.object,
     match: PropTypes.object.isRequired,
     fetchProject: PropTypes.func.isRequired,
+    project: PropTypes.object.isRequired
 }
 
 Project.displayName = 'Project'
