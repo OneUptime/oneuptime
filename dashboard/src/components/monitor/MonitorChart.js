@@ -6,6 +6,7 @@ import AreaChart from '../areachart';
 import toPascalCase from 'to-pascal-case';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
+import { formatDecimal, formatBytes } from '../../config';
 
 const calculateTime = (probeStatus) => {
     let timeBlock = [];
@@ -47,18 +48,9 @@ const calculateTime = (probeStatus) => {
         dayStart = dayStart.subtract(1, 'days');
     }
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
-}
-
-
-const formatDecimal = (value, decimalPlaces) => {
-    return Number(Math.round(parseFloat(value + 'e' + decimalPlaces)) + 'e-' + decimalPlaces).toFixed(decimalPlaces);
 };
 
-const formatBytes = (a, b, c, d, e) => {
-    return formatDecimal((b = Math, c = b.log, d = 1e3, e = c(a) / c(d) | 0, a / b.pow(d, e)), 2) + ' ' + (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
-};
-
-export function MonitorBarChart(props) {
+export function MonitorChart(props) {
     var block = [];
     var { timeBlock, uptimePercent } = props.probe && props.probe.probeStatus ? calculateTime(props.probe.probeStatus) : calculateTime([]);
     for (var i = 0; i < 90; i++) {
@@ -281,16 +273,16 @@ export function MonitorBarChart(props) {
         </div>
     }
 
-    let chart = <div className="db-Trends-content">
-        <div className="db-TrendsRows">
-            {monitorInfo}
+    return (
+        <div className="db-Trends-content">
+            <div className="db-TrendsRows">
+                {monitorInfo}
+            </div>
         </div>
-    </div>;
-
-    return chart;
+    );
 }
 
-MonitorBarChart.displayName = 'MonitorBarChart'
+MonitorChart.displayName = 'MonitorChart'
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch)
 
@@ -298,6 +290,6 @@ const mapStateToProps = (state) => {
     return {
         activeProbe: state.monitor.activeProbe
     };
-}
+};
 
-export default connect(mapStateToProps, mapDispatchToProps)(MonitorBarChart);
+export default connect(mapStateToProps, mapDispatchToProps)(MonitorChart);

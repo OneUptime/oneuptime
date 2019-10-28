@@ -16,7 +16,7 @@ import MonitorUrl from '../modals/MonitorUrl';
 import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
 import { history } from '../../store';
-import MonitorBarChart from './MonitorBarChart';
+import MonitorChart from './MonitorChart';
 
 const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
@@ -224,9 +224,9 @@ export class MonitorDetail extends Component {
                         </button>)
                         )}
                     </div>
-                    <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
+                    <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
                 </ShouldRender>
-                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
 
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
