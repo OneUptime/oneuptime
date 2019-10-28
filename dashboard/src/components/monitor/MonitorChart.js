@@ -1,6 +1,7 @@
 import React, { Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 import BlockChart from '../blockchart/BlockChart';
 import AreaChart from '../areachart';
 import toPascalCase from 'to-pascal-case';
@@ -282,7 +283,15 @@ export function MonitorChart(props) {
     );
 }
 
-MonitorChart.displayName = 'MonitorChart'
+MonitorChart.displayName = 'MonitorChart';
+
+MonitorChart.propTypes = {
+    probe: PropTypes.object,
+    startDate: PropTypes.string,
+    endDate: PropTypes.string,
+    monitor: PropTypes.object,
+    showAll: PropTypes.bool
+};
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch)
 
