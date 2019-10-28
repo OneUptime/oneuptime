@@ -46,7 +46,7 @@ export class ScheduledEventBox extends Component {
 
     render() {
         let { createScheduledEventModalId } = this.state;
-        let { scheduledEvents, limit, count, skip } = this.props;
+        let { scheduledEvents, limit, count, skip, profileSettings } = this.props;
         let footerBorderTopStyle = { margin: 0, padding: 0, borderTop: '1px solid #e6ebf1' }
 
         let canNext = (count > (parseInt(skip) + parseInt(limit))) ? true : false;
@@ -130,12 +130,14 @@ export class ScheduledEventBox extends Component {
                                     </div>
                                     <div className="bs-ObjectList-cell bs-u-v-middle">
                                         <div className="bs-ObjectList-cell-row">
-                                            {moment(scheduledEvent.startDate).format('MMMM Do YYYY, h:mm a')}
+                                            {moment(scheduledEvent.startDate).format('MMMM Do YYYY, h:mm a')}<br />
+                                            <strong>{profileSettings.timezone}</strong>
                                         </div>
                                     </div>
                                     <div className="bs-ObjectList-cell bs-u-v-middle">
                                         <div className="bs-ObjectList-cell-row">
-                                            {moment(scheduledEvent.endDate).format('MMMM Do YYYY, h:mm a')}
+                                            {moment(scheduledEvent.endDate).format('MMMM Do YYYY, h:mm a')}<br />
+                                            <strong>{profileSettings.timezone}</strong>
                                         </div>
                                     </div>
                                     <div className="bs-ObjectList-cell bs-u-v-middle">
@@ -189,7 +191,8 @@ ScheduledEventBox.propTypes = {
     count: PropTypes.number,
     name: PropTypes.string,
     deleteScheduledEvent: PropTypes.func.isRequired,
-    scheduledEvents: PropTypes.array
+    scheduledEvents: PropTypes.array,
+    profileSettings: PropTypes.object
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
@@ -205,6 +208,7 @@ const mapStateToProps = (state) => {
         limit: state.scheduledEvent.scheduledEventList.limit,
         skip: state.scheduledEvent.scheduledEventList.skip,
         error: state.scheduledEvent.scheduledEventList.error,
+        profileSettings: state.profileSettings.profileSetting.data
     };
 }
 

@@ -58,7 +58,7 @@ export class ProfileSetting extends Component {
         initialAlertPhoneNumber: ''
     }
 
-    handleOnChange = (value) =>  {
+    handleOnChange = (value) => {
         this.setState({ alertPhoneNumber: value })
     }
 
@@ -70,7 +70,7 @@ export class ProfileSetting extends Component {
             to: alertPhoneNumber,
             code: otp
         }).then((result) => {
-            if(result.data.valid && result.data.status === 'approved'){
+            if (result.data.valid && result.data.status === 'approved') {
                 this.setState({
                     verified: true
                 })
@@ -90,42 +90,42 @@ export class ProfileSetting extends Component {
             initPhoneVerification: true
         })
     }
- 
+
     componentDidMount() {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Profile settings page Loaded');
         }
         this.props.userSettings();
-        const profilePic = this.props.profileSettings && 
-            this.props.profileSettings.data && 
-            this.props.profileSettings.data.profilePic && 
+        const profilePic = this.props.profileSettings &&
+            this.props.profileSettings.data &&
+            this.props.profileSettings.data.profilePic &&
             this.props.profileSettings.data.profilePic !== '' ? this.props.profileSettings.data.profilePic : null;
         const { alertPhoneNumber, isVerified } = this.props.initialValues;
-        
+
         this.setState({
             profilePic,
             isVerified,
-            fileInputKey : new Date(),
+            fileInputKey: new Date(),
             initialAlertPhoneNumber: alertPhoneNumber
         })
     }
 
-    componentDidUpdate(prevProps){
-        const prevProfilePic = prevProps.profileSettings && 
+    componentDidUpdate(prevProps) {
+        const prevProfilePic = prevProps.profileSettings &&
             prevProps.profileSettings.data &&
             prevProps.profileSettings.data.profilePic ?
             prevProps.profileSettings.data.profilePic : null;
-        const currentProfilePic = this.props.profileSettings && 
+        const currentProfilePic = this.props.profileSettings &&
             this.props.profileSettings.data &&
             this.props.profileSettings.data.profilePic ?
             this.props.profileSettings.data.profilePic : null;
 
-        if(prevProfilePic !== currentProfilePic){
+        if (prevProfilePic !== currentProfilePic) {
             this.updateProfilePic(currentProfilePic)
         }
     }
 
-    updateProfilePic(profilePic){
+    updateProfilePic(profilePic) {
         const { resetFile } = this.props;
 
         this.setState({
@@ -162,7 +162,7 @@ export class ProfileSetting extends Component {
         const initialAlertPhoneNumber = this.props.initialValues.alertPhoneNumber;
         const { alertPhoneNumber, verified, removedPic } = this.state;
         const { sendVerificationSMSError, verifySMSCodeError } = this.props;
-        
+
         if (initialAlertPhoneNumber !== alertPhoneNumber
             && !verified && !sendVerificationSMSError && !verifySMSCodeError) {
             this.setState({
@@ -199,15 +199,15 @@ export class ProfileSetting extends Component {
     render() {
         const { initPhoneVerification, verified, initialAlertPhoneNumber, isVerified } = this.state;
 
-        const { handleSubmit, profileSettings, 
-                sendVerificationSMSRequesting, emailVerificationRequesting,
-                verifySMSCodeRequesting, sendVerificationSMSError,
-                verifySMSCodeError, emailVerificationError,
-                emailVerificationSuccess } = this.props;
+        const { handleSubmit, profileSettings,
+            sendVerificationSMSRequesting, emailVerificationRequesting,
+            verifySMSCodeRequesting, sendVerificationSMSError,
+            verifySMSCodeError, emailVerificationError,
+            emailVerificationSuccess } = this.props;
 
         var profilePic = this.state.profilePic;
 
-        profilePic = profilePic === 'null' ?  null : profilePic;   
+        profilePic = profilePic === 'null' ? null : profilePic;
 
         var fileData = this.props.fileUrl ? this.props.fileUrl : profilePic ? `${API_URL}/file/${profilePic}` : 'https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404';
         var profileImage = <span />;
@@ -259,8 +259,8 @@ export class ProfileSetting extends Component {
                                                         disabled={profileSettings && profileSettings.requesting}
                                                     />
                                                 </div>
-                                                <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5  }}>
-                                                    {!isVerified ? <span style={{ color: 'red' }}>Not verified</span>: <span style={{ color: 'green' }}>Verified</span>}
+                                                <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5 }}>
+                                                    {!isVerified ? <span style={{ color: 'red' }}>Not verified</span> : <span style={{ color: 'green' }}>Verified</span>}
                                                 </div>
                                             </div>
                                             <ShouldRender if={!isVerified}>
@@ -273,7 +273,7 @@ export class ProfileSetting extends Component {
                                                             type="button"
                                                             onClick={this.handleSendEmailVerification}>
                                                             {!emailVerificationRequesting && <span>Resend email verification.</span>}
-                                                            {emailVerificationRequesting && <div> <ListLoader /> </div> }
+                                                            {emailVerificationRequesting && <div> <ListLoader /> </div>}
                                                         </button>}
                                                         {emailVerificationError && <span>{emailVerificationError}</span>}
                                                         {emailVerificationSuccess && <span>Please check your email to verify your email address</span>}
@@ -287,14 +287,14 @@ export class ProfileSetting extends Component {
                                                         defaultCountry={'us'}
                                                         value={this.state.alertPhoneNumber}
                                                         onChange={this.handleOnChange}
-                                                        inputStyle={{width: 250, height: 28, fontSize:14, color: '#525f7f', fontFamily:'camphor'}}
+                                                        inputStyle={{ width: 250, height: 28, fontSize: 14, color: '#525f7f', fontFamily: 'camphor' }}
                                                     />
                                                 </div>
-                                                <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5  }}>
+                                                <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5 }}>
                                                     {
                                                         this.state.alertPhoneNumber !== initialAlertPhoneNumber && !verified ?
-                                                        <span style={{ color: 'red' }}>Not verified</span> :
-                                                        this.state.alertPhoneNumber ? <span style={{ color: 'green' }}>Verified</span> : ''
+                                                            <span style={{ color: 'red' }}>Not verified</span> :
+                                                            this.state.alertPhoneNumber ? <span style={{ color: 'green' }}>Verified</span> : ''
                                                     }
                                                 </div>
                                             </div>
@@ -308,7 +308,7 @@ export class ProfileSetting extends Component {
                                                             type="button"
                                                             onClick={() => this.handleSendVerificationSMS()}>
                                                             {!sendVerificationSMSRequesting && <span>Send verification sms.</span>}
-                                                            {sendVerificationSMSRequesting && <div> <ListLoader /> </div> }
+                                                            {sendVerificationSMSRequesting && <div> <ListLoader /> </div>}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -534,7 +534,7 @@ function mapStateToProps(state) {
         profileSettings: state.profileSettings.profileSetting,
         initialValues: state.profileSettings.profileSetting ? state.profileSettings.profileSetting.data : {},
         projectId: state.project.currentProject !== null && state.project.currentProject._id,
-        otp:  state.form.Profile && state.form.Profile.values && state.form.Profile.values.otp,
+        otp: state.form.Profile && state.form.Profile.values && state.form.Profile.values.otp,
         sendVerificationSMSError: state.profileSettings.smsVerification.error,
         sendVerificationSMSRequesting: state.profileSettings.smsVerification.requesting,
         verifySMSCodeError: state.profileSettings.smsVerificationResult.error,

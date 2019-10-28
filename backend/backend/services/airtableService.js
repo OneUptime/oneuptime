@@ -23,6 +23,12 @@ module.exports = {
             'Project Name': projectName,
             'Page Name': page
         });
+    },
+
+    deleteFeedback: function (airtableId) {
+        var base = new Airtable({ apiKey: apiKey.airtableApiKey }).base('appgek0ngJaHhppeJ');
+
+        return base('Feedback').destroy(airtableId);
     }
 };
 
