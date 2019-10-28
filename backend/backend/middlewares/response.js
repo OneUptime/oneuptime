@@ -8,16 +8,16 @@
 var mongoose = require('../config/db');
 var Grid = require('gridfs-stream');
 var JsonToCsv = require('./jsonToCsv');
+var ObjectID = require('mongoose').Types.ObjectId;
 
 function filterKeys (field){
     field = field._doc ? field._doc : field;
-    if(field._id){
-        field._id = field._id.toString();
-    }
 
     const filteredKeys = Object.keys(field).filter(key => key !== '__v' && key !== 'deleted' && key !== 'deletedAt' && key !== 'deletedById');
     const filteredField = filteredKeys.reduce((resultField, key)=> {
-        if(Array.isArray(field[key])){
+        if(isObjectID(field[key])){
+            resultField[key] = field[key].toString();
+        }else if(Array.isArray(field[key])){
             resultField[key] = field[key].map(value => typeof value === 'object' && value !== null && value.__v !== null ? filterKeys(value) : value);
         }else if(typeof field[key] === 'object' && field[key] !== null && field[key].__v !== null){
             resultField[key] = filterKeys(field[key]);
@@ -28,6 +28,18 @@ function filterKeys (field){
     }, {});
 
     return filteredField;
+}
+
+function isObjectID(id){ 
+    if(ObjectID.isValid(id)){ 
+        if(new ObjectID(id) === id){ 
+            return true;
+        } else { 
+            return false; 
+        }
+    } else { 
+        return false; 
+    } 
 }
 
 module.exports = {
