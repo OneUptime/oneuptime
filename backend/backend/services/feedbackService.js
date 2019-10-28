@@ -34,7 +34,8 @@ module.exports = {
         feedback.createdBy = user;
 
         try {
-            await AirtableService.logFeedback(message, user.name, user.email, project.name, page);
+            var record = await AirtableService.logFeedback(message, user.name, user.email, project.name, page);
+            feedback.airtableId = record.id || null;
         } catch (error) {
             ErrorService.log('AirtableService.logFeedback', error);
             throw error;
