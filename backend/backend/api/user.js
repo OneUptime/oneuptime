@@ -223,28 +223,28 @@ router.post('/login', async function (req, res) {
         });
     }
 
-    // try {
-    // Call the UserService
-    var user = await UserService.login(data.email, data.password, clientIP);
-    // create access token and refresh token.
-    let authUserObj = {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        redirect: data.redirect || null,
-        cardRegistered: user.stripeCustomerId ? true : false,
-        tokens: {
-            jwtAccessToken: `${jwt.sign({
-                id: user._id
-            }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
-            jwtRefreshToken: user.jwtRefreshToken,
-        },
-        role: user.role || null
-    };
-    return sendItemResponse(req, res, authUserObj);
-    // } catch (error) {
-    //     return sendErrorResponse(req, res, error);
-    // }
+    try {
+        // Call the UserService
+        var user = await UserService.login(data.email, data.password, clientIP);
+        // create access token and refresh token.
+        let authUserObj = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            redirect: data.redirect || null,
+            cardRegistered: user.stripeCustomerId ? true : false,
+            tokens: {
+                jwtAccessToken: `${jwt.sign({
+                    id: user._id
+                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                jwtRefreshToken: user.jwtRefreshToken,
+            },
+            role: user.role || null
+        };
+        return sendItemResponse(req, res, authUserObj);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
 
 });
 
