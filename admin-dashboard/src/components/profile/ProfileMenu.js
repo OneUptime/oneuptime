@@ -23,7 +23,7 @@ export class ProfileMenu extends Component {
         return  this.props.visible ? 
             (
                 <div className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                    style={{top: '49px', width: '232px', right: '19px'}}>
+                    style={{top: '49px', width: '232px', right: '40px'}}>
                     <span>
                         <div className="ContextualPopover" style={{transformOrigin: '100% 0px 0px'}}>
                             <div className="ContextualPopover-arrowContainer">
