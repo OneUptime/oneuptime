@@ -4,6 +4,11 @@ import {
     FETCH_USERS_FAILURE,
     FETCH_USERS_RESET,
 
+    FETCH_USER_REQUEST,
+    FETCH_USER_SUCCESS,
+    FETCH_USER_FAILURE,
+    FETCH_USER_RESET,
+
     UPDATE_USER_SETTING_REQUEST,
     UPDATE_USER_SETTING_SUCCESS,
     UPDATE_USER_SETTING_FAILURE,
@@ -132,6 +137,48 @@ export default function user(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...INITIAL_STATE
             });
+
+        
+        // fetch a user
+        case FETCH_USER_REQUEST:
+
+            return Object.assign({}, state, {
+                user: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    user: state.user.user,
+                },
+
+            });
+
+        case FETCH_USER_SUCCESS:
+            return Object.assign({}, state, {
+                user: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    user: action.payload,
+                },
+            });
+
+        case FETCH_USER_FAILURE:
+
+            return Object.assign({}, state, {
+                user: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    user: state.user.user,
+                },
+            });
+
+        case FETCH_USER_RESET:
+
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
+                
 
 
         //update user setting
