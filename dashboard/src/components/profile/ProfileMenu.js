@@ -5,7 +5,8 @@ import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { User } from '../../config';
 import { openModal, closeModal } from '../../actions/modal';
-import { hideProfileMenu } from '../../actions/profile'
+import { hideProfileMenu } from '../../actions/profile';
+import { logoutUser } from '../../actions/logout';
 import About from '../modals/About';
 import uuid from 'uuid';
 
@@ -27,9 +28,9 @@ export class ProfileMenu extends Component {
     }
 
     logout() {
-        var values = { name: User.getName(), email: User.getEmail() };
-        User.clear();
-        window.location.href = '/login'; //hard refresh.
+        const values = { name: User.getName(), email: User.getEmail() };
+        const { logoutUser } = this.props;
+        logoutUser();
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('User Logged Out', values);
         }
@@ -118,7 +119,7 @@ ProfileMenu.displayName = 'ProfileMenu'
 const mapStateToProps = state_Ignored => ({});
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ openModal, closeModal, hideProfileMenu }, dispatch);
+    return bindActionCreators({ openModal, closeModal, hideProfileMenu, logoutUser }, dispatch);
 };
 
 ProfileMenu.propTypes = {

@@ -5,9 +5,13 @@ import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import NotFound from './components/404';
 import BackboneModals from './containers/BackboneModals';
-import { User, DASHBOARD_URL } from './config';
+import { User, DASHBOARD_URL, DOMAIN_URL } from './config';
 
 import ReactGA from 'react-ga';
+import Cookies from 'universal-cookie';
+
+var cookies = new Cookies();
+var logoutData = cookies.get('logoutData');
 
 if (!isServer) {
 	history.listen(location => {
@@ -16,7 +20,10 @@ if (!isServer) {
 	});
 }
 
-if (User.isLoggedIn()) {
+if (logoutData && User.isLoggedIn()) {
+	cookies.remove('logoutData', { domain: DOMAIN_URL });
+	localStorage.clear();
+} else if (!logoutData && User.isLoggedIn()) {
 	window.location = DASHBOARD_URL;
 }
 
