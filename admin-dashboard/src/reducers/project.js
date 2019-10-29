@@ -4,6 +4,11 @@ import {
     FETCH_PROJECTS_FAILURE,
     FETCH_PROJECTS_RESET,
 
+    FETCH_PROJECT_REQUEST,
+    FETCH_PROJECT_SUCCESS,
+    FETCH_PROJECT_FAILURE,
+    FETCH_PROJECT_RESET,
+
     FETCH_USER_PROJECTS_REQUEST,
     FETCH_USER_PROJECTS_SUCCESS,
     FETCH_USER_PROJECTS_FAILURE,
@@ -49,6 +54,12 @@ const INITIAL_STATE = {
         count: null,
         limit: null,
         skip: null
+    },
+    project:{
+        error: null,
+        requesting: false,
+        success: false,
+        project: null
     },
     userProjects: {
         error: null,
@@ -136,6 +147,47 @@ export default function project(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE
             });
 
+                        // fetch a project
+        case FETCH_PROJECT_REQUEST:
+
+            return Object.assign({}, state, {
+                project: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    project: state.project.project,
+                },
+
+            });
+
+        case FETCH_PROJECT_SUCCESS:
+            return Object.assign({}, state, {
+                project: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    project: action.payload,
+                },
+            });
+
+        case FETCH_PROJECT_FAILURE:
+
+            return Object.assign({}, state, {
+                project: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    project: state.project.project,
+                },
+            });
+
+        case FETCH_PROJECT_RESET:
+
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
+
+
         // fetch userProjects
         case FETCH_USER_PROJECTS_REQUEST:
 
@@ -184,14 +236,11 @@ export default function project(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                projects: {
+                project: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects: [...state.projects.projects.filter(project=> project._id !== action.payload._id), action.payload],
-                    count: state.projects.count,
-                    limit: state.projects.limit,
-                    skip: state.projects.skip
+                    project: action.payload,
                 }
             });
     
@@ -229,14 +278,11 @@ export default function project(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                projects: {
+                project: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects: [...state.projects.projects.filter(project=> project._id !== action.payload._id), action.payload],
-                    count: state.projects.count,
-                    limit: state.projects.limit,
-                    skip: state.projects.skip
+                    project: action.payload,
                 }
             });
     
@@ -274,14 +320,11 @@ export default function project(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                projects: {
+                project: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects: [...state.projects.projects.filter(project=> project._id !== action.payload._id), action.payload],
-                    count: state.projects.count,
-                    limit: state.projects.limit,
-                    skip: state.projects.skip
+                    project: action.payload,
                 }
             });
 
@@ -319,14 +362,11 @@ export default function project(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                projects: {
+                project: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects: [...state.projects.projects.filter(project=> project._id !== action.payload._id), action.payload],
-                    count: state.projects.count,
-                    limit: state.projects.limit,
-                    skip: state.projects.skip
+                    project: action.payload,
                 }
             });
 
@@ -371,17 +411,11 @@ export default function project(state = INITIAL_STATE, action) {
 
         case ADD_PROJECT_NOTE_SUCCESS:
             return Object.assign({}, state, {
-                projects: {
+                project: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects: state.projects.projects.map(project=> {
-                        project.adminNotes = project._id === action.payload.projectId ? action.payload.notes : project.adminNotes;
-                        return project;
-                    }),
-                    count: state.projects.count,
-                    limit: state.projects.limit,
-                    skip: state.projects.skip
+                    project: action.payload,
                 },
                 newProjectNote:{
                     requesting: false,

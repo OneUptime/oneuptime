@@ -93,7 +93,6 @@ describe('Monitor Category API', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/monitorCategory/${projectId}/${monitorCategoryId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
@@ -292,7 +291,6 @@ describe('Monitor Category APIs accesible through API key', function () {
     it('should delete a monitor category when monitorCategoryId is valid', function (done) {
         request.delete(`/monitorCategory/${projectId}/${monitorCategoryId}`).set('apiKey', apiKey).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });

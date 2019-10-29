@@ -600,6 +600,19 @@ router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (
     }
 });
 
+router.get('/projects/:projectId', getUser, isUserMasterAdmin, async function(req, res) {
+    const projectId = req.params.projectId;
+
+    try{
+        const project = await ProjectService.findOneBy({ _id: projectId, deleted: { $ne: null } });
+
+        return sendItemResponse(req, res, project);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+
 router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async function (req, res) {
     const projectId = req.params.projectId;
     try {

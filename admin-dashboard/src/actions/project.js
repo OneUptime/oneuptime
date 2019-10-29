@@ -53,6 +53,53 @@ export const fetchProjects = (skip, limit) => async (dispatch) => {
 	}
 }
 
+export const fetchProjectRequest = () => {
+	return {
+		type: types.FETCH_PROJECT_REQUEST
+	};
+}
+
+export const fetchProjectSuccess = project => {
+	return {
+		type: types.FETCH_PROJECT_SUCCESS,
+		payload: project
+	};
+}
+
+export const fetchProjectError = error => {
+	return {
+		type: types.FETCH_PROJECT_FAILURE,
+		payload: error
+	};
+}
+
+// Calls the API to fetch a project.
+export const fetchProject = projectId => async (dispatch) => {
+	dispatch(fetchProjectRequest());
+
+	try{
+		const response = await getApi(`project/projects/${projectId}`);
+		const projects = response.data;
+
+		dispatch(fetchProjectSuccess(projects));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(fetchProjectError(errors(errorMsg)));
+	}
+}
+
 export const fetchUserProjectsRequest = () => {
 	return {
 		type: types.FETCH_USER_PROJECTS_REQUEST
