@@ -15,6 +15,8 @@ var userSchema = new Schema({
     referral: String,
     companyPhoneNumber: String,
 
+    airtableId: String,
+
     onCallAlert: Array,
     profilePic: String,
 
