@@ -81,7 +81,7 @@ class NotificationMenu extends Component {
         return this.props.notificationsVisible ?
             (
                 <div className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                    style={{ top: '49px', width: '450px', right: '20px' }}>
+                    style={{ top: '49px', width: '450px', right: '40px' }}>
                     <div className="ContextualPopover-animate ContextualPopover-animate-entered">
                         <div className="ContextualPopover" style={{ transformOrigin: '100% 0px 0px' }}>
                             <div className="ContextualPopover-arrowContainer" style={{ position: 'relative', right: '40px' }}>
