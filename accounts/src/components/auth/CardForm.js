@@ -328,7 +328,7 @@ const CardFormWithCheckOut = injectStripe(connect(mapStateToProps, mapDispatchTo
 export default class SplitFieldsDemo extends Component {
 	render() {
 		return (
-			<StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
+			<StripeProvider apiKey={process.env.REACT_APP_PUBLIC_STRIPE_KEY}>
 				<Elements>
 					<CardFormWithCheckOut />
 				</Elements>
