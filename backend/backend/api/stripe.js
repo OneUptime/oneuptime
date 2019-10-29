@@ -125,4 +125,15 @@ router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async 
     }
 });
 
+router.post('/checkCard/:token', async function(req, res) {
+    var { token } = req.params;
+
+    try{
+        var paymentIntent = await StripeService.makeTestCharge(token);
+        return sendItemResponse(req, res, paymentIntent);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;

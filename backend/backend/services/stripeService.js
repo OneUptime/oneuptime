@@ -227,6 +227,28 @@ module.exports = {
             metadata
         });
         return paymentIntent;
+    },
+    
+    makeTestCharge: async function (tokenId) {
+            
+        try {
+            var testChargeValue = 100;
+            var paymentMethod = await stripe.paymentMethods.create({
+                type: 'card',
+                card: { token: tokenId }
+            });
+            var paymentIntent = await stripe.paymentIntents.create({
+                amount: testChargeValue,
+                currency: 'usd',
+                payment_method_types: ['card'],
+                payment_method: paymentMethod.id,
+                description: 'Verify if card is billable.'
+            });
+            return paymentIntent;
+        } catch (error) {
+            ErrorService.log('StripeService.makeTestCharge', error);
+            throw error;
+        }
     }
 };
 

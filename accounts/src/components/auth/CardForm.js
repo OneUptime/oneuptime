@@ -3,13 +3,76 @@ import PropTypes from 'prop-types'
 import { Field, reduxForm } from 'redux-form';
 import RenderCountrySelector from '../basic/CountrySelector';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField'
 import { PricingPlan } from '../../config';
 import { Validate } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
+import { addCard, addCardSuccess, addCardFailed, addCardRequest } from '../../actions/register';
+import {
+	CardNumberElement,
+	CardExpiryElement,
+	CardCVCElement,
+	injectStripe,
+	StripeProvider,
+	Elements,
+} from 'react-stripe-elements';
+
+
+const createOptions = () => {
+	return {
+		style: {
+			base: {
+				color: '#525f7f',
+				fontFamily:'Camphor, Segoe UI, Open Sans, sans-serif',
+				fontSize: '18px',
+				letterSpacing: '0.025em',
+				'::placeholder': {
+					color: '#bbb',
+					fontSize: '18px'
+				}
+			},
+			invalid: {
+				color: '#c23d4b',
+			},
+		},
+	};
+};
 
 class CardForm extends Component {
 
+	state = {
+		errorMessage: '',
+	};
+
+	handleChange = ({ error }) => {
+		if (error) {
+			this.setState({ errorMessage: error.message });
+		}
+	};	
+
+	handleSubmit = (e) => {
+
+		e.preventDefault();
+		const { stripe, addCard } = this.props;
+			if (stripe) {
+				stripe.createToken()
+					.then(({ token }) => {
+						if (token) {
+							return addCard(token.id);
+						}
+						else {
+							throw new Error('Invalid card Details.');
+						}
+					})
+					.then(({ data }) => stripe.handleCardPayment(data.client_secret))
+					.catch((error) => {
+						addCardFailed(error.message)
+					});
+			} else {
+				console.log("Stripe.js did not load.")
+		}
+	}
 	render() {
 		this.plan = PricingPlan.getPlanById(this.props.planId);
 
@@ -25,7 +88,7 @@ class CardForm extends Component {
 							<p>Your card will be charged $1.00 to check its billability. You will be charged ${this.plan.amount}/{this.plan.type === 'month' ? 'mo' : 'yr'} after your 14 day free trial.</p>
 						</div>
 					</div>
-					<form id="card-form" onSubmit={this.props.handleSubmit(this.props.submitForm)}>
+					<form id="card-form" onSubmit={this.handleSubmit}>
 						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
 							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
 								<span>
@@ -40,45 +103,38 @@ class CardForm extends Component {
 									/>
 								</span>
 							</p>
-							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+							<p className="text" style={{ display: 'block', marginTop: 0, width: 222 }}>
 								<span>
 									<label htmlFor="cardNumber">Card Number</label>
-									<Field
-										type="text"
-										component={RenderField}
-										name="cardNumber"
-										id="cardNumber"
-										placeholder="1234 4534 2322 1234"
-										required="required"
-									/>
+										<div style= {{ border: '1px solid #bbb', height: 44, padding: '10px 12px' }}>
+											<CardNumberElement
+												{...createOptions()}
+												onChange={this.handleChange}
+											/>
+										</div>
 								</span>
 							</p>
 						</div>
 						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
-							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0, width: 222 }}>
 								<span>
 									<label htmlFor="cvv">CVV</label>
-									<Field
-										type="password"
-										component={RenderField}
-										name="cvc"
-										id="cvv"
-										placeholder="CVV"
-										required="required"
-									/>
+									<div style= {{ border: '1px solid #bbb', height: 44, padding: '10px 12px' }}>
+										<CardCVCElement
+											{...createOptions()}
+											onChange={this.handleChange} />
+									</div>
 								</span>
 							</p>
-							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
+							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0, width: 222 }}>
 								<span>
 									<label htmlFor="expiry">Expiry Date</label>
-									<Field
-										type="text"
-										component={RenderField}
-										name="expiry"
-										id="expiry"
-										placeholder="01/2019"
-										required="required"
-									/>
+									<div style= {{ border: '1px solid #bbb', height: 44, padding: '10px 12px' }}>
+										<CardExpiryElement
+											{...createOptions()}
+											onChange={this.handleChange}
+										/>
+									</div>
 								</span>
 							</p>
 						</div>
@@ -191,6 +247,7 @@ class CardForm extends Component {
 	}
 }
 
+
 CardForm.displayName = 'CardForm'
 
 let validate = function (values) {
@@ -248,15 +305,14 @@ let cardForm = reduxForm({
 	validate
 })(CardForm);
 
-const mapDispatchToProps = (dispatch_Ignored) => {
-	return {
-
-	}
+const mapDispatchToProps = (dispatch) => {
+    return bindActionCreators({  addCard, addCardSuccess, addCardFailed, addCardRequest }, dispatch)
 }
 
 function mapStateToProps(state) {
 	return {
-		register: state.register
+		register: state.register,
+		addCard: state.register.addCard
 	};
 }
 
@@ -267,4 +323,16 @@ CardForm.propTypes = {
 	planId: PropTypes.string.isRequired
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(cardForm);
+const CardFormWithCheckOut = injectStripe(connect(mapStateToProps, mapDispatchToProps)(cardForm));
+
+export default class SplitFieldsDemo extends Component {
+	render() {
+		return (
+			<StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
+				<Elements>
+					<CardFormWithCheckOut />
+				</Elements>
+			</StripeProvider>
+		);
+	}
+}
