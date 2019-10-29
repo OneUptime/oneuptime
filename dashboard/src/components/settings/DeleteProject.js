@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import  PropTypes from 'prop-types'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
@@ -9,11 +9,11 @@ import { showDeleteModal } from '../../actions/project';
 
 export class DeleteProjectBox extends Component {
 
-    handleClick = ()=>{
+    handleClick = () => {
         this.props.showDeleteModal();
     }
 
-    render(){
+    render() {
         const { isRequesting, currentProject } = this.props;
 
         return (
@@ -28,7 +28,7 @@ export class DeleteProjectBox extends Component {
                                     </span>
                                 </span>
                                 <p>
-                                    <span>Click the button to permanently delete this project.</span>
+                                    <span>This project will be deleted PERMANENTLY and will no longer be recoverable.</span>
                                 </p>
                             </div>
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--0 Padding-vertical--12">
@@ -39,10 +39,10 @@ export class DeleteProjectBox extends Component {
                                         onClick={this.handleClick}
                                         disabled={currentProject.deleted && currentProject.deleted}
                                     >
-                                        <ShouldRender if={!isRequesting}>    
+                                        <ShouldRender if={!isRequesting}>
                                             <span>Delete Project</span>
                                         </ShouldRender>
-                                        <ShouldRender if={isRequesting}>    
+                                        <ShouldRender if={isRequesting}>
                                             <FormLoader />
                                         </ShouldRender>
                                     </button>
@@ -59,8 +59,8 @@ export class DeleteProjectBox extends Component {
 DeleteProjectBox.displayName = 'DeleteProjectBox'
 
 DeleteProjectBox.propTypes = {
-	currentProject: PropTypes.object,
-    isRequesting: PropTypes.oneOf([null,undefined,false,true]),
+    currentProject: PropTypes.object,
+    isRequesting: PropTypes.oneOf([null, undefined, false, true]),
     showDeleteModal: PropTypes.func.isRequired
 }
 
@@ -70,7 +70,7 @@ const mapStateToProps = state => ({
 
 
 const mapDispatchToProps = dispatch => (
-    bindActionCreators({ 
+    bindActionCreators({
         showDeleteModal,
     }, dispatch)
 )

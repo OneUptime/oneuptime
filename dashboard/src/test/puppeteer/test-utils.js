@@ -12,6 +12,10 @@ var puppeteerLaunchConfig = {
     '--disable-accelerated-2d-canvas',
     '--disable-gpu',
     '--window-size=1920x1080',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding',
+    '--disable-web-security'
     ],
   };
 

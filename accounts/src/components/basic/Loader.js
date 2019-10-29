@@ -41,6 +41,27 @@ export const Spinner = () => (
 
 Spinner.displayName = 'Spinner'
 
+export const ButtonSpinner = () => (
+    <div className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: 4 }}>
+        <svg
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+			className="Spinner-svg"
+			style={{ width: 25, height: 25 }}
+        >
+            <ellipse
+                cx={12}
+                cy={12}
+                rx={10}
+                ry={10}
+                className="Spinner-ellipse"
+            />
+        </svg>
+    </div>
+)
+
+ButtonSpinner.displayName = 'ButtonSpinner'
+
 export const LoadingState = () => (
 	<div className="Box-root Margin-bottom--12">
 		<div className="bs-ContentSection Card-root Card-shadow--medium">

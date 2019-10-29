@@ -17,7 +17,7 @@ let testFeedback = 'test feedback';
 describe('User Feedback', () => {
     
     beforeAll(async () => {
-        jest.setTimeout(100000);
+        jest.setTimeout(150000);
         projectId = await localStorage.getItem('id');
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

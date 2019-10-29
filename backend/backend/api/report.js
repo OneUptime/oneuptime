@@ -25,12 +25,12 @@ const router = express.Router();
 router.get('/:projectId/active-members', getUser, isAuthorized, getSubProjects, async (req, res) => {
     const { startDate, endDate, skip, limit } = req.query;
     var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-    try{
+    try {
         // Call ReportService
         var members = await ReportService.getMostActiveMembers(subProjectIds, startDate, endDate, skip, limit);
         var count = members.count;
         return sendListResponse(req, res, members.members, count);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
@@ -44,12 +44,12 @@ router.get('/:projectId/active-members', getUser, isAuthorized, getSubProjects, 
 router.get('/:projectId/active-monitors', getUser, isAuthorized, getSubProjects, async (req, res) => {
     const { startDate, endDate, skip, limit } = req.query;
     var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-    try{
+    try {
         // Call Reports Service
         let monitors = await ReportService.getMostActiveMonitors(subProjectIds, startDate, endDate, skip, limit);
         let count = monitors.count;
         return sendListResponse(req, res, monitors.monitors, count);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
@@ -63,11 +63,11 @@ router.get('/:projectId/active-monitors', getUser, isAuthorized, getSubProjects,
 router.get('/:projectId/average-resolved', getUser, isAuthorized, getSubProjects, async (req, res) => {
     var userId = req.user ? req.user.id : null;
     var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-    try{
+    try {
         // Call Reports Service
         var months = await ReportService.getAverageTimeMonth(subProjectIds, userId);
         return sendListResponse(req, res, months);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
@@ -80,11 +80,11 @@ router.get('/:projectId/average-resolved', getUser, isAuthorized, getSubProjects
 */
 router.get('/:projectId/monthly-incidents', getUser, isAuthorized, getSubProjects, async (req, res) => {
     var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-    try{
+    try {
         // Call Reports Service
         var months = await ReportService.getMonthlyIncidentCount(subProjectIds);
         return sendListResponse(req, res, months);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });

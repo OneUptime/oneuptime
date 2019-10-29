@@ -61,9 +61,12 @@ module.exports = {
                 monitor.name = data.name;
                 monitor.type = data.type;
                 monitor.createdById = data.createdById;
-                if (data.type === 'url' || data.type === 'manual' || data.type === 'api') {
+                if (data.type === 'url' || data.type === 'api') {
                     monitor.data = {};
-                    monitor.data.url = data.data.url || null;
+                    monitor.data.url = data.data.url;
+                } else if (data.type === 'manual') {
+                    monitor.data = {};
+                    monitor.data.description = data.data.description || null;
                 } else if (data.type === 'device') {
                     monitor.data = {};
                     monitor.data.deviceId = data.data.deviceId;
@@ -76,7 +79,7 @@ module.exports = {
                 }
                 monitor.visibleOnStatusPage = data.visibleOnStatusPage;
                 monitor.projectId = data.projectId;
-                if (data.type === 'url' || data.type === 'api') {
+                if (data.type === 'url' || data.type === 'api' || data.type === 'server-monitor') {
                     monitor.criteria = data.criteria || {};
                 }
                 if (data.type === 'api') {
@@ -455,17 +458,6 @@ module.exports = {
         }
     },
 
-    // Get monitor times from database
-    async getMonitorTime(monitorId, date) {
-        try {
-            var monitorTime = await MonitorTimeModel.find({ monitorId: monitorId, timestamp: { $lt: date } });
-        } catch (error) {
-            ErrorService.log('MonitorTimeModel.find', error);
-            throw error;
-        }
-        return monitorTime;
-    },
-
     addSeat: async function (query) {
         try {
             var project = await ProjectService.findOneBy(query);
@@ -569,46 +561,6 @@ module.exports = {
         return times;
     },
 
-    addUpTime: async function (monitor) {
-        if (monitor && monitor._doc) {
-            monitor = monitor._doc;
-        }
-        var _this = this;
-        var time = [];
-        var responseTime = 0;
-        try {
-            time = await StatusPageService.getMonitorTime(monitor._id);
-        } catch (error) {
-            ErrorService.log('StatusPageService.getMonitorTime', error);
-            throw error;
-        }
-        try {
-            responseTime = await _this.getResponseTime(monitor._id);
-        } catch (error) {
-            ErrorService.log('MonitorService.getResponseTime', error);
-            throw error;
-        }
-        var uptime = 0;
-        var downtime = 0;
-        var status = 'offline';
-        var uptimePercent = 0;
-
-        time.forEach(el => {
-            uptime += el.upTime;
-            downtime += el.downTime;
-        });
-        if (uptime === 0 && downtime === 0) {
-            uptimePercent = 100;
-        }
-        else {
-            uptimePercent = uptime / (uptime + downtime) * 100;
-        }
-        if (time && time[time.length - 1] && time[time.length - 1].status) {
-            status = time[time.length - 1].status;
-        }
-        let updatedMonitor = Object.assign({}, monitor, { time, responseTime, uptimePercent, status });
-        return updatedMonitor;
-    },
     restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
@@ -644,7 +596,6 @@ module.exports = {
 };
 
 var MonitorModel = require('../models/monitor');
-var MonitorTimeModel = require('../models/monitorTime');
 var MonitorLogModel = require('../models/monitorLog');
 var MonitorCategoryService = require('../services/monitorCategoryService');
 var Plans = require('./../config/plans');

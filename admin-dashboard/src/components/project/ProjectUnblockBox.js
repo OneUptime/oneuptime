@@ -16,8 +16,8 @@ export class ProjectUnblockBox extends Component {
     }
 
     handleClick = () => {
-        const { unblockProject, projectId } = this.props;
-        return unblockProject(projectId);
+        const { unblockProject, project } = this.props;
+        return unblockProject(project._id);
     }
 
     render() {
@@ -68,8 +68,8 @@ const mapDispatchToProps = dispatch => (
     bindActionCreators({ unblockProject, openModal, closeModal }, dispatch)
 )
 
-const mapStateToProps = (state, props) => {
-    const project = state.project.projects.projects.find(project => project._id === props.projectId);
+const mapStateToProps = (state) => {
+    const project = state.project.project.project;
     return {
         project,
         isRequesting: state.project && state.project.unblockProject && state.project.unblockProject.requesting,
@@ -78,15 +78,8 @@ const mapStateToProps = (state, props) => {
 
 ProjectUnblockBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    history: PropTypes.object.isRequired,
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined])
-    ]),
-    unblockProject: PropTypes.func.isRequired,
-    closeModal: PropTypes.func,
-    openModal: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired,
+    project: PropTypes.object.isRequired,
+    unblockProject: PropTypes.func.isRequired
 }
 
 ProjectUnblockBox.contextTypes = {

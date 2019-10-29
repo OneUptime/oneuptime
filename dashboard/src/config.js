@@ -233,7 +233,7 @@ export const PricingPlan = {
 
     getPlans() {
 
-        if (window.location.href.indexOf('localhost') > -1 ||  window.location.href.indexOf('staging') > -1 || window.location.href.indexOf('app.local') > -1) {
+        if (window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1 || window.location.href.indexOf('app.local') > -1) {
             return [
                 {
                     category: 'Basic',
@@ -338,46 +338,28 @@ export const tutorials = {
     getMonitorTutorials() {
         return [
             {
-                id: 's1',
+                id: 'monitor',
                 title: 'What are Monitors',
                 icon: 'bell',
-                description: <p>You can add web and API server address to
-                    to monitor.<br />It allows you monitor the health status of
-                    your API</p>,
+                description: <p>You can add web and API server address to monitor. It allows you monitor the health status of your API</p>,
             },
             {
-                id: 's2',
+                id: 'incident',
                 title: 'What are Incidents',
                 icon: 'bell',
-                description: <p>You can use this feature to acknowledge an incident
-                                that occurred on a monitor<br /> and mark the
-incident as resolved after resolving the
-                                issue on your api or server</p>,
+                description: <p>You can use this feature to acknowledge an incident that occurred on a monitor and mark the incident as resolved after resolving the issue on your api or server</p>,
             },
             {
-                id: 's3',
-                title: 'Acknowledge/Resolve Incidents',
-                icon: 'bell',
-                description: <p>You can use this feature to acknowledge an incident
-                                that occurred on a monitor<br /> and mark the
-incident as resolved after resolving the
-                                issue on your api or server</p>,
-            },
-            {
-                id: 's4',
+                id: 'status-page',
                 title: 'Status Metrics',
                 icon: 'bell',
-                description: <p>Get detailed metrics of all incidents that occurred <br />
-                    on connected monitors and with date and time it was resolved
-                                </p>,
+                description: <p>Get detailed metrics of all incidents that occurred on connected monitors and with date and time it was resolved</p>,
             },
             {
-                id: 's5',
+                id: 'call-schedule',
                 title: 'Better Status Handling',
                 icon: 'bell',
-                description: <p>After adding monitors for your API, you won&quot;t miss out on any<br />
-                    downtime on your servers, Just let Fyipe alert notify you
-                                </p>,
+                description: <p>After adding monitors for your API, you won&apos;t miss out on any downtime on your servers, Just let Fyipe alert notify you</p>,
             },
         ]
     }
@@ -398,7 +380,7 @@ export function saveFile(content, filename) {
     FileSaver.saveAs(blob, filename);
 }
 
-export function makeCriteria(val){
+export function makeCriteria(val) {
     let val2 = {};
     let and = [];
     let or = [];

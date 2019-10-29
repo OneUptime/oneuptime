@@ -119,6 +119,7 @@ module.exports = {
     },
 
     sendIncidentCreatedCall: async function (incidentTime, monitorName, number, accessToken, incidentId, projectId, redialCount) {
+
         var options = {
             url: `${baseApiUrl}/twilio/voice/incident?redialCount=${redialCount || 0}&accessToken=${accessToken}&incidentId=${incidentId}&projectId=${projectId}&monitorName=${monitorName.split(' ').join('%20')}`,
             from: twilioCredentials.phoneNumber,

@@ -8,26 +8,27 @@ import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 
 const calculateTime = (probeStatus) => {
-    var timeBlock = [];
-    var dayStart = moment(Date.now()).startOf('day');
-    var totalUptime = 0;
-    var totalTime = 0;
-    for (var i = 0; i < 90; i++) {
-        var dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
-        var timeObj = {
+    let timeBlock = [];
+    let dayStart = moment(Date.now()).startOf('day');
+    let totalUptime = 0;
+    let totalTime = 0;
+    for (let i = 0; i < 90; i++) {
+        let dayStartIn = dayStart;
+        let dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
+        let timeObj = {
             date: dayStart,
             downTime: 0,
             upTime: 0,
             degradedTime: 0
         };
-        probeStatus.map(day => {
-            var start;
-            var end;
+        probeStatus.forEach(day => {
+            let start;
+            let end;
             if (day.endTime === null) {
                 day.endTime = Date.now();
             }
-            if (moment(day.startTime).isBefore(dayEnd) && moment(day.endTime).isAfter(dayStart)) {
-                start = moment(day.startTime).isBefore(dayStart) ? dayStart : moment(day.startTime);
+            if (moment(day.startTime).isBefore(dayEnd) && moment(day.endTime).isAfter(dayStartIn)) {
+                start = moment(day.startTime).isBefore(dayStartIn) ? dayStartIn : moment(day.startTime);
                 end = moment(day.endTime).isAfter(dayEnd) ? dayEnd : moment(day.endTime);
                 if (day.status === 'offline') {
                     timeObj.downTime = timeObj.downTime + end.diff(start, 'minutes');
@@ -38,9 +39,6 @@ const calculateTime = (probeStatus) => {
                 else if (day.status === 'online') {
                     timeObj.upTime = timeObj.upTime + end.diff(start, 'minutes');
                 }
-            }
-            else {
-                return
             }
         })
         totalUptime = totalUptime + timeObj.upTime;
@@ -69,8 +67,9 @@ export function MonitorBarChart(props) {
 
     let { startDate, endDate } = props;
 
-    let range = moment.range(new Date(startDate), new Date(endDate));
-    let data = props.monitor.logs && props.monitor.logs.length > 0 ? props.monitor.logs.filter(log => range.contains(new Date(log.createdAt))) : [];
+    let data = props.monitor.logs && props.monitor.logs.length > 0 ? props.monitor.logs.filter(
+        log => moment(new Date(log.createdAt)).isBetween(new Date(startDate), new Date(endDate), 'day', '[]')
+    ) : [];
     let checkLogs = data && data.length > 0;
 
     let responseTime = props.probe && props.probe.responseTime ? props.probe.responseTime : '0';
@@ -78,9 +77,10 @@ export function MonitorBarChart(props) {
     let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
     let monitorType = props.monitor.type;
+    let monitorInfo;
 
-    let monitorInfo = monitorType === 'server-monitor' ? (
-        <Fragment>
+    if (monitorType === 'server-monitor') {
+        monitorInfo = <Fragment>
             <div className="db-Trend">
                 <div className="block-chart-side line-chart">
                     <div className="db-TrendRow">
@@ -111,7 +111,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart data={data} name={'load'} />
+                    <AreaChart type={monitorType} data={data} name={'load'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -144,7 +144,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart data={data} name={'memory'} />
+                    <AreaChart type={monitorType} data={data} name={'memory'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -177,7 +177,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart data={data} name={'disk'} />
+                    <AreaChart type={monitorType} data={data} name={'disk'} />
                 </div>
             </div>
             <ShouldRender if={props.showAll}>
@@ -204,45 +204,82 @@ export function MonitorBarChart(props) {
                         </div>
                     </div>
                     <div className="block-chart-main line-chart">
-                        <AreaChart data={data} name={'temperature'} />
+                        <AreaChart type={monitorType} data={data} name={'temperature'} />
                     </div>
                 </div>
             </ShouldRender>
         </Fragment>
-    ) : (
-            <div className="db-Trend">
-                <span></span>
-                <div className="db-Trend-colInformation">
-                    <div className="db-Trend-rowTitle" title="Gross volume">
-                        <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+    } else if (monitorType === 'url' || monitorType === 'api') {
+        monitorInfo = <div className="db-Trend">
+            <div className="block-chart-side line-chart">
+                <div className="db-TrendRow">
+                    <div className="db-Trend-colInformation">
+                        <div className="db-Trend-rowTitle" title="Response Time">
+                            <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
+                        </div>
                     </div>
-                    <div className="db-Trend-row">
-                        <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
+                    <div className="db-Trend-colInformation">
+                        <div className="db-Trend-rowTitle" title="Monitor Status">
+                            <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{monitorStatus}</span></span></div>
+                        </div>
                     </div>
-                </div>
-                <div className="db-Trend-colInformation">
-                    <div className="db-Trend-rowTitle" title="Gross volume">
-                        <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
-                    </div>
-                    <div className="db-Trend-row">
-                        <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{monitorStatus}</span></span></div>
-                    </div>
-                </div>
-                <div className="db-Trend-colInformation">
-                    <div className="db-Trend-rowTitle" title="Gross volume">
-                        <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
-                    </div>
-                    <div className="db-Trend-row">
-                        <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
-                    </div>
-                </div>
-                <div className="block-chart-main">
-                    <div className="block-chart">
-                        {block}
+                    <div className="db-Trend-colInformation">
+                        <div className="db-Trend-rowTitle" title="Uptime Stats">
+                            <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
+                        </div>
                     </div>
                 </div>
             </div>
-        );
+            <div className="block-chart-main line-chart">
+                <AreaChart type={monitorType} data={data} name={'response time'} symbol="ms" />
+            </div>
+        </div>
+    } else {
+        monitorInfo = <div className="db-Trend">
+            <span></span>
+            {
+                props.monitor.type !== 'manual' ?
+                    <div className="db-Trend-colInformation">
+                        <div className="db-Trend-rowTitle" title="Gross volume">
+                            <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
+                        </div>
+                    </div> : null
+            }
+            <div className="db-Trend-colInformation">
+                <div className="db-Trend-rowTitle" title="Gross volume">
+                    <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
+                </div>
+                <div className="db-Trend-row">
+                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{monitorStatus}</span></span></div>
+                </div>
+            </div>
+            <div className="db-Trend-colInformation">
+                <div className="db-Trend-rowTitle" title="Gross volume">
+                    <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
+                </div>
+                <div className="db-Trend-row">
+                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
+                </div>
+            </div>
+            <div className="block-chart-main">
+                <div className="block-chart">
+                    {block}
+                </div>
+            </div>
+        </div>
+    }
 
     let chart = <div className="db-Trends-content">
         <div className="db-TrendsRows">

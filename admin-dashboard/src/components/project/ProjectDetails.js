@@ -2,8 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import ShouldRender from '../basic/ShouldRender';
-import { FormLoader } from '../basic/Loader';
 
 export class ProjectDetails extends Component {
 
@@ -99,9 +97,8 @@ export class ProjectDetails extends Component {
 
 ProjectDetails.displayName = 'ProjectDetails'
 
-const mapStateToProps = (state, props) => {
-    const projectId = props.projectId;
-    const project = state.project.projects.projects.find(project => project._id === projectId) || {}
+const mapStateToProps = (state) => {
+    const project = state.project.project.project || {}
     return {
         project,
         isRequesting: state.project.projects.requesting
@@ -114,7 +111,6 @@ const mapDispatchToProps = dispatch => (
 
 ProjectDetails.propTypes = {
     project: PropTypes.object.isRequired,
-    isRequesting: PropTypes.oneOf([null,undefined,true,false]),
 }
 
 ProjectDetails.contextTypes = {

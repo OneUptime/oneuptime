@@ -31,7 +31,7 @@ const initialState = {
         error: null,
         pi: {}
     },
-    alertOptionsUpdate:{
+    alertOptionsUpdate: {
         success: false,
         requesting: false,
         error: null,
@@ -257,7 +257,7 @@ export default function project(state = initialState, action) {
                 projects: {
                     requesting: false,
                     error: null,
-                    success: false,
+                    success: true,
                     projects
                 }
             });
@@ -281,6 +281,50 @@ export default function project(state = initialState, action) {
             });
 
         case types.DELETE_PROJECT_RESET:
+            return Object.assign({}, state, {
+                deleteProject: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                }
+            });
+
+        case types.MARK_PROJECT_DELETE_SUCCESS:
+            projects = Object.assign([], state.projects.projects);
+            projects = projects.filter(project => project._id !== action.payload);
+            return Object.assign({}, state, {
+                deleteProject: {
+                    requesting: false,
+                    success: action.payload.ok === 1,
+                    error: null
+                },
+                projects: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    projects
+                }
+            });
+
+        case types.MARK_PROJECT_DELETE_REQUEST:
+            return Object.assign({}, state, {
+                deleteProject: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case types.MARK_PROJECT_DELETE_FAILED:
+            return Object.assign({}, state, {
+                deleteProject: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case types.MARK_PROJECT_DELETE_RESET:
             return Object.assign({}, state, {
                 deleteProject: {
                     requesting: false,
@@ -410,7 +454,7 @@ export default function project(state = initialState, action) {
 
         case types.CHANGE_PROJECT_ROLES:
             return Object.assign({}, state, {
-                currentProject : {
+                currentProject: {
                     ...state.currentProject,
                     users: action.payload.find(team => team.projectId === state.currentProject._id).team
                 }

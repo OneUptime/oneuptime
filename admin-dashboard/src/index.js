@@ -3,7 +3,6 @@ import { Provider } from 'react-redux';
 import { Frontload } from 'react-frontload';
 import MixpanelProvider from 'react-mixpanel';
 import mixpanel from 'mixpanel-browser';
-import * as CB from 'cloudboost';
 import ReactGA from 'react-ga';
 import ErrorBoundary from './components/basic/ErrorBoundary';
 import { render } from 'react-dom';
@@ -13,7 +12,6 @@ import './index.css';
 
 if (!isServer) {
 	ReactGA.initialize('UA-115085157-1');
-	CB.CloudApp.init('hcaarmonukbk', 'cdcc37f4-dfc6-44e0-b61b-de8c887ec202');
 	mixpanel.init('de27af9b37fa926bf648bb704836fd5f');
 }
 

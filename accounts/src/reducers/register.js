@@ -53,7 +53,6 @@ export default function register(state = initialState, action) {
 				requesting: false,
 				isAuthenticated: false,
 				error: action.payload,
-				step: 1,
                 isUserInvited : {
 					...state.isUserInvited,
 					requesting: false,

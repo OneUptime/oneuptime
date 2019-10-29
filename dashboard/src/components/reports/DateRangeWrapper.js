@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import ClickOutside from 'react-click-outside';
 import DateRangePicker from 'react-daterange-picker';
 import PropTypes from 'prop-types';
 import originalMoment from 'moment';
@@ -30,16 +31,16 @@ class DateRangeWrapper extends Component {
     return (
       <div>
         <div
-         className="db-DateRangeInputWithComparison"
-         style={{
-           
-         }}
-         >
+          className="db-DateRangeInputWithComparison"
+          style={{
+
+          }}
+        >
           <div
             className="db-DateRangeInput bs-Control"
             style={{
-               cursor: 'pointer',
-          }}
+              cursor: 'pointer',
+            }}
             onClick={this.onToggle}
           >
             <div
@@ -73,7 +74,7 @@ class DateRangeWrapper extends Component {
 
   render() {
     return (
-      <div>
+      <ClickOutside onClickOutside={() => this.setState({ isOpen: false })}>
         <div>{this.renderSelectionValue()}</div>
 
         {this.state.isOpen && (
@@ -85,7 +86,7 @@ class DateRangeWrapper extends Component {
             singleDateRange={true}
           />
         )}
-      </div>
+      </ClickOutside>
     );
   }
 }
@@ -94,7 +95,7 @@ DateRangeWrapper.displayName = 'DateRangeWrapper'
 
 DateRangeWrapper.propTypes = {
   onChange: PropTypes.func,
-  dateRange: PropTypes.object
+  dateRange: PropTypes.oneOfType([PropTypes.object, PropTypes.number]),
 }
 
 export default DateRangeWrapper;

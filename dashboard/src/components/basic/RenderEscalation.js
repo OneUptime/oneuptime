@@ -92,7 +92,7 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                         onClick={() => fields.push({ callFrequency: '10',teamMember: [{ member: '', email: true, sms: true, call: true, timezone: '', startTime: '', endTime: '' }] })}
                                     >
-                                        Add Policy
+                                        Add Escalation Policy
                                     </button>
                                     <ShouldRender if={submitFailed && error}>
                                         <span>{error}</span>
@@ -100,11 +100,6 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                 </ShouldRender>
                             </div>
                         </div>
-                        <p className="bs-Fieldset-explanation">
-                            <span>
-                                You can add Escalation Policy here.
-                            </span>
-                        </p>
                     </div>
                 </div>
             </li>

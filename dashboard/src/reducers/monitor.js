@@ -85,14 +85,14 @@ export default function monitor(state = INITIAL_STATE, action) {
                         return subProjectMonitors._id === action.payload.projectId._id ?
                             {
                                 _id: action.payload.projectId._id,
-                                monitors: [...subProjectMonitors.monitors, action.payload],
+                                monitors: [action.payload, ...subProjectMonitors.monitors],
                                 count: subProjectMonitors.count + 1,
                                 skip: subProjectMonitors.skip,
                                 limit: subProjectMonitors.limit
                             }
                             : subProjectMonitors
                     }) : [{ _id: action.payload.projectId, monitors: [action.payload], count: 1, skip: 0, limit: 0 }]
-                        : state.monitorsList.monitors.concat([{ _id: action.payload.projectId, monitors: [action.payload], count: 1, skip: 0, limit: 0 }])
+                        : [{ _id: action.payload.projectId, monitors: [action.payload], count: 1, skip: 0, limit: 0 }].concat(state.monitorsList.monitors)
                 }
             });
 
@@ -587,15 +587,18 @@ export default function monitor(state = INITIAL_STATE, action) {
                             if (monitor._id === action.payload.monitorId._id) {
                                 var incidents = monitor.incidents || [];
 
-                                if (incidents && incidents.length && incidents !== undefined || incidents !== null) {
+                                if (incidents && incidents.length) {
                                     if (incidents.length > 2) {
                                         incidents.splice(-1, 1);
                                     }
                                     incidents.unshift(action.payload);
+                                } else {
+                                    incidents = [action.payload];
                                 }
                                 return {
                                     ...monitor,
-                                    incidents: incidents
+                                    incidents: incidents,
+                                    count: monitor.count + 1
                                 };
                             } else {
                                 return monitor;

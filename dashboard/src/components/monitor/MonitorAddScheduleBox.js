@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import moment from 'moment';
 
-import { fetchscheduledEvents, deleteScheduledEvent} from '../../actions/scheduledEvent';
+import { fetchscheduledEvents, deleteScheduledEvent } from '../../actions/scheduledEvent';
 import { openModal, closeModal } from '../../actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
 import EditSchedule from '../modals/EditSchedule';
@@ -46,7 +46,7 @@ export class ScheduledEventBox extends Component {
 
     render() {
         let { createScheduledEventModalId } = this.state;
-        let { scheduledEvents, limit, count, skip } = this.props;
+        let { scheduledEvents, limit, count, skip, profileSettings } = this.props;
         let footerBorderTopStyle = { margin: 0, padding: 0, borderTop: '1px solid #e6ebf1' }
 
         let canNext = (count > (parseInt(skip) + parseInt(limit))) ? true : false;
@@ -74,7 +74,7 @@ export class ScheduledEventBox extends Component {
                                 <button id="addScheduledEventButton" onClick={() => {
                                     this.props.openModal({
                                         id: createScheduledEventModalId,
-                                        content: DataPathHoC(CreateSchedule, {monitorId:this.props.monitor._id, projectId})
+                                        content: DataPathHoC(CreateSchedule, { monitorId: this.props.monitor._id, projectId })
                                     })
                                 }} className="Button bs-ButtonLegacy ActionIconParent" type="button">
                                     <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
@@ -83,7 +83,7 @@ export class ScheduledEventBox extends Component {
                                             </div>
                                         </div>
                                         <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                            <span>Create new scheduled event</span>
+                                            <span>Create New Scheduled Event</span>
                                         </span>
                                     </div>
                                 </button>
@@ -93,7 +93,7 @@ export class ScheduledEventBox extends Component {
                 </div>
                 <div className="bs-ContentSection-content Box-root">
                     <div className="bs-ObjectList db-UserList">
-                        <div id="scheduledEventsList"className="bs-ObjectList-rows">
+                        <div id="scheduledEventsList" className="bs-ObjectList-rows">
                             <header className="bs-ObjectList-row bs-ObjectList-row--header">
                                 <div className="bs-ObjectList-cell">
                                     Event
@@ -130,12 +130,14 @@ export class ScheduledEventBox extends Component {
                                     </div>
                                     <div className="bs-ObjectList-cell bs-u-v-middle">
                                         <div className="bs-ObjectList-cell-row">
-                                            {moment(scheduledEvent.startDate).format('MMMM Do YYYY, h:mm a')}
+                                            {moment(scheduledEvent.startDate).format('MMMM Do YYYY, h:mm a')}<br />
+                                            <strong>{profileSettings.timezone}</strong>
                                         </div>
                                     </div>
                                     <div className="bs-ObjectList-cell bs-u-v-middle">
                                         <div className="bs-ObjectList-cell-row">
-                                            {moment(scheduledEvent.endDate).format('MMMM Do YYYY, h:mm a')}
+                                            {moment(scheduledEvent.endDate).format('MMMM Do YYYY, h:mm a')}<br />
+                                            <strong>{profileSettings.timezone}</strong>
                                         </div>
                                     </div>
                                     <div className="bs-ObjectList-cell bs-u-v-middle">
@@ -145,30 +147,30 @@ export class ScheduledEventBox extends Component {
                                     </div>
                                 </div>)}
                         </div>
-                    <div style={footerBorderTopStyle}></div>
-                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween" style={{ backgroundColor: 'white' }}>
-                        <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
-                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                <span>
-                                    <span id="scheduledEventCount" className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{this.props.count ? this.props.count + (this.props.count > 1 ? '  Events' : ' Event') : '0 Scheduled Event'}</span>
+                        <div style={footerBorderTopStyle}></div>
+                        <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween" style={{ backgroundColor: 'white' }}>
+                            <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                    <span>
+                                        <span id="scheduledEventCount" className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{this.props.count ? this.props.count + (this.props.count > 1 ? '  Events' : ' Event') : '0 Scheduled Event'}</span>
+                                    </span>
                                 </span>
-                            </span>
-                        </div>
-                        <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                <div className="Box-root Margin-right--8">
-                                    <button onClick={() => this.prevClicked()} className={'Button bs-ButtonLegacy' + (canPrev ? '' : 'Is--disabled')} disabled={!canPrev} data-db-analytics-name="list_view.pagination.previous" type="button">
-                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Previous</span></span></div>
-                                    </button>
-                                </div>
-                                <div className="Box-root">
-                                    <button onClick={() => this.nextClicked()} className={'Button bs-ButtonLegacy' + (canNext ? '' : 'Is--disabled')} disabled={!canNext} data-db-analytics-name="list_view.pagination.next" type="button">
-                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Next</span></span></div>
-                                    </button>
+                            </div>
+                            <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                    <div className="Box-root Margin-right--8">
+                                        <button onClick={() => this.prevClicked()} className={'Button bs-ButtonLegacy' + (canPrev ? '' : 'Is--disabled')} disabled={!canPrev} data-db-analytics-name="list_view.pagination.previous" type="button">
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Previous</span></span></div>
+                                        </button>
+                                    </div>
+                                    <div className="Box-root">
+                                        <button onClick={() => this.nextClicked()} className={'Button bs-ButtonLegacy' + (canNext ? '' : 'Is--disabled')} disabled={!canNext} data-db-analytics-name="list_view.pagination.next" type="button">
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Next</span></span></div>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                     </div>
                 </div>
             </div>
@@ -184,12 +186,13 @@ ScheduledEventBox.propTypes = {
     openModal: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
     fetchscheduledEvents: PropTypes.func.isRequired,
-    skip: PropTypes.string,
-    limit: PropTypes.string,
+    skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     count: PropTypes.number,
     name: PropTypes.string,
     deleteScheduledEvent: PropTypes.func.isRequired,
-    scheduledEvents: PropTypes.array
+    scheduledEvents: PropTypes.array,
+    profileSettings: PropTypes.object
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
@@ -205,6 +208,7 @@ const mapStateToProps = (state) => {
         limit: state.scheduledEvent.scheduledEventList.limit,
         skip: state.scheduledEvent.scheduledEventList.skip,
         error: state.scheduledEvent.scheduledEventList.error,
+        profileSettings: state.profileSettings.profileSetting.data
     };
 }
 

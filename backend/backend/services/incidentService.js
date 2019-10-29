@@ -57,6 +57,10 @@ module.exports = {
             incident.notClosedBy = users;
             if (data.incidentType) {
                 incident.incidentType = data.incidentType;
+                MonitorStatusService.create({
+                    status: data.incidentType,
+                    monitorId: data.monitorId
+                });
             }
             if (data.probeId) {
                 incident.probes = [{
@@ -70,9 +74,6 @@ module.exports = {
             }
             else {
                 incident.manuallyCreated = false;
-            }
-            if (data.type) {
-                incident.type = data.type;
             }
             try {
                 incident = await incident.save();
@@ -199,7 +200,7 @@ module.exports = {
                 notClosedBy = notClosedBy.concat(data.notClosedBy);
             }
             var manuallyCreated = data.manuallyCreated || oldIncident.manuallyCreated || false;
-            var deleted = oldIncident.deleted;
+            var deleted = oldIncident.deleted || false;
             var deletedById = oldIncident.deletedById;
             var deletedAt = oldIncident.deletedAt;
 
@@ -672,3 +673,4 @@ var ZapierService = require('./zapierService');
 var ProjectService = require('../services/projectService');
 var ProbeService = require('../services/probeService');
 var ErrorService = require('../services/errorService');
+var MonitorStatusService = require('../services/monitorStatusService');

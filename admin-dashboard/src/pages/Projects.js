@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ProjectList from '../components/project/ProjectList';
@@ -49,7 +50,6 @@ class Projects extends React.Component {
     }
 
     render(){
-        console.log('requesting: ', this.props.requesting);
         return (
             <Dashboard ready={this.ready}>
                 <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
@@ -128,6 +128,14 @@ const mapStateToProps = state => {
         projects,
         requesting
     };
+}
+
+Projects.propTypes = {
+    fetchProjects: PropTypes.func.isRequired,
+    searchProjects: PropTypes.func.isRequired,
+    requesting: PropTypes.bool,
+    projects: PropTypes.object,
+    userId: PropTypes.string
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Projects);

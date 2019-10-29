@@ -5,12 +5,10 @@ import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
 import uuid from 'uuid';
 import DateRangeWrapper from './DateRangeWrapper';
-import { editMonitorSwitch, selectedProbe, deleteMonitor, fetchMonitorsIncidents } from '../../actions/monitor';
-import { openModal, closeModal } from '../../actions/modal';
+import { editMonitorSwitch, selectedProbe, fetchMonitorsIncidents } from '../../actions/monitor';
+import { openModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
-import DeleteMonitor from '../modals/DeleteMonitor';
 import moment from 'moment';
-import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { FormLoader } from '../basic/Loader';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import ShouldRender from '../basic/ShouldRender';
@@ -20,8 +18,8 @@ import Badge from '../common/Badge';
 import { history } from '../../store';
 import MonitorBarChart from './MonitorBarChart';
 
-let endDate = moment().format('YYYY-MM-DD');
-let startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
+const endDate = moment().format('YYYY-MM-DD');
+const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
 
 export class MonitorDetail extends Component {
 
@@ -29,12 +27,10 @@ export class MonitorDetail extends Component {
         super(props);
         this.props = props;
         this.state = {
-            deleteModalId: uuid.v4(),
             createIncidentModalId: uuid.v4(),
             monitorStart: startDate,
             monitorEnd: endDate
         }
-        this.deleteMonitor = this.deleteMonitor.bind(this);
         this.selectbutton = this.selectbutton.bind(this);
     }
 
@@ -78,23 +74,10 @@ export class MonitorDetail extends Component {
         }
     }
 
-    deleteMonitor = () => {
-        let promise = this.props.deleteMonitor(this.props.monitor._id, this.props.monitor.projectId._id || this.props.monitor.projectId);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Monitor Deleted', {
-                ProjectId: this.props.currentProject._id,
-                monitorId: this.props.monitor._id
-            });
-        }
-        return promise;
-    }
-
     handleKeyBoard = (e) => {
         let canNext = (this.props.monitor && this.props.monitor.count) && this.props.monitor.count > this.props.monitor.skip + this.props.monitor.limit ? true : false;
         let canPrev = this.props.monitor && this.props.monitor.skip <= 0 ? false : true;
         switch (e.key) {
-            case 'Escape':
-                return this.props.closeModal({ id: this.state.deleteModalId })
             case 'ArrowRight':
                 return canNext && this.nextClicked()
             case 'ArrowLeft':
@@ -133,7 +116,7 @@ export class MonitorDetail extends Component {
             margin: '0 8px 1px 0',
             backgroundColor: 'rgb(250, 117, 90)'// "red-status"
         }
-        let { createIncidentModalId, deleteModalId } = this.state;
+        let { createIncidentModalId } = this.state;
         let creating = this.props.create ? this.props.create : false;
         let monitor = this.props.monitor;
         monitor.error = null;
@@ -144,11 +127,6 @@ export class MonitorDetail extends Component {
         }
         monitor.success = this.props.monitorState.monitorsList.success;
         monitor.requesting = this.props.monitorState.monitorsList.requesting;
-
-        let deleting = false;
-        if (this.props.monitorState && this.props.monitorState.deleteMonitor && this.props.monitorState.deleteMonitor === this.props.monitor._id) {
-            deleting = true;
-        }
 
         let badgeColor;
         switch (this.props.monitor.type) {
@@ -202,7 +180,6 @@ export class MonitorDetail extends Component {
                             {this.props.monitor.type === 'device' &&
                                 <button
                                     className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
-                                    disabled={deleting}
                                     onClick={() =>
                                         this.props.openModal({
                                             id: this.props.monitor._id,
@@ -214,8 +191,6 @@ export class MonitorDetail extends Component {
                                     <span>Show URL</span>
                                 </button>
                             }
-                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
-
                             <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
                                 id={`create_incident_${this.props.monitor.name}`}
                                 onClick={() =>
@@ -232,25 +207,9 @@ export class MonitorDetail extends Component {
                                     <FormLoader />
                                 </ShouldRender>
                             </button>
-                            <RenderIfSubProjectAdmin subProjectId={this.props.monitor.projectId._id || this.props.monitor.projectId}>
-                                <button id={`edit_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' disabled={deleting} onClick={this.editMonitor}><span>Edit</span></button>
-                                <button id={`delete_${this.props.monitor.name}`} className={deleting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'} type="button" disabled={deleting}
-                                    onClick={() =>
-                                        this.props.openModal({
-                                            id: deleteModalId,
-                                            onClose: () => '',
-                                            onConfirm: () => this.deleteMonitor(),
-                                            content: DeleteMonitor
-                                        })}>
-                                    <ShouldRender if={!deleting}>
-                                        <span>Delete</span>
-                                    </ShouldRender>
-                                    <ShouldRender if={deleting}>
-                                        <FormLoader />
-                                    </ShouldRender>
-                                </button>
-                            </RenderIfSubProjectAdmin>
-                        </div></div>
+                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
+                        </div>
+                    </div>
                 </div>
                 <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
                     <div className="btn-group">
@@ -299,9 +258,7 @@ MonitorDetail.displayName = 'MonitorDetail'
 const mapDispatchToProps = (dispatch) => {
     return bindActionCreators({
         editMonitorSwitch,
-        deleteMonitor,
         openModal,
-        closeModal,
         fetchMonitorsIncidents,
         createNewIncident,
         selectedProbe,
@@ -325,11 +282,9 @@ MonitorDetail.propTypes = {
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
-    deleteMonitor: PropTypes.func.isRequired,
     index: PropTypes.string,
     openModal: PropTypes.func,
     create: PropTypes.bool,
-    closeModal: PropTypes.func,
     selectedProbe: PropTypes.func.isRequired,
     activeProbe: PropTypes.number
 }

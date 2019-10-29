@@ -21,20 +21,20 @@ import uuid from 'uuid';
 
 export class AlertAdvanceOption extends Component {
 
-    state = { 
+    state = {
         MessageBoxId: uuid.v4()
     }
 
     submitForm = (value) => {
         value._id = this.props.projectId;
         this.props.alertOptionsUpdate(this.props.projectId, value)
-        .then(() => {
-            let { paymentIntent } = this.props;
-            if(paymentIntent){
-                //init payment
-                this.handlePaymentIntent(paymentIntent);
-            }
-        });
+            .then(() => {
+                let { paymentIntent } = this.props;
+                if (paymentIntent) {
+                    //init payment
+                    this.handlePaymentIntent(paymentIntent);
+                }
+            });
     }
 
     handlePaymentIntent = (paymentIntentClientSecret) => {
@@ -43,12 +43,12 @@ export class AlertAdvanceOption extends Component {
         stripe.handleCardPayment(paymentIntentClientSecret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    var creditedBalance = result.paymentIntent.amount / 100; 
+                    var creditedBalance = result.paymentIntent.amount / 100;
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
                         title: 'Message',
-                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
+                        message: `Transaction successful, your balance is now ${balance + creditedBalance}$`
                     })
                 }
                 else {
@@ -90,227 +90,231 @@ export class AlertAdvanceOption extends Component {
     render() {
         const { alertEnable } = this.props;
         return (
-            <div className="Box-root Margin-bottom--12">
-                <div className="bs-ContentSection Card-root Card-shadow--medium">
-                    <div className="Box-root">
-                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+            <div className="db-World-contentPane Box-root" style={{ paddingTop: 0 }}>
+                <div className="db-RadarRulesLists-page">
+                    <div className="Box-root Margin-bottom--12">
+                        <div className="bs-ContentSection Card-root Card-shadow--medium">
                             <div className="Box-root">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Alert Option</span>
-                                </span>
-                                <p>
-                                    <span>
-                                        Configure options for Alerts
+                                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                    <div className="Box-root">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Alert Option</span>
+                                        </span>
+                                        <p>
+                                            <span>
+                                                Configure options for Alerts
                                     </span>
-                                </p>
-                            </div>
-                        </div>
-                        <form onSubmit={this.props.handleSubmit(this.submitForm)}>
-                            <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                                <div>
-                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-
-                                        <div className="bs-Fieldset-row">
-                                            <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
-                                            <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                <div className="Box-root" style={{ height: '5px' }}></div>
-                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                    <label className="Checkbox">
-                                                        <Field
-                                                            component="input"
-                                                            type="checkbox"
-                                                            name='alertEnable'
-                                                            className="Checkbox-source"
-                                                            id='alertEnable'
-                                                        />
-                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                            <div className="Checkbox-target Box-root">
-                                                                <div className="Checkbox-color Box-root">
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                            <label><span>Enable call and SMS alerts</span></label>
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ShouldRender if={alertEnable}>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div className="Box-root" style={{ height: '5px' }}></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label>
-                                                                    Your Account is configured to be auto recharged. If your card needs additional step to authorize payment,
-                                                                    wait for the popup to confirm the payment.
-                                                                </label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">If the initial balance falls below</label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                        component={RenderSelect}
-                                                        name='minimumBalance'
-                                                        id='minimumBalance'
-                                                        validate={ValidateField.select}
-                                                    >
-                                                        <option value="">Select amount</option>
-                                                        <option value="20">$20</option>
-                                                        <option value="50">$50</option>
-                                                        <option value="100">$100</option>
-                                                        <option value="200">$200</option>
-                                                        <option value="400">$400</option>
-                                                        <option value="500">$500</option>
-                                                        <option value="750">$750</option>
-                                                        <option value="1000">$1000</option>
-                                                    </Field>
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">Recharge the balance to </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                        component={RenderSelect}
-                                                        name='rechargeToBalance'
-                                                        id='rechargeToBalance'
-                                                        validate={ValidateField.select}
-                                                    >
-                                                        <option value="">Select amount</option>
-                                                        <option value="40">$40</option>
-                                                        <option value="100">$100</option>
-                                                        <option value="200">$200</option>
-                                                        <option value="400">$400</option>
-                                                        <option value="500">$500</option>
-                                                        <option value="750">$750</option>
-                                                        <option value="1000">$1000</option>
-                                                    </Field>
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div className="Box-root" style={{ height: '5px' }}></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name='billingUS'
-                                                                className="Checkbox-source"
-                                                                id='billingUS'
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root">
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Enable calling to US Numbers</span></label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div className="Box-root" style={{ height: '5px' }}></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name='billingNonUSCountries'
-                                                                className="Checkbox-source"
-                                                                id='billingNonUSCountries'
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root">
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Enable calling to Non-US Numbers (except high risk countries)</span></label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div className="Box-root" style={{ height: '5px' }}></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name='billingRiskCountries'
-                                                                className="Checkbox-source"
-                                                                    id='billingRiskCountries'
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root">
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Enable calling to high risk countries</span></label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div className="Box-root" style={{ height: '5px' }}></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label>
-                                                                    <a target="_blank" rel="noopener noreferrer" href="https://www.twilio.com/docs/sip-trunking/voice-dialing-geographic-permissions#the-highest-risk-countries-for-toll-fraud-in-world">
-                                                                        <span>See high risk countries</span>
-                                                                    </a>
-                                                                </label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </ShouldRender>
+                                        </p>
                                     </div>
                                 </div>
+                                <form onSubmit={this.props.handleSubmit(this.submitForm)}>
+                                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                        <div>
+                                            <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                        <div className="Box-root" style={{ height: '5px' }}></div>
+                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                            <label className="Checkbox">
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name='alertEnable'
+                                                                    className="Checkbox-source"
+                                                                    id='alertEnable'
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root">
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                    <label><span>Enable call and SMS alerts</span></label>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <ShouldRender if={alertEnable}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div className="Box-root" style={{ height: '5px' }}></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                        <label>
+                                                                            Your Account is configured to be auto recharged. If your card needs additional step to authorize payment,
+                                                                            wait for the popup to confirm the payment.
+                                                                </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">If the initial balance falls below</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={RenderSelect}
+                                                                name='minimumBalance'
+                                                                id='minimumBalance'
+                                                                validate={ValidateField.select}
+                                                            >
+                                                                <option value="">Select amount</option>
+                                                                <option value="20">$20</option>
+                                                                <option value="50">$50</option>
+                                                                <option value="100">$100</option>
+                                                                <option value="200">$200</option>
+                                                                <option value="400">$400</option>
+                                                                <option value="500">$500</option>
+                                                                <option value="750">$750</option>
+                                                                <option value="1000">$1000</option>
+                                                            </Field>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Recharge the balance to </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={RenderSelect}
+                                                                name='rechargeToBalance'
+                                                                id='rechargeToBalance'
+                                                                validate={ValidateField.select}
+                                                            >
+                                                                <option value="">Select amount</option>
+                                                                <option value="40">$40</option>
+                                                                <option value="100">$100</option>
+                                                                <option value="200">$200</option>
+                                                                <option value="400">$400</option>
+                                                                <option value="500">$500</option>
+                                                                <option value="750">$750</option>
+                                                                <option value="1000">$1000</option>
+                                                            </Field>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div className="Box-root" style={{ height: '5px' }}></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name='billingUS'
+                                                                        className="Checkbox-source"
+                                                                        id='billingUS'
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root">
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                        <label><span>Enable calling to US Numbers</span></label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div className="Box-root" style={{ height: '5px' }}></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name='billingNonUSCountries'
+                                                                        className="Checkbox-source"
+                                                                        id='billingNonUSCountries'
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root">
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                        <label><span>Enable calling to Non-US Numbers (except high risk countries)</span></label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div className="Box-root" style={{ height: '5px' }}></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name='billingRiskCountries'
+                                                                        className="Checkbox-source"
+                                                                        id='billingRiskCountries'
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root">
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                        <label><span>Enable calling to high risk countries</span></label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div className="Box-root" style={{ height: '5px' }}></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                        <label>
+                                                                            <a target="_blank" rel="noopener noreferrer" href="https://www.twilio.com/docs/sip-trunking/voice-dialing-geographic-permissions#the-highest-risk-countries-for-toll-fraud-in-world">
+                                                                                <span>See high risk countries</span>
+                                                                            </a>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                        <span className="db-SettingsForm-footerMessage"></span>
+                                        <div>
+                                            <button
+                                                className="bs-Button bs-Button--blue"
+                                                disabled={this.props.isRequesting}
+                                                type="submit"
+                                            >
+                                                <ShouldRender if={!this.props.isRequesting}>
+                                                    <span>Save</span>
+                                                </ShouldRender>
+                                                <ShouldRender if={this.props.isRequesting}>
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
-                            <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                                <span className="db-SettingsForm-footerMessage"></span>
-                                <div>
-                                    <button
-                                        className="bs-Button bs-Button--blue"
-                                        disabled={this.props.isRequesting}
-                                        type="submit"
-                                    >
-                                        <ShouldRender if={!this.props.isRequesting}>
-                                            <span>Save</span>
-                                        </ShouldRender>
-                                        <ShouldRender if={this.props.isRequesting}>
-                                            <FormLoader />
-                                        </ShouldRender>
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -324,10 +328,10 @@ AlertAdvanceOption.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
     projectId: PropTypes.string,
-    alertOptionsUpdate:PropTypes.func,
-    formValues:PropTypes.object,
-    change:PropTypes.func,
-    alertEnable:PropTypes.bool,
+    alertOptionsUpdate: PropTypes.func,
+    formValues: PropTypes.object,
+    change: PropTypes.func,
+    alertEnable: PropTypes.bool,
     stripe: PropTypes.object,
     paymentIntent: PropTypes.string,
     openModal: PropTypes.func.isRequired,
@@ -355,9 +359,9 @@ const mapStateToProps = state => (
             billingRiskCountries: state.project.currentProject.alertOptions.billingRiskCountries,
             billingUS: state.project.currentProject.alertOptions.billingUS,
             minimumBalance: state.project.currentProject.alertOptions.minimumBalance ?
-            state.project.currentProject.alertOptions.minimumBalance.toString() : null,
+                state.project.currentProject.alertOptions.minimumBalance.toString() : null,
             rechargeToBalance: state.project.currentProject.alertOptions.rechargeToBalance ?
-            state.project.currentProject.alertOptions.rechargeToBalance.toString() : null
+                state.project.currentProject.alertOptions.rechargeToBalance.toString() : null
         },
         alertEnable: state.form.AlertAdvanceOption && state.form.AlertAdvanceOption.values.alertEnable,
         formValues: state.form.AlertAdvanceOption && state.form.AlertAdvanceOption.values,
@@ -374,15 +378,15 @@ AlertAdvanceOption.contextTypes = {
 
 
 
-const _AlertAdvanceOptionForm = injectStripe(connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm));
+const AlertAdvanceOptionFormStripe = injectStripe(connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm));
 
 export default class AlertAdvanceOptionWithCheckout extends Component {
     render() {
         return (
             <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
-                    <Elements>
-                        <_AlertAdvanceOptionForm />
-                    </Elements>
+                <Elements>
+                    <AlertAdvanceOptionFormStripe />
+                </Elements>
             </StripeProvider>
         )
     }

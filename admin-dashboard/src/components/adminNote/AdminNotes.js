@@ -16,7 +16,7 @@ function validate(values) {
     if (values.adminNotes) {
         for (var i = 0; i < values.adminNotes.length; i++) {
             const adminNotesErrors = {}
-            if (values.adminNotes[i].note) {
+            if (values.adminNotes[i] && values.adminNotes[i].note) {
 
                 if (!Validate.text(values.adminNotes[i].note)) {
                     adminNotesErrors.note = 'Note is not in text format.'
@@ -34,10 +34,6 @@ function validate(values) {
 }
 
 export class AdminNotes extends Component {
-
-    constructor(props) {
-        super(props);
-    }
 
     submitForm = (values) => {
         this.props.addNote(this.props.id, values.adminNotes);
@@ -105,7 +101,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     { }
     , dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = state_Ignored => {
     return {};
 }
 
@@ -113,6 +109,7 @@ AdminNotes.propTypes = {
     requesting: PropTypes.bool,
     addNote: PropTypes.func.isRequired,
     id: PropTypes.string.isRequired,
+    handleSubmit: PropTypes.func
 }
 
 let AdminNotesForm = reduxForm({

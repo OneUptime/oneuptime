@@ -1,4 +1,4 @@
-import { getApi ,putApi, postApi} from '../api';
+import { getApi, putApi, postApi } from '../api';
 import * as types from '../constants/profile';
 import FormData from 'form-data';
 import errors from '../errors'
@@ -32,8 +32,13 @@ export function updateProfileSetting(values) {
 
 	return function (dispatch) {
 		let data = new FormData();
-		if (values.profilePic && values.profilePic[0]) {
-			data.append('profilePic', values.profilePic[0], values.profilePic[0].name);
+		if (values.profilePic) {
+			if (!values.removedPic) {
+				console.log(values);
+				data.append('profilePic', values.profilePic);
+			} else {
+				data.append('profilePic', null);
+			}
 		}
 
 		data.append('name', values.name);
@@ -55,10 +60,10 @@ export function updateProfileSetting(values) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(updateProfileSettingError(errors(error)));
@@ -109,10 +114,10 @@ export function updateChangePasswordSetting(data) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(updateChangePasswordSettingError(errors(error)));
@@ -178,10 +183,10 @@ export function userSettings() {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(userSettingsError(errors(error)));
@@ -194,14 +199,14 @@ export function userSettings() {
 export function logFile(file) {
 
 	return function (dispatch) {
-		dispatch({type: 'LOG_FILE', payload: file});
+		dispatch({ type: 'LOG_FILE', payload: file });
 	};
 }
 
 export function resetFile() {
 
 	return function (dispatch) {
-		dispatch({type: 'RESET_FILE'});
+		dispatch({ type: 'RESET_FILE' });
 	};
 }
 
@@ -227,6 +232,52 @@ export function sendVerificationSMSError(error) {
 	};
 }
 
+export function sendEmailVerificationRequest() {
+	return {
+		type: types.SEND_EMAIL_VERIFICATION_REQUEST,
+	};
+}
+
+export function sendEmailVerificationSuccess(payload) {
+	return {
+		type: types.SEND_EMAIL_VERIFICATION_SUCCESS,
+		payload
+	};
+}
+
+export function sendEmailVerificationError(error) {
+	return {
+		type: types.SEND_EMAIL_VERIFICATION_FAILURE,
+		payload: error
+	};
+}
+
+export function sendEmailVerificationLink(values) {
+	return function(dispatch){
+
+		var promise = postApi('user/resend', values);
+		dispatch(sendEmailVerificationRequest());
+
+		promise.then(function(data){
+			dispatch(sendEmailVerificationSuccess(data));
+		}, function(error){
+			if(error && error.response && error.response.data)
+				error = error.response.data;
+			if(error && error.data){
+				error = error.data;
+			}
+			if(error && error.message){
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(sendEmailVerificationError(errors(error)));
+		});
+
+	};
+}
+
 export function sendVerificationSMS(projectId, values) {
 
 	return function (dispatch) {
@@ -243,10 +294,10 @@ export function sendVerificationSMS(projectId, values) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(sendVerificationSMSError(errors(error)));
@@ -292,10 +343,10 @@ export function verifySMSCode(projectId, values) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(verifySMSCodeError(errors(error)));

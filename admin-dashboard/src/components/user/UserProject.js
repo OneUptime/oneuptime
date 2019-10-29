@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types'
 import ProjectList from '../project/ProjectList';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -23,7 +24,7 @@ class UserProject extends React.Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>Project Details</span>
                                 </span>
-                                <p><span>Here is a list of this user's projects.</span></p>
+                                <p><span>Here is a list of this user&apos;s projects.</span></p>
                             </div>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
@@ -54,6 +55,11 @@ const mapStateToProps = state => {
     return {
         projects: state.project.userProjects
     };
+}
+UserProject.propTypes = {
+    fetchUserProjects: PropTypes.func.isRequired,
+    userId: PropTypes.string,
+    projects: PropTypes.array
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserProject);

@@ -4,14 +4,10 @@ import { bindActionCreators } from 'redux';
 import Dashboard from '../components/Dashboard';
 import APISettings from '../components/settings/APISettings';
 import ProjectSettings from '../components/settings/ProjectSettings';
-import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 import SubProjects from '../components/settings/SubProjects';
-import MonitorCategories from '../components/settings/MonitorCategories';
 import DeleteProject from '../components/settings/DeleteProject';
-import ChangePlan from '../components/settings/ChangePlan';
 import RenderIfMember from '../components/basic/RenderIfMember';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
-import RenderIfAdmin from '../components/basic/RenderIfAdmin';
 import ExitProject from '../components/settings/ExitProject';
 import { hideDeleteModal } from '../actions/project';
 import PropTypes from 'prop-types';
@@ -48,23 +44,12 @@ class Settings extends Component {
                                                 <RenderIfOwner>
                                                     <ProjectSettings />
                                                 </RenderIfOwner>
-                                                <RenderIfOwner>
-                                                    <AlertAdvanceOption />
-                                                </RenderIfOwner>
 
                                                 <APISettings />
 
                                                 <RenderIfOwner>
-                                                    <ChangePlan />
-                                                </RenderIfOwner>
-
-                                                 <RenderIfOwner>
                                                     <SubProjects />
                                                 </RenderIfOwner>
-
-                                                <RenderIfAdmin>
-                                                    <MonitorCategories />
-                                                </RenderIfAdmin>
 
                                                 <RenderIfOwner>
                                                     <DeleteProject />

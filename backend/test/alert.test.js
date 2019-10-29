@@ -108,7 +108,6 @@ describe('Alert API', function () {
             var authorization = `Basic ${token}`;
             request.delete(`/alert/${projectId}`).set('Authorization', authorization).end(function (err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.deleted).to.be.equal(true);
                 done();
             });
         });
@@ -252,7 +251,6 @@ describe('Alert API', function () {
             var authorization = `Basic ${token}`;
             request.delete(`/alert/${subProjectId}`).set('Authorization', authorization).end(function (err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.deleted).to.be.equal(true);
                 done();
             });
         });
@@ -261,7 +259,6 @@ describe('Alert API', function () {
             var authorization = `Basic ${token}`;
             request.delete(`/alert/${projectId}`).set('Authorization', authorization).end(function (err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.deleted).to.be.equal(true);
                 done();
             });
         });

@@ -30,16 +30,16 @@ class MonthlyIncidents extends Component {
     const { getMonthlyIncidents, currentProject } = this.props;
     getMonthlyIncidents(currentProject);
   }
-  
+
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if(this.state.months !== nextProps.monthlyIncidents.months) {
+    if (this.state.months !== nextProps.monthlyIncidents.months) {
       this.setState({
         months: nextProps.monthlyIncidents.months
       })
     }
   }
-  
-  
+
+
   render() {
     return (
       <div>
@@ -80,7 +80,7 @@ const mapDispatchToProps = dispatch => ({
 
 MonthlyIncidents.propTypes = {
   getMonthlyIncidents: PropTypes.func,
-  currentProject: PropTypes.object,
+  currentProject: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
   monthlyIncidents: PropTypes.object
 };
 
