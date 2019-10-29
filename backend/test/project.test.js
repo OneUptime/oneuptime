@@ -155,7 +155,6 @@ describe('Project API', function () {
             request.delete(`/project/${res.body._id}/deleteProject`)
                 .set('Authorization', authorization).end(function (err, res) {
                     expect(res).to.have.status(200);
-                    expect(res.body.deleted).to.be.equal(true);
                     ProjectService.hardDeleteBy({ _id: res.body._id });
                     done();
                 });
@@ -307,7 +306,6 @@ describe('Projects SubProjects API', function () {
         request.delete(`/project/${subProjectId}/deleteProject`)
             .set('Authorization', authorization).end(function (err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.deleted).to.be.equal(true);
                 done();
             });
     });

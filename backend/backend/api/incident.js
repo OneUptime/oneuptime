@@ -229,20 +229,16 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
 router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(req, res){
     const { projectId, incidentId } = req.params;
 
-    // eslint-disable-next-line no-console
-    console.log('projectId: ', projectId);
-    // eslint-disable-next-line no-console
-    console.log('incidentId: ', incidentId);
-    // try {
-    var incident = await IncidentService.deleteBy({ _id: incidentId, projectId }, req.user.id);
-    if (incident) {
-        return sendItemResponse(req, res, incident);
-    } else {
-        return sendErrorResponse(req, res, { message: 'Incident not found' });
+    try {
+        var incident = await IncidentService.deleteBy({ _id: incidentId, projectId }, req.user.id);
+        if (incident) {
+            return sendItemResponse(req, res, incident);
+        } else {
+            return sendErrorResponse(req, res, { message: 'Incident not found' });
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-    // } catch (error) {
-    //     return sendErrorResponse(req, res, error);
-    // }
 });
 
 

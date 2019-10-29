@@ -353,7 +353,6 @@ describe('StatusPage API with Sub-Projects', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/statusPage/${subProjectId}/${subProjectStatusPageId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
@@ -362,7 +361,6 @@ describe('StatusPage API with Sub-Projects', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/statusPage/${projectId}/${statusPageId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });

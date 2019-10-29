@@ -139,8 +139,6 @@ describe('Stripe payment API', function () {
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('id');
             expect(res.body.id).not.to.be.null;
-            expect(res.body).to.have.property('deleted');
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });

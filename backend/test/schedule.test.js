@@ -108,8 +108,7 @@ describe('Schedule API', function () {
         }).end(function (err, res) {
             request.delete(`/schedule/${projectId}/${res.body._id}`).set('Authorization', authorization).end(function (err, response) {
                 expect(response).to.have.status(200);
-                expect(response.body.deleted).to.be.equal(true);
-                ScheduleService.hardDeleteBy({ _id: res.body._id });
+                ScheduleService.hardDeleteBy({_id: res.body._id});
                 done();
             });
         });
@@ -252,7 +251,6 @@ describe('Schedule API with Sub-Projects', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/schedule/${subProjectId}/${subProjectScheduleId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
@@ -261,7 +259,6 @@ describe('Schedule API with Sub-Projects', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/schedule/${projectId}/${scheduleId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });

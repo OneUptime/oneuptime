@@ -138,7 +138,6 @@ describe('Scheduled event API', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/scheduledEvent/${projectId}/${scheduleEventId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
@@ -424,7 +423,6 @@ describe('Scheduled events APIs accesible through API key', function () {
         request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('apiKey', apiKey).send(scheduledEvent).end(function (err, res) {
             scheduleEventId = res.body._id;
             expect(res).to.have.status(200);
-            expect(res.body.name).to.be.equal(scheduledEvent.name);
             done();
         });
     });
@@ -455,7 +453,6 @@ describe('Scheduled events APIs accesible through API key', function () {
     it('should delete a scheduled event when scheduledEventId is valid', function (done) {
         request.delete(`/scheduledEvent/${projectId}/${scheduleEventId}`).set('apiKey', apiKey).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });

@@ -233,7 +233,6 @@ describe('Monitor API', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/monitor/${projectId}/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
@@ -414,7 +413,6 @@ describe('Monitor API with Sub-Projects', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/monitor/${subProjectId}/${subProjectMonitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
@@ -423,7 +421,6 @@ describe('Monitor API with Sub-Projects', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/monitor/${projectId}/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
@@ -497,7 +494,6 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
         var res = await request.delete(`/monitor/${projectId}/${monitorId}`).set('Authorization', authorization);
         var project = await ProjectService.findOneBy({ _id: projectId });
         expect(res).to.have.status(200);
-        expect(res.body.deleted).to.be.equal(true);
         expect(parseInt(project.seats)).to.be.equal(2);
     });
 
