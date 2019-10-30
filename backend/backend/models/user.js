@@ -5,7 +5,7 @@ var userSchema = new Schema({
     name: String,
     email: String,
     password: String,
-    isVerified: { 
+    isVerified: {
         type: Boolean,
         default: false
     },
@@ -14,6 +14,8 @@ var userSchema = new Schema({
     companySize: String,
     referral: String,
     companyPhoneNumber: String,
+
+    airtableId: String,
 
     onCallAlert: Array,
     profilePic: String,
@@ -33,7 +35,7 @@ var userSchema = new Schema({
     },
     coupon: String,
 
-    disabled: { 
+    disabled: {
         type: Boolean,
         default: false
     },
@@ -54,8 +56,8 @@ var userSchema = new Schema({
         createdAt: { type: Date }
     }],
 
-    deleted: { type: Boolean, default: false},
-    
+    deleted: { type: Boolean, default: false },
+
     deletedAt: {
         type: Date
     },
@@ -64,7 +66,9 @@ var userSchema = new Schema({
     alertPhoneNumber: {
         type: String,
         default: ''
-    }
+    },
+
+    tutorial: Object
 });
 
 module.exports = mongoose.model('User', userSchema);

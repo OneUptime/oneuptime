@@ -95,9 +95,9 @@ module.exports = {
         if(req.authorizationType === 'MASTER-ADMIN'){
             next();
         }else{
-            var UserId = req.user ? req.user.id : null;
+            var userId = req.user ? req.user.id : null;
             try{
-                var project = await ProjectService.findOneBy({'users.userId': UserId, _id: req.params.projectId});
+                var project = await ProjectService.findOneBy({'users.userId': userId, _id: req.params.projectId});
             }catch(error){
                 ErrorService.log('ProjectService.findOneBy', error);
                 return sendErrorResponse(req, res, {
@@ -108,7 +108,7 @@ module.exports = {
             if(project){
                 let role;
                 for(let user of project.users){
-                    if(user.userId === UserId){
+                    if(user.userId === userId){
                         role = user.role;
                         break;
                     }

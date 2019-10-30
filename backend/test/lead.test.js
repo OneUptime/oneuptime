@@ -29,14 +29,14 @@ describe('Lead API', function () {
     it('should add lead when requested for type demo or whitepaper', function (done) {
         request.post('/lead').send(leadData).end(function (err, res) {
             expect(res).to.have.status(200);
-            leadService.hardDeleteBy({_id: res.body._id});
+            leadService.hardDeleteBy({ _id: res.body._id });
             done();
         });
     });
     it('should add lead when requested for type demo and check the sent message', function (done) {
         request.post('/lead').send(leadData).end(function (err, res) {
             expect(res).to.have.status(200);
-            leadService.hardDeleteBy({_id: res.body._id});
+            leadService.hardDeleteBy({ _id: res.body._id });
             imap.once('ready', function () {
                 openBox(function (err) {
                     if (err) throw err;
@@ -49,7 +49,7 @@ describe('Lead API', function () {
                             mailParser(stream, {}, function (err, parsedMail) {
                                 textAsHtml = parsedMail.text;
                                 expect(textAsHtml).to.be.equal(signUpEmailContent);
-                                done(); 
+                                done();
                             });
                         });
                     });

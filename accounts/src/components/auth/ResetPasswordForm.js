@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import { Validate } from '../../config';
-import { FlatLoader } from '../basic/Loader.js';
+import { ButtonSpinner } from '../basic/Loader.js';
 import { resetPasswordError, resetPasswordSuccess, resetPassword, resetResetPassword } from '../../actions/resetPassword';
 import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField';
@@ -51,7 +51,7 @@ export class ResetPasswordForm extends Component {
                 <p className="submit">
                   <button type="submit" className="button blue medium" disabled={this.props.resetPasswordState.requesting}>
                     {!this.props.resetPasswordState.requesting && <span>Reset Password</span>}
-                    {this.props.resetPasswordState.requesting && <FlatLoader />}
+                    {this.props.resetPasswordState.requesting && <ButtonSpinner />}
                   </button>
                 </p> </div>}
             </div>

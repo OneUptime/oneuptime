@@ -11,7 +11,6 @@ export default function MessageBox(props) {
                             {props.title}
                         </h2>
                     </div>
-                    <p className="error-message hidden" />
                     <p className="message">
                         {props.message}
                         {props.children}

@@ -11,10 +11,11 @@ var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var SmsTemplateService = require('../backend/services/smsTemplateService');
 var NotificationService = require('../backend/services/notificationService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-
-var token, projectId, userId, smsTemplateId;
+var token, projectId, userId, airtableId, smsTemplateId;
 
 describe('SMS Template API', function () {
     this.timeout(20000);
@@ -25,6 +26,8 @@ describe('SMS Template API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -44,6 +47,7 @@ describe('SMS Template API', function () {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SmsTemplateService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     // 'post /:projectId'
@@ -108,7 +112,6 @@ describe('SMS Template API', function () {
         var authorization = `Basic ${token}`;
         request.delete(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });

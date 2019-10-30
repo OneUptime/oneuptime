@@ -12,11 +12,13 @@ var ProjectService = require('../backend/services/projectService');
 var IncidentService = require('../backend/services/incidentService');
 var MonitorService = require('../backend/services/monitorService');
 var NotificationService = require('../backend/services/notificationService');
+var AirtableService = require('../backend/services/airtableService');
+
 var baseApiUrl = require('../backend/config/baseApiUrl');
 var VerificationTokenModel = require('../backend/models/verificationToken');
 var TwilioConfig = require('../backend/config/twilio');
 
-var token, userId, projectId, monitorId, incidentId, monitor = {
+var token, userId, airtableId, projectId, monitorId, incidentId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -30,6 +32,8 @@ describe('Twilio API', function () {
         request.post('/user/signup').send(userData.user).end(function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -61,6 +65,7 @@ describe('Twilio API', function () {
         await IncidentService.hardDeleteBy({ monitorId: monitorId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should get a message response', function (done) {
@@ -88,7 +93,7 @@ describe('Twilio API', function () {
             Digits: '5'
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.text).to.eql(`<Response><Gather numDigits="1" input="dtmf"  action="${actionPath}" ><Say voice="alice">You have pressed unknown key, Please press 1 to acknowledge or 2 to resolve the incident.</Say></Gather></Response>`);
+            expect(res.text).to.eql(`<Response><Gather numDigits="1" input="dtmf" action="${actionPath}" timeout="15"><Say voice="alice">You have pressed unknown key, Please press 1 to acknowledge or 2 to resolve the incident.</Say></Gather><Say voice="alice">No response received. This call will end.</Say><Hangup /></Response>`);
             done();
         });
     });
@@ -99,7 +104,7 @@ describe('Twilio API', function () {
             Digits: '2'
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.text).to.eql('<Response><Say voice="alice">The incident status has been resolved. Log on to your dashboard to see the status. Thank you for using Fyipe.</Say></Response>');
+            expect(res.text).to.eql('<Response><Say voice="alice">The incident status has been resolved. Log on to your dashboard to see the status. Thank you for using Fyipe.</Say><Hangup /></Response>');
             done();
         });
     });

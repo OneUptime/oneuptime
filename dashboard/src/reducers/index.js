@@ -27,6 +27,7 @@ import card from './card';
 import page from './page';
 import probe from './probe';
 import version from './version';
+import tutorial from './tutorial';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -56,7 +57,8 @@ const appReducer = combineReducers({
     card,
     page,
     probe,
-    version
+    version,
+    tutorial
 });
 
 export default (state, action) => {

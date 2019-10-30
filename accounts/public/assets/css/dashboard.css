@@ -45897,7 +45897,6 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   font-weight: 500;
   line-height: 21px;
   text-align: center;
-  margin-bottom: 17px;
 }
 #login h2.error,
 .page-wrapper h2.error {
@@ -45985,7 +45984,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 }
 #login div#main-body p.message,
 .page-wrapper div#main-body p.message {
-  padding: 0 20px 10px;
+  padding: 0 20px 20px;
   font-size: 14px;
   line-height: 19px;
   text-align: center;

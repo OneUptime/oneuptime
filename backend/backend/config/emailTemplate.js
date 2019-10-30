@@ -151,7 +151,7 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
 
   /** Modifier: white */
   body[override] table.st-Header.st-Header--white td.st-Header-background div.st-Header-area {
-    background-image: url('https://www.dropbox.com/s/07u7yu49wfflalr/Fyipe-Transparent.png?dl=0&r=1&raw=1') !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
   }
 
 
@@ -162,13 +162,13 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
 
   /** Modifier: simplified */
   body[override] table.st-Header.st-Header--simplified td.st-Header-logo div.st-Header-area {
-    background-image: url('https://www.dropbox.com/s/07u7yu49wfflalr/Fyipe-Transparent.png?dl=0&r=1&raw=1') !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
   }
   /** */
 
   /** Modifier: simplified + atlasAzlo */
   body[override] table.st-Header.st-Header--simplified td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
-    background-image: url('https://www.dropbox.com/s/07u7yu49wfflalr/Fyipe-Transparent.png?dl=0&r=1&raw=1') !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
   }
   /** */
 
@@ -263,12 +263,12 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
   }
 
   body[override] table.st-Header td.st-Header-background div.st-Header-area{
-    background-image: url('https://www.dropbox.com/s/07u7yu49wfflalr/Fyipe-Transparent.png?dl=0&r=1&raw=1') !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
   }
 
   /** Modifier: white */
   body[override] table.st-Header.st-Header--white td.st-Header-background div.st-Header-area {
-    background-image: url('https://www.dropbox.com/s/07u7yu49wfflalr/Fyipe-Transparent.png?dl=0&r=1&raw=1') !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
   }
   /** */
 
@@ -283,12 +283,12 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
 
   body[override] table.st-Header.st-Header--simplified td.st-Header-logo div.st-Header-area {
     margin: 0 auto !important;
-    background-image: url('https://www.dropbox.com/s/07u7yu49wfflalr/Fyipe-Transparent.png?dl=0&r=1&raw=1') !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
   }
 
   body[override] table.st-Header.st-Header--simplified td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
     margin: 0 auto !important;
-    background-image: url('https://www.dropbox.com/s/07u7yu49wfflalr/Fyipe-Transparent.png?dl=0&r=1&raw=1') !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
   }
   /** */
 
@@ -353,7 +353,7 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
     * # document-list-item image
    **/
   body[override] div.st-Icon.st-Icon--document {
-    background-image: url('https://www.dropbox.com/s/07u7yu49wfflalr/Fyipe-Transparent.png?dl=0&r=1&raw=1') !important;
+    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
   }
 }
 
@@ -386,10 +386,10 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
-      <td class="st-Header-logo" align="left" style="max-height:25px;width:70px; border: 0; margin: 0; padding: 0;">
+      <td class="st-Header-logo" align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
         <div class="st-Header-area st-Target st-Target--mobile">
           <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-            <img alt="Fyipe" border="0" class="st-Header-source" width="60" style="max-height:25px;width:70px; border: 0; margin: 0; padding: 0; color: #0080a8; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/07u7yu49wfflalr/Fyipe-Transparent.png?dl=0&r=1&raw=1">
+            <img alt="Fyipe" border="0" class="st-Header-source" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #0080a8; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
           </a>
         </div>
       </td>
@@ -413,11 +413,6 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
-        <div class="st-Spacer st-Spacer--filler"></div>
-      </td>
-    </tr>
-    <tr>
-      <td class="st-Spacer st-Spacer--divider" colspan="4" height="32" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
     </tr>
@@ -525,7 +520,7 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
     </td>
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
-    If you need any help, please send us an email at <strong￼ style="color: #0080a8 !important;">support@fyipe.com</strong> and we'll
+    If you need any help, please send us an email at <a style="color: #0080a8; text-decoration: none; font-weight: bold" href="mailto:support@fyipe.com" target="_blank">support@fyipe.com</a> and we'll
     be there to help.
 
     </td>

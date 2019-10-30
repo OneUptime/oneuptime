@@ -1,6 +1,6 @@
 {
   "name": "fyipe-accounts",
-  "version": "3.0.390",
+  "version": "3.0.565",
   "private": true,
   "homepage": ".",
   "dependencies": {
@@ -34,7 +34,7 @@
     "moment": "^2.22.2",
     "moment-range": "^4.0.1",
     "prop-types": "^15.6.1",
-    "puppeteer": "^1.17.0",
+    "puppeteer": "^1.20.0",
     "query-string": "^5.1.1",
     "react": "^16.5.2",
     "react-click-outside": "github:tj/react-click-outside",

@@ -3,7 +3,7 @@ import { Field, reduxForm } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { connect } from 'react-redux';
 import { Validate } from '../../config';
-import { FlatLoader } from '../basic/Loader.js';
+import { ButtonSpinner } from '../basic/Loader.js';
 import { loginError, loginSuccess, loginUser, resetLogin } from '../../actions/login';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -33,6 +33,7 @@ export class LoginForm extends Component {
 	render() {
 		const { handleSubmit } = this.props;
 		const { serverResponse } = this.state;
+		const loginError = this.props.login.error;
 
 		return (
 			<div id="main-body" className="box css">
@@ -41,8 +42,8 @@ export class LoginForm extends Component {
 						<form onSubmit={handleSubmit(this.props.onSubmit)}>
 							<div className="step email-password-step">
 								<h2>
-									{serverResponse ? (<span>{serverResponse}</span>) :
-										(<span > {this.props.login.error ? <span className="error" >{this.props.login.error}</span> : 'Welcome back!'} </span>
+									{loginError ? (<span className="error" >{loginError}</span>) :
+										(<span > {serverResponse ? <span>{serverResponse}</span> : 'Welcome back!'} </span>
 										)}
 								</h2>
 
@@ -81,7 +82,7 @@ export class LoginForm extends Component {
 								<p className="submit">
 									<button type="submit" className="button blue medium" id="login-button" disabled={this.props.login.requesting}>
 										{!this.props.login.requesting && <span>Sign in to your account</span>}
-										{this.props.login.requesting && <FlatLoader />}
+										{this.props.login.requesting && <ButtonSpinner />}
 									</button>
 								</p>
 							</div>

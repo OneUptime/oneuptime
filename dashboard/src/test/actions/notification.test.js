@@ -5,7 +5,7 @@ import {
 import * as _actions from '../../actions/notification'
 import * as _types from '../../constants/notification'
 
-const actions = {..._actions,..._types}
+const actions = { ..._actions, ..._types }
 
 describe('actions', () => {
     it('should create an action of type OPEN_NOTIFICATION_MENU', () => {
@@ -70,7 +70,7 @@ describe('actions', () => {
     it('should create an action of type FETCH_NOTIFICATIONS_SUCCESS', () => {
         let notifications = []
         const expectedAction = {
-            notifications:[],
+            notifications: [],
             type: actions.FETCH_NOTIFICATIONS_SUCCESS,
         }
         const action = actions.fetchNotificationsSuccess(notifications)
@@ -92,7 +92,7 @@ describe('actions', () => {
     it('should create an action of type NOTIFICATION_READ_SUCCESS', () => {
         let notificationId = 'notificationId'
         const expectedAction = {
-            notifications:[],
+            notifications: [],
             type: actions.NOTIFICATION_READ_SUCCESS,
         }
         const action = actions.notificationReadSuccess(notificationId)
@@ -102,49 +102,61 @@ describe('actions', () => {
 })
 
 describe('actions', () => {
+    it('should create an action of type ALL_NOTIFICATION_READ_SUCCESS', () => {
+        let projectId = 'projectId';
+        const expectedAction = {
+            type: actions.ALL_NOTIFICATION_READ_SUCCESS,
+        };
+        const action = actions.allNotificationReadSuccess(projectId);
+        expect(action.type).toEqual(expectedAction.type);
+        expect(action.payload).toEqual(projectId);
+    })
+})
+
+describe('actions', () => {
     it('should despatch FETCH_NOTIFICATIONS_REQUEST and FETCH_NOTIFICATIONS_SUCCESS  actions', () => {
-  
-      axiosMock.onGet(`${API_URL}/notification/projectId/getNotifications`).reply(200, [], {});
-  
-      let dispatch = (dispatched) => {
-        switch (dispatched.type) {
-          case actions.FETCH_NOTIFICATIONS_SUCCESS:
-            expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_SUCCESS)
-            expect(dispatched.payload).toEqual([])
-            break;
-          case actions.FETCH_NOTIFICATIONS_REQUEST:
-            expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_REQUEST)
-           
-            break;
-          default:
-            expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_FAILED)
-            expect(dispatched.payload).toEqual('fail test')
+
+        axiosMock.onGet(`${API_URL}/notification/projectId/getNotifications`).reply(200, [], {});
+
+        let dispatch = (dispatched) => {
+            switch (dispatched.type) {
+                case actions.FETCH_NOTIFICATIONS_SUCCESS:
+                    expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_SUCCESS)
+                    expect(dispatched.payload).toEqual([])
+                    break;
+                case actions.FETCH_NOTIFICATIONS_REQUEST:
+                    expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_REQUEST)
+
+                    break;
+                default:
+                    expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_FAILED)
+                    expect(dispatched.payload).toEqual('fail test')
+            }
         }
-      }
-      let action = actions.fetchNotifications('projectId')(dispatch)
+        let action = actions.fetchNotifications('projectId')(dispatch)
     })
-  })
-  describe('actions', () => {
+})
+describe('actions', () => {
     it('should despatch ALERT_FETCH_REQUEST and ALERT_FETCH_SUCCESS  actions', () => {
-  
-      axiosMock.onPost(`${API_URL}/notification/projectId/notificationId/setNotificationasread`).reply(200, {userId:'userId'}, {});
-      localStorage.setItem('id','user id')
-  
-      let dispatch = (dispatched) => {
-        switch (dispatched.type) {
-          case actions.NOTIFICATION_READ_SUCCESS:
-            expect(dispatched.type).toEqual(actions.NOTIFICATION_READ_SUCCESS)
-            expect(dispatched.payload).toEqual({"notificationId": {"userId": "userId"}, "userId": "user id"})
-            break;
-          case actions.FETCH_NOTIFICATIONS_REQUEST:
-            expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_REQUEST)
-           
-            break;
-          default:
-            expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_FAILED)
-            expect(dispatched.payload).toEqual('fail test')
+
+        axiosMock.onPost(`${API_URL}/notification/projectId/notificationId/setNotificationasread`).reply(200, { userId: 'userId' }, {});
+        localStorage.setItem('id', 'user id')
+
+        let dispatch = (dispatched) => {
+            switch (dispatched.type) {
+                case actions.NOTIFICATION_READ_SUCCESS:
+                    expect(dispatched.type).toEqual(actions.NOTIFICATION_READ_SUCCESS)
+                    expect(dispatched.payload).toEqual({ "notificationId": { "userId": "userId" }, "userId": "user id" })
+                    break;
+                case actions.FETCH_NOTIFICATIONS_REQUEST:
+                    expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_REQUEST)
+
+                    break;
+                default:
+                    expect(dispatched.type).toEqual(actions.FETCH_NOTIFICATIONS_FAILED)
+                    expect(dispatched.payload).toEqual('fail test')
+            }
         }
-      }
-      let action = actions.markAsRead('projectId','notificationId')(dispatch)
+        let action = actions.markAsRead('projectId', 'notificationId')(dispatch)
     })
-  })
+})

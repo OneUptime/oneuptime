@@ -14,9 +14,11 @@ var MonitorService = require('../backend/services/monitorService');
 var NotificationService = require('../backend/services/notificationService');
 var SubscriberAlertService = require('../backend/services/subscriberAlertService');
 var SubscriberService = require('../backend/services/subscriberService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-var token, userId, projectId, monitorId, incidentId, subscriberId, monitor = {
+var token, userId, airtableId, projectId, monitorId, incidentId, subscriberId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -30,6 +32,8 @@ describe('Subcriber Alert API', function () {
         request.post('/user/signup').send(userData.user).end(function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -61,6 +65,7 @@ describe('Subcriber Alert API', function () {
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SubscriberService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should create subscriber alert with valid incidentId, alertVia', (done) => {

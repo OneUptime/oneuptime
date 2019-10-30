@@ -241,7 +241,7 @@ module.exports = {
     // Param 2: email: Email of user
     // Param 3: token: Password reset token
     // Returns: promise
-    sendForgotPasswordMail: async function (host, email, token) {
+    sendForgotPasswordMail: async function (forgotPasswordURL, email) {
 
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
@@ -249,7 +249,7 @@ module.exports = {
             subject: 'Password Reset for Fyipe',
             template: 'forgot_password_body',
             context: {
-                token: token
+                forgotPasswordURL
             }
         };
         try {
@@ -383,7 +383,6 @@ module.exports = {
     },
 
     sendChangeRoleEmailToUser: async function (project, addedByUser, email, role) {
-
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,

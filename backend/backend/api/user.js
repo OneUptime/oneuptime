@@ -169,6 +169,7 @@ router.post('/signup', async function (req, res) {
                 id: user._id,
                 name: user.name,
                 email: user.email,
+                airtableId: user.airtableId,
                 cardRegistered: user.stripeCustomerId ? true : false,
                 tokens: {
                     jwtAccessToken: `${jwt.sign({
@@ -241,7 +242,6 @@ router.post('/login', async function (req, res) {
             },
             role: user.role || null
         };
-
         return sendItemResponse(req, res, authUserObj);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -275,8 +275,9 @@ router.post('/forgot-password', async function (req, res) {
     try {
         // Call the UserService.
         var user = await UserService.forgotPassword(data.email);
+        var forgotPasswordURL = `${ACCOUNTS_HOST}/change-password/${user.resetPasswordToken}`;
         // Call the MailService.
-        await MailService.sendForgotPasswordMail(req.headers.host, user.email, user.resetPasswordToken);
+        await MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
 
         return sendItemResponse(req, res, {
             message: 'User received mail succcessfully.'
@@ -390,7 +391,6 @@ router.put('/profile', getUser, async function (req, res) {
         name: 'profilePic',
         maxCount: 1
     }]);
-
     upload(req, res, async function (error) {
         var userId = req.user ? req.user.id : null;
         var data = req.body;
@@ -399,7 +399,6 @@ router.put('/profile', getUser, async function (req, res) {
         if (error) {
             return sendErrorResponse(req, res, error);
         }
-
         if (req.files && req.files.profilePic && req.files.profilePic[0].filename) {
             data.profilePic = req.files.profilePic[0].filename;
         }
@@ -502,7 +501,14 @@ router.put('/changePassword', getUser, async function (req, res) {
     if (data.confirmPassword !== data.newPassword) {
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'New and Confirm password is not same.'
+            message: 'New Password does not match confirm password.'
+        });
+    }
+
+    if (data.currentPassword === data.newPassword) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'New password should not be the same as current password.'
         });
     }
 
@@ -553,6 +559,7 @@ router.get('/profile', getUser, async function (req, res) {
             companyRole: user.companyRole,
             companySize: user.companySize,
             referral: user.referral,
+            isVerified: user.isVerified,
             companyPhoneNumber: user.companyPhoneNumber ? user.companyPhoneNumber : '',
             alertPhoneNumber: user.alertPhoneNumber ? user.alertPhoneNumber : '',
             profilePic: user.profilePic,
@@ -639,6 +646,18 @@ router.get('/users', getUser, isUserMasterAdmin, async function (req, res) {
         const count = await UserService.countBy({ _id: { $ne: null }, deleted: { $ne: null } });
         return sendListResponse(req, res, users, count);
     } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/users/:userId', getUser, isUserMasterAdmin, async function(req, res) {
+    const userId = req.params.userId;
+
+    try{
+        const user = await UserService.findOneBy({ _id: userId, deleted: { $ne: null } });
+
+        return sendItemResponse(req, res, user);
+    }catch(error){
         return sendErrorResponse(req, res, error);
     }
 });

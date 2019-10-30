@@ -8,6 +8,7 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject'
+import { history } from '../../store';
 
 function validate(value) {
 
@@ -76,7 +77,7 @@ class CreateIncident extends Component {
 
 									<div className="bs-Modal-content">
 										<span className="bs-Fieldset">
-											{ subProjectMonitor.monitors.length > 0 ?
+											{ subProjectMonitor && subProjectMonitor.monitors && subProjectMonitor.monitors.length > 0 ?
 												<div className="bs-Fieldset-rows">
 													<div className="bs-Fieldset-row">
 														<label className="bs-Fieldset-label"><span> Monitor </span></label>
@@ -87,12 +88,19 @@ class CreateIncident extends Component {
 																{
 																	monitorOptions
 																}
-
 															</Field> 
 														<img src="/assets/img/show-more-button.svg" className="select-arrow" alt="arrow" />
 													</div>
 												</div> :
-												<label className="bs-Fieldset-label"><span> No monitor added yet. </span></label>
+												<label className="bs-Fieldset-label"><span> No monitor added yet. </span>
+												<div 
+													className="bs-ObjectList-copy bs-is-highlighted" 
+													style={{ display: 'inline', textAlign: 'left', cursor: 'pointer' }}
+													onClick={()=>{
+														closeThisDialog();
+														history.push('/project/' + this.props.currentProject._id + '/monitoring')
+													}}
+												>Please create one.</div></label>
 											}
 										</span>
 									</div>
@@ -114,7 +122,7 @@ class CreateIncident extends Component {
 										</div>
 									</ShouldRender>
 									<button className="bs-Button bs-DeprecatedButton" type="button" onClick={closeThisDialog}><span>Cancel</span></button>
-									<ShouldRender if={subProjectMonitor.monitors.length > 0}>
+									<ShouldRender if={subProjectMonitor && subProjectMonitor.monitors && subProjectMonitor.monitors.length > 0}>
 										<button
 											id="createIncident"
 											className="bs-Button bs-DeprecatedButton bs-Button--blue"

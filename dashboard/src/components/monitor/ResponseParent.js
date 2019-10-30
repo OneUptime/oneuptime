@@ -56,7 +56,7 @@ export class ResponseParent extends Component {
                                     type={type}
                                 />
                                 {level < 3 && bodyfield[j] && bodyfield[j].field3 ?
-                                    <FieldArray name={`${newval}.collection`} component={ResponseParent} bodyfield={bodyfield[j].collection} level={level + 1} />
+                                    <FieldArray name={`${newval}.collection`} component={ResponseParent} type={this.props.type} bodyfield={bodyfield[j].collection} level={level + 1} />
                                     : ''}
                             </React.Fragment>
                         )

@@ -6,6 +6,7 @@ var ErrorService = require('../services/errorService');
 module.exports = {
 
     create: async function ({ projectId, monitorId }, data) {
+        var _this = this;
         var scheduledEvent = new ScheduledEventModel();
 
         scheduledEvent.projectId = projectId;
@@ -31,6 +32,7 @@ module.exports = {
 
         try {
             scheduledEvent = await scheduledEvent.save();
+            scheduledEvent = await _this.findOneBy({ _id: scheduledEvent._id });
         } catch (error) {
             ErrorService.log('ScheduledEvent.save', error);
             throw error;
@@ -42,7 +44,7 @@ module.exports = {
         try {
             var oldScheduledEvent = await ScheduledEventModel.findOne({ _id: data._id });
         } catch (error) {
-            ErrorService.log('ScheduledEvents.findOneBy', error);
+            ErrorService.log('ScheduledEventModel.findOne', error);
             throw error;
         }
         var name = data.name || oldScheduledEvent.name;
@@ -86,7 +88,7 @@ module.exports = {
                 }
             }, { new: true });
         } catch (error) {
-            ErrorService.log('ScheduledEvent.delete', error);
+            ErrorService.log('ScheduledEventModel.findOneAndUpdate', error);
             throw error;
         }
         return scheduledEvent;
@@ -143,7 +145,41 @@ module.exports = {
             return scheduledEvents;
         }
         catch (error) {
-            ErrorService.log('ScheduledEvents.findAll', error);
+            ErrorService.log('ScheduledEventModel.find', error);
+            throw error;
+        }
+    },
+
+    findOneBy: async function (query) {
+
+        if (!query) {
+            query = {};
+        }
+
+        query.deleted = false;
+
+        try {
+            var scheduledEvent = await ScheduledEventModel.findOne(query).lean();
+
+            if (scheduledEvent.createdById === 'API') {
+                scheduledEvent.createdById = {
+                    name: 'API',
+                    _id: null
+                };
+            } else {
+                var user = await UserModel.findOne({
+                    _id: scheduledEvent.createdById
+                }).lean();
+                scheduledEvent.createdById = {
+                    _id: user._id,
+                    name: user.name
+                };
+            }
+
+            return scheduledEvent;
+        }
+        catch (error) {
+            ErrorService.log('ScheduledEventModel.findOne', error);
             throw error;
         }
     },

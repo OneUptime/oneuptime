@@ -14,14 +14,8 @@ import { WebHookTableBody, WebHookBadgeTableBody } from './WebHookRow';
 
 class WebHookInput extends React.Component {
 
-	constructor(props) {
-		super(props);
-
-		this.deleteItem = this.deleteItem;
-	}
-
-    deleteItem = () => {
-        return this.props.deleteWebHook( this.props.currentProject._id, this.props.data._id);
+	deleteItem = () => {
+		return this.props.deleteWebHook(this.props.currentProject._id, this.props.data._id);
 	}
 
 	getMonitors(monitors) {
@@ -34,11 +28,11 @@ class WebHookInput extends React.Component {
 		return temp;
 	}
 
-    render(){
-        const { data } = this.props;
+	render() {
+		const { data } = this.props;
 		const { endpoint, endpointType } = data.data;
 
-        return(
+		return (
 			<tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
 
 				<WebHookTableBody text={endpoint} />
@@ -57,7 +51,7 @@ class WebHookInput extends React.Component {
 									<button
 										className="bs-Button bs-DeprecatedButton"
 										type="button"
-										onClick={ () =>
+										onClick={() =>
 											this.props.openModal({
 												id: data._id,
 												onClose: () => '',
@@ -70,7 +64,7 @@ class WebHookInput extends React.Component {
 									<button
 										className="bs-Button bs-DeprecatedButton"
 										type="button"
-										onClick={ () =>
+										onClick={() =>
 											this.props.openModal({
 												id: data._id,
 												onClose: () => '',
@@ -87,26 +81,26 @@ class WebHookInput extends React.Component {
 					</div>
 				</td>
 			</tr>
-        )
-    }
+		)
+	}
 }
 
 WebHookInput.displayName = 'WebHookInput';
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-    {
+	{
 		deleteWebHook,
 		openModal,
 		closeModal
 	}
-    , dispatch);
+	, dispatch);
 
 const mapStateToProps = state => (
-    {
-        webhook: state.webhook,
-        team: state.team,
+	{
+		webhook: state.webhook,
+		team: state.team,
 		currentProject: state.project.currentProject,
-    }
+	}
 );
 
 WebHookInput.contextTypes = {

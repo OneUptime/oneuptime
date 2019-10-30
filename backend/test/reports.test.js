@@ -13,9 +13,11 @@ var ProjectService = require('../backend/services/projectService');
 var IncidentService = require('../backend/services/incidentService');
 var MonitorService = require('../backend/services/monitorService');
 var NotificationService = require('../backend/services/notificationService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, projectId, monitorId, monitor = {
+let token, userId, airtableId, projectId, monitorId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -32,6 +34,8 @@ describe('Reports API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -56,6 +60,7 @@ describe('Reports API', function () {
         await IncidentService.hardDeleteBy({ monitorId: monitorId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
 

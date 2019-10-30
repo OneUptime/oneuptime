@@ -5,14 +5,26 @@ import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import NotFound from './components/404';
 import BackboneModals from './containers/BackboneModals';
+import { User, DASHBOARD_URL, DOMAIN_URL } from './config';
 
 import ReactGA from 'react-ga';
+import Cookies from 'universal-cookie';
+
+var cookies = new Cookies();
+var logoutData = cookies.get('logoutData');
 
 if (!isServer) {
 	history.listen(location => {
 		ReactGA.set({ page: location.pathname });
 		ReactGA.pageview(location.pathname);
 	});
+}
+
+if (logoutData && User.isLoggedIn()) {
+	cookies.remove('logoutData', { domain: DOMAIN_URL });
+	localStorage.clear();
+} else if (!logoutData && User.isLoggedIn()) {
+	window.location = DASHBOARD_URL;
 }
 
 const App = () => (
@@ -42,7 +54,7 @@ const App = () => (
 	</div>
 );
 
-App.displayName = 'App'
+App.displayName = 'App';
 
 function mapStateToProps(state) {
 	return state.login;

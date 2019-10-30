@@ -6,13 +6,15 @@ import moment from 'moment';
 
 import { fetchMonitorCategories, deleteMonitorCategory } from '../../actions/monitorCategories';
 import AddMonitorCategoryForm from '../../components/modals/AddMonitorCategory';
+import RemoveMonitorCategory from '../../components/modals/RemoveMonitorCategory';
 import { openModal, closeModal } from '../../actions/modal';
 import uuid from 'uuid';
 
 export class MonitorCategories extends Component {
 
     state = {
-        CreateMonitorCategoryModalId: uuid.v4()
+        CreateMonitorCategoryModalId: uuid.v4(),
+        removeMonitorCategoryModalId: uuid.v4(),
     }
 
     handleDeleteMonitorCategory(_id) {
@@ -44,11 +46,11 @@ export class MonitorCategories extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Categories</span>
+                                    <span>Monitor Categories</span>
                                 </span>
                                 <p>
                                     <span>
-                                        {'Add Monitor Categories options like "US East", "US West", "Mumbai".'}
+                                        {'Monitor Categories lets you group monitors by categories on Status Page.'}
                                     </span>
                                 </p>
                             </div>
@@ -101,7 +103,21 @@ export class MonitorCategories extends Component {
                                                 </div>
                                             </div>
                                             <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <button onClick={() => this.handleDeleteMonitorCategory(_id)} className="Button bs-ButtonLegacy" type="button">
+                                                <button onClick={() => {
+                                                    this.props.openModal({
+                                                        id: this.state.removeMonitorCategoryModalId,
+                                                        onClose: () => '',
+                                                        onConfirm: () => {
+                                                            return new Promise((resolve)=>{
+                                                                this.handleDeleteMonitorCategory(_id)
+                                                                resolve(true);
+                                                            })
+                                                        },
+                                                        content: RemoveMonitorCategory
+                                                    })
+                                                }} 
+                                                className="Button bs-ButtonLegacy" 
+                                                type="button">
                                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Delete</span></span></div>
                                                 </button>
                                             </div>

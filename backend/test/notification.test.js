@@ -5,14 +5,17 @@ var projectData = require('./data/project');
 var chai = require('chai');
 chai.use(require('chai-http'));
 var app = require('../server');
+
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var NotificationService = require('../backend/services/notificationService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
 var request = chai.request.agent(app);
 
-var projectId, token, userId;
+var projectId, token, userId, airtableId;
 
 describe('Notification API', function () {
     this.timeout(20000);
@@ -23,6 +26,8 @@ describe('Notification API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -41,6 +46,7 @@ describe('Notification API', function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should create a new notification', (done) => {
@@ -88,6 +94,20 @@ describe('Notification API', function () {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body._id).to.be.equal(notificationId);
+                    done();
+                });
+        });
+    });
+
+    it('should mark all project notifications as read', function (done) {
+        var authorization = `Basic ${token}`;
+        request.post(`/notification/${projectId}`).set('Authorization', authorization).send({
+            message: 'New Notification',
+            icon: 'bell'
+        }).end(function () {
+            request.put(`/notification/${projectId}/readAll`)
+                .set('Authorization', authorization).end(function (err, res) {
+                    expect(res).to.have.status(200);
                     done();
                 });
         });

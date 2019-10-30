@@ -15,20 +15,19 @@ class SlackTeamItem extends React.Component {
         this.state = {
             deleteModalId: uuid.v4()
         };
-        this.unLink = this.unLink;
     }
 
     unLink = () => {
         return this.props.deleteSlackLink(this.props.projectId, this.props.team._id);
     }
 
-    render(){
+    render() {
         const { deleteModalId } = this.state;
         const { team, deleteTeam: { requesting } } = this.props;
 
-        if(!team) return null;
+        if (!team) return null;
 
-        return(
+        return (
             <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
                     <div className="db-ListViewItem-cellContent Box-root Padding-all--16">
@@ -53,12 +52,12 @@ class SlackTeamItem extends React.Component {
                     </div>
                 </td>
                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--16"  style={{ position: 'absolute', right: 29, paddingTop: 23 }}>
+                    <div className="db-ListViewItem-cellContent Box-root Padding-all--16" style={{ position: 'absolute', right: 29, paddingTop: 23 }}>
                         <div className="Box-root">
                             <button
                                 className="bs-Button bs-Button--block"
                                 disabled={requesting}
-                                onClick={ () =>
+                                onClick={() =>
                                     this.props.openModal({
                                         id: deleteModalId,
                                         onClose: () => '',
@@ -67,7 +66,7 @@ class SlackTeamItem extends React.Component {
                                     })
                                 }
                             >
-                                { requesting ? 'Processing...' : 'Unlink workspace'}
+                                {requesting ? 'Processing...' : 'Unlink workspace'}
                             </button>
                         </div>
                     </div>
@@ -86,10 +85,10 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => (
     bindActionCreators({
-            openModal,
-            closeModal,
-            deleteSlackLink
-        },
+        openModal,
+        closeModal,
+        deleteSlackLink
+    },
         dispatch
     )
 );

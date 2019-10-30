@@ -146,6 +146,7 @@ module.exports = {
             var coupon = data.coupon || user.coupon;
             var disabled = data.disabled || false;
             var adminNotes = data.adminNotes || user.adminNotes;
+            var isVerified = data.email ? data.email === user.email && user.isVerified : user.isVerified;
 
             var isBlocked = user.isBlocked;
             if (typeof data.isBlocked === 'boolean') {
@@ -166,6 +167,7 @@ module.exports = {
                     $set: {
                         name: name,
                         email: email,
+                        isVerified: isVerified,
                         password: password,
                         companyName: companyName,
                         companyRole: companyRole,
@@ -200,6 +202,23 @@ module.exports = {
         }
     },
 
+    closeTutorialBy: async function (query, type, data) {
+        if (!query) query = {};
+        if (!data) data = {};
+
+        type = type.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
+        data[type] = { show: false };
+
+        try {
+            var tutorial = await UserModel.findOneAndUpdate(query, { $set: { tutorial: data } }, { new: true });
+        } catch (error) {
+            ErrorService.log('UserModel.findOneAndUpdate', error);
+            throw error;
+        }
+
+        return tutorial || null;
+    },
+
     sendToken: async function (user) {
         var verificationTokenModel = new VerificationTokenModel({
             userId: user._id,
@@ -225,6 +244,7 @@ module.exports = {
         var _this = this;
         var email = data.email;
         var stripePlanId = data.planId;
+        var companyName = data.companyName;
         var customerId;
 
         if (util.isEmailValid(email)) {
@@ -241,50 +261,63 @@ module.exports = {
                 throw error;
             } else {
                 try {
+                    var stripeToken = await PaymentService.createToken(data.cardNumber, data.cvc, data.expiry.split('/')[0], data.expiry.split('/')[1], data.zipCode);
+                } catch (error) {
+                    ErrorService.log('PaymentService.createToken', error);
+                    throw error;
+                }
+                try {
+                    customerId = await PaymentService.createCustomer(stripeToken, email, companyName);
+                } catch (error) {
+                    ErrorService.log('PaymentService.createCustomer', error);
+                    throw error;
+                }
+
+                try {
+                    await PaymentService.testCardCharge(customerId);
+                } catch (error) {
+                    ErrorService.log('PaymentService.testCharge', error);
+                    throw error;
+                }
+
+                try {
                     var hash = await bcrypt.hash(data.password, constants.saltRounds);
                 } catch (error) {
                     ErrorService.log('bcrypt.hash', error);
                     throw error;
                 }
-                data.password = hash;
 
+                data.password = hash;
                 // creating jwt refresh token
                 data.jwtRefreshToken = randToken.uid(256);
-                //save a user.
+                //save a user only when payment method is charged and then next steps
                 try {
                     user = await _this.create(data);
                 } catch (error) {
                     ErrorService.log('UserService.create', error);
                     throw error;
                 }
+
+                try {
+                    let createdAt = new Date(user.createdAt).toISOString().split('T', 1);
+                    var record = await AirtableService.logUser({
+                        name: data.name,
+                        email: data.email,
+                        phone: data.companyPhoneNumber,
+                        company: data.companyName,
+                        jobRole: data.companyRole,
+                        createdAt
+                    });
+                } catch (error) {
+                    ErrorService.log('AirtableService.logUser', error);
+                    throw error;
+                }
+
                 try {
                     await _this.sendToken(user);
                 } catch (error) {
                     ErrorService.log(' UserVerificationService.sendToken', error);
                     throw error;
-                }
-
-                if (!data.cardNumber || !data.cvc) {
-                    try {
-                        customerId = await PaymentService.createCustomer({}, user);
-                    } catch (error) {
-                        ErrorService.log('PaymentService.createCustomer', error);
-                        throw error;
-                    }
-                } else {
-                    try {
-                        var stripeToken = await PaymentService.createToken(data.cardNumber, data.cvc, data.expiry.split('/')[0], data.expiry.split('/')[1], data.zipCode);
-                    } catch (error) {
-                        ErrorService.log('PaymentService.createToken', error);
-                        throw error;
-                    }
-                    try {
-                        customerId = await PaymentService.createCustomer(stripeToken, user);
-                    } catch (error) {
-                        ErrorService.log('PaymentService.createCustomer', error);
-                        throw error;
-                    }
-
                 }
 
                 //update customer Id
@@ -301,6 +334,7 @@ module.exports = {
                     ErrorService.log('PaymentService.subscribePlan', error);
                     throw error;
                 }
+
                 var projectName = 'Unnamed Project';
                 var projectData = {
                     name: projectName,
@@ -316,12 +350,9 @@ module.exports = {
                     ErrorService.log('ProjectService.create', error);
                     throw error;
                 }
-                try {
-                    await PaymentService.testCardCharge(customerId);
-                } catch (error) {
-                    ErrorService.log('PaymentService.testCharge', error);
-                    throw error;
-                }
+
+                user.airtableId = record.id || null;
+
                 return user;
             }
 
@@ -711,3 +742,4 @@ var jwtKey = require('../config/keys');
 var { BACKEND_HOST } = process.env;
 var VerificationTokenModel = require('../models/verificationToken');
 var MailService = require('../services/mailService');
+var AirtableService = require('./airtableService');

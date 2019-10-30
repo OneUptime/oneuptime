@@ -4,14 +4,16 @@ var userData = require('./data/user');
 var chai = require('chai');
 chai.use(require('chai-http'));
 var app = require('../server');
+
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+var AirtableService = require('../backend/services/airtableService');
 
+var VerificationTokenModel = require('../backend/models/verificationToken');
 
 var request = chai.request.agent(app);
 
-var token, projectId, refreshToken, userId;
+var token, projectId, refreshToken, userId, airtableId;
 
 describe('Jwt Token API', function () {
     this.timeout(20000);
@@ -22,6 +24,8 @@ describe('Jwt Token API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -40,6 +44,7 @@ describe('Jwt Token API', function () {
     after(async function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ProjectService.hardDeleteBy({ _id: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should get new access and refresh token when provided a valid jwtRefreshToken', function (done) {
