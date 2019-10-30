@@ -361,7 +361,7 @@ export const tutorials = {
                 id: 's5',
                 title: 'Better Status Handling',
                 icon: 'bell',
-                description: <p>After adding monitors for your API, you won&quot;t miss out on any<br />
+                description: <p>After adding monitors for your API, you won&apos;t miss out on any<br />
                     downtime on your servers, Just let Fyipe alert notify you
                                 </p>,
             },

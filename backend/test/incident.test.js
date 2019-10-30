@@ -15,13 +15,15 @@ var ProjectModel = require('../backend/models/project');
 var IncidentService = require('../backend/services/incidentService');
 var MonitorService = require('../backend/services/monitorService');
 var NotificationService = require('../backend/services/notificationService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 var AlertModel = require('../backend/models/alert');
 var sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 var TwilioConfig = require('../backend/config/twilio');
 
 
-var token, userId, projectId, monitorId, incidentId, monitor = {
+var token, userId, airtableId, projectId, monitorId, incidentId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -34,6 +36,8 @@ describe('Incident API', function () {
         request.post('/user/signup').send(userData.user).end(function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -56,6 +60,7 @@ describe('Incident API', function () {
 
     after(async function () {
         await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should create an incident', function (done) {
@@ -153,7 +158,7 @@ describe('Incident API', function () {
             .send({
                 monitorIds: [monitorId]
             });
-        if(selectMonitor){
+        if (selectMonitor) {
             var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
                 .send([{
                     callFrequency: 10,
@@ -167,7 +172,7 @@ describe('Incident API', function () {
                         email: false
                     }]
                 }]);
-            if(createEscalation){
+            if (createEscalation) {
                 var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
                     .set('Authorization', authorization)
                     .send(incidentData);
@@ -181,7 +186,7 @@ describe('Incident API', function () {
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function () {
-        request.get(`alert/${projectId}/alert/charges`, function(err, res) {
+        request.get(`alert/${projectId}/alert/charges`, function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('data');
@@ -195,7 +200,7 @@ describe('Incident API', function () {
             $set: {
                 balance: 100,
                 alertEnable: true,
-                alertOptions:{
+                alertOptions: {
                     minimumBalance: 50,
                     rechargeToBalance: 100,
                     billingUS: true,
@@ -215,7 +220,7 @@ describe('Incident API', function () {
         expect(alert.alertStatus).to.be.equal('success');
     });
     it('should create an alert charge when an alert is sent to a user.', async function () {
-        request.get(`alert/${projectId}/alert/charges`, function(err, res) {
+        request.get(`alert/${projectId}/alert/charges`, function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('data');
@@ -226,7 +231,7 @@ describe('Incident API', function () {
 });
 
 // eslint-disable-next-line no-unused-vars
-var subProjectId, newUserToken, subProjectIncidentId;   
+var subProjectId, newUserToken, subProjectIncidentId;
 
 describe('Incident API with Sub-Projects', function () {
     this.timeout(30000);

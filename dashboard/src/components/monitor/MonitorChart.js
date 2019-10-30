@@ -1,11 +1,13 @@
 import React, { Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 import BlockChart from '../blockchart/BlockChart';
 import AreaChart from '../areachart';
 import toPascalCase from 'to-pascal-case';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
+import { formatDecimal, formatBytes } from '../../config';
 
 const calculateTime = (probeStatus) => {
     let timeBlock = [];
@@ -47,18 +49,9 @@ const calculateTime = (probeStatus) => {
         dayStart = dayStart.subtract(1, 'days');
     }
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
-}
-
-
-const formatDecimal = (value, decimalPlaces) => {
-    return Number(Math.round(parseFloat(value + 'e' + decimalPlaces)) + 'e-' + decimalPlaces).toFixed(decimalPlaces);
 };
 
-const formatBytes = (a, b, c, d, e) => {
-    return formatDecimal((b = Math, c = b.log, d = 1e3, e = c(a) / c(d) | 0, a / b.pow(d, e)), 2) + ' ' + (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
-};
-
-export function MonitorBarChart(props) {
+export function MonitorChart(props) {
     var block = [];
     var { timeBlock, uptimePercent } = props.probe && props.probe.probeStatus ? calculateTime(props.probe.probeStatus) : calculateTime([]);
     for (var i = 0; i < 90; i++) {
@@ -77,9 +70,10 @@ export function MonitorBarChart(props) {
     let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
     let monitorType = props.monitor.type;
-        
-    let monitorInfo = monitorType === 'server-monitor' ? (
-        <Fragment>
+    let monitorInfo;
+
+    if (monitorType === 'server-monitor') {
+        monitorInfo = <Fragment>
             <div className="db-Trend">
                 <div className="block-chart-side line-chart">
                     <div className="db-TrendRow">
@@ -110,7 +104,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart data={data} name={'load'} />
+                    <AreaChart type={monitorType} data={data} name={'load'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -143,7 +137,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart data={data} name={'memory'} />
+                    <AreaChart type={monitorType} data={data} name={'memory'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -176,7 +170,7 @@ export function MonitorBarChart(props) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart data={data} name={'disk'} />
+                    <AreaChart type={monitorType} data={data} name={'disk'} />
                 </div>
             </div>
             <ShouldRender if={props.showAll}>
@@ -203,16 +197,50 @@ export function MonitorBarChart(props) {
                         </div>
                     </div>
                     <div className="block-chart-main line-chart">
-                        <AreaChart data={data} name={'temperature'} />
+                        <AreaChart type={monitorType} data={data} name={'temperature'} />
                     </div>
                 </div>
             </ShouldRender>
         </Fragment>
-    ) : (
-            <div className="db-Trend">
-                <span></span>
-                {
-                    props.monitor.type !== 'manual' ? 
+    } else if (monitorType === 'url' || monitorType === 'api') {
+        monitorInfo = <div className="db-Trend">
+            <div className="block-chart-side line-chart">
+                <div className="db-TrendRow">
+                    <div className="db-Trend-colInformation">
+                        <div className="db-Trend-rowTitle" title="Response Time">
+                            <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
+                        </div>
+                    </div>
+                    <div className="db-Trend-colInformation">
+                        <div className="db-Trend-rowTitle" title="Monitor Status">
+                            <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{monitorStatus}</span></span></div>
+                        </div>
+                    </div>
+                    <div className="db-Trend-colInformation">
+                        <div className="db-Trend-rowTitle" title="Uptime Stats">
+                            <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="block-chart-main line-chart">
+                <AreaChart type={monitorType} data={data} name={'response time'} symbol="ms" />
+            </div>
+        </div>
+    } else {
+        monitorInfo = <div className="db-Trend">
+            <span></span>
+            {
+                props.monitor.type !== 'manual' ?
                     <div className="db-Trend-colInformation">
                         <div className="db-Trend-rowTitle" title="Gross volume">
                             <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
@@ -221,41 +249,49 @@ export function MonitorBarChart(props) {
                             <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
                         </div>
                     </div> : null
-                }
-                <div className="db-Trend-colInformation">
-                    <div className="db-Trend-rowTitle" title="Gross volume">
-                        <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
-                    </div>
-                    <div className="db-Trend-row">
-                        <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{monitorStatus}</span></span></div>
-                    </div>
+            }
+            <div className="db-Trend-colInformation">
+                <div className="db-Trend-rowTitle" title="Gross volume">
+                    <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
                 </div>
-                <div className="db-Trend-colInformation">
-                    <div className="db-Trend-rowTitle" title="Gross volume">
-                        <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
-                    </div>
-                    <div className="db-Trend-row">
-                        <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
-                    </div>
-                </div>
-                <div className="block-chart-main">
-                    <div className="block-chart">
-                        {block}
-                    </div>
+                <div className="db-Trend-row">
+                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{monitorStatus}</span></span></div>
                 </div>
             </div>
-        );
-
-    let chart = <div className="db-Trends-content">
-        <div className="db-TrendsRows">
-            {monitorInfo}
+            <div className="db-Trend-colInformation">
+                <div className="db-Trend-rowTitle" title="Gross volume">
+                    <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
+                </div>
+                <div className="db-Trend-row">
+                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
+                </div>
+            </div>
+            <div className="block-chart-main">
+                <div className="block-chart">
+                    {block}
+                </div>
+            </div>
         </div>
-    </div>;
+    }
 
-    return chart;
+    return (
+        <div className="db-Trends-content">
+            <div className="db-TrendsRows">
+                {monitorInfo}
+            </div>
+        </div>
+    );
 }
 
-MonitorBarChart.displayName = 'MonitorBarChart'
+MonitorChart.displayName = 'MonitorChart';
+
+MonitorChart.propTypes = {
+    probe: PropTypes.object,
+    startDate: PropTypes.string,
+    endDate: PropTypes.string,
+    monitor: PropTypes.object,
+    showAll: PropTypes.bool
+};
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch)
 
@@ -263,6 +299,6 @@ const mapStateToProps = (state) => {
     return {
         activeProbe: state.monitor.activeProbe
     };
-}
+};
 
-export default connect(mapStateToProps, mapDispatchToProps)(MonitorBarChart);
+export default connect(mapStateToProps, mapDispatchToProps)(MonitorChart);

@@ -5,26 +5,44 @@
  * 
  */
 module.exports = {
+    //Description: Create new user entry on airtable.
+    //Params: 
+    //Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
+    //Returns: promise
+    logUser: function ({ name, email, phone, company, jobRole, createdAt }) {
+        return base('User').create({
+            'Name': name,
+            'Email': email,
+            'Phone': phone,
+            'Company': company,
+            'Job Role': jobRole,
+            'Created At': createdAt
+        });
+    },
+
+    deleteUser: function (airtableId) {
+        return base('User').destroy(airtableId);
+    },
+
     //Description: Create new feedback entry on airtable.
     //Params: 
-    //Param 1: message: Feedback text.
-    //Param 2: userName: User name.
-    //Param 3: userEmail: User email.
-    //Param 4: projectName: Project name.
-    //Param 5: page: Feedback page.
+    //Param 1: data: Feedback data (message, name, email, project, page).
     //Returns: promise
-    logFeedback: function (message, userName, userEmail, projectName, page) {
-        var base = new Airtable({ apiKey: apiKey.airtableApiKey }).base('appgek0ngJaHhppeJ');
-
+    logFeedback: function ({ message, name, email, project, page }) {
         return base('Feedback').create({
             'Feedback Text': message,
-            'User Full Name': userName,
-            'User Email': userEmail,
-            'Project Name': projectName,
+            'User Full Name': name,
+            'User Email': email,
+            'Project Name': project,
             'Page Name': page
         });
+    },
+
+    deleteFeedback: function (airtableId) {
+        return base('Feedback').destroy(airtableId);
     }
 };
 
 var Airtable = require('airtable');
-var apiKey = require('../config/keys.js');
+var apiKeys = require('../config/keys.js');
+var base = new Airtable({ apiKey: apiKeys.airtableApiKey }).base(apiKeys.airtableBaseId);

@@ -102,7 +102,7 @@ class Incident extends React.Component {
     if (this.props.incident) {
       variable =
         <div>
-          <IncidentDescription incident={this.props.incident} />
+          <IncidentDescription incident={this.props.incident} projectId={this.props.currentProject._id} />
           <IncidentStatus incident={this.props.incident} />
           <IncidentAlert next={this.nextAlerts} previous={this.previousAlerts} />
           <SubscriberAlert next={this.nextSubscribers} previous={this.previousSubscribers} incident={this.props.incident}/>

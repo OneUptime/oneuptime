@@ -6,15 +6,15 @@ chai.use(require('chai-http'));
 var app = require('../server');
 var mailParser = require('mailparser').simpleParser;
 
-
 var request = chai.request.agent(app);
 var UserService = require('../backend/services/userService');
 var FeedbackService = require('../backend/services/feedbackService');
 var ProjectService = require('../backend/services/projectService');
 var VerificationTokenModel = require('../backend/models/verificationToken');
-var token, projectId, userId, emailContent;
-var { imap, openBox, feedbackEmailContent } = require('./utils/mail');
+var AirtableService = require('../backend/services/airtableService');
 
+var token, projectId, userId, airtableId, emailContent;
+var { imap, openBox, feedbackEmailContent } = require('./utils/mail');
 
 describe('Feedback API', function () {
     this.timeout(20000);
@@ -25,6 +25,8 @@ describe('Feedback API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -42,6 +44,7 @@ describe('Feedback API', function () {
     after(async function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should create feedback and check the sent emails to fyipe team and user', function (done) {
@@ -54,6 +57,7 @@ describe('Feedback API', function () {
         request.post(`/feedback/${projectId}`).set('Authorization', authorization).send(testFeedback).end(function (err, res) {
             expect(res).to.have.status(200);
             FeedbackService.hardDeleteBy({ _id: res.body._id });
+            AirtableService.deleteFeedback(res.body.airtableId);
             imap.once('ready', function () {
                 openBox(function (err) {
                     if (err) throw err;

@@ -16,7 +16,7 @@ function validate(values) {
     if (values.adminNotes) {
         for (var i = 0; i < values.adminNotes.length; i++) {
             const adminNotesErrors = {}
-            if (values.adminNotes[i].note) {
+            if (values.adminNotes[i] && values.adminNotes[i].note) {
 
                 if (!Validate.text(values.adminNotes[i].note)) {
                     adminNotesErrors.note = 'Note is not in text format.'

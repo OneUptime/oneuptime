@@ -20,11 +20,11 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (req, res) {
     var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-    try{
+    try {
         var notifications = await NotificationService.findBy({ projectId: { $in: subProjectIds } }, req.query.skip || 0, req.query.limit || 20);
         var count = await NotificationService.countBy({ projectId: { $in: subProjectIds } });
         return sendListResponse(req, res, notifications, count);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
@@ -32,16 +32,34 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
 router.put('/:projectId/:notificationId/read', getUser, isAuthorized, async function (req, res) {
     var notificationId = req.params.notificationId;
     let userId = req.user ? req.user.id : null;
-    try{
-        let notification = await NotificationService.updateBy({_id: notificationId, read: [userId]});
-        if(notification){
+    try {
+        let notification = await NotificationService.updateBy({ _id: notificationId, read: [userId] });
+        if (notification) {
             return sendItemResponse(req, res, notification);
-        }else{
+        } else {
             var error = new Error('Notification not found.');
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
-    }catch(error){
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:projectId/readAll', getUser, isAuthorized, async function (req, res) {
+    let projectId = req.params.projectId || null;
+    let userId = req.user ? req.user.id : null;
+    try {
+        let notifications = await NotificationService.updateManyBy({ projectId }, { read: userId });
+
+        if (notifications.ok === 1 && notifications.n > 0) {
+            return sendItemResponse(req, res, { count: notifications.n, read: notifications.nModified });
+        } else {
+            var error = new Error('No notification found.');
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
@@ -64,14 +82,14 @@ router.put('/:projectId/:notificationId', getUser, isAuthorized, async function 
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(req, res){
+router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
     var projectId = req.params.projectId;
     let userId = req.user ? req.user.id : null;
     var data = req.body;
-    try{
+    try {
         var notification = await NotificationService.create(projectId, data.message, userId, data.icon);
         return sendItemResponse(req, res, notification);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });

@@ -19,13 +19,13 @@ export class ProjectDeleteBox extends Component {
     }
 
     handleClick = () => {
-        const { deleteProject, projectId } = this.props;
+        const { deleteProject, project } = this.props;
         var thisObj = this;
         const { deleteModalId } = this.state
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {
-               return deleteProject(projectId)
+               return deleteProject(project._id)
                 .then(() =>{
                 if (window.location.href.indexOf('localhost') <= -1) {
                     thisObj.context.mixpanel.track('Project Deleted');
@@ -93,8 +93,8 @@ const mapDispatchToProps = dispatch => (
     bindActionCreators({ deleteProject, openModal, closeModal }, dispatch)
 )
 
-const mapStateToProps = (state, props) => {
-    const project = state.project.projects.projects.find(project => project._id === props.projectId);
+const mapStateToProps = (state) => {
+    const project = state.project.project.project;
     return {
         project,
         isRequesting: state.project && state.project.deleteProject && state.project.deleteProject.requesting,
@@ -103,10 +103,7 @@ const mapStateToProps = (state, props) => {
 
 ProjectDeleteBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined])
-    ]),
+    project: PropTypes.object.isRequired, 
     deleteProject: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,

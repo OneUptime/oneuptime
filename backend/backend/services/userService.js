@@ -146,6 +146,7 @@ module.exports = {
             var coupon = data.coupon || user.coupon;
             var disabled = data.disabled || false;
             var adminNotes = data.adminNotes || user.adminNotes;
+            var isVerified = data.email ? data.email === user.email && user.isVerified : user.isVerified;
 
             var isBlocked = user.isBlocked;
             if (typeof data.isBlocked === 'boolean') {
@@ -166,6 +167,7 @@ module.exports = {
                     $set: {
                         name: name,
                         email: email,
+                        isVerified: isVerified,
                         password: password,
                         companyName: companyName,
                         companyRole: companyRole,
@@ -295,6 +297,22 @@ module.exports = {
                     ErrorService.log('UserService.create', error);
                     throw error;
                 }
+
+                try {
+                    let createdAt = new Date(user.createdAt).toISOString().split('T', 1);
+                    var record = await AirtableService.logUser({
+                        name: data.name,
+                        email: data.email,
+                        phone: data.companyPhoneNumber,
+                        company: data.companyName,
+                        jobRole: data.companyRole,
+                        createdAt
+                    });
+                } catch (error) {
+                    ErrorService.log('AirtableService.logUser', error);
+                    throw error;
+                }
+
                 try {
                     await _this.sendToken(user);
                 } catch (error) {
@@ -332,6 +350,9 @@ module.exports = {
                     ErrorService.log('ProjectService.create', error);
                     throw error;
                 }
+
+                user.airtableId = record.id || null;
+
                 return user;
             }
 
@@ -721,3 +742,4 @@ var jwtKey = require('../config/keys');
 var { BACKEND_HOST } = process.env;
 var VerificationTokenModel = require('../models/verificationToken');
 var MailService = require('../services/mailService');
+var AirtableService = require('./airtableService');

@@ -6,14 +6,14 @@ chai.use(require('chai-http'));
 var app = require('../server');
 var mailParser = require('mailparser').simpleParser;
 
-
 var request = chai.request.agent(app);
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var VerificationTokenModel = require('../backend/models/verificationToken');
-var userId, emailContent, projectId;
-var { imap, openBox } = require('./utils/mail');
+var AirtableService = require('../backend/services/airtableService');
 
+var userId, airtableId, emailContent, projectId;
+var { imap, openBox } = require('./utils/mail');
 
 describe('Email verification API', function () {
     this.timeout(20000);
@@ -23,6 +23,8 @@ describe('Email verification API', function () {
         request.post('/user/signup').send(userData.user).end(function (err, res) {
             userId = res.body.id;
             projectId = res.body.project._id;
+            airtableId = res.body.airtableId;
+
             done();
         });
     });
@@ -30,6 +32,7 @@ describe('Email verification API', function () {
     after(async function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should sent email verification', function (done) {
@@ -58,7 +61,7 @@ describe('Email verification API', function () {
         });
         imap.connect();
     });
-    
+
     it('should not login non-verified user', async function () {
         try {
             await request.post('/user/login').send({
@@ -82,10 +85,10 @@ describe('Email verification API', function () {
     });
 
     it('should login the verified user', async function () {
-        var res =  await request.post('/user/login').send({
+        var res = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password
-        }); 
+        });
         expect(res).to.have.status(200);
     });
 });

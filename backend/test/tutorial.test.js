@@ -10,9 +10,11 @@ var app = require('../server');
 var request = chai.request.agent(app);
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-var projectId, userId, token;
+var projectId, userId, airtableId, token;
 
 describe('Tutorial API', function () {
     this.timeout(20000);
@@ -23,6 +25,8 @@ describe('Tutorial API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -40,6 +44,7 @@ describe('Tutorial API', function () {
     after(async function () {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should get the user tutorial status', function (done) {

@@ -154,7 +154,7 @@ class CreateSubscriber extends Component {
 															id="countryCodeId"
 															required="required"
 														>
-															<option value="">ex. United States (+1)</option>
+															<option value="us">United States (+1)</option>
 															<option value="af">Afghanistan (+93)</option>
 															<option value="al">Albania (+355)</option>
 															<option value="dz">Algeria (+213)</option>
@@ -358,7 +358,7 @@ class CreateSubscriber extends Component {
                                                             type="text"
                                                             name="contactPhone"
                                                             id="contactPhoneId"
-															placeholder="ex. 6505551234"
+															placeholder="6505551234"
 															required="required"
                                                         />
 
