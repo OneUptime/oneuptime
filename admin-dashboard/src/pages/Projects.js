@@ -37,6 +37,7 @@ class Projects extends React.Component {
             fetchProjects(skip + limit, 10);
         }
     }
+    
     ready = () => {
         this.props.fetchProjects();
     }

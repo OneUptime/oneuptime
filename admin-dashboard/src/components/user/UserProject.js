@@ -52,7 +52,10 @@ const mapDispatchToProps = (dispatch) => {
 }
 
 const mapStateToProps = state => {
+    const userId = state.user.user.user ? state.user.user.user._id : null;
+    
     return {
+        userId,
         projects: state.project.userProjects
     };
 }

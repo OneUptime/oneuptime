@@ -55,6 +55,12 @@ const INITIAL_STATE = {
         limit: null,
         skip: null
     },
+    user: {
+        error: null,
+        requesting: false,
+        success: false,
+        user: null
+    },
     userSetting: {
         error: null,
         requesting: false,
@@ -235,14 +241,11 @@ export default function user(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                users: {
+                user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
-                    count: state.users.count,
-                    limit: state.users.limit,
-                    skip: state.users.skip
+                    user: action.payload,
                 }
             });
 
@@ -280,14 +283,11 @@ export default function user(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                users: {
+                user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
-                    count: state.users.count,
-                    limit: state.users.limit,
-                    skip: state.users.skip
+                    user: action.payload
                 }
             });
 
@@ -325,14 +325,11 @@ export default function user(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                users: {
+                user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
-                    count: state.users.count,
-                    limit: state.users.limit,
-                    skip: state.users.skip
+                    user: action.payload
                 }
             });
     
@@ -370,14 +367,11 @@ export default function user(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                users: {
+                user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
-                    count: state.users.count,
-                    limit: state.users.limit,
-                    skip: state.users.skip
+                    user: action.payload
                 }
             });
 

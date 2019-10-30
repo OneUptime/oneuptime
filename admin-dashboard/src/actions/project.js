@@ -131,7 +131,7 @@ export const fetchUserProjects = (userId, skip, limit) => async (dispatch) => {
 		const response = await getApi(`project/projects/user/${userId}?skip=${skip}&limit=${limit}`);
 		const users = response.data;
 
-		dispatch(fetchProjectsSuccess(users));
+		dispatch(fetchUserProjectsSuccess(users));
 		return response;
 	}catch(error){
 		let errorMsg;
@@ -146,7 +146,7 @@ export const fetchUserProjects = (userId, skip, limit) => async (dispatch) => {
 		else{
 			errorMsg = 'Network Error';
 		}
-		dispatch(fetchProjectsError(errors(errorMsg)));
+		dispatch(fetchUserProjectsError(errors(errorMsg)));
 	}
 }
 
