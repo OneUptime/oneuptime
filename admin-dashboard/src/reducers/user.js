@@ -4,6 +4,11 @@ import {
     FETCH_USERS_FAILURE,
     FETCH_USERS_RESET,
 
+    FETCH_USER_REQUEST,
+    FETCH_USER_SUCCESS,
+    FETCH_USER_FAILURE,
+    FETCH_USER_RESET,
+
     UPDATE_USER_SETTING_REQUEST,
     UPDATE_USER_SETTING_SUCCESS,
     UPDATE_USER_SETTING_FAILURE,
@@ -49,6 +54,12 @@ const INITIAL_STATE = {
         count: null,
         limit: null,
         skip: null
+    },
+    user: {
+        error: null,
+        requesting: false,
+        success: false,
+        user: null
     },
     userSetting: {
         error: null,
@@ -133,6 +144,48 @@ export default function user(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE
             });
 
+        
+        // fetch a user
+        case FETCH_USER_REQUEST:
+
+            return Object.assign({}, state, {
+                user: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    user: state.user.user,
+                },
+
+            });
+
+        case FETCH_USER_SUCCESS:
+            return Object.assign({}, state, {
+                user: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    user: action.payload,
+                },
+            });
+
+        case FETCH_USER_FAILURE:
+
+            return Object.assign({}, state, {
+                user: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    user: state.user.user,
+                },
+            });
+
+        case FETCH_USER_RESET:
+
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
+                
+
 
         //update user setting
         case UPDATE_USER_SETTING_REQUEST:
@@ -188,14 +241,11 @@ export default function user(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                users: {
+                user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
-                    count: state.users.count,
-                    limit: state.users.limit,
-                    skip: state.users.skip
+                    user: action.payload,
                 }
             });
 
@@ -233,14 +283,11 @@ export default function user(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                users: {
+                user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
-                    count: state.users.count,
-                    limit: state.users.limit,
-                    skip: state.users.skip
+                    user: action.payload
                 }
             });
 
@@ -278,14 +325,11 @@ export default function user(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                users: {
+                user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
-                    count: state.users.count,
-                    limit: state.users.limit,
-                    skip: state.users.skip
+                    user: action.payload
                 }
             });
     
@@ -323,14 +367,11 @@ export default function user(state = INITIAL_STATE, action) {
                     success: true,
                     error: null
                 },
-                users: {
+                user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: [...state.users.users.filter(user=> user._id !== action.payload._id), action.payload],
-                    count: state.users.count,
-                    limit: state.users.limit,
-                    skip: state.users.skip
+                    user: action.payload
                 }
             });
 

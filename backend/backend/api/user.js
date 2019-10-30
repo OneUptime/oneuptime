@@ -650,6 +650,18 @@ router.get('/users', getUser, isUserMasterAdmin, async function (req, res) {
     }
 });
 
+router.get('/users/:userId', getUser, isUserMasterAdmin, async function(req, res) {
+    const userId = req.params.userId;
+
+    try{
+        const user = await UserService.findOneBy({ _id: userId, deleted: { $ne: null } });
+
+        return sendItemResponse(req, res, user);
+    }catch(error){
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.delete('/:userId', getUser, isUserMasterAdmin, async function (req, res) {
     const userId = req.params.userId;
     const masterUserId = req.user.id || null;

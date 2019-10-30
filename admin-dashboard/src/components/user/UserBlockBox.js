@@ -14,13 +14,13 @@ export class UserBlockBox extends Component {
 
     constructor(props) {
         super(props);
-        this.props = props;
         this.state = { blockModalId: uuid.v4() }
     }
 
     handleClick = () => {
         const { blockUser, userId } = this.props;
-        const { blockModalId } = this.state
+        const { blockModalId } = this.state;
+
         var thisObj = this;
         this.props.openModal({
             id: blockModalId,
@@ -34,7 +34,6 @@ export class UserBlockBox extends Component {
             },
             content: UserBlockModal
         })
-
     }
 
     handleKeyBoard = (e) => {
@@ -93,7 +92,10 @@ const mapDispatchToProps = dispatch => (
 )
 
 const mapStateToProps = (state) => {
+    const userId = state.user.user.user ? state.user.user.user._id : null;
+    
     return {
+        userId,
         isRequesting: state.user && state.user.blockUser && state.user.blockUser.requesting,
     }
 }

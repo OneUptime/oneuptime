@@ -510,7 +510,7 @@ module.exports = {
     getUserProjects: async function (userId, skip, limit) {
         var _this = this;
         // find user subprojects and parent projects
-        var userProjects = await _this.findBy({ 'users.userId': userId });
+        var userProjects = await _this.findBy({ 'users.userId': userId, deleted: { $ne: null } });
         var parentProjectIds = [];
         var projectIds = [];
         if (userProjects.length > 0) {
@@ -521,7 +521,7 @@ module.exports = {
         }
 
         // query data
-        const query = { $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }] };
+        const query = { $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }], deleted: { $ne: null } };
         projects = await _this.findBy(query, limit || 10, skip || 0);
         var count = await _this.countBy(query);
 
@@ -534,7 +534,7 @@ module.exports = {
                 project.users = users;
             } else {
                 users = await Promise.all(project.users.map(async (user) => {
-                    return await UserService.findOneBy({ _id: user.userId });
+                    return await UserService.findOneBy({ _id: user.userId, deleted: { $ne: null } });
                 }));
                 project.users = users;
             }
