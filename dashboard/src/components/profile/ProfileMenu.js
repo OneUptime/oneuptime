@@ -126,7 +126,8 @@ ProfileMenu.propTypes = {
     visible: PropTypes.bool,
     hideProfileMenu: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
-    openModal: PropTypes.func.isRequired
+    openModal: PropTypes.func.isRequired,
+    logoutUser: PropTypes.func.isRequired 
 }
 
 ProfileMenu.contextTypes = {
