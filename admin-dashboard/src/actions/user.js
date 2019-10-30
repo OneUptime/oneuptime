@@ -135,9 +135,9 @@ export const updateUserSetting = values => async (dispatch) => {
 
 	try{
 		const response = await putApi(`user/profile/${values._id}`, data);
-		const data = response.data;
+		const user = response.data;
 
-		dispatch(updateUserSettingSuccess(data));
+		dispatch(updateUserSettingSuccess(user));
 		return response;
 	}catch(error){
 		let errorMsg;
