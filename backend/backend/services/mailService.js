@@ -383,7 +383,6 @@ module.exports = {
     },
 
     sendChangeRoleEmailToUser: async function (project, addedByUser, email, role) {
-
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,

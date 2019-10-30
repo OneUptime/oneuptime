@@ -97,9 +97,8 @@ export class ProjectDetails extends Component {
 
 ProjectDetails.displayName = 'ProjectDetails'
 
-const mapStateToProps = (state, props) => {
-    const projectId = props.projectId;
-    const project = state.project.projects.projects.find(project => project._id === projectId) || {}
+const mapStateToProps = (state) => {
+    const project = state.project.project.project || {}
     return {
         project,
         isRequesting: state.project.projects.requesting

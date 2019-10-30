@@ -10,27 +10,26 @@ import ProjectRestoreBox from '../components/project/ProjectRestoreBox';
 import ProjectBlockBox from '../components/project/ProjectBlockBox';
 import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
 import AdminNotes from '../components/adminNote/AdminNotes';
-import { addProjectNote } from '../actions/project';
+import { addProjectNote, fetchProject } from '../actions/project';
 
 class Project extends Component {
 
     componentDidMount() {
         if(window.location.href.indexOf('localhost') <= -1){
-        this.context.mixpanel.track('Project page Loaded');
+            this.context.mixpanel.track('Project page Loaded');
         }
     }
 
-    ready = () => {
-        if(!this.props.project){
-            this.props.history.push('/projects');
-        }
+    ready = async () => {
+        const { fetchProject } = this.props;
+
+        await fetchProject(this.props.match.params.projectId);
     }
 
     render() {
         return (
             <Dashboard ready={this.ready}>
                 <div className="db-World-contentPane Box-root Padding-bottom--48">
-
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">
@@ -38,29 +37,29 @@ class Project extends Component {
                                     <span data-reactroot="">
                                         <div>
                                             <div className="Box-root Margin-bottom--12">
-                                                <ProjectDetails projectId={this.props.project ? this.props.project._id : ''} />
+                                                <ProjectDetails />
                                             </div>
                                             <div className="Box-root Margin-bottom--12">
-                                                <AdminNotes id={this.props.project ? this.props.project._id : ''} addNote={this.props.addProjectNote} initialValues={this.props.initialValues} />
+                                            <AdminNotes id={this.props.project ? this.props.project._id : ''} addNote={this.props.addProjectNote} initialValues={this.props.initialValues} />
                                             </div>
                                             <ShouldRender if={this.props.project && !this.props.project.deleted && !this.props.project.isBlocked}>
                                                 <div className="Box-root Margin-bottom--12">
-                                                    <ProjectBlockBox projectId={this.props.project ? this.props.project._id : ''} />
+                                                    <ProjectBlockBox />
                                                 </div>
                                             </ShouldRender>
                                             <ShouldRender if={this.props.project && !this.props.project.deleted && this.props.project.isBlocked}>
                                                 <div className="Box-root Margin-bottom--12">
-                                                    <ProjectUnblockBox projectId={this.props.project ? this.props.project._id : ''} />
+                                                    <ProjectUnblockBox />
                                                 </div>
                                             </ShouldRender>
                                             <ShouldRender if={this.props.project && !this.props.project.deleted}>
                                                 <div className="Box-root Margin-bottom--12">
-                                                    <ProjectDeleteBox projectId={this.props.project ? this.props.project._id : ''} />
+                                                    <ProjectDeleteBox />
                                                 </div>
                                             </ShouldRender>
                                             <ShouldRender if={this.props.project && this.props.project.deleted}>
                                                 <div className="Box-root Margin-bottom--12">
-                                                    <ProjectRestoreBox projectId={this.props.project ? this.props.project._id : ''} />
+                                                    <ProjectRestoreBox />
                                                 </div>
                                             </ShouldRender>
                                         </div>
@@ -76,11 +75,11 @@ class Project extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ addProjectNote }, dispatch)
+    return bindActionCreators({ addProjectNote, fetchProject }, dispatch)
 }
 
-const mapStateToProps = (state, props) => {
-    const project = state.project.projects.projects.find(project => project._id === props.match.params.projectId);
+const mapStateToProps = (state) => {
+    const project = state.project.project.project || {}
     return {
         project,
         adminNote: state.adminNote,
@@ -93,10 +92,11 @@ Project.contextTypes = {
 };
 
 Project.propTypes = {
-    history: PropTypes.object.isRequired,
     addProjectNote: PropTypes.func.isRequired,
-    project: PropTypes.object.isRequired,
-    initialValues: PropTypes.object
+    initialValues: PropTypes.object,
+    match: PropTypes.object.isRequired,
+    fetchProject: PropTypes.func.isRequired,
+    project: PropTypes.object.isRequired
 }
 
 Project.displayName = 'Project'

@@ -134,11 +134,12 @@ export const groups = [
 				title: 'Project Settings',
 				path: '/project/:projectId/settings',
 				icon: 'businessSettings',
+				exact: true,
 				visible: true,
 				subRoutes: [
 					{
 						title: 'Billing',
-						path: '/project/:projectId/billing',
+						path: '/project/:projectId/settings/billing',
 						icon: 'radar',
 						visible: true,
 						subRoutes: [],
@@ -147,7 +148,7 @@ export const groups = [
 					},
 					{
 						title: 'Monitors',
-						path: '/project/:projectId/monitors',
+						path: '/project/:projectId/settings/monitors',
 						icon: 'atlas',
 						visible: true,
 						subRoutes: [],
@@ -156,7 +157,7 @@ export const groups = [
 					},
 					{
 						title: 'Integrations',
-						path: '/project/:projectId/integrations',
+						path: '/project/:projectId/settings/integrations',
 						icon: 'radar',
 						visible: true,
 						subRoutes: [],
@@ -165,7 +166,7 @@ export const groups = [
 					},
 					{
 						title: 'Email Settings',
-						path: '/project/:projectId/emails',
+						path: '/project/:projectId/settings/emails',
 						icon: 'radar',
 						visible: true,
 						subRoutes: [],
@@ -174,7 +175,7 @@ export const groups = [
 					},
 					{
 						title: 'SMS Settings',
-						path: '/project/:projectId/sms',
+						path: '/project/:projectId/settings/sms',
 						icon: 'radar',
 						visible: true,
 						subRoutes: [],
@@ -183,7 +184,7 @@ export const groups = [
 					},
 					{
 						title: 'Probe Settings',
-						path: '/project/:projectId/probe',
+						path: '/project/:projectId/settings/probe',
 						icon: 'radar',
 						visible: true,
 						subRoutes: [],

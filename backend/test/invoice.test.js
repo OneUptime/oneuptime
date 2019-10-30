@@ -10,11 +10,12 @@ var request = chai.request.agent(app);
 var UserService = require('../backend/services/userService');
 var VerificationTokenModel = require('../backend/models/verificationToken');
 var ProjectService = require('../backend/services/projectService');
+var AirtableService = require('../backend/services/airtableService');
+
 var payment = require('../backend/config/payment');
 var stripe = require('stripe')(payment.paymentPrivateKey);
 
-
-var token, userId, projectId, stripeCustomerId, testPlan;
+var token, userId, airtableId, projectId, stripeCustomerId, testPlan;
 
 describe('Invoice API', function () {
     this.timeout(20000);
@@ -26,11 +27,12 @@ describe('Invoice API', function () {
         let project = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;
+        airtableId = signUp.body.airtableId;
 
         var verificationToken = await VerificationTokenModel.findOne({ userId });
-        try{
+        try {
             await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
-        } catch(error){
+        } catch (error) {
             //catch
         }
 
@@ -55,7 +57,7 @@ describe('Invoice API', function () {
 
         await stripe.subscriptions.create({
             customer: stripeCustomerId,
-            items:[{
+            items: [{
                 quantity: 1,
                 plan: testPlan.id
             }]
@@ -66,6 +68,7 @@ describe('Invoice API', function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await stripe.plans.del(testPlan.id);
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should filter 0$ bills', async function () {

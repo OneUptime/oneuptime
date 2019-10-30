@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 
-const RenderSelect = ({ input, placeholder, className, disabled, style, meta, children,message }) => (
+const RenderSelect = ({ input, placeholder, className, disabled, style, meta, children, message }) => (
     <span>
         <span>
             <select {...input} placeholder={placeholder} className={className} disabled={disabled || false} style={style || {}}>

@@ -102,7 +102,7 @@ export class Setting extends Component {
                               disabled={this.props.statusPage.setting.requesting}
                               placeholder="domain"
                             />
-                            <p className="bs-Fieldset-explanation"><span>Add statuspage.fyipeapp.com to your domains CNAME. If you want to preview your status page. Please check <a href={statusurl}>{statusurl} </a></span></p>
+                            <p className="bs-Fieldset-explanation"><span>Add statuspage.fyipeapp.com to your domains CNAME. If you want to preview your status page. Please check <a target="_blank" rel="noopener noreferrer" href={statusurl}>{statusurl} </a></span></p>
                           </div>
                         </div>
                         ) : (

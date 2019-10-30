@@ -5,7 +5,8 @@ import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { User } from '../../config';
 import { openModal, closeModal } from '../../actions/modal';
-import { hideProfileMenu } from '../../actions/profile'
+import { hideProfileMenu } from '../../actions/profile';
+import { logoutUser } from '../../actions/logout';
 import About from '../modals/About';
 import uuid from 'uuid';
 
@@ -27,9 +28,9 @@ export class ProfileMenu extends Component {
     }
 
     logout() {
-        var values = { name: User.getName(), email: User.getEmail() };
-        User.clear();
-        window.location.href = '/login'; //hard refresh.
+        const values = { name: User.getName(), email: User.getEmail() };
+        const { logoutUser } = this.props;
+        logoutUser();
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('User Logged Out', values);
         }
@@ -51,7 +52,7 @@ export class ProfileMenu extends Component {
         return this.props.visible ?
             (
                 <div onKeyDown={this.handleKeyBoard} className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                    style={{ top: '49px', width: '232px', right: '19px' }}>
+                    style={{ top: '49px', width: '232px', right: '40px' }}>
                     <span>
                         <div className="ContextualPopover" style={{ transformOrigin: '100% 0px 0px' }}>
                             <div className="ContextualPopover-arrowContainer">
@@ -118,14 +119,15 @@ ProfileMenu.displayName = 'ProfileMenu'
 const mapStateToProps = state_Ignored => ({});
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ openModal, closeModal, hideProfileMenu }, dispatch);
+    return bindActionCreators({ openModal, closeModal, hideProfileMenu, logoutUser }, dispatch);
 };
 
 ProfileMenu.propTypes = {
     visible: PropTypes.bool,
     hideProfileMenu: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
-    openModal: PropTypes.func.isRequired
+    openModal: PropTypes.func.isRequired,
+    logoutUser: PropTypes.func.isRequired 
 }
 
 ProfileMenu.contextTypes = {

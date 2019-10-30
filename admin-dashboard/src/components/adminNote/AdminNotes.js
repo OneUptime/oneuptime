@@ -16,7 +16,7 @@ function validate(values) {
     if (values.adminNotes) {
         for (var i = 0; i < values.adminNotes.length; i++) {
             const adminNotesErrors = {}
-            if (values.adminNotes[i].note) {
+            if (values.adminNotes[i] && values.adminNotes[i].note) {
 
                 if (!Validate.text(values.adminNotes[i].note)) {
                     adminNotesErrors.note = 'Note is not in text format.'
@@ -35,8 +35,8 @@ function validate(values) {
 
 export class AdminNotes extends Component {
 
-    submitForm = (values) => {
-        this.props.addNote(this.props.id, values.adminNotes);
+    submitForm = async (values) => {
+        await this.props.addNote(this.props.id, values.adminNotes);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Admin Notes Updated', values);
         }

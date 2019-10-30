@@ -169,6 +169,7 @@ router.post('/signup', async function (req, res) {
                 id: user._id,
                 name: user.name,
                 email: user.email,
+                airtableId: user.airtableId,
                 cardRegistered: user.stripeCustomerId ? true : false,
                 tokens: {
                     jwtAccessToken: `${jwt.sign({
@@ -645,6 +646,18 @@ router.get('/users', getUser, isUserMasterAdmin, async function (req, res) {
         const count = await UserService.countBy({ _id: { $ne: null }, deleted: { $ne: null } });
         return sendListResponse(req, res, users, count);
     } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/users/:userId', getUser, isUserMasterAdmin, async function(req, res) {
+    const userId = req.params.userId;
+
+    try{
+        const user = await UserService.findOneBy({ _id: userId, deleted: { $ne: null } });
+
+        return sendItemResponse(req, res, user);
+    }catch(error){
         return sendErrorResponse(req, res, error);
     }
 });
