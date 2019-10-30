@@ -80,6 +80,39 @@ export class IncidentStatus extends Component {
                                                 </div>
                                             </div>
 
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Incident Status:</label>
+                                                <div className="bs-Fieldset-fields" style={{ marginTop: '6px' }}>
+                                                    <span className="value">
+                                                        {this.props.incident && this.props.incident.incidentType && this.props.incident.incidentType === 'offline' ?
+                                                            (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span>offline</span>
+                                                                </span>
+                                                            </div>)
+                                                            : this.props.incident && this.props.incident.incidentType && this.props.incident.incidentType === 'online' ?
+                                                                (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                        <span>online</span>
+                                                                    </span>
+                                                                </div>)
+                                                                : this.props.incident && this.props.incident.incidentType && this.props.incident.incidentType === 'degraded' ?
+                                                                    (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                        <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                            <span>degraded</span>
+                                                                        </span>
+                                                                    </div>)
+                                                                    :
+                                                                    (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                            <span>Unknown Status</span>
+                                                                        </span>
+                                                                    </div>)
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+
                                             {this.props.incident.acknowledged ? (<div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Acknowledge</label>
                                                 <div className="bs-Fieldset-fields" style={{ marginTop: '5px' }}>
@@ -160,7 +193,7 @@ export class IncidentStatus extends Component {
                             </div>
                         </div>
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                            <span className="db-SettingsForm-footerMessage"></span>
+                        
                             <ShouldRender if={this.props.multiple && this.props.incident && this.props.incident.resolved}>
                                 <div>
                                     <button
