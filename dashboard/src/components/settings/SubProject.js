@@ -28,40 +28,36 @@ const SubProject = ({ fields, meta: { error, submitFailed }, ...props }) => {
                                         placeholder="Home"
                                     />
                                 </div>
-                            </div>
-                                <div className="bs-Fieldset-row">
-                                    <label className="bs-Fieldset-label"></label>
-                                    <div className="bs-Fieldset-fields">
-                                        <div className="Box-root Flex-flex Flex-alignItems--center">
-                                            <button
-                                                id={`btnRemoveSubproject${i}`}
-                                                className="bs-Button bs-DeprecatedButton"
-                                                type="button"
-                                                onClick={() => {
-                                                    if(fields.get(i)._id){
-                                                        props.openModal({
-                                                            id: removeModalId,
-                                                            onClose: () => '',
-                                                            onConfirm: () => {
-                                                                return new Promise((resolve)=>{
-                                                                    fields.remove(i)
-                                                                    resolve(true)
-                                                                })
-                                                            },
-                                                            content: RemoveSubProject
-                                                        })      
-                                                    }else{
-                                                        fields.remove(i)
-                                                    }
+                                <div className="bs-Fieldset-fields" style={{ marginLeft: '-80px' }}>
+                                    <div className="Box-root Flex-flex Flex-alignItems--start">
+                                        <button
+                                            id={`btnRemoveSubproject${i}`}
+                                            className="bs-Button bs-DeprecatedButton"
+                                            type="button"
+                                            onClick={() => {
+                                                if(fields.get(i)._id){
+                                                    props.openModal({
+                                                        id: removeModalId,
+                                                        onClose: () => '',
+                                                        onConfirm: () => {
+                                                            return new Promise((resolve)=>{
+                                                                fields.remove(i)
+                                                                resolve(true)
+                                                            })
+                                                        },
+                                                        content: RemoveSubProject
+                                                    })      
+                                                }else{
+                                                    fields.remove(i)
                                                 }
-                                                }
-                                            >
-                                                Remove
-                                            </button>
-                                        
-                                        </div>
+                                            }
+                                            }
+                                        >
+                                            Remove
+                                        </button>
                                     </div>
                                 </div>
+                            </div>
                         </li>
                     )
                 })
@@ -73,19 +69,17 @@ const SubProject = ({ fields, meta: { error, submitFailed }, ...props }) => {
                     <div className="bs-Fieldset-fields">
                         <div className="Box-root Flex-flex Flex-alignItems--center">
                             <div>
-
-                                    <button
-                                        id="btnAddSubProjects"
-                                        type="button"
-                                        className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                        onClick={() => fields.push({name: ''})}
-                                    >
-                                        Add Subproject
-                                    </button>
-                                    <ShouldRender if={submitFailed && error}>
-                                        <span>{error}</span>
-                                    </ShouldRender>
-
+                                <button
+                                    id="btnAddSubProjects"
+                                    type="button"
+                                    className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
+                                    onClick={() => fields.push({name: ''})}
+                                >
+                                    Add Subproject
+                                </button>
+                                <ShouldRender if={submitFailed && error}>
+                                    <span>{error}</span>
+                                </ShouldRender>
                             </div>
                         </div>
                         <p className="bs-Fieldset-explanation">
