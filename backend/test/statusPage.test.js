@@ -10,17 +10,19 @@ var UserService = require('../backend/services/userService');
 var StatusService = require('../backend/services/statusPageService');
 var MonitorService = require('../backend/services/monitorService');
 var ProjectService = require('../backend/services/projectService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
 // eslint-disable-next-line
-var token, projectId, monitorId, monitorCategoryId, statusPageId, userId, monitor = {
+var token, projectId, monitorId, monitorCategoryId, statusPageId, userId, airtableId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
 };
 
 var monitorCategory = {
-    monitorCategoryName:'New Monitor Category'
+    monitorCategoryName: 'New Monitor Category'
 };
 
 describe('Status API', function () {
@@ -31,6 +33,8 @@ describe('Status API', function () {
         request.post('/user/signup').send(userData.user).end(function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -56,7 +60,8 @@ describe('Status API', function () {
 
     after(async function () {
         await MonitorService.hardDeleteBy({ _id: monitorId });
-        await StatusService.hardDeleteBy({projectId: projectId});
+        await StatusService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should not add status if monitor ids is missing', function (done) {
@@ -84,7 +89,7 @@ describe('Status API', function () {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitorsId: {_id: '2121'}
+                monitorsId: { _id: '2121' }
             }).end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
@@ -119,7 +124,7 @@ describe('Status API', function () {
                 copyright: 'status copyright',
                 projectId,
                 domain: 5,
-                monitorIds: [ monitorId ]
+                monitorIds: [monitorId]
             }).end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
@@ -136,7 +141,7 @@ describe('Status API', function () {
                 copyright: 'status copyright',
                 projectId,
                 domain: 'wwwtest',
-                monitorIds: [ monitorId ]
+                monitorIds: [monitorId]
             }).end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
@@ -154,14 +159,14 @@ describe('Status API', function () {
                 copyright: 'status copyright',
                 projectId,
                 domain: 'http://www.test.com',
-                monitorIds: [ monitorId ]
+                monitorIds: [monitorId]
             }).end(function (err, res) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should return monitor category with monitors in status page data', function(done){
+    it('should return monitor category with monitors in status page data', function (done) {
         var authorization = `Basic ${token}`;
         request.get(`/statusPage/${statusPageId}`).set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -178,13 +183,13 @@ describe('Status API', function () {
 // eslint-disable-next-line no-unused-vars
 var subProjectId, newUserToken, anotherUserToken, subProjectStatusPageId, subProjectUserId;
 
-describe('StatusPage API with Sub-Projects', function(){
+describe('StatusPage API with Sub-Projects', function () {
     this.timeout(30000);
-    before(function(done){
+    before(function (done) {
         this.timeout(30000);
         var authorization = `Basic ${token}`;
         // create a subproject for parent project
-        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]).end(function(err, res){
+        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]).end(function (err, res) {
             subProjectId = res.body[0]._id;
             // sign up second user (subproject user)
             request.post('/user/signup').send(userData.newUser).end(function (err, res) {
@@ -276,7 +281,7 @@ describe('StatusPage API with Sub-Projects', function(){
             done();
         });
     });
-    
+
     it('should create a statusPage in sub-project by valid admin.', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/statusPage/${subProjectId}`).set('Authorization', authorization).send({
@@ -326,7 +331,7 @@ describe('StatusPage API with Sub-Projects', function(){
             emails: userData.anotherUser.email,
             role: 'Viewer'
         }).end(function () {
-            request.get(`/statusPage/${subProjectStatusPageId}`).set('Authorization', authorization).end(function (err, res){
+            request.get(`/statusPage/${subProjectStatusPageId}`).set('Authorization', authorization).end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('monitorIds');

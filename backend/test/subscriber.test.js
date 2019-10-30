@@ -13,9 +13,11 @@ let ProjectService = require('../backend/services/projectService');
 let NotificationService = require('../backend/services/notificationService');
 let SubscriberService = require('../backend/services/subscriberService');
 let MonitorService = require('../backend/services/monitorService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-let projectId, userId, monitorId, token, subscriberId, statusPageId, monitor = {
+let projectId, userId, airtableId, monitorId, token, subscriberId, statusPageId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -29,6 +31,8 @@ describe('Subscriber API', function () {
         request.post('/user/signup').send(userData.user).end(function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -67,6 +71,7 @@ describe('Subscriber API', function () {
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SubscriberService.hardDeleteBy({ projectId: projectId });
         await MonitorService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should register subscriber with valid monitorIds and contact email or phone number', (done) => {

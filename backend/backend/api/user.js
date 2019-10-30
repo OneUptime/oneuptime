@@ -169,6 +169,7 @@ router.post('/signup', async function (req, res) {
                 id: user._id,
                 name: user.name,
                 email: user.email,
+                airtableId: user.airtableId,
                 cardRegistered: user.stripeCustomerId ? true : false,
                 tokens: {
                     jwtAccessToken: `${jwt.sign({

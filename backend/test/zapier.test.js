@@ -9,11 +9,13 @@ var request = chai.request.agent(app);
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var ZapierService = require('../backend/services/zapierService');
+var AirtableService = require('../backend/services/airtableService');
+
 var VerificationTokenModel = require('../backend/models/verificationToken');
 var incidentData = require('./data/incident');
 
 // eslint-disable-next-line
-var token, projectId, apiKey, project, userId, zapierId, monitorId, incidentId, monitor = {
+var token, projectId, apiKey, userId, airtableId, zapierId, monitorId, incidentId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -29,6 +31,8 @@ describe('Zapier API', function () {
             projectId = project._id;
             userId = res.body.id;
             apiKey = project.apiKey;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -56,6 +60,7 @@ describe('Zapier API', function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await ZapierService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
         request.get('/').end(function () {
             request.close();
         });
@@ -283,10 +288,10 @@ describe('Zapier API', function () {
                 done();
             });
     });
-    it('should acknowledge an incident', function (done){
+    it('should acknowledge an incident', function (done) {
         request.post(`/zapier/incident/acknowledgeIncident?apiKey=${apiKey}&projectId=${projectId}`).send({
             incidents: [incidentId]
-        }).end(function (err, res){
+        }).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.be.an('object');
             expect(res.body).to.have.property('incidents');
@@ -310,10 +315,10 @@ describe('Zapier API', function () {
                 done();
             });
     });
-    it('should resolve an incident', function (done){
+    it('should resolve an incident', function (done) {
         request.post(`/zapier/incident/resolveIncident?apiKey=${apiKey}&projectId=${projectId}`).send({
             incidents: [incidentId]
-        }).end(function (err, res){
+        }).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.be.an('object');
             expect(res.body).to.have.property('incidents');
@@ -403,7 +408,7 @@ describe('Zapier API', function () {
     });
     it('should acknowledge all incident', function (done) {
         request.post(`/zapier/incident/acknowledgeAllIncidents?apiKey=${apiKey}&projectId=${projectId}`).send({
-            monitors: [ monitorId ]
+            monitors: [monitorId]
         }).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
