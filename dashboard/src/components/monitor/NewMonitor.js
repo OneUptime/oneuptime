@@ -225,13 +225,7 @@ class NewMonitor extends Component {
 
         const { handleSubmit, subProjects, schedules } = this.props;
         const { monitorCategoryList } = this.props;
-        let type = '';
-        if (this.props.edit) {
-            type = this.props.editMonitorProp.type;
-        }   
-        else {
-            type = this.props.type;
-        }
+        const type = this.state.type;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -371,7 +365,7 @@ class NewMonitor extends Component {
                                                                 </Field>
                                                             </div>
                                                         </div>
-                                                    </ShouldRender> 
+                                                    </ShouldRender>
                                                     <ShouldRender if={type === 'api'}>
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">HTTP Method</label>
