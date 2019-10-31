@@ -368,7 +368,7 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: SERVER_URL
-          value: "https://staging-api.fyipe.com"
+          value: "http://backend.app.local:3002"
         - name: PORT
           value: "3008"
         - name: PROBE_NAME
