@@ -96,6 +96,10 @@ app.get('/legal/iso-27001', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'iso-27001',requestDemoCta:false});
 });
 
+app.get('/legal/iso-27018', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'iso-27018',requestDemoCta:false});
+});
+
 app.get('/legal/iso-27017', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'iso-27017',requestDemoCta:false});
 });
