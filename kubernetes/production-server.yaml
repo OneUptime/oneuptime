@@ -284,7 +284,7 @@ spec:
           value: "3008"
         - name: PROBE_NAME
           value: "EU"
-        - name: ACCESS_KEY
+        - name: PROBE_KEY
           value: "asjldjsa-30as-nm32-q2as-lkj09asdjn0a"
         ports:
         - containerPort: 3008

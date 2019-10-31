@@ -325,7 +325,7 @@ spec:
           value: "3008"
         - name: PROBE_NAME
           value: "EU"
-        - name: ACCESS_KEY
+        - name: PROBE_KEY
           value: "lkjdfsas-89ul-et5r-jmkf-u98pura8r89e"
         ports:
         - containerPort: 3008

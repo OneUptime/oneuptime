@@ -373,7 +373,7 @@ spec:
           value: "3008"
         - name: PROBE_NAME
           value: "EU"
-        - name: ACCESS_KEY
+        - name: PROBE_KEY
           value: "1e9fbee1-00b6-6040-6990-0fef8c37b14c"
         ports:
         - containerPort: 3008
