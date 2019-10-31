@@ -17,6 +17,7 @@ import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
 import { history } from '../../store';
 import MonitorBarChart from './MonitorBarChart';
+import { Link } from 'react-router-dom';
 
 const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
@@ -141,6 +142,8 @@ export class MonitorDetail extends Component {
                 break;
         }
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
+        let probeUrl = `/project/${this.props.monitor.projectId._id}/settings/probe`;
+
         return (
             <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
                 <div className="db-Trends-header">
@@ -153,6 +156,15 @@ export class MonitorDetail extends Component {
                                             {this.props.monitor.name}
                                         </span>
                                     </span>
+                                    <ShouldRender if={this.props.monitor && this.props.monitor.type}>
+                                        {
+                                            this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ?
+                                                <ShouldRender if={this.props.monitor.probes && !this.props.monitor.probes.length > 0}>
+                                                    <span className="Text-fontSize--14">This monitor cannot be monitored because there are are 0 probes. You can view probes <Link to={probeUrl}>here</Link></span>
+                                                </ShouldRender>
+                                                : ''
+                                        }
+                                    </ShouldRender>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                         {url && <span>
                                             Monitor for &nbsp;
@@ -226,28 +238,58 @@ export class MonitorDetail extends Component {
                     </div>
                     <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
                 </ShouldRender>
-                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
-
-                <div className="db-RadarRulesLists-page">
-                    <div className="Box-root Margin-bottom--12">
-                        <div className="">
-                            <div className="Box-root">
-                                <div>
-                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center"><span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span><span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"><span>Heres a list of recent incidents which belong to this monitor.</span></span></div>
-                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                <div>
+                
+                {this.props.monitor && this.props.monitor.type ? 
+                 this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ? 
+                        <ShouldRender if={this.props.monitor.probes && this.props.monitor.probes.length > 0}>
+                            {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                            <div className="db-RadarRulesLists-page">
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="">
+                                        <div className="Box-root">
+                                            <div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center"><span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span><span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"><span>Heres a list of recent incidents which belong to this monitor.</span></span></div>
+                                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                            <div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
+                                                <IncidentList incidents={monitor} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
                                             </div>
                                         </div>
                                     </div>
-                                    <IncidentList incidents={monitor} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                        </ShouldRender> :
+                        <div>
+                        {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                            <div className="db-RadarRulesLists-page">
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="">
+                                        <div className="Box-root">
+                                            <div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center"><span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span><span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"><span>Heres a list of recent incidents which belong to this monitor.</span></span></div>
+                                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                            <div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <IncidentList incidents={monitor} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                            : ''
+                 }
+                
             </div>
         )
     }
