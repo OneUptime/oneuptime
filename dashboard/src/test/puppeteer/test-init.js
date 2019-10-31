@@ -72,7 +72,7 @@ module.exports = {
         });
         page.waitForSelector('#name', { timeout: 2000 });
         await page.type('#name', callSchedule);
-        await page.click('button.bs-Button:nth-child(2)');
+        await page.click('#btnCreateSchedule');
         await page.waitFor(2000);
         // await page.screenshot({path: 'screenshot-addSchedule.png'});
     },

@@ -39,7 +39,7 @@ class Probe extends React.Component {
     return (
 
       <Dashboard ready={this.ready}>
-        <div className="db-World-contentPane Box-root Padding-bottom--48">
+        <div className="Box-root Margin-vertical--12">
           <div>
             <div>
               <div className="db-RadarRulesLists-page">

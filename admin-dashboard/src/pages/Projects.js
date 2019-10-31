@@ -53,7 +53,7 @@ class Projects extends React.Component {
     render(){
         return (
             <Dashboard ready={this.ready}>
-                <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
+                <div onKeyDown={this.handleKeyBoard} >
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">
