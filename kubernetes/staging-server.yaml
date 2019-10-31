@@ -175,6 +175,8 @@ spec:
           value: "https://staging-api.fyipe.com"
         - name: ACCOUNTS_HOST
           value: "https://staging-accounts.fyipe.com"
+        - name: CLUSTER_KEY
+          value: "lkjdfsas-89ul-et5r-jmkf-u98pura8r89e"
         ports:
         - containerPort: 3002
           hostPort: 3002
@@ -292,6 +294,62 @@ spec:
     app: status-page
   type: LoadBalancer
 ---
+
+# Probe service and deployement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe
+  labels:
+    app: probe
+spec:
+  selector:
+    matchLabels:
+      app: probe
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: probe
+    spec:
+      containers:
+      - image: registry.gitlab.com/fyipe-project/probe:master
+        name: probe
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: FYIPE_HOSTED
+          value: "true"
+        - name: SERVER_URL
+          value: "https://staging-api.fyipe.com"
+        - name: PORT
+          value: "3008"
+        - name: PROBE_NAME
+          value: "EU"
+        - name: ACCESS_KEY
+          value: "lkjdfsas-89ul-et5r-jmkf-u98pura8r89e"
+        ports:
+        - containerPort: 3008
+          hostPort: 3008
+          name: probe
+      restartPolicy: Always
+      imagePullSecrets:
+      - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: probe
+  name: probe
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 3008
+  selector:
+    app: probe
+  type: LoadBalancer
+--- 
 apiVersion: v1
 kind: Service
 metadata:

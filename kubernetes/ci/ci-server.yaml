@@ -223,6 +223,8 @@ spec:
           value: "3600"
         - name: MAIL_SECURE
           value: "false"
+        - name: CLUSTER_KEY
+          value: "1e9fbee1-00b6-6040-6990-0fef8c37b14c"
         ports:
         - containerPort: 3002
           hostPort: 3002
@@ -341,6 +343,61 @@ spec:
       imagePullSecrets:
       - name: gitlabcredv2
 ---
+# Probe service and deployement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe
+  labels:
+    app: probe
+spec:
+  selector:
+    matchLabels:
+      app: probe
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: probe
+    spec:
+      containers:
+      - image: localhost:32000/probe:master
+        name: probe
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: FYIPE_HOSTED
+          value: "true"
+        - name: SERVER_URL
+          value: "https://staging-api.fyipe.com"
+        - name: PORT
+          value: "3008"
+        - name: PROBE_NAME
+          value: "EU"
+        - name: ACCESS_KEY
+          value: "1e9fbee1-00b6-6040-6990-0fef8c37b14c"
+        ports:
+        - containerPort: 3008
+          hostPort: 3008
+          name: probe
+      restartPolicy: Always
+      imagePullSecrets:
+      - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: probe
+  name: probe
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 3008
+  selector:
+    app: probe
+  type: LoadBalancer
+--- 
 apiVersion: v1
 kind: Service
 metadata:
