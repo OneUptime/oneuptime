@@ -9,6 +9,7 @@ var MonitorService = require('../services/monitorService');
 var NotificationService = require('../services/notificationService');
 var RealTimeService = require('../services/realTimeService');
 var ScheduleService = require('../services/scheduleService');
+var ProbeService = require('../services/probeService');
 
 var router = express.Router();
 var isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -240,13 +241,35 @@ router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, asyn
 // Param 1: req.params-> {projectId, monitorId}; req.body -> {[_id], data} <- Check MonitorLogModel for description.
 // Returns: response status, error message
 router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    var data = req.body.data;
-    // var projectId = req.params.projectId;
     var monitorId = req.params.monitorId || req.body._id;
+    var data = {
+        monitorId,
+        data: req.body.data
+    };
 
     try {
-        var monitorData = await MonitorService.addMonitorLog(monitorId, data);
-        return sendItemResponse(req, res, monitorData);
+        var monitor = await MonitorService.findOneBy({ _id: monitorId });
+
+        let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(data.data, null, monitor.criteria.up) : false);
+        let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(data.data, null, monitor.criteria.degraded) : false);
+        let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(data.data, null, monitor.criteria.down) : false);
+
+        if (validDown) {
+            data.status = 'offline';
+        } else if (validDegraded) {
+            data.status = 'degraded';
+        } else if (validUp) {
+            data.status = 'online';
+        } else {
+            data.status = 'unknown';
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+
+    try {
+        let log = await ProbeService.setTime(data);
+        return sendItemResponse(req, res, log);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

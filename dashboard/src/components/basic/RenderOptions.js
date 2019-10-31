@@ -138,58 +138,17 @@ export class RenderOption extends Component {
                             validate={ValidateField.select}
                         >
                             <option value="">None</option>
-                            {type !== 'script' ? <option value="responseTime">Response Time</option> : ''}
-                            {type !== 'script' ? <option value="doesRespond">Does Respond</option> : ''}
-                            {type !== 'script' ? <option value="statusCode">Status Code</option> : ''}
-                            {type !== 'script' ? <option value="responseBody">Response Body</option> : ''}
+                            {type !== 'script' && type !== 'server-monitor' ? <option value="responseTime">Response Time</option> : ''}
+                            {type !== 'script' && type !== 'server-monitor' ? <option value="doesRespond">Does Respond</option> : ''}
+                            {type !== 'script' && type !== 'server-monitor' ? <option value="statusCode">Status Code</option> : ''}
+                            {type !== 'script' && type !== 'server-monitor' ? <option value="responseBody">Response Body</option> : ''}
                             {type === 'script' ? <option value="executes">Executes</option> : ''}
                             {type === 'script' ? <option value="error">Error</option> : ''}
                             {type === 'script' ? <option value="javascriptExpression">JavaScript Expression</option> : ''}
-                            {type === 'server-monitor' ?
-                                <React.Fragment>
-                                    <option value="cpuLoad">CPU Load</option>
-                                    <option value="memoryUsage">Memory Usage</option>
-                                    <option value="storageUsage">Storage Usage</option>
-                                    <option value="temperature">Temperature</option>
-                                </React.Fragment>
-                                :
-                                <React.Fragment>
-                                    <option value="responseTime">Response Time</option>
-                                    <option value="doesRespond">Does Respond</option>
-                                    <option value="statusCode">Status Code</option>
-                                    <option value="responseBody">Response Body</option>
-                                </React.Fragment>
-                            }
-                        </Field>
-                    </div>
-                </div>
-                <div className="bs-Fieldset-row" style={bodyfield && bodyfield.responseType && bodyfield.responseType !== '' ? flexStyle : flexStylehidden}>
-                    <label className="bs-Fieldset-label" style={{ padding: '6px' }}>Filter</label>
-                    <div className="bs-Fieldset-fields">
-                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                            component={RenderSelect}
-                            name={`${fieldnameprop}.filter`}
-                            id="filter"
-                            placeholder="Response Method"
-                            disabled={false}
-                            style={{ width: '180px' }}
-                            validate={ValidateField.select}
-                        >
-                            <option value="">None</option>
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="greaterThan">Greater Than</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="lessThan">Less Than</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="inBetween">In Between</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isUp">Is Up</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isDown">Is Down</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="equalTo">Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="notEqualTo">Not Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="gtEqualTo">Greater Than Equal To</option> : ''}
-                            {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="ltEqualTo">Less Than Equal To</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="contains">Contains</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="doesNotContain">Does not Contain</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="jsExpression">Javascript Expression</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="empty">Is empty</option> : ''}
-                            {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="notEmpty">Is not empty</option> : ''}
+                            {type === 'server-monitor' ? <option value="cpuLoad">CPU Load</option> : ''}
+                            {type === 'server-monitor' ? <option value="memoryUsage">Memory Usage</option> : ''}
+                            {type === 'server-monitor' ? <option value="storageUsage">Storage Usage</option> : ''}
+                            {type === 'server-monitor' ? <option value="temperature">Temperature</option> : ''}
                         </Field>
                     </div>
                 </div>
@@ -221,15 +180,15 @@ export class RenderOption extends Component {
                                 validate={ValidateField.select}
                             >
                                 <option value="">None</option>
-                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="greaterThan">Greater Than</option> : ''}
-                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="lessThan">Less Than</option> : ''}
-                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="inBetween">In Between</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="greaterThan">Greater Than</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="lessThan">Less Than</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="inBetween">In Between</option> : ''}
                                 {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isUp">Is Up</option> : ''}
                                 {bodyfield && bodyfield.responseType === 'doesRespond' ? <option value="isDown">Is Down</option> : ''}
-                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="equalTo">Equal To</option> : ''}
-                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="notEqualTo">Not Equal To</option> : ''}
-                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="gtEqualTo">Greater Than Equal To</option> : ''}
-                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode') ? <option value="ltEqualTo">Less Than Equal To</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="equalTo">Equal To</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="notEqualTo">Not Equal To</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="gtEqualTo">Greater Than Equal To</option> : ''}
+                                {bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') ? <option value="ltEqualTo">Less Than Equal To</option> : ''}
                                 {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="contains">Contains</option> : ''}
                                 {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="doesNotContain">Does not Contain</option> : ''}
                                 {bodyfield && bodyfield.responseType === 'responseBody' ? <option value="jsExpression">Javascript Expression</option> : ''}
