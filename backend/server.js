@@ -80,6 +80,7 @@ app.get('/', function (req, res) {
     res.send(JSON.stringify({
         status: 200,
         message: 'Service Status - OK',
+        serviceType: 'fyipe-api'
     }));
 });
 app.use('/*', function (req, res) {
