@@ -57,6 +57,9 @@
             <a href="/legal/pci">PCI</a>
           </li>
           <li>
+            <a href="/legal/dmca">DMCA Policy</a>
+          </li>
+          <li>
             <a href="/legal/contact">Contact</a>
           </li>
 
@@ -133,6 +136,9 @@
         <% if(section.includes("pci")) {%>
           <% include ./pci %>
           <% }%>
+          <% if(section.includes("dmca")) {%>
+            <% include ./dmca %>
+            <% }%>
 
       </article>
     </div>

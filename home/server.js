@@ -84,6 +84,10 @@ app.get('/legal/hipaa', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'hipaa',requestDemoCta:false});
 });
 
+app.get('/legal/dmca', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'dmca',requestDemoCta:false});
+});
+
 app.get('/legal/pci', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'pci',requestDemoCta:false});
 });
