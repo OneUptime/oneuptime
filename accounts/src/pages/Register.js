@@ -2,10 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import RegisterForm from '../components/auth/RegisterForm';
 import queryString from 'query-string';
 import {PricingPlan} from '../config';
 import MessageBox from '../components/MessageBox';
+import { savePlanId } from '../actions/register';
 
 class RegisterPage extends React.Component {
 
@@ -18,14 +20,15 @@ class RegisterPage extends React.Component {
 		document.body.id = 'login';
 		document.body.className = 'register-page';
 		document.body.style.overflow = 'auto';
-	}
-
-	render() {
 		this.planId = queryString.parse(this.props.location.search).planId || null;
 
 		if(!this.planId){
 			this.planId = PricingPlan.getPlans()[0].planId;
 		}
+		this.props.savePlanId(this.planId);
+	}
+
+	render() {
 
 		return (
 
@@ -74,9 +77,12 @@ const mapStateToProps = state => {
 	};
 };
 
-const mapDispatchToProps = dispatch_Ignored =>{
-	return {};
-};
+const mapDispatchToProps = (dispatch) => {
+	return bindActionCreators({
+		savePlanId
+	}, dispatch);
+}
+
 
 RegisterPage.propTypes = {
 	location: PropTypes.object.isRequired,

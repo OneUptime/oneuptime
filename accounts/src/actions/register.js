@@ -21,6 +21,13 @@ export function saveUserState(values) {
 	};
 }
 
+export function savePlanId(planId) {
+	return {
+		type: types.SAVE_PLAN_ID,
+		payload: planId
+	};
+}
+
 export function saveCardState(values) {
 	return {
 		type: types.SAVE_CARD_STATE,

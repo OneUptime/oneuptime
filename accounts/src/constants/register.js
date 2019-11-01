@@ -19,3 +19,5 @@ export const SKIP_CARD_STEP = 'register/SKIP_CARD_STEP';
 export const ADD_CARD_SUCCESS = 'ADD_CARD_SUCCESS';
 export const ADD_CARD_FAILED = 'ADD_CARD_FAILED';
 export const ADD_CARD_REQUEST = 'ADD_CARD_REQUEST';
+
+export const SAVE_PLAN_ID= 'SAVE_PLAN_ID';

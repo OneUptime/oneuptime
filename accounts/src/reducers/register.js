@@ -15,7 +15,8 @@ import {
 	SKIP_CARD_STEP,
 	ADD_CARD_REQUEST,
 	ADD_CARD_SUCCESS,
-	ADD_CARD_FAILED
+	ADD_CARD_FAILED,
+	SAVE_PLAN_ID
 } from '../constants/register.js'
 
 
@@ -34,6 +35,7 @@ const initialState = {
 	company: {},
 	error: null,
 	success: false,
+	planId: null,
 	isUserInvited: {
 		requesting: false,
 		isUserInvited: null,
@@ -178,7 +180,12 @@ export default function register(state = initialState, action) {
                     success: false,
                     error: action.payload
                 }
-            });
+			});
+		case SAVE_PLAN_ID:
+
+			return Object.assign({}, state, {
+				planId: action.payload
+			});
 
 		default:
 			return state;
