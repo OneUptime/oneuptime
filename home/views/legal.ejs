@@ -57,6 +57,9 @@
             <a href="/legal/pci">PCI</a>
           </li>
           <li>
+            <a href="/legal/dmca">DMCA Policy</a>
+          </li>
+          <li>
             <a href="/legal/contact">Contact</a>
           </li>
 
@@ -126,13 +129,21 @@
         <% if(section.includes("soc")) {%>
         <% include ./soc %>
         <% }%>
-        <% if(section.includes("iso")) {%>
-        <% include ./iso %>
+
+
+        <% if(section === "iso-27001") {%>
+        <% include ./iso-27001 %>
         <% }%>
 
-        <% if(section.includes("pci")) {%>
-          <% include ./pci %>
-          <% }%>
+        <% if(section === "iso-27018") {%>
+        <% include ./iso-27018 %>
+        <% }%>
+        <% if(section === "iso-27017") {%>
+        <% include ./iso-27017 %>
+        <% }%>
+        <% if(section.includes("dmca")) {%>
+        <% include ./dmca %>
+        <% }%>
 
       </article>
     </div>
