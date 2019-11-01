@@ -129,18 +129,21 @@
         <% if(section.includes("soc")) {%>
         <% include ./soc %>
         <% }%>
-       
+
 
         <% if(section === "iso-27001") {%>
-          <% include ./iso-27001 %>
-          <% }%>
+        <% include ./iso-27001 %>
+        <% }%>
 
-          <% if(section === "iso-27018") {%>
-            <% include ./iso-27018 %>
-            <% }%>
-          <% if(section.includes("dmca")) {%>
-            <% include ./dmca %>
-            <% }%>
+        <% if(section === "iso-27018") {%>
+        <% include ./iso-27018 %>
+        <% }%>
+        <% if(section === "iso-27017") {%>
+        <% include ./iso-27017 %>
+        <% }%>
+        <% if(section.includes("dmca")) {%>
+        <% include ./dmca %>
+        <% }%>
 
       </article>
     </div>
