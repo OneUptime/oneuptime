@@ -19,7 +19,7 @@ import ApiAdvance from './ApiAdvance';
 import ResponseComponent from './ResponseComponent';
 import { User } from '../../config';
 import { ValidateField } from '../../config';
-import { RenderSelect } from '../basic/RenderSelect';
+import { RenderSelect } from '../basic/RenderSelect2';
 import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
@@ -203,8 +203,8 @@ class NewMonitor extends Component {
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
     }
-    changeBox = (e) => {
-        this.setState({ advance: false, type: e.target.value });
+    changeBox = (e, value) => {
+        this.setState({ advance: false, type: value });
     }
 
     scriptTextChange = (newValue) => {
@@ -310,23 +310,24 @@ class NewMonitor extends Component {
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Monitor Type</label>
                                                         <div className="bs-Fieldset-fields" style={{ maxWidth: 500 }}>
-                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            <Field className="db-select-nw"
                                                                 component={RenderSelect}
                                                                 name={`type_${this.props.index}`}
                                                                 id="type"
                                                                 placeholder="Monitor Type"
                                                                 disabled={requesting}
-                                                                onChange={(e) => this.changeBox(e)}
+                                                                onChange={(e, v) => this.changeBox(e, v)}
                                                                 validate={ValidateField.select}
-                                                            >
-                                                                <option value="">Select monitor type</option>
-                                                                <option value="url">Website</option>
-                                                                <option value="device">IoT Device</option>
-                                                                <option value="manual">Manual</option>
-                                                                <option value="api">API</option>
-                                                                <option value="script">Script</option>
-                                                                <option value="server-monitor">Server</option>
-                                                            </Field>
+                                                                options={[
+                                                                    { value: '', label: 'Select monitor type' },
+                                                                    { value: 'url', label: 'Website' },
+                                                                    { value: 'device', label: 'IoT Device' },
+                                                                    { value: 'manual', label: 'Manual' },
+                                                                    { value: 'api', label: 'API' },
+                                                                    { value: 'script', label: 'Script' },
+                                                                    { value: 'server-monitor', label: 'Server' }
+                                                                ]}
+                                                            />
                                                             <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ marginTop: 10 }}>
                                                                 <span>{this.monitorTypeDescription[[this.state.type]]}</span>
                                                             </span>
@@ -370,20 +371,21 @@ class NewMonitor extends Component {
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">HTTP Method</label>
                                                             <div className="bs-Fieldset-fields">
-                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                <Field className="db-select-nw"
                                                                     component={RenderSelect}
                                                                     name={`method_${this.props.index}`}
                                                                     id="method"
                                                                     placeholder="Http Method"
                                                                     disabled={requesting}
                                                                     validate={ValidateField.select}
-                                                                >
-                                                                    <option value="">Select method</option>
-                                                                    <option value="get">GET</option>
-                                                                    <option value="post">POST</option>
-                                                                    <option value="put">PUT</option>
-                                                                    <option value="delete">DELETE</option>
-                                                                </Field>
+                                                                    options={[
+                                                                        { value: '', label: 'Select method' },
+                                                                        { value: 'get', label: 'GET' },
+                                                                        { value: 'post', label: 'POST' },
+                                                                        { value: 'put', label: 'PUT' },
+                                                                        { value: 'delete', label: 'DELETE' }
+                                                                    ]}
+                                                                />
                                                             </div>
                                                         </div>
                                                     </ShouldRender>

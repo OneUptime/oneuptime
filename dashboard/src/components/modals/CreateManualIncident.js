@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { createNewIncident } from '../../actions/incident';
 import { closeModal } from '../../actions/modal';
 import { ValidateField } from '../../config';
-import { RenderSelect } from '../basic/RenderSelect';
+import { RenderSelect } from '../basic/RenderSelect2';
 
 
 class CreateManualIncident extends Component {
@@ -60,19 +60,20 @@ class CreateManualIncident extends Component {
 										<div className="bs-Fieldset-row">
 											<label className="bs-Fieldset-label">Incident type</label>
 											<div className="bs-Fieldset-fields">
-												<Field className="db-BusinessSettings-input TextInput bs-TextInput"
+												<Field className="db-select-nw"
 													component={RenderSelect}
 													name="incidentType"
 													id="incidentType"
 													placeholder="Incident type"
 													disabled={this.props.newIncident.requesting}
 													validate={ValidateField.select}
-												>
-													<option value="">Select type</option>
-													<option value="online">Online</option>
-													<option value="offline">Offline</option>
-													<option value="degraded">Degraded</option>
-												</Field>
+													options={[
+														{ value: '', label: 'Select type' },
+														{ value: 'online', label: 'Online' },
+														{ value: 'offline', label: 'Offline' },
+														{ value: 'degraded', label: 'Degraded' }
+													]}
+												/>
 											</div>
 										</div>
 									</div>

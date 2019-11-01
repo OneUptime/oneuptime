@@ -169,7 +169,9 @@ module.exports = {
         await page.waitForSelector('#frmNewMonitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await page.select('select[name=type_1000]','url');
+        await page.click('#type');
+        await page.keyboard.type('url');
+        await page.keyboard.type(String.fromCharCode(13));
         await this.selectByText('#subProjectId', projectName, page);
         await page.waitForSelector('#url');
         await page.click('#url');
