@@ -242,7 +242,8 @@ module.exports = {
                 currency: 'usd',
                 payment_method_types: ['card'],
                 payment_method: paymentMethod.id,
-                description: 'Verify if card is billable.'
+                description: 'Verify if card is billable.',
+                setup_future_usage: "off_session"
             });
             return paymentIntent;
         } catch (error) {

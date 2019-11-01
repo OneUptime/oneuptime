@@ -157,9 +157,6 @@ router.post('/signup', async function (req, res) {
                     message: 'Company phone number  is not in string format.'
                 });
             }
-            if (data.cvv && !data.cvc) {
-                data.cvc = data.cvv;
-            }
             // Call the UserService.
             user = await UserService.signup(data);
             // Call the MailService.
