@@ -14923,8 +14923,7 @@ a.button.blue,
 button.button.blue,
 div.button.blue,
 strong.button.blue {
-  background: #015e94;
-  /* background: linear-gradient(#28a0e5, #015e94); */
+  background: #005d93;
 }
 a.button.blue span,
 button.button.blue span,
@@ -14932,7 +14931,7 @@ div.button.blue span,
 strong.button.blue span {
   color: #fff;
   text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
-  background: #1275ff;
+  background: #005d93;
 }
 a.button.blue.active,
 a.button.blue:active,

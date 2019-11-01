@@ -140,6 +140,7 @@ export const Validate = {
     },
 
     isValidNumber(number) {
+        // eslint-disable-next-line
         if(number.match('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$')) {
             return true;
         }

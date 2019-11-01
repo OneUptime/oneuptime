@@ -8,16 +8,24 @@ import { RenderField } from '../basic/RenderField'
 import { PricingPlan } from '../../config';
 import { Validate } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
-import { addCard, addCardSuccess, addCardFailed, addCardRequest } from '../../actions/register';
 import {
 	CardNumberElement,
 	CardExpiryElement,
 	CardCVCElement,
 	injectStripe,
 	StripeProvider,
-	Elements,
+	Elements
 } from 'react-stripe-elements';
-
+import { 
+	addCard, 
+	addCardSuccess,
+	addCardFailed,
+	addCardRequest,
+	signUpRequest,
+	signupError,
+	signupSuccess,
+	signupUser
+} from '../../actions/register';
 
 const createOptions = () => {
 	return {
@@ -39,23 +47,51 @@ const createOptions = () => {
 	};
 };
 
+const errorStyle = {
+	color: '#c23d4b'
+}
 class CardForm extends Component {
-
+	
+	/* This state holds error 
+	messages for cardNumber,
+	cardCVC, cardExpiry */
 	state = {
-		errorMessage: '',
+		cardNumber: '',
+		cardCvc: '',
+		cardExpiry: ''
 	};
 
-	handleChange = ({ error }) => {
+	handleChange = (event) => {
+		const { error, empty } = event;
+		if (empty){
+			this.setState({
+				[event.elementType]: 'Required.'
+			})
+		} 
 		if (error) {
-			this.setState({ errorMessage: error.message });
+			this.setState({
+				[event.elementType]: error.message
+			})
 		}
-	};	
+		if (!error && !empty) {
+			this.setState({
+				[event.elementType]: ''
+			})
+		}
+	};
 
-	handleSubmit = (e) => {
-
-		e.preventDefault();
-		const { stripe, addCard } = this.props;
+	handleSubmit = (values) => {
+		const { 
+			stripe,
+			addCard,
+			signUpRequest,
+			signupUser,
+			signupSuccess,
+			signupError
+		} = this.props;
+		const { user, planId } = this.props.register;
 			if (stripe) {
+				signUpRequest()
 				stripe.createToken()
 					.then(({ token }) => {
 						if (token) {
@@ -66,29 +102,44 @@ class CardForm extends Component {
 						}
 					})
 					.then(({ data }) => stripe.handleCardPayment(data.client_secret))
+					.then((data) => {
+						if (data.paymentIntent )
+							return signupUser({ ...user, ...values, planId, paymentIntent: data.paymentIntent })
+						else
+							throw new Error(data.error.message);
+					})
+					.then((data) => {
+						signupSuccess(data)
+					})
 					.catch((error) => {
-						addCardFailed(error.message)
+						signupError(error.message)
 					});
 			} else {
-				console.log("Stripe.js did not load.")
+				signupError('Problem connnecting to payment gateway, please try again later')
 		}
 	}
 	render() {
 		this.plan = PricingPlan.getPlanById(this.props.planId);
-
+		const { handleSubmit } = this.props;
+		const registerError = this.props.register.error;
+		let header;
+		if (registerError) {
+			header = <span style={errorStyle} >{registerError}</span>
+		} else {
+			header = <span>Enter your card details</span>
+		}
 		return (
 			<div id="main-body" className="box css" style={{ width: 500 }}>
 				<div className="inner">
 					<div className="title extra">
 						<div>
 							<h2>
-								<span> {this.props.register.error ? <span className="error" >{this.props.register.error}</span> : 'Enter your card details'}
-								</span>
+								{header}
 							</h2>
 							<p>Your card will be charged $1.00 to check its billability. You will be charged ${this.plan.amount}/{this.plan.type === 'month' ? 'mo' : 'yr'} after your 14 day free trial.</p>
 						</div>
 					</div>
-					<form id="card-form" onSubmit={this.handleSubmit}>
+					<form id="card-form" onSubmit={handleSubmit(this.handleSubmit)}>
 						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
 							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
 								<span>
@@ -106,24 +157,29 @@ class CardForm extends Component {
 							<p className="text" style={{ display: 'block', marginTop: 0, width: 222 }}>
 								<span>
 									<label htmlFor="cardNumber">Card Number</label>
-										<div style= {{ border: '1px solid #bbb', height: 44, padding: '10px 12px' }}>
-											<CardNumberElement
-												{...createOptions()}
-												onChange={this.handleChange}
-											/>
-										</div>
+									<div style={{ border: '1px solid #bbb', height: 44, padding: '10px 12px' }}>
+										<CardNumberElement
+											{...createOptions()}
+											onChange={this.handleChange}/>
+									</div>
+									<span style={errorStyle}>
+											{this.state.cardNumber}
+									</span>
 								</span>
 							</p>
 						</div>
 						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
 							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0, width: 222 }}>
 								<span>
-									<label htmlFor="cvv">CVV</label>
+									<label htmlFor="cvv">CVC</label>
 									<div style= {{ border: '1px solid #bbb', height: 44, padding: '10px 12px' }}>
 										<CardCVCElement
 											{...createOptions()}
 											onChange={this.handleChange} />
 									</div>
+									<span style={errorStyle}>
+											{this.state.cardCvc}
+									</span>
 								</span>
 							</p>
 							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0, width: 222 }}>
@@ -135,6 +191,9 @@ class CardForm extends Component {
 											onChange={this.handleChange}
 										/>
 									</div>
+									<span style={errorStyle}>
+											{this.state.cardExpiry}
+									</span>
 								</span>
 							</p>
 						</div>
@@ -221,7 +280,7 @@ class CardForm extends Component {
 						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
 							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0, marginBottom: 30 }}>
 								<span>
-									<label htmlFor="promocode">Promo Code(optional)</label>
+									<label htmlFor="promocode">Promo Code</label>
 									<Field
 										type="text"
 										component={RenderField}
@@ -248,22 +307,13 @@ class CardForm extends Component {
 }
 
 
-CardForm.displayName = 'CardForm'
+CardForm.displayName = 'CardForm';
 
 let validate = function (values) {
 	const errors = {};
 
 	if (!Validate.text(values.cardName)) {
 		errors.cardName = 'Name is required.'
-	}
-	if (!Validate.text(values.cardNumber)) {
-		errors.cardNumber = 'Card Number is required'
-	}
-	if (!Validate.text(values.cvc)) {
-		errors.cvc = 'CVV is required.'
-	}
-	if (!Validate.text(values.expiry)) {
-		errors.expiry = 'Expiry date is required.'
 	}
 
 	if (!Validate.text(values.city)) {
@@ -278,18 +328,6 @@ let validate = function (values) {
 		errors.country = 'Country is required.';
 	}
 
-	if (!Validate.card(values.cardNumber)) {
-		errors.cardNumber = 'Incorrect card number.';
-	}
-
-	if (!Validate.cardExpiration(values.expiry)) {
-		errors.expiry = 'Expiration date is invalid.';
-	}
-
-	if (!Validate.cvv(values.cvc)) {
-		errors.cvc = 'CVV is invalid.';
-	}
-
 	if (!Validate.postalCode(values.zipCode)) {
 		errors.zipCode = 'Postal Code or Zip Code is invalid.';
 	}
@@ -299,14 +337,22 @@ let validate = function (values) {
 
 
 let cardForm = reduxForm({
-	form: 'CardForm',              // <------ same form name                     // <----- validate form data
+	form: 'CardForm',              	 // <------ same form name                     // <----- validate form data
 	destroyOnUnmount: false,         // <------ preserve form data
 	forceUnregisterOnUnmount: true,  // <------ unregister fields on unmount
 	validate
 })(CardForm);
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({  addCard, addCardSuccess, addCardFailed, addCardRequest }, dispatch)
+	return bindActionCreators({  
+		addCard, 
+		addCardSuccess, 
+		addCardFailed, 
+		addCardRequest, 
+		signUpRequest,
+		signupUser, 
+		signupError, 
+		signupSuccess }, dispatch)
 }
 
 function mapStateToProps(state) {

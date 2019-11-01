@@ -10,6 +10,9 @@ import PropTypes from 'prop-types';
 import queryString from 'query-string';
 import { removeQuery } from '../../store';
 
+const errorStyle = {
+	color: '#c23d4b'
+}
 export class LoginForm extends Component {
 
 	state = {
@@ -34,6 +37,15 @@ export class LoginForm extends Component {
 		const { handleSubmit } = this.props;
 		const { serverResponse } = this.state;
 		const loginError = this.props.login.error;
+		let header;
+		if (loginError) {
+			header = <span style={errorStyle}>{loginError}</span> 
+		}
+		else if (serverResponse) {
+			header = <span>{serverResponse}</span> 
+		} else {
+			header = <span>Welcome back!</span>
+		}
 
 		return (
 			<div id="main-body" className="box css">
@@ -42,11 +54,8 @@ export class LoginForm extends Component {
 						<form onSubmit={handleSubmit(this.props.onSubmit)}>
 							<div className="step email-password-step">
 								<h2>
-									{loginError ? (<span className="error" >{loginError}</span>) :
-										(<span > {serverResponse ? <span>{serverResponse}</span> : 'Welcome back!'} </span>
-										)}
+									{header}
 								</h2>
-
 								<p className="text">
 									<span>
 										<label htmlFor="email">

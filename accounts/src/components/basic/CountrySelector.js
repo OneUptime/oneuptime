@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { countries } from './CountryList';
 
 let errorStyle = {
-  color:'red',
+  color: '#c23d4b',
   topMargin:'5px'
 }
 
