@@ -212,7 +212,7 @@ export const ValidateField = {
 
     required: value => value && value.length ? undefined : 'This field is required',
 
-    select: value => value && value.length && value.trim() !== '' ? undefined : 'Please select a value',
+    select: value => value ? (value.value ? (value.value.length && value.value.trim() !== '' ? undefined : 'Please select a value') : (value.length && value.trim() !== '' ? undefined : 'Please select a value')) : 'Please select a value',
 
     maxValue10000: value => value && value.length && value < 10000 ? undefined : `input value should be less than ${10000}`,
 
