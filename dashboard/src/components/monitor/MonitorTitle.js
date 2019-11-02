@@ -26,7 +26,7 @@ export class MonitorTitle extends Component {
                 break;
         }
 
-        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'unknown';
+        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'online';
 
         return (
             <div className="db-Trends-title">

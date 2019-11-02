@@ -19,7 +19,7 @@ import ApiAdvance from './ApiAdvance';
 import ResponseComponent from './ResponseComponent';
 import { User } from '../../config';
 import { ValidateField } from '../../config';
-import { RenderSelect } from '../basic/RenderSelect2';
+import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';

@@ -7,7 +7,7 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import PropTypes from 'prop-types';
 import { RenderHeaders } from '../basic/RenderHeaders';
 import ShouldRender from '../basic/ShouldRender';
-import { RenderSelect } from '../basic/RenderSelect2';
+import { RenderSelect } from '../basic/RenderSelect';
 import { ValidateField } from '../../config';
 
 const style = {

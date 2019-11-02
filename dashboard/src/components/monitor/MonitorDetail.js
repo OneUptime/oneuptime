@@ -142,7 +142,7 @@ export class MonitorDetail extends Component {
                 break;
         }
 
-        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'unknown';
+        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'online';
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
 
         return (

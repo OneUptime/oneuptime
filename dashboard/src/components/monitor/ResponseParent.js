@@ -7,7 +7,7 @@ import { FieldArray } from 'redux-form';
 import { Field } from 'redux-form';
 import { ValidateField } from '../../config';
 import RenderOptions from '../basic/RenderOptions';
-import { RenderSelect } from '../basic/RenderSelect2';
+import { RenderSelect } from '../basic/RenderSelect';
 
 export class ResponseParent extends Component {
     // eslint-disable-next-line

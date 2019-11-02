@@ -6,7 +6,7 @@ import { Field, } from 'redux-form';
 import PropTypes from 'prop-types';
 import { addArrayField, removeArrayField } from '../../actions/monitor';
 import { ValidateField } from '../../config';
-import { RenderSelect } from './RenderSelect2';
+import { RenderSelect } from './RenderSelect';
 import { RenderField } from './RenderField';
 
 const flexStyle = {

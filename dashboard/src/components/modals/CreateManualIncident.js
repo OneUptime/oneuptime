@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { createNewIncident } from '../../actions/incident';
 import { closeModal } from '../../actions/modal';
 import { ValidateField } from '../../config';
-import { RenderSelect } from '../basic/RenderSelect2';
+import { RenderSelect } from '../basic/RenderSelect';
 
 
 class CreateManualIncident extends Component {

@@ -7,7 +7,7 @@ import { ValidateField } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import { alertOptionsUpdate } from '../../actions/project';
 import PropTypes from 'prop-types';
-import { RenderSelect } from '../basic/RenderSelect2';
+import { RenderSelect } from '../basic/RenderSelect';
 import {
     StripeProvider,
     injectStripe,
