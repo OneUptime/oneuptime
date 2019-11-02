@@ -1,13 +1,15 @@
-process.env.LOG_LEVEL = 'debug';
+process.env.LOG_LEVEL = 'error';
 
 const expect = require('chai').expect;
 const serverMonitor = require('../lib/api');
 
 let projectId, apiKey, monitorId;
 let badProjectId, badApiKey;
-// let timeout = 5000;
+let timeout = 5000;
 
-describe('Server Monitor', () => {
+describe('Server Monitor', function () {
+  this.timeout(timeout + 1000);
+
   before(() => {
     projectId = '5d64d59cae46131619708309';
     apiKey = 'b02798c0-c898-11e9-9f14-4963dc67e2ab';
@@ -44,7 +46,7 @@ describe('Server Monitor', () => {
       apiKey,
       monitorId: (data) => {
         let filteredMonitor = data.filter(monitor => monitor._id === monitorId);
-        
+
         if (filteredMonitor.length > 0) {
           return monitorId;
         }
@@ -77,7 +79,24 @@ describe('Server Monitor', () => {
     });
   });
 
-  it('Should disconnect when timeout provided is exceeded', () => {
+  it('Should disconnect when timeout provided is exceeded', (done) => {
+    const monitor = serverMonitor({
+      projectId,
+      apiKey,
+      monitorId,
+      timeout
+    });
 
+    monitor.start().then((job) => {
+      expect(job).to.be.an('object');
+      expect(job).to.have.property('running');
+      expect(job.running).to.equal(true);
+
+      setTimeout(() => {
+        expect(job.running).to.equal(false);
+
+        done();
+      }, timeout);
+    });
   });
 });
