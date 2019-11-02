@@ -11,7 +11,7 @@
     "dev": "NODE_ENV=development nodemon ./bin/server-monitor.js | ./node_modules/.bin/pino-pretty",
     "lint": "eslint .",
     "audit": "npm-audit-ci-wrapper --threshold=high",
-    "pretest": "eslint --fix --ignore-path .gitignore .",
+    "pretest": "eslint --fix .",
     "test": "NODE_ENV=development mocha --exit | ./node_modules/.bin/pino-pretty",
     "doc": "jsdoc -r ./bin ./lib --readme README.md"
   },
