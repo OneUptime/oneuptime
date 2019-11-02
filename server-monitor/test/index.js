@@ -1,27 +1,52 @@
+process.env.NODE_ENV = 'development';
 process.env.LOG_LEVEL = 'error';
+process.env.API_URL = 'http://localhost:3002';
 
+const chai = require('chai');
+chai.use(require('chai-http'));
+
+const request = chai.request.agent(process.env.API_URL);
+
+const utils = require('./test-utils');
 const expect = require('chai').expect;
 const serverMonitor = require('../lib/api');
 
-let projectId, apiKey, monitorId;
+const user = require('./test-utils').user;
+user.email = utils.generateRandomBusinessEmail();
+
+let token, projectId, apiKey, monitorId;
 let badProjectId, badApiKey;
-let timeout = 5000;
+let timeout = 5000, monitor = {
+  name: 'New Monitor',
+  type: 'server-monitor',
+  data: {}
+};
 
 describe('Server Monitor', function () {
   this.timeout(timeout + 1000);
 
-  before(() => {
-    projectId = '5d64d59cae46131619708309';
-    apiKey = 'b02798c0-c898-11e9-9f14-4963dc67e2ab';
-    monitorId = '5d99debd2931c15988746c05';
+  before(function (done) {
+    this.timeout(30000);
 
-    badProjectId = '5d64d59cae46131619708301';
-    badApiKey = 'b02798c0-c898-11e9-9f14-4963dc67e2ad';
+    request.post('/user/signup').send(user).end(function (err, res) {
+      let project = res.body.project;
+
+      projectId = project._id;
+      apiKey = project.apiKey;
+
+      token = res.body.tokens.jwtAccessToken;
+
+      request.post(`/monitor/${projectId}`).set('Authorization', `Basic ${token}`).send(monitor).end(function (err, res) {
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+        expect(res.body[0]).to.have.property('_id');
+
+        monitorId = res.body[0]._id;
+
+        done();
+      });
+    });
   });
-
-  // after(() => {
-
-  // });
 
   it('Should connect when project id, api key and monitor id are provided', (done) => {
     const monitor = serverMonitor({

@@ -35,6 +35,7 @@
   ],
   "devDependencies": {
     "chai": "^4.2.0",
+    "chai-http": "^4.3.0",
     "eslint": "^5.16.0",
     "mocha": "^6.2.0",
     "npm-audit-ci-wrapper": "^2.3.0",
