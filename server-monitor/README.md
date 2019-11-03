@@ -64,8 +64,8 @@ Main API to authenticate user, start and stop server monitoring.
 - [api](#module_api)
   - [module.exports(config, apiKey, monitorId)](#exp_module_api--module.exports) ⇒ <code>Object</code> ⏏
     - [~ping(projectId, monitorId, apiKey, interval)](#module_api--module.exports..ping) ⇒ <code>Object</code>
-    - [~start(id)](#module_api--module.exports..start)
-    - [~stop()](#module_api--module.exports..stop)
+    - [~start(id)](#module_api--module.exports..start) ⇒ <code>Object</code> \| <code>number</code>
+    - [~stop()](#module_api--module.exports..stop) ⇒ <code>Object</code>
 
 <a name="exp_module_api--module.exports"></a>
 
@@ -100,11 +100,12 @@ Get system information at interval and upload to server.
 
 <a name="module_api--module.exports..start"></a>
 
-#### module.exports~start(id)
+#### module.exports~start(id) ⇒ <code>Object</code> \| <code>number</code>
 
 Start server monitor.
 
 **Kind**: inner method of [<code>module.exports</code>](#exp_module_api--module.exports)
+**Returns**: <code>Object</code> \| <code>number</code> - The ping server cron job or the error code.
 
 | Param | Type                | Description                           |
 | ----- | ------------------- | ------------------------------------- |
@@ -112,11 +113,12 @@ Start server monitor.
 
 <a name="module_api--module.exports..stop"></a>
 
-#### module.exports~stop()
+#### module.exports~stop() ⇒ <code>Object</code>
 
 Stop server monitor.
 
 **Kind**: inner method of [<code>module.exports</code>](#exp_module_api--module.exports)
+**Returns**: <code>Object</code> - The ping server cron job.
 
 ```
 
