@@ -12,8 +12,9 @@ var ProjectService = require('../backend/services/projectService');
 var EmailTemplateService = require('../backend/services/emailTemplateService');
 var NotificationService = require('../backend/services/notificationService');
 var VerificationTokenModel = require('../backend/models/verificationToken');
+var AirtableService = require('../backend/services/airtableService');
 
-var token, projectId, emailTemplateId, userId;
+var token, projectId, emailTemplateId, userId, airtableId;
 
 describe('Email Template API', function () {
     this.timeout(20000);
@@ -24,6 +25,8 @@ describe('Email Template API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -40,9 +43,10 @@ describe('Email Template API', function () {
 
     after(async function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
-        await ProjectService.hardDeleteBy({_id: projectId});
-        await NotificationService.hardDeleteBy({projectId: projectId});
-        await EmailTemplateService.hardDeleteBy({projectId: projectId});
+        await ProjectService.hardDeleteBy({ _id: projectId });
+        await NotificationService.hardDeleteBy({ projectId: projectId });
+        await EmailTemplateService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     // 'post /:projectId'
@@ -104,7 +108,7 @@ describe('Email Template API', function () {
         });
     });
 
-    it('should deleted an email template', function(done){
+    it('should deleted an email template', function (done) {
         var authorization = `Basic ${token}`;
         request.delete(`/emailTemplate/${projectId}/emailTemplate/${emailTemplateId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);

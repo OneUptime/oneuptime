@@ -195,7 +195,6 @@ module.exports = {
         return monitor;
     },
 
-
     async countBy(query) {
         if (!query) {
             query = {};
@@ -410,23 +409,6 @@ module.exports = {
             }
             return monitor;
         }
-    },
-
-    // Description: Add Server Monitor Log Data
-    async addMonitorLog(monitorId, data) {
-        // var _this = this;
-        var monitorLogData = new MonitorLogModel();
-        monitorLogData.monitorId = monitorId;
-        monitorLogData.status = 'online';
-        monitorLogData.data = data;
-        try {
-            var monitorData = await monitorLogData.save();
-        } catch (error) {
-            ErrorService.log('monitorLogData.save', error);
-            throw error;
-        }
-
-        return monitorData;
     },
 
     async getMonitorLogs(monitorId) {

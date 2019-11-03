@@ -18,9 +18,13 @@ function filterKeys (field){
         if(isObjectID(field[key])){
             resultField[key] = field[key].toString();
         }else if(Array.isArray(field[key])){
-            resultField[key] = field[key].map(value => typeof value === 'object' && value !== null && value.__v !== null ? filterKeys(value) : value);
+            resultField[key] = field[key].map(value => 
+                typeof value === 'object' && value !== null && value.__v !== null ? 
+                    isDate(field[key]) ? field[key] : filterKeys(value) 
+                    : value
+            );
         }else if(typeof field[key] === 'object' && field[key] !== null && field[key].__v !== null){
-            resultField[key] = filterKeys(field[key]);
+            resultField[key] = isDate(field[key]) ? field[key] : filterKeys(field[key]);
         }else{
             resultField[key] = field[key];
         }
@@ -40,6 +44,15 @@ function isObjectID(id){
     } else { 
         return false; 
     } 
+}
+
+function isDate(date){
+    try{
+        typeof date === 'object' && date !== null && new Date(date).toISOString();
+        return true;
+    }catch(error){
+        return false;
+    }
 }
 
 module.exports = {

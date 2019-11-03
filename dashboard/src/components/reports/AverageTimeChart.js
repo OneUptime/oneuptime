@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux'
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, AreaChart as Chart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import {
   getMonthlyResolveTime,
   getMonthlyResolveTimeError,
@@ -10,33 +10,33 @@ import {
   getMonthlyResolveTimeSuccess
 } from '../../actions/reports';
 
-class CustomTooltip extends Component {
+const noDataStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '150px'
+};
 
-
-  render() {
-    const { active } = this.props;
-
-    if (active) {
-      const { payload, label } = this.props;
-      return (
-        <div style={{ width: '100%', height: '100%', }} className="custom-tooltip">
-          <p className="intro">{label}</p>
-          <p className="label" style={{ color: '#8884d8' }}>{`average-resolve-time : ${payload && payload[0] ? payload[0].value : 0} secs`}</p>
-        </div>
-      );
-    }
-
-    return null;
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active) {
+    return (
+      <div className="custom-tooltip">
+        <h3>{label}</h3>
+        <p className="label">{`${payload[0].name} : ${payload && payload[0] ? payload[0].value : 0} secs`}</p>
+      </div>
+    );
   }
-}
+
+  return null;
+};
+
+CustomTooltip.displayName = 'CustomTooltip';
 
 CustomTooltip.propTypes = {
   active: PropTypes.bool,
   payload: PropTypes.array,
   label: PropTypes.string
-}
-
-CustomTooltip.displayName = 'CustomTooltip'
+};
 
 class AverageTimeChart extends Component {
   constructor(props) {
@@ -60,19 +60,30 @@ class AverageTimeChart extends Component {
   }
 
   render() {
-    return (
-      <div>
-        <LineChart width={1000} height={300} data={this.state.months}
-          margin={{ top: 15, right: 10, left: 20, bottom: 15 }}>
-          <XAxis dataKey="month" padding={{ left: 30, right: 30 }} />
-          <YAxis />
-          <CartesianGrid strokeDasharray="3 3" />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend verticalAlign="top" height={36} />
-          <Line type="monotone" dataKey="averageResolved" stroke="#8884d8" activeDot={{ r: 8 }} />
-        </LineChart>
-      </div>
-    );
+    const { months } = this.state;
+
+    if (months && months.length > 0) {
+      const data = months.reverse();
+
+      return (
+        <ResponsiveContainer width="100%" height={300}>
+          <Chart data={data}>
+            <Legend verticalAlign="top" height={36} />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip content={<CustomTooltip />} />
+            <CartesianGrid strokeDasharray="3 3" />
+            <Area type="linear" name="Average Resolve Time" dataKey="averageResolved" stroke="#14aad9" strokeWidth={2} fill="#e2e1f2" />
+          </Chart>
+        </ResponsiveContainer>
+      );
+    } else {
+      return (
+        <div style={noDataStyle}>
+          <h3>NO AVG RESOLVE TIME</h3>
+        </div>
+      );
+    }
   }
 }
 

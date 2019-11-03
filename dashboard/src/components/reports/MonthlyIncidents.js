@@ -2,21 +2,41 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux'
-import {
-  Bar,
-  BarChart,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend
-} from 'recharts';
+import { ResponsiveContainer, AreaChart as Chart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import {
   getMonthlyIncidents,
   getMonthlyIncidentsError,
   getMonthlyIncidentsRequest,
   getMonthlyIncidentsSuccess
 } from '../../actions/reports';
+
+const noDataStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '150px'
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active) {
+    return (
+      <div className="custom-tooltip">
+        <h3>{label}</h3>
+        <p className="label">{`${payload[0].name} : ${payload && payload[0] ? payload[0].value : 0}`}</p>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+CustomTooltip.displayName = 'CustomTooltip';
+
+CustomTooltip.propTypes = {
+  active: PropTypes.bool,
+  payload: PropTypes.array,
+  label: PropTypes.string
+};
 
 class MonthlyIncidents extends Component {
   constructor(props) {
@@ -39,25 +59,31 @@ class MonthlyIncidents extends Component {
     }
   }
 
-
   render() {
-    return (
-      <div>
-        <BarChart
-          width={1000}
-          height={300}
-          data={this.state.months}
-          margin={{ top: 15, right: 10, left: 20, bottom: 15 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" />
-          <YAxis />
-          <Tooltip />
-          <Legend verticalAlign="top" height={36} />
-          <Bar dataKey="incidents" fill="#8884d8" />
-        </BarChart>
-      </div>
-    );
+    const { months } = this.state;
+
+    if (months && months.length > 0) {
+      const data = months.reverse();
+
+      return (
+        <ResponsiveContainer width="100%" height={300}>
+          <Chart data={data}>
+            <Legend verticalAlign="top" height={36} />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip content={<CustomTooltip />} />
+            <CartesianGrid strokeDasharray="3 3" />
+            <Area type="linear" name="Incidents" dataKey="incidents" stroke="#14aad9" strokeWidth={2} fill="#e2e1f2" />
+          </Chart>
+        </ResponsiveContainer>
+      );
+    } else {
+      return (
+        <div style={noDataStyle}>
+          <h3>NO MONTHLY INCIDENTS</h3>
+        </div>
+      );
+    }
   }
 }
 

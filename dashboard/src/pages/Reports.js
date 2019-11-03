@@ -52,10 +52,8 @@ const styles = {
   }
 };
 
-let endDate = moment().format('YYYY-MM-DD');
-let startDate = moment().subtract(30,'d').format('YYYY-MM-DD');
-// const endDate = moment().toDate();
-// const startDate = moment(moment().toDate().setDate(endDate.getDate() - 30));
+const endDate = moment().format('YYYY-MM-DD');
+const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
 
 export class Reports extends Component {
   constructor(props) {
@@ -71,7 +69,7 @@ export class Reports extends Component {
   }
 
   handleMembersChange(startDate, endDate) {
-    
+
     this.setState({
       membersStart: startDate,
       membersEnd: endDate
@@ -90,6 +88,7 @@ export class Reports extends Component {
       this.context.mixpanel.track('Reports Page Ready, Data Requested');
     }
   };
+
   render() {
     return (
       <Dashboard ready={this.ready}>
@@ -97,7 +96,7 @@ export class Reports extends Component {
           <div>
             <div>
               <div className="db-RadarRulesLists-page">
-              <div className="Box-root Margin-bottom--12">
+                <div className="Box-root Margin-bottom--12">
                   <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                       <div>
@@ -112,13 +111,13 @@ export class Reports extends Component {
                               </span>
                             </div>
                           </div>
-                            <AverageTimeChart currentProject={this.props.match.params.projectId} />
+                          <AverageTimeChart currentProject={this.props.match.params.projectId} />
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              <div className="Box-root Margin-bottom--12">
+                <div className="Box-root Margin-bottom--12">
                   <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                       <div>
@@ -133,7 +132,7 @@ export class Reports extends Component {
                               </span>
                             </div>
                           </div>
-                            <MonthlyIncidents currentProject={this.props.match.params.projectId} />
+                          <MonthlyIncidents currentProject={this.props.match.params.projectId} />
                         </div>
                       </div>
                     </div>

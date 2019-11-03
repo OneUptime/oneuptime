@@ -10,11 +10,12 @@ var request = chai.request.agent(app);
 var UserService = require('../backend/services/userService');
 var UserModel = require('../backend/models/user');
 var ProjectService = require('../backend/services/projectService');
+var AirtableService = require('../backend/services/airtableService');
+
 var LoginIPLog = require('../backend/models/LoginIPLog');
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-
-var projectId, userId, token;
+var projectId, userId, airtableId, token;
 
 describe('User API', function () {
     this.timeout(20000);
@@ -25,6 +26,8 @@ describe('User API', function () {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -43,6 +46,7 @@ describe('User API', function () {
         await UserService.hardDeleteBy({ email: { $in: [data.user.email, data.newUser.email, data.anotherUser.email] } });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await LoginIPLog.deleteMany({ userId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     // 'post /user/signup'
@@ -228,7 +232,7 @@ describe('User API', function () {
         request.post('/user/forgot-password').send({
             email: data.newUser.email
         }).end(function () {
-            UserModel.findOne({ email: data.newUser.email }, function(err, user){
+            UserModel.findOne({ email: data.newUser.email }, function (err, user) {
                 request.post('/user/reset-password').send({
                     password: 'newPassword',
                     token: user.resetPasswordToken

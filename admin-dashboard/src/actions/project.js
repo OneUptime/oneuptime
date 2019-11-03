@@ -2,73 +2,71 @@ import { getApi, putApi, deleteApi, postApi } from '../api';
 import * as types from '../constants/project';
 import errors from '../errors'
 
-export function fetchProjectsRequest() {
-	return {
-		type: types.FETCH_PROJECTS_REQUEST
-	};
-}
+  // Fetch Projects
 
-export function fetchProjectsSuccess(projects) {
-
-	return {
-		type: types.FETCH_PROJECTS_SUCCESS,
-		payload: projects
-	};
-}
-
-export function fetchProjectsError(error) {
-	return {
-		type: types.FETCH_PROJECTS_FAILURE,
-		payload: error
-	};
-}
+  export const fetchProjectsRequest = () => {
+    return {
+      type: types.FETCH_PROJECTS_REQUEST,
+    }
+  }
+  
+  export const fetchProjectsSuccess = projects => {
+    return {
+      type: types.FETCH_PROJECTS_SUCCESS,
+      payload: projects,
+    }
+  }
+  
+  export const fetchProjectsError = error => {
+    return {
+      type: types.FETCH_PROJECTS_FAILURE,
+      payload: error,
+    }
+  }
 
 // Calls the API to fetch all projects.
-export function fetchProjects(skip, limit) {
+export const fetchProjects = (skip, limit) => async (dispatch) => {
 	skip = skip ? parseInt(skip) : 0;
 	limit = limit ? parseInt(limit) : 10;
-	return function (dispatch) {
-		var promise = getApi(`project/projects/allProjects?skip=${skip}&limit=${limit}`);
-		dispatch(fetchProjectsRequest());
-		promise.then(function (response) {
-			var projects = response.data;
-			dispatch(fetchProjectsSuccess(projects));
 
-		}, function (error) {
+	dispatch(fetchProjectsRequest())
 
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if(error && error.message){
-				error = error.message;
-			}
-			else{
-				error = 'Network Error';
-			}
-			dispatch(fetchProjectsError(errors(error)));
-		});
-
-		return promise;
-	};
+	try{
+		const response = await getApi(`project/projects/allProjects?skip=${skip}&limit=${limit}`);
+		
+		dispatch(fetchProjectsSuccess(response.data));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(fetchProjectsError(errors(errorMsg)));
+	}
 }
 
-export function fetchProjectRequest() {
+export const fetchProjectRequest = () => {
 	return {
 		type: types.FETCH_PROJECT_REQUEST
 	};
 }
 
-export function fetchProjectSuccess(project) {
-
+export const fetchProjectSuccess = project => {
 	return {
 		type: types.FETCH_PROJECT_SUCCESS,
 		payload: project
 	};
 }
 
-export function fetchProjectError(error) {
+export const fetchProjectError = error => {
 	return {
 		type: types.FETCH_PROJECT_FAILURE,
 		payload: error
@@ -76,49 +74,46 @@ export function fetchProjectError(error) {
 }
 
 // Calls the API to fetch a project.
-export function fetchProject(projectId) {
-	return function (dispatch) {
-		var promise = getApi(`project/projects/${projectId}`);
-		dispatch(fetchProjectRequest());
-		promise.then(function (response) {
-			var project = response.data;
-			dispatch(fetchProjectSuccess(project));
+export const fetchProject = projectId => async (dispatch) => {
+	dispatch(fetchProjectRequest());
 
-		}, function (error) {
+	try{
+		const response = await getApi(`project/projects/${projectId}`);
+		const projects = response.data;
 
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if(error && error.message){
-				error = error.message;
-			}
-			else{
-				error = 'Network Error';
-			}
-			dispatch(fetchProjectError(errors(error)));
-		});
-
-		return promise;
-	};
+		dispatch(fetchProjectSuccess(projects));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(fetchProjectError(errors(errorMsg)));
+	}
 }
 
-export function fetchUserProjectsRequest() {
+export const fetchUserProjectsRequest = () => {
 	return {
 		type: types.FETCH_USER_PROJECTS_REQUEST
 	};
 }
 
-export function fetchUserProjectsSuccess(users) {
-
+export const fetchUserProjectsSuccess = users => {
 	return {
 		type: types.FETCH_USER_PROJECTS_SUCCESS,
 		payload: users
 	};
 }
 
-export function fetchUserProjectsError(error) {
+export const fetchUserProjectsError = error => {
 	return {
 		type: types.FETCH_USER_PROJECTS_FAILURE,
 		payload: error
@@ -126,59 +121,56 @@ export function fetchUserProjectsError(error) {
 }
 
 // Calls the API to fetch all user projects.
-export function fetchUserProjects(userId, skip, limit) {
+export const fetchUserProjects = (userId, skip, limit) => async (dispatch) => {
 	skip = skip ? parseInt(skip) : 0;
 	limit = limit ? parseInt(limit) : 10;
-	return function (dispatch) {
-		var promise = getApi(`project/projects/user/${userId}?skip=${skip}&limit=${limit}`);
-		dispatch(fetchUserProjectsRequest());
-		promise.then(function (response) {
-			var users = response.data;
-			dispatch(fetchUserProjectsSuccess(users));
 
-		}, function (error) {
+	dispatch(fetchUserProjectsRequest());
 
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if(error && error.message){
-				error = error.message;
-			}
-			else{
-				error = 'Network Error';
-			}
-			dispatch(fetchUserProjectsError(errors(error)));
-		});
+	try{
+		const response = await getApi(`project/projects/user/${userId}?skip=${skip}&limit=${limit}`);
+		const users = response.data;
 
-		return promise;
-	};
+		dispatch(fetchUserProjectsSuccess(users));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(fetchUserProjectsError(errors(errorMsg)));
+	}
 }
 
 //Delete project
-export function deleteProjectRequest() {
+export const deleteProjectRequest = () => {
 	return {
 		type: types.DELETE_PROJECT_REQUEST,
 	};
 }
 
-export function deleteProjectReset() {
+export const deleteProjectReset = () => {
 	return {
 		type: types.DELETE_PROJECT_RESET,
-
 	};
 }
 
-export function deleteProjectSuccess(project) {
-
+export const deleteProjectSuccess = project => {
 	return {
 		type: types.DELETE_PROJECT_SUCCESS,
 		payload: project
 	};
 }
 
-export function deleteProjectError(error) {
+export const deleteProjectError = error => {
 	return {
 		type: types.DELETE_PROJECT_FAILED,
 		payload: error
@@ -186,55 +178,54 @@ export function deleteProjectError(error) {
 }
 
 // Calls the API to delete a project
-export function deleteProject(projectId) {
-	return function (dispatch) {
-		var promise;
-		promise = deleteApi(`project/${projectId}/deleteProject`);
-		dispatch(deleteProjectRequest());
-		promise.then(function (response) {
-			const data = response.data;
-			dispatch(deleteProjectSuccess(data));
-		}, function (error) {
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if (error && error.message) {
-				error = error.message;
-			}
-			else{
-				error = 'Network Error';
-			}
-			dispatch(deleteProjectError(errors(error)));
-		});
-		return promise;
-	};
+export const deleteProject = projectId => async (dispatch) => {
+
+	dispatch(deleteProjectRequest());
+
+	try{
+		const response = await deleteApi(`project/${projectId}/deleteProject`);
+		const data = response.data;
+
+		dispatch(deleteProjectSuccess(data));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(deleteProjectError(errors(errorMsg)));
+	}
 }
 
 //Block project
-export function blockProjectRequest() {
+export const blockProjectRequest = () => {
 	return {
 		type: types.BLOCK_PROJECT_REQUEST,
 	};
 }
 
-export function blockProjectReset() {
+export const blockProjectReset = () => {
 	return {
 		type: types.BLOCK_PROJECT_RESET,
-
 	};
 }
 
-export function blockProjectSuccess(project) {
-
+export const blockProjectSuccess = project => {
 	return {
 		type: types.BLOCK_PROJECT_SUCCESS,
 		payload: project
 	};
 }
 
-export function blockProjectError(error) {
+export const blockProjectError = error => {
 	return {
 		type: types.BLOCK_PROJECT_FAILED,
 		payload: error
@@ -242,54 +233,54 @@ export function blockProjectError(error) {
 }
 
 // Calls the API to block a project
-export function blockProject(projectId) {
-	return function (dispatch) {
-		var promise;
-		promise = putApi(`project/${projectId}/blockProject`);
-		dispatch(blockProjectRequest());
-		promise.then(function (response) {
-			const data = response.data;
-			dispatch(blockProjectSuccess(data));
-		}, function (error) {
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if (error && error.message) {
-				error = error.message;
-			}else{
-				error = 'Network Error';
-			}
-			dispatch(blockProjectError(errors(error)));
-		});
-		return promise;
-	};
+export const blockProject = projectId => async (dispatch) => {
+
+	dispatch(blockProjectRequest());
+
+	try{
+		const response = await putApi(`project/${projectId}/blockProject`);
+		const data = response.data;
+
+		dispatch(blockProjectSuccess(data));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(blockProjectError(errors(errorMsg)));
+	}
 }
 
 //Restore project
-export function restoreProjectRequest() {
+export const restoreProjectRequest = () => {
 	return {
 		type: types.RESTORE_PROJECT_REQUEST,
 	};
 }
 
-export function restoreProjectReset() {
+export const restoreProjectReset = () => {
 	return {
 		type: types.RESTORE_PROJECT_RESET,
-
 	};
 }
 
-export function restoreProjectSuccess(project) {
-
+export const restoreProjectSuccess = project => {
 	return {
 		type: types.RESTORE_PROJECT_SUCCESS,
 		payload: project
 	};
 }
 
-export function restoreProjectError(error) {
+export const restoreProjectError = error => {
 	return {
 		type: types.RESTORE_PROJECT_FAILED,
 		payload: error
@@ -297,107 +288,109 @@ export function restoreProjectError(error) {
 }
 
 // Calls the API to restore a project
-export function restoreProject(projectId) {
-	return function (dispatch) {
-		var promise;
-		promise = putApi(`project/${projectId}/restoreProject`);
-		dispatch(restoreProjectRequest());
-		promise.then(function (response) {
-			const data = response.data;
-			dispatch(restoreProjectSuccess(data));
-		}, function (error) {
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if (error && error.message) {
-				error = error.message;
-			}else{
-				error = 'Network Error';
-			}
-			dispatch(restoreProjectError(errors(error)));
-		});
-		return promise;
-	};
+export const restoreProject = projectId => async (dispatch) => {
+
+	dispatch(restoreProjectRequest());
+
+	try{
+		const response = await putApi(`project/${projectId}/restoreProject`);
+		const data = response.data;
+
+		dispatch(restoreProjectSuccess(data));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(restoreProjectError(errors(errorMsg)));
+	}
 }
 
 //Unblock project
-export function unblockProjectRequest() {
+export const unblockProjectRequest = () => {
 	return {
 		type: types.UNBLOCK_PROJECT_REQUEST,
 	};
 }
 
-export function unblockProjectReset() {
+export const unblockProjectReset = () => {
 	return {
 		type: types.UNBLOCK_PROJECT_RESET,
-
 	};
 }
 
-export function unblockProjectSuccess(project) {
-
+export const unblockProjectSuccess = (project) => {
 	return {
 		type: types.UNBLOCK_PROJECT_SUCCESS,
 		payload: project
 	};
 }
 
-export function unblockProjectError(error) {
+export const unblockProjectError = (error) => {
 	return {
 		type: types.UNBLOCK_PROJECT_FAILED,
 		payload: error
 	};
 }
 
-// Calls the API to unblock a project
-export function unblockProject(projectId) {
-	return function (dispatch) {
-		var promise;
-		promise = putApi(`project/${projectId}/unblockProject`);
-		dispatch(unblockProjectRequest());
-		promise.then(function (response) {
-			const data = response.data;
-			dispatch(unblockProjectSuccess(data));
-		}, function (error) {
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if (error && error.message) {
-				error = error.message;
-			}else{
-				error = 'Network Error';
-			}
-			dispatch(unblockProjectError(errors(error)));
-		});
-		return promise;
-	};
+// Calls the API to un-block a project
+export const unblockProject = projectId => async (dispatch) => {
+
+	dispatch(unblockProjectRequest());
+
+	try{
+		const response = await putApi(`project/${projectId}/unblockProject`);
+		const data = response.data;
+
+		dispatch(unblockProjectSuccess(data));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(unblockProjectError(errors(errorMsg)));
+	}
 }
 
 //Add Project Notes
-export function addProjectNoteRequest() {
+export const addProjectNoteRequest = () => {
 	return {
 		type: types.ADD_PROJECT_NOTE_REQUEST,
 	};
 }
 
-export function addProjectNoteReset() {
+export const addProjectNoteReset = () => {
 	return {
 		type: types.ADD_PROJECT_NOTE_RESET,
 	};
 }
 
-export function addProjectNoteSuccess(projectNote) {
+export const addProjectNoteSuccess = projectNote => {
 	return {
 		type: types.ADD_PROJECT_NOTE_SUCCESS,
 		payload: projectNote
 	};
 }
 
-export function addProjectNoteError(error) {
+export const addProjectNoteError = error => {
 	return {
 		type: types.ADD_PROJECT_NOTE_FAILURE,
 		payload: error
@@ -405,52 +398,54 @@ export function addProjectNoteError(error) {
 }
 
 // Calls the API to add Admin Note
-export function addProjectNote(projectId, values) {
-	return function (dispatch) {
-		var promise;
-		promise = postApi(`project/${projectId}/addNote`, values);
-		dispatch(addProjectNoteRequest());
-		promise.then(function (response) {
-			const data = response.data;
-			dispatch(addProjectNoteSuccess(data));
-		}, function (error) {
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if (error && error.message) {
-				error = error.message;
-			}else{
-				error = 'Network Error';
-			}
-			dispatch(addProjectNoteError(errors(error)));
-		});
-		return promise;
-	};
+export const addProjectNote = (projectId, values) => async (dispatch) => {
+
+	dispatch(addProjectNoteRequest());
+
+	try{
+		const response = await postApi(`project/${projectId}/addNote`, values);
+		const data = response.data;
+
+		dispatch(addProjectNoteSuccess(data));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(addProjectNoteError(errors(errorMsg)));
+	}
 }
 
 //Search Projects
-export function searchProjectsRequest() {
+export const searchProjectsRequest = () => {
 	return {
 		type: types.SEARCH_PROJECTS_REQUEST,
 	};
 }
 
-export function searchProjectsReset() {
+export const searchProjectsReset = () => {
 	return {
 		type: types.SEARCH_PROJECTS_RESET,
 	};
 }
 
-export function searchProjectsSuccess(projects) {
+export const searchProjectsSuccess = projects => {
 	return {
 		type: types.SEARCH_PROJECTS_SUCCESS,
 		payload: projects
 	};
 }
 
-export function searchProjectsError(error) {
+export const searchProjectsError = error => {
 	return {
 		type: types.SEARCH_PROJECTS_FAILURE,
 		payload: error
@@ -458,36 +453,32 @@ export function searchProjectsError(error) {
 }
 
 // Calls the search projects api
-export function searchProjects(filter, skip, limit) {
+export const searchProjects = (filter, skip, limit) => async (dispatch) => {
 	const values = {
 		filter
 	};
 
-	return function (dispatch) {
-		var promise;
-		skip = skip ? parseInt(skip) : 0
-		limit = limit ? parseInt(limit) : 10
+	dispatch(searchProjectsRequest());
 
-		promise = postApi(`project/projects/search?skip=${skip}&limit=${limit}`, values);
-		
-		dispatch(searchProjectsRequest());
-		promise.then(function (response) {
-			const data = response.data;
-			dispatch(searchProjectsSuccess(data));
+	try{
+		const response = await postApi(`project/projects/search?skip=${skip}&limit=${limit}`, values);
+		const data = response.data;
 
-		}, function (error) {
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if (error && error.message) {
-				error = error.message;
-			}else{
-				error = 'Network Error';
-			}
-			dispatch(searchProjectsError(errors(error)));
-		});
-		return promise;
-	};
+		dispatch(searchProjectsSuccess(data));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(searchProjectsError(errors(errorMsg)));
+	}
 }

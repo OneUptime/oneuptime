@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import MonitorBarChart from './MonitorBarChart';
+import MonitorChart from './MonitorChart';
 import uuid from 'uuid';
 import DateRangeWrapper from './DateRangeWrapper';
 import MonitorTitle from './MonitorTitle';
@@ -167,9 +167,9 @@ export class MonitorViewHeader extends Component {
                             </button>)
                             )}
                         </div>
-                        <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
+                        <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
                     </ShouldRender>
-                    {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} /> : ''}<br />
+                    {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} /> : ''}<br />
                 </div>
             </div>
         );

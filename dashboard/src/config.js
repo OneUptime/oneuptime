@@ -212,7 +212,7 @@ export const ValidateField = {
 
     required: value => value && value.length ? undefined : 'This field is required',
 
-    select: value => value && value.length && value.trim() !== '' ? undefined : 'Please select a value',
+    select: value => value ? (value.value ? (value.value.length && value.value.trim() !== '' ? undefined : 'Please select a value') : (value.length && value.trim() !== '' ? undefined : 'Please select a value')) : 'Please select a value',
 
     maxValue10000: value => value && value.length && value < 10000 ? undefined : `input value should be less than ${10000}`,
 
@@ -475,3 +475,11 @@ export function mapCriteria(val) {
         return val2;
     }
 }
+
+export const formatDecimal = (value, decimalPlaces) => {
+    return Number(Math.round(parseFloat(value + 'e' + decimalPlaces)) + 'e-' + decimalPlaces).toFixed(decimalPlaces);
+};
+
+export const formatBytes = (a, b, c, d, e) => {
+    return formatDecimal((b = Math, c = b.log, d = 1e3, e = c(a) / c(d) | 0, a / b.pow(d, e)), 2) + ' ' + (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
+};

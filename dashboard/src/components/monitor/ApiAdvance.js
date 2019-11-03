@@ -7,7 +7,7 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import PropTypes from 'prop-types';
 import { RenderHeaders } from '../basic/RenderHeaders';
 import ShouldRender from '../basic/ShouldRender';
-import {RenderSelect} from '../basic/RenderSelect';
+import { RenderSelect } from '../basic/RenderSelect';
 import { ValidateField } from '../../config';
 
 const style = {
@@ -88,7 +88,7 @@ export class ApiAdvance extends Component {
                             </p>
                         </div>
                         <ShouldRender if={bodytype === 'form-data' || bodytype === 'x-www-form-urlencoded'}>
-                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16" style={{marginRight:'15px'}}>
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16" style={{ marginRight: '15px' }}>
                                 <div>
                                     <button className='Button bs-ButtonLegacy ActionIconParent' type="button"
                                         onClick={this.addRows}>
@@ -108,24 +108,25 @@ export class ApiAdvance extends Component {
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">Body Type</label>
                                             <div className="bs-Fieldset-fields">
-                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                <Field className="db-select-nw"
                                                     component={RenderSelect}
                                                     name={`bodyType_${this.props.index}`}
                                                     id="bodyType"
                                                     placeholder="Body Type"
                                                     disabled={false}
                                                     validate={ValidateField.select}
-                                                >
-                                                    <option value="">None</option>
-                                                    <option value="form-data">form-data</option>
-                                                    <option value="x-www-form-urlencoded">x-www-form-urlencoded</option>
-                                                    <option value="text/plain">Text (text/plain)</option>
-                                                    <option value="application/json">JSON (application/json)</option>
-                                                    <option value="application/javascript">Javascript (application/javascript)</option>
-                                                    <option value="application/xml">XML (application/xml)</option>
-                                                    <option value="text/xml">XML (text/xml)</option>
-                                                    <option value="text/html">HTML (text/html)</option>
-                                                </Field>
+                                                    options={[
+                                                        { value: '', label: 'None' },
+                                                        { value: 'form-data', label: 'form-data' },
+                                                        { value: 'x-www-form-urlencoded', label: 'x-www-form-urlencoded' },
+                                                        { value: 'text/plain', label: 'Text (text/plain)' },
+                                                        { value: 'application/json', label: 'JSON (application/json)' },
+                                                        { value: 'application/javascript', label: 'Javascript (application/javascript)' },
+                                                        { value: 'application/xml', label: 'XML (application/xml)' },
+                                                        { value: 'text/xml', label: 'XML (text/xml)' },
+                                                        { value: 'text/html', label: 'HTML (text/html)' }
+                                                    ]}
+                                                />
                                             </div>
                                         </div>
                                         <ShouldRender if={bodytype === 'form-data' || bodytype === 'x-www-form-urlencoded'}>
@@ -159,16 +160,16 @@ export class ApiAdvance extends Component {
 ApiAdvance.displayName = 'ApiAdvance'
 
 ApiAdvance.propTypes = {
-    pushArray:PropTypes.func,
-    bodytype:PropTypes.string,
-    index:PropTypes.number,
+    pushArray: PropTypes.func,
+    bodytype: PropTypes.string,
+    index: PropTypes.number,
 }
 
 const mapDispatchToProps = {
     pushArray: arrayPush
 }
 
-function mapStateToProps(state,ownProps) {
+function mapStateToProps(state, ownProps) {
     return {
         bodytype: newSelector(state, `bodyType_${ownProps.index}`),
     };

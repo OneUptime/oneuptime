@@ -75,9 +75,7 @@ module.exports = {
     updateManyBy: async function (query, data) {
         try {
             var notifications = await NotificationModel.updateMany(query, {
-                $addToSet: {
-                    read: data.read
-                }
+                $addToSet: data
             });
         } catch (error) {
             ErrorService.log('NotificationModel.updateManyBy', error);

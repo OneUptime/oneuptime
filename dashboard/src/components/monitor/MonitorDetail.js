@@ -16,8 +16,9 @@ import MonitorUrl from '../modals/MonitorUrl';
 import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
 import { history } from '../../store';
-import MonitorBarChart from './MonitorBarChart';
 import { Link } from 'react-router-dom';
+import MonitorChart from './MonitorChart';
+import StatusIndicator from './StatusIndicator';
 
 const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
@@ -141,6 +142,8 @@ export class MonitorDetail extends Component {
                 badgeColor = 'blue';
                 break;
         }
+
+        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'online';
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
         let probeUrl = `/project/${this.props.monitor.projectId._id}/settings/probe`;
 
@@ -152,6 +155,7 @@ export class MonitorDetail extends Component {
                             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                        <StatusIndicator status={status} />
                                         <span id={`monitor_title_${this.props.monitor.name}`}>
                                             {this.props.monitor.name}
                                         </span>
@@ -271,14 +275,14 @@ export class MonitorDetail extends Component {
                         </button>)
                         )}
                     </div>
-                    <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
+                    <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
                 </ShouldRender>
 
                 {this.props.monitor && this.props.monitor.type ?
                     this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ?
                         <div>
                             <ShouldRender if={this.props.monitor.probes && this.props.monitor.probes.length > 0}>
-                                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
                                 <div className="db-RadarRulesLists-page">
                                     <div className="Box-root Margin-bottom--12">
                                         <div className="">
@@ -306,7 +310,7 @@ export class MonitorDetail extends Component {
                         </div>
                         :
                         <div>
-                            {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                            {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
                             <div className="db-RadarRulesLists-page">
                                 <div className="Box-root Margin-bottom--12">
                                     <div className="">
