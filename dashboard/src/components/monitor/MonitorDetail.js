@@ -180,48 +180,83 @@ export class MonitorDetail extends Component {
                             </div>
                         </div>
                     </div>
-                    <div className="db-Trends-controls">
-                        <div className="db-Trends-timeControls">
-                            <DateRangeWrapper
-                                selected={this.state.monitorStart}
-                                onChange={this.handleMonitorChange}
-                                dateRange={30}
-                            />
-                        </div>
-                        <div>
-                            {this.props.monitor.type === 'device' &&
-                                <button
-                                    className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
-                                    onClick={() =>
-                                        this.props.openModal({
-                                            id: this.props.monitor._id,
-                                            onClose: () => '',
-                                            content: DataPathHoC(MonitorUrl, this.props.monitor)
-                                        })
-                                    }
-                                >
-                                    <span>Show URL</span>
-                                </button>
-                            }
-                            <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
-                                id={`create_incident_${this.props.monitor.name}`}
-                                onClick={() =>
-                                    this.props.openModal({
-                                        id: createIncidentModalId,
-                                        content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
-                                    })}>
-                                <ShouldRender if={!creating}>
-                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                        <span>Create New Incident</span>
-                                    </span>
-                                </ShouldRender>
-                                <ShouldRender if={creating}>
-                                    <FormLoader />
-                                </ShouldRender>
-                            </button>
-                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
-                        </div>
-                    </div>
+                    {
+                        this.props.monitor && this.props.monitor.type ?
+                            this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ?
+                                <ShouldRender if={this.props.monitor.probes && this.props.monitor.probes.length > 0}>
+                                    <div className="db-Trends-controls">
+                                        <div className="db-Trends-timeControls">
+                                            <DateRangeWrapper
+                                                selected={this.state.monitorStart}
+                                                onChange={this.handleMonitorChange}
+                                                dateRange={30}
+                                            />
+                                        </div>
+                                        <div>
+                                            <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
+                                                id={`create_incident_${this.props.monitor.name}`}
+                                                onClick={() =>
+                                                    this.props.openModal({
+                                                        id: createIncidentModalId,
+                                                        content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
+                                                    })}>
+                                                <ShouldRender if={!creating}>
+                                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                        <span>Create New Incident</span>
+                                                    </span>
+                                                </ShouldRender>
+                                                <ShouldRender if={creating}>
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
+                                        </div>
+                                    </div>
+                                </ShouldRender> :
+                                <div className="db-Trends-controls">
+                                    <div className="db-Trends-timeControls">
+                                        <DateRangeWrapper
+                                            selected={this.state.monitorStart}
+                                            onChange={this.handleMonitorChange}
+                                            dateRange={30}
+                                        />
+                                    </div>
+                                    <div>
+                                        {this.props.monitor.type === 'device' &&
+                                            <button
+                                                className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
+                                                onClick={() =>
+                                                    this.props.openModal({
+                                                        id: this.props.monitor._id,
+                                                        onClose: () => '',
+                                                        content: DataPathHoC(MonitorUrl, this.props.monitor)
+                                                    })
+                                                }
+                                            >
+                                                <span>Show URL</span>
+                                            </button>
+                                        }
+
+                                        <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
+                                            id={`create_incident_${this.props.monitor.name}`}
+                                            onClick={() =>
+                                                this.props.openModal({
+                                                    id: createIncidentModalId,
+                                                    content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
+                                                })}>
+                                            <ShouldRender if={!creating}>
+                                                <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                    <span>Create New Incident</span>
+                                                </span>
+                                            </ShouldRender>
+                                            <ShouldRender if={creating}>
+                                                <FormLoader />
+                                            </ShouldRender>
+                                        </button>
+                                        <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
+                                    </div>
+                                </div> : ''
+                    }
                 </div>
                 <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
                     <div className="btn-group">
@@ -238,10 +273,39 @@ export class MonitorDetail extends Component {
                     </div>
                     <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
                 </ShouldRender>
-                
-                {this.props.monitor && this.props.monitor.type ? 
-                 this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ? 
-                        <ShouldRender if={this.props.monitor.probes && this.props.monitor.probes.length > 0}>
+
+                {this.props.monitor && this.props.monitor.type ?
+                    this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ?
+                        <div>
+                            <ShouldRender if={this.props.monitor.probes && this.props.monitor.probes.length > 0}>
+                                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                                <div className="db-RadarRulesLists-page">
+                                    <div className="Box-root Margin-bottom--12">
+                                        <div className="">
+                                            <div className="Box-root">
+                                                <div>
+                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center"><span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span><span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"><span>Heres a list of recent incidents which belong to this monitor.</span></span></div>
+                                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                                <div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <IncidentList incidents={monitor} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ShouldRender>
+                            <ShouldRender if={this.props.monitor.probes && !this.props.monitor.probes.length > 0}>
+                                <div class="Margin-bottom--12"></div>
+                            </ShouldRender>
+                        </div>
+                        :
+                        <div>
                             {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
                             <div className="db-RadarRulesLists-page">
                                 <div className="Box-root Margin-bottom--12">
@@ -263,33 +327,10 @@ export class MonitorDetail extends Component {
                                     </div>
                                 </div>
                             </div>
-                        </ShouldRender> :
-                        <div>
-                        {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorBarChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
-                            <div className="db-RadarRulesLists-page">
-                                <div className="Box-root Margin-bottom--12">
-                                    <div className="">
-                                        <div className="Box-root">
-                                            <div>
-                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center"><span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span><span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"><span>Heres a list of recent incidents which belong to this monitor.</span></span></div>
-                                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                            <div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <IncidentList incidents={monitor} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            </div>
-                            : ''
-                 }
-                
+                        </div>
+                    : ''
+                }
+
             </div>
         )
     }
