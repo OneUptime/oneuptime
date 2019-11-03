@@ -3,6 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import Badge from '../common/Badge';
+import StatusIndicator from './StatusIndicator';
 
 export class MonitorTitle extends Component {
 
@@ -24,12 +25,16 @@ export class MonitorTitle extends Component {
                 badgeColor = 'blue';
                 break;
         }
+
+        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'online';
+
         return (
             <div className="db-Trends-title">
                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <StatusIndicator status={status} />
                                 <span>
                                     {this.props.monitor.name}
                                 </span>

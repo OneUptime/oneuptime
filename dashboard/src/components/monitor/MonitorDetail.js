@@ -17,6 +17,7 @@ import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
 import { history } from '../../store';
 import MonitorChart from './MonitorChart';
+import StatusIndicator from './StatusIndicator';
 
 const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
@@ -140,7 +141,10 @@ export class MonitorDetail extends Component {
                 badgeColor = 'blue';
                 break;
         }
+
+        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'online';
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
+
         return (
             <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
                 <div className="db-Trends-header">
@@ -149,6 +153,7 @@ export class MonitorDetail extends Component {
                             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                        <StatusIndicator status={status} />
                                         <span id={`monitor_title_${this.props.monitor.name}`}>
                                             {this.props.monitor.name}
                                         </span>
