@@ -78,6 +78,7 @@ module.exports = (config, apiKey, monitorId) => {
     /**
      * Start server monitor.
      * @param {string} id - The monitor id of the server monitor.
+     * @return {(Object | number)} The ping server cron job or the error code.
      */
     start: (id = monitorId) => {
       let url = `monitor/${projectId}/monitor/${id && typeof id === 'string' ? `${id}/` : ''}?type=server-monitor`;
@@ -137,7 +138,9 @@ module.exports = (config, apiKey, monitorId) => {
         return errorCode;
       });
     },
-    /** Stop server monitor. */
+    /** Stop server monitor. 
+     * @return {Object} The ping server cron job.
+     */
     stop: () => {
       if (pingServer) {
         logger.info('Stopping Server Monitor...');
