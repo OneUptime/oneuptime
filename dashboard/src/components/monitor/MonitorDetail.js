@@ -305,7 +305,7 @@ export class MonitorDetail extends Component {
                                 </div>
                             </ShouldRender>
                             <ShouldRender if={this.props.monitor.probes && !this.props.monitor.probes.length > 0}>
-                                <div class="Margin-bottom--12"></div>
+                                <div className="Margin-bottom--12"></div>
                             </ShouldRender>
                         </div>
                         :
