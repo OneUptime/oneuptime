@@ -37,7 +37,7 @@ class About extends Component {
                                         <tr>
                                             <td style={{ paddingBottom: '10px' }} colSpan={2}>
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                    Fyipe is a product of <a href="https://hackerbay.io" target="_blank">HackerBay, Inc.</a>. HackerBay, Inc. is a United States Delaware C Corporation.
+                                                    Fyipe is a product of <a href="https://hackerbay.io" rel="noopener noreferrer" target="_blank">HackerBay, Inc.</a>. HackerBay, Inc. is a United States Delaware C Corporation.
                                                 </span>
                                             </td>
                                         </tr>
@@ -68,7 +68,7 @@ class About extends Component {
                                         <tr>
                                             <td style={{ paddingTop: '10px' }} colSpan={2}>
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                    <a href="https://fyipe.com/legal" target="_blank">Legal Center.</a>
+                                                    <a href="https://fyipe.com/legal" rel="noopener noreferrer" target="_blank">Legal Center.</a>
                                                 </span>
                                             </td>
                                         </tr>
