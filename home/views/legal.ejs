@@ -129,9 +129,13 @@
         <% include ./hipaa %>
         <% }%>
 
-        <% if(section.includes("soc")) {%>
-        <% include ./soc %>
+        <% if(section === ("soc-3")) {%>
+        <% include ./soc-3 %>
         <% }%>
+
+        <% if(section === ("soc-2")) {%>
+          <% include ./soc-2 %>
+          <% }%>
 
 
         <% if(section === "iso-27001") {%>
