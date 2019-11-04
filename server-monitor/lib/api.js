@@ -82,7 +82,7 @@ module.exports = (config, apiKey, monitorId) => {
     start: (id = monitorId) => {
       let url = `monitor/${projectId}/monitor/${id && typeof id === 'string' ? `${id}/` : ''}?type=server-monitor`;
 
-      get(url, apiKey, response => {
+      return get(url, apiKey, response => {
         return new Promise((resolve, reject) => {
           const data = response.data;
 
@@ -113,26 +113,38 @@ module.exports = (config, apiKey, monitorId) => {
           }
         });
       }).then(monitorId => {
-        logger.info('Starting Server Monitor...');
-        pingServer = ping(projectId, monitorId, apiKey, config.interval);
-        pingServer.start();
+        if (monitorId) {
+          logger.info('Starting Server Monitor...');
+          pingServer = ping(projectId, monitorId, apiKey, config.interval);
+          pingServer.start();
 
-        if (config.timeout) {
-          setTimeout(() => {
-            logger.info('Stopping Server Monitor...');
-            pingServer.stop()
-          }, config.timeout);
+          if (config.timeout) {
+            setTimeout(() => {
+              logger.info('Stopping Server Monitor...');
+              pingServer.stop()
+            }, config.timeout);
+          }
+
+          return pingServer;
+        } else {
+          logger.info('Server Monitor ID is required');
+          throw new Error(1);
         }
       }).catch(error => {
-        process.exitCode = typeof error === 'number' ? error : 1;
+        const errorCode = typeof error === 'number' ? error : 1;
+        process.exitCode = errorCode;
+
+        return errorCode;
       });
     },
     /** Stop server monitor. */
     stop: () => {
       if (pingServer) {
         logger.info('Stopping Server Monitor...');
-        pingServer.stop()
+        pingServer.stop();
       }
+
+      return pingServer;
     }
   }
 };

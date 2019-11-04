@@ -17,8 +17,6 @@ import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
 
-
-
 export class AlertAdvanceOption extends Component {
 
     state = {
@@ -158,42 +156,44 @@ export class AlertAdvanceOption extends Component {
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">If the initial balance falls below</label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            <Field className="db-select-nw"
                                                                 component={RenderSelect}
                                                                 name='minimumBalance'
                                                                 id='minimumBalance'
                                                                 validate={ValidateField.select}
-                                                            >
-                                                                <option value="">Select amount</option>
-                                                                <option value="20">$20</option>
-                                                                <option value="50">$50</option>
-                                                                <option value="100">$100</option>
-                                                                <option value="200">$200</option>
-                                                                <option value="400">$400</option>
-                                                                <option value="500">$500</option>
-                                                                <option value="750">$750</option>
-                                                                <option value="1000">$1000</option>
-                                                            </Field>
+                                                                options={[
+                                                                    { value: '', label: 'Select amount' },
+                                                                    { value: '20', label: '$20' },
+                                                                    { value: '50', label: '$50' },
+                                                                    { value: '100', label: '$100' },
+                                                                    { value: '200', label: '$200' },
+                                                                    { value: '400', label: '$400' },
+                                                                    { value: '500', label: '$500' },
+                                                                    { value: '750', label: '$750' },
+                                                                    { value: '1000', label: '$1000' }
+                                                                ]}
+                                                            />
                                                         </div>
                                                     </div>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Recharge the balance to </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            <Field className="db-select-nw"
                                                                 component={RenderSelect}
                                                                 name='rechargeToBalance'
                                                                 id='rechargeToBalance'
                                                                 validate={ValidateField.select}
-                                                            >
-                                                                <option value="">Select amount</option>
-                                                                <option value="40">$40</option>
-                                                                <option value="100">$100</option>
-                                                                <option value="200">$200</option>
-                                                                <option value="400">$400</option>
-                                                                <option value="500">$500</option>
-                                                                <option value="750">$750</option>
-                                                                <option value="1000">$1000</option>
-                                                            </Field>
+                                                                options={[
+                                                                    { value: '', label: 'Select amount' },
+                                                                    { value: '40', label: '$40' },
+                                                                    { value: '100', label: '$100' },
+                                                                    { value: '200', label: '$200' },
+                                                                    { value: '400', label: '$400' },
+                                                                    { value: '500', label: '$500' },
+                                                                    { value: '750', label: '$750' },
+                                                                    { value: '1000', label: '$1000' }
+                                                                ]}
+                                                            />
                                                         </div>
                                                     </div>
                                                     <div className="bs-Fieldset-row">
