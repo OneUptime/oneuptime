@@ -190,7 +190,7 @@ class TeamApp extends Component {
         const { inviteModalId } = this.state
         return (
             <Dashboard>
-                <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
+                <div onKeyDown={this.handleKeyBoard} className="Margin-vertical--12">
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">

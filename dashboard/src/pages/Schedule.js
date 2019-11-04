@@ -12,7 +12,7 @@ class Schedule extends Component {
         const { subProjectId } = this.props.match.params;
         return (
             <Dashboard>
-                <div className="db-World-contentPane Box-root Padding-bottom--48">
+                <div className="Box-root">
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">

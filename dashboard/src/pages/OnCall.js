@@ -199,7 +199,7 @@ export class OnCall extends Component {
 
         return (
             <Dashboard>
-                <div tabIndex='0' onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
+                <div tabIndex='0' onKeyDown={this.handleKeyBoard}>
                     <div>
                         <div>
                             <ShouldRender if={this.props.callScheduleTutorial.show}>

@@ -40,7 +40,7 @@ class SmsTemplatesBox extends React.Component {
     render() {
         var templates = this.props.smsTemplates && this.props.smsTemplates.smsTemplates && this.props.smsTemplates.smsTemplates.templates ? this.props.smsTemplates.smsTemplates.templates : [];
         return (
-            <div className="db-World-contentPane Box-root">
+            <div className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
 
                     <div className="Box-root Margin-bottom--12">
