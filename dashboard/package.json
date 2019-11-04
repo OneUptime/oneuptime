@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.614",
+  "version": "3.0.623",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
@@ -82,13 +82,16 @@
   },
   "lint-staged": {
     "src/**/*.{js,jsx}": [
-      "npm run lint:fix", "git add"
+      "npm run lint:fix",
+      "git add"
     ],
     "../backend/**/*.js": [
-      "npm run lint:fix", "git add"
+      "npm run lint:fix",
+      "git add"
     ],
     "../accounts/**/*.{js,jsx}": [
-      "npm run lint:fix", "git add"
+      "npm run lint:fix",
+      "git add"
     ]
   },
   "husky": {
