@@ -182,10 +182,10 @@ class NewMonitor extends Component {
         }
     }
 
-    scheduleChange = (e) => {
+    scheduleChange = (e, value) => {
         //load call schedules
-        if (e.target.value && e.target.value !== '') {
-            this.props.fetchSchedules(e.target.value);
+        if (value && value !== '') {
+            this.props.fetchSchedules(value);
         } else {
             const userId = User.getUserId();
             const projectMember = this.props.currentProject.users.find(user => user.userId === userId);
@@ -344,8 +344,8 @@ class NewMonitor extends Component {
                                                                     disabled={requesting}
                                                                     component={SubProjectSelector}
                                                                     props={{ subProjects }}
-                                                                    onChange={this.scheduleChange}
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    onChange={(e, v) => this.scheduleChange(e, v)}
+                                                                    className="db-select-nw"
                                                                 />
                                                             </div>
                                                         </div>

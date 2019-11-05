@@ -67,7 +67,7 @@ class IncidentLog extends React.Component {
             }
 
             return subProjectIncident && subProjectIncident.incidents ? (
-                <RenderIfUserInSubProject subProjectId={subProjectIncident._id}>
+                <RenderIfUserInSubProject subProjectId={subProjectIncident._id} key={uuid.v4()}>
                     <div className="bs-BIM" key={i}>
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">

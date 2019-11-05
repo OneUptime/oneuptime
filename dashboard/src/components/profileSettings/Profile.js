@@ -275,15 +275,15 @@ export class ProfileSetting extends Component {
                                                 <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5 }}>
                                                     {
                                                         !isVerified ?
-                                                        <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
-                                                                Not verified
-                                                            </span> 
-                                                        </div>
-                                                        :   <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                    Not verified
+                                                            </span>
+                                                            </div>
+                                                            : <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
-                                                                Verified
-                                                                </span> 
+                                                                    Verified
+                                                                </span>
                                                             </div>
                                                     }
                                                 </div>
@@ -321,14 +321,14 @@ export class ProfileSetting extends Component {
                                                             <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                     Not verified
-                                                                </span> 
+                                                                </span>
                                                             </div>
                                                             : this.state.alertPhoneNumber ?
-                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
-                                                                    Verified
-                                                                </span> 
-                                                            </div> : ''
+                                                                <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                        Verified
+                                                                </span>
+                                                                </div> : ''
                                                     }
                                                 </div>
                                             </div>
@@ -348,20 +348,20 @@ export class ProfileSetting extends Component {
                                                 </div>
                                             </ShouldRender>
                                             <ShouldRender if={initPhoneVerification && !verified && this.state.alertPhoneNumber !== initialAlertPhoneNumber}>
-                                                {  (!verifySMSCodeError && !sendVerificationSMSError && !sendVerificationSMSRequesting) &&
+                                                {(!verifySMSCodeError && !sendVerificationSMSError && !sendVerificationSMSRequesting) &&
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
                                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                             <div className="Box-root" style={{ height: '5px' }}></div>
-                                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                                    <label className="Checkbox">
-                                                                        <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                            <label>
-                                                                                We have sent an OTP to the entered phone number for alerts.
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                        <label>
+                                                                            We have sent an OTP to the entered phone number for alerts.
                                                                             </label>
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 }
@@ -412,7 +412,7 @@ export class ProfileSetting extends Component {
                                                                     <div className="Box-root" style={{ 'paddingLeft': '5px', color: 'red' }}>
                                                                         <label>
                                                                             {verifySMSCodeError}
-                                                                            {   sendVerificationSMSError === 'Server Error.' ?
+                                                                            {sendVerificationSMSError === 'Server Error.' ?
                                                                                 <span>Please provide a valid phone number</span> : <span>{sendVerificationSMSError}</span>
                                                                             }
                                                                         </label>
@@ -615,7 +615,7 @@ ProfileSetting.propTypes = {
     ]),
     verifySMSCodeRequesting: PropTypes.bool,
     initialValues: PropTypes.object,
-    projectId: PropTypes.string,
+    projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
     verifySMSCode: PropTypes.func.isRequired,
     sendEmailVerificationLink: PropTypes.func.isRequired,
     sendVerificationSMS: PropTypes.func.isRequired

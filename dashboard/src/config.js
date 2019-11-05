@@ -476,6 +476,41 @@ export function mapCriteria(val) {
     }
 }
 
+export function renderIfSubProjectAdmin(currentProject, subProjects, subProjectId) {
+    var userId = User.getUserId();
+    var renderItems = false;
+    if (
+        userId && currentProject &&
+        currentProject.users &&
+        currentProject.users.length > 0 &&
+        currentProject.users.filter(user => user.userId === userId
+            && (user.role === 'Administrator' || user.role === 'Owner')).length > 0
+    ) {
+        renderItems = true;
+    } else {
+        if (subProjects) {
+            subProjects.forEach((subProject) => {
+                if (subProjectId) {
+                    if (subProject._id === subProjectId && subProject.users.filter(user => user.userId === userId && (user.role === 'Administrator' || user.role === 'Owner')).length > 0) {
+                        renderItems = true;
+                    }
+                } else {
+                    if (
+                        userId && subProject &&
+                        subProject.users &&
+                        subProject.users.length > 0 &&
+                        subProject.users.filter(user => user.userId === userId
+                            && (user.role === 'Administrator' || user.role === 'Owner')).length > 0
+                    ) {
+                        renderItems = true;
+                    }
+                }
+            });
+        }
+    }
+    return renderItems;
+}
+
 export const formatDecimal = (value, decimalPlaces) => {
     return Number(Math.round(parseFloat(value + 'e' + decimalPlaces)) + 'e-' + decimalPlaces).toFixed(decimalPlaces);
 };

@@ -35,15 +35,13 @@ class DashboardView extends Component {
     ready = () => {
         const projectId = this.props.currentProject ? this.props.currentProject._id : null;
         this.props.fetchMonitors(projectId).then(() => {
-            this.props.monitor.monitorsList.monitors.forEach((monitor) => {
-                if (monitor.monitors) {
-                    monitor.monitors.forEach((monitor) => {
+            this.props.monitor.monitorsList.monitors.forEach((subProject) => {
+                if (subProject.monitors.length > 0) {
+                    subProject.monitors.forEach((monitor) => {
                         this.props.fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id);
+                        this.props.fetchMonitorsIncidents(monitor.projectId._id || monitor.projectId, monitor._id, 0, 3);
                     });
-                } else {
-                    this.props.fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id);
                 }
-                this.props.fetchMonitorsIncidents(monitor.projectId._id || monitor.projectId, monitor._id, 0, 3);
             });
         });
         this.props.fetchTutorial();
