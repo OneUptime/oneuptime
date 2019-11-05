@@ -20,6 +20,6 @@ describe('Check Backend', () => {
         const response = await page.$eval('body > pre', (e) => {
             return e.innerHTML;
         });
-        expect(response).toBe('{"status":200,"message":"Service Status - OK"}');
+        expect(response).toBe('{"status":200,"message":"Service Status - OK","serviceType":"fyipe-api"}');
     });
 });

@@ -78,6 +78,7 @@ class SmsTemplatesBox extends React.Component {
                                                             placeholder="Templates"
                                                             required="required"
                                                             onChange={this.templateChange}
+                                                            style={{ height: '28px' }}
                                                         >
                                                             <option value="">Select a template.</option>
                                                             {templates.map((temp, i) => <option value={temp.smsType} key={i}>{temp.smsType}</option>)}
