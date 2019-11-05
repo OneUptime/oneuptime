@@ -292,17 +292,18 @@ class NewMonitor extends Component {
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Monitor Category</label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={'select'}
+                                                            <Field className="db-select-nw"
+                                                                component={RenderSelect}
                                                                 name={`monitorCategoryId_${this.props.index}`}
                                                                 id="monitorCategory"
                                                                 placeholder="Choose Monitor Category"
                                                                 disabled={requesting}
                                                                 validate={ValidateField.select}
-                                                            >
-                                                                <option value="">Select monitor category</option>
-                                                                {monitorCategoryList && monitorCategoryList.map(monitorCategory => <option key={monitorCategory._id} value={monitorCategory._id}>{monitorCategory.name}</option>)}
-                                                            </Field>
+                                                                options={[
+                                                                    { value: '', label: 'Select monitor category' },
+                                                                    ...(monitorCategoryList && monitorCategoryList.length > 0 ? monitorCategoryList.map(category => ({ value: category._id, label: category.name })) : [])
+                                                                ]}
+                                                            />
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -355,17 +356,18 @@ class NewMonitor extends Component {
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">Call Schedule</label>
                                                             <div className="bs-Fieldset-fields">
-                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={'select'}
+                                                                <Field className="db-select-nw"
+                                                                    component={RenderSelect}
                                                                     name={`callSchedule_${this.props.index}`}
                                                                     id="callSchedule"
                                                                     placeholder="Call Schedule"
                                                                     disabled={requesting}
                                                                     style={{ height: '28px' }}
-                                                                >
-                                                                    <option value="">Select call schedule</option>
-                                                                    {schedules && schedules.map((schedule, i) => <option key={i} value={schedule._id}>{schedule.name}</option>)}
-                                                                </Field>
+                                                                    options={[
+                                                                        { value: '', label: 'Select call schedule' },
+                                                                        ...(schedules && schedules.length > 0 ? schedules.map(schedule => ({ value: schedule._id, label: schedule.name })) : [])
+                                                                    ]}
+                                                                />
                                                             </div>
                                                         </div>
                                                     </ShouldRender>

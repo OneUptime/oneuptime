@@ -511,6 +511,25 @@ export function renderIfSubProjectAdmin(currentProject, subProjects, subProjectI
     return renderItems;
 }
 
+export function renderIfUserInSubProject(currentProject, subProjects, subProjectId) {
+    var userId = User.getUserId();
+    var renderItems = false;
+    if (
+        currentProject &&
+        currentProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0) {
+        renderItems = true;
+    } else {
+        if (subProjects) {
+            subProjects.forEach((subProject) => {
+                if (subProject._id === subProjectId && subProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0) {
+                    renderItems = true;
+                }
+            });
+        }
+    }
+    return renderItems;
+}
+
 export const formatDecimal = (value, decimalPlaces) => {
     return Number(Math.round(parseFloat(value + 'e' + decimalPlaces)) + 'e-' + decimalPlaces).toFixed(decimalPlaces);
 };

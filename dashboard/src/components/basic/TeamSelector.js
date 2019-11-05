@@ -56,7 +56,6 @@ const TeamSelector = ({ input, placeholder,  meta: { touched, error }, members }
 TeamSelector.displayName = 'TeamSelector';
 
 TeamSelector.propTypes = {
-    subProjectId: PropTypes.string.isRequired,
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     meta: PropTypes.object.isRequired,
