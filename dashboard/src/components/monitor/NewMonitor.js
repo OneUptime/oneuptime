@@ -327,6 +327,7 @@ class NewMonitor extends Component {
                                                                     { value: 'script', label: 'Script' },
                                                                     { value: 'server-monitor', label: 'Server' }
                                                                 ]}
+                                                                style={{ height: '28px' }}
                                                             />
                                                             <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ marginTop: 10 }}>
                                                                 <span>{this.monitorTypeDescription[[this.state.type]]}</span>
@@ -346,6 +347,7 @@ class NewMonitor extends Component {
                                                                     props={{ subProjects }}
                                                                     onChange={this.scheduleChange}
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    style={{ height: '28px' }}
                                                                 />
                                                             </div>
                                                         </div>
@@ -360,6 +362,7 @@ class NewMonitor extends Component {
                                                                     id="callSchedule"
                                                                     placeholder="Call Schedule"
                                                                     disabled={requesting}
+                                                                    style={{ height: '28px' }}
                                                                 >
                                                                     <option value="">Select call schedule</option>
                                                                     {schedules && schedules.map((schedule, i) => <option key={i} value={schedule._id}>{schedule.name}</option>)}
@@ -385,6 +388,7 @@ class NewMonitor extends Component {
                                                                         { value: 'put', label: 'PUT' },
                                                                         { value: 'delete', label: 'DELETE' }
                                                                     ]}
+                                                                    style={{ height: '28px' }}
                                                                 />
                                                             </div>
                                                         </div>

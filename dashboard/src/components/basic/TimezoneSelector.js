@@ -9,7 +9,7 @@ let errorStyle = {
 
 const TimezoneSelector = ({ input, meta: { touched, error } }) => (
     <span>
-        <select {...input} className="bs-Button SearchableSelect-button bs-Button--icon--right bs-Button--icon bs-Button--overflow" >
+        <select {...input} className="bs-Button SearchableSelect-button bs-Button--icon--right bs-Button--icon bs-Button--overflow" style={{ height: '28px' }}>
             <option value="">Select Timezone...</option>
             {
                 Zones.map(zone => (
