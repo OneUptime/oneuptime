@@ -78,19 +78,13 @@ describe('Monitor Category', () => {
         await page.waitFor(5000);
 
         let monitorCategoryCheck = false;
+        await page.click('#monitorCategory');
+        await page.keyboard.type(utils.monitorCategoryName);
+        await page.keyboard.type(String.fromCharCode(13));
+
         let $monitorCategory = await page.$('#monitorCategory');
-        let properties = await $monitorCategory.getProperties();
-        for (const property of properties.values()) {
-            const element = property.asElement();
-            if (element) {
-                let hText = await element.getProperty("text");
-                let text = await hText.jsonValue();
-                if (text === utils.monitorCategoryName) {
-                    monitorCategoryCheck = true
-                    break;
-                }
-            }
-        }
+        monitorCategoryCheck = true;
+
         expect(monitorCategoryCheck).toEqual(true);
     }, operationTimeOut);
 

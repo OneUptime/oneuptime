@@ -85,7 +85,9 @@ describe('Monitor API', () => {
         await page.click('#type');
         await page.keyboard.type('url');
         await page.keyboard.type(String.fromCharCode(13));
-        await page.select('#callSchedule', callSchedule);
+        await page.click('#callSchedule');
+        await page.keyboard.type(callSchedule);
+        await page.keyboard.type(String.fromCharCode(13));
         await page.waitFor(2000);
         await page.waitForSelector('#url');
         await page.type('#url', 'https://google.com');

@@ -7,7 +7,6 @@ import { createIncidentRequest, createIncidentError, createIncidentSuccess, crea
 import { Validate, renderIfUserInSubProject } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject'
 import { history } from '../../store';
 import { RenderSelect } from '../basic/RenderSelect';
 
