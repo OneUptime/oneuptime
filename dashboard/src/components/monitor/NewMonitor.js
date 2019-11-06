@@ -345,7 +345,7 @@ class NewMonitor extends Component {
                                                                     required="required"
                                                                     disabled={requesting}
                                                                     component={SubProjectSelector}
-                                                                    props={{ subProjects }}
+                                                                    subProjects={subProjects}
                                                                     onChange={(e, v) => this.scheduleChange(e, v)}
                                                                     className="db-select-nw"
                                                                 />
