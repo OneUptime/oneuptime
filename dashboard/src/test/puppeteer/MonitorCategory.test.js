@@ -78,19 +78,12 @@ describe('Monitor Category', () => {
         await page.waitFor(5000);
 
         let monitorCategoryCheck = false;
-        let $monitorCategory = await page.$('#monitorCategory');
-        let properties = await $monitorCategory.getProperties();
-        for (const property of properties.values()) {
-            const element = property.asElement();
-            if (element) {
-                let hText = await element.getProperty("text");
-                let text = await hText.jsonValue();
-                if (text === utils.monitorCategoryName) {
-                    monitorCategoryCheck = true
-                    break;
-                }
-            }
+        await init.selectByText('#monitorCategory', utils.monitorCategoryName, page);
+        let noOption = await page.$('div.css-1gl4k7y');
+        if (!noOption) {
+            monitorCategoryCheck = true;
         }
+
         expect(monitorCategoryCheck).toEqual(true);
     }, operationTimeOut);
 
@@ -101,10 +94,7 @@ describe('Monitor Category', () => {
         await page.waitForSelector('#frmNewMonitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', utils.monitorName);
-        await page.click('#type');
-        await page.keyboard.type('url');
-        await page.keyboard.type(String.fromCharCode(13));
-        await init.selectByText('#monitorCategory', utils.monitorCategoryName, page);
+        await init.selectByText('#type', 'url', page);
         await page.waitForSelector('#url');
         await page.click('#url');
         await page.type('#url', 'https://google.com');

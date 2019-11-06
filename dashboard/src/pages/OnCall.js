@@ -108,7 +108,7 @@ export class OnCall extends Component {
             }
 
             return subProjectSchedule && subProjectSchedule.schedules ? (
-                <RenderIfUserInSubProject subProjectId={subProjectSchedule._id}>
+                <RenderIfUserInSubProject subProjectId={subProjectSchedule._id} key={i}>
                     <div className="bs-BIM" key={i}>
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">

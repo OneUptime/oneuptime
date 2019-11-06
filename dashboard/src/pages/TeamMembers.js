@@ -64,7 +64,7 @@ const LoadedTeam = props => {
     const allTeamMembers = subProjects && subProjects.map((subProject, i) => {
         const teamMembers = team.subProjectTeamMembers.find(subProjectTeamMember => subProjectTeamMember._id === subProject._id)
         return teamMembers && teamMembers.teamMembers ? (
-            <RenderIfUserInSubProject subProjectId={teamMembers._id}>
+            <RenderIfUserInSubProject subProjectId={teamMembers._id} key={i}>
                 <div className="bs-BIM" key={i}>
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">

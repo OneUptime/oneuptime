@@ -7,6 +7,7 @@ import { editSmsTemplates, resetSmsTemplates, changeShowingTemplate } from '../.
 import SmsTemplatesFormBox from './SmsTemplatesFormBox';
 import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
+import { RenderSelect } from '../basic/RenderSelect';
 
 class SmsTemplatesBox extends React.Component {
     submitForm = (values) => {
@@ -34,8 +35,8 @@ class SmsTemplatesBox extends React.Component {
         }
     }
 
-    templateChange = (e) => {
-        this.props.changeShowingTemplate(e.target.value);
+    templateChange = (e, value) => {
+        this.props.changeShowingTemplate(value);
     }
     render() {
         var templates = this.props.smsTemplates && this.props.smsTemplates.smsTemplates && this.props.smsTemplates.smsTemplates.templates ? this.props.smsTemplates.smsTemplates.templates : [];
@@ -71,18 +72,19 @@ class SmsTemplatesBox extends React.Component {
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">Templates</label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={'select'}
+                                                        <Field className="db-select-nw"
+                                                            component={RenderSelect}
                                                             name='type_Templates'
                                                             id='type'
                                                             placeholder="Templates"
                                                             required="required"
-                                                            onChange={this.templateChange}
+                                                            onChange={(e, v) => this.templateChange(e, v)}
                                                             style={{ height: '28px' }}
-                                                        >
-                                                            <option value="">Select a template.</option>
-                                                            {templates.map((temp, i) => <option value={temp.smsType} key={i}>{temp.smsType}</option>)}
-                                                        </Field>
+                                                            options={[
+                                                                { value: '', label: 'Select a template' },
+                                                                ...(templates && templates.length > 0 ? templates.map(template => ({ value: template.smsType, label: template.smsType })) : [])
+                                                            ]}
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
