@@ -42,11 +42,10 @@ module.exports = {
     //Param 1: stripeToken: Token generated from frontend
     //Param 2: user: User details
     //Returns: promise
-    createCustomer: async function (paymentMethod, email, companyName) {
+    createCustomer: async function (email, companyName) {
 
         try{
             var customer = await stripe.customers.create({
-                payment_method: paymentMethod,
                 email: email,
                 description: companyName
             });

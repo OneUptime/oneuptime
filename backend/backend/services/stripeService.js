@@ -229,21 +229,19 @@ module.exports = {
         return paymentIntent;
     },
     
-    makeTestCharge: async function (tokenId) {
+    makeTestCharge: async function (tokenId, email, companyName) {
             
         try {
             var testChargeValue = 100;
-            var paymentMethod = await stripe.paymentMethods.create({
-                type: 'card',
-                card: { token: tokenId }
-            });
+            var stripeCustomerId = await PaymentService.createCustomer(email, companyName);
+            var card = await stripe.customers.createSource(stripeCustomerId, { source: tokenId });
             var paymentIntent = await stripe.paymentIntents.create({
                 amount: testChargeValue,
                 currency: 'usd',
-                payment_method_types: ['card'],
-                payment_method: paymentMethod.id,
+                customer: stripeCustomerId,
                 description: 'Verify if card is billable.',
-                setup_future_usage: "off_session"
+                payment_method_types: ['card'],
+                source: card.id
             });
             return paymentIntent;
         } catch (error) {
@@ -255,6 +253,7 @@ module.exports = {
 
 var payment = require('../config/payment');
 var UserService = require('../services/userService');
+var PaymentService = require('../services/paymentService');
 var ProjectService = require('../services/projectService');
 var ProjectModel = require('../models/project');
 var MailService = require('../services/mailService');

@@ -46015,6 +46015,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   -webkit-font-smoothing: antialiased;
   border: 1px solid #bbb;
   font-size: 18px;
+  color:#525f7f
 }
 
 #login div#main-body form p a.button,
@@ -46025,7 +46026,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   text-align: center;
   height: 44px;
   width: 100%;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 #login div#main-body form p a.button.grey span,
 #login div#main-body form p button.button.grey span,

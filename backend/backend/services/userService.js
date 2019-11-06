@@ -244,9 +244,7 @@ module.exports = {
         var _this = this;
         var email = data.email;
         var stripePlanId = data.planId;
-        var companyName = data.companyName;
         var paymentIntent = data.paymentIntent;
-        var customerId;
 
         if (util.isEmailValid(email)) {
             try {
@@ -269,12 +267,7 @@ module.exports = {
                     ErrorService.log('PaymentService.checkPaymentIntent', error);
                     throw error;
                 }
-                try {
-                    customerId = await PaymentService.createCustomer(processedPaymentIntent.payment_method, email, companyName);
-                } catch (error) {
-                    ErrorService.log('PaymentService.createCustomer', error);
-                    throw error;
-                }
+                var customerId = processedPaymentIntent.customer;
 
                 try {
                     var hash = await bcrypt.hash(data.password, constants.saltRounds);

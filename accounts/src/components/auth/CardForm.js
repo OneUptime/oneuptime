@@ -90,12 +90,13 @@ class CardForm extends Component {
 			signupError
 		} = this.props;
 		const { user, planId } = this.props.register;
+		const { email, companyName } = user;
 			if (stripe) {
 				signUpRequest()
 				stripe.createToken()
 					.then(({ token }) => {
 						if (token) {
-							return addCard(token.id);
+							return addCard({ tokenId: token.id, email, companyName });
 						}
 						else {
 							throw new Error('Invalid card Details.');
