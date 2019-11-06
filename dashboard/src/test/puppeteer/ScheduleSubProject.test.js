@@ -108,8 +108,6 @@ describe('Schedule API With SubProjects', () => {
 
         // add new monitor to parent project and sub-project
         await init.addMonitorToProject(subProjectMonitorName, subProjectName, page);
-
-        ;
     });
 
     afterAll(async () => {
@@ -122,7 +120,6 @@ describe('Schedule API With SubProjects', () => {
         await newPage.click(`#callSchedules > a`);
         const createButton = await newPage.$(`#btnCreateSchedule_${subProjectName}`);
         expect(createButton).toBe(null);
-        ;
     });
 
     it('should create a schedule in sub-project for sub-project `admin`', async () => {
@@ -140,7 +137,6 @@ describe('Schedule API With SubProjects', () => {
         let textContent = await scheduleCountSelector.getProperty('innerText');
         textContent = await textContent.jsonValue();
         await expect(textContent).toEqual('1 schedule');
-        ;
     }, operationTimeOut);
 
     it('should get list schedules in sub-projects and paginate schedules in sub-project', async () => {
@@ -165,7 +161,6 @@ describe('Schedule API With SubProjects', () => {
         await newPage.waitFor(5000);
         countSchedules = (await newPage.$$('tr.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')).length;
         expect(countSchedules).toEqual(10);
-        ;
     }, 120000);
 
     it('should add monitor to sub-project schedule', async () => {
@@ -177,7 +172,6 @@ describe('Schedule API With SubProjects', () => {
         await page.waitForSelector('#btnSaveMonitors');
         await page.click('#btnSaveMonitors');
         await page.waitFor(5000);
-        ;
     }, operationTimeOut);
 
     it('should delete sub-project schedule', async () => {
@@ -186,6 +180,5 @@ describe('Schedule API With SubProjects', () => {
         await page.waitForSelector('#confirmDelete');
         await page.click('#confirmDelete');
         await page.waitFor(5000);
-        ;
     }, operationTimeOut);
 });     

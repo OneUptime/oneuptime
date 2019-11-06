@@ -61,9 +61,7 @@ describe('Monitor API', () => {
         await page.waitForSelector('#frmNewMonitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await page.click('#type');
-        await page.keyboard.type('url');
-        await page.keyboard.type(String.fromCharCode(13));
+        await init.selectByText('#type', 'url', page);
         await page.waitForSelector('#url');
         await page.click('#url');
         await page.type('#url', 'https://google.com');
@@ -82,12 +80,8 @@ describe('Monitor API', () => {
         await page.waitForSelector('#name');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await page.click('#type');
-        await page.keyboard.type('url');
-        await page.keyboard.type(String.fromCharCode(13));
-        await page.click('#callSchedule');
-        await page.keyboard.type(callSchedule);
-        await page.keyboard.type(String.fromCharCode(13));
+        await init.selectByText('#type', 'url', page);
+        await init.selectByText('#callSchedule', callSchedule, page);
         await page.waitFor(2000);
         await page.waitForSelector('#url');
         await page.type('#url', 'https://google.com');
@@ -103,9 +97,7 @@ describe('Monitor API', () => {
     it('Should not create new monitor when details that are incorrect', async () => {
         await page.waitFor(10000);
         await page.waitForSelector('#name');
-        await page.click('#type');
-        await page.keyboard.type('url');
-        await page.keyboard.type(String.fromCharCode(13));
+        await init.selectByText('#type', 'url', page);
         await page.waitForSelector('#url');
         await page.type('#url', 'https://google.com');
         await page.click('button[type=submit]');

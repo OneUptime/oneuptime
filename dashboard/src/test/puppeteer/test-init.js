@@ -94,7 +94,7 @@ module.exports = {
             await page.click('#btnSaveSubproject');
         }
         await page.waitFor(5000);
-        // await page.screenshot({path: 'screenshot-addSubProject.png'});
+        // await page.screenshot({ path: 'screenshot-addSubProject.png' });
     },
     addUserToProject: async function (data, page) {
         const { email, role, subProjectName } = data;
@@ -108,7 +108,7 @@ module.exports = {
         await page.click(`#${role}_${subProjectName}`);
         await page.click(`#btn_modal_${subProjectName}`);
         await page.waitFor(5000);
-        // await page.screenshot({path: 'screenshot-addUserToProject.png'});
+        // await page.screenshot({ path: 'screenshot-addUserToProject.png' });
     },
     switchProject: async function (projectName, page) {
         await page.reload({ waitUntil: 'networkidle2' });
@@ -118,7 +118,7 @@ module.exports = {
         const element = await page.$(`#accountSwitcher > div[title="${projectName}"]`);
         await element.click();
         await page.waitFor(5000);
-        // await page.screenshot({path: 'screenshot-switchProject.png'});
+        // await page.screenshot({ path: 'screenshot-switchProject.png' });
     },
     renameProject: async function (newProjectName, page) {
         const projectNameSelector = await page.$('input[name=project_name');
@@ -135,7 +135,7 @@ module.exports = {
             await page.click('#btnCreateProject');
         }
         await page.waitFor(5000);
-        // await page.screenshot({path: 'screenshot-renameProject.png'});
+        // await page.screenshot({ path: 'screenshot-renameProject.png' });
     },
     clear: async function (selector, page) {
         const input = await page.$(selector);
@@ -146,8 +146,11 @@ module.exports = {
     selectByText: async function (selector, text, page) {
         await page.click(selector);
         await page.keyboard.type(text);
-        await page.keyboard.type(String.fromCharCode(13));
-        // await page.screenshot({path: 'screenshot-selectByText.png'});
+        let noOption = await page.$('div.css-1gl4k7y');
+        if (!noOption) {
+            await page.keyboard.type(String.fromCharCode(13));
+        }
+        // await page.screenshot({ path: 'screenshot-selectByText.png' });
     },
     addMonitorToProject: async function (monitorName, projectName, page) {
         await page.waitForSelector('#monitors');
@@ -155,16 +158,14 @@ module.exports = {
         await page.waitForSelector('#frmNewMonitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await page.click('#type');
-        await page.keyboard.type('url');
-        await page.keyboard.type(String.fromCharCode(13));
+        await this.selectByText('#type', 'url', page);
         await this.selectByText('#subProjectId', projectName, page);
         await page.waitForSelector('#url');
         await page.click('#url');
         await page.type('#url', 'https://google.com');
         await page.click('button[type=submit]');
         await page.waitFor(5000);
-        // await page.screenshot({path: 'screenshot-addMonitorToProject.png'});
+        // await page.screenshot({ path: `screenshot-addMonitorToProject${monitorName}.png` });
     },
     addIncidentToProject: async function (monitorName, projectName, page) {
         const createIncidentSelector = await page.$(`#btnCreateIncident_${projectName}`);
