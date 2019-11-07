@@ -39,5 +39,6 @@ build backend
 build home 
 build status-page 
 build api-docs
+build probe
 
 cd $DIR

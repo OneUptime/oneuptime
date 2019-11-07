@@ -29,7 +29,7 @@ export class ResponseParent extends Component {
                                     <div className="bs-Fieldset-row" style={{ padding: '10px 4px 5px 4px', display: 'inline-block', marginLeft: `${level > 1 ? (level * 10) + 10 : 10}px` }}>
                                         <label className="bs-Fieldset-label" style={{ padding: '6px' }}>Match</label>
                                         <div className="bs-Fieldset-fields">
-                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                            <Field className="db-select-nw db-select-nw-100"
                                                 component={RenderSelect}
                                                 name={`${newval}.match`}
                                                 id="match"
@@ -37,12 +37,12 @@ export class ResponseParent extends Component {
                                                 disabled={false}
                                                 validate={ValidateField.select}
                                                 message='of the following rules :'
-                                                style={{ width: '100px' }}
-                                            >
-                                                <option value="">None</option>
-                                                <option value="all">All</option>
-                                                <option value="any">Any</option>
-                                            </Field>
+                                                options={[
+                                                    { value: '', label: 'None' },
+                                                    { value: 'all', label: 'All' },
+                                                    { value: 'any', label: 'Any' }
+                                                ]}
+                                            />
                                         </div>
                                     </div>
                                 </li> : ''}

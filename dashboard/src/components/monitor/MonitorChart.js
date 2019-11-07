@@ -287,8 +287,8 @@ MonitorChart.displayName = 'MonitorChart';
 
 MonitorChart.propTypes = {
     probe: PropTypes.object,
-    startDate: PropTypes.string,
-    endDate: PropTypes.string,
+    startDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    endDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     monitor: PropTypes.object,
     showAll: PropTypes.bool
 };

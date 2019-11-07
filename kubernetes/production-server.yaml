@@ -135,6 +135,8 @@ spec:
           value: "sk_live_ADLzzMrOCz0kyYTsxWatAqxh"
         - name: PORT
           value: "3002"
+        - name: CLUSTER_KEY
+          value: "asjldjsa-30as-nm32-q2as-lkj09asdjn0a"
         ports:
         - containerPort: 3002
           hostPort: 3002
@@ -277,9 +279,13 @@ spec:
         - name: FYIPE_HOSTED
           value: "true"
         - name: SERVER_URL
-          value: "http://backend"
+          value: "https://api.fyipe.com"
         - name: PORT
           value: "3008"
+        - name: PROBE_NAME
+          value: "EU"
+        - name: PROBE_KEY
+          value: "asjldjsa-30as-nm32-q2as-lkj09asdjn0a"
         ports:
         - containerPort: 3008
           hostPort: 3008

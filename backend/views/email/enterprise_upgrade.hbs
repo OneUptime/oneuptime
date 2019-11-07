@@ -78,95 +78,8 @@ span.st-Delink.st-Delink--footer a {
 }
 /** */
 
-/**
-  * # Header
-**/
-
-table.st-Header td.st-Header-background div.st-Header-area {
-  height: 76px !important;
-  width: 600px !important;
-  background-repeat: no-repeat !important;
-  background-size: 600px 76px !important;
-}
-
-table.st-Header td.st-Header-logo div.st-Header-area {
-  height: 21px !important;
-  width: 49px !important;
-  background-repeat: no-repeat !important;
-  background-size: 49px 21px !important;
-}
-
-
-table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
-  height: 21px !important;
-  width: 216px !important;
-  background-repeat: no-repeat !important;
-  background-size: 216px 21px !important;
-}
 .ii a[href] {
     color: #0080a8;
-}
-
-
-/**
-  * # Retina
-  * - Targets high density displays and devices smaller than 768px.
-  *
-  * ! For mobile specific styling, see `# Mobile`.
-**/
-
-@media (-webkit-min-device-pixel-ratio: 1.25), (min-resolution: 120dpi), all and (max-width: 768px) {
-
-  /**
-    * # Target
-    * - Hides images in these devices to display the larger version as a
-    *   background image instead.
-  **/
-
-  /** Modifier: mobile */
-  body[override] div.st-Target.st-Target--mobile img {
-    display: none !important;
-    margin: 0 !important;
-    max-height: 0 !important;
-    min-height: 0 !important;
-    mso-hide: all !important;
-    padding: 0 !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-  }
-  /** */
-
-  /**
-    * # Header
-  **/
-
-  body[override] table.st-Header td.st-Header-background div.st-Header-area{
-    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
-  }
-
-  /** Modifier: white */
-  body[override] table.st-Header.st-Header--white td.st-Header-background div.st-Header-area {
-    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
-  }
-
-
-
-
-
-  /** */
-
-  /** Modifier: simplified */
-  body[override] table.st-Header.st-Header--simplified td.st-Header-logo div.st-Header-area {
-    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
-  }
-  /** */
-
-  /** Modifier: simplified + atlasAzlo */
-  body[override] table.st-Header.st-Header--simplified td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
-    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
-  }
-  /** */
-
 }
 
 /**
@@ -248,44 +161,9 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
   }
   /** */
 
-  /**
-    * # Header
-  **/
-  body[override] table.st-Header td.st-Header-background div.st-Header-area{
-    margin: 0 auto !important;
-    width: auto !important;
-    background-position: 0 0 !important;
-  }
-
-  body[override] table.st-Header td.st-Header-background div.st-Header-area{
-    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
-  }
-
-  /** Modifier: white */
-  body[override] table.st-Header.st-Header--white td.st-Header-background div.st-Header-area {
-    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
-  }
-  /** */
-
-  /** Modifier: simplified */
-  body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
-    width: auto !important;
-  }
-
   body[override] table.st-Header.st-Header--simplified td.st-Header-spacing{
     width: 0 !important;
   }
-
-  body[override] table.st-Header.st-Header--simplified td.st-Header-logo div.st-Header-area {
-    margin: 0 auto !important;
-    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
-  }
-
-  body[override] table.st-Header.st-Header--simplified td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
-    margin: 0 auto !important;
-    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
-  }
-  /** */
 
   /**
     * # Divider
@@ -326,32 +204,6 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
     vertical-align: middle !important;
   }
 }
-
-@media (-webkit-min-device-pixel-ratio: 1.25), (min-resolution: 120dpi), all and (max-width: 768px) {
-
-  /**
-    * # mobile image
-   **/
-  body[override] div.st-Target.st-Target--mobile img {
-    display: none !important;
-    margin: 0 !important;
-    max-height: 0 !important;
-    min-height: 0 !important;
-    mso-hide: all !important;
-    padding: 0 !important;
-
-    font-size: 0 !important;
-    line-height: 0 !important;
-  }
-
-  /**
-    * # document-list-item image
-   **/
-  body[override] div.st-Icon.st-Icon--document {
-    background-image: url('https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1') !important;
-  }
-}
-
     </style>
   </head>
   <body class="st-Email" bgcolor="f6f9fc" style="border: 0; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; min-width: 100%; width: 100%;" override="fix">
@@ -381,10 +233,10 @@ table.st-Header td.st-Header-logo.st-Header-logo--atlasAzlo div.st-Header-area {
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
-      <td class="st-Header-logo" align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
-        <div class="st-Header-area st-Target st-Target--mobile">
+      <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
+        <div>
           <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-            <img alt="Fyipe" border="0" class="st-Header-source" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #0080a8; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
+            <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #0080a8; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
           </a>
         </div>
       </td>

@@ -165,7 +165,7 @@ export const groups = [
 						index: 3
 					},
 					{
-						title: 'Email Settings',
+						title: 'Email',
 						path: '/project/:projectId/settings/emails',
 						icon: 'radar',
 						visible: true,
@@ -174,7 +174,7 @@ export const groups = [
 						index: 4
 					},
 					{
-						title: 'SMS Settings',
+						title: 'SMS',
 						path: '/project/:projectId/settings/sms',
 						icon: 'radar',
 						visible: true,
@@ -183,7 +183,7 @@ export const groups = [
 						index: 5
 					},
 					{
-						title: 'Probe Settings',
+						title: 'Probe',
 						path: '/project/:projectId/settings/probe',
 						icon: 'radar',
 						visible: true,

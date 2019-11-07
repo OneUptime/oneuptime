@@ -4,7 +4,7 @@ import * as types from '../constants/logout'
 // from localStorage. These actions are more useful if we
 // were calling the API to log the user out
 
-export function requestLogout() {
+export const requestLogout = () => {
   return {
     type: types.LOGOUT_REQUEST,
     isFetching: true,
@@ -12,7 +12,7 @@ export function requestLogout() {
   }
 }
 
-export function receiveLogout() {
+export const receiveLogout = () => {
   return {
     type: types.LOGOUT_SUCCESS,
     isFetching: false,
@@ -21,11 +21,9 @@ export function receiveLogout() {
 }
 
 // Logs the user out
-export function logoutUser() {
-  return dispatch => {
+export const logoutUser = () => dispatch => {
     dispatch(requestLogout())
     localStorage.removeItem('id_token')
     localStorage.removeItem('access_token')
     dispatch(receiveLogout())
   }
-}

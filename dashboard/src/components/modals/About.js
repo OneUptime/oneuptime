@@ -14,6 +14,7 @@ class About extends Component {
 
     render() {
         let { versions } = this.props;
+        let currentYear = new Date().getFullYear();
 
         return (
             <div onKeyDown={this.handleKeyBoard} className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -34,6 +35,13 @@ class About extends Component {
                             <div className="bs-Modal-content">
                                 <table>
                                     <tbody>
+                                        <tr>
+                                            <td style={{ paddingBottom: '10px' }} colSpan={2}>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Fyipe is a product of <a href="https://hackerbay.io" rel="noopener noreferrer" target="_blank">HackerBay, Inc.</a>. HackerBay, Inc. is a United States Delaware C Corporation.
+                                                </span>
+                                            </td>
+                                        </tr>
                                         <tr>
                                             <td>
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -59,9 +67,18 @@ class About extends Component {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td style={{ paddingTop: '10px' }} colSpan={2}>
+                                            <td style={{ paddingTop: '20px' }} colSpan={2}>
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                    Fyipe is a product of <a href='https://hackerbay.io'>HackerBay, Inc.</a>. HackerBay, Inc. is a United States Delaware C Corporation.
+                                                    <a href="https://fyipe.com/legal" rel="noopener noreferrer" target="_blank">Legal Center</a><span style={{ paddingLeft: '10px' }}>|</span>
+                                                </span>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ paddingLeft: '10px' }}>
+                                                    <a href="https://fyipe.com/legal/terms" rel="noopener noreferrer" target="_blank">Terms of Use</a><span style={{ paddingLeft: '10px' }}>|</span>
+                                                </span>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ paddingLeft: '10px' }}>
+                                                    <a href="https://fyipe.com/legal/privacy" rel="noopener noreferrer" target="_blank">Privacy Policy</a><span style={{ paddingLeft: '10px' }}>|</span>
+                                                </span>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ paddingLeft: '10px' }}>
+                                                    <a href="https://fyipe.com/legal/sla" rel="noopener noreferrer" target="_blank">SLA</a>
                                                 </span>
                                             </td>
                                         </tr>
@@ -69,6 +86,9 @@ class About extends Component {
                                 </table>
                             </div>
                             <div className="bs-Modal-footer">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    Copyright © {currentYear} HackerBay, Inc.
+                                </span>
                                 <div className="bs-Modal-footer-actions">
                                     <button className="bs-Button bs-DeprecatedButton bs-Button--grey" type="button" onClick={this.props.closeThisDialog}>
                                         <span>Close</span>

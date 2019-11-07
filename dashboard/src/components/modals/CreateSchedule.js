@@ -40,10 +40,10 @@ class CreateSchedule extends React.Component {
         this.setState(state => {
             let { endDate } = state;
 
-            if(endDate < moment){
+            if (endDate < moment) {
                 endDate = moment;
             }
-            return{
+            return {
                 startDate: moment,
                 startDateCleared: false,
                 endDate,
@@ -158,7 +158,7 @@ class CreateSchedule extends React.Component {
                                                                     onChange={this.handleChangeStartDate}
                                                                     showTimePicker={true}
                                                                     closeOnSelectDay={true}>
-                                                                    <input type="text" className="bs-TextInput" value={valueStartDate} style={{ width: 300, padding: '3px 5px' }}/>
+                                                                    <input type="text" className="bs-TextInput" value={valueStartDate} style={{ width: 300, padding: '3px 5px' }} />
                                                                 </DatetimePickerTrigger>
                                                             </div>
                                                         </div>
@@ -179,7 +179,7 @@ class CreateSchedule extends React.Component {
                                                                     onChange={this.handleChangeEndDate}
                                                                     showTimePicker={true}
                                                                     closeOnSelectDay={true}>
-                                                                    <input type="text" className="bs-TextInput" value={valueEndDate}  style={{ width: 300, padding: '3px 5px' }} />
+                                                                    <input type="text" className="bs-TextInput" value={valueEndDate} style={{ width: 300, padding: '3px 5px' }} />
                                                                 </DatetimePickerTrigger>
                                                             </div>
                                                         </div>
@@ -343,7 +343,7 @@ class CreateSchedule extends React.Component {
                                     })}>
                                         <span>Cancel</span></button>
                                     <button
-                                        Id="createScheduledEventButton"
+                                        id="createScheduledEventButton"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={requesting}
                                         type="submit">

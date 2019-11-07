@@ -127,11 +127,9 @@ const mapDispatchToProps = (dispatch) => {
     }, dispatch)
 }
 
-function mapStateToProps(state, props) {
-    const userId = props.userId;
-    const user = state.user.users.users.find(user => user._id === userId) || {}
+function mapStateToProps(state) {
+    const user = state.user.user.user || {}
     return {
-        userId,
         userSettings: state.user.userSetting,
         user
     };

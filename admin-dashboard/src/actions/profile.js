@@ -1,13 +1,12 @@
 import * as types from '../constants/profile';
 
-export function showProfileMenu() {
-
+export const showProfileMenu = () => {
 	return {
 		type: types.SHOW_PROFILE_MENU,
 	};
 }
 
-export function hideProfileMenu(error) {
+export const hideProfileMenu = error => {
 	return {
 		type: types.HIDE_PROFILE_MENU,
 		payload: error

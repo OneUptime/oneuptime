@@ -16,21 +16,20 @@ class Project extends Component {
 
     componentDidMount() {
         if(window.location.href.indexOf('localhost') <= -1){
-        this.context.mixpanel.track('Project page Loaded');
+            this.context.mixpanel.track('Project page Loaded');
         }
     }
 
-    ready = () => {
+    ready = async () => {
         const { fetchProject } = this.props;
 
-        fetchProject(this.props.match.params.projectId);
+        await fetchProject(this.props.match.params.projectId);
     }
 
     render() {
         return (
             <Dashboard ready={this.ready}>
-                <div className="db-World-contentPane Box-root Padding-bottom--48">
-
+                <div className="Box-root">
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">
