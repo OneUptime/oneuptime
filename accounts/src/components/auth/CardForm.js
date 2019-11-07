@@ -5,8 +5,7 @@ import RenderCountrySelector from '../basic/CountrySelector';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField'
-import { PricingPlan } from '../../config';
-import { Validate } from '../../config';
+import { PricingPlan, Validate, PUBLIC_STRIPE_KEY } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
 import {
 	CardNumberElement,
@@ -382,7 +381,7 @@ CardFormWithCheckOut.displayName = 'CardFormWithCheckOut';
 export default class CardFormHOC extends Component {
 	render() {
 		return (
-			<StripeProvider apiKey={process.env.REACT_APP_PUBLIC_STRIPE_KEY}>
+			<StripeProvider apiKey={PUBLIC_STRIPE_KEY}>
 				<Elements>
 					<CardFormWithCheckOut />
 				</Elements>

@@ -10,7 +10,7 @@ let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
-
+let publicStripeKey = 'pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv';
 
 function env(value) {
     var { _env } = window;
@@ -38,6 +38,8 @@ export const DASHBOARD_URL = dashboardUrl;
 export const DOMAIN_URL = domain;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
+
+export const PUBLIC_STRIPE_KEY = publicStripeKey;
 
 export const User = {
 
