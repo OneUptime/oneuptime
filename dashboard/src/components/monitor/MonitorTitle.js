@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import Badge from '../common/Badge';
 import StatusIndicator from './StatusIndicator';
+import { getMonitorStatus } from '../../config';
 
 export class MonitorTitle extends Component {
 
@@ -12,6 +13,7 @@ export class MonitorTitle extends Component {
     }
 
     render() {
+        let status = getMonitorStatus(this.props.monitor);
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
         let badgeColor;
         switch (this.props.monitor.type) {
@@ -25,8 +27,6 @@ export class MonitorTitle extends Component {
                 badgeColor = 'blue';
                 break;
         }
-
-        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'online';
 
         return (
             <div className="db-Trends-title">
