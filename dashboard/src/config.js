@@ -4,6 +4,7 @@ import validUrl from 'valid-url';
 import valid from 'card-validator';
 import { isServer } from './store';
 import FileSaver from 'file-saver';
+import moment from 'moment';
 
 let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
@@ -536,4 +537,12 @@ export const formatDecimal = (value, decimalPlaces) => {
 
 export const formatBytes = (a, b, c, d, e) => {
     return formatDecimal((b = Math, c = b.log, d = 1e3, e = c(a) / c(d) | 0, a / b.pow(d, e)), 2) + ' ' + (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
+};
+
+export const getMonitorStatus = (monitor) => {
+    let incident = monitor && monitor.incidents && monitor.incidents.length > 0 ? monitor.incidents[0] : null;
+    let log = monitor && monitor.logs && monitor.logs.length > 0 ? monitor.logs[0] : null;
+    let compareStatus = incident && log ? (moment(incident.createdAt).isSameOrAfter(moment(log.createdAt)) ? (incident.incidentType || 'online') : (log.status || 'online')) : (incident ? (incident.incidentType || 'online') : (log ? log.status : 'online'));
+    let status = compareStatus || 'offline';
+    return status;
 };

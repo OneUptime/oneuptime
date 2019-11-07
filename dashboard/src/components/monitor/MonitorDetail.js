@@ -18,6 +18,7 @@ import Badge from '../common/Badge';
 import { history } from '../../store';
 import MonitorChart from './MonitorChart';
 import StatusIndicator from './StatusIndicator';
+import { getMonitorStatus } from '../../config';
 
 const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
@@ -142,7 +143,7 @@ export class MonitorDetail extends Component {
                 break;
         }
 
-        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'online';
+        let status = getMonitorStatus(this.props.monitor);
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
 
         return (
