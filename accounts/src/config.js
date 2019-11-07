@@ -148,7 +148,7 @@ export const Validate = {
     },
 
     isStrongPassword(password) {
-        if(password.match("^(?=.{8,})")) { 
+        if(password.match('^(?=.{8,})')) { 
             return true;
         }
         return false;
@@ -209,7 +209,8 @@ export const Validate = {
     },
 
     isValidName(name) { 
-        if(name.match("[A-Z][a-zA-Z][^#&<>\"~;$^%{}?]{1,20}$")) {
+        // eslint-disable-next-line
+        if(name.match('[A-Z][a-zA-Z][^#&<>\"~;$^%{}?]{1,20}$')) {
             return true
         }
         return false;

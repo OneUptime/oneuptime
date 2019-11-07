@@ -204,7 +204,7 @@ export function addCardSuccess(card) {
 export function addCard(data) {
 
 	return function (dispatch) {
-		var promise = postApi(`stripe/checkCard`, data)
+		var promise = postApi('stripe/checkCard', data)
 
 		dispatch(addCardRequest(promise));
 

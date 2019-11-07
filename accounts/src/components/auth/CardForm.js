@@ -367,12 +367,19 @@ CardForm.propTypes = {
 	handleSubmit: PropTypes.func.isRequired,
 	submitForm: PropTypes.func.isRequired,
 	register: PropTypes.object.isRequired,
-	planId: PropTypes.string.isRequired
+	planId: PropTypes.string.isRequired,
+	stripe: PropTypes.object,
+	addCard: PropTypes.func.isRequired,
+	signUpRequest: PropTypes.func.isRequired,
+	signupError: PropTypes.func.isRequired,
+	signupSuccess: PropTypes.func.isRequired,
+	signupUser: PropTypes.func.isRequired,
 }
 
 const CardFormWithCheckOut = injectStripe(connect(mapStateToProps, mapDispatchToProps)(cardForm));
+CardFormWithCheckOut.displayName = 'CardFormWithCheckOut';
 
-export default class SplitFieldsDemo extends Component {
+export default class CardFormHOC extends Component {
 	render() {
 		return (
 			<StripeProvider apiKey={process.env.REACT_APP_PUBLIC_STRIPE_KEY}>
@@ -383,3 +390,5 @@ export default class SplitFieldsDemo extends Component {
 		);
 	}
 }
+
+CardFormHOC.displayName = 'CardFormHOC';

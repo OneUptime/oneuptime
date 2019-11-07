@@ -88,6 +88,7 @@ RegisterPage.propTypes = {
 	location: PropTypes.object.isRequired,
 	register:PropTypes.object,
 	success:PropTypes.bool,
+	savePlanId: PropTypes.func.isRequired
 }
 
 RegisterPage.displayName = 'RegisterPage'
