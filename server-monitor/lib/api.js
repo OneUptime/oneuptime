@@ -9,13 +9,13 @@
 'use strict';
 
 const dotenv = require('dotenv');
+dotenv.config();
+
 const Promise = require('promise');
 const cron = require('cron');
 const si = require('systeminformation');
 const { get, post } = require('./helpers');
 const logger = require('./logger');
-
-dotenv.config();
 
 /**
  * Get system information at interval and upload to server.
