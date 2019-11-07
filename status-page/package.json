@@ -1,6 +1,6 @@
 {
   "name": "status-page",
-  "version": "3.0.606",
+  "version": "3.0.638",
   "private": true,
   "dependencies": {
     "axios": "^0.19.0",

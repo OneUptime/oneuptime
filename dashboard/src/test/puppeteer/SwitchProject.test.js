@@ -17,29 +17,29 @@ describe('Project API', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
+
         // intercept request and mock response for login
         await page.setRequestInterception(true);
-        await page.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
+        await page.on('request', async (request) => {
+            if ((await request.url()).match(/user\/login/)) {
                 request.respond({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify(userCredentials)
                 });
-            }else{
+            } else {
                 request.continue();
             }
         });
-        await page.on('response', async (response)=>{
-            try{
+        await page.on('response', async (response) => {
+            try {
                 var res = await response.json();
-                if(res && res.tokens){
+                if (res && res.tokens) {
                     userCredentials = res;
                 }
-            }catch(error){}
+            } catch (error) { }
         });
-    
+
         // user credentials
         let email = utils.generateRandomBusinessEmail();
         let password = utils.generateRandomString();
@@ -47,17 +47,17 @@ describe('Project API', () => {
             email,
             password
         };
-    
+
         // register and signin user
         await init.registerUser(user, page);
         await init.loginUser(user, page);
-    
-        
+
+
     });
-    
+
     afterAll(async () => {
         await browser.close();
-        
+
     });
 
     it('Should create new project from dropdown after login', async () => {
@@ -74,18 +74,18 @@ describe('Project API', () => {
         localStorageData = await page.evaluate(() => {
             let json = {};
             for (let i = 0; i < localStorage.length; i++) {
-               const key = localStorage.key(i);
-               json[key] = localStorage.getItem(key);
+                const key = localStorage.key(i);
+                json[key] = localStorage.getItem(key);
             }
             return json;
-         });
+        });
         localStorageData.should.have.property('project');
-        
+
     }, operationTimeOut);
 
 
     it('Should switch project using project switcher', async () => {
-        await page.reload({ waitUntil: 'networkidle2'});
+        await page.reload({ waitUntil: 'networkidle2' });
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
         await page.waitForSelector('#accountSwitcher');
@@ -95,13 +95,13 @@ describe('Project API', () => {
         localStorageData = await page.evaluate(() => {
             let json = {};
             for (let i = 0; i < localStorage.length; i++) {
-               const key = localStorage.key(i);
-               json[key] = localStorage.getItem(key);
+                const key = localStorage.key(i);
+                json[key] = localStorage.getItem(key);
             }
             return json;
-         });
+        });
         localStorageData.should.have.property('project');
-        
+
     }, operationTimeOut);
 
 });

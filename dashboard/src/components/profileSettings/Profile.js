@@ -12,6 +12,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import ReactPhoneInput from 'react-phone-input-2'
 import 'react-phone-input-2/dist/style.css'
+import { User } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -55,7 +56,8 @@ export class ProfileSetting extends Component {
         removedPic: false,
         fileInputKey: null,
         isVerified: false,
-        initialAlertPhoneNumber: ''
+        initialAlertPhoneNumber: '',
+        userEmail: ''
     }
 
     handleOnChange = (value) => {
@@ -100,13 +102,14 @@ export class ProfileSetting extends Component {
             this.props.profileSettings.data &&
             this.props.profileSettings.data.profilePic &&
             this.props.profileSettings.data.profilePic !== '' ? this.props.profileSettings.data.profilePic : null;
-        const { alertPhoneNumber, isVerified } = this.props.initialValues;
+        const { alertPhoneNumber, isVerified, email } = this.props.initialValues;
 
         this.setState({
             profilePic,
             isVerified,
             fileInputKey: new Date(),
-            initialAlertPhoneNumber: alertPhoneNumber
+            initialAlertPhoneNumber: alertPhoneNumber,
+            userEmail: email
         })
     }
 
@@ -178,6 +181,7 @@ export class ProfileSetting extends Component {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Update Profile', values);
         }
+        User.setEmail(values.email);
     }
 
     removeProfilePic = () => {
@@ -194,18 +198,27 @@ export class ProfileSetting extends Component {
     handleSendEmailVerification = () => {
         const { email } = this.props.initialValues;
         this.props.sendEmailVerificationLink({ email });
+        this.setState({ userEmail: email });
+        User.setEmail(email);
     }
 
     render() {
-        const { initPhoneVerification, verified, initialAlertPhoneNumber, isVerified } = this.state;
+        const { initPhoneVerification, verified, initialAlertPhoneNumber, userEmail } = this.state;
 
         const { handleSubmit, profileSettings,
             sendVerificationSMSRequesting, emailVerificationRequesting,
             verifySMSCodeRequesting, sendVerificationSMSError,
             verifySMSCodeError, emailVerificationError,
-            emailVerificationSuccess } = this.props;
+            emailVerificationSuccess, initialValues } = this.props;
 
         var profilePic = this.state.profilePic;
+        var isVerified = this.state.isVerified;
+        var initialUserEmail;
+
+        if (initialValues) {
+            isVerified = this.props.initialValues.isVerified;
+            initialUserEmail = this.props.initialValues.email;
+        }
 
         profilePic = profilePic === 'null' ? null : profilePic;
 
@@ -260,14 +273,26 @@ export class ProfileSetting extends Component {
                                                     />
                                                 </div>
                                                 <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5 }}>
-                                                    {!isVerified ? <span style={{ color: 'red' }}>Not verified</span> : <span style={{ color: 'green' }}>Verified</span>}
+                                                    {
+                                                        !isVerified ?
+                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                    Not verified
+                                                            </span>
+                                                            </div>
+                                                            : <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                    Verified
+                                                                </span>
+                                                            </div>
+                                                    }
                                                 </div>
                                             </div>
                                             <ShouldRender if={!isVerified}>
                                                 <div className="bs-Fieldset-row" style={{ marginBottom: -5, marginTop: -5 }}>
                                                     <label className="bs-Fieldset-label"></label>
                                                     <div className="bs-Fieldset-fields">
-                                                        {!emailVerificationError && !emailVerificationSuccess && <button
+                                                        {((!emailVerificationError && !emailVerificationSuccess) || initialUserEmail !== userEmail) && <button
                                                             className="bs-Button"
                                                             disabled={profileSettings && profileSettings.requesting}
                                                             type="button"
@@ -276,7 +301,7 @@ export class ProfileSetting extends Component {
                                                             {emailVerificationRequesting && <div> <ListLoader /> </div>}
                                                         </button>}
                                                         {emailVerificationError && <span>{emailVerificationError}</span>}
-                                                        {emailVerificationSuccess && <span>Please check your email to verify your email address</span>}
+                                                        {(emailVerificationSuccess && initialUserEmail === userEmail) && <span>Please check your email to verify your email address</span>}
                                                     </div>
                                                 </div>
                                             </ShouldRender>
@@ -293,8 +318,17 @@ export class ProfileSetting extends Component {
                                                 <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5 }}>
                                                     {
                                                         this.state.alertPhoneNumber !== initialAlertPhoneNumber && !verified ?
-                                                            <span style={{ color: 'red' }}>Not verified</span> :
-                                                            this.state.alertPhoneNumber ? <span style={{ color: 'green' }}>Verified</span> : ''
+                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                    Not verified
+                                                                </span>
+                                                            </div>
+                                                            : this.state.alertPhoneNumber ?
+                                                                <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                        Verified
+                                                                </span>
+                                                                </div> : ''
                                                     }
                                                 </div>
                                             </div>
@@ -313,22 +347,24 @@ export class ProfileSetting extends Component {
                                                     </div>
                                                 </div>
                                             </ShouldRender>
-                                            <ShouldRender if={initPhoneVerification}>
-                                                <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
-                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                        <div className="Box-root" style={{ height: '5px' }}></div>
-                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                            <label className="Checkbox">
-                                                                <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                    <label>
-                                                                        We have sent an OTP to the entered phone number for alerts.
+                                            <ShouldRender if={initPhoneVerification && !verified && this.state.alertPhoneNumber !== initialAlertPhoneNumber}>
+                                                {(!verifySMSCodeError && !sendVerificationSMSError && !sendVerificationSMSRequesting) &&
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div className="Box-root" style={{ height: '5px' }}></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                        <label>
+                                                                            We have sent an OTP to the entered phone number for alerts.
+                                                                            </label>
+                                                                    </div>
                                                                 </label>
-                                                                </div>
-                                                            </label>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                }
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">Enter OTP</label>
                                                     <div className="bs-Fieldset-fields" style={{ flex: '0 0 0' }}>
@@ -376,7 +412,9 @@ export class ProfileSetting extends Component {
                                                                     <div className="Box-root" style={{ 'paddingLeft': '5px', color: 'red' }}>
                                                                         <label>
                                                                             {verifySMSCodeError}
-                                                                            {sendVerificationSMSError}
+                                                                            {sendVerificationSMSError === 'Server Error.' ?
+                                                                                <span>Please provide a valid phone number</span> : <span>{sendVerificationSMSError}</span>
+                                                                            }
                                                                         </label>
                                                                     </div>
                                                                 </label>
@@ -577,7 +615,7 @@ ProfileSetting.propTypes = {
     ]),
     verifySMSCodeRequesting: PropTypes.bool,
     initialValues: PropTypes.object,
-    projectId: PropTypes.string,
+    projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
     verifySMSCode: PropTypes.func.isRequired,
     sendEmailVerificationLink: PropTypes.func.isRequired,
     sendVerificationSMS: PropTypes.func.isRequired

@@ -22,21 +22,19 @@ class Monitors extends Component {
     render() {
         return (
             <Dashboard>
-                <div className="db-World-contentPane Box-root Padding-bottom--48">
+                <div className="Margin-vertical--12">
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <span>
+                        <div className="db-BackboneViewContainer">
+                            <div className="react-settings-view react-view">
+                                <span>
+                                    <div>
                                         <div>
-                                            <div>
-                                                <RenderIfAdmin>
-                                                    <MonitorCategories />
-                                                </RenderIfAdmin>
-                                            </div>
+                                            <RenderIfAdmin>
+                                                <MonitorCategories />
+                                            </RenderIfAdmin>
                                         </div>
-                                    </span>
-                                </div>
+                                    </div>
+                                </span>
                             </div>
                         </div>
                     </div>

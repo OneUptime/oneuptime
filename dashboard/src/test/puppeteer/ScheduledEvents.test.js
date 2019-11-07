@@ -75,9 +75,7 @@ describe('Scheduled event', () => {
 
         await page.type('input[id=name]', monitorName);
 
-        await page.click('#type');
-        await page.keyboard.type('url');
-        await page.keyboard.type(String.fromCharCode(13));
+        await init.selectByText('#type', 'url', page);
 
         await page.waitForSelector('#url');
 

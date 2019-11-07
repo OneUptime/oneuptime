@@ -7,6 +7,7 @@ import { editEmailTemplates, resetEmailTemplates, changeShowingTemplate } from '
 import TemplatesFormBox from './TemplatesFormBox';
 import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
+import { RenderSelect } from '../basic/RenderSelect';
 
 class EmailTemplatesBox extends React.Component {
     submitForm = (values) => {
@@ -35,13 +36,13 @@ class EmailTemplatesBox extends React.Component {
         }
     }
 
-    templateChange = (e) => {
-        this.props.changeShowingTemplate(e.target.value);
+    templateChange = (e, value) => {
+        this.props.changeShowingTemplate(value);
     }
     render() {
         var templates = this.props.emailTemplates && this.props.emailTemplates.emailTemplates && this.props.emailTemplates.emailTemplates.templates ? this.props.emailTemplates.emailTemplates.templates : [];
         return (
-            <div className="db-World-contentPane Box-root">
+            <div className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className={this.props.emailTemplates && this.props.emailTemplates.showingTemplate && this.props.emailTemplates.showingTemplate.emailType ? '' : 'bs-ContentSection Card-root Card-shadow--medium'}>
@@ -70,17 +71,19 @@ class EmailTemplatesBox extends React.Component {
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Templates</label>
                                                 <div className="bs-Fieldset-fields">
-                                                    <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                        component={'select'}
+                                                    <Field className="db-select-nw"
+                                                        component={RenderSelect}
                                                         name='type_Templates'
                                                         id='type'
                                                         placeholder="Templates"
                                                         required="required"
-                                                        onChange={this.templateChange}
-                                                    >
-                                                        <option value="">Select a template.</option>
-                                                        {templates.map((temp, i) => <option value={temp.emailType} key={i}>{temp.emailType}</option>)}
-                                                    </Field>
+                                                        onChange={(e, v) => this.templateChange(e, v)}
+                                                        style={{ height: '28px' }}
+                                                        options={[
+                                                            { value: '', label: 'Select a template' },
+                                                            ...(templates && templates.length > 0 ? templates.map(template => ({ value: template.emailType, label: template.emailType })) : [])
+                                                        ]}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
