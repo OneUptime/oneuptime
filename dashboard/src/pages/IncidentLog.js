@@ -67,7 +67,7 @@ class IncidentLog extends React.Component {
             }
 
             return subProjectIncident && subProjectIncident.incidents ? (
-                <RenderIfUserInSubProject subProjectId={subProjectIncident._id}>
+                <RenderIfUserInSubProject subProjectId={subProjectIncident._id} key={i}>
                     <div className="bs-BIM" key={i}>
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -132,18 +132,16 @@ class IncidentLog extends React.Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <div className="db-World-contentPane Box-root Padding-bottom--48">
+                <div>
                     <div>
-                        <div>
-                            <div className="db-RadarRulesLists-page">
-                                <ShouldRender if={this.props.incidentTutorial.show}>
-                                    <TutorialBox type="incident" />
-                                </ShouldRender>
+                        <div className="db-RadarRulesLists-page">
+                            <ShouldRender if={this.props.incidentTutorial.show}>
+                                <TutorialBox type="incident" />
+                            </ShouldRender>
 
-                                {
-                                    allIncidents
-                                }
-                            </div>
+                            {
+                                allIncidents
+                            }
                         </div>
                     </div>
                 </div>

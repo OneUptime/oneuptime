@@ -119,7 +119,6 @@ class Incident extends React.Component {
     }
     return (
       <Dashboard ready={this.ready}>
-        <div className="db-World-contentPane Box-root Padding-bottom--48">
           <div>
             <div>
               <div className="db-BackboneViewContainer">
@@ -135,7 +134,6 @@ class Incident extends React.Component {
               </div>
             </div>
           </div>
-        </div>
       </Dashboard>
     );
   }

@@ -5,19 +5,19 @@ var DASHBOARD_URL = 'http://localhost:3000';
 
 var puppeteerLaunchConfig = {
     args: [
-    '--proxy-server=',
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-accelerated-2d-canvas',
-    '--disable-gpu',
-    '--window-size=1920x1080',
-    '--disable-background-timer-throttling',
-    '--disable-backgrounding-occluded-windows',
-    '--disable-renderer-backgrounding',
-    '--disable-web-security'
+        '--proxy-server=',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+        '--window-size=1920x1080',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-web-security'
     ],
-  };
+};
 
 var user = faker.helpers.createCard();
 var cvv = '542';
@@ -32,7 +32,7 @@ function generateRandomString(){
     return Math.random().toString(36).substring(10) 
 }
 
-function generateRandomBusinessEmail(){
+function generateRandomBusinessEmail() {
     return `${Math.random().toString(36).substring(7)}@${Math.random().toString(36).substring(5)}.com`;
 }
 
@@ -40,7 +40,7 @@ function generateRandomBusinessEmail(){
 var cardNumber = '4111111111111111';
 
 var monitorCategoryName = 'e2e_monitor_category';
- 
+
 var monitorName = 'e2e_monitor';
 
 var monitorUrl = 'https://www.test.com';

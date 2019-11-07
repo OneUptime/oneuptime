@@ -37,6 +37,7 @@ class Projects extends React.Component {
             fetchProjects(skip + limit, 10);
         }
     }
+    
     ready = () => {
         this.props.fetchProjects();
     }
@@ -52,7 +53,7 @@ class Projects extends React.Component {
     render(){
         return (
             <Dashboard ready={this.ready}>
-                <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
+                <div onKeyDown={this.handleKeyBoard} >
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">

@@ -41,7 +41,7 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                                                 type="text"
                                                                 name={`${policy}.callFrequency`}
                                                                 component={RenderField}
-                                                                style={{ width: '320px' }}
+                                                                style={{ width: '250px' }}
                                                                 defaultValue="10"
                                                                 subProjectId={subProjectId}
                                                             />

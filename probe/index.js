@@ -19,6 +19,7 @@ app.get('/', function (req, res) {
     res.send(JSON.stringify({
         status: 200,
         message: 'Service Status - OK',
+        serviceType: 'fyipe-probe'
     }));
 });
 

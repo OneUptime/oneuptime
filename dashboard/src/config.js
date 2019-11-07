@@ -212,7 +212,7 @@ export const ValidateField = {
 
     required: value => value && value.length ? undefined : 'This field is required',
 
-    select: value => value && value.length && value.trim() !== '' ? undefined : 'Please select a value',
+    select: value => value ? (value.value ? (value.value.length && value.value.trim() !== '' ? undefined : 'Please select a value') : (value.length && value.trim() !== '' ? undefined : 'Please select a value')) : 'Please select a value',
 
     maxValue10000: value => value && value.length && value < 10000 ? undefined : `input value should be less than ${10000}`,
 
@@ -474,6 +474,60 @@ export function mapCriteria(val) {
         }
         return val2;
     }
+}
+
+export function renderIfSubProjectAdmin(currentProject, subProjects, subProjectId) {
+    var userId = User.getUserId();
+    var renderItems = false;
+    if (
+        userId && currentProject &&
+        currentProject.users &&
+        currentProject.users.length > 0 &&
+        currentProject.users.filter(user => user.userId === userId
+            && (user.role === 'Administrator' || user.role === 'Owner')).length > 0
+    ) {
+        renderItems = true;
+    } else {
+        if (subProjects) {
+            subProjects.forEach((subProject) => {
+                if (subProjectId) {
+                    if (subProject._id === subProjectId && subProject.users.filter(user => user.userId === userId && (user.role === 'Administrator' || user.role === 'Owner')).length > 0) {
+                        renderItems = true;
+                    }
+                } else {
+                    if (
+                        userId && subProject &&
+                        subProject.users &&
+                        subProject.users.length > 0 &&
+                        subProject.users.filter(user => user.userId === userId
+                            && (user.role === 'Administrator' || user.role === 'Owner')).length > 0
+                    ) {
+                        renderItems = true;
+                    }
+                }
+            });
+        }
+    }
+    return renderItems;
+}
+
+export function renderIfUserInSubProject(currentProject, subProjects, subProjectId) {
+    var userId = User.getUserId();
+    var renderItems = false;
+    if (
+        currentProject &&
+        currentProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0) {
+        renderItems = true;
+    } else {
+        if (subProjects) {
+            subProjects.forEach((subProject) => {
+                if (subProject._id === subProjectId && subProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0) {
+                    renderItems = true;
+                }
+            });
+        }
+    }
+    return renderItems;
 }
 
 export const formatDecimal = (value, decimalPlaces) => {

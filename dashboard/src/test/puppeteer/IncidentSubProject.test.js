@@ -35,94 +35,94 @@ describe('Incident API With SubProjects', () => {
         browser1 = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser1.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
+
         // intercept request and mock response for login
         await page.setRequestInterception(true);
-        await page.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
+        await page.on('request', async (request) => {
+            if ((await request.url()).match(/user\/login/)) {
                 request.respond({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify(userCredentials)
                 });
-            }else{
+            } else {
                 request.continue();
             }
         });
-        await page.on('response', async (response)=>{
-            try{
+        await page.on('response', async (response) => {
+            try {
                 const res = await response.json();
-                if(res && res.tokens){
+                if (res && res.tokens) {
                     userCredentials = res;
                 }
-            }catch(error){}
+            } catch (error) { }
         });
-    
+
         // browser sub-project user
         browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig);
         newPage = await browser2.newPage();
         await newPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
+
         // intercept request and mock response for login
         await newPage.setRequestInterception(true);
-        await newPage.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
+        await newPage.on('request', async (request) => {
+            if ((await request.url()).match(/user\/login/)) {
                 request.respond({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify(userCredentials)
                 });
-            }else{
+            } else {
                 request.continue();
             }
         });
-        await newPage.on('response', async (response)=>{
-            try{
+        await newPage.on('response', async (response) => {
+            try {
                 const res = await response.json();
-                if(res && res.tokens){
+                if (res && res.tokens) {
                     userCredentials = res;
                 }
-            }catch(error){}
+            } catch (error) { }
         });
-    
+
         // parent user
         await init.registerUser(user, page);
         await init.loginUser(user, page);
-    
+
         // rename default project
         await init.renameProject(projectName, page);
-    
+
         // add sub-project
         await init.addSubProject(subProjectName, page);
-    
+
         // new user (sub-project user)
         await init.registerUser(newUser, newPage);
         await init.loginUser(newUser, newPage);
-    
+
         // add new user to sub-project
-        await init.addUserToProject({email: newUser.email, role: 'Member', subProjectName}, page);
-        
+        await init.addUserToProject({ email: newUser.email, role: 'Member', subProjectName }, page);
+
         // switch to invited project for new user
         await init.switchProject(projectName, newPage);
-    
+
         // add new monitor to parent project and sub-project
         await init.addMonitorToProject(projectMonitorName, projectName, page);
         await init.addMonitorToProject(subProjectMonitorName, subProjectName, page);
-        
+
     });
-    
+
     afterAll(async () => {
         await browser1.close();
         await browser2.close();
     });
-    
+
 
     it('should create an incident in parent project for valid `admin`', async () => {
-        await page.reload({ waitUntil: 'networkidle2'});
+        await page.reload({ waitUntil: 'networkidle2' });
         await page.waitForSelector(`#create_incident_${projectMonitorName}`);
         await page.click(`#create_incident_${projectMonitorName}`);
         await page.waitForSelector('#createIncident');
-        await init.selectByText('#incidentType','Offline', page);
+        await init.selectByText('#incidentType', 'Offline', page);
         await page.click('#createIncident');
         await page.waitForSelector('#incident_span_0');
         const incidentTitleSelector = await page.$('#incident_span_0');
@@ -132,11 +132,11 @@ describe('Incident API With SubProjects', () => {
     }, operationTimeOut);
 
     it('should create an incident in sub-project for sub-project `member`', async () => {
-        await newPage.reload({ waitUntil: 'networkidle2'});
+        await newPage.reload({ waitUntil: 'networkidle2' });
         await newPage.waitForSelector(`#create_incident_${subProjectMonitorName}`);
         await newPage.click(`#create_incident_${subProjectMonitorName}`);
         await newPage.waitForSelector('#createIncident');
-        await init.selectByText('#incidentType','Offline', newPage);
+        await init.selectByText('#incidentType', 'Offline', newPage);
         await newPage.click('#createIncident');
         await newPage.waitForSelector('#incident_span_0');
         const incidentTitleSelector = await newPage.$('#incident_span_0');
@@ -145,7 +145,7 @@ describe('Incident API With SubProjects', () => {
         await expect(textContent.toLowerCase()).toEqual(`${subProjectMonitorName}'s Incident Status`.toLowerCase());
     }, operationTimeOut);
 
-    it('should acknowledge incident in sub-project for sub-project `member`', async () =>{
+    it('should acknowledge incident in sub-project for sub-project `member`', async () => {
         await newPage.waitForSelector('#btnAcknowledge_0');
         await newPage.click('#btnAcknowledge_0');
         await newPage.waitForSelector('#AcknowledgeText_0');
@@ -153,7 +153,7 @@ describe('Incident API With SubProjects', () => {
         await expect(acknowledgeTextSelector).not.toBeNull();
     }, operationTimeOut);
 
-    it('should resolve incident in sub-project for sub-project `member`', async () =>{
+    it('should resolve incident in sub-project for sub-project `member`', async () => {
         await newPage.waitForSelector('#btnResolve_0');
         await newPage.click('#btnResolve_0');
         await newPage.waitForSelector('#ResolveText_0');
@@ -161,10 +161,10 @@ describe('Incident API With SubProjects', () => {
         await expect(resolveTextSelector).not.toBeNull();
     }, operationTimeOut);
 
-    it('should update internal and investigation notes of incident in sub-project', async () =>{
+    it('should update internal and investigation notes of incident in sub-project', async () => {
         let investigationNote = utils.generateRandomString();
         let internalNote = utils.generateRandomString();
-        await newPage.reload({ waitUntil: 'networkidle2'});
+        await newPage.reload({ waitUntil: 'networkidle2' });
         await newPage.waitForSelector(`#incident_${subProjectMonitorName}_0`);
         await newPage.click(`#incident_${subProjectMonitorName}_0`);
         await newPage.waitForSelector('#txtInternalNote');
@@ -185,9 +185,9 @@ describe('Incident API With SubProjects', () => {
         await expect(investigationContent).toEqual(investigationNote);
     }, operationTimeOut);
 
-    it('should get list of incidents and paginate for incidents in sub-project', async ()=>{
+    it('should get list of incidents and paginate for incidents in sub-project', async () => {
         // add 5 more incident to sub-project monitor to test for pagination
-        for(let i = 0; i < 10; i++){
+        for (let i = 0; i < 10; i++) {
             await init.addIncidentToProject(subProjectMonitorName, subProjectName, newPage);
         }
         let countIncidents = (await newPage.$$('tr.Table-row.db-ListViewItem.bs-ActionsParent.db-ListViewItem--hasLink')).length;

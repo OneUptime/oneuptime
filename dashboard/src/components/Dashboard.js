@@ -16,6 +16,7 @@ import ClickOutside from 'react-click-outside';
 import { hideProfileMenu } from '../actions/profile';
 import NotificationMenu from './notification/NotificationMenu';
 import { closeNotificationMenu } from '../actions/notification';
+import UnVerifiedEmailBox from '../components/auth/UnVerifiedEmail';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
@@ -130,9 +131,12 @@ export class DashboardApp extends Component {
                                     <SideNav />
 
                                     <div className="db-World-mainPane Box-root Padding-right--20" >
-
-                                        {children}
-
+                                        <div className="db-World-contentPane Box-root Padding-bottom--48">
+                                            <ShouldRender if={this.props.profile.profileSetting.data && this.props.profile.profileSetting.data.email && !this.props.profile.profileSetting.data.isVerified}>
+                                                <UnVerifiedEmailBox />
+                                            </ShouldRender>
+                                            {children}
+                                        </div>
                                     </div>
 
                                 </ShouldRender>

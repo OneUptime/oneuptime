@@ -32,7 +32,7 @@ class Settings extends Component {
     render() {
         return (
             <Dashboard>
-                <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
+                <div onKeyDown={this.handleKeyBoard} className="Margin-vertical--12">
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">

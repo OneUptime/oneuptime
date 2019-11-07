@@ -68,9 +68,11 @@ const mapDispatchToProps = dispatch => (
     bindActionCreators({ unblockUser, openModal, closeModal }, dispatch)
 )
 
-const mapStateToProps = (state, props) => {
-    const user = state.user.users.users.find(user => user._id === props.userId);
+const mapStateToProps = (state) => {
+    const user = state.user.user.user || {};
+    const userId = user._id;
     return {
+        userId,
         user,
         isRequesting: state.user && state.user.unblockUser && state.user.unblockUser.requesting,
     }
