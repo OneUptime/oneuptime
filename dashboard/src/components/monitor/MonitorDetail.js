@@ -19,6 +19,7 @@ import { history } from '../../store';
 import { Link } from 'react-router-dom';
 import MonitorChart from './MonitorChart';
 import StatusIndicator from './StatusIndicator';
+import { getMonitorStatus } from '../../config';
 
 const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
@@ -130,8 +131,9 @@ export class MonitorDetail extends Component {
         monitor.success = this.props.monitorState.monitorsList.success;
         monitor.requesting = this.props.monitorState.monitorsList.requesting;
 
+        let type = this.props.monitor.type;
         let badgeColor;
-        switch (this.props.monitor.type) {
+        switch (type) {
             case 'manual':
                 badgeColor = 'red';
                 break;
@@ -143,7 +145,7 @@ export class MonitorDetail extends Component {
                 break;
         }
 
-        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'online';
+        let status = getMonitorStatus(this.props.monitor);
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
         let probeUrl = `/project/${this.props.monitor.projectId._id}/settings/probe`;
 
@@ -178,103 +180,70 @@ export class MonitorDetail extends Component {
                                 </div>
                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                     <div className="Box-root">
-                                        <Badge color={badgeColor}>{this.replaceDashWithSpace(this.props.monitor.type)}</Badge>
+                                        <Badge color={badgeColor}>{this.replaceDashWithSpace(type)}</Badge>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {
-                        this.props.monitor && this.props.monitor.type ?
-                            this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ?
-                                <ShouldRender if={this.props.monitor.probes && this.props.monitor.probes.length > 0}>
-                                    <div className="db-Trends-controls">
-                                        <div className="db-Trends-timeControls">
-                                            <DateRangeWrapper
-                                                selected={this.state.monitorStart}
-                                                onChange={this.handleMonitorChange}
-                                                dateRange={30}
-                                            />
-                                        </div>
-                                        <div>
-                                            <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
-                                                id={`create_incident_${this.props.monitor.name}`}
-                                                onClick={() =>
-                                                    this.props.openModal({
-                                                        id: createIncidentModalId,
-                                                        content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
-                                                    })}>
-                                                <ShouldRender if={!creating}>
-                                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                        <span>Create New Incident</span>
-                                                    </span>
-                                                </ShouldRender>
-                                                <ShouldRender if={creating}>
-                                                    <FormLoader />
-                                                </ShouldRender>
-                                            </button>
-                                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
-                                        </div>
-                                    </div>
-                                </ShouldRender> :
-                                <div className="db-Trends-controls">
-                                    <div className="db-Trends-timeControls">
-                                        <DateRangeWrapper
-                                            selected={this.state.monitorStart}
-                                            onChange={this.handleMonitorChange}
-                                            dateRange={30}
-                                        />
-                                    </div>
-                                    <div>
-                                        {this.props.monitor.type === 'device' &&
-                                            <button
-                                                className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
-                                                onClick={() =>
-                                                    this.props.openModal({
-                                                        id: this.props.monitor._id,
-                                                        onClose: () => '',
-                                                        content: DataPathHoC(MonitorUrl, this.props.monitor)
-                                                    })
-                                                }
-                                            >
-                                                <span>Show URL</span>
-                                            </button>
-                                        }
-
-                                        <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
-                                            id={`create_incident_${this.props.monitor.name}`}
-                                            onClick={() =>
-                                                this.props.openModal({
-                                                    id: createIncidentModalId,
-                                                    content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
-                                                })}>
-                                            <ShouldRender if={!creating}>
-                                                <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                    <span>Create New Incident</span>
-                                                </span>
-                                            </ShouldRender>
-                                            <ShouldRender if={creating}>
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
-                                        <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
-                                    </div>
-                                </div> : ''
-                    }
+                    <div className="db-Trends-controls">
+                        <div className="db-Trends-timeControls">
+                            <DateRangeWrapper
+                                selected={this.state.monitorStart}
+                                onChange={this.handleMonitorChange}
+                                dateRange={30}
+                            />
+                        </div>
+                        <div>
+                            {type === 'device' &&
+                                <button
+                                    className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
+                                    onClick={() =>
+                                        this.props.openModal({
+                                            id: this.props.monitor._id,
+                                            onClose: () => '',
+                                            content: DataPathHoC(MonitorUrl, this.props.monitor)
+                                        })
+                                    }
+                                >
+                                    <span>Show URL</span>
+                                </button>
+                            }
+                            <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
+                                id={`create_incident_${this.props.monitor.name}`}
+                                onClick={() =>
+                                    this.props.openModal({
+                                        id: createIncidentModalId,
+                                        content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
+                                    })}>
+                                <ShouldRender if={!creating}>
+                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                        <span>Create New Incident</span>
+                                    </span>
+                                </ShouldRender>
+                                <ShouldRender if={creating}>
+                                    <FormLoader />
+                                </ShouldRender>
+                            </button>
+                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
+                        </div>
+                    </div>
                 </div>
                 <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
-                    <div className="btn-group">
-                        {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
-                            key={`probes-btn${index}`}
-                            id={`probes-btn${index}`}
-                            disabled={false}
-                            onClick={() => this.selectbutton(index)}
-                            className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-                            <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
-                            <span>{location.probeName}</span>
-                        </button>)
-                        )}
-                    </div>
+                    <ShouldRender if={type !== 'manual' && type !== 'device' && type !== 'server-monitor'}>
+                        <div className="btn-group">
+                            {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
+                                key={`probes-btn${index}`}
+                                id={`probes-btn${index}`}
+                                disabled={false}
+                                onClick={() => this.selectbutton(index)}
+                                className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+                                <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
+                                <span>{location.probeName}</span>
+                            </button>)
+                            )}
+                        </div>
+                    </ShouldRender>
                     <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
                 </ShouldRender>
 

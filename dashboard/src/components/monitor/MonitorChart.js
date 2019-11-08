@@ -7,7 +7,7 @@ import AreaChart from '../areachart';
 import toPascalCase from 'to-pascal-case';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import { formatDecimal, formatBytes } from '../../config';
+import { formatDecimal, formatBytes, getMonitorStatus } from '../../config';
 
 const calculateTime = (probeStatus) => {
     let timeBlock = [];
@@ -66,7 +66,8 @@ export function MonitorChart(props) {
     let checkLogs = data && data.length > 0;
 
     let responseTime = props.probe && props.probe.responseTime ? props.probe.responseTime : '0';
-    let monitorStatus = props.probe && props.probe.status ? toPascalCase(props.probe.status) : 'Online';
+    let status = getMonitorStatus(props.monitor);
+    let monitorStatus = toPascalCase(props.probe && props.probe.status ? props.probe.status : status);
     let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
     let monitorType = props.monitor.type;
