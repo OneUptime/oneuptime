@@ -43,5 +43,6 @@ module.exports = {
     APIDOCS_URL,
     user,
     puppeteerLaunchConfig,
-    generateRandomString
+    generateRandomString,
+    generateRandomBusinessEmail
 }
