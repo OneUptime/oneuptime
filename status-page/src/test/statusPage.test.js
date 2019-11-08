@@ -81,7 +81,7 @@ describe('Status page monitors check', function () {
 
         statusPageURL = `http://${statusPageId}.localhost:3006/`;
 
-        browser = await puppeteer.launch({ headless: false });
+        browser = await puppeteer.launch({ headless: true });
         page = await browser.newPage();
         await page.goto(statusPageURL, {
             waitUntil: 'networkidle0'
