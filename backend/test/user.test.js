@@ -7,6 +7,7 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
 var UserModel = require('../backend/models/user');
 var ProjectService = require('../backend/services/projectService');
@@ -21,8 +22,8 @@ describe('User API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(data.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, data.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -51,7 +52,7 @@ describe('User API', function () {
 
     // 'post /user/signup'
     it('should register with name, email, password, companyName, jobRole, referral, companySize, stripeToken, stripePlanId', function (done) {
-        request.post('/user/signup').send(data.newUser).end(function (err, res) {
+        createUser(request, data.newUser, function(err, res) {
             var newUserId = res.body.id;
             expect(res).to.have.status(200);
             expect(res.body).include.keys('tokens');
@@ -66,14 +67,14 @@ describe('User API', function () {
     });
 
     it('should not register when name, email, password, companyName, jobRole, referral, companySize, stripePlanId or stripeToken is null', function (done) {
-        request.post('/user/signup').send(data.nullUser).end(function (err, res) {
+        createUser(request, data.nullUser, function(err, res) {
             expect(res).to.have.status(400);
             done();
         });
     });
 
     it('should not register with same email', function (done) {
-        request.post('/user/signup').send(data.user).end(function (err, res) {
+        createUser(request, data.user, function(err, res) {
             expect(res).to.have.status(400);
             done();
         });
@@ -82,7 +83,7 @@ describe('User API', function () {
     it('should not register with an invalid email', function (done) {
         var invalidMailUser = Object.assign({}, data.user);
         invalidMailUser.email = 'invalidMail';
-        request.post('/user/signup').send(invalidMailUser).end(function (err, res) {
+        createUser(request, invalidMailUser, function(err, res) {
             expect(res).to.have.status(400);
             done();
         });
@@ -91,7 +92,7 @@ describe('User API', function () {
     it('should not register with a personal email', function (done) {
         var personalMailUser = Object.assign({}, data.user);
         personalMailUser.email = 'personalAccount@gmail.com';
-        request.post('/user/signup').send(personalMailUser).end(function (err, res) {
+        createUser(request, personalMailUser, function(err, res) {
             expect(res).to.have.status(400);
             done();
         });

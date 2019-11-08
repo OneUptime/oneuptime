@@ -1,3 +1,4 @@
+/* eslint-disable */
 process.env.PORT = 3020;
 var expect = require('chai').expect;
 var userData = require('./data/user');
@@ -6,6 +7,7 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var MonitorCategoryService = require('../backend/services/monitorCategoryService');
@@ -17,13 +19,15 @@ var VerificationTokenModel = require('../backend/models/verificationToken');
 var token, userId, airtableId, projectId, monitorCategoryId, apiKey, monitorCategory = {
     monitorCategoryName: 'New Monitor Category',
 };
+var payment = require('../backend/config/payment');
+var stripe = require('stripe')(payment.paymentPrivateKey);
 
 describe('Monitor Category API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -108,11 +112,11 @@ describe('User from other project have access to read / write and delete API.', 
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
-            request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+            createUser(request, userData.newUser, function(err, res) {
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -161,56 +165,54 @@ describe('User from other project have access to read / write and delete API.', 
 
 
 describe('Non-admin user access to create, delete and access monitor category.', function () {
-    this.timeout(20000);
+    this.timeout(60000);
 
     var projectIdSecondUser = '';
     var emailToBeInvited = '';
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user)
-            .end(function (err, res) {
-                let project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
-                VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
-                    request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
-                        request.post('/user/login').send({
-                            email: userData.user.email,
-                            password: userData.user.password
-                        }).end(function (err, res) {
-                            token = res.body.tokens.jwtAccessToken;
-                            var authorization = `Basic ${token}`;
-                            request.post(`/monitorCategory/${projectId}`).set('Authorization', authorization).send(monitorCategory)
-                                .end(function (err, res) {
-                                    monitorCategoryId = res.body._id;
-                                    request.post('/user/signup').send(userData.newUser)
-                                        .end(function (err, res) {
-                                            projectIdSecondUser = res.body.project._id;
-                                            emailToBeInvited = userData.newUser.email;
-                                            userId = res.body.id;
-                                            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
-                                                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
-                                                    request.post(`/team/${projectId}`).set('Authorization', authorization).send({
-                                                        emails: emailToBeInvited,
-                                                        role: 'Member'
-                                                    }).end(function () {
-                                                        request.post('/user/login').send({
-                                                            email: userData.newUser.email,
-                                                            password: userData.newUser.password
-                                                        }).end(function (err, res) {
-                                                            token = res.body.tokens.jwtAccessToken;
-                                                            done();
-                                                        });
-                                                    });
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
+            let project = res.body.project;
+            projectId = project._id;
+            userId = res.body.id;
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
+                    request.post('/user/login').send({
+                        email: userData.user.email,
+                        password: userData.user.password
+                    }).end(function (err, res) {
+                        token = res.body.tokens.jwtAccessToken;
+                        var authorization = `Basic ${token}`;
+                        request.post(`/monitorCategory/${projectId}`).set('Authorization', authorization).send(monitorCategory)
+                            .end(function (err, res) {
+                                monitorCategoryId = res.body._id;
+                                createUser(request, userData.newUser, function(err, res) {
+                                    projectIdSecondUser = res.body.project._id;
+                                    emailToBeInvited = userData.newUser.email;
+                                    userId = res.body.id;
+                                    VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                                        request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
+                                            request.post(`/team/${projectId}`).set('Authorization', authorization).send({
+                                                emails: emailToBeInvited,
+                                                role: 'Member'
+                                            }).end(function () {
+                                                request.post('/user/login').send({
+                                                    email: userData.newUser.email,
+                                                    password: userData.newUser.password
+                                                }).end(function (err, res) {
+                                                    token = res.body.tokens.jwtAccessToken;
+                                                    done();
                                                 });
                                             });
                                         });
+                                    });
                                 });
-                        });
+                            });
                     });
                 });
             });
+        });
     });
 
     after(async function () {
@@ -255,8 +257,8 @@ describe('Monitor Category APIs accesible through API key', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
             apiKey = project.apiKey;
@@ -303,7 +305,7 @@ describe('Monitor Category APIs accesible through API key', function () {
 });
 
 describe('Monitor Category API - Check pagination for 12 monitor categories', function () {
-    this.timeout(20000);
+    this.timeout(40000);
 
     var monitorCategories = [
         'testPagination',
@@ -321,8 +323,21 @@ describe('Monitor Category API - Check pagination for 12 monitor categories', fu
     ];
 
     before(async function () {
-        this.timeout(30000);
-        var signUp = await request.post('/user/signup').send(userData.user);
+        this.timeout(60000);
+        var checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName
+        });
+        var confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
+
+        var signUp = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...userData.user
+        });
+
         let project = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;

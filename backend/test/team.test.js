@@ -6,10 +6,14 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var NotificationService = require('../backend/services/notificationService');
 var AirtableService = require('../backend/services/airtableService');
+
+var payment = require('../backend/config/payment');
+var stripe = require('stripe')(payment.paymentPrivateKey);
 
 var VerificationTokenModel = require('../backend/models/verificationToken');
 // eslint-disable-next-line
@@ -19,8 +23,8 @@ describe('Team API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -163,7 +167,20 @@ describe('Team API with Sub-Projects', async function () {
         var res1 = await request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]);
         subProjectId = res1.body[0]._id;
         // sign up second user (subproject user)
-        var res2 = await request.post('/user/signup').send(userData.newUser);
+        var checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName
+        });
+        var confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
+
+        var res2 = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...userData.newUser
+        });
+
         subProjectUserId = res2.body.id;
         var verificationToken = await VerificationTokenModel.findOne({ userId: subProjectUserId });
         request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(async function () {

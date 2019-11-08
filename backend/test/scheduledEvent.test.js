@@ -6,12 +6,16 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var ScheduledEventService = require('../backend/services/scheduledEventService');
 var ScheduledEventModel = require('../backend/models/scheduledEvent');
 var MonitorService = require('../backend/services/monitorService');
 var AirtableService = require('../backend/services/airtableService');
+
+var payment = require('../backend/config/payment');
+var stripe = require('stripe')(payment.paymentPrivateKey);
 
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
@@ -46,8 +50,8 @@ describe('Scheduled event API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             userId = res.body.id;
             projectId = project._id;
@@ -147,11 +151,11 @@ describe('User from other project have access to read / write and delete API.', 
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
-            request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+            createUser(request, userData.newUser, function(err, res) {
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -218,7 +222,19 @@ describe('Scheduled Event API - Check pagination for 12 scheduled events', funct
 
     before(async function () {
         this.timeout(30000);
-        var signUp = await request.post('/user/signup').send(userData.user);
+        var checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName
+        });
+        var confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
+
+        var signUp = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...userData.user
+        });
         let project = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;
@@ -310,49 +326,47 @@ describe('Non-admin user access to create, delete and access scheduled events.',
 
     before(function (done) {
         this.timeout(30000);
-        request.post('/user/signup').send(userData.user)
-            .end(function (err, res) {
-                let project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
-                VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
-                    request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
-                        request.post('/user/login').send({
-                            email: userData.user.email,
-                            password: userData.user.password
-                        }).end(function (err, res) {
-                            token = res.body.tokens.jwtAccessToken;
-                            var authorization = `Basic ${token}`;
-                            request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).send(scheduledEvent)
-                                .end(function (err, res) {
-                                    scheduleEventId = res.body._id;
-                                    request.post('/user/signup').send(userData.newUser)
-                                        .end(function (err, res) {
-                                            projectIdSecondUser = res.body.project._id;
-                                            emailToBeInvited = userData.newUser.email;
-                                            userId = res.body.id;
-                                            request.post(`/team/${projectId}`).set('Authorization', authorization).send({
-                                                emails: emailToBeInvited,
-                                                role: 'Member'
-                                            }).end(function () {
-                                                VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
-                                                    request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
-                                                        request.post('/user/login').send({
-                                                            email: userData.newUser.email,
-                                                            password: userData.newUser.password
-                                                        }).end(function (err, res) {
-                                                            token = res.body.tokens.jwtAccessToken;
-                                                            done();
-                                                        });
-                                                    });
+        createUser(request, userData.user, function(err, res) {
+            let project = res.body.project;
+            projectId = project._id;
+            userId = res.body.id;
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
+                    request.post('/user/login').send({
+                        email: userData.user.email,
+                        password: userData.user.password
+                    }).end(function (err, res) {
+                        token = res.body.tokens.jwtAccessToken;
+                        var authorization = `Basic ${token}`;
+                        request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).send(scheduledEvent)
+                            .end(function (err, res) {
+                                scheduleEventId = res.body._id;
+                                createUser(request, userData.newUser, function(err, res) {
+                                    projectIdSecondUser = res.body.project._id;
+                                    emailToBeInvited = userData.newUser.email;
+                                    userId = res.body.id;
+                                    request.post(`/team/${projectId}`).set('Authorization', authorization).send({
+                                        emails: emailToBeInvited,
+                                        role: 'Member'
+                                    }).end(function () {
+                                        VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                                            request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
+                                                request.post('/user/login').send({
+                                                    email: userData.newUser.email,
+                                                    password: userData.newUser.password
+                                                }).end(function (err, res) {
+                                                    token = res.body.tokens.jwtAccessToken;
+                                                    done();
                                                 });
                                             });
                                         });
+                                    });
                                 });
-                        });
+                            });
                     });
                 });
             });
+        });
     });
 
     after(async function () {
@@ -404,8 +418,8 @@ describe('Scheduled events APIs accesible through API key', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
             apiKey = project.apiKey;
@@ -463,7 +477,21 @@ describe('Scheduled events APIs for status page', function () {
 
     before(async function () {
         this.timeout(30000);
-        var signUpRequest = await request.post('/user/signup').send(userData.user);
+
+        var checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName
+        });
+        var confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
+
+        var signUpRequest = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...userData.user
+        });
+
         projectId = signUpRequest.body.project._id;
         userId = signUpRequest.body.id;
 
@@ -478,8 +506,21 @@ describe('Scheduled events APIs for status page', function () {
             .send({ email: userData.user.email, password: userData.user.password });
         token = loginRequest.body.tokens.jwtAccessToken;
 
+        checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName
+        });
+        confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
 
-        signUpRequest = await request.post('/user/signup').send(userData.newUser);
+        signUpRequest = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...userData.newUser
+        });
+
+
         userId = signUpRequest.body.id;
         verificationToken = await VerificationTokenModel.findOne({ userId });
         try {

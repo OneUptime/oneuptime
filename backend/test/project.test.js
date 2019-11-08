@@ -6,6 +6,7 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var plans = require('../backend/config/plans').getPlans();
 var log = require('./data/log');
 var UserService = require('../backend/services/userService');
@@ -21,8 +22,8 @@ describe('Project API', function () {
     this.timeout(30000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -189,8 +190,8 @@ describe('Project API', function () {
 describe('Projects SubProjects API', function () {
     this.timeout(30000);
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -250,7 +251,7 @@ describe('Projects SubProjects API', function () {
     });
 
     it('should not get subprojects for a user not present in the project.', function (done) {
-        request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+        createUser(request, userData.newUser, function(err, res) {
             userId = res.body.id;
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {

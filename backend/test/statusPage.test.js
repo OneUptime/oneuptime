@@ -6,6 +6,7 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
 var StatusService = require('../backend/services/statusPageService');
 var MonitorService = require('../backend/services/monitorService');
@@ -29,8 +30,8 @@ describe('Status API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -192,7 +193,7 @@ describe('StatusPage API with Sub-Projects', function () {
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]).end(function (err, res) {
             subProjectId = res.body[0]._id;
             // sign up second user (subproject user)
-            request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+            createUser(request, userData.newUser, function(err, res) {
                 subProjectUserId = res.body.id;
                 VerificationTokenModel.findOne({ userId: subProjectUserId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -222,7 +223,7 @@ describe('StatusPage API with Sub-Projects', function () {
     });
 
     it('should not create a statupage for user not present in project', function (done) {
-        request.post('/user/signup').send(userData.anotherUser).end(function (err, res) {
+        createUser(request, userData.anotherUser, function(err, res) {
             VerificationTokenModel.findOne({ userId: res.body.id }, function (err, res) {
                 request.get(`/user/confirmation/${res.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
