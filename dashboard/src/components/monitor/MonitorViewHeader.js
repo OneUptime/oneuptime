@@ -107,19 +107,21 @@ export class MonitorViewHeader extends Component {
             deleting = true;
         }
 
+        let type = this.props.monitor.type;
+
         return (
             <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium" onKeyDown={this.handleKeyBoard}>
                 {
                     this.props.currentProject._id === subProjectId ?
-                    this.props.subProjects.length > 0 ?
+                        this.props.subProjects.length > 0 ?
+                            <div className="Box-root Padding-top--20 Padding-left--20">
+                                <Badge color={'red'}>Project</Badge>
+                            </div> :
+                            null
+                        :
                         <div className="Box-root Padding-top--20 Padding-left--20">
-                            <Badge color={'red'}>Project</Badge>
-                        </div> : 
-                        null 
-                    :
-                    <div className="Box-root Padding-top--20 Padding-left--20">
-                        <Badge color={'blue'}>{subProject && subProject.name}</Badge>
-                    </div>
+                            <Badge color={'blue'}>{subProject && subProject.name}</Badge>
+                        </div>
                 }
                 <div className="Box-root">
                     <div className="db-Trends-header">
@@ -155,18 +157,20 @@ export class MonitorViewHeader extends Component {
                         </div>
                     </div>
                     <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
-                        <div className="btn-group">
-                            {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
-                                key={`probes-btn${index}`}
-                                id={`probes-btn${index}`}
-                                disabled={false}
-                                onClick={() => this.selectbutton(index)}
-                                className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-                                <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
-                                <span>{location.probeName}</span>
-                            </button>)
-                            )}
-                        </div>
+                        <ShouldRender if={type !== 'manual' && type !== 'device' && type !== 'server-monitor'}>
+                            <div className="btn-group">
+                                {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
+                                    key={`probes-btn${index}`}
+                                    id={`probes-btn${index}`}
+                                    disabled={false}
+                                    onClick={() => this.selectbutton(index)}
+                                    className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+                                    <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
+                                    <span>{location.probeName}</span>
+                                </button>)
+                                )}
+                            </div>
+                        </ShouldRender>
                         <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
                     </ShouldRender>
                     {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} /> : ''}<br />
