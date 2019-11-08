@@ -60,6 +60,9 @@
             <a href="/legal/dmca">DMCA Policy</a>
           </li>
           <li>
+            <a href="/legal/subprocessors">Subprocessors</a>
+          </li>
+          <li>
             <a href="/legal/contact">Contact</a>
           </li>
 
@@ -126,9 +129,13 @@
         <% include ./hipaa %>
         <% }%>
 
-        <% if(section.includes("soc")) {%>
-        <% include ./soc %>
+        <% if(section === ("soc-3")) {%>
+        <% include ./soc-3 %>
         <% }%>
+
+        <% if(section === ("soc-2")) {%>
+          <% include ./soc-2 %>
+          <% }%>
 
 
         <% if(section === "iso-27001") {%>
@@ -138,11 +145,17 @@
         <% if(section === "iso-27018") {%>
         <% include ./iso-27018 %>
         <% }%>
+
         <% if(section === "iso-27017") {%>
         <% include ./iso-27017 %>
         <% }%>
+
         <% if(section.includes("dmca")) {%>
         <% include ./dmca %>
+        <% }%>
+
+        <% if(section === "subprocessors") {%>
+        <% include ./subprocessors %>
         <% }%>
 
       </article>
