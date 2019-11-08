@@ -1,4 +1,3 @@
-/* eslint-disable */
 process.env.PORT = 3020;
 var expect = require('chai').expect;
 var userData = require('./data/user');
