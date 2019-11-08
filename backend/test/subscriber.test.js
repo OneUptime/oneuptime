@@ -6,6 +6,7 @@ let chai = require('chai');
 chai.use(require('chai-http'));
 let app = require('../server');
 let request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 
 let UserService = require('../backend/services/userService');
 let StatusPageService = require('../backend/services/statusPageService');
@@ -27,8 +28,8 @@ describe('Subscriber API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;

@@ -23,16 +23,29 @@ module.exports = {
         return token.id;
     },
 
+    //Description: Retrieve payment intent.
+    //Params:
+    //Param 1: paymentIntent: Payment Intent
+    //Returns: promise
+    checkPaymentIntent: async function (paymentIntent) {
+        try{
+            var processedPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
+            return processedPaymentIntent;
+        }catch(error){
+            ErrorService.log('stripe.paymentIntents.retrieve', error);
+            throw error;
+        }
+    },
+
     //Description: Create customer in stripe for  user.
     //Params:
     //Param 1: stripeToken: Token generated from frontend
     //Param 2: user: User details
     //Returns: promise
-    createCustomer: async function (stripeToken, email, companyName) {
+    createCustomer: async function (email, companyName) {
 
         try{
             var customer = await stripe.customers.create({
-                source: stripeToken,
                 email: email,
                 description: companyName
             });

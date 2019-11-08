@@ -11,7 +11,12 @@ import { Link } from 'react-router-dom';
 import queryString from 'query-string';
 import { removeQuery } from '../store';
 
-
+const errorStyle = {
+	color: '#c23d4b'
+}
+const successStyle = {
+  color: 'green'
+}
 export class ResendTokenForm extends Component {
 	state = {
 		serverResponse: ''
@@ -40,6 +45,18 @@ export class ResendTokenForm extends Component {
   render() {
     const { serverResponse } = this.state;
     const { success } = this.props.resendTokenState;
+    const resendTokenError = this.props.resendTokenState.error;
+    let header;
+    if(success) {
+      header = <span style={successStyle}>Verification link Sent</span>
+    } else if (resendTokenError) {
+      header = <span style={errorStyle}>{resendTokenError}</span>
+    } else if (serverResponse) {
+      header = <span style={errorStyle}>{serverResponse}</span>
+    } else {
+      header = <span>Resend verification email.</span>
+    }
+
     return (
       <div id="wrap" style={{ paddingTop: 0 }}>
         <div id="header">
@@ -53,11 +70,7 @@ export class ResendTokenForm extends Component {
               <div className="request-reset-step step" >
                 <div className="title">
                   <h2>
-                    {success ? <span>Verification link Sent</span> :
-                          serverResponse ? <span>{serverResponse}</span> :
-                              <span > {this.props.resendTokenState.error ? 
-                                <span id="error-msg" className="error" >{this.props.resendTokenState.error}</span>
-                                 : 'Resend verification email'} </span>}
+                    {header}
                   </h2>
                 </div>
 

@@ -244,8 +244,7 @@ module.exports = {
         var _this = this;
         var email = data.email;
         var stripePlanId = data.planId;
-        var companyName = data.companyName;
-        var customerId;
+        var paymentIntent = data.paymentIntent;
 
         if (util.isEmailValid(email)) {
             try {
@@ -260,25 +259,15 @@ module.exports = {
                 ErrorService.log('UserService.signup', error);
                 throw error;
             } else {
-                try {
-                    var stripeToken = await PaymentService.createToken(data.cardNumber, data.cvc, data.expiry.split('/')[0], data.expiry.split('/')[1], data.zipCode);
-                } catch (error) {
-                    ErrorService.log('PaymentService.createToken', error);
+                // Check here is the payment intent is successfully paid. If yes then create the customer else not.
+                var processedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
+                if(processedPaymentIntent.status !== 'succeeded') {
+                    let error = new Error('Unsuccessful attempt to charge card');
+                    error.code = 400;
+                    ErrorService.log('PaymentService.checkPaymentIntent', error);
                     throw error;
                 }
-                try {
-                    customerId = await PaymentService.createCustomer(stripeToken, email, companyName);
-                } catch (error) {
-                    ErrorService.log('PaymentService.createCustomer', error);
-                    throw error;
-                }
-
-                try {
-                    await PaymentService.testCardCharge(customerId);
-                } catch (error) {
-                    ErrorService.log('PaymentService.testCharge', error);
-                    throw error;
-                }
+                var customerId = processedPaymentIntent.customer;
 
                 try {
                     var hash = await bcrypt.hash(data.password, constants.saltRounds);

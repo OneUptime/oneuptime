@@ -61,18 +61,18 @@ export class RegisterForm extends Component {
   }
 
   render() {
-
+    const { step } = this.props.register;
     return (
       <div>
-        {this.props.register.step === 1 && <UserForm submitForm={this.userFormSubmitted} error={this.props.register.error} location={this.props.location} />}
-        {this.props.register.step === 2 && <CardForm planId={this.props.planId} submitForm={this.cardFormSubmitted} error={this.props.register.error} />}
+        { step === 1 && <UserForm submitForm={this.userFormSubmitted} error={this.props.register.error} location={this.props.location} />}
+        { step === 2 && <CardForm planId={this.props.planId} submitForm={this.cardFormSubmitted} error={this.props.register.error} />}
       </div>
     )
   }
 
 }
 
-RegisterForm.displayName = 'RegisterForm'
+RegisterForm.displayName = 'RegisterForm';
 
 let registerForm = reduxForm({
   form: 'RegisterForm'

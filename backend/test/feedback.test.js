@@ -7,6 +7,7 @@ var app = require('../server');
 var mailParser = require('mailparser').simpleParser;
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
 var FeedbackService = require('../backend/services/feedbackService');
 var ProjectService = require('../backend/services/projectService');
@@ -20,8 +21,8 @@ describe('Feedback API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;

@@ -28,8 +28,8 @@ function generateWrongEmail() {
     return Math.random().toString(36).substring(8) + '@' + Math.random().toString(24).substring(8) + '.com';
 }
 
-function generateRandomString() {
-    return faker.lorem.word();
+function generateRandomString(){
+    return Math.random().toString(36).substring(10) 
 }
 
 function generateRandomBusinessEmail() {

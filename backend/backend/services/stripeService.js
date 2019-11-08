@@ -227,11 +227,33 @@ module.exports = {
             metadata
         });
         return paymentIntent;
+    },
+    
+    makeTestCharge: async function (tokenId, email, companyName) {
+            
+        try {
+            var testChargeValue = 100;
+            var stripeCustomerId = await PaymentService.createCustomer(email, companyName);
+            var card = await stripe.customers.createSource(stripeCustomerId, { source: tokenId });
+            var paymentIntent = await stripe.paymentIntents.create({
+                amount: testChargeValue,
+                currency: 'usd',
+                customer: stripeCustomerId,
+                description: 'Verify if card is billable.',
+                payment_method_types: ['card'],
+                source: card.id
+            });
+            return paymentIntent;
+        } catch (error) {
+            ErrorService.log('StripeService.makeTestCharge', error);
+            throw error;
+        }
     }
 };
 
 var payment = require('../config/payment');
 var UserService = require('../services/userService');
+var PaymentService = require('../services/paymentService');
 var ProjectService = require('../services/projectService');
 var ProjectModel = require('../models/project');
 var MailService = require('../services/mailService');

@@ -21,6 +21,13 @@ export function saveUserState(values) {
 	};
 }
 
+export function savePlanId(planId) {
+	return {
+		type: types.SAVE_PLAN_ID,
+		payload: planId
+	};
+}
+
 export function saveCardState(values) {
 	return {
 		type: types.SAVE_CARD_STATE,
@@ -74,10 +81,10 @@ export function signupUser(values) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(signupError(errors(error)));
@@ -137,7 +144,7 @@ export function isUserInvitedError(error) {
 export function isUserInvitedSuccess(data) {
 	return {
 		type: types.IS_USER_INVITED_SUCCESS,
-		payload:data
+		payload: data
 	};
 }
 
@@ -160,10 +167,10 @@ export function isUserInvited(values) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(isUserInvitedError(errors(error)));
@@ -171,4 +178,52 @@ export function isUserInvited(values) {
 
 		return promise;
 	};
+}
+
+export function addCardRequest(promise) {
+	return {
+		type: types.ADD_CARD_REQUEST,
+		payload: promise
+	};
+}
+
+export function addCardFailed(error) {
+	return {
+		type: types.ADD_CARD_FAILED,
+		payload: error
+	};
+}
+
+export function addCardSuccess(card) {
+	return {
+		type: types.ADD_CARD_SUCCESS,
+		payload: card
+	};
+}
+
+export function addCard(data) {
+
+	return function (dispatch) {
+		var promise = postApi('stripe/checkCard', data)
+
+		dispatch(addCardRequest(promise));
+
+		promise.then(function (card) {
+			dispatch(addCardSuccess(card.data))
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else {
+				error = 'Network Error';
+			}
+			dispatch(addCardFailed(error));
+		});
+		return promise;
+	}
 }

@@ -7,6 +7,7 @@ var app = require('../server');
 var mailParser = require('mailparser').simpleParser;
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
 var VerificationTokenModel = require('../backend/models/verificationToken');
@@ -19,8 +20,8 @@ describe('Email verification API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             userId = res.body.id;
             projectId = res.body.project._id;
             airtableId = res.body.airtableId;

@@ -6,6 +6,7 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var incidentData = require('./data/incident');
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
@@ -28,8 +29,8 @@ describe('Twilio API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;

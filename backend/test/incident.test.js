@@ -6,6 +6,7 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 
 var incidentData = require('./data/incident');
 var UserService = require('../backend/services/userService');
@@ -30,10 +31,10 @@ var token, userId, airtableId, projectId, monitorId, incidentId, monitor = {
 };
 
 describe('Incident API', function () {
-    this.timeout(100000);
+    this.timeout(120000);
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(60000);
+        createUser(request, userData.user, function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -234,16 +235,16 @@ describe('Incident API', function () {
 var subProjectId, newUserToken, subProjectIncidentId;
 
 describe('Incident API with Sub-Projects', function () {
-    this.timeout(30000);
+    this.timeout(60000);
     before(function (done) {
-        this.timeout(30000);
+        this.timeout(60000);
         var authorization = `Basic ${token}`;
         // create a subproject for parent project
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]
         ).end(function (err, res) {
             subProjectId = res.body[0]._id;
             // sign up second user (subproject user)
-            request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+            createUser(request, userData.newUser, function (err, res) {
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -275,7 +276,7 @@ describe('Incident API with Sub-Projects', function () {
     });
 
     it('should not create an incident for user not present in project', function (done) {
-        request.post('/user/signup').send(userData.anotherUser).end(function (err, res) {
+        createUser(request, userData.anotherUser, function (err, res) {
             VerificationTokenModel.findOne({ userId: res.body.id }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
