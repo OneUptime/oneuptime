@@ -539,10 +539,15 @@ export const formatBytes = (a, b, c, d, e) => {
     return formatDecimal((b = Math, c = b.log, d = 1e3, e = c(a) / c(d) | 0, a / b.pow(d, e)), 2) + ' ' + (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
 };
 
+function compareStatus(incident, log) {
+    return moment(incident.createdAt).isSameOrAfter(moment(log.createdAt)) ? (!incident.resolved ? incident.incidentType : 'online') : log.status;
+}
+
 export const getMonitorStatus = (monitor) => {
     let incident = monitor && monitor.incidents && monitor.incidents.length > 0 ? monitor.incidents[0] : null;
     let log = monitor && monitor.logs && monitor.logs.length > 0 ? monitor.logs[0] : null;
-    let compareStatus = incident && log ? (moment(incident.createdAt).isSameOrAfter(moment(log.createdAt)) ? (incident.incidentType || 'online') : (log.status || 'online')) : (incident ? (incident.incidentType || 'online') : (log ? log.status : 'online'));
-    let status = compareStatus || 'offline';
-    return status;
+    
+    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'online'));
+
+    return statusCompare || 'offline';
 };
