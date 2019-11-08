@@ -107,11 +107,11 @@ module.exports = {
         await page.type(`#emails_${subProjectName}`, email);
         await page.click(`#${role}_${subProjectName}`);
         await page.click(`#btn_modal_${subProjectName}`);
-        await page.waitFor(5000);
+        await page.waitFor(10000);
         // await page.screenshot({ path: 'screenshot-addUserToProject.png' });
     },
     switchProject: async function (projectName, page) {
-        await page.reload({ waitUntil: 'networkidle2' });
+        await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
         await page.waitForSelector('#accountSwitcher');
@@ -121,6 +121,7 @@ module.exports = {
         // await page.screenshot({ path: 'screenshot-switchProject.png' });
     },
     renameProject: async function (newProjectName, page) {
+        await page.reload({waitUntil: 'domcontentloaded'});
         const projectNameSelector = await page.$('input[name=project_name');
         if (projectNameSelector) {
             await this.clear('input[name=project_name]', page);
@@ -153,16 +154,17 @@ module.exports = {
         // await page.screenshot({ path: 'screenshot-selectByText.png' });
     },
     addMonitorToProject: async function (monitorName, projectName, page) {
+        await page.reload({waitUntil: 'domcontentloaded'});
         await page.waitForSelector('#monitors');
         await page.click('#monitors');
         await page.waitForSelector('#frmNewMonitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await this.selectByText('#type', 'url', page);
+        await this.selectByText('#type', 'device', page);
         await this.selectByText('#subProjectId', projectName, page);
-        await page.waitForSelector('#url');
-        await page.click('#url');
-        await page.type('#url', 'https://google.com');
+        await page.waitForSelector('#deviceId');
+        await page.click('#deviceId');
+        await page.type('#deviceId', utils.generateRandomString());
         await page.click('button[type=submit]');
         await page.waitFor(5000);
         // await page.screenshot({ path: `screenshot-addMonitorToProject${monitorName}.png` });

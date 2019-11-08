@@ -106,7 +106,7 @@ class NewMonitor extends Component {
             postObj.data.script = thisObj.state.script;
         }
 
-        if (postObj.type === 'url' || postObj.type === 'api' || postObj.type === 'server-monitor') {
+        if (postObj.type === 'url' || postObj.type === 'api' || postObj.type === 'server-monitor' || postObj.type === 'script') {
             if (values && values[`up_${this.props.index}`] && values[`up_${this.props.index}`].length) {
                 postObj.criteria.up = makeCriteria(values[`up_${this.props.index}`]);
                 postObj.criteria.up.createAlert = values && values[`up_${this.props.index}_createAlert`] ? true : false;

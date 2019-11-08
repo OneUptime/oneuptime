@@ -75,13 +75,13 @@ describe('Scheduled event', () => {
 
         await page.type('input[id=name]', monitorName);
 
-        await init.selectByText('#type', 'url', page);
+        await init.selectByText('#type', 'device', page);
 
-        await page.waitForSelector('#url');
+        await page.waitForSelector('#deviceId');
 
-        await page.click('#url');
+        await page.click('#deviceId');
 
-        await page.type('#url', 'https://google.com');
+        await page.type('#deviceId', utils.generateRandomString());
 
         await page.click('button[type=submit]');
 
