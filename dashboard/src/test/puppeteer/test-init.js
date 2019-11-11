@@ -246,5 +246,16 @@ module.exports = {
             await page.waitFor(5000);
         }
         // await page.screenshot({path: 'screenshot-addScheduleToProject.png'});
+    },
+    filterRequest: async (request, response) => {
+        if((await request.url()).match(/user\/login/)){
+            request.respond({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(response)
+            });
+        }else{
+            request.continue();
+        }
     }
 }

@@ -61,7 +61,7 @@ export class IncidentList extends Component {
                             {
                                 this.props.incidents && this.props.incidents.incidents && this.props.incidents.incidents.length > 0 ? (
                                     this.props.incidents.incidents.map((incident, i) => {
-                                        return (<tr id={`incident_${incident.monitorId ? incident.monitorId.name : this.props.incidents.name ? this.props.incidents.name : 'Unknown Monitor'}_${i}`} key={incident._id} className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink" onClick={() => { history.push('/project/' + this.props.currentProject._id + '/incidents/' + incident._id) }} >
+                                        return (<tr id={`incident_${incident.monitorId ? incident.monitorId.name : this.props.incidents.name ? this.props.incidents.name : 'Unknown Monitor'}_${i}`} key={incident._id} className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem" onClick={() => { history.push('/project/' + this.props.currentProject._id + '/incidents/' + incident._id) }} >
                                             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '270px' }}>
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">

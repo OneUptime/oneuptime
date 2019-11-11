@@ -4,7 +4,6 @@ var ACCOUNTS_URL = 'http://localhost:3003';
 var DASHBOARD_URL = 'http://localhost:3000';
 
 var puppeteerLaunchConfig = {
-    headless: false, 
     args: [
         '--proxy-server=',
         '--no-sandbox',
