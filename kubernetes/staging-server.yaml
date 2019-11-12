@@ -152,9 +152,9 @@ spec:
         - name: PORT
           value: "3002"
         - name: MAIL_USER
-          value: "testmail@fyipe.com"
+          value: "noreply@fyipe.com"
         - name: MAIL_PASSWORD
-          value: "66WEPsk4FJCqUnbCFeZrFYCRWg"
+          value: "gBote8sHiWpbxGEJo9Puv8cevW"
         - name: MAIL_SERVER_SMTP
           value: "mail.hackerbay.io"
         - name: MAIL_PORT_SMTP
@@ -164,7 +164,7 @@ spec:
         - name: MAIL_PORT_IMAP
           value: "993"
         - name: MAIL_FROM
-          value: "testmail@fyipe.com"
+          value: "noreply@fyipe.com"
         - name: EMAIL_VERIFY_TIME
           value: "3600"
         - name: MAIL_SECURE
