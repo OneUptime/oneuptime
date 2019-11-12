@@ -338,8 +338,8 @@ describe('StatusPage API With SubProjects', () => {
             await page.waitForSelector(`#callSchedules > a`);
             await page.click(`#callSchedules > a`);
             await page.waitFor(3000);
-            await page.waitForSelector('tr.scheduleListItem');
-            await page.click('tr.scheduleListItem');
+            await page.waitForSelector('tr.statusPageListItem');
+            await page.click('tr.statusPageListItem');
             await page.waitFor(5000);
             await page.waitForSelector('#delete');
             await page.click('#delete');
@@ -348,7 +348,8 @@ describe('StatusPage API With SubProjects', () => {
             await page.waitFor(5000);
             await page.waitForSelector(`#statusPages > a`);
             await page.click(`#statusPages > a`);
-            await page.waitFor(3000);
+            await page.waitFor(5000);
+
             let statusPageRows = await page.$$('tr.statusPageListItem');
             let countStatusPages = statusPageRows.length;
                 
