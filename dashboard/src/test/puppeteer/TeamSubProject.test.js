@@ -302,6 +302,8 @@ describe('Team API With SubProjects', () => {
             await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
+            await page.waitForSelector('#teamMembers');
+            await page.click('#teamMembers');
             await page.waitForSelector(`button[title="delete"]`);
             await page.click(`button[title="delete"]`);
             await page.waitFor(5000);

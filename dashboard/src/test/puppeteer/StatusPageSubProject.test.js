@@ -335,8 +335,8 @@ describe('StatusPage API With SubProjects', () => {
             await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
-            await page.waitForSelector(`#callSchedules > a`);
-            await page.click(`#callSchedules > a`);
+            await page.waitForSelector(`#statusPages > a`);
+            await page.click(`#statusPages > a`);
             await page.waitFor(3000);
             await page.waitForSelector('tr.statusPageListItem');
             await page.click('tr.statusPageListItem');
