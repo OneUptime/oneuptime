@@ -256,7 +256,7 @@ describe('Schedule API With SubProjects', () => {
 
     test('should add monitor to sub-project schedule', async (done) =>{
         expect.assertions(1);
-        
+
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -291,6 +291,10 @@ describe('Schedule API With SubProjects', () => {
             await page.waitForSelector('#btnSaveMonitors');
             await page.click('#btnSaveMonitors');
             await page.waitFor(5000);
+
+            const monitorSelector = await page.$('#monitor_1');
+
+            expect(monitorSelector).not.toBe(null);
         });
 
         cluster.queue({ email, password, projectName, subProjectMonitorName, userCredentials });
@@ -307,7 +311,7 @@ describe('Schedule API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 60000
         });
 
         cluster.on('taskerror', (err) => {
@@ -337,6 +341,14 @@ describe('Schedule API With SubProjects', () => {
             await page.waitForSelector('#confirmDelete');
             await page.click('#confirmDelete');
             await page.waitFor(5000);
+            await page.waitForSelector(`#callSchedules > a`);
+            await page.click(`#callSchedules > a`);
+            await page.waitFor(3000);
+
+            let scheduleRows = await page.$$('tr.scheduleListItem');
+            let countSchedules = scheduleRows.length;
+
+            expect(countSchedules).toEqual(10);
         });
 
         cluster.queue({ email, password, projectName, subProjectMonitorName, userCredentials });
