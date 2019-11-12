@@ -292,9 +292,9 @@ describe('Schedule API With SubProjects', () => {
             await page.click('#btnSaveMonitors');
             await page.waitFor(5000);
 
-            const monitorSelector = await page.$('#monitor_1');
+            const monitorSelectValue = await page.$eval('input[type=checkbox]', el => el.value);
 
-            expect(monitorSelector).not.toBe(null);
+            expect(monitorSelectValue).toBe("true");
         });
 
         cluster.queue({ email, password, projectName, subProjectMonitorName, userCredentials });
