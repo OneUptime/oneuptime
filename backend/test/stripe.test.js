@@ -75,7 +75,7 @@ describe('Stripe payment API', function () {
     it('should return payment intent when valid details are passed ', function (done) {
         stripe.tokens.create({
             card: {
-                number: '4242424242424242',
+                number: '5555555555554444',
                 exp_month: 12,
                 exp_year: 2020,
                 cvc: '123'
