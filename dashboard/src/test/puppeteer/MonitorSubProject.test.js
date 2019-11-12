@@ -26,7 +26,7 @@ describe('Monitor API With SubProjects', () => {
             puppeteerOptions: utils.puppeteerLaunchConfig,
             maxConcurrency: 2,
             puppeteer,
-            timeout: 80000
+            timeout: 120000
         });
 
         cluster.on('taskerror', (err) => {

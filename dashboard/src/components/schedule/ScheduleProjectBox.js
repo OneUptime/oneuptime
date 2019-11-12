@@ -95,6 +95,7 @@ const ScheduleProjectBox = (props) => (
                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                         <div className="Box-root Margin-right--8">
                             <button
+                                id="btnPrev"
                                 className={`Button bs-ButtonLegacy ${!props.canPaginateBackward ? 'Is--disabled' : ''}`}
                                 data-db-analytics-name="list_view.pagination.previous"
                                 disabled={!props.canPaginateBackward}
@@ -110,6 +111,7 @@ const ScheduleProjectBox = (props) => (
                         </div>
                         <div className="Box-root">
                             <button
+                                id="btnNext"
                                 className={`Button bs-ButtonLegacy ${!props.canPaginateForward ? 'Is--disabled' : ''}`}
                                 data-db-analytics-name="list_view.pagination.next"
                                 disabled={!props.canPaginateForward}
