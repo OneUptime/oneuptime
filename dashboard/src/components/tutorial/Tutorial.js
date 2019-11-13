@@ -31,7 +31,7 @@ class Tutorial extends React.Component {
         if (note) {
             return (
                 <div className="Flex-flex Flex-alignItems--center">
-                    <img alt="" className={`tut-Icon--${note.icon} Margin-right--20`} height="50" width="50" />
+                    <img alt="" className={`tut-Icon--${note.icon} Margin-right--20`} height="75" width="75" />
                     <div>
                         <h3>
                             {note.title}

@@ -353,7 +353,7 @@ export const tutorials = {
                 id: 'status-page',
                 title: 'What is a status page?',
                 icon: 'status',
-                description: <p>Status Pages helps your team and your customers to view real-time status and health of your monitors. Status Page helps improve transparency and trust in your organization and with your customers.</p>,
+                description: <p>Status Pages helps your team and your customers to view real-time status and health of your monitors.<br />Status Page helps improve transparency and trust in your organization and with your customers.</p>,
             },
             {
                 id: 'call-schedule',
