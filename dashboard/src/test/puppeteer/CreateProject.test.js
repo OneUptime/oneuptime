@@ -4,7 +4,7 @@ const utils = require('./test-utils');
 const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 
-// parent user credentials
+// user credentials
 let email = utils.generateRandomBusinessEmail();
 let password = utils.generateRandomString();
 let userCredentials;
@@ -52,7 +52,7 @@ describe('Project API', () => {
                 try{
                     const res = await response.json();
                     if(res && res.tokens){
-                        userCredentials.push(res);
+                        userCredentials = res;
                     }
                 }catch(error){}
             });
