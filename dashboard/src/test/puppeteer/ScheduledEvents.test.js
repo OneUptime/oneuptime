@@ -183,6 +183,7 @@ describe('Scheduled event', () => {
             await page.waitForSelector(`#more_details_${data.monitorName}`);
             await page.click(`#more_details_${data.monitorName}`);
             createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
+            await page.waitForSelector(createdScheduledEventSelector);
             await page.click(createdScheduledEventSelector);
 
             await page.waitFor(1000);
@@ -248,6 +249,7 @@ describe('Scheduled event', () => {
             
             var deleteButtonSelector = '#scheduledEventsList > div > div:nth-child(5) > button'
 
+            await page.waitForSelector(deleteButtonSelector);
             await page.click(deleteButtonSelector);
 
             await page.waitFor(1000);
