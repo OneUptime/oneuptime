@@ -11,7 +11,7 @@ function rollback {
     then
         echo "Rolling back $1"
         sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/$1
-        if [[ $1 == \"probe\"]]
+        if [[ $1 == \"probe\" ]]
           then
           echo "Rolling back probe1"
           sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe1

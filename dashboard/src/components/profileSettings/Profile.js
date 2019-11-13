@@ -209,7 +209,7 @@ export class ProfileSetting extends Component {
             sendVerificationSMSRequesting, emailVerificationRequesting,
             verifySMSCodeRequesting, sendVerificationSMSError,
             verifySMSCodeError, emailVerificationError,
-            emailVerificationSuccess, initialValues } = this.props;
+            initialValues } = this.props;
 
         var profilePic = this.state.profilePic;
         var isVerified = this.state.isVerified;
@@ -292,16 +292,15 @@ export class ProfileSetting extends Component {
                                                 <div className="bs-Fieldset-row" style={{ marginBottom: -5, marginTop: -5 }}>
                                                     <label className="bs-Fieldset-label"></label>
                                                     <div className="bs-Fieldset-fields">
-                                                        {((!emailVerificationError && !emailVerificationSuccess) || initialUserEmail !== userEmail) && <button
+                                                        {((!emailVerificationError) || initialUserEmail !== userEmail) && <button
                                                             className="bs-Button"
                                                             disabled={profileSettings && profileSettings.requesting}
                                                             type="button"
                                                             onClick={this.handleSendEmailVerification}>
                                                             {!emailVerificationRequesting && <span>Resend email verification.</span>}
-                                                            {emailVerificationRequesting && <div> <ListLoader /> </div>}
+                                                            {emailVerificationRequesting && <div style={{ marginTop: -20 }}> <ListLoader /> </div>}
                                                         </button>}
                                                         {emailVerificationError && <span>{emailVerificationError}</span>}
-                                                        {(emailVerificationSuccess && initialUserEmail === userEmail) && <span>Please check your email to verify your email address</span>}
                                                     </div>
                                                 </div>
                                             </ShouldRender>
@@ -342,7 +341,7 @@ export class ProfileSetting extends Component {
                                                             type="button"
                                                             onClick={() => this.handleSendVerificationSMS()}>
                                                             {!sendVerificationSMSRequesting && <span>Send verification sms.</span>}
-                                                            {sendVerificationSMSRequesting && <div> <ListLoader /> </div>}
+                                                            {sendVerificationSMSRequesting && <div style={{ marginTop: -20 }}> <ListLoader /> </div>}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -579,7 +578,6 @@ function mapStateToProps(state) {
         verifySMSCodeRequesting: state.profileSettings.smsVerificationResult.requesting,
         emailVerificationError: state.profileSettings.emailVerificationResult.error,
         emailVerificationRequesting: state.profileSettings.emailVerificationResult.requesting,
-        emailVerificationSuccess: state.profileSettings.emailVerificationResult.success,
     };
 }
 
@@ -603,7 +601,6 @@ ProfileSetting.propTypes = {
         PropTypes.oneOf([null, undefined])
     ]),
     sendVerificationSMSRequesting: PropTypes.bool,
-    emailVerificationSuccess: PropTypes.bool,
     emailVerificationRequesting: PropTypes.bool,
     verifySMSCodeError: PropTypes.oneOfType([
         PropTypes.object,
