@@ -36,6 +36,7 @@
     "npm": "^6.11.3",
     "prop-types": "^15.6.1",
     "puppeteer": "^1.19.0",
+    "puppeteer-cluster": "^0.17.0",
     "query-string": "^5.1.1",
     "react": "^16.5.2",
     "react-ace": "^7.0.4",

@@ -2,163 +2,267 @@ const puppeteer = require('puppeteer');
 var utils = require('./test-utils');
 var should = require('should');
 var init = require('./test-init');
+const { Cluster } = require('puppeteer-cluster');
 
-
-let browser, page, userCredentials;
-
-let email;
+// user credentials
+let email = utils.generateRandomBusinessEmail();
 let password = utils.generateRandomString();
+let userCredentials;
+const monitorName = utils.generateRandomString();
 
 
 describe('Scheduled event', () => {
     const operationTimeOut = 50000;
 
-    beforeAll(async () => {
-        jest.setTimeout(150000);
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-        page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
+    beforeAll(async (done) => {
+        jest.setTimeout(200000);
 
-        // intercept request and mock response for login
-        await page.setRequestInterception(true);
-        await page.on('request', async (request) => {
-            if ((await request.url()).match(/user\/login/)) {
-                request.respond({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify(userCredentials)
-                });
-            } else {
-                request.continue();
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000
+        });
+
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
+
+        // Register user 
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
             }
-        });
-        await page.on('response', async (response) => {
-            try {
-                var res = await response.json();
-                if (res && res.tokens) {
-                    userCredentials = res;
+            
+            // intercept request and mock response for login
+            await page.setRequestInterception(true);
+            await page.on('request', async (request) => {
+                const signInResponse = userCredentials;
+
+                if((await request.url()).match(/user\/login/)){
+                    request.respond({
+                        status: 200,
+                        contentType: 'application/json',
+                        body: JSON.stringify(signInResponse)
+                    });
+                }else{
+                    request.continue();
                 }
-            } catch (error) { }
+            });
+            await page.on('response', async (response)=>{
+                try{
+                    const res = await response.json();
+                    if(res && res.tokens){
+                        userCredentials = res;
+                    }
+                }catch(error){}
+            });
+
+            // user
+            await init.registerUser(user, page);
+            await init.loginUser(user, page);
         });
 
-        // user credentials
-        let email = utils.generateRandomBusinessEmail();
-        let password = utils.generateRandomString();
-        const user = {
-            email,
-            password
-        };
+        await cluster.queue({ email, password });
 
-        // register and signin user
-        await init.registerUser(user, page);
-        await init.loginUser(user, page);
-
-
+        await cluster.idle();
+        await cluster.close();
+        done();
+    });
+    
+    afterAll(async (done) => {
+        done();
     });
 
-    afterAll(async () => {
-        await browser.close();
-
-    });
-
-
-    it('should create a new scheduled event for a monitor', async () => {
-
-        let monitorName = utils.generateRandomString();
-        await page.waitForSelector('#monitors');
-
-        await page.click('#monitors');
-
-        await page.waitForSelector('#frmNewMonitor');
-
-        await page.click('input[id=name]');
-
-        await page.type('input[id=name]', monitorName);
-
-        await init.selectByText('#type', 'device', page);
-
-        await page.waitForSelector('#deviceId');
-
-        await page.click('#deviceId');
-
-        await page.type('#deviceId', utils.generateRandomString());
-
-        await page.click('button[type=submit]');
-
-        await page.waitFor(5000);
-
-        moreButtonSelector = `#more_details_${monitorName}`;
-        await page.click(moreButtonSelector);
-
-        await page.waitFor(2000);
-
-        addButtonSelector = '#addScheduledEventButton';
-        await page.click(addButtonSelector);
-
-        await page.waitFor(1000);
-
-        await page.type('input[name=name]', utils.scheduledEventName);
-        await page.type('textarea[name=description]', utils.scheduledEventDescription);
-
-        await page.evaluate(() => {
-            document.querySelector('input[name=showEventOnStatusPage]').click();
+    test('should create a new scheduled event for a monitor', async (done) => {
+        expect.assertions(1);
+        
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 45000
         });
 
-        await page.click('#createScheduledEventButton');
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
+
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
+            const signInResponse = data.userCredentials;
+
+            // intercept request and mock response for login
+            await page.setRequestInterception(true);
+            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
+
+            await init.loginUser(user, page);
+
+            await page.waitForSelector('#frmNewMonitor');
+
+            await page.click('input[id=name]');
+
+            await page.type('input[id=name]', data.monitorName);
+
+            await init.selectByText('#type', 'device', page);
+
+            await page.waitForSelector('#deviceId');
+
+            await page.click('#deviceId');
+
+            await page.type('#deviceId', utils.generateRandomString());
+
+            await page.click('button[type=submit]');
+
+            await page.waitFor(5000);
+
+            const moreButtonSelector = `#more_details_${data.monitorName}`;
+            await page.click(moreButtonSelector);
+
+            await page.waitFor(2000);
+
+            addButtonSelector = '#addScheduledEventButton';
+            await page.click(addButtonSelector);
+
+            await page.waitFor(1000);
+
+            await page.type('input[name=name]', utils.scheduledEventName);
+            await page.type('textarea[name=description]', utils.scheduledEventDescription);
+
+            await page.evaluate(() => {
+                document.querySelector('input[name=showEventOnStatusPage]').click();
+            });
+
+            await page.click('#createScheduledEventButton');
 
 
-        createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
-        await page.waitFor(1000);
-        var createdScheduledEventName = await page.$eval(createdScheduledEventSelector, el => el.textContent);
-        expect(createdScheduledEventName).toEqual(utils.scheduledEventName);
+            createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
+            await page.waitFor(1000);
 
+            var createdScheduledEventName = await page.$eval(createdScheduledEventSelector, el => el.textContent);
+            
+            expect(createdScheduledEventName).toEqual(utils.scheduledEventName);
+        });
 
+        cluster.queue({ email, password, monitorName, userCredentials });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 
-    it('should update the created scheduled event for a monitor', async () => {
-
-        createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
-        await page.click(createdScheduledEventSelector);
-
-        await page.waitFor(1000);
-
-        await page.click('input[name=name]', { clickCount: 3 })
-        await page.keyboard.press('Backspace')
-        await page.type('input[name=name]', utils.updatedScheduledEventName);
-
-        await page.click('textarea[name=description]', { clickCount: 3 })
-        await page.keyboard.press('Backspace')
-        await page.type('textarea[name=description]', utils.updatedScheduledEventDescription);
-
-        await page.evaluate(() => {
-            document.querySelector('input[name=showEventOnStatusPage]').click();
-        });
-        await page.evaluate(() => {
-            document.querySelector('input[name=alertSubscriber]').click();
+    test('should update the created scheduled event for a monitor', async (done) => {
+        expect.assertions(1);
+        
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 45000
         });
 
-        await page.click('#updateScheduledEventButton');
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-        await page.waitFor(1000);
-        var createdScheduledEventName = await page.$eval(createdScheduledEventSelector, el => el.textContent);
-        expect(createdScheduledEventName).toEqual(utils.updatedScheduledEventName);
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
+            const signInResponse = data.userCredentials;
 
+            // intercept request and mock response for login
+            await page.setRequestInterception(true);
+            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
+            await init.loginUser(user, page);
+            await page.waitForSelector(`#more_details_${data.monitorName}`);
+            await page.click(`#more_details_${data.monitorName}`);
+            createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
+            await page.waitForSelector(createdScheduledEventSelector);
+            await page.click(createdScheduledEventSelector);
+
+            await page.waitFor(1000);
+
+            await page.click('input[name=name]', { clickCount: 3 })
+            await page.keyboard.press('Backspace')
+            await page.type('input[name=name]', utils.updatedScheduledEventName);
+
+            await page.click('textarea[name=description]', { clickCount: 3 })
+            await page.keyboard.press('Backspace')
+            await page.type('textarea[name=description]', utils.updatedScheduledEventDescription);
+
+            await page.evaluate(() => {
+                document.querySelector('input[name=showEventOnStatusPage]').click();
+            });
+            await page.evaluate(() => {
+                document.querySelector('input[name=alertSubscriber]').click();
+            });
+
+            await page.click('#updateScheduledEventButton');
+
+            await page.waitFor(1000);
+
+            var createdScheduledEventName = await page.$eval(createdScheduledEventSelector, el => el.textContent);
+            
+            expect(createdScheduledEventName).toEqual(utils.updatedScheduledEventName);
+        });
+
+        cluster.queue({ email, password, monitorName, userCredentials });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 
-    it('should delete the created scheduled event for a monitor', async () => {
+    test('should delete the created scheduled event for a monitor', async (done) => {
+        expect.assertions(1);
+        
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 45000
+        });
 
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-        var deleteButtonSelector = '#scheduledEventsList > div > div:nth-child(5) > button'
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
+            const signInResponse = data.userCredentials;
 
-        await page.click(deleteButtonSelector);
+            // intercept request and mock response for login
+            await page.setRequestInterception(true);
+            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
-        await page.waitFor(1000);
+            await init.loginUser(user, page);
+            await page.waitForSelector(`#more_details_${data.monitorName}`);
+            await page.click(`#more_details_${data.monitorName}`);
+            
+            var deleteButtonSelector = '#scheduledEventsList > div > div:nth-child(5) > button'
 
-        var scheduledEventCounterSelector = '#scheduledEventCount'
-        var scheduledEventCount = await page.$eval(scheduledEventCounterSelector, el => el.textContent);
+            await page.waitForSelector(deleteButtonSelector);
+            await page.click(deleteButtonSelector);
 
-        expect(scheduledEventCount).toEqual("0 Scheduled Event");
+            await page.waitFor(1000);
 
+            var scheduledEventCounterSelector = '#scheduledEventCount'
+            var scheduledEventCount = await page.$eval(scheduledEventCounterSelector, el => el.textContent);
+
+            expect(scheduledEventCount).toEqual("0 Scheduled Event");
+        });
+
+        cluster.queue({ email, password, monitorName, userCredentials });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 });
