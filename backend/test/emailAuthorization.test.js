@@ -36,7 +36,7 @@ describe('Email verification API', function () {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should sent email verification', function (done) {
+    it('should send email verification', function (done) {
         imap.once('ready', function () {
             openBox(function (err) {
                 if (err) throw err;
