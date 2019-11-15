@@ -205,8 +205,9 @@ describe('Stripe payment API', function () {
                 .send({
                     rechargeBalanceAmount: '100'
                 });
-            if (addBalanceRequest) {
-                await sleep(5000);
+            var confirmedpaymentIntent = await stripe.paymentIntents.confirm(addBalanceRequest.body.id);
+            if (confirmedpaymentIntent) {
+                await sleep(20000);
                 var project = await ProjectService.findOneBy({ _id: projectId });
                 var { balance } = project;
                 expect(balance).to.be.equal(100);
