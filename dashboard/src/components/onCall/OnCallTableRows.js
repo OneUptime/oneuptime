@@ -12,7 +12,7 @@ function Row(props) {
     const path = `/project/${projectId}/subProject/${subProjectId}/schedule/${props.id}`;
 
     return (
-        <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink" onClick={() => { history.push(path) }}>
+        <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem" onClick={() => { history.push(path) }}>
             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '270px' }}>
 
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">

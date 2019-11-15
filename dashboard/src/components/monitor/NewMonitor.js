@@ -180,6 +180,12 @@ class NewMonitor extends Component {
                     }
                 });
         }
+
+        this.setState({
+            advance: false,
+            script: '',
+            type: this.props.edit ? this.props.editMonitorProp.type : this.props.type
+        });
     }
 
     scheduleChange = (e, value) => {

@@ -16,10 +16,10 @@ var router = express.Router();
 // Params:
 // Param 1: webhookURL
 // Returns: 200: Event object with various status.
-router.post('/stripe/events', async function(req, res) {
+router.post('/stripe/events', async function (req, res) {
     const event = req.body;
 
-    try{
+    try {
         const customerId = event.data.object.customer;
         const subscriptionId = event.data.object.subscription;
         const chargeAttemptCount = event.data.object.attempt_count;
@@ -27,10 +27,10 @@ router.post('/stripe/events', async function(req, res) {
         if (!event.data.object.paid) {
             var response = await StripeService.events(customerId, subscriptionId, chargeAttemptCount);
             return sendItemResponse(req, res, response);
-        }else{
+        } else {
             return sendEmptyResponse(req, res);
         }
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
@@ -38,75 +38,79 @@ router.post('/stripe/events', async function(req, res) {
 router.get('/:projectId/charges', getUser, async function (req, res) {
     let userId = req.user ? req.user.id : null;
 
-    try{
+    try {
         var charges = await StripeService.charges(userId);
         return sendListResponse(req, res, charges);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.post('/:projectId/creditCard/:token/pi', getUser, isAuthorized, isUserOwner, async function (req, res){
+router.post('/:projectId/creditCard/:token/pi', getUser, isAuthorized, isUserOwner, async function (req, res) {
     let userId = req.user ? req.user.id : null;
     let { token } = req.params;
 
     try{ 
         var item = await StripeService.creditCard.create(token, userId);
         return sendItemResponse(req, res, item);
-    } catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.put('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
+router.put('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res) {
     let userId = req.user ? req.user.id : null;
     let { cardId } = req.params;
-    try{ 
+    try {
         var card = await StripeService.creditCard.update(userId, cardId);
         return sendItemResponse(req, res, card);
-    } catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.delete('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
+router.delete('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res) {
     let userId = req.user ? req.user.id : null;
     let { cardId } = req.params;
-    try{ 
+    try {
         var card = await StripeService.creditCard.delete(cardId, userId);
         return sendItemResponse(req, res, card);
-    } catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
-router.get('/:projectId/creditCard', getUser, isAuthorized, isUserOwner, async function (req, res){
+
+router.get('/:projectId/creditCard', getUser, isAuthorized, isUserOwner, async function (req, res) {
     let userId = req.user ? req.user.id : null;
-    try{ 
+    try {
         var cards = await StripeService.creditCard.get(userId);
         return sendItemResponse(req, res, cards);
-    } catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
-router.get('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res){
+
+router.get('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res) {
     let userId = req.user ? req.user.id : null;
     let { cardId } = req.params;
-    try{ 
+    try {
         var card = await StripeService.creditCard.get(userId, cardId);
         return sendItemResponse(req, res, card);
-    } catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
-router.post('/webHook/pi', async function (req, res){
+
+router.post('/webHook/pi', async function (req, res) {
     var paymentIntentData = req.body.data.object;
-    if(paymentIntentData.description === 'Recharge balance'){
+    if (paymentIntentData.description === 'Recharge balance') {
         var status = await StripeService.updateBalance(paymentIntentData);
         return sendItemResponse(req, res, status);
     }
     return sendItemResponse(req, res, false);
 });
-router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async function(req ,res){
+
+router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async function (req, res) {
     let userId = req.user ? req.user.id : null;
     let { projectId } = req.params;
     let { rechargeBalanceAmount } = req.body;
@@ -117,18 +121,18 @@ router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async 
             message: 'Amount should be present and it should be a valid number.'
         });
     }
-    try{ 
+    try {
         var item = await StripeService.addBalance(userId, rechargeBalanceAmount, projectId);
         return sendItemResponse(req, res, item);
-    } catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.post('/checkCard', async function(req, res) {
+router.post('/checkCard', async function (req, res) {
     var { tokenId, email, companyName } = req.body;
 
-    try{
+    try {
         var paymentIntent = await StripeService.makeTestCharge(tokenId, email, companyName);
         return sendItemResponse(req, res, paymentIntent);
     } catch (error) {
