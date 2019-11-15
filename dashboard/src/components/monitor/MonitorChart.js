@@ -51,26 +51,24 @@ const calculateTime = (probeStatus) => {
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
 };
 
-export function MonitorChart(props) {
+export function MonitorChart({ probe, startDate, endDate, monitor, showAll }) {
     var block = [];
-    var { timeBlock, uptimePercent } = props.probe && props.probe.probeStatus ? calculateTime(props.probe.probeStatus) : calculateTime([]);
+    var { timeBlock, uptimePercent } = probe && probe.probeStatus ? calculateTime(probe.probeStatus) : calculateTime([]);
     for (var i = 0; i < 90; i++) {
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
 
-    let { startDate, endDate } = props;
-
-    let data = props.monitor.logs && props.monitor.logs.length > 0 ? props.monitor.logs.filter(
+    let data = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
         log => moment(new Date(log.createdAt)).isBetween(new Date(startDate), new Date(endDate), 'day', '[]')
     ) : [];
     let checkLogs = data && data.length > 0;
 
-    let responseTime = props.probe && props.probe.responseTime ? props.probe.responseTime : '0';
-    let status = getMonitorStatus(props.monitor);
-    let monitorStatus = toPascalCase(props.probe && props.probe.status ? props.probe.status : status);
+    let responseTime = probe && probe.responseTime ? probe.responseTime : '0';
+    let status = getMonitorStatus(monitor);
+    let monitorStatus = toPascalCase(probe && probe.status ? probe.status : status);
     let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
-    let monitorType = props.monitor.type;
+    let monitorType = monitor.type;
     let monitorInfo;
 
     if (monitorType === 'server-monitor') {
@@ -174,7 +172,7 @@ export function MonitorChart(props) {
                     <AreaChart type={monitorType} data={data} name={'disk'} />
                 </div>
             </div>
-            <ShouldRender if={props.showAll}>
+            <ShouldRender if={showAll}>
                 <div className="db-Trend">
                     <div className="block-chart-side line-chart">
                         <div className="db-TrendRow">
@@ -241,7 +239,7 @@ export function MonitorChart(props) {
         monitorInfo = <div className="db-Trend">
             <span></span>
             {
-                props.monitor.type !== 'manual' ?
+                monitor.type !== 'manual' ?
                     <div className="db-Trend-colInformation">
                         <div className="db-Trend-rowTitle" title="Gross volume">
                             <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
@@ -294,7 +292,7 @@ MonitorChart.propTypes = {
     showAll: PropTypes.bool
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch)
+const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
 const mapStateToProps = (state) => {
     return {
