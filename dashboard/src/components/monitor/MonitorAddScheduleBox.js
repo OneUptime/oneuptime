@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import moment from 'moment';
-
+import ShouldRender from '../basic/ShouldRender';
 import { fetchscheduledEvents, deleteScheduledEvent } from '../../actions/scheduledEvent';
 import { openModal, closeModal } from '../../actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
@@ -46,8 +46,8 @@ export class ScheduledEventBox extends Component {
 
     render() {
         let { createScheduledEventModalId } = this.state;
-        let { scheduledEvents, limit, count, skip, profileSettings } = this.props;
-        let footerBorderTopStyle = { margin: 0, padding: 0, borderTop: '1px solid #e6ebf1' }
+        let { scheduledEvents, limit, count, skip, profileSettings, error, requesting } = this.props;
+        let footerBorderTopStyle = { margin: 0, padding: 0 }
 
         let canNext = (count > (parseInt(skip) + parseInt(limit))) ? true : false;
         let canPrev = (parseInt(skip) <= 0) ? false : true;
@@ -146,8 +146,18 @@ export class ScheduledEventBox extends Component {
                                         </button>
                                     </div>
                                 </div>)}
+                            <ShouldRender if={!((!scheduledEvents || scheduledEvents.length === 0) && !requesting && !error)}>
+                                <div style={footerBorderTopStyle}></div>
+                            </ShouldRender>
                         </div>
-                        <div style={footerBorderTopStyle}></div>
+                        <ShouldRender if={(!scheduledEvents || scheduledEvents.length === 0) && !requesting && !error}>
+                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ paddingTop: '20px', backgroundColor:'white'}}>
+                                <span>
+                                    {(!scheduledEvents || scheduledEvents.length === 0) && !requesting && !error ? 'You have no scheduled event at this time' : null}
+                                    {error ? error : null}
+                                </span>
+                            </div>
+                        </ShouldRender>
                         <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween" style={{ backgroundColor: 'white' }}>
                             <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -192,7 +202,9 @@ ScheduledEventBox.propTypes = {
     name: PropTypes.string,
     deleteScheduledEvent: PropTypes.func.isRequired,
     scheduledEvents: PropTypes.array,
-    profileSettings: PropTypes.object
+    profileSettings: PropTypes.object,
+    error: PropTypes.object,
+    requesting: PropTypes.bool
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
