@@ -14,9 +14,6 @@ import { removeQuery } from '../store';
 const errorStyle = {
 	color: '#c23d4b'
 }
-const successStyle = {
-  color: 'green'
-}
 export class ResendTokenForm extends Component {
 	state = {
 		serverResponse: ''
@@ -48,7 +45,7 @@ export class ResendTokenForm extends Component {
     const resendTokenError = this.props.resendTokenState.error;
     let header;
     if(success) {
-      header = <span style={successStyle}>Verification link Sent</span>
+      header = <span>Verification Email Sent</span>
     } else if (resendTokenError) {
       header = <span style={errorStyle}>{resendTokenError}</span>
     } else if (serverResponse) {
@@ -67,7 +64,7 @@ export class ResendTokenForm extends Component {
         <div id="main-body" className="box css">
           <div className="inner">
             <form onSubmit={this.props.handleSubmit(this.submitForm)} className="request-reset">
-              <div className="request-reset-step step" >
+              <div className="request-reset-step" >
                 <div className="title">
                   <h2>
                     {header}
