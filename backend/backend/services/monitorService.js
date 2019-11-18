@@ -440,6 +440,23 @@ module.exports = {
         }
     },
 
+    async sendMonitorLog(data) {
+        try {
+            var monitor = await MonitorModel.findOne({ _id: data.monitorId, deleted: false });
+        } catch (error) {
+            ErrorService.log('MonitorModel.findOne', error);
+            throw error;
+        }
+        if (monitor) {
+            try {
+                await RealTimeService.updateMonitorLog(data, monitor._id, monitor.projectId);
+            } catch (error) {
+                ErrorService.log('RealTimeService.updateMonitorLog', error);
+                throw error;
+            }
+        }
+    },
+
     addSeat: async function (query) {
         try {
             var project = await ProjectService.findOneBy(query);

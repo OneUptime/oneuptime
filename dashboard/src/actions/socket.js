@@ -1,24 +1,24 @@
-import {createMonitorSuccess,editMonitorSuccess} from './monitor';
-import {teamUpdateRoleSuccess,teamCreateSuccess,teamDeleteSuccess} from './team';
-import {changeProjectRoles} from './project';
+import { createMonitorSuccess, editMonitorSuccess } from './monitor';
+import { teamUpdateRoleSuccess, teamCreateSuccess, teamDeleteSuccess } from './team';
+import { changeProjectRoles } from './project';
 
 // Resolve Incident
 export function incidentresolvedbysocket(incident) {
     return function (dispatch) {
-            dispatch({
-                type: 'INCIDENT_RESOLVED_BY_SOCKET',
-                payload: {data : incident}
-            });
+        dispatch({
+            type: 'INCIDENT_RESOLVED_BY_SOCKET',
+            payload: { data: incident }
+        });
     };
 }
 
 // Acknowledge Incident
 export function incidentacknowledgedbysocket(incident) {
     return function (dispatch) {
-            dispatch({
-                type: 'INCIDENT_ACKNOWLEDGED_BY_SOCKET',
-                payload: {data :incident}
-            });
+        dispatch({
+            type: 'INCIDENT_ACKNOWLEDGED_BY_SOCKET',
+            payload: { data: incident }
+        });
     };
 }
 
@@ -40,62 +40,71 @@ export function updatemonitorbysocket(monitor) {
     };
 }
 
+export function updatemonitorlogbysocket(log) {
+    return function (dispatch) {
+        dispatch({
+            type: 'UPDATE_MONITOR_LOG',
+            payload: log
+        });
+    };
+}
+
 //Delete Monitor
 export function deletemonitorbysocket(monitor) {
     return function (dispatch) {
-            dispatch({
-                type: 'DELETE_MONITOR_BY_SOCKET',
-                payload: monitor._id
-            });
+        dispatch({
+            type: 'DELETE_MONITOR_BY_SOCKET',
+            payload: monitor._id
+        });
     };
 }
 
 export function incidentcreatedbysocket(incident) {
     return function (dispatch) {
-            dispatch({
-                type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
-                payload: incident
-            });
-            dispatch({
-                type: 'ADD_NEW_INCIDENT_TO_MONITORS',
-                payload: incident
-            });
+        dispatch({
+            type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
+            payload: incident
+        });
+        dispatch({
+            type: 'ADD_NEW_INCIDENT_TO_MONITORS',
+            payload: incident
+        });
     };
 }
 
 export function updateresponsetime(time) {
     return function (dispatch) {
-            dispatch({
-                type: 'UPDATE_RESPONSE_TIME',
-                payload: time
-            });
+        dispatch({
+            type: 'UPDATE_RESPONSE_TIME',
+            payload: time
+        });
     };
 }
 
 export function addnotifications(notification) {
     return function (dispatch) {
-            dispatch({
-                type: 'ADD_NOTIFICATION_BY_SOCKET',
-                payload: notification
-            });
+        dispatch({
+            type: 'ADD_NOTIFICATION_BY_SOCKET',
+            payload: notification
+        });
     };
 }
 
 export function teamMemberRoleUpdate(data) {
     return function (dispatch) {
-            dispatch(teamUpdateRoleSuccess(data));
-            dispatch(changeProjectRoles(data));
+        dispatch(teamUpdateRoleSuccess(data));
+        dispatch(changeProjectRoles(data));
     };
 }
 
 export function teamMemberCreate(data) {
     return function (dispatch) {
-             dispatch(teamCreateSuccess(data));
+        dispatch(teamCreateSuccess(data));
     };
 }
 
 export function teamMemberDelete(data) {
     return function (dispatch) {
-             dispatch(teamDeleteSuccess(data));
+        dispatch(teamDeleteSuccess(data));
     };
 }

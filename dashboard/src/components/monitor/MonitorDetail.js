@@ -21,9 +21,6 @@ import MonitorChart from './MonitorChart';
 import StatusIndicator from './StatusIndicator';
 import { getMonitorStatus } from '../../config';
 
-const endDate = moment().format('YYYY-MM-DD');
-const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
-
 export class MonitorDetail extends Component {
 
     constructor(props) {
@@ -31,17 +28,14 @@ export class MonitorDetail extends Component {
         this.props = props;
         this.state = {
             createIncidentModalId: uuid.v4(),
-            monitorStart: startDate,
-            monitorEnd: endDate
+            startDate: moment().subtract(30, 'd').format('YYYY-MM-DD'),
+            endDate: moment().format('YYYY-MM-DD')
         }
         this.selectbutton = this.selectbutton.bind(this);
     }
 
-    handleMonitorChange = (startDate, endDate) => {
-        this.setState({
-            monitorStart: startDate,
-            monitorEnd: endDate
-        });
+    handleDateChange = (startDate, endDate) => {
+        this.setState({ startDate, endDate });
     }
 
     selectbutton = (data) => {
@@ -95,6 +89,10 @@ export class MonitorDetail extends Component {
     }
 
     render() {
+        let { createIncidentModalId, startDate, endDate } = this.state;
+        let { monitor, create, monitorState, activeProbe, currentProject } = this.props;
+        let creating = create || false;
+
         var greenBackground = {
             display: 'inline-block',
             borderRadius: '50%',
@@ -119,21 +117,18 @@ export class MonitorDetail extends Component {
             margin: '0 8px 1px 0',
             backgroundColor: 'rgb(250, 117, 90)'// "red-status"
         }
-        let { createIncidentModalId } = this.state;
-        let creating = this.props.create ? this.props.create : false;
-        let monitor = this.props.monitor;
+
         monitor.error = null;
-        if (this.props.monitorState.monitorsList.error && this.props.monitorState.monitorsList.error.monitorId && this.props.monitor && this.props.monitor._id) {
-            if (this.props.monitorState.monitorsList.error.monitorId === this.props.monitor._id) {
-                monitor.error = this.props.monitorState.monitorsList.error.error
+        if (monitorState.monitorsList.error && monitorState.monitorsList.error.monitorId && monitor && monitor._id) {
+            if (monitorState.monitorsList.error.monitorId === monitor._id) {
+                monitor.error = monitorState.monitorsList.error.error;
             }
         }
-        monitor.success = this.props.monitorState.monitorsList.success;
-        monitor.requesting = this.props.monitorState.monitorsList.requesting;
+        monitor.success = monitorState.monitorsList.success;
+        monitor.requesting = monitorState.monitorsList.requesting;
 
-        let type = this.props.monitor.type;
         let badgeColor;
-        switch (type) {
+        switch (monitor.type) {
             case 'manual':
                 badgeColor = 'red';
                 break;
@@ -145,9 +140,14 @@ export class MonitorDetail extends Component {
                 break;
         }
 
-        let status = getMonitorStatus(this.props.monitor);
-        let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
-        let probeUrl = `/project/${this.props.monitor.projectId._id}/settings/probe`;
+        let probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
+        let probeData = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
+            log => log.probeId ? (log.probeId === probe._id) : true
+        ) : [];
+
+        let status = getMonitorStatus(monitor.incidents, probeData);
+        let url = monitor && monitor.data && monitor.data.url ? monitor.data.url : null;
+        let probeUrl = `/project/${monitor.projectId._id}/settings/probe`;
 
         return (
             <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
@@ -158,14 +158,14 @@ export class MonitorDetail extends Component {
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                         <StatusIndicator status={status} />
-                                        <span id={`monitor_title_${this.props.monitor.name}`}>
-                                            {this.props.monitor.name}
+                                        <span id={`monitor_title_${monitor.name}`}>
+                                            {monitor.name}
                                         </span>
                                     </span>
-                                    <ShouldRender if={this.props.monitor && this.props.monitor.type}>
+                                    <ShouldRender if={monitor && monitor.type}>
                                         {
-                                            this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ?
-                                                <ShouldRender if={this.props.monitor.probes && !this.props.monitor.probes.length > 0}>
+                                            monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'script' ?
+                                                <ShouldRender if={monitor.probes && !monitor.probes.length > 0}>
                                                     <span className="Text-fontSize--14">This monitor cannot be monitored because there are are 0 probes. You can view probes <Link to={probeUrl}>here</Link></span>
                                                 </ShouldRender>
                                                 : ''
@@ -180,7 +180,7 @@ export class MonitorDetail extends Component {
                                 </div>
                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                     <div className="Box-root">
-                                        <Badge color={badgeColor}>{this.replaceDashWithSpace(type)}</Badge>
+                                        <Badge color={badgeColor}>{this.replaceDashWithSpace(monitor.type)}</Badge>
                                     </div>
                                 </div>
                             </div>
@@ -189,20 +189,20 @@ export class MonitorDetail extends Component {
                     <div className="db-Trends-controls">
                         <div className="db-Trends-timeControls">
                             <DateRangeWrapper
-                                selected={this.state.monitorStart}
-                                onChange={this.handleMonitorChange}
+                                selected={startDate}
+                                onChange={this.handleDateChange}
                                 dateRange={30}
                             />
                         </div>
                         <div>
-                            {type === 'device' &&
+                            {monitor.type === 'device' &&
                                 <button
                                     className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
                                     onClick={() =>
                                         this.props.openModal({
-                                            id: this.props.monitor._id,
+                                            id: monitor._id,
                                             onClose: () => '',
-                                            content: DataPathHoC(MonitorUrl, this.props.monitor)
+                                            content: DataPathHoC(MonitorUrl, monitor)
                                         })
                                     }
                                 >
@@ -210,11 +210,11 @@ export class MonitorDetail extends Component {
                                 </button>
                             }
                             <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
-                                id={`create_incident_${this.props.monitor.name}`}
+                                id={`create_incident_${monitor.name}`}
                                 onClick={() =>
                                     this.props.openModal({
                                         id: createIncidentModalId,
-                                        content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
+                                        content: DataPathHoC(CreateManualIncident, { monitorId: monitor._id, projectId: monitor.projectId._id })
                                     })}>
                                 <ShouldRender if={!creating}>
                                     <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
@@ -225,33 +225,36 @@ export class MonitorDetail extends Component {
                                     <FormLoader />
                                 </ShouldRender>
                             </button>
-                            <button id={`more_details_${this.props.monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + this.props.currentProject._id + '/monitors/' + this.props.monitor._id) }}><span>More</span></button>
+                            <button id={`more_details_${monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help' type='button' onClick={() => { history.push('/project/' + currentProject._id + '/monitors/' + monitor._id) }}><span>More</span></button>
                         </div>
                     </div>
                 </div>
-                <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
-                    <ShouldRender if={type !== 'manual' && type !== 'device' && type !== 'server-monitor'}>
+                <ShouldRender if={monitor && monitor.probes && monitor.probes.length > 1}>
+                    <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                         <div className="btn-group">
-                            {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
+                            {monitor && monitor.probes.map((location, index) => (<button
                                 key={`probes-btn${index}`}
                                 id={`probes-btn${index}`}
                                 disabled={false}
                                 onClick={() => this.selectbutton(index)}
-                                className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+                                className={activeProbe === index ? 'icon-container selected' : 'icon-container'}>
                                 <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
                                 <span>{location.probeName}</span>
                             </button>)
                             )}
                         </div>
                     </ShouldRender>
-                    <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
+                    <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} />
                 </ShouldRender>
 
-                {this.props.monitor && this.props.monitor.type ?
-                    this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ?
+                {monitor && monitor.type ?
+                    monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'script' ?
                         <div>
-                            <ShouldRender if={this.props.monitor.probes && this.props.monitor.probes.length > 0}>
-                                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                            <ShouldRender if={monitor.probes && monitor.probes.length > 0}>
+                                {monitor && monitor.probes && monitor.probes.length < 2 ?
+                                    <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} />
+                                    : ''
+                                }
                                 <div className="db-RadarRulesLists-page">
                                     <div className="Box-root Margin-bottom--12">
                                         <div className="">
@@ -273,13 +276,17 @@ export class MonitorDetail extends Component {
                                     </div>
                                 </div>
                             </ShouldRender>
-                            <ShouldRender if={this.props.monitor.probes && !this.props.monitor.probes.length > 0}>
+                            <ShouldRender if={monitor.probes && !monitor.probes.length > 0}>
                                 <div className="Margin-bottom--12"></div>
                             </ShouldRender>
                         </div>
                         :
                         <div>
-                            {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                            {monitor && monitor.probes && monitor.probes.length < 2 ?
+                                <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} />
+                                :
+                                ''
+                            }
                             <div className="db-RadarRulesLists-page">
                                 <div className="Box-root Margin-bottom--12">
                                     <div className="">
@@ -303,7 +310,6 @@ export class MonitorDetail extends Component {
                         </div>
                     : ''
                 }
-
             </div>
         )
     }
@@ -319,8 +325,7 @@ const mapDispatchToProps = (dispatch) => {
         createNewIncident,
         selectedProbe,
     }, dispatch)
-}
-
+};
 
 function mapStateToProps(state) {
     return {
@@ -343,7 +348,7 @@ MonitorDetail.propTypes = {
     create: PropTypes.bool,
     selectedProbe: PropTypes.func.isRequired,
     activeProbe: PropTypes.number
-}
+};
 
 MonitorDetail.contextTypes = {
     mixpanel: PropTypes.object.isRequired

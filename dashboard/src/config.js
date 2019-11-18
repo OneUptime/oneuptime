@@ -542,11 +542,11 @@ function compareStatus(incident, log) {
     return moment(incident.createdAt).isSameOrAfter(moment(log.createdAt)) ? (!incident.resolved ? incident.incidentType : 'online') : log.status;
 }
 
-export const getMonitorStatus = (monitor) => {
-    let incident = monitor && monitor.incidents && monitor.incidents.length > 0 ? monitor.incidents[0] : null;
-    let log = monitor && monitor.logs && monitor.logs.length > 0 ? monitor.logs[0] : null;
+export const getMonitorStatus = (incidents, logs) => {
+    let incident = incidents && incidents.length > 0 ? incidents[0] : null;
+    let log = logs && logs.length > 0 ? logs[0] : null;
 
-    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'online'));
+    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'offline'));
 
     return statusCompare || 'offline';
 };
