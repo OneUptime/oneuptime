@@ -39,7 +39,8 @@
     "eslint": "^5.16.0",
     "mocha": "^6.2.0",
     "npm-audit-ci-wrapper": "^2.3.0",
-    "pino-pretty": "^3.2.1"
+    "pino-pretty": "^3.2.1",
+    "stripe": "^7.13.0"
   },
   "directories": {
     "lib": "lib",
