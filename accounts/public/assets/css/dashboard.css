@@ -45894,10 +45894,10 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 #login div#main-body,
 .page-wrapper div#main-body {
   background: white;
-  border-radius: 5px;
-  -ms-box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.36);
-  -o-box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.36);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.36);
+  border-radius: 2px;
+  -ms-box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.36);
+  -o-box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.36);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.36);
 }
 #login div#main-body .error-message,
 .page-wrapper div#main-body .error-message {
