@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-
+import ShouldRender from '../basic/ShouldRender';
 import { fetchMonitorCategories, deleteMonitorCategory } from '../../actions/monitorCategories';
 import AddMonitorCategoryForm from '../../components/modals/AddMonitorCategory';
 import RemoveMonitorCategory from '../../components/modals/RemoveMonitorCategory';
@@ -30,15 +30,15 @@ export class MonitorCategories extends Component {
 
     render() {
 
+        let footerBorderTopStyle = { margin: 0, padding: 0 }
         let canNext = (this.props.count > (parseInt(this.props.skip) + parseInt(this.props.limit))) ? true : false;
         let canPrev = (parseInt(this.props.skip) <= 0) ? false : true;
+        let { isRequesting, error, monitorCategories } = this.props;
 
-        if (this.props.isRequesting || !this.props.monitorCategories) {
+        if (isRequesting || !monitorCategories) {
             canNext = false;
             canPrev = false;
         }
-        const { monitorCategories } = this.props;
-        let footerBorderTopStyle = { margin: 0, padding: 0, borderTop: '1px solid #e6ebf1' }
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -122,10 +122,18 @@ export class MonitorCategories extends Component {
                                                 </button>
                                             </div>
                                         </div>))}
+                                    <ShouldRender if={!((!monitorCategories || monitorCategories.length === 0) && !isRequesting && !error)}>
+                                        <div style={footerBorderTopStyle}></div>
+                                    </ShouldRender>
                                 </div>
                             </div>
                         </div>
-                        <div style={footerBorderTopStyle}></div>
+                        <ShouldRender if={(!monitorCategories || monitorCategories.length === 0) && !isRequesting && !error}>
+                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
+                                {(!monitorCategories || monitorCategories.length === 0) && !isRequesting && !error ? 'You have no monitor category at this time' : null}
+                                {error ? error : null}
+                            </div>
+                        </ShouldRender>
                         <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                             <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -168,7 +176,8 @@ MonitorCategories.propTypes = {
     count: PropTypes.number,
     limit: PropTypes.number,
     name: PropTypes.string,
-    openModal: PropTypes.func.isRequired
+    openModal: PropTypes.func.isRequired,
+    error: PropTypes.object
 }
 
 

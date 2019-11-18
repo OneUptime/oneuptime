@@ -33,7 +33,7 @@ export class ResetPasswordForm extends Component {
       <div id="main-body" className="box css">
         <div className="inner">
           <form onSubmit={this.props.handleSubmit(this.submitForm)} className="request-reset">
-            <div className="request-reset-step step" >
+            <div className="request-reset-step" >
               <div className="title">
                 <h2>
                   {header}
