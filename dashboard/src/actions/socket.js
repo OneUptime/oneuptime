@@ -40,6 +40,12 @@ export function updatemonitorbysocket(monitor) {
     };
 }
 
+// export function updatemonitorlogsbysocket(logs) {
+//     return function (dispatch) {
+//         dispatch(fetchMonitorLogsSuccess(logs));
+//     };
+// }
+
 //Delete Monitor
 export function deletemonitorbysocket(monitor) {
     return function (dispatch) {

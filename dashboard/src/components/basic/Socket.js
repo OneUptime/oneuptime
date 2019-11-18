@@ -105,6 +105,16 @@ class SocketApp extends Component {
                     if(isUserInSubProject) thisObj.props.updatemonitorbysocket(data);
                 }
             });
+            // CB.CloudNotification.on(`updateMonitorLogs-${this.props.project._id}`, function (data) {
+            //     const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
+            //     if(isUserInProject){
+            //         thisObj.props.updatemonitorlogsbysocket(data);
+            //     }else{
+            //         const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
+            //         const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
+            //         if(isUserInSubProject) thisObj.props.updatemonitorlogsbysocket(data);
+            //     }
+            // });
             CB.CloudNotification.on(`deleteMonitor-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if(isUserInProject){
