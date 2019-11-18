@@ -102,23 +102,16 @@ export class MonitorDetail extends Component {
             width: '8px',
             margin: '0 8px 1px 0',
             backgroundColor: 'rgb(117, 211, 128)'// "green-status"
-        }
-        var yellowBackground = {
+        };
+        var greyBackground = {
             display: 'inline-block',
             borderRadius: '50%',
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
-            backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
-        }
-        var redBackground = {
-            display: 'inline-block',
-            borderRadius: '50%',
-            height: '8px',
-            width: '8px',
-            margin: '0 8px 1px 0',
-            backgroundColor: 'rgb(250, 117, 90)'// "red-status"
-        }
+            backgroundColor: 'rgba(107, 124, 147, 0.2)'// "grey-status"
+        };
+        
         let { createIncidentModalId } = this.state;
         let creating = this.props.create ? this.props.create : false;
         let monitor = this.props.monitor;
@@ -238,7 +231,7 @@ export class MonitorDetail extends Component {
                                 disabled={false}
                                 onClick={() => this.selectbutton(index)}
                                 className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-                                <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
+                                <span style={location && location.lastAlive && moment(Date.now()).diff(moment(location.lastAlive), 'minutes') > 5 ? greyBackground : greenBackground}></span>
                                 <span>{location.probeName}</span>
                             </button>)
                             )}
