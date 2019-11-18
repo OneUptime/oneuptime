@@ -1,14 +1,14 @@
 import React from 'react';
 import { storiesOf } from '@storybook/react';
-import MonitorTutorial from '../../../components/tutorial/MonitorTutorial';
+import Tutorial from '../../../components/tutorial/Tutorial';
 
 storiesOf('Tutorial', module)
     .addDecorator(story => (
         <div style={{ margin: '5%' }} >
-         {story()}
+            {story()}
         </div>
     ))
-    .add('Monitor tutorial component', () =>
-        <MonitorTutorial />
+    .add('Tutorial component', () =>
+        <Tutorial />
     )
-    
+
