@@ -7,7 +7,7 @@ import AreaChart from '../areachart';
 import toPascalCase from 'to-pascal-case';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import { formatDecimal, formatBytes, getMonitorStatus } from '../../config';
+import { formatDecimal, formatBytes } from '../../config';
 
 const calculateTime = (probeStatus) => {
     let timeBlock = [];
@@ -51,27 +51,29 @@ const calculateTime = (probeStatus) => {
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
 };
 
-export function MonitorChart({ probe, startDate, endDate, monitor, showAll }) {
+export function MonitorChart({ probe, startDate, endDate, probeData, type, status, showAll }) {
     var block = [];
     var { timeBlock, uptimePercent } = probe && probe.probeStatus ? calculateTime(probe.probeStatus) : calculateTime([]);
     for (var i = 0; i < 90; i++) {
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
 
-    let data = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
-        log => moment(new Date(log.createdAt)).isBetween(new Date(startDate), new Date(endDate), 'day', '[]')
+    let data = probeData && probeData.length > 0 ? probeData.filter(
+        log => moment(new Date(log.createdAt)).isBetween(
+            new Date(startDate),
+            new Date(endDate),
+            'day',
+            '[]'
+        )
     ) : [];
     let checkLogs = data && data.length > 0;
 
-    let responseTime = probe && probe.responseTime ? probe.responseTime : '0';
-    let status = getMonitorStatus(monitor);
-    let monitorStatus = toPascalCase(probe && probe.status ? probe.status : status);
-    let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
-
-    let monitorType = monitor.type;
+    let responseTime = checkLogs ? data[0].responseTime : '0';
+    let monitorStatus = toPascalCase(status);
+    let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '0';
+    
     let monitorInfo;
-
-    if (monitorType === 'server-monitor') {
+    if (type === 'server-monitor') {
         monitorInfo = <Fragment>
             <div className="db-Trend">
                 <div className="block-chart-side line-chart">
@@ -103,7 +105,7 @@ export function MonitorChart({ probe, startDate, endDate, monitor, showAll }) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart type={monitorType} data={data} name={'load'} />
+                    <AreaChart type={type} data={data} name={'load'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -136,7 +138,7 @@ export function MonitorChart({ probe, startDate, endDate, monitor, showAll }) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart type={monitorType} data={data} name={'memory'} />
+                    <AreaChart type={type} data={data} name={'memory'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -169,7 +171,7 @@ export function MonitorChart({ probe, startDate, endDate, monitor, showAll }) {
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart type={monitorType} data={data} name={'disk'} />
+                    <AreaChart type={type} data={data} name={'disk'} />
                 </div>
             </div>
             <ShouldRender if={showAll}>
@@ -196,12 +198,12 @@ export function MonitorChart({ probe, startDate, endDate, monitor, showAll }) {
                         </div>
                     </div>
                     <div className="block-chart-main line-chart">
-                        <AreaChart type={monitorType} data={data} name={'temperature'} />
+                        <AreaChart type={type} data={data} name={'temperature'} />
                     </div>
                 </div>
             </ShouldRender>
         </Fragment>
-    } else if (monitorType === 'url' || monitorType === 'api') {
+    } else if (type === 'url' || type === 'api') {
         monitorInfo = <div className="db-Trend">
             <div className="block-chart-side line-chart">
                 <div className="db-TrendRow">
@@ -232,14 +234,14 @@ export function MonitorChart({ probe, startDate, endDate, monitor, showAll }) {
                 </div>
             </div>
             <div className="block-chart-main line-chart">
-                <AreaChart type={monitorType} data={data} name={'response time'} symbol="ms" />
+                <AreaChart type={type} data={data} name={'response time'} symbol="ms" />
             </div>
         </div>
     } else {
         monitorInfo = <div className="db-Trend">
             <span></span>
             {
-                monitor.type !== 'manual' ?
+                type !== 'manual' ?
                     <div className="db-Trend-colInformation">
                         <div className="db-Trend-rowTitle" title="Gross volume">
                             <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
@@ -288,7 +290,9 @@ MonitorChart.propTypes = {
     probe: PropTypes.object,
     startDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     endDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
-    monitor: PropTypes.object,
+    probeData: PropTypes.array,
+    status: PropTypes.string,
+    type: PropTypes.string,
     showAll: PropTypes.bool
 };
 
