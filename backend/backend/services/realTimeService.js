@@ -115,7 +115,7 @@ module.exports = {
         }
     },
 
-    updateMonitorLogs: async (data, monitorId, projectId) => {
+    updateMonitorLog: async (data, monitorId, projectId) => {
         try {
             var project = await ProjectService.findOneBy({ _id: projectId });
         } catch (error) {
@@ -124,7 +124,7 @@ module.exports = {
         }
         projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
         try {
-            CB.CloudNotification.publish(`updateMonitorLogs-${projectId}`, { projectId, monitorId, data });
+            CB.CloudNotification.publish(`updateMonitorLog-${projectId}`, { projectId, monitorId, data });
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`updateResponseTime`)', error);
             throw error;

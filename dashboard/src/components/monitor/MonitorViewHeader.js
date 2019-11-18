@@ -7,7 +7,7 @@ import uuid from 'uuid';
 import DateRangeWrapper from './DateRangeWrapper';
 import MonitorTitle from './MonitorTitle';
 import moment from 'moment';
-import { editMonitorSwitch, deleteMonitor, fetchMonitorLogs } from '../../actions/monitor';
+import { editMonitorSwitch, deleteMonitor } from '../../actions/monitor';
 import DeleteMonitor from '../modals/DeleteMonitor';
 import { FormLoader } from '../basic/Loader';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
@@ -29,17 +29,6 @@ export class MonitorViewHeader extends Component {
         }
 
         this.deleteMonitor = this.deleteMonitor.bind(this);
-        this.updateInterval = null
-    }
-
-    componentDidMount() {
-        this.updateInterval = setInterval(() => {
-            this.props.fetchMonitorLogs(this.props.monitor.projectId._id || this.props.monitor.projectId, this.props.monitor._id);
-        }, 30000);
-    }
-
-    componentWillUnmount() {
-        clearInterval(this.updateInterval);
     }
 
     handleDateChange = (startDate, endDate) => {
@@ -209,8 +198,7 @@ MonitorViewHeader.propTypes = {
     subProjects: PropTypes.array.isRequired,
     currentProject: PropTypes.object.isRequired,
     activeProbe: PropTypes.number,
-    selectedProbe: PropTypes.func.isRequired,
-    fetchMonitorLogs: PropTypes.func
+    selectedProbe: PropTypes.func.isRequired
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({
@@ -218,8 +206,7 @@ const mapDispatchToProps = dispatch => bindActionCreators({
     deleteMonitor,
     selectedProbe,
     openModal,
-    closeModal,
-    fetchMonitorLogs
+    closeModal
 }, dispatch);
 
 const mapStateToProps = (state) => {

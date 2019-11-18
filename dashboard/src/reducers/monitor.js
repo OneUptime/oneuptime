@@ -389,6 +389,29 @@ export default function monitor(state = INITIAL_STATE, action) {
                 fetchMonitorLogsRequest: false
             });
 
+        case 'UPDATE_MONITOR_LOG':
+            return Object.assign({}, state, {
+                ...state,
+
+                monitorsList: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.monitorsList.monitors.map(monitor => {
+                        monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
+                            if (monitor._id === action.payload.monitorId) {
+                                monitor.logs = [action.payload.data, ...(monitor.logs && monitor.logs.length > 0 ? monitor.logs : [])];
+                                return monitor
+                            } else {
+                                return monitor
+                            }
+                        }) : monitor.monitors
+                        return monitor;
+                    })
+                },
+                fetchMonitorLogsRequest: false
+            });
+
         case REMOVE_MONITORS_SUBSCRIBERS:
             return Object.assign({}, state, {
                 ...state,

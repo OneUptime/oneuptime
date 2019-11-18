@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
 import uuid from 'uuid';
 import DateRangeWrapper from './DateRangeWrapper';
-import { editMonitorSwitch, selectedProbe, fetchMonitorLogs, fetchMonitorsIncidents } from '../../actions/monitor';
+import { editMonitorSwitch, selectedProbe, fetchMonitorsIncidents } from '../../actions/monitor';
 import { openModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import moment from 'moment';
@@ -32,17 +32,6 @@ export class MonitorDetail extends Component {
             endDate: moment().format('YYYY-MM-DD')
         }
         this.selectbutton = this.selectbutton.bind(this);
-        this.updateInterval = null
-    }
-
-    componentDidMount() {
-        this.updateInterval = setInterval(() => {
-            this.props.fetchMonitorLogs(this.props.monitor.projectId._id || this.props.monitor.projectId, this.props.monitor._id);
-        }, 30000);
-    }
-
-    componentWillUnmount() {
-        clearInterval(this.updateInterval);
     }
 
     handleDateChange = (startDate, endDate) => {
@@ -332,7 +321,6 @@ const mapDispatchToProps = (dispatch) => {
     return bindActionCreators({
         editMonitorSwitch,
         openModal,
-        fetchMonitorLogs,
         fetchMonitorsIncidents,
         createNewIncident,
         selectedProbe,
@@ -359,8 +347,7 @@ MonitorDetail.propTypes = {
     openModal: PropTypes.func,
     create: PropTypes.bool,
     selectedProbe: PropTypes.func.isRequired,
-    activeProbe: PropTypes.number,
-    fetchMonitorLogs: PropTypes.func.isRequired
+    activeProbe: PropTypes.number
 };
 
 MonitorDetail.contextTypes = {
