@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import MonitorTutorial from './MonitorTutorial';
+import Tutorial from './Tutorial';
 import PropTypes from 'prop-types';
 import { closeTutorial } from '../../actions/tutorial';
 
@@ -29,7 +29,7 @@ const Tutorials = ({ type, closeTutorial }) =>
                     </div>
                     <div className="db-Trends-content">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                            <MonitorTutorial type={type} />
+                            <Tutorial type={type} />
                         </div>
                     </div>
                 </div>

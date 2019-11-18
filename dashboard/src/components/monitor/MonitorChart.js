@@ -73,6 +73,18 @@ export function MonitorChart(props) {
     let monitorType = props.monitor.type;
     let monitorInfo;
 
+    let statusColor;
+    switch (status) {
+        case 'degraded':
+            statusColor = 'yellow';
+            break;
+        case 'offline':
+            statusColor = 'red';
+            break;
+        default:
+            statusColor = 'blue'
+    }
+
     if (monitorType === 'server-monitor') {
         monitorInfo = <Fragment>
             <div className="db-Trend">
@@ -220,7 +232,7 @@ export function MonitorChart(props) {
                             <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
                         </div>
                         <div className="db-Trend-row">
-                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{monitorStatus}</span></span></div>
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className={`chart-font Text-color--${statusColor}`}>{monitorStatus}</span></span></div>
                         </div>
                     </div>
                     <div className="db-Trend-colInformation">
@@ -256,7 +268,7 @@ export function MonitorChart(props) {
                     <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
                 </div>
                 <div className="db-Trend-row">
-                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{monitorStatus}</span></span></div>
+                    <div className="db-Trend-col db-Trend-colValue"><span> <span className={`chart-font Text-color--${statusColor}`}>{monitorStatus}</span></span></div>
                 </div>
             </div>
             <div className="db-Trend-colInformation">
