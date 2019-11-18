@@ -42,7 +42,7 @@ RenderField.propTypes = {
     ]),
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
-    type: PropTypes.string.isRequired,
+    type: PropTypes.string,
     className: PropTypes.string,
     id: PropTypes.string,
     meta: PropTypes.object.isRequired,

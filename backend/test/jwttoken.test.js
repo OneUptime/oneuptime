@@ -12,6 +12,7 @@ var AirtableService = require('../backend/services/airtableService');
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 
 var token, projectId, refreshToken, userId, airtableId;
 
@@ -19,8 +20,8 @@ describe('Jwt Token API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;

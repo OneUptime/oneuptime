@@ -10,7 +10,7 @@ let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
-
+let publicStripeKey = 'pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv';
 
 function env(value) {
     var { _env } = window;
@@ -38,6 +38,8 @@ export const DASHBOARD_URL = dashboardUrl;
 export const DOMAIN_URL = domain;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
+
+export const PUBLIC_STRIPE_KEY = publicStripeKey;
 
 export const User = {
 
@@ -139,6 +141,21 @@ export const Validate = {
         }
     },
 
+    isValidNumber(number) {
+        // eslint-disable-next-line
+        if(number.match('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$')) {
+            return true;
+        }
+        return false;
+    },
+
+    isStrongPassword(password) {
+        if(password.match('^(?=.{8,})')) { 
+            return true;
+        }
+        return false;
+    },
+
     email(email) {
         if (this.text(email))
             return isEmail(email);
@@ -191,6 +208,14 @@ export const Validate = {
         }
 
         return true;
+    },
+
+    isValidName(name) { 
+        // eslint-disable-next-line
+        if(name.match('[A-Z][a-zA-Z][^#&<>\"~;$^%{}?]{1,20}$')) {
+            return true
+        }
+        return false;
     }
 }
 

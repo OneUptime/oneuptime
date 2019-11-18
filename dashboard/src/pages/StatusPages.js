@@ -20,13 +20,11 @@ class StatusPage extends Component {
 
         return (
             <Dashboard>
-                <div className="db-World-contentPane Box-root Padding-bottom--48">
-                    <ShouldRender if={this.props.statusPageTutorial.show}>
-                        <TutorialBox type="status-page" />
-                    </ShouldRender>
+                <ShouldRender if={this.props.statusPageTutorial.show}>
+                    <TutorialBox type="status-page" />
+                </ShouldRender>
 
-                    <StatusPagesTable projectId={projectId} />
-                </div>
+                <StatusPagesTable projectId={projectId} />
             </Dashboard>
         );
     }

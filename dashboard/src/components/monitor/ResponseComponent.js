@@ -4,6 +4,7 @@ import { Component } from 'react';
 import { Field, FieldArray, formValueSelector, arrayPush } from 'redux-form';
 import PropTypes from 'prop-types';
 import { ResponseParent } from './ResponseParent';
+import ShouldRender from '../basic/ShouldRender';
 
 const newSelector = formValueSelector('NewMonitor');
 
@@ -76,37 +77,16 @@ export class ResponseComponent extends Component {
                             </div>
                         </div>
                         {this.props.bodyfield && this.props.bodyfield.length ?
-                            <div><div className="bs-Fieldset-row">
-                                <label className="Checkbox" htmlFor={`${this.props.fieldname}_createAlert`}>
-                                    <Field
-                                        component="input"
-                                        type="checkbox"
-                                        name={`${this.props.fieldname}_createAlert`}
-                                        data-test="RetrySettings-failedPaymentsCheckbox"
-                                        className="Checkbox-source"
-                                        id={`${this.props.fieldname}_createAlert`}
-                                    />
-                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                        <div className="Checkbox-target Box-root">
-                                            <div className="Checkbox-color Box-root"></div>
-                                        </div>
-                                    </div>
-                                    <div className="Checkbox-label Box-root Margin-left--8">
-                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            <span>Create an incident.</span>
-                                        </span>
-                                    </div>
-                                </label>
-                            </div>
+                            <div>
                                 <div className="bs-Fieldset-row">
-                                    <label className="Checkbox" htmlFor={`${this.props.fieldname}_autoAcknowledge`}>
+                                    <label className="Checkbox" htmlFor={`${this.props.fieldname}_createAlert`}>
                                         <Field
                                             component="input"
                                             type="checkbox"
-                                            name={`${this.props.fieldname}_autoAcknowledge`}
+                                            name={`${this.props.fieldname}_createAlert`}
                                             data-test="RetrySettings-failedPaymentsCheckbox"
                                             className="Checkbox-source"
-                                            id={`${this.props.fieldname}_autoAcknowledge`}
+                                            id={`${this.props.fieldname}_createAlert`}
                                         />
                                         <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                             <div className="Checkbox-target Box-root">
@@ -115,33 +95,60 @@ export class ResponseComponent extends Component {
                                         </div>
                                         <div className="Checkbox-label Box-root Margin-left--8">
                                             <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <span>Automatically acknowledge an incident when monitor is back up.</span>
+                                                <span>Create an incident.</span>
                                             </span>
                                         </div>
                                     </label>
                                 </div>
-                                <div className="bs-Fieldset-row">
-                                    <label className="Checkbox" htmlFor={`${this.props.fieldname}_autoResolve`}>
-                                        <Field
-                                            component="input"
-                                            type="checkbox"
-                                            name={`${this.props.fieldname}_autoResolve`}
-                                            data-test="RetrySettings-failedPaymentsCheckbox"
-                                            className="Checkbox-source"
-                                            id={`${this.props.fieldname}_autoResolve`}
-                                        />
-                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                            <div className="Checkbox-target Box-root">
-                                                <div className="Checkbox-color Box-root"></div>
+                                <ShouldRender if={this.props.fieldname !== `up_${this.props.index}`}>
+                                    <div className="bs-Fieldset-row">
+                                        <label className="Checkbox" htmlFor={`${this.props.fieldname}_autoAcknowledge`}>
+                                            <Field
+                                                component="input"
+                                                type="checkbox"
+                                                name={`${this.props.fieldname}_autoAcknowledge`}
+                                                data-test="RetrySettings-failedPaymentsCheckbox"
+                                                className="Checkbox-source"
+                                                id={`${this.props.fieldname}_autoAcknowledge`}
+                                            />
+                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                <div className="Checkbox-target Box-root">
+                                                    <div className="Checkbox-color Box-root"></div>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="Checkbox-label Box-root Margin-left--8">
-                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <span>Automatically resolve an incident when monitor is back up.</span>
-                                            </span>
-                                        </div>
-                                    </label>
-                                </div></div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>Automatically acknowledge an incident when monitor is back up.</span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender if={this.props.fieldname !== `up_${this.props.index}`}>
+                                    <div className="bs-Fieldset-row">
+                                        <label className="Checkbox" htmlFor={`${this.props.fieldname}_autoResolve`}>
+                                            <Field
+                                                component="input"
+                                                type="checkbox"
+                                                name={`${this.props.fieldname}_autoResolve`}
+                                                data-test="RetrySettings-failedPaymentsCheckbox"
+                                                className="Checkbox-source"
+                                                id={`${this.props.fieldname}_autoResolve`}
+                                            />
+                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                <div className="Checkbox-target Box-root">
+                                                    <div className="Checkbox-color Box-root"></div>
+                                                </div>
+                                            </div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>Automatically resolve an incident when monitor is back up.</span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </ShouldRender>
+                            </div>
                             :
                             <div className="bs-Fieldset-row">
                                 <div className="Box-root Margin-bottom--12">

@@ -68,7 +68,7 @@ class StatusPagesTable extends Component {
                 canPaginateBackward = false;
             }
             return subProjectStatusPage && subProjectStatusPage.statusPages ? (
-                <RenderIfUserInSubProject subProjectId={subProjectStatusPage._id}>
+                <RenderIfUserInSubProject subProjectId={subProjectStatusPage._id} key={i}>
                     <div className="bs-BIM" key={i}>
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">

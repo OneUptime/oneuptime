@@ -30,6 +30,7 @@ module.exports = {
         }
         return { paymentStatus: 'failed' };
     },
+
     charges: async function (userId) {
         try {
             var user = await UserService.findOneBy({ _id: userId });
@@ -41,26 +42,44 @@ module.exports = {
             throw error;
         }
     },
+
     creditCard: {
         createPaymentIntent: async function (tok, userId) {
             try {
-                var user = await UserService.findOneBy({ _id: userId });
-                var stripeCustomerId = user.stripeCustomerId;
-                var card = await stripe.customers.createSource(stripeCustomerId, { source: tok });
-                var paymentIntent = await stripe.paymentIntents.create({
-                    amount: 100,
-                    currency: 'usd',
-                    payment_method_types: ['card'],
-                    customer: stripeCustomerId,
-                    source: card.id
-                });
-                var confirmedPaymentIntent = await stripe.paymentIntents.confirm(paymentIntent.id);
-                return confirmedPaymentIntent;
+                let tokenCard = await stripe.tokens.retrieve(tok);
+                let cards = await this.get(userId);
+                let duplicateCard = false;
+
+                if (cards && cards.data && cards.data.length > 0 && tokenCard && tokenCard.card) {
+                    duplicateCard = cards.data.filter(
+                        card => card.fingerprint === tokenCard.card.fingerprint
+                    ).length > 0;
+                }
+
+                if (!duplicateCard) {
+                    var user = await UserService.findOneBy({ _id: userId });
+                    var stripeCustomerId = user.stripeCustomerId;
+                    var card = await stripe.customers.createSource(stripeCustomerId, { source: tok });
+                    var paymentIntent = await stripe.paymentIntents.create({
+                        amount: 100,
+                        currency: 'usd',
+                        payment_method_types: ['card'],
+                        customer: stripeCustomerId,
+                        source: card.id
+                    });
+                    var confirmedPaymentIntent = await stripe.paymentIntents.confirm(paymentIntent.id);
+                    return confirmedPaymentIntent;
+                } else {
+                    var error = new Error('Cannot add duplicate card.');
+                    error.code = 400;
+                    throw error;
+                }
             } catch (error) {
                 ErrorService.log('StripeService.creditCard.createPaymentIntent', error);
                 throw error;
             }
         },
+
         update: async function (userId, cardId) {
             try {
                 var user = await UserService.findOneBy({ _id: userId });
@@ -74,6 +93,7 @@ module.exports = {
                 throw error;
             }
         },
+
         delete: async function (cardId, userId) {
             try {
                 var user = await UserService.findOneBy({ _id: userId });
@@ -91,23 +111,24 @@ module.exports = {
                 throw error;
             }
         },
+
         get: async function (userId, cardId) {
             try {
                 var user = await UserService.findOneBy({ _id: userId });
                 var stripeCustomerId = user.stripeCustomerId;
                 var customer = await stripe.customers.retrieve(stripeCustomerId);
-                if(cardId){
+                if (cardId) {
                     var card = await stripe.customers.retrieveSource(stripeCustomerId, cardId);
                     return card;
                 }
-                else{
+                else {
                     var cards = await stripe.customers.listSources(stripeCustomerId);
                     cards.data = await cards.data.map(card => {
-                        if(card.id === customer.default_source){
+                        if (card.id === customer.default_source) {
                             card.default_source = true;
                             return card;
                         }
-                        return card; 
+                        return card;
                     });
                     return cards;
                 }
@@ -118,7 +139,6 @@ module.exports = {
         }
     },
     chargeCustomerForBalance: async function (userId, chargeAmount, projectId, alertOptions) {
-
         var stripechargeAmount = chargeAmount * 100;
         var user = await UserService.findOneBy({ _id: userId });
         var stripeCustomerId = user.stripeCustomerId;
@@ -132,10 +152,10 @@ module.exports = {
             });
             return charge;
         } catch (error) {
-            if(error.code === 'authentication_required'){
+            if (error.code === 'authentication_required') {
                 //create payment intent and return to client for verification
-                var metadata; 
-                if(alertOptions){
+                var metadata;
+                if (alertOptions) {
                     metadata = {
                         projectId,
                         ...alertOptions
@@ -162,10 +182,10 @@ module.exports = {
             }
         }
     },
-    updateBalance: async function(paymentIntentData){
-        if(paymentIntentData.status === 'succeeded'){
+    updateBalance: async function (paymentIntentData) {
+        if (paymentIntentData.status === 'succeeded') {
             var amountRechargedStripe = Number(paymentIntentData.amount_received);
-            if(amountRechargedStripe){
+            if (amountRechargedStripe) {
                 var projectId = paymentIntentData.metadata.projectId,
                     minimumBalance = paymentIntentData.metadata.minimumBalance && Number(paymentIntentData.metadata.minimumBalance),
                     rechargeToBalance = paymentIntentData.metadata.rechargeToBalance && Number(paymentIntentData.metadata.rechargeToBalance),
@@ -179,13 +199,13 @@ module.exports = {
                     billingUS,
                     billingNonUSCountries,
                     billingRiskCountries
-                }; 
+                };
                 var amountRecharged = amountRechargedStripe / 100;
                 var project = await ProjectModel.findById(projectId).lean();
                 var currentBalance = project.balance;
                 var newbalance = currentBalance + amountRecharged;
                 var updateObject = {};
-                if(!minimumBalance || !rechargeToBalance){
+                if (!minimumBalance || !rechargeToBalance) {
                     updateObject = {
                         balance: newbalance,
                         alertEnable: true
@@ -207,7 +227,6 @@ module.exports = {
         return false;
     },
     addBalance: async function (userId, chargeAmount, projectId) {
-
         var stripechargeAmount = chargeAmount * 100;
         var user = await UserService.findOneBy({ _id: userId });
         var stripeCustomerId = user.stripeCustomerId;
@@ -227,11 +246,32 @@ module.exports = {
             metadata
         });
         return paymentIntent;
+    },
+
+    makeTestCharge: async function (tokenId, email, companyName) {
+        try {
+            var testChargeValue = 100;
+            var stripeCustomerId = await PaymentService.createCustomer(email, companyName);
+            var card = await stripe.customers.createSource(stripeCustomerId, { source: tokenId });
+            var paymentIntent = await stripe.paymentIntents.create({
+                amount: testChargeValue,
+                currency: 'usd',
+                customer: stripeCustomerId,
+                description: 'Verify if card is billable.',
+                payment_method_types: ['card'],
+                source: card.id
+            });
+            return paymentIntent;
+        } catch (error) {
+            ErrorService.log('StripeService.makeTestCharge', error);
+            throw error;
+        }
     }
 };
 
 var payment = require('../config/payment');
 var UserService = require('../services/userService');
+var PaymentService = require('../services/paymentService');
 var ProjectService = require('../services/projectService');
 var ProjectModel = require('../models/project');
 var MailService = require('../services/mailService');

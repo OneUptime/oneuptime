@@ -8046,10 +8046,6 @@ div.event-catcher {
 }
 div.box {
   position: relative;
-  border-radius: 4px;
-  -ms-box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), 0 3px 5px rgba(0, 0, 0, 0.2);
-  -o-box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), 0 3px 5px rgba(0, 0, 0, 0.2);
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), 0 3px 5px rgba(0, 0, 0, 0.2);
 }
 a.pill {
   padding: 3px 12px;
@@ -8370,12 +8366,7 @@ p.text textarea {
   font-size: 14px;
   padding: 6px 7px;
   width: 150px;
-  border: 1px solid #bbb;
-  border-top-color: #999;
-  border-radius: 4px;
-  -ms-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
-  -o-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+  border-radius: 2px;
   -webkit-font-smoothing: antialiased;
 }
 div.account-holder-name-field-view .fake-input.error,
@@ -8432,10 +8423,6 @@ p.text textarea.error {
   background-position: 100% 50%;
   background-repeat: no-repeat;
   border-color: #dd5050;
-  border-top-color: #bc3131;
-  -ms-box-shadow: inset 0 1px 2px #ddd, 0 0 2px rgba(234, 46, 46, 0.3);
-  -o-box-shadow: inset 0 1px 2px #ddd, 0 0 2px rgba(234, 46, 46, 0.3);
-  box-shadow: inset 0 1px 2px #ddd, 0 0 2px rgba(234, 46, 46, 0.3);
 }
 div.account-holder-name-field-view .fake-input.focus,
 div.account-holder-name-field-view .fake-input:focus,
@@ -8541,9 +8528,6 @@ p.text textarea.focus,
 p.text textarea:focus {
   border: 1px solid #28a0e5;
   outline: none;
-  -ms-box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
-  -o-box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
-  box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
 }
 div.account-holder-name-field-view .fake-input:disabled,
 div.account-holder-name-field-view input:not([type='checkbox']):disabled,
@@ -14939,8 +14923,7 @@ a.button.blue,
 button.button.blue,
 div.button.blue,
 strong.button.blue {
-  background: #015e94;
-  background: linear-gradient(#28a0e5, #015e94);
+  background: #005d93;
 }
 a.button.blue span,
 button.button.blue span,
@@ -14948,11 +14931,7 @@ div.button.blue span,
 strong.button.blue span {
   color: #fff;
   text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
-  background: #1275ff;
-  background: linear-gradient(#7dc5ee, #008cdd 85%, #30a2e4);
-  -ms-box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.25);
-  -o-box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.25);
-  box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.25);
+  background: #005d93;
 }
 a.button.blue.active,
 a.button.blue:active,
@@ -42692,7 +42671,7 @@ div.emails-settings-view .header-container:after {
   position: relative;
   height: 120px;
   overflow: auto;
-  xbackground-attachment: scroll;
+  background-attachment: scroll;
   font-size: 12px !important;
   line-height: 16px !important;
 }
@@ -45847,7 +45826,9 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 .page-wrapper div#wrap {
   position: relative;
   min-height: 100%;
+  background-color: #f7f8fc;
 }
+
 #login div#login-background,
 #login div#page-background,
 #login div#recovery-background,
@@ -45892,9 +45873,9 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   padding: 17px 24px;
   background: url('login/divider-da67eb5fc0c6d51d6a5cc4f1546da491.png') 50% 100%
     no-repeat;
-  color: #1e2b32;
-  font-size: 14px;
-  font-weight: 500;
+  color: #525f7f;
+  font-size: 15px;
+  font-weight: bold;
   line-height: 21px;
   text-align: center;
 }
@@ -45912,16 +45893,11 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 }
 #login div#main-body,
 .page-wrapper div#main-body {
-  background: #f2f6f9;
-  background: linear-gradient(#fff, #f2f6f9);
-  border-radius: 6px;
-  -ms-box-shadow: 0 0 0 1px rgba(14, 41, 57, 0.12),
-    0 2px 5px rgba(14, 41, 57, 0.44), inset 0 -1px 2px rgba(14, 41, 57, 0.15);
-  -o-box-shadow: 0 0 0 1px rgba(14, 41, 57, 0.12),
-    0 2px 5px rgba(14, 41, 57, 0.44), inset 0 -1px 2px rgba(14, 41, 57, 0.15);
-  box-shadow: 0 0 0 1px rgba(14, 41, 57, 0.12), 0 2px 5px rgba(14, 41, 57, 0.44),
-    inset 0 -1px 2px rgba(14, 41, 57, 0.15);
-  background-color: none;
+  background: white;
+  border-radius: 2px;
+  -ms-box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.36);
+  -o-box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.36);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.36);
 }
 #login div#main-body .error-message,
 .page-wrapper div#main-body .error-message {
@@ -45991,13 +45967,13 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 }
 #login div#main-body form,
 .page-wrapper div#main-body form {
-  padding: 14px;
+  padding: 20px;
 }
 #login div#main-body form .step,
 #login div#main-body form p,
 .page-wrapper div#main-body form .step,
 .page-wrapper div#main-body form p {
-  margin-bottom: 14px;
+  margin-bottom: 30px;
 }
 #login div#main-body form p:last-child,
 .page-wrapper div#main-body form p:last-child {
@@ -46030,7 +46006,8 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 .page-wrapper div#main-body form p.text label {
   display: block;
   margin: 0 0 3px 1px;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: bold;
 }
 #login div#main-body form p.text input,
 .page-wrapper div#main-body form p.text input {
@@ -46039,23 +46016,12 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   box-sizing: border-box;
   padding: 10px 12px;
   width: 100%;
-  border-radius: 5px;
-  -ms-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
-  -o-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
   -webkit-font-smoothing: antialiased;
   border: 1px solid #bbb;
-  border-top-color: #999;
   font-size: 18px;
+  color:#525f7f
 }
-#login div#main-body form p.text input:focus,
-.page-wrapper div#main-body form p.text input:focus {
-  -ms-box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
-  -o-box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
-  box-shadow: inset 0 1px 2px #ddd, 0 0 5px #28a0e5;
-  border: 1px solid #28a0e5;
-  outline: none;
-}
+
 #login div#main-body form p a.button,
 #login div#main-body form p button.button,
 .page-wrapper div#main-body form p a.button,
@@ -46063,11 +46029,8 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   box-sizing: border-box;
   text-align: center;
   height: 44px;
-  width: 302px;
-  border-radius: 6px;
-  -ms-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
-  -o-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
+  width: 100%;
+  border-radius: 2px;
 }
 #login div#main-body form p a.button.grey span,
 #login div#main-body form p button.button.grey span,
@@ -46082,9 +46045,8 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   height: 42px;
   padding: 13px 0 0;
   border-radius: 5px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 14px;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.53);
 }
 #login div#main-body form p.button-list a.button,
 #login div#main-body form p.button-list button.button,
@@ -47563,14 +47525,11 @@ body#oauth-login form p.submit button.button {
   width: 332px;
   height: 44px;
   margin: auto;
-  margin-bottom: 6px;
-  -ms-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
-  -o-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
+  margin-bottom: 10px;
 }
 body#oauth-login form p.submit button.button span {
   height: 29px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 14px;
   padding: 13px 0 0;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.53);

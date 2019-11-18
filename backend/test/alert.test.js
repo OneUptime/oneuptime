@@ -10,6 +10,7 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
 var UserModel = require('../backend/models/user');
 var IncidentService = require('../backend/services/incidentService');
@@ -33,7 +34,7 @@ describe('Alert API', function () {
 
         before(function (done) {
             this.timeout(30000);
-            request.post('/user/signup').send(userData.user).end(function (err, res) {
+            createUser(request, userData.user, function(err, res) {
                 let project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -138,7 +139,7 @@ describe('Alert API', function () {
             ).end(function (err, res) {
                 subProjectId = res.body[0]._id;
                 // sign up second user (subproject user)
-                request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+                createUser(request, userData.newUser, function(err, res) {
                     userId = res.body.id;
                     UserModel.findByIdAndUpdate(userId, { $set: { isVerified: true } }, function () {
                         request.post('/user/login').send({
@@ -171,7 +172,7 @@ describe('Alert API', function () {
         });
 
         it('should not create alert for user not in the project.', function (done) {
-            request.post('/user/signup').send(userData.anotherUser).end(function (err, res) {
+            createUser(request, userData.anotherUser, function(err, res) {
                 userId = res.body.id;
                 UserModel.findByIdAndUpdate(userId, { $set: { isVerified: true } }, function () {
                     request.post('/user/login').send({

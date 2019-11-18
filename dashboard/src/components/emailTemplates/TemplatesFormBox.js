@@ -22,8 +22,8 @@ const style = {
 
 const bulletpoints = {
     display: 'listItem',
-      listStyleType: 'disc',
-      listStylePosition: 'inside'
+    listStyleType: 'disc',
+    listStylePosition: 'inside'
 }
 
 function validate(values) {
@@ -42,7 +42,7 @@ export class TemplatesFormBox extends Component {
     render() {
         const { template, handleSubmit, editEmailTemplates, resetEmailTemplates } = this.props;
         return (
-            <div className="bs-ContentSection Card-root Card-shadow--medium" style={{borderRadius:'0px',boxShadow:'none'}}>
+            <div className="bs-ContentSection Card-root Card-shadow--medium" style={{ borderRadius: '0px', boxShadow: 'none' }}>
                 <div className="Box-root">
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
@@ -141,7 +141,7 @@ export class TemplatesFormBox extends Component {
                                         </ShouldRender>
                                     </button>
                                     <button
-                                        className={resetEmailTemplates && resetEmailTemplates.requesting ? 'bs-Button bs-Button--blue' :'bs-Button'}
+                                        className={resetEmailTemplates && resetEmailTemplates.requesting ? 'bs-Button bs-Button--blue' : 'bs-Button'}
                                         disabled={(resetEmailTemplates && resetEmailTemplates.requesting) || !template._id}
                                         type="button"
                                         onClick={() => { this.props.resetTemplate(template._id) }}
@@ -169,12 +169,12 @@ TemplatesFormBox.displayName = 'TemplatesFormBox'
 TemplatesFormBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     setRevealVariable: PropTypes.func.isRequired,
-    template: PropTypes.array.isRequired,
+    template: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
     editEmailTemplates: PropTypes.object.isRequired,
     resetEmailTemplates: PropTypes.object.isRequired,
-    revealVariable: PropTypes.object.isRequired,
-    submitForm :PropTypes.func.isRequired,
-    resetTemplate : PropTypes.func.isRequired,
+    revealVariable: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+    submitForm: PropTypes.func.isRequired,
+    resetTemplate: PropTypes.func.isRequired,
 }
 
 let TemplatesFormBoxForm = reduxForm({

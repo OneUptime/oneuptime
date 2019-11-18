@@ -3,16 +3,20 @@ import PropTypes from 'prop-types'
 import { countries } from './CountryList';
 
 let errorStyle = {
-  color:'red',
+  color: '#c23d4b',
   topMargin:'5px'
+}
+
+let selectorStyle = {
+  color: '#525f7f'
 }
 
 const CountrySelector =  ({ input, meta: { touched, error } }) => (
     <span>
-      <select {...input} className="selector" id="country">
-        <option value="">Select Country...</option>
+      <select {...input} className="selector" id="country" style={{ width: 222 }}>
+        <option style = {selectorStyle} value="">Select Country...</option>
         {countries.map(val => (
-          <option value={val.name} key={val.code}>
+          <option style = {selectorStyle} value={val.name} key={val.code}>
             {val.name}
           </option>
         ))}

@@ -106,7 +106,7 @@ class NewMonitor extends Component {
             postObj.data.script = thisObj.state.script;
         }
 
-        if (postObj.type === 'url' || postObj.type === 'api' || postObj.type === 'server-monitor') {
+        if (postObj.type === 'url' || postObj.type === 'api' || postObj.type === 'server-monitor' || postObj.type === 'script') {
             if (values && values[`up_${this.props.index}`] && values[`up_${this.props.index}`].length) {
                 postObj.criteria.up = makeCriteria(values[`up_${this.props.index}`]);
                 postObj.criteria.up.createAlert = values && values[`up_${this.props.index}_createAlert`] ? true : false;
@@ -180,12 +180,18 @@ class NewMonitor extends Component {
                     }
                 });
         }
+
+        this.setState({
+            advance: false,
+            script: '',
+            type: this.props.edit ? this.props.editMonitorProp.type : this.props.type
+        });
     }
 
-    scheduleChange = (e) => {
+    scheduleChange = (e, value) => {
         //load call schedules
-        if (e.target.value && e.target.value !== '') {
-            this.props.fetchSchedules(e.target.value);
+        if (value && value !== '') {
+            this.props.fetchSchedules(value);
         } else {
             const userId = User.getUserId();
             const projectMember = this.props.currentProject.users.find(user => user.userId === userId);
@@ -292,17 +298,18 @@ class NewMonitor extends Component {
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Monitor Category</label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={'select'}
+                                                            <Field className="db-select-nw"
+                                                                component={RenderSelect}
                                                                 name={`monitorCategoryId_${this.props.index}`}
                                                                 id="monitorCategory"
                                                                 placeholder="Choose Monitor Category"
                                                                 disabled={requesting}
                                                                 validate={ValidateField.select}
-                                                            >
-                                                                <option value="">Select monitor category</option>
-                                                                {monitorCategoryList && monitorCategoryList.map(monitorCategory => <option key={monitorCategory._id} value={monitorCategory._id}>{monitorCategory.name}</option>)}
-                                                            </Field>
+                                                                options={[
+                                                                    { value: '', label: 'Select monitor category' },
+                                                                    ...(monitorCategoryList && monitorCategoryList.length > 0 ? monitorCategoryList.map(category => ({ value: category._id, label: category.name })) : [])
+                                                                ]}
+                                                            />
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -327,6 +334,7 @@ class NewMonitor extends Component {
                                                                     { value: 'script', label: 'Script' },
                                                                     { value: 'server-monitor', label: 'Server' }
                                                                 ]}
+                                                                style={{ height: '28px' }}
                                                             />
                                                             <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ marginTop: 10 }}>
                                                                 <span>{this.monitorTypeDescription[[this.state.type]]}</span>
@@ -343,9 +351,9 @@ class NewMonitor extends Component {
                                                                     required="required"
                                                                     disabled={requesting}
                                                                     component={SubProjectSelector}
-                                                                    props={{ subProjects }}
-                                                                    onChange={this.scheduleChange}
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    subProjects={subProjects}
+                                                                    onChange={(e, v) => this.scheduleChange(e, v)}
+                                                                    className="db-select-nw"
                                                                 />
                                                             </div>
                                                         </div>
@@ -354,16 +362,18 @@ class NewMonitor extends Component {
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">Call Schedule</label>
                                                             <div className="bs-Fieldset-fields">
-                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={'select'}
+                                                                <Field className="db-select-nw"
+                                                                    component={RenderSelect}
                                                                     name={`callSchedule_${this.props.index}`}
                                                                     id="callSchedule"
                                                                     placeholder="Call Schedule"
                                                                     disabled={requesting}
-                                                                >
-                                                                    <option value="">Select call schedule</option>
-                                                                    {schedules && schedules.map((schedule, i) => <option key={i} value={schedule._id}>{schedule.name}</option>)}
-                                                                </Field>
+                                                                    style={{ height: '28px' }}
+                                                                    options={[
+                                                                        { value: '', label: 'Select call schedule' },
+                                                                        ...(schedules && schedules.length > 0 ? schedules.map(schedule => ({ value: schedule._id, label: schedule.name })) : [])
+                                                                    ]}
+                                                                />
                                                             </div>
                                                         </div>
                                                     </ShouldRender>
@@ -385,6 +395,7 @@ class NewMonitor extends Component {
                                                                         { value: 'put', label: 'PUT' },
                                                                         { value: 'delete', label: 'DELETE' }
                                                                     ]}
+                                                                    style={{ height: '28px' }}
                                                                 />
                                                             </div>
                                                         </div>

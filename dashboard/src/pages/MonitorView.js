@@ -40,7 +40,7 @@ class MonitorView extends React.Component {
     const subProjectId = this.props.monitor ? this.props.monitor.projectId._id || this.props.monitor.projectId : null;
     return (
       <Dashboard ready={this.ready}>
-        <div className="db-World-contentPane Box-root Padding-bottom--48">
+        <div className="Box-root">
           <div>
             <div>
               <div className="db-BackboneViewContainer">

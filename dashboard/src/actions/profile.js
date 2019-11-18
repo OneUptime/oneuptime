@@ -34,7 +34,6 @@ export function updateProfileSetting(values) {
 		let data = new FormData();
 		if (values.profilePic) {
 			if (!values.removedPic) {
-				console.log(values);
 				data.append('profilePic', values.profilePic);
 			} else {
 				data.append('profilePic', null);

@@ -22,8 +22,21 @@ describe('Invoice API', function () {
 
     before(async function () {
         this.timeout(30000);
+        var checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName
+        });
+        var confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
 
-        var signUp = await request.post('/user/signup').send(userData.user);
+        var signUp = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...userData.user
+        });
+
+
         let project = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;

@@ -27,20 +27,22 @@ class Billing extends Component {
   render() {
     return (
       <Dashboard>
-        <CustomerBalance />
-        <AlertCharges/>
+        <div className="Margin-vertical--12">
+          <CustomerBalance />
+          <AlertCharges/>
 
-        <RenderIfOwner>
-          <ChangePlan />
-        </RenderIfOwner>
+          <RenderIfOwner>
+            <ChangePlan />
+          </RenderIfOwner>
 
-        <RenderIfOwner>
-          <AlertAdvanceOption />
-        </RenderIfOwner>
+          <RenderIfOwner>
+            <AlertAdvanceOption />
+          </RenderIfOwner>
 
-        <Invoice />
+          <Invoice />
 
-        <PaymentCard />
+          <PaymentCard />
+        </div>
       </Dashboard>
     );
   }

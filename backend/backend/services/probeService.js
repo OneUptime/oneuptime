@@ -2,7 +2,12 @@ module.exports = {
     create: async function (data) {
         var _this = this;
         try {
-            let accessToken = uuidv1();
+            let probeKey;
+            if (data.probeKey) {
+                probeKey = data.probeKey;
+            } else {
+                probeKey = uuidv1();
+            }
             let storedProbe = await _this.findOneBy({ probeName: data.probeName });
             if (storedProbe && storedProbe.probeName) {
                 let error = new Error('Probe name already exists.');
@@ -12,7 +17,7 @@ module.exports = {
             }
             else {
                 let probe = new ProbeModel();
-                probe.probeKey = accessToken;
+                probe.probeKey = probeKey;
                 probe.probeName = data.probeName;
                 var savedProbe = await probe.save();
                 return savedProbe;

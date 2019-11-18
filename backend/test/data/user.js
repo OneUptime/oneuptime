@@ -7,16 +7,9 @@ module.exports = {
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
-        card: {
-            stripeToken: 'tok_visa'
-        },
         subscription: {
             stripePlanId: 0
         },
-        cardName: 'Mastercard',
-        cardNumber: '5555555555554444',
-        cvv: '123',
-        expiry: '01/2020',
         city: 'New York',
         state: 'New York',
         zipCode: '111000111',
@@ -35,16 +28,9 @@ module.exports = {
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
-        card: {
-            stripeToken: 'tok_visa'
-        },
         subscription: {
             stripePlanId: 0
         },
-        cardName: 'Mastercard',
-        cardNumber: '5555555555554444',
-        cvv: '123',
-        expiry: '01/2020',
         city: 'New York',
         state: 'New York',
         zipCode: '111000111',
@@ -63,16 +49,9 @@ module.exports = {
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
-        card: {
-            stripeToken: 'tok_visa'
-        },
         subscription: {
             stripePlanId: 0
         },
-        cardName: 'Mastercard',
-        cardNumber: '5555555555554444',
-        cvv: '123',
-        expiry: '01/2020',
         city: 'New York',
         state: 'New York',
         zipCode: '111000111',
@@ -91,16 +70,9 @@ module.exports = {
         companyName: null,
         jobRole: null,
         companySize: null,
-        card: {
-            stripeToken: null
-        },
         subscription: {
             stripePlanId: null
         },
-        cardName: null,
-        cardNumber: null,
-        cvv: null,
-        expiry: null,
         city: null,
         state: null,
         zipCode: null,

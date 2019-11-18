@@ -10,13 +10,13 @@
 'use strict';
 
 const dotenv = require('dotenv');
+dotenv.config();
+
 const program = require('commander');
 const Promise = require('promise');
 const { version } = require('../package.json');
 const { prompt } = require('inquirer');
 const serverMonitor = require('../lib/api');
-
-dotenv.config();
 
 program
   .version(version, '-v, --version')

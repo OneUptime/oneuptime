@@ -16,8 +16,10 @@ import MonitorUrl from '../modals/MonitorUrl';
 import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
 import { history } from '../../store';
+import { Link } from 'react-router-dom';
 import MonitorChart from './MonitorChart';
 import StatusIndicator from './StatusIndicator';
+import { getMonitorStatus } from '../../config';
 
 const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
@@ -129,8 +131,9 @@ export class MonitorDetail extends Component {
         monitor.success = this.props.monitorState.monitorsList.success;
         monitor.requesting = this.props.monitorState.monitorsList.requesting;
 
+        let type = this.props.monitor.type;
         let badgeColor;
-        switch (this.props.monitor.type) {
+        switch (type) {
             case 'manual':
                 badgeColor = 'red';
                 break;
@@ -142,8 +145,9 @@ export class MonitorDetail extends Component {
                 break;
         }
 
-        let status = this.props.monitor && this.props.monitor.logs && this.props.monitor.logs.length > 0 ? this.props.monitor.logs[0].status : 'online';
+        let status = getMonitorStatus(this.props.monitor);
         let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
+        let probeUrl = `/project/${this.props.monitor.projectId._id}/settings/probe`;
 
         return (
             <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
@@ -158,6 +162,15 @@ export class MonitorDetail extends Component {
                                             {this.props.monitor.name}
                                         </span>
                                     </span>
+                                    <ShouldRender if={this.props.monitor && this.props.monitor.type}>
+                                        {
+                                            this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ?
+                                                <ShouldRender if={this.props.monitor.probes && !this.props.monitor.probes.length > 0}>
+                                                    <span className="Text-fontSize--14">This monitor cannot be monitored because there are are 0 probes. You can view probes <Link to={probeUrl}>here</Link></span>
+                                                </ShouldRender>
+                                                : ''
+                                        }
+                                    </ShouldRender>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                         {url && <span>
                                             Monitor for &nbsp;
@@ -167,7 +180,7 @@ export class MonitorDetail extends Component {
                                 </div>
                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                     <div className="Box-root">
-                                        <Badge color={badgeColor}>{this.replaceDashWithSpace(this.props.monitor.type)}</Badge>
+                                        <Badge color={badgeColor}>{this.replaceDashWithSpace(type)}</Badge>
                                     </div>
                                 </div>
                             </div>
@@ -182,7 +195,7 @@ export class MonitorDetail extends Component {
                             />
                         </div>
                         <div>
-                            {this.props.monitor.type === 'device' &&
+                            {type === 'device' &&
                                 <button
                                     className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye' type='button'
                                     onClick={() =>
@@ -217,42 +230,80 @@ export class MonitorDetail extends Component {
                     </div>
                 </div>
                 <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
-                    <div className="btn-group">
-                        {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
-                            key={`probes-btn${index}`}
-                            id={`probes-btn${index}`}
-                            disabled={false}
-                            onClick={() => this.selectbutton(index)}
-                            className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-                            <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
-                            <span>{location.probeName}</span>
-                        </button>)
-                        )}
-                    </div>
+                    <ShouldRender if={type !== 'manual' && type !== 'device' && type !== 'server-monitor'}>
+                        <div className="btn-group">
+                            {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
+                                key={`probes-btn${index}`}
+                                id={`probes-btn${index}`}
+                                disabled={false}
+                                onClick={() => this.selectbutton(index)}
+                                className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+                                <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
+                                <span>{location.probeName}</span>
+                            </button>)
+                            )}
+                        </div>
+                    </ShouldRender>
                     <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} monitor={this.props.monitor} />
                 </ShouldRender>
-                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
 
-                <div className="db-RadarRulesLists-page">
-                    <div className="Box-root Margin-bottom--12">
-                        <div className="">
-                            <div className="Box-root">
-                                <div>
-                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center"><span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span><span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"><span>Heres a list of recent incidents which belong to this monitor.</span></span></div>
-                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                {this.props.monitor && this.props.monitor.type ?
+                    this.props.monitor.type === 'url' || this.props.monitor.type === 'api' || this.props.monitor.type === 'script' ?
+                        <div>
+                            <ShouldRender if={this.props.monitor.probes && this.props.monitor.probes.length > 0}>
+                                {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                                <div className="db-RadarRulesLists-page">
+                                    <div className="Box-root Margin-bottom--12">
+                                        <div className="">
+                                            <div className="Box-root">
                                                 <div>
+                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center"><span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span><span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"><span>Heres a list of recent incidents which belong to this monitor.</span></span></div>
+                                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                                <div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <IncidentList incidents={monitor} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <IncidentList incidents={monitor} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
+                                </div>
+                            </ShouldRender>
+                            <ShouldRender if={this.props.monitor.probes && !this.props.monitor.probes.length > 0}>
+                                <div className="Margin-bottom--12"></div>
+                            </ShouldRender>
+                        </div>
+                        :
+                        <div>
+                            {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} monitor={this.props.monitor} /> : ''}
+                            <div className="db-RadarRulesLists-page">
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="">
+                                        <div className="Box-root">
+                                            <div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center"><span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span><span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"><span>Heres a list of recent incidents which belong to this monitor.</span></span></div>
+                                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                            <div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <IncidentList incidents={monitor} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    : ''
+                }
+
             </div>
         )
     }

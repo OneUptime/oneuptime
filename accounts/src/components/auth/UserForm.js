@@ -34,14 +34,14 @@ class UserForm extends Component {
 						<h2>
 							{
 								serverResponse ? <span>{serverResponse}</span> :
-								<span> {this.props.register.error ? <span id="error-msg" className="error" >{this.props.register.error}</span> : 'Create your Fyipe account.'} </span>
+								<span> {this.props.register.error ? <span id="error-msg" className="error" >{this.props.register.error}</span> : 'Create your Fyipe account'} </span>
 							}
 						</h2>
 					</div>
 					<form onSubmit={this.props.handleSubmit(this.props.submitForm)}>
 						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
 							<p className="text" style={{ display: 'block', maxWidth: '50%', marginTop: 0 }}>
-								<span id="ema">
+								<span id="email">
 									<label htmlFor="email">Email</label>
 									<Field
 										type="email"
@@ -130,7 +130,7 @@ class UserForm extends Component {
 
 							<p className="submit" style={{ width: '100%', maxWidth: '100%' }}>
 								<button style={{ width: '100%' }} type="submit" className="button blue medium" id="create-account-button" disabled={this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting )}>
-									{this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting ) ? <ButtonSpinner /> : <span>Create Fyipe Account</span>}
+									{this.props.register && ((this.props.register.isUserInvited && this.props.register.isUserInvited.requesting) || this.props.register.requesting ) ? <ButtonSpinner /> : <span>Sign Up</span>}
 								</button>
 							</p>
 					</form>
@@ -149,6 +149,9 @@ let validate = function (values) {
 	if (!Validate.text(values.name))
 		error.name = 'Name is required.';
 
+	if(Validate.text(values.name) && !Validate.isValidName(values.name))
+		error.name = 'Name is not valid.';
+
 	if (!Validate.text(values.email))
 		error.email = 'Email is required.';
 
@@ -164,8 +167,14 @@ let validate = function (values) {
 	if (!Validate.text(values.companyPhoneNumber))
 		error.companyPhoneNumber = 'Phone number is required.';
 
+	if (Validate.text(values.companyPhoneNumber) && !Validate.isValidNumber(values.companyPhoneNumber))
+		error.companyPhoneNumber = 'Phone number is invalid.';
+
 	if (!Validate.text(values.password))
 		error.password = 'Password is required.';
+	if (Validate.text(values.password) && !Validate.isStrongPassword(values.password)) {
+		error.password = 'Password should be atleast 8 characters long'
+	}
 
 	if (!Validate.text(values.confirmPassword))
 		error.confirmPassword = 'Confirm Password is required.';

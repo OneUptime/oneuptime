@@ -6,6 +6,7 @@ chai.use(require('chai-http'));
 var app = require('../server');
 
 var request = chai.request.agent(app);
+var { createUser } = require('./utils/userSignUp');
 // var log = require('./data/log');
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
@@ -20,8 +21,8 @@ describe('Schedule API', function () {
     this.timeout(30000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -127,7 +128,7 @@ describe('Schedule API with Sub-Projects', function () {
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]).end(function (err, res) {
             subProjectId = res.body[0]._id;
             // sign up second user (subproject user)
-            request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+            createUser(request, userData.newUser, function(err, res) {
                 VerificationTokenModel.findOne({ userId: res.body.id }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                         request.post('/user/login').send({
@@ -156,7 +157,7 @@ describe('Schedule API with Sub-Projects', function () {
     });
 
     it('should not create a schedule for user not present in project', function (done) {
-        request.post('/user/signup').send(userData.anotherUser).end(function (err, res) {
+        createUser(request, userData.anotherUser, function(err, res) {
             VerificationTokenModel.findOne({ userId: res.body.id }, function (err, res) {
                 request.get(`/user/confirmation/${res.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({

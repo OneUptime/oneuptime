@@ -16,12 +16,23 @@
   -webkit-flex-flow: unset;
   -ms-flex-flow: unset;
   flex-flow: unset;
+  cursor: pointer;
 }
 
 .db-select-nw > span + div {
   border: none;
   box-shadow: 0 0 0 1px rgba(50, 50, 93, 0), 0 0 0 1px rgba(50, 151, 211, 0.2),
     0 0 0 2px rgba(50, 151, 211, 0.25), 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+
+div.css-xp4uvy {
+  font-size: 14px;
+  color: #525f7f;
+}
+
+div.css-15k3avv > div > div:not(.css-1t862kv):hover {
+  background-color: #e8e8e8;
+  cursor: pointer;
 }
 
 .db-Badge {

@@ -8,6 +8,10 @@ import { resetPasswordError, resetPasswordSuccess, resetPassword, resetResetPass
 import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField';
 
+const errorStyle = {
+	color: '#c23d4b'
+}
+
 export class ResetPasswordForm extends Component {
 
   submitForm = (values) => {
@@ -16,14 +20,23 @@ export class ResetPasswordForm extends Component {
 
   render() {
 
+    const resetPasswordError = this.props.resetPasswordState.error;
+		let header;
+		if (resetPasswordError) {
+			header = <span style={errorStyle}>{resetPasswordError}</span> 
+		} else {
+			header = <span>Reset Password.</span>
+		}
+
+
     return (
       <div id="main-body" className="box css">
         <div className="inner">
           <form onSubmit={this.props.handleSubmit(this.submitForm)} className="request-reset">
-            <div className="request-reset-step step" >
+            <div className="request-reset-step" >
               <div className="title">
                 <h2>
-                  <span > {this.props.resetPasswordState.error ? <span id="error-msg" className="error" >{this.props.resetPasswordState.error}</span> : 'Reset Password'} </span>
+                  {header}
                 </h2>
               </div>
 
