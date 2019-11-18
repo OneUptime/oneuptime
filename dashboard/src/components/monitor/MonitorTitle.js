@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import Badge from '../common/Badge';
 import StatusIndicator from './StatusIndicator';
-import { getMonitorStatus } from '../../config';
 
 export class MonitorTitle extends Component {
 
@@ -13,10 +12,12 @@ export class MonitorTitle extends Component {
     }
 
     render() {
-        let status = getMonitorStatus(this.props.monitor);
-        let url = this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? this.props.monitor.data.url : null;
+        let { monitor, status } = this.props;
+
+        let url = monitor && monitor.data && monitor.data.url ? monitor.data.url : null;
+
         let badgeColor;
-        switch (this.props.monitor.type) {
+        switch (monitor.type) {
             case 'manual':
                 badgeColor = 'red';
                 break;
@@ -36,7 +37,7 @@ export class MonitorTitle extends Component {
                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                 <StatusIndicator status={status} />
                                 <span>
-                                    {this.props.monitor.name}
+                                    {monitor.name}
                                 </span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -48,7 +49,7 @@ export class MonitorTitle extends Component {
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div className="Box-root">
-                                <Badge color={badgeColor}>{this.replaceDashWithSpace(this.props.monitor.type)}</Badge>
+                                <Badge color={badgeColor}>{this.replaceDashWithSpace(monitor.type)}</Badge>
                             </div>
                         </div>
                     </div>
@@ -62,6 +63,7 @@ MonitorTitle.displayName = 'MonitorTitle'
 
 MonitorTitle.propTypes = {
     monitor: PropTypes.object.isRequired,
+    status: PropTypes.string
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(

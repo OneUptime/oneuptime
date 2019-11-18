@@ -81,6 +81,7 @@ describe('Invoice API', function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await stripe.plans.del(testPlan.id);
+        await stripe.products.del(testPlan.product);
         await AirtableService.deleteUser(airtableId);
     });
 
@@ -91,9 +92,9 @@ describe('Invoice API', function () {
         expect(invoices.body).to.be.an('object');
         expect(invoices.body).to.have.property('data');
         expect(invoices.body.data).to.be.an('array');
-        expect(invoices.body.data).to.have.length(1);
+        expect(invoices.body.data).to.have.length(2);
         expect(invoices.body).to.have.property('count');
-        expect(invoices.body.count).to.be.an('number').to.be.equal(1);
+        expect(invoices.body.count).to.be.an('number').to.be.equal(2);
         expect(invoices.body.data[0].total).to.be.equal(5000);
     });
 });

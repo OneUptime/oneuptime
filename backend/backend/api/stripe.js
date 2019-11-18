@@ -50,8 +50,8 @@ router.post('/:projectId/creditCard/:token/pi', getUser, isAuthorized, isUserOwn
     let userId = req.user ? req.user.id : null;
     let { token } = req.params;
 
-    try {
-        var item = await StripeService.creditCard.createPaymentIntent(token, userId);
+    try{ 
+        var item = await StripeService.creditCard.create(token, userId);
         return sendItemResponse(req, res, item);
     } catch (error) {
         return sendErrorResponse(req, res, error);

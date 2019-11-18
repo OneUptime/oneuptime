@@ -1,11 +1,13 @@
 process.env.NODE_ENV = 'development';
 process.env.LOG_LEVEL = 'error';
 process.env.API_URL = 'http://localhost:3002';
+process.env.STRIPE_PRIVATE_KEY = 'sk_test_YxwnzywggtAd8jDaHecNmHiN';
 
 const chai = require('chai');
 chai.use(require('chai-http'));
 
 const request = chai.request.agent(process.env.API_URL);
+const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 
 const utils = require('./test-utils');
 const expect = require('chai').expect;
@@ -28,22 +30,34 @@ describe('Server Monitor', function () {
   before(function (done) {
     this.timeout(30000);
 
-    request.post('/user/signup').send(user).end(function (err, res) {
-      let project = res.body.project;
+    request.post('/stripe/checkCard').send({
+      tokenId: 'tok_visa',
+      email: user.email,
+      companyName: user.companyName
+    }).end(function (err, res) {
+      stripe.paymentIntents.confirm(res.body.id, function (err, paymentIntent) {
+        user.paymentIntent = {
+          id: paymentIntent.id
+        };
 
-      projectId = project._id;
-      apiKey = project.apiKey;
+        request.post('/user/signup').send(user).end(function (err, res) {
+          let project = res.body.project;
 
-      token = res.body.tokens.jwtAccessToken;
+          projectId = project._id;
+          apiKey = project.apiKey;
 
-      request.post(`/monitor/${projectId}`).set('Authorization', `Basic ${token}`).send(monitor).end(function (err, res) {
-        expect(res).to.have.status(200);
-        expect(res.body).to.be.an('array');
-        expect(res.body[0]).to.have.property('_id');
+          token = res.body.tokens.jwtAccessToken;
 
-        monitorId = res.body[0]._id;
+          request.post(`/monitor/${projectId}`).set('Authorization', `Basic ${token}`).send(monitor).end(function (err, res) {
+            expect(res).to.have.status(200);
+            expect(res.body).to.be.an('array');
+            expect(res.body[0]).to.have.property('_id');
 
-        done();
+            monitorId = res.body[0]._id;
+
+            done();
+          });
+        });
       });
     });
   });

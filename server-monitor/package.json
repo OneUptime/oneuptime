@@ -1,6 +1,6 @@
 {
   "name": "fyipe-server-monitor",
-  "version": "3.0.684",
+  "version": "3.0.715",
   "description": "A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.",
   "bin": {
     "fyipe-server-monitor": "./bin/server-monitor.js"
@@ -39,7 +39,8 @@
     "eslint": "^5.16.0",
     "mocha": "^6.2.0",
     "npm-audit-ci-wrapper": "^2.3.0",
-    "pino-pretty": "^3.2.1"
+    "pino-pretty": "^3.2.1",
+    "stripe": "^7.13.0"
   },
   "directories": {
     "lib": "lib",

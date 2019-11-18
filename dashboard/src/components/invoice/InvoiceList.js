@@ -81,7 +81,7 @@ export class InvoiceList extends Component {
                                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                        <span>{((invoice.amount_paid)/100).toFixed(2)}</span>
+                                        <span>{((invoice.total)/100).toFixed(2)}</span>
                                         </span>
                                     </div>
                                 </td>

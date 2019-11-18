@@ -16,9 +16,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { selectedProbe } from '../../actions/monitor';
 import { openModal, closeModal } from '../../actions/modal';
 import { history } from '../../store';
-
-const endDate = moment().format('YYYY-MM-DD');
-const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
+import { getMonitorStatus } from '../../config';
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -26,18 +24,15 @@ export class MonitorViewHeader extends Component {
         this.props = props;
         this.state = {
             deleteModalId: uuid.v4(),
-            monitorStart: startDate,
-            monitorEnd: endDate
+            startDate: moment().subtract(30, 'd').format('YYYY-MM-DD'),
+            endDate: moment().format('YYYY-MM-DD')
         }
 
         this.deleteMonitor = this.deleteMonitor.bind(this);
     }
 
-    handleMonitorChange = (startDate, endDate) => {
-        this.setState({
-            monitorStart: startDate,
-            monitorEnd: endDate
-        });
+    handleDateChange = (startDate, endDate) => {
+        this.setState({ startDate, endDate });
     }
 
     editMonitor = () => {
@@ -73,6 +68,9 @@ export class MonitorViewHeader extends Component {
     }
 
     render() {
+        let { deleteModalId, startDate, endDate } = this.state;
+        let { monitor, subProjects, monitorState, activeProbe, currentProject } = this.props;
+
         var greenBackground = {
             display: 'inline-block',
             borderRadius: '50%',
@@ -90,22 +88,26 @@ export class MonitorViewHeader extends Component {
             backgroundColor: 'rgba(107, 124, 147, 0.2)'// "grey-status"
         };
 
-        const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
-        const subProject = this.props.subProjects.find(subProject => subProject._id === subProjectId);
+        const subProjectId = monitor.projectId._id || monitor.projectId;
+        const subProject = subProjects.find(subProject => subProject._id === subProjectId);
 
-        let { deleteModalId } = this.state;
         let deleting = false;
-        if (this.props.monitorState && this.props.monitorState.deleteMonitor && this.props.monitorState.deleteMonitor === this.props.monitor._id) {
+        if (monitorState && monitorState.deleteMonitor && monitorState.deleteMonitor === monitor._id) {
             deleting = true;
         }
 
-        let type = this.props.monitor.type;
+        let probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
+        let probeData = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
+            log => log.probeId ? (log.probeId === probe._id) : true
+        ) : [];
+
+        let status = getMonitorStatus(monitor.incidents, probeData);
 
         return (
             <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium" onKeyDown={this.handleKeyBoard}>
                 {
-                    this.props.currentProject._id === subProjectId ?
-                        this.props.subProjects.length > 0 ?
+                    currentProject._id === subProjectId ?
+                        subProjects.length > 0 ?
                             <div className="Box-root Padding-top--20 Padding-left--20">
                                 <Badge color={'red'}>Project</Badge>
                             </div> :
@@ -117,19 +119,19 @@ export class MonitorViewHeader extends Component {
                 }
                 <div className="Box-root">
                     <div className="db-Trends-header">
-                        <MonitorTitle monitor={this.props.monitor} />
+                        <MonitorTitle monitor={monitor} status={status} />
                         <div className="db-Trends-controls">
                             <div className="db-Trends-timeControls">
                                 <DateRangeWrapper
-                                    selected={this.state.monitorStart}
-                                    onChange={this.handleMonitorChange}
+                                    selected={startDate}
+                                    onChange={this.handleDateChange}
                                     dateRange={30}
                                 />
                             </div>
                             <div>
                                 <RenderIfSubProjectAdmin subProjectId={subProjectId}>
                                     <button className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' onClick={this.editMonitor}><span>Edit</span></button>
-                                    <button id={`delete_${this.props.monitor.name}`} className={deleting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'} type="button" disabled={deleting}
+                                    <button id={`delete_${monitor.name}`} className={deleting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'} type="button" disabled={deleting}
                                         onClick={() =>
                                             this.props.openModal({
                                                 id: deleteModalId,
@@ -148,10 +150,10 @@ export class MonitorViewHeader extends Component {
                             </div>
                         </div>
                     </div>
-                    <ShouldRender if={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length > 1}>
-                        <ShouldRender if={type !== 'manual' && type !== 'device' && type !== 'server-monitor'}>
+                    <ShouldRender if={monitor && monitor.probes && monitor.probes.length > 1}>
+                        <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                             <div className="btn-group">
-                                {this.props.monitor && this.props.monitor.probes.map((location, index) => (<button
+                                {monitor && monitor.probes.map((location, index) => (<button
                                     key={`probes-btn${index}`}
                                     id={`probes-btn${index}`}
                                     disabled={false}
@@ -163,16 +165,19 @@ export class MonitorViewHeader extends Component {
                                 )}
                             </div>
                         </ShouldRender>
-                        <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[this.props.activeProbe]} />
+                        <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} showAll={true} />
                     </ShouldRender>
-                    {this.props.monitor && this.props.monitor.probes && this.props.monitor.probes.length < 2 ? <MonitorChart startDate={this.state.monitorStart} endDate={this.state.monitorEnd} key={uuid.v4()} monitor={this.props.monitor} showAll={true} probe={this.props.monitor && this.props.monitor.probes && this.props.monitor.probes[0]} /> : ''}<br />
+                    {monitor && monitor.probes && monitor.probes.length < 2 ?
+                        <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} showAll={true} />
+                        : ''
+                    }<br />
                 </div>
             </div>
         );
     }
 }
 
-MonitorViewHeader.displayName = 'MonitorViewHeader'
+MonitorViewHeader.displayName = 'MonitorViewHeader';
 
 MonitorViewHeader.propTypes = {
     monitor: PropTypes.object.isRequired,
@@ -186,7 +191,7 @@ MonitorViewHeader.propTypes = {
     currentProject: PropTypes.object.isRequired,
     activeProbe: PropTypes.number,
     selectedProbe: PropTypes.func.isRequired
-}
+};
 
 const mapDispatchToProps = dispatch => bindActionCreators({
     editMonitorSwitch,
@@ -203,7 +208,7 @@ const mapStateToProps = (state) => {
         currentProject: state.project.currentProject,
         activeProbe: state.monitor.activeProbe,
     };
-}
+};
 
 MonitorViewHeader.contextTypes = {
     mixpanel: PropTypes.object.isRequired

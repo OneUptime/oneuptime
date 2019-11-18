@@ -73,7 +73,7 @@ class MonthlyIncidents extends Component {
             <YAxis />
             <Tooltip content={<CustomTooltip />} />
             <CartesianGrid strokeDasharray="3 3" />
-            <Area type="linear" name="Incidents" dataKey="incidents" stroke="#14aad9" strokeWidth={2} fill="#e2e1f2" />
+            <Area type="linear" isAnimationActive={false} name="Incidents" dataKey="incidents" stroke="#14aad9" strokeWidth={1.5} fill="#e2e1f2" />
           </Chart>
         </ResponsiveContainer>
       );
