@@ -304,7 +304,6 @@ class NewMonitor extends Component {
                                                                 id="monitorCategory"
                                                                 placeholder="Choose Monitor Category"
                                                                 disabled={requesting}
-                                                                validate={ValidateField.select}
                                                                 options={[
                                                                     { value: '', label: 'Select monitor category' },
                                                                     ...(monitorCategoryList && monitorCategoryList.length > 0 ? monitorCategoryList.map(category => ({ value: category._id, label: category.name })) : [])

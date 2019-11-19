@@ -67,6 +67,12 @@ export class MonitorViewHeader extends Component {
         }
     }
 
+    filterProbeData = (monitor, probe) => {
+        return monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
+            log => log.probeId ? (log.probeId === probe._id) : true
+        ) : [];
+    }
+
     render() {
         let { deleteModalId, startDate, endDate } = this.state;
         let { monitor, subProjects, monitorState, activeProbe, currentProject } = this.props;
@@ -78,7 +84,7 @@ export class MonitorViewHeader extends Component {
             width: '8px',
             margin: '0 8px 1px 0',
             backgroundColor: 'rgb(117, 211, 128)'// "green-status"
-        }
+        };
         var yellowBackground = {
             display: 'inline-block',
             borderRadius: '50%',
@@ -86,7 +92,7 @@ export class MonitorViewHeader extends Component {
             width: '8px',
             margin: '0 8px 1px 0',
             backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
-        }
+        };
         var redBackground = {
             display: 'inline-block',
             borderRadius: '50%',
@@ -94,7 +100,15 @@ export class MonitorViewHeader extends Component {
             width: '8px',
             margin: '0 8px 1px 0',
             backgroundColor: 'rgb(250, 117, 90)'// "red-status"
-        }
+        };
+        var greyBackground = {
+            display: 'inline-block',
+            borderRadius: '50%',
+            height: '8px',
+            width: '8px',
+            margin: '0 8px 1px 0',
+            backgroundColor: 'rgba(107, 124, 147, 0.2)'// "grey-status"
+        };
 
         const subProjectId = monitor.projectId._id || monitor.projectId;
         const subProject = subProjects.find(subProject => subProject._id === subProjectId);
@@ -105,9 +119,7 @@ export class MonitorViewHeader extends Component {
         }
 
         let probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
-        let probeData = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
-            log => log.probeId ? (log.probeId === probe._id) : true
-        ) : [];
+        let probeData = this.filterProbeData(monitor, probe);
 
         let status = getMonitorStatus(monitor.incidents, probeData);
 
@@ -161,16 +173,24 @@ export class MonitorViewHeader extends Component {
                     <ShouldRender if={monitor && monitor.probes && monitor.probes.length > 1}>
                         <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                             <div className="btn-group">
-                                {monitor && monitor.probes.map((location, index) => (<button
-                                    key={`probes-btn${index}`}
-                                    id={`probes-btn${index}`}
-                                    disabled={false}
-                                    onClick={() => this.selectbutton(index)}
-                                    className={activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-                                    <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
-                                    <span>{location.probeName}</span>
-                                </button>)
-                                )}
+                                {monitor && monitor.probes.map((location, index) => {
+                                    let probeData = this.filterProbeData(monitor, location);
+                                    let status = getMonitorStatus(monitor.incidents, probeData);
+
+                                    return (<button
+                                        key={`probes-btn${index}`}
+                                        id={`probes-btn${index}`}
+                                        disabled={false}
+                                        onClick={() => this.selectbutton(index)}
+                                        className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+                                        <span style={location && location.lastAlive && moment(Date.now()).diff(moment(location.lastAlive), 'minutes') > 5 ?
+                                            greyBackground
+                                            :
+                                            (status === 'offline' ? redBackground : (status === 'degraded' ? yellowBackground : greenBackground))
+                                        }></span>
+                                        <span>{location.probeName}</span>
+                                    </button>)
+                                })}
                             </div>
                         </ShouldRender>
                         <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} showAll={true} />
