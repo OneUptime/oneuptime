@@ -45973,7 +45973,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 #login div#main-body form p,
 .page-wrapper div#main-body form .step,
 .page-wrapper div#main-body form p {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 #login div#main-body form p:last-child,
 .page-wrapper div#main-body form p:last-child {
@@ -46522,7 +46522,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 }
 #login div.below-box,
 .page-wrapper div.below-box {
-  padding-top: 30px;
+  padding-top: 20px;
   color: #6f757c;
   font-size: 12px;
   text-align: center;
