@@ -5,8 +5,8 @@ import {
 import * as types from '../constants/login'
 import { User, DASHBOARD_URL, DOMAIN_URL, ADMIN_DASHBOARD_URL } from '../config.js';
 import errors from '../errors'
-import { getQueryVar } from '../config'
-
+import { getQueryVar } from '../config';
+import { resendToken } from './resendToken';
 import Cookies from 'universal-cookie';
 
 // There are three possible states for our login
@@ -79,6 +79,9 @@ export function loginUser(values) {
 		promise.then(function (user) {
 			dispatch(loginSuccess(user.data));
 		}, function (error) {
+			if(error.message === 'Verify your email first.'){
+				dispatch(resendToken(values));
+			}
 			if (error && error.response && error.response.data)
 				error = error.response.data;
 			if (error && error.data) {
