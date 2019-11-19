@@ -1,6 +1,6 @@
 {
   "name": "fyipe-homepage",
-  "version": "3.0.684",
+  "version": "3.0.725",
   "scripts": {
     "start": "node server.js",
     "test": "echo 'no tests'",

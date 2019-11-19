@@ -298,7 +298,7 @@ module.exports = {
                         type: 'action',
                         client_secret: chargeForBalance.client_secret
                     };
-                    NotificationService.create(projectId, message, userId, null, meta);
+                    await NotificationService.create(projectId, message, userId, null, meta);
                 }
             }
             var balanceAfterAlertSent = balance - chargeAmount;

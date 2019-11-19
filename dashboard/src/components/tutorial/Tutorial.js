@@ -2,7 +2,7 @@ import React from 'react';
 import { tutorials } from '../../config';
 import PropTypes from 'prop-types';
 
-class MonitorTutorial extends React.Component {
+class Tutorial extends React.Component {
 
     constructor(props) {
         super(props);
@@ -30,14 +30,16 @@ class MonitorTutorial extends React.Component {
     renderNote(note) {
         if (note) {
             return (
-                <div>
-                    {/* <img alt="" className={`tut-Icon--${note.icon}`} height="20" width="20" /> */}
-                    <h3>
-                        {note.title}
-                    </h3>
-                    <article className="Text-wrap--wrap col-sm-12">
-                        {note.description}
-                    </article>
+                <div className="Flex-flex Flex-alignItems--center">
+                    <img alt="" className={`tut-Icon--${note.icon} Margin-right--20`} height="75" width="75" />
+                    <div>
+                        <h3>
+                            {note.title}
+                        </h3>
+                        <article className="Text-wrap--wrap col-sm-12">
+                            {note.description}
+                        </article>
+                    </div>
                 </div>
             );
         } else {
@@ -80,7 +82,7 @@ class MonitorTutorial extends React.Component {
         const { deprecated, type } = this.props;
         const { currentSlide } = this.state;
 
-        const note = tutorials.getMonitorTutorials().filter(tutorial => tutorial.id === type);
+        const note = tutorials.getTutorials().filter(tutorial => tutorial.id === type);
 
         if (deprecated) {
             return (
@@ -127,11 +129,11 @@ class MonitorTutorial extends React.Component {
                         </section>
                     </div>
                     <div className="bs-u-justify--center col-sm-6 Flex-justifyContent--center Padding-all--20 Vertical">
-                        {currentSlide === 's1' && this.renderNote(tutorials.getMonitorTutorials()[0])}
-                        {currentSlide === 's2' && this.renderNote(tutorials.getMonitorTutorials()[1])}
-                        {currentSlide === 's3' && this.renderNote(tutorials.getMonitorTutorials()[2])}
-                        {currentSlide === 's4' && this.renderNote(tutorials.getMonitorTutorials()[3])}
-                        {currentSlide === 's5' && this.renderNote(tutorials.getMonitorTutorials()[4])}
+                        {currentSlide === 's1' && this.renderNote(tutorials.getTutorials()[0])}
+                        {currentSlide === 's2' && this.renderNote(tutorials.getTutorials()[1])}
+                        {currentSlide === 's3' && this.renderNote(tutorials.getTutorials()[2])}
+                        {currentSlide === 's4' && this.renderNote(tutorials.getTutorials()[3])}
+                        {currentSlide === 's5' && this.renderNote(tutorials.getTutorials()[4])}
                     </div>
                 </div>
             );
@@ -147,11 +149,11 @@ class MonitorTutorial extends React.Component {
     }
 }
 
-MonitorTutorial.displayName = 'MonitorTutorial';
+Tutorial.displayName = 'Tutorial';
 
-MonitorTutorial.propTypes = {
+Tutorial.propTypes = {
     deprecated: PropTypes.bool,
     type: PropTypes.string
 };
 
-export default MonitorTutorial;
+export default Tutorial;

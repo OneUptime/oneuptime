@@ -83,7 +83,7 @@ export class MonitorCategories extends Component {
                                             Monitor category
 										</div>
                                         <div className="bs-ObjectList-cell">
-                                            Created at
+                                            Created
 										</div>
                                         <div className="bs-ObjectList-cell">
                                             Action

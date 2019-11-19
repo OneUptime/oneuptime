@@ -1,5 +1,5 @@
 
-module.exports = {
+const Services = {
     events: async function (customerId, subscriptionId, chargeAttemptCount) {
         let chargeAttemptStage = chargeAttemptCount === 1 ? 'first' : (chargeAttemptCount === 2 ? 'second' : 'third');
         try {
@@ -44,7 +44,7 @@ module.exports = {
     },
 
     creditCard: {
-        createPaymentIntent: async function (tok, userId) {
+        create: async function(tok, userId) {
             try {
                 let tokenCard = await stripe.tokens.retrieve(tok);
                 let cards = await this.get(userId);
@@ -57,18 +57,17 @@ module.exports = {
                 }
 
                 if (!duplicateCard) {
+                    var testChargeValue = 100;
+                    var description = 'Verify if card is billable.';
                     var user = await UserService.findOneBy({ _id: userId });
                     var stripeCustomerId = user.stripeCustomerId;
                     var card = await stripe.customers.createSource(stripeCustomerId, { source: tok });
-                    var paymentIntent = await stripe.paymentIntents.create({
-                        amount: 100,
-                        currency: 'usd',
-                        payment_method_types: ['card'],
-                        customer: stripeCustomerId,
-                        source: card.id
-                    });
-                    var confirmedPaymentIntent = await stripe.paymentIntents.confirm(paymentIntent.id);
-                    return confirmedPaymentIntent;
+                    var metadata = {
+                        description
+                    };          
+                    var source = card.id;
+                    var paymentIntent = await Services.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
+                    return paymentIntent;
                 } else {
                     var error = new Error('Cannot add duplicate card.');
                     error.code = 400;
@@ -122,7 +121,9 @@ module.exports = {
                     return card;
                 }
                 else {
-                    var cards = await stripe.customers.listSources(stripeCustomerId);
+                    var cards = await stripe.customers.listSources(stripeCustomerId, {
+                        object: 'card'
+                    });
                     cards.data = await cards.data.map(card => {
                         if (card.id === customer.default_source) {
                             card.default_source = true;
@@ -139,128 +140,139 @@ module.exports = {
         }
     },
     chargeCustomerForBalance: async function (userId, chargeAmount, projectId, alertOptions) {
+        
+        var description = 'Recharge balance';
         var stripechargeAmount = chargeAmount * 100;
         var user = await UserService.findOneBy({ _id: userId });
         var stripeCustomerId = user.stripeCustomerId;
-        var customer = await stripe.customers.retrieve(stripeCustomerId);
-        try {
-            var charge = await stripe.charges.create({
-                amount: stripechargeAmount,
-                currency: 'usd',
-                customer: stripeCustomerId,
-                description: 'Recharge balance for Alert services.'
-            });
-            return charge;
-        } catch (error) {
-            if (error.code === 'authentication_required') {
-                //create payment intent and return to client for verification
-                var metadata;
-                if (alertOptions) {
-                    metadata = {
-                        projectId,
-                        ...alertOptions
-                    };
-                } else {
-                    metadata = {
-                        projectId
-                    };
-                }
-                var paymentIntent = await stripe.paymentIntents.create({
-                    amount: stripechargeAmount,
-                    currency: 'usd',
-                    payment_method_types: ['card'],
-                    customer: stripeCustomerId,
-                    source: customer.default_source,
-                    description: 'Recharge balance',
-                    metadata
-                });
-                return paymentIntent;
-            }
-            else {
-                ErrorService.log('Stripe.charges.rechargeBalance', error);
-                throw error;
-            }
+        var metadata;
+        if (alertOptions) {
+            metadata = {
+                projectId,
+                ...alertOptions
+            };
+        } else {
+            metadata = {
+                projectId
+            };
         }
-    },
-    updateBalance: async function (paymentIntentData) {
-        if (paymentIntentData.status === 'succeeded') {
-            var amountRechargedStripe = Number(paymentIntentData.amount_received);
-            if (amountRechargedStripe) {
-                var projectId = paymentIntentData.metadata.projectId,
-                    minimumBalance = paymentIntentData.metadata.minimumBalance && Number(paymentIntentData.metadata.minimumBalance),
-                    rechargeToBalance = paymentIntentData.metadata.rechargeToBalance && Number(paymentIntentData.metadata.rechargeToBalance),
-                    billingUS = paymentIntentData.metadata.billingUS && JSON.parse(paymentIntentData.metadata.billingUS),
-                    billingNonUSCountries = paymentIntentData.metadata.billingNonUSCountries && JSON.parse(paymentIntentData.metadata.billingNonUSCountries),
-                    billingRiskCountries = paymentIntentData.metadata.billingRiskCountries && JSON.parse(paymentIntentData.metadata.billingRiskCountries);
-
-                var alertOptions = {
-                    minimumBalance,
-                    rechargeToBalance,
-                    billingUS,
-                    billingNonUSCountries,
-                    billingRiskCountries
-                };
-                var amountRecharged = amountRechargedStripe / 100;
-                var project = await ProjectModel.findById(projectId).lean();
-                var currentBalance = project.balance;
-                var newbalance = currentBalance + amountRecharged;
-                var updateObject = {};
-                if (!minimumBalance || !rechargeToBalance) {
-                    updateObject = {
-                        balance: newbalance,
-                        alertEnable: true
-                    };
-                } else {
-                    updateObject = {
-                        balance: newbalance,
-                        alertEnable: true,
-                        alertOptions
-                    };
-                }
-                var updatedProject = await ProjectModel.findByIdAndUpdate(projectId, updateObject,
-                    { new: true });
-                if (updatedProject.balance === newbalance) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    },
-    addBalance: async function (userId, chargeAmount, projectId) {
-        var stripechargeAmount = chargeAmount * 100;
-        var user = await UserService.findOneBy({ _id: userId });
-        var stripeCustomerId = user.stripeCustomerId;
-        var customer = await stripe.customers.retrieve(stripeCustomerId);
-
-        var metadata = {
-            projectId
-        };
-        var paymentIntent = await stripe.paymentIntents.create({
-            amount: stripechargeAmount,
-            currency: 'usd',
-            payment_method_types: ['card'],
-            confirm: true,
-            customer: stripeCustomerId,
-            source: customer.default_source,
-            description: 'Recharge balance',
-            metadata
-        });
+        var paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata);
         return paymentIntent;
     },
 
+    updateBalance: async function (paymentIntent) {
+        try{
+            if (paymentIntent.status === 'succeeded') {
+                var amountRechargedStripe = Number(paymentIntent.amount_received);
+                if (amountRechargedStripe) {
+                    var projectId = paymentIntent.metadata.projectId,
+                        minimumBalance = paymentIntent.metadata.minimumBalance && Number(paymentIntent.metadata.minimumBalance),
+                        rechargeToBalance = paymentIntent.metadata.rechargeToBalance && Number(paymentIntent.metadata.rechargeToBalance),
+                        billingUS = paymentIntent.metadata.billingUS && JSON.parse(paymentIntent.metadata.billingUS),
+                        billingNonUSCountries = paymentIntent.metadata.billingNonUSCountries && JSON.parse(paymentIntent.metadata.billingNonUSCountries),
+                        billingRiskCountries = paymentIntent.metadata.billingRiskCountries && JSON.parse(paymentIntent.metadata.billingRiskCountries);
+    
+                    var alertOptions = {
+                        minimumBalance,
+                        rechargeToBalance,
+                        billingUS,
+                        billingNonUSCountries,
+                        billingRiskCountries
+                    };
+                    var amountRecharged = amountRechargedStripe / 100;
+                    var project = await ProjectModel.findById(projectId).lean();
+                    var currentBalance = project.balance;
+                    var newbalance = currentBalance + amountRecharged;
+                    var updateObject = {};
+                    if (!minimumBalance || !rechargeToBalance) {
+                        updateObject = {
+                            balance: newbalance,
+                            alertEnable: true
+                        };
+                    } else {
+                        updateObject = {
+                            balance: newbalance,
+                            alertEnable: true,
+                            alertOptions
+                        };
+                    }
+                    var updatedProject = await ProjectModel.findByIdAndUpdate(projectId, updateObject,
+                        { new: true });
+                    if (updatedProject.balance === newbalance) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } catch (error) {
+            ErrorService.log('StripeService.updateBalance', error);
+            throw error;
+        } 
+        
+    },
+    addBalance: async function (userId, chargeAmount, projectId) {
+        try {
+            var description = 'Recharge balance';
+            var stripechargeAmount = chargeAmount * 100;
+            var user = await UserService.findOneBy({ _id: userId });
+            var stripeCustomerId = user.stripeCustomerId;
+            var metadata = {
+                projectId
+            };
+            var paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata );
+            return paymentIntent;
+        } catch (error) {
+            ErrorService.log('StripeService.addBalance', error);
+            throw error;
+        }
+ 
+    },
+    createInvoice: async function (amount, stripeCustomerId, description, metadata, source) {
+        try {
+            var updatedPaymentIntent;
+            await stripe.invoiceItems.create({
+                amount: amount,
+                currency: 'usd',
+                customer: stripeCustomerId,
+                description
+            });
+            var invoice = await stripe.invoices.create({
+                customer: stripeCustomerId,
+                collection_method: 'charge_automatically',
+                description
+            });
+            var finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
+            var paymentIntent = await stripe.paymentIntents.retrieve(finalizedInvoice.payment_intent);
+            if (source) {
+                updatedPaymentIntent= await stripe.paymentIntents.update(paymentIntent.id, {
+                    description,
+                    metadata,
+                    source
+                });
+            } else {
+                updatedPaymentIntent = await stripe.paymentIntents.update(paymentIntent.id, {
+                    description,
+                    metadata
+                });
+            }
+            return updatedPaymentIntent;
+        } catch(error) {
+            ErrorService.log('StripeService.createInvoice', error);
+            throw error;
+        }
+
+    },
     makeTestCharge: async function (tokenId, email, companyName) {
         try {
+            var description = 'Verify if card is billable.';
             var testChargeValue = 100;
             var stripeCustomerId = await PaymentService.createCustomer(email, companyName);
             var card = await stripe.customers.createSource(stripeCustomerId, { source: tokenId });
-            var paymentIntent = await stripe.paymentIntents.create({
-                amount: testChargeValue,
-                currency: 'usd',
-                customer: stripeCustomerId,
-                description: 'Verify if card is billable.',
-                payment_method_types: ['card'],
-                source: card.id
-            });
+            var metadata = {
+                description
+            };
+            var source = card.id;
+            var paymentIntent = await this.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
             return paymentIntent;
         } catch (error) {
             ErrorService.log('StripeService.makeTestCharge', error);
@@ -277,3 +289,5 @@ var ProjectModel = require('../models/project');
 var MailService = require('../services/mailService');
 var ErrorService = require('../services/errorService');
 var stripe = require('stripe')(payment.paymentPrivateKey);
+
+module.exports = Services;

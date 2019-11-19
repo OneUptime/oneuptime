@@ -60,7 +60,7 @@ class AreaChart extends Component {
           <Chart data={_data}>
             <Tooltip content={<CustomTooltip />} />
             <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-            <Area type="linear" name={_.capitalize(name)} dataKey="v" stroke="#14aad9" strokeWidth={2} fill="#e2e1f2" />
+            <Area type="linear" isAnimationActive={false} name={_.capitalize(name)} dataKey="v" stroke="#14aad9" strokeWidth={1.5} fill="#e2e1f2" />
           </Chart>
         </ResponsiveContainer>
       );

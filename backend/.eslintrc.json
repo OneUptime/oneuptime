@@ -1,4 +1,4 @@
-{    
+{
     "parser": "babel-eslint",
     "env": {
         "browser": true,
@@ -10,7 +10,7 @@
     "extends": "eslint:recommended",
     "parserOptions": {
         "sourceType": "module",
-        "ecmaVersion":  2017
+        "ecmaVersion": 2017
     },
     "rules": {
         "indent": [
@@ -28,6 +28,9 @@
         "semi": [
             "error",
             "always"
-        ]
+        ],
+        "no-unused-vars": "off",
+        "require-atomic-updates": "off",
+        "no-async-promise-executor": "off"
     }
 }

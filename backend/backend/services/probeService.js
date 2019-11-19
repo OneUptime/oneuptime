@@ -149,6 +149,7 @@ module.exports = {
             throw error;
         }
         await MonitorService.sendResponseTime(savedLog);
+        await MonitorService.sendMonitorLog(savedLog);
         return savedLog;
     },
 

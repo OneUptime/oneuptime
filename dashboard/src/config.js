@@ -335,32 +335,31 @@ export const PricingPlan = {
 }
 
 export const tutorials = {
-
-    getMonitorTutorials() {
+    getTutorials() {
         return [
             {
                 id: 'monitor',
-                title: 'What are Monitors',
-                icon: 'bell',
-                description: <p>You can add web and API server address to monitor. It allows you monitor the health status of your API</p>,
+                title: 'What are Monitors?',
+                icon: 'monitor',
+                description: <p>Monitors lets you monitor any resource like API&apos;s, Websites, Servers, Containers, IoT device and more. Create a new monitor below.</p>,
             },
             {
                 id: 'incident',
-                title: 'What are Incidents',
-                icon: 'bell',
-                description: <p>You can use this feature to acknowledge an incident that occurred on a monitor and mark the incident as resolved after resolving the issue on your api or server</p>,
+                title: 'What are Incidents?',
+                icon: 'incident',
+                description: <p>When any of your resources (like API&apos;s, Websites, etc) do not behave normally, an incident is created and your on-call team is alerted.</p>,
             },
             {
                 id: 'status-page',
-                title: 'Status Metrics',
-                icon: 'bell',
-                description: <p>Get detailed metrics of all incidents that occurred on connected monitors and with date and time it was resolved</p>,
+                title: 'What is a status page?',
+                icon: 'status',
+                description: <p>Status Pages helps your team and your customers to view real-time status and health of your monitors.<br />Status Page helps improve transparency and trust in your organization and with your customers.</p>,
             },
             {
                 id: 'call-schedule',
-                title: 'Better Status Handling',
-                icon: 'bell',
-                description: <p>After adding monitors for your API, you won&apos;t miss out on any downtime on your servers, Just let Fyipe alert notify you</p>,
+                title: 'What are call schedules?',
+                icon: 'schedule',
+                description: <p>Call Schedules let&apos;s you connect your team members to specific monitors, so only on-duty members who are responsible for certain monitors are alerted when an incident is created.</p>,
             },
         ]
     }
@@ -543,11 +542,11 @@ function compareStatus(incident, log) {
     return moment(incident.createdAt).isSameOrAfter(moment(log.createdAt)) ? (!incident.resolved ? incident.incidentType : 'online') : log.status;
 }
 
-export const getMonitorStatus = (monitor) => {
-    let incident = monitor && monitor.incidents && monitor.incidents.length > 0 ? monitor.incidents[0] : null;
-    let log = monitor && monitor.logs && monitor.logs.length > 0 ? monitor.logs[0] : null;
-    
-    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'online'));
+export const getMonitorStatus = (incidents, logs) => {
+    let incident = incidents && incidents.length > 0 ? incidents[0] : null;
+    let log = logs && logs.length > 0 ? logs[0] : null;
+
+    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'offline'));
 
     return statusCompare || 'offline';
 };
