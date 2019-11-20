@@ -400,6 +400,16 @@ export function fetchMonitorLogsFailure(error) {
     };
 }
 
+export function setDefaultCriteria(monitorName, monitorType) {
+
+    return function (dispatch) {
+        dispatch({
+            type: 'SET_DEFAULT_CRITERIA',
+            payload: { name: monitorName, type: monitorType }
+        });
+    };
+}
+
 
 export function addSeat(projectId) {
 

@@ -34,6 +34,7 @@ import {
     SELECT_PROBE,
 } from '../constants/monitor';
 
+import { defaultCriteria } from '../criteria';
 
 const INITIAL_STATE = {
     monitorsList: {
@@ -44,6 +45,13 @@ const INITIAL_STATE = {
     },
     newMonitor: {
         monitor: null,
+        error: null,
+        requesting: false,
+        success: false,
+        initialValue: defaultCriteria.default
+    },
+    defaultCriteria: {
+        criteria: defaultCriteria,
         error: null,
         requesting: false,
         success: false
@@ -66,7 +74,7 @@ const INITIAL_STATE = {
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
-    let monitors, isExistingMonitor;
+    let monitors, isExistingMonitor, monitorType, initialValue;
     switch (action.type) {
 
         case CREATE_MONITOR_SUCCESS:
@@ -410,6 +418,27 @@ export default function monitor(state = INITIAL_STATE, action) {
                     })
                 },
                 fetchMonitorLogsRequest: false
+            });
+
+        case 'SET_DEFAULT_CRITERIA':
+            monitorType = action.payload.type;
+            initialValue = Object.assign({}, (monitorType && monitorType !== '' && monitorType === 'url' ?
+                state.defaultCriteria.criteria[monitorType]
+                :
+                state.defaultCriteria.criteria.default)
+            );
+
+            return Object.assign({}, state, {
+                ...state,
+
+                newMonitor: {
+                    ...state.newMonitor,
+                    initialValue: {
+                        ...initialValue,
+                        type_1000: monitorType,
+                        name_1000: action.payload.name
+                    }
+                },
             });
 
         case REMOVE_MONITORS_SUBSCRIBERS:
