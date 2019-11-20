@@ -1,7 +1,7 @@
 /**
- * 
- * Copyright HackerBay, Inc. 
- * 
+ *
+ * Copyright HackerBay, Inc.
+ *
  */
 
 
@@ -15,7 +15,7 @@ var mongoUri = keys.dbURL;
 // Returns: fileinfo, error.
 module.exports = new GridFsStorage({
     url: mongoUri,
-    
+
     // eslint-disable-next-line no-unused-vars
     file: (req, file) => {
         return new Promise((resolve, reject) => {

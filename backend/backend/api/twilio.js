@@ -15,10 +15,9 @@ const {
 const getUser = require('../middlewares/user').getUser;
 var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 var sendItemResponse = require('../middlewares/response').sendItemResponse;
-
 const router = express.Router();
 const errorResponse = '<Response><Say voice="alice">The incident status was not updated. Please go to Fyipe Dashboard to update. Thank you.</Say></Response>';
-
+const SmsCountService = require('../services/smsCountService');
 /**
  * @param { accessToken, projectId, incidentId }: Come in the query string, passed in twilio service.
  * @description Route Description: XMl for Twilio voice Api.
@@ -112,17 +111,17 @@ router.post('/voice/incident/action', getUser, isAuthorized, async function (req
             // incident resolve success message
             const message = '<Say voice="alice">The incident status has been resolved. Log on to your dashboard to see the status. Thank you for using Fyipe.</Say>';
             const hangUp = '<Hangup />';
-            return sendItemResponse(req, res, '<Response>'+ message + hangUp +'</Response>');
+            return sendItemResponse(req, res, '<Response>' + message + hangUp + '</Response>');
         }
         default: {
             // Request user to press 1 or 2
             const message = '<Say voice="alice">You have pressed unknown key, Please press 1 to acknowledge or 2 to resolve the incident.</Say>';
             const gather = `<Gather numDigits="1" input="dtmf" action="${actionPath}" timeout="15">${message}</Gather>`;
-            
+
             // This is said when user hits no key.
             const onNoKeyPress = '<Say voice="alice">No response received. This call will end.</Say>';
             const hangUp = '<Hangup />';
-            return sendItemResponse(req, res, '<Response>'+ gather + onNoKeyPress + hangUp +'</Response>');
+            return sendItemResponse(req, res, '<Response>' + gather + onNoKeyPress + hangUp + '</Response>');
         }
         }
     } catch (error) {
@@ -164,10 +163,21 @@ router.post('/sms/incoming', async (req, res) => {
 
 router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (req, res) {
     var { to } = req.body;
-    try{
-        var sendVerifyToken = await sendVerificationSMS(to);
-        return sendItemResponse(req, res, sendVerifyToken);
-    } catch(error) {
+    var userId = req.user ? req.user.id : null;
+    try {
+        const phoneRegEx = /^((\+\d{1,3}(-| )?\(?\d\)?(-| )?\d{1,3})|(\(?\d{2,3}\)?))(-| )?(\d{3,4})(-| )?(\d{4,5})(( x| ext)\d{1,5}){0,1}$/;
+        if (phoneRegEx.test(to)) {
+            var {validateResend,problem} = await SmsCountService.validateResend(userId);
+            if (validateResend) {
+                var sendVerifyToken = await sendVerificationSMS(to, userId);
+                return sendItemResponse(req, res, sendVerifyToken);
+            }
+            else {
+                return sendErrorResponse(req, res, { statusCode: 400, message: problem });
+            }
+        }
+        return sendErrorResponse(req, res, { statusCode: 400, message: 'Please provide a valid phone number' });
+    } catch (error) {
         return sendErrorResponse(req, res, { status: 'action failed' });
     }
 });
@@ -177,11 +187,11 @@ router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
     var { to, code } = req.body;
     var userId = req.user ? req.user.id : null;
 
-    try{
+    try {
         var sendVerifyToken = await verifySMSCode(to, code, userId);
         return sendItemResponse(req, res, sendVerifyToken);
-    } catch(error) {
-        return sendErrorResponse(req, res, { 
+    } catch (error) {
+        return sendErrorResponse(req, res, {
             code: 400,
             message: error.message
         });

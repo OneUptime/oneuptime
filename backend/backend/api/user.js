@@ -586,13 +586,15 @@ router.get('/confirmation/:token', async function (req, res) {
         if (!user) {
             return res.redirect(ACCOUNTS_HOST + '/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk');
         }
-        if (user.isVerified) {
+        if (user.isVerified && user.tempEmail && user.tempEmail === user.email) {
             return res.redirect(ACCOUNTS_HOST + '/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC');
         }
         try {
             await UserModel.findByIdAndUpdate(user._id, {
                 $set: {
-                    isVerified: true
+                    isVerified: true,
+                    email: user.tempEmail,
+                    tempEmail:null
                 }
             });
             return res.redirect(ACCOUNTS_HOST + '/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP');
@@ -608,21 +610,28 @@ router.get('/confirmation/:token', async function (req, res) {
 
 router.post('/resend', async function (req, res) {
     if (req.body && req.body.email) {
-        var { email } = req.body;
-        var user = await UserModel.findOne({ email });
+        var { email ,userId} = req.body;
+        var user = await UserModel.findOne({ _id: userId});
         if (!user) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'No user associated with this email'
+                message: 'No user associated with this account'
             });
         }
-        if (user.isVerified) {
+        var checkUser = await UserModel.findOne({ email });
+        if (checkUser) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'User already registered with this email'
+            });
+        }
+        if (user.isVerified && user.email === email) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'User has been already verified.'
             });
         }
-        var token = await UserService.sendToken(user);
+        var token = await UserService.sendToken(user,email);
         if (token) {
             res.status(200).send(`A verification email has been sent to ${user.email}`);
         }
