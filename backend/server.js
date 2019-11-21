@@ -64,6 +64,7 @@ app.use('/emailSmtp', require('./backend/api/emailSmtp'));
 app.use('/smsTemplate', require('./backend/api/smsTemplate'));
 app.use('/smsSmtp', require('./backend/api/smsSmtp'));
 app.use('/monitorCategory', require('./backend/api/monitorCategory'));
+app.use('/monitorCriteria', require('./backend/api/monitorCriteria'));
 app.use('/scheduledEvent', require('./backend/api/scheduledEvent'));
 app.use('/probe', require('./backend/api/probe'));
 app.use('/version', require('./backend/api/version'));

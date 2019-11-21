@@ -4,13 +4,13 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { reduxForm, Field, formValueSelector } from 'redux-form';
-import { createMonitor, createMonitorSuccess, createMonitorFailure, resetCreateMonitor, editMonitor, editMonitorSwitch, setDefaultCriteria, addSeat } from '../../actions/monitor';
+import { createMonitor, createMonitorSuccess, createMonitorFailure, resetCreateMonitor, editMonitor, editMonitorSwitch, setMonitorCriteria, addSeat } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import AddSeats from '../modals/AddSeats';
 import { openModal, closeModal } from '../../actions/modal';
-import { fetchMonitorsIncidents, fetchMonitorsSubscribers } from '../../actions/monitor';
+import { fetchMonitorCriteria, fetchMonitorsIncidents, fetchMonitorsSubscribers } from '../../actions/monitor';
 //import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import SubProjectSelector from '../basic/SubProjectSelector';
@@ -43,6 +43,7 @@ class NewMonitor extends Component {
         const projectMember = this.props.currentProject.users.find(user => user.userId === userId);
         //load call schedules
         if (projectMember) this.props.fetchSchedules(this.props.currentProject._id);
+        this.props.fetchMonitorCriteria();
     }
 
     //Client side validation
@@ -212,7 +213,7 @@ class NewMonitor extends Component {
 
     changeBox = (e, value) => {
         this.setState({ advance: false, type: value });
-        this.props.setDefaultCriteria(this.props.name, value);
+        this.props.setMonitorCriteria(this.props.name, value);
     }
 
     scriptTextChange = (newValue) => {
@@ -566,7 +567,8 @@ const mapDispatchToProps = dispatch => bindActionCreators(
         openModal,
         closeModal,
         editMonitor,
-        setDefaultCriteria,
+        fetchMonitorCriteria,
+        setMonitorCriteria,
         addSeat,
         fetchMonitorsIncidents,
         fetchMonitorsSubscribers,
@@ -624,7 +626,8 @@ NewMonitor.propTypes = {
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
     monitorId: PropTypes.string,
-    setDefaultCriteria: PropTypes.func
+    setMonitorCriteria: PropTypes.func,
+    fetchMonitorCriteria: PropTypes.func
 }
 
 NewMonitor.contextTypes = {

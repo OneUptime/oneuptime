@@ -27,14 +27,16 @@ import {
     FETCH_MONITOR_LOGS_REQUEST,
     FETCH_MONITOR_LOGS_SUCCESS,
     FETCH_MONITOR_LOGS_FAILURE,
+    FETCH_MONITOR_CRITERIA_REQUEST,
+    FETCH_MONITOR_CRITERIA_SUCCESS,
+    FETCH_MONITOR_CRITERIA_FAILURE,
+    SET_MONITOR_CRITERIA,
     ADD_SEAT_SUCCESS,
     ADD_SEAT_FAILURE,
     ADD_SEAT_REQUEST,
     ADD_SEAT_RESET,
     SELECT_PROBE,
 } from '../constants/monitor';
-
-import { defaultCriteria } from '../criteria';
 
 const INITIAL_STATE = {
     monitorsList: {
@@ -48,10 +50,10 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false,
-        initialValue: defaultCriteria.default
+        initialValue: null
     },
-    defaultCriteria: {
-        criteria: defaultCriteria,
+    monitorCriteria: {
+        criteria: null,
         error: null,
         requesting: false,
         success: false
@@ -69,6 +71,7 @@ const INITIAL_STATE = {
     fetchMonitorsIncidentRequest: false,
     activeProbe: 0,
     fetchMonitorLogsRequest: false,
+    fetchMonitorCriteriaRequest: false,
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
 };
@@ -420,12 +423,50 @@ export default function monitor(state = INITIAL_STATE, action) {
                 fetchMonitorLogsRequest: false
             });
 
-        case 'SET_DEFAULT_CRITERIA':
+        case FETCH_MONITOR_CRITERIA_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+
+                fetchMonitorCriteriaRequest: action.payload
+            });
+
+        case FETCH_MONITOR_CRITERIA_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+
+                newMonitor: {
+                    ...state.newMonitor,
+
+                    initialValue: action.payload.data.default
+                },
+                monitorCriteria: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    criteria: action.payload.data
+                },
+                fetchMonitorCriteriaRequest: false
+            });
+
+        case FETCH_MONITOR_CRITERIA_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+
+                monitorCriteria: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    criteria: state.monitorCriteria.criteria
+                },
+                fetchMonitorCriteriaRequest: false
+            });
+
+        case SET_MONITOR_CRITERIA:
             monitorType = action.payload.type;
             initialValue = Object.assign({}, (monitorType && monitorType !== '' && monitorType === 'url' ?
-                state.defaultCriteria.criteria[monitorType]
+                state.monitorCriteria.criteria[monitorType]
                 :
-                state.defaultCriteria.criteria.default)
+                state.monitorCriteria.criteria.default)
             );
 
             return Object.assign({}, state, {
