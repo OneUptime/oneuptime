@@ -7,13 +7,16 @@ import ShouldRender from '../basic/ShouldRender';
 import { fetchMonitorCategories, deleteMonitorCategory } from '../../actions/monitorCategories';
 import AddMonitorCategoryForm from '../../components/modals/AddMonitorCategory';
 import RemoveMonitorCategory from '../../components/modals/RemoveMonitorCategory';
+import EditMonitorCategory from '../../components/modals/EditMonitorCategory';
 import { openModal, closeModal } from '../../actions/modal';
+import DataPathHoC from '../DataPathHoC';
 import uuid from 'uuid';
 
 export class MonitorCategories extends Component {
 
     state = {
         CreateMonitorCategoryModalId: uuid.v4(),
+        EditMonitorCategoryModalId: uuid.v4(),
         removeMonitorCategoryModalId: uuid.v4(),
     }
 
@@ -103,23 +106,48 @@ export class MonitorCategories extends Component {
                                                 </div>
                                             </div>
                                             <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <button onClick={() => {
-                                                    this.props.openModal({
-                                                        id: this.state.removeMonitorCategoryModalId,
-                                                        onClose: () => '',
-                                                        onConfirm: () => {
-                                                            return new Promise((resolve)=>{
-                                                                this.handleDeleteMonitorCategory(_id)
-                                                                resolve(true);
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                                    <div className="Box-root Margin-right--8" id="deleteMonitorCategoryBtn">
+                                                        <button onClick={() => {
+                                                            this.props.openModal({
+                                                                id: this.state.removeMonitorCategoryModalId,
+                                                                onClose: () => '',
+                                                                onConfirm: () => {
+                                                                    return new Promise((resolve)=>{
+                                                                        this.handleDeleteMonitorCategory(_id)
+                                                                        resolve(true);
+                                                                    })
+                                                                },
+                                                                content: RemoveMonitorCategory
                                                             })
-                                                        },
-                                                        content: RemoveMonitorCategory
-                                                    })
-                                                }} 
-                                                className="Button bs-ButtonLegacy" 
-                                                type="button">
-                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Delete</span></span></div>
-                                                </button>
+                                                        }} 
+                                                        className="Button bs-ButtonLegacy"
+                                                        type="button">
+                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                    <span>Delete</span>
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="Box-root">
+                                                        <button onClick={() => {
+                                                            this.props.openModal({
+                                                                id: this.state.EditMonitorCategoryModalId,
+                                                                content: DataPathHoC(EditMonitorCategory, { monitorCategoryId: _id }),
+                                                            })
+                                                        }} 
+                                                        className="Button bs-ButtonLegacy" 
+                                                        type="button" >
+                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                    <span>Edit</span>
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>))}
                                     <ShouldRender if={!((!monitorCategories || monitorCategories.length === 0) && !isRequesting && !error)}>

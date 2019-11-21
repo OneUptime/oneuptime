@@ -77,6 +77,23 @@ module.exports = {
             throw error;
         }
     },
+    updateBy: async function (query, data) {
+        if (!query) {
+            query = {};
+        }
+        var monitorCategory;
+        try {
+            monitorCategory = await MonitorCategoryModel.findOneAndUpdate(query, {
+                $set: data
+            },{
+                new: true
+            });
+        } catch (error) {
+            ErrorService.log('monitorCategory.Update', error);
+            throw error;
+        }
+        return monitorCategory;
+    },
     countBy: async function (query) {
         if (!query) {
             query = {};
