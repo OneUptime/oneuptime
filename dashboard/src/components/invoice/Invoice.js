@@ -26,9 +26,17 @@ class Invoice extends Component {
   }
 
   nextClicked = () => {
-      this.props.getInvoice(this.props.projectId, this.props.invoices[this.props.invoices.length - 1].data[0].id)
+      const { invoices: { data } } = this.props;
+      const startingAfter = data[data.length - 1].id;
+      this.props.getInvoice(this.props.projectId, startingAfter)
   }
 
+  prevClicked = () => {
+      const { invoices: { data } } = this.props;
+      const endingBefore = data[0].id;
+      const startingAfter = data[data.length - 1].id;
+      this.props.getInvoice(this.props.projectId, startingAfter, endingBefore)
+  }
 
     render() {
 
@@ -67,6 +75,7 @@ class Invoice extends Component {
                         <InvoiceList 
                           invoices={this.props.invoices}
                           nextClicked={this.nextClicked}
+                          prevClicked={this.prevClicked}
                         />
                       }
                       </div>
