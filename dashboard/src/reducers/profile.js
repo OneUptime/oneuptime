@@ -1,28 +1,4 @@
-import {
-    UPDATE_PROFILE_SETTING_REQUEST,
-    UPDATE_PROFILE_SETTING_SUCCESS,
-    UPDATE_PROFILE_SETTING_FAILURE,
-    UPDATE_PROFILE_SETTING_RESET,
-    UPDATE_CHANGE_PASSWORD_SETTING_REQUEST,
-    UPDATE_CHANGE_PASSWORD_SETTING_SUCCESS,
-    UPDATE_CHANGE_PASSWORD_SETTING_FAILURE,
-    UPDATE_CHANGE_PASSWORD_SETTING_RESET,
-    USER_SETTINGS_REQUEST,
-    USER_SETTINGS_SUCCESS,
-    USER_SETTINGS_FAILURE,
-    USER_SETTINGS_RESET,
-    SHOW_PROFILE_MENU,
-    HIDE_PROFILE_MENU,
-    SEND_VERIFICATION_SMS_REQUEST,
-    SEND_VERIFICATION_SMS_SUCCESS,
-    SEND_VERIFICATION_SMS_FAILURE,
-    VERIFY_SMS_CODE_REQUEST,
-    VERIFY_SMS_CODE_SUCCESS,
-    VERIFY_SMS_CODE_FAILURE,
-    SEND_EMAIL_VERIFICATION_FAILURE,
-    SEND_EMAIL_VERIFICATION_REQUEST,
-    SEND_EMAIL_VERIFICATION_SUCCESS,
-} from '../constants/profile';
+import * as types from '../constants/profile';
 
 const INITIAL_STATE = {
     menuVisible: false,
@@ -39,13 +15,13 @@ const INITIAL_STATE = {
     },
     file: null,
     smsVerification: {
-        error: null, 
+        error: null,
         requesting: false,
         success: false,
         data: {}
     },
     smsVerificationResult: {
-        error: null, 
+        error: null,
         requesting: false,
         success: false,
         data: {}
@@ -56,6 +32,20 @@ const INITIAL_STATE = {
         success: false,
         data: {}
     },
+    profileSettingState: {
+        alertPhoneNumber: '',
+        initPhoneVerification: false,
+        verified: false,
+        profilePic: null,
+        removedPic: false,
+        fileInputKey: null,
+        isVerified: false,
+        initialAlertPhoneNumber: '',
+        userEmail: '',
+        initPhoneVerificationNumber: '',
+        initAlertEmail : '',
+    },
+    resendTimer: null
 };
 
 export default function profileSettings(state = INITIAL_STATE, action) {
@@ -63,7 +53,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
     switch (action.type) {
 
         //update profile setting
-        case UPDATE_PROFILE_SETTING_REQUEST:
+        case types.UPDATE_PROFILE_SETTING_REQUEST:
 
             return Object.assign({}, state, {
                 profileSetting: {
@@ -74,7 +64,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             });
 
-        case UPDATE_PROFILE_SETTING_SUCCESS:
+        case types.UPDATE_PROFILE_SETTING_SUCCESS:
             return Object.assign({}, state, {
                 profileSetting: {
                     requesting: false,
@@ -84,7 +74,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 },
             });
 
-        case UPDATE_PROFILE_SETTING_FAILURE:
+        case types.UPDATE_PROFILE_SETTING_FAILURE:
 
             return Object.assign({}, state, {
                 profileSetting: {
@@ -94,14 +84,14 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 },
             });
 
-        case UPDATE_PROFILE_SETTING_RESET:
+        case types.UPDATE_PROFILE_SETTING_RESET:
 
             return Object.assign({}, state, {
                 ...INITIAL_STATE
             });
 
         // update change password setting.
-        case UPDATE_CHANGE_PASSWORD_SETTING_REQUEST:
+        case types.UPDATE_CHANGE_PASSWORD_SETTING_REQUEST:
             return Object.assign({}, state, {
                 changePasswordSetting: {
                     requesting: true,
@@ -110,7 +100,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 },
             });
 
-        case UPDATE_CHANGE_PASSWORD_SETTING_SUCCESS:
+        case types.UPDATE_CHANGE_PASSWORD_SETTING_SUCCESS:
 
             return Object.assign({}, state, {
                 changePasswordSetting: {
@@ -120,7 +110,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 },
             });
 
-        case UPDATE_CHANGE_PASSWORD_SETTING_FAILURE:
+        case types.UPDATE_CHANGE_PASSWORD_SETTING_FAILURE:
 
             return Object.assign({}, state, {
                 changePasswordSetting: {
@@ -130,26 +120,26 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 },
             });
 
-        case UPDATE_CHANGE_PASSWORD_SETTING_RESET:
+        case types.UPDATE_CHANGE_PASSWORD_SETTING_RESET:
 
             return Object.assign({}, state, {
                 ...INITIAL_STATE
             });
 
-        case SHOW_PROFILE_MENU:
+        case types.SHOW_PROFILE_MENU:
 
             return Object.assign({}, state, {
                 menuVisible: true
             });
 
-        case HIDE_PROFILE_MENU:
+        case types.HIDE_PROFILE_MENU:
 
             return Object.assign({}, state, {
                 menuVisible: false
             });
 
-        case USER_SETTINGS_REQUEST:
-        
+        case types.USER_SETTINGS_REQUEST:
+
             return Object.assign({}, state, {
                 profileSetting: {
                     error: null,
@@ -159,7 +149,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
-        case USER_SETTINGS_SUCCESS:
+        case types.USER_SETTINGS_SUCCESS:
 
             return Object.assign({}, state, {
                 profileSetting: {
@@ -170,7 +160,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
-        case USER_SETTINGS_FAILURE:
+        case types.USER_SETTINGS_FAILURE:
 
             return Object.assign({}, state, {
                 profileSetting: {
@@ -181,7 +171,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
-        case USER_SETTINGS_RESET:
+        case types.USER_SETTINGS_RESET:
 
             return Object.assign({}, state, {
                 profileSetting: {
@@ -204,7 +194,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 file: null
             });
 
-        case SEND_VERIFICATION_SMS_REQUEST:
+        case types.SEND_VERIFICATION_SMS_REQUEST:
 
             return Object.assign({}, state, {
                 smsVerification: {
@@ -215,7 +205,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
-        case SEND_VERIFICATION_SMS_SUCCESS:
+        case types.SEND_VERIFICATION_SMS_SUCCESS:
 
             return Object.assign({}, state, {
                 smsVerification: {
@@ -226,7 +216,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
-        case SEND_VERIFICATION_SMS_FAILURE:
+        case types.SEND_VERIFICATION_SMS_FAILURE:
 
             return Object.assign({}, state, {
                 smsVerification: {
@@ -236,8 +226,8 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                     data: {}
                 }
             });
-        
-        case SEND_EMAIL_VERIFICATION_REQUEST:
+
+        case types.SEND_EMAIL_VERIFICATION_REQUEST:
 
             return Object.assign({}, state, {
                 emailVerificationResult: {
@@ -248,7 +238,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
-        case SEND_EMAIL_VERIFICATION_SUCCESS:
+        case types.SEND_EMAIL_VERIFICATION_SUCCESS:
 
             return Object.assign({}, state, {
                 emailVerificationResult: {
@@ -259,7 +249,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
-        case SEND_EMAIL_VERIFICATION_FAILURE:
+        case types.SEND_EMAIL_VERIFICATION_FAILURE:
 
             return Object.assign({}, state, {
                 emailVerificationResult: {
@@ -269,8 +259,8 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                     data: {}
                 }
             });
-        
-        case VERIFY_SMS_CODE_REQUEST:
+
+        case types.VERIFY_SMS_CODE_REQUEST:
 
             return Object.assign({}, state, {
                 smsVerificationResult: {
@@ -281,7 +271,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
-        case VERIFY_SMS_CODE_SUCCESS:
+        case types.VERIFY_SMS_CODE_SUCCESS:
 
             return Object.assign({}, state, {
                 smsVerificationResult: {
@@ -292,7 +282,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
-        case VERIFY_SMS_CODE_FAILURE:
+        case types.VERIFY_SMS_CODE_FAILURE:
 
             return Object.assign({}, state, {
                 smsVerificationResult: {
@@ -301,6 +291,99 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                     success: false,
                     data: {}
                 }
+            });
+
+        case types.SET_ALERT_PHONE_NUMBER:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    alertPhoneNumber: action.payload,
+                }
+            });
+
+        case types.SET_INIT_ALERT_EMAIL:
+                return Object.assign({}, state, {
+                    profileSettingState: {
+                        ...state.profileSettingState,
+                        initAlertEmail: action.payload,
+                    }
+                });
+
+        case types.SET_INIT_PHONE_VERIFICATION:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    initPhoneVerification: action.payload,
+                }
+            });
+
+        case types.SET_VERIFIED:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    verified: action.payload,
+                }
+            });
+
+        case types.SET_PROFILE_PIC:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    profilePic: action.payload,
+                }
+            });
+
+        case types.SET_REMOVED_PIC:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    removedPic: action.payload,
+                }
+            });
+
+        case types.SET_FILE_INPUT_KEY:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    fileInputKey: action.payload,
+                }
+            });
+
+        case types.SET_IS_VERIFIED:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    isVerified: action.payload,
+                }
+            });
+
+        case types.SET_INITIAL_ALERT_PHONE_NUMBER:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    initialAlertPhoneNumber: action.payload,
+                }
+            });
+
+        case types.SET_USER_EMAIL:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    userEmail: action.payload,
+                }
+            });
+
+        case types.SET_INIT_PHONE_VERIFICATION_NUMBER:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    initPhoneVerificationNumber: action.payload,
+                }
+            });
+
+        case types.SET_RESEND_TIMER:
+            return Object.assign({}, state, {
+                resendTimer: action.payload
             });
 
         default: return state;

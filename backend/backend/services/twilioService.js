@@ -13,6 +13,7 @@ var Handlebars = require('handlebars');
 var defaultSmsTemplates = require('../config/smsTemplate');
 var SmsSmtpService = require('./smsSmtpService');
 var UserModel = require('../models/user');
+var SmsCountService = require('./smsCountService');
 
 var getTwilioSettings = async (projectId) => {
     let { accountSid, authToken, phoneNumber } = twilioCredentials;
@@ -23,7 +24,7 @@ var getTwilioSettings = async (projectId) => {
         phoneNumber = accountSid.phoneNumber;
     }
 
-    return { accountSid, authToken, phoneNumber};
+    return { accountSid, authToken, phoneNumber };
 };
 
 const dynamicClient = (accountSid, authToken) => {
@@ -73,7 +74,7 @@ module.exports = {
         return message;
     },
 
-    sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate,projectId) {
+    sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, projectId) {
         let _this = this;
         var { template } = await _this.getTemplate(smsTemplate);
         let data = {
@@ -107,8 +108,8 @@ module.exports = {
         try {
             var message = await newClient.messages.create(options);
         } catch (error) {
-            let err = Object.assign({},error);
-            if(err && err.status){
+            let err = Object.assign({}, error);
+            if (err && err.status) {
                 err = new Error(error.message);
                 err.code = 400;
             }
@@ -148,15 +149,16 @@ module.exports = {
         var template = await Handlebars.compile(smsContent);
         return { template };
     },
-    sendVerificationSMS: async function (to) {
+    sendVerificationSMS: async function (to, userId) {
         try {
             if (!to.startsWith('+')) {
                 to = '+' + to;
             }
             var channel = 'sms';
-            var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
-                .verifications
-                .create({ to, channel });
+            var verificationRequest = {};// await client.verify.services(twilioCredentials.verificationSid)
+            //.verifications
+            // .create({ to, channel });
+            await SmsCountService.create(userId, to);
             return verificationRequest;
         } catch (error) {
             ErrorService.log('client.sms.sendVerificationSMS', error);
@@ -176,7 +178,7 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
-            if(verificationResult.status === 'approved') { 
+            if (verificationResult.status === 'approved') {
                 await UserModel.findByIdAndUpdate(userId, {
                     $set: {
                         alertPhoneNumber: to

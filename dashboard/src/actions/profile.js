@@ -32,9 +32,9 @@ export function updateProfileSetting(values) {
 
 	return function (dispatch) {
 		let data = new FormData();
-		if (values.profilePic) {
+		if (values.profilePic && values.profilePic[0]) {
 			if (!values.removedPic) {
-				data.append('profilePic', values.profilePic);
+				data.append('profilePic', values.profilePic[0], values.profilePic[0].name);
 			} else {
 				data.append('profilePic', null);
 			}
@@ -352,5 +352,89 @@ export function verifySMSCode(projectId, values) {
 		});
 
 		return promise;
+	};
+}
+
+export function setAlertPhoneNumber(number) {
+	return {
+		type: types.SET_ALERT_PHONE_NUMBER,
+		payload: number
+	};
+}
+
+export function setInitAlertEmail(email) {
+	return {
+		type: types.SET_INIT_ALERT_EMAIL,
+		payload: email
+	};
+}
+
+export function setVerified(value) {
+	return {
+		type: types.SET_VERIFIED,
+		payload: value
+	};
+}
+
+export function setInitPhoneVerificationNumber(number) {
+	return {
+		type: types.SET_INIT_PHONE_VERIFICATION_NUMBER,
+		payload: number
+	};
+}
+
+export function setInitPhoneVerification(value) {
+	return {
+		type: types.SET_INIT_PHONE_VERIFICATION,
+		payload: value
+	};
+}
+
+export function setProfilePic(value) {
+	return {
+		type: types.SET_PROFILE_PIC,
+		payload: value
+	};
+}
+
+export function setRemovedPic(value) {
+	return {
+		type: types.SET_REMOVED_PIC,
+		payload: value
+	};
+}
+
+export function setFileInputKey(value) {
+	return {
+		type: types.SET_FILE_INPUT_KEY,
+		payload: value
+	};
+}
+
+export function setIsVerified(value) {
+	return {
+		type: types.SET_IS_VERIFIED,
+		payload: value
+	};
+}
+
+export function setInitialAlertPhoneNumber(value) {
+	return {
+		type: types.SET_INITIAL_ALERT_PHONE_NUMBER,
+		payload: value
+	};
+}
+
+export function setUserEmail(value) {
+	return {
+		type: types.SET_USER_EMAIL,
+		payload: value
+	};
+}
+
+export function setResendTimer(value) {
+	return {
+		type: types.SET_RESEND_TIMER,
+		payload: value
 	};
 }
