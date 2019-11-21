@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { reduxForm, Field, formValueSelector } from 'redux-form';
-import { createMonitor, createMonitorSuccess, createMonitorFailure, resetCreateMonitor, editMonitor, editMonitorSwitch, addSeat } from '../../actions/monitor';
+import { createMonitor, createMonitorSuccess, createMonitorFailure, resetCreateMonitor, editMonitor, editMonitorSwitch, setDefaultCriteria, addSeat } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria } from '../../config';
 import { FormLoader } from '../basic/Loader';
@@ -209,8 +209,10 @@ class NewMonitor extends Component {
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
     }
+
     changeBox = (e, value) => {
         this.setState({ advance: false, type: value });
+        this.props.setDefaultCriteria(this.props.name, value);
     }
 
     scriptTextChange = (newValue) => {
@@ -551,6 +553,7 @@ NewMonitor.displayName = 'NewMonitor';
 let NewMonitorForm = new reduxForm({
     form: 'NewMonitor',
     destroyOnUnmount: false,
+    enableReinitialize: true
 })(NewMonitor);
 
 const mapDispatchToProps = dispatch => bindActionCreators(
@@ -563,6 +566,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
         openModal,
         closeModal,
         editMonitor,
+        setDefaultCriteria,
         addSeat,
         fetchMonitorsIncidents,
         fetchMonitorsSubscribers,
@@ -572,31 +576,27 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     , dispatch);
 
 const mapStateToProps = (state, ownProps) => {
+    var name = selector(state, 'name_1000');
     var type = selector(state, 'type_1000');
+
     if (ownProps.edit) {
         const monitorId = ownProps.match ? ownProps.match.params ? ownProps.match.params.monitorId : null : null;
         return {
             monitor: state.monitor,
             currentProject: state.project.currentProject,
+            name: name,
             type: type,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
             monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
             monitorId
         };
-    }
-    else {
-        const initialvalue = {
-            up_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
-            down_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
-            degraded_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
-            type_1000: type
-        }
-
+    } else {
         return {
-            initialValues: initialvalue,
+            initialValues: state.monitor.newMonitor.initialValue,
             monitor: state.monitor,
             currentProject: state.project.currentProject,
+            name: name,
             type: type,
             monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
             subProjects: state.subProject.subProjects.subProjects,
@@ -618,11 +618,13 @@ NewMonitor.propTypes = {
     fetchSchedules: PropTypes.func.isRequired,
     editMonitorProp: PropTypes.object,
     edit: PropTypes.bool,
+    name: PropTypes.string,
     type: PropTypes.string,
     subProjects: PropTypes.array,
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
-    monitorId: PropTypes.string
+    monitorId: PropTypes.string,
+    setDefaultCriteria: PropTypes.func
 }
 
 NewMonitor.contextTypes = {
