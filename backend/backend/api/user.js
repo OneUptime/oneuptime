@@ -586,16 +586,20 @@ router.get('/confirmation/:token', async function (req, res) {
         if (!user) {
             return res.redirect(ACCOUNTS_HOST + '/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk');
         }
-        if (user.isVerified && user.tempEmail && user.tempEmail === user.email) {
+        if (user.isVerified && (!user.tempEmail || (user.tempEmail && user.tempEmail === user.email))) {
             return res.redirect(ACCOUNTS_HOST + '/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC');
+        }
+        var dataUpdate = {isVerified: true};
+        if(user.tempEmail && user.tempEmail !== user.email){
+            dataUpdate = {
+                isVerified: true,
+                email: user.tempEmail,
+                tempEmail: null
+            };
         }
         try {
             await UserModel.findByIdAndUpdate(user._id, {
-                $set: {
-                    isVerified: true,
-                    email: user.tempEmail,
-                    tempEmail:null
-                }
+                $set: dataUpdate
             });
             return res.redirect(ACCOUNTS_HOST + '/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP');
         } catch (error) {
@@ -610,8 +614,8 @@ router.get('/confirmation/:token', async function (req, res) {
 
 router.post('/resend', async function (req, res) {
     if (req.body && req.body.email) {
-        var { email ,userId} = req.body;
-        var user = await UserModel.findOne({ _id: userId});
+        var { email, userId } = req.body;
+        var user = await UserModel.findOne({ _id: userId });
         if (!user) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -631,7 +635,7 @@ router.post('/resend', async function (req, res) {
                 message: 'User has been already verified.'
             });
         }
-        var token = await UserService.sendToken(user,email);
+        var token = await UserService.sendToken(user, email);
         if (token) {
             res.status(200).send(`A verification email has been sent to ${user.email}`);
         }
@@ -656,14 +660,14 @@ router.get('/users', getUser, isUserMasterAdmin, async function (req, res) {
     }
 });
 
-router.get('/users/:userId', getUser, isUserMasterAdmin, async function(req, res) {
+router.get('/users/:userId', getUser, isUserMasterAdmin, async function (req, res) {
     const userId = req.params.userId;
 
-    try{
+    try {
         const user = await UserService.findOneBy({ _id: userId, deleted: { $ne: null } });
 
         return sendItemResponse(req, res, user);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
