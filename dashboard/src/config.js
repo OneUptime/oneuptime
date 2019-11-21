@@ -5,6 +5,7 @@ import valid from 'card-validator';
 import { isServer } from './store';
 import FileSaver from 'file-saver';
 import moment from 'moment';
+import { emaildomains } from './constants/emaildomains';
 
 let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
@@ -162,6 +163,10 @@ export const Validate = {
         if (this.text(email))
             return isEmail(email);
         return false;
+    },
+
+    isValidBusinessEmail(email){
+        return emaildomains.test(email);
     },
 
     compare(text1, text2) {

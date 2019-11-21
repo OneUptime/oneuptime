@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.732",
+  "version": "3.0.740",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
@@ -106,7 +106,7 @@
     "babel-preset-react": "^6.24.1",
     "babel-runtime": "^6.26.0",
     "cross-env": "^5.2.0",
-    "husky": "^3.0.9",
+    "husky": "^3.1.0",
     "jest-localstorage-mock": "^2.2.0",
     "lint-staged": "^9.4.2",
     "npm-audit-ci-wrapper": "^2.2.1",

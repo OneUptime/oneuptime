@@ -45,6 +45,7 @@ module.exports = {
         userModel.lastActive = data.lastActive || Date.now();
         userModel.coupon = data.coupon || null;
         userModel.adminNotes = data.adminNotes || null;
+        userModel.tempEmail = data.tempEmail || null;
         try {
             var user = await userModel.save();
         } catch (error) {
@@ -147,6 +148,7 @@ module.exports = {
             var disabled = data.disabled || false;
             var adminNotes = data.adminNotes || user.adminNotes;
             var isVerified = data.email ? data.email === user.email && user.isVerified : user.isVerified;
+            var tempEmail = data.tempEmail || user.tempEmail || null;
 
             var isBlocked = user.isBlocked;
             if (typeof data.isBlocked === 'boolean') {
@@ -189,7 +191,8 @@ module.exports = {
                         deletedById,
                         deletedAt,
                         isBlocked,
-                        adminNotes
+                        adminNotes,
+                        tempEmail
                     }
                 }, {
                     new: true
@@ -219,7 +222,8 @@ module.exports = {
         return tutorial || null;
     },
 
-    sendToken: async function (user) {
+    sendToken: async function (user, email) {
+        const _this = this;
         var verificationTokenModel = new VerificationTokenModel({
             userId: user._id,
             token: crypto.randomBytes(16).toString('hex')
@@ -232,7 +236,10 @@ module.exports = {
         }
         if (verificationToken) {
             var verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
-            MailService.sendVerifyEmail(verificationTokenURL, user.name, user.email);
+            MailService.sendVerifyEmail(verificationTokenURL, user.name, email);
+            if (email !== user.email) {
+                _this.update({ _id: user._id, tempEmail: email });
+            }
         }
         return verificationToken.token;
     },
@@ -261,7 +268,7 @@ module.exports = {
             } else {
                 // Check here is the payment intent is successfully paid. If yes then create the customer else not.
                 var processedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
-                if(processedPaymentIntent.status !== 'succeeded') {
+                if (processedPaymentIntent.status !== 'succeeded') {
                     let error = new Error('Unsuccessful attempt to charge card');
                     error.code = 400;
                     ErrorService.log('PaymentService.checkPaymentIntent', error);
@@ -303,7 +310,7 @@ module.exports = {
                 }
 
                 try {
-                    await _this.sendToken(user);
+                    await _this.sendToken(user, user.email);
                 } catch (error) {
                     ErrorService.log(' UserVerificationService.sendToken', error);
                     throw error;
