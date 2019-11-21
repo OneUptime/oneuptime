@@ -1,14 +1,15 @@
 import * as types from '../constants/invoice'
 
-const initialState = {
-    requesting: false,
-    error: null,
-    success: false,
-    invoices: []
-};
+const getInitialState = () => ({
+  requesting: false,
+  error: null,
+  success: false,
+  invoices: [],
+  nextCount: 0
+})
 
 
-export default function getInvoice(state = initialState, action) {
+export default function getInvoice(state = getInitialState(), action) {
     switch (action.type) {
 
       case types.GET_INVOICE_REQUEST:
@@ -22,7 +23,7 @@ export default function getInvoice(state = initialState, action) {
         return Object.assign({}, state, {
           requesting: false,
           success: true,
-          invoices: state.invoices.concat(action.payload),
+          invoices: action.payload,
           error: null
         })
 
@@ -34,11 +35,16 @@ export default function getInvoice(state = initialState, action) {
         })
 
       case types.GET_INVOICE_RESET:
-        return Object.assign({}, {
-          requesting: false,
-          success: false,
-          error: null,
-          invoices: []
+        return Object.assign({}, getInitialState())
+
+      case types.INCREMENT_NEXT_COUNT:
+        return Object.assign({}, state, {
+          nextCount: state.nextCount + 1
+        })
+
+      case types.DECREMENT_NEXT_COUNT:
+        return Object.assign({}, state, {
+          nextCount: state.nextCount - 1
         })
 
       default:
