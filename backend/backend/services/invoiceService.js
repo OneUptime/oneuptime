@@ -31,8 +31,9 @@ module.exports = {
                 {
                     customer: user.stripeCustomerId,
                     limit: 10,
-                    // starting_after: startingAfter,
-                    // ending_before: endingBefore
+                    starting_after: startingAfter,
+                    ending_before: endingBefore,
+                    'include[]': 'total_count'
                 });
             if (!invoices || !invoices.data) {
                 let error = new Error('Your invoice cannot be retrieved.');

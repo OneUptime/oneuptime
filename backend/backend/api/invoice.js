@@ -23,12 +23,18 @@ var sendListResponse = require('../middlewares/response').sendListResponse;
 router.post('/:projectId', getUser, isAuthorized, isUserOwner, async function (req, res) {
     var userId = req.user ? req.user.id : null;
     var startingAfter = req.query.startingAfter;
+    var endingBefore = req.query.endingBefore;
 
     if (startingAfter === 'undefined') startingAfter = {};
+    if (endingBefore === 'undefined') endingBefore = {};
 
     try{
-        var invoices = await InvoiceService.get(userId, startingAfter);
-        return sendListResponse(req, res, invoices);
+        var invoices = await InvoiceService.get(userId, startingAfter, endingBefore);
+        
+        // modify request query to pass the has_more and total_count props to the response middleware
+        req.query.has_more = invoices.has_more;
+        req.query.total_count = invoices.total_count;
+        return sendListResponse(req, res, invoices.data);
     }catch(error){
         return sendErrorResponse(req, res, error);
     }
