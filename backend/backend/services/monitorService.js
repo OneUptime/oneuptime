@@ -80,7 +80,7 @@ module.exports = {
                 monitor.visibleOnStatusPage = data.visibleOnStatusPage;
                 monitor.projectId = data.projectId;
                 if (data.type === 'url' || data.type === 'api' || data.type === 'server-monitor' || data.type === 'script') {
-                    monitor.criteria = data.criteria || {};
+                    monitor.criteria = data.criteria || MonitorCriteriaService.create(data.type);
                 }
                 if (data.type === 'api') {
                     if (data.method && data.method.length) monitor.method = data.method;
@@ -597,6 +597,7 @@ module.exports = {
 var MonitorModel = require('../models/monitor');
 var MonitorLogModel = require('../models/monitorLog');
 var MonitorCategoryService = require('../services/monitorCategoryService');
+var MonitorCriteriaService = require('../services/monitorCriteriaService');
 var Plans = require('./../config/plans');
 var RealTimeService = require('./realTimeService');
 var NotificationService = require('./notificationService');
