@@ -150,6 +150,9 @@ module.exports = {
         }
         await MonitorService.sendResponseTime(savedLog);
         await MonitorService.sendMonitorLog(savedLog);
+
+        if (data.probeId) await this.sendProbe(data.probeId);
+
         return savedLog;
     },
 
@@ -189,6 +192,24 @@ module.exports = {
             throw error;
         }
         return MonitorStatus;
+    },
+
+    sendProbe: async function (probeId) {
+        try {
+            var probe = await this.findOneBy({ _id: probeId });
+        } catch (error) {
+            ErrorService.log('ProbeService.findOneBy', error);
+            throw error;
+        }
+        if (probe) {
+            try {
+                delete probe._doc.deleted;
+                await RealTimeService.updateProbe(probe);
+            } catch (error) {
+                ErrorService.log('RealTimeService.updateProbe', error);
+                throw error;
+            }
+        }
     },
 
     setTime: async function (data) {
@@ -1014,6 +1035,7 @@ const checkOr = async (payload, con, statusCode, body) => {
 let ProbeModel = require('../models/probe');
 let MonitorLogModel = require('../models/monitorLog');
 let MonitorStatusModel = require('../models/monitorStatus');
+var RealTimeService = require('./realTimeService');
 let ErrorService = require('./errorService');
 let uuidv1 = require('uuid/v1');
 var moment = require('moment');
