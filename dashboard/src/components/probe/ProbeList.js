@@ -4,6 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
+import ProbeStatus from './ProbeStatus';
 
 export class ProbeList extends Component {
 
@@ -78,17 +79,7 @@ export class ProbeList extends Component {
                                                     <div className="Box-root Flex-flex">
                                                         <div className="Box-root Flex-flex">
                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                {probesData && probesData.lastAlive && moment(Date.now()).diff(moment(probesData.lastAlive), 'minutes') > 5 ?
-                                                                    (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                            <span>OFFLINE</span>
-                                                                        </span>
-                                                                    </div>)
-                                                                    : (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                            <span>ONLINE</span>
-                                                                        </span>
-                                                                    </div>)}
+                                                                <ProbeStatus lastAlive={probesData && probesData.lastAlive} />
                                                             </div>
                                                         </div>
                                                     </div>

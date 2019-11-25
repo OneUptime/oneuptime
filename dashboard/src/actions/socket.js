@@ -49,6 +49,15 @@ export function updatemonitorlogbysocket(log) {
     };
 }
 
+export function updateprobebysocket(probe) {
+    return function (dispatch) {
+        dispatch({
+            type: 'UPDATE_PROBE',
+            payload: probe
+        });
+    }
+}
+
 //Delete Monitor
 export function deletemonitorbysocket(monitor) {
     return function (dispatch) {
