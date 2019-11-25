@@ -6,7 +6,7 @@
 FROM node:10
 
 # Set BUILD time variable 
-ARG PUBLIC_URL=localhost:3003
+ARG PUBLIC_URL=http://localhost:3003
 
 #SET ENV Variables
 ENV PRODUCTION=true
