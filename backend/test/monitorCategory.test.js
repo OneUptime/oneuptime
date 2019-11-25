@@ -307,18 +307,18 @@ describe('Monitor Category API - Check pagination for 12 monitor categories', fu
     this.timeout(40000);
 
     var monitorCategories = [
-        'testPagination',
-        'testPagination',
-        'testPagination',
-        'testPagination',
-        'testPagination',
-        'testPagination',
-        'testPagination',
-        'testPagination',
-        'testPagination',
-        'testPagination',
-        'testPagination',
-        'testPagination',
+        'testPagination1',
+        'testPagination2',
+        'testPagination3',
+        'testPagination4',
+        'testPagination5',
+        'testPagination6',
+        'testPagination7',
+        'testPagination8',
+        'testPagination9',
+        'testPagination10',
+        'testPagination11',
+        'testPagination12',
     ];
 
     before(async function () {

@@ -63,6 +63,15 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
     }
 
     try {
+        // Find existing category with the name a user provided.
+        var existingMonitorCategory = await MonitorCategoryService.findBy({ name: monitorCategoryName });
+        if (existingMonitorCategory.length > 0) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'A monitor category with that name already exists.'
+            });
+        }
+
         // Call the MonitorCategoryService
         var monitorCategory = await MonitorCategoryService.create(projectId, userId, monitorCategoryName);
         return sendItemResponse(req, res, monitorCategory);
@@ -122,6 +131,61 @@ router.delete('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdm
     }
 });
 
+// Route to update a monitor category's name
+router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
+    var monitorCategoryId = req.params.monitorCategoryId;
+    var projectId = req.params.projectId;
+    var { name } = req.body;
+
+    if (!monitorCategoryId) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Monitor category ID is required.'
+        });
+    }
+
+    if (typeof monitorCategoryId !== 'string') {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Monitor category ID is not of string type.'
+        });
+    }
+
+    if (!projectId) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Project ID is required.'
+        });
+    }
+
+    if (typeof projectId !== 'string') {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Project ID is not of string type.'
+        });
+    }
+
+    try {
+        // Find existing category with the name a user provided.
+        var existingMonitorCategory = await MonitorCategoryService.findBy({ name });
+        if (existingMonitorCategory.length > 0) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'A monitor category with that name already exists.'
+            });
+        }
+
+        // Call the MonitorCategoryService
+        var updatedMonitorCategory = await MonitorCategoryService.updateBy(
+            { projectId, _id: monitorCategoryId },
+            { name },
+        );
+        return sendItemResponse(req, res, updatedMonitorCategory);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
     var projectId = req.params.projectId;
     var query = req.query;
@@ -149,6 +213,5 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
-
 
 module.exports = router;

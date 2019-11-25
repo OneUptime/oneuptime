@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/monitorCategories';
 import errors from '../errors';
 
@@ -83,6 +83,32 @@ export function createMonitorCategory(projectId, values) {
     };
 }
 
+export function updateMonitorCategory(projectId, monitorCategoryId,values) {
+    return function (dispatch) {
+        var promise = putApi(`monitorCategory/${projectId}/${monitorCategoryId}`, values);
+        dispatch(updateMonitorCategoryRequest());
+
+        promise.then(function (updatedMonitorCategory) {
+            dispatch(updateMonitorCategorySuccess(updatedMonitorCategory.data));
+        }, function (error) {
+            if (error && error.response && error.response.data) {
+                error = error.response.data;
+            }
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            }
+            else {
+                error = 'Network Error';
+            }
+            dispatch(updateMonitorCategoryFailure(errors(error)));
+        });
+        return promise;
+    };
+}
+
 export function createMonitorCategorySuccess(newMonitorCategory) {
     return {
         type: types.CREATE_MONITOR_CATEGORY_SUCCESS,
@@ -103,6 +129,25 @@ export function createMonitorCategoryFailure(error) {
     };
 }
 
+export function updateMonitorCategoryRequest() {
+    return {
+        type: types.UPDATE_MONITOR_CATEGORY_REQUEST,
+    };
+}
+
+export function updateMonitorCategorySuccess(updatedMonitorCategory) {
+    return {
+        type: types.UPDATE_MONITOR_CATEGORY_SUCCESS,
+        payload: updatedMonitorCategory
+    };
+}
+
+export function updateMonitorCategoryFailure(error) {
+    return {
+        type: types.UPDATE_MONITOR_CATEGORY_FAILURE,
+        payload: error
+    };
+}
 
 export function deleteMonitorCategory(monitorCategoryId, projectId) {
     return function (dispatch) {
