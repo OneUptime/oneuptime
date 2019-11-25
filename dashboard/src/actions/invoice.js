@@ -55,8 +55,7 @@ export function getInvoice(projectId, startingAfter, endingBefore) {
             promise = postApi(`invoice/${projectId}?startingAfter=${startingAfter}`, null)
         } else if (reqForPrev) {
             promise = postApi(`invoice/${projectId}?endingBefore=${endingBefore}`, null)
-        }
-        else {
+        } else {
             promise = postApi(`invoice/${projectId}`, null)
         }
 

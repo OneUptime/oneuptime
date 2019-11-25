@@ -21,8 +21,8 @@ class Invoice extends Component {
   }
 
   resetAndFetchInvoices = () => {
-      this.props.getInvoiceReset()
-      this.props.getInvoice(this.props.projectId)
+      this.props.getInvoiceReset();
+      this.props.getInvoice(this.props.projectId);
   }
 
   nextClicked = () => {
