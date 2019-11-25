@@ -1,6 +1,6 @@
 {
   "name": "fyipe-admin-dashboard",
-  "version": "3.0.725",
+  "version": "3.0.750",
   "private": true,
   "dependencies": {
     "@trendmicro/react-dropdown": "^1.3.0",
@@ -68,6 +68,7 @@
   },
   "scripts": {
     "lint": "eslint .",
+    "fix-lint": "eslint . --fix",
     "dev": "PORT=3100 react-scripts start",
     "build": "react-scripts build",
     "jest": "jest src/test/puppeteer/index.test.js",

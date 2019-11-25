@@ -6,6 +6,7 @@ import MonitorChart from './MonitorChart';
 import uuid from 'uuid';
 import DateRangeWrapper from './DateRangeWrapper';
 import MonitorTitle from './MonitorTitle';
+import ProbeBar from './ProbeBar';
 import moment from 'moment';
 import { editMonitorSwitch, deleteMonitor } from '../../actions/monitor';
 import DeleteMonitor from '../modals/DeleteMonitor';
@@ -67,34 +68,15 @@ export class MonitorViewHeader extends Component {
         }
     }
 
+    filterProbeData = (monitor, probe) => {
+        return monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
+            log => log.probeId ? (log.probeId === probe._id) : true
+        ) : [];
+    }
+
     render() {
         let { deleteModalId, startDate, endDate } = this.state;
-        let { monitor, subProjects, monitorState, activeProbe, currentProject } = this.props;
-
-        var greenBackground = {
-            display: 'inline-block',
-            borderRadius: '50%',
-            height: '8px',
-            width: '8px',
-            margin: '0 8px 1px 0',
-            backgroundColor: 'rgb(117, 211, 128)'// "green-status"
-        }
-        var yellowBackground = {
-            display: 'inline-block',
-            borderRadius: '50%',
-            height: '8px',
-            width: '8px',
-            margin: '0 8px 1px 0',
-            backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
-        }
-        var redBackground = {
-            display: 'inline-block',
-            borderRadius: '50%',
-            height: '8px',
-            width: '8px',
-            margin: '0 8px 1px 0',
-            backgroundColor: 'rgb(250, 117, 90)'// "red-status"
-        }
+        let { monitor, subProjects, monitorState, activeProbe, currentProject, probes } = this.props;
 
         const subProjectId = monitor.projectId._id || monitor.projectId;
         const subProject = subProjects.find(subProject => subProject._id === subProjectId);
@@ -105,9 +87,7 @@ export class MonitorViewHeader extends Component {
         }
 
         let probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
-        let probeData = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
-            log => log.probeId ? (log.probeId === probe._id) : true
-        ) : [];
+        let probeData = this.filterProbeData(monitor, probe);
 
         let status = getMonitorStatus(monitor.incidents, probeData);
 
@@ -161,16 +141,24 @@ export class MonitorViewHeader extends Component {
                     <ShouldRender if={monitor && monitor.probes && monitor.probes.length > 1}>
                         <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                             <div className="btn-group">
-                                {monitor && monitor.probes.map((location, index) => (<button
-                                    key={`probes-btn${index}`}
-                                    id={`probes-btn${index}`}
-                                    disabled={false}
-                                    onClick={() => this.selectbutton(index)}
-                                    className={activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-                                    <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
-                                    <span>{location.probeName}</span>
-                                </button>)
-                                )}
+                                {monitor && monitor.probes.map((location, index) => {
+                                    let probeData = this.filterProbeData(monitor, location);
+                                    let status = getMonitorStatus(monitor.incidents, probeData);
+                                    let probe = probes.filter(probe => probe._id === location._id);
+                                    let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : location.lastAlive;
+
+                                    return (
+                                        <ProbeBar
+                                            key={index}
+                                            index={index}
+                                            name={location.probeName}
+                                            status={status}
+                                            selectbutton={this.selectbutton}
+                                            activeProbe={activeProbe}
+                                            lastAlive={lastAlive}
+                                        />
+                                    )
+                                })}
                             </div>
                         </ShouldRender>
                         <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} showAll={true} />
@@ -198,7 +186,8 @@ MonitorViewHeader.propTypes = {
     subProjects: PropTypes.array.isRequired,
     currentProject: PropTypes.object.isRequired,
     activeProbe: PropTypes.number,
-    selectedProbe: PropTypes.func.isRequired
+    selectedProbe: PropTypes.func.isRequired,
+    probes: PropTypes.array
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({
@@ -215,6 +204,7 @@ const mapStateToProps = (state) => {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,
         activeProbe: state.monitor.activeProbe,
+        probes: state.probe.probes.data
     };
 };
 

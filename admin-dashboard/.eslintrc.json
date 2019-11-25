@@ -30,6 +30,10 @@
         "valid-typeof": "error",
         "no-func-assign": "error",
         "no-extra-semi": "error",
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
         "no-unused-vars": [
             "error",
             {
@@ -91,5 +95,5 @@
         "no-useless-constructor": "error",
         "no-duplicate-case": "error",
         "no-dupe-keys": "error"
-    }   
+    }
 }

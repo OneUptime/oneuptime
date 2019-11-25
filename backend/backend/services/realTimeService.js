@@ -126,7 +126,16 @@ module.exports = {
         try {
             CB.CloudNotification.publish(`updateMonitorLog-${projectId}`, { projectId, monitorId, data });
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`updateResponseTime`)', error);
+            ErrorService.log('CB.CloudNotification.publish(`updateMonitorLog`)', error);
+            throw error;
+        }
+    },
+
+    updateProbe: async (data) => {
+        try {
+            CB.CloudNotification.publish('updateProbe', data);
+        } catch (error) {
+            ErrorService.log('CB.CloudNotification.publish(`updateProbe`)', error);
             throw error;
         }
     },

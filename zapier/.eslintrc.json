@@ -31,6 +31,10 @@
         "valid-typeof": "error",
         "no-func-assign": "error",
         "no-extra-semi": "error",
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
         "no-unused-vars": [
             "error",
             {

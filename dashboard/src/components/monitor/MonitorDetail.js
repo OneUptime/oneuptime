@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
@@ -19,6 +19,7 @@ import { history } from '../../store';
 import { Link } from 'react-router-dom';
 import MonitorChart from './MonitorChart';
 import StatusIndicator from './StatusIndicator';
+import ProbeBar from './ProbeBar';
 import { getMonitorStatus } from '../../config';
 
 export class MonitorDetail extends Component {
@@ -88,35 +89,16 @@ export class MonitorDetail extends Component {
         return string.replace('-', ' ');
     }
 
+    filterProbeData = (monitor, probe) => {
+        return monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
+            log => log.probeId ? (log.probeId === probe._id) : true
+        ) : [];
+    }
+
     render() {
         let { createIncidentModalId, startDate, endDate } = this.state;
-        let { monitor, create, monitorState, activeProbe, currentProject } = this.props;
+        let { monitor, create, monitorState, activeProbe, currentProject, probes } = this.props;
         let creating = create || false;
-
-        var greenBackground = {
-            display: 'inline-block',
-            borderRadius: '50%',
-            height: '8px',
-            width: '8px',
-            margin: '0 8px 1px 0',
-            backgroundColor: 'rgb(117, 211, 128)'// "green-status"
-        }
-        var yellowBackground = {
-            display: 'inline-block',
-            borderRadius: '50%',
-            height: '8px',
-            width: '8px',
-            margin: '0 8px 1px 0',
-            backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
-        }
-        var redBackground = {
-            display: 'inline-block',
-            borderRadius: '50%',
-            height: '8px',
-            width: '8px',
-            margin: '0 8px 1px 0',
-            backgroundColor: 'rgb(250, 117, 90)'// "red-status"
-        }
 
         monitor.error = null;
         if (monitorState.monitorsList.error && monitorState.monitorsList.error.monitorId && monitor && monitor._id) {
@@ -141,9 +123,7 @@ export class MonitorDetail extends Component {
         }
 
         let probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
-        let probeData = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
-            log => log.probeId ? (log.probeId === probe._id) : true
-        ) : [];
+        let probeData = this.filterProbeData(monitor, probe);
 
         let status = getMonitorStatus(monitor.incidents, probeData);
         let url = monitor && monitor.data && monitor.data.url ? monitor.data.url : null;
@@ -232,16 +212,24 @@ export class MonitorDetail extends Component {
                 <ShouldRender if={monitor && monitor.probes && monitor.probes.length > 1}>
                     <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                         <div className="btn-group">
-                            {monitor && monitor.probes.map((location, index) => (<button
-                                key={`probes-btn${index}`}
-                                id={`probes-btn${index}`}
-                                disabled={false}
-                                onClick={() => this.selectbutton(index)}
-                                className={activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-                                <span style={location.status === 'offline' ? redBackground : location.status === 'degraded' ? yellowBackground : greenBackground}></span>
-                                <span>{location.probeName}</span>
-                            </button>)
-                            )}
+                            {monitor && monitor.probes.map((location, index) => {
+                                let probeData = this.filterProbeData(monitor, location);
+                                let status = getMonitorStatus(monitor.incidents, probeData);
+                                let probe = probes.filter(probe => probe._id === location._id);
+                                let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : location.lastAlive;
+
+                                return (
+                                    <ProbeBar
+                                        key={index}
+                                        index={index}
+                                        name={location.probeName}
+                                        status={status}
+                                        selectbutton={this.selectbutton}
+                                        activeProbe={activeProbe}
+                                        lastAlive={lastAlive}
+                                    />
+                                )
+                            })}
                         </div>
                     </ShouldRender>
                     <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} />
@@ -334,6 +322,7 @@ function mapStateToProps(state) {
         create: state.incident.newIncident.requesting,
         subProject: state.subProject,
         activeProbe: state.monitor.activeProbe,
+        probes: state.probe.probes.data
     };
 }
 
@@ -347,7 +336,8 @@ MonitorDetail.propTypes = {
     openModal: PropTypes.func,
     create: PropTypes.bool,
     selectedProbe: PropTypes.func.isRequired,
-    activeProbe: PropTypes.number
+    activeProbe: PropTypes.number,
+    probes: PropTypes.array
 };
 
 MonitorDetail.contextTypes = {

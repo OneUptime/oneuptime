@@ -401,6 +401,66 @@ export function fetchMonitorLogsFailure(error) {
 }
 
 
+// Fetch Monitor Criteria
+export function fetchMonitorCriteria() {
+
+    return function (dispatch) {
+        var promise = getApi('monitorCriteria');
+        dispatch(fetchMonitorCriteriaRequest());
+
+        promise.then(function (monitorCriteria) {
+            dispatch(fetchMonitorCriteriaSuccess(monitorCriteria));
+        }, function (error) {
+            if (error && error.response && error.response.data) {
+                error = error.response.data;
+            }
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            }
+            else {
+                error = 'Network Error';
+            }
+            dispatch(fetchMonitorCriteriaFailure(errors(error)));
+        });
+
+        return promise;
+    };
+}
+
+export function fetchMonitorCriteriaRequest() {
+    return {
+        type: types.FETCH_MONITOR_CRITERIA_REQUEST,
+    };
+}
+
+export function fetchMonitorCriteriaSuccess(monitorCriteria) {
+    return {
+        type: types.FETCH_MONITOR_CRITERIA_SUCCESS,
+        payload: monitorCriteria
+    };
+}
+
+export function fetchMonitorCriteriaFailure(error) {
+    return {
+        type: types.FETCH_MONITOR_CRITERIA_FAILURE,
+        payload: error
+    };
+}
+
+export function setMonitorCriteria(monitorName, monitorType) {
+
+    return function (dispatch) {
+        dispatch({
+            type: types.SET_MONITOR_CRITERIA,
+            payload: { name: monitorName, type: monitorType }
+        });
+    };
+}
+
+
 export function addSeat(projectId) {
 
     return function (dispatch) {

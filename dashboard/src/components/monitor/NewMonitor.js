@@ -4,13 +4,13 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { reduxForm, Field, formValueSelector } from 'redux-form';
-import { createMonitor, createMonitorSuccess, createMonitorFailure, resetCreateMonitor, editMonitor, editMonitorSwitch, addSeat } from '../../actions/monitor';
+import { createMonitor, createMonitorSuccess, createMonitorFailure, resetCreateMonitor, editMonitor, editMonitorSwitch, setMonitorCriteria, addSeat } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import AddSeats from '../modals/AddSeats';
 import { openModal, closeModal } from '../../actions/modal';
-import { fetchMonitorsIncidents, fetchMonitorsSubscribers } from '../../actions/monitor';
+import { fetchMonitorCriteria, fetchMonitorsIncidents, fetchMonitorsSubscribers } from '../../actions/monitor';
 //import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import SubProjectSelector from '../basic/SubProjectSelector';
@@ -43,6 +43,7 @@ class NewMonitor extends Component {
         const projectMember = this.props.currentProject.users.find(user => user.userId === userId);
         //load call schedules
         if (projectMember) this.props.fetchSchedules(this.props.currentProject._id);
+        this.props.fetchMonitorCriteria();
     }
 
     //Client side validation
@@ -209,8 +210,10 @@ class NewMonitor extends Component {
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
     }
+
     changeBox = (e, value) => {
         this.setState({ advance: false, type: value });
+        this.props.setMonitorCriteria(this.props.name, value);
     }
 
     scriptTextChange = (newValue) => {
@@ -304,7 +307,6 @@ class NewMonitor extends Component {
                                                                 id="monitorCategory"
                                                                 placeholder="Choose Monitor Category"
                                                                 disabled={requesting}
-                                                                validate={ValidateField.select}
                                                                 options={[
                                                                     { value: '', label: 'Select monitor category' },
                                                                     ...(monitorCategoryList && monitorCategoryList.length > 0 ? monitorCategoryList.map(category => ({ value: category._id, label: category.name })) : [])
@@ -552,6 +554,7 @@ NewMonitor.displayName = 'NewMonitor';
 let NewMonitorForm = new reduxForm({
     form: 'NewMonitor',
     destroyOnUnmount: false,
+    enableReinitialize: true
 })(NewMonitor);
 
 const mapDispatchToProps = dispatch => bindActionCreators(
@@ -564,6 +567,8 @@ const mapDispatchToProps = dispatch => bindActionCreators(
         openModal,
         closeModal,
         editMonitor,
+        fetchMonitorCriteria,
+        setMonitorCriteria,
         addSeat,
         fetchMonitorsIncidents,
         fetchMonitorsSubscribers,
@@ -573,31 +578,27 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     , dispatch);
 
 const mapStateToProps = (state, ownProps) => {
+    var name = selector(state, 'name_1000');
     var type = selector(state, 'type_1000');
+
     if (ownProps.edit) {
         const monitorId = ownProps.match ? ownProps.match.params ? ownProps.match.params.monitorId : null : null;
         return {
             monitor: state.monitor,
             currentProject: state.project.currentProject,
+            name: name,
             type: type,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
             monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
             monitorId
         };
-    }
-    else {
-        const initialvalue = {
-            up_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
-            down_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
-            degraded_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
-            type_1000: type
-        }
-
+    } else {
         return {
-            initialValues: initialvalue,
+            initialValues: state.monitor.newMonitor.initialValue,
             monitor: state.monitor,
             currentProject: state.project.currentProject,
+            name: name,
             type: type,
             monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
             subProjects: state.subProject.subProjects.subProjects,
@@ -619,11 +620,14 @@ NewMonitor.propTypes = {
     fetchSchedules: PropTypes.func.isRequired,
     editMonitorProp: PropTypes.object,
     edit: PropTypes.bool,
+    name: PropTypes.string,
     type: PropTypes.string,
     subProjects: PropTypes.array,
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
-    monitorId: PropTypes.string
+    monitorId: PropTypes.string,
+    setMonitorCriteria: PropTypes.func,
+    fetchMonitorCriteria: PropTypes.func
 }
 
 NewMonitor.contextTypes = {

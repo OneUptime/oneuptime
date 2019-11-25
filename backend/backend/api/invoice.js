@@ -28,17 +28,16 @@ router.post('/:projectId', getUser, isAuthorized, isUserOwner, async function (r
     if (startingAfter === 'undefined') startingAfter = {};
     if (endingBefore === 'undefined') endingBefore = {};
 
-    try{
+    try {
         var invoices = await InvoiceService.get(userId, startingAfter, endingBefore);
         
         // modify request query to pass the has_more and total_count props to the response middleware
         req.query.has_more = invoices.has_more;
         req.query.total_count = invoices.total_count;
         return sendListResponse(req, res, invoices.data);
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
-
 
 module.exports = router;

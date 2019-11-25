@@ -35,6 +35,10 @@ div.css-15k3avv > div > div:not(.css-1t862kv):hover {
   cursor: pointer;
 }
 
+div.css-15k3avv  {
+  z-index: 99999;
+}
+
 .db-Badge {
   height: 14px;
   width: 14px;

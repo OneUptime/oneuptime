@@ -325,7 +325,7 @@ describe('Non-admin user access to create, delete and access scheduled events.',
     var emailToBeInvited = '';
 
     before(function (done) {
-        this.timeout(30000);
+        this.timeout(40000);
         createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
