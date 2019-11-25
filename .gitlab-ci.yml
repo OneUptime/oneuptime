@@ -708,7 +708,7 @@ deploy_staging_accounts:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy accounts.
-    - sudo docker build --build-arg PUBLIC_URL='https://staging-accounts.fyipe.com' -t fyipe-project/accounts:master ./accounts
+    - sudo docker build -t fyipe-project/accounts:master ./accounts
     - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:master
     - sudo docker push registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
