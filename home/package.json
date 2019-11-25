@@ -31,7 +31,7 @@
     "faker": "^4.1.0",
     "jest": "^24.8.0",
     "lighthouse": "^2.9.4",
-    "npm-audit-ci-wrapper": "^2.3.0",
+    "npm-audit-ci-wrapper": "^2.4.1",
     "puppeteer": "^1.20.0",
     "start-server-and-test": "^1.9.1"
   }
