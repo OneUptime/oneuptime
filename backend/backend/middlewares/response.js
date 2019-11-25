@@ -133,14 +133,6 @@ module.exports = {
             response.limit = parseInt(req.query.limit);
         }
 
-        // pagination helper for invoices
-        if (req.query.has_more) {
-            response.has_more = true;
-        }
-        if (req.query.total_count) {
-            response.total_count = req.query.total_count;
-        }
-
         //purge request.
         //req = null;
         if (req.query['output-type'] === 'csv') {
