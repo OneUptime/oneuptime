@@ -94,7 +94,7 @@ describe('Invoice API', function () {
         expect(invoices.body.data).to.be.an('array');
         expect(invoices.body.data).to.have.length(5);
         expect(invoices.body).to.have.property('count');
-        expect(invoices.body.count).to.be.an('number').to.be.equal(2);
+        expect(invoices.body.count).to.be.an('number').to.be.equal(5);
         expect(invoices.body.data[0].total).to.be.equal(5000);
     });
 });
