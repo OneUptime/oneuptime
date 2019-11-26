@@ -27,7 +27,7 @@ export default function getInvoice(state = getInitialState(), action) {
             data: (action.payload.data && action.payload.data.data) || [],
             has_more: (action.payload.data && action.payload.data.has_more) || false,
             total_count: (action.payload.data && action.payload.data.total_count) || 0,
-            count: (action.payload.data && action.payload.data.count) || 0
+            count: action.payload.count || 0
           },
           error: null
         })

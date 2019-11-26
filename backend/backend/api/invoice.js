@@ -31,7 +31,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserOwner, async function (r
     try {
         var invoices = await InvoiceService.get(userId, startingAfter, endingBefore);
 
-        return sendListResponse(req, res, invoices);
+        return sendListResponse(req, res, invoices, invoices.data.length);
     } catch(error) {
         return sendErrorResponse(req, res, error);
     }
