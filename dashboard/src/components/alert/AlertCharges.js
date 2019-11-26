@@ -32,8 +32,8 @@ class AlertCharge extends Component {
     }
 
     render() {
-        const { downloadedAlertCharges, error, requesting } = this.props;
-        const canDownload = downloadedAlertCharges.length > 0 ? true : false;
+        const { alertCharges, error, requesting, downloadedAlertCharges } = this.props;
+        const canDownload = alertCharges.length > 0 ? true : false;
         return (
             <div className="db-World-contentPane Box-root" style={{ paddingTop: 0 }}>
                 <div className="db-RadarRulesLists-page">
@@ -104,8 +104,9 @@ class AlertCharge extends Component {
 const mapStateToProps = (state, props) => {
     var { projectId } = props.match.params;
     var downloadedAlertCharges = state.alert.downloadedAlertCharges && state.alert.downloadedAlertCharges.data;
+    var alertCharges = state.alert.alertCharges !== null && state.alert.alertCharges.data;
     var { requesting, error } = state.alert.downloadedAlertCharges;
-    return { projectId, downloadedAlertCharges, requesting, error }
+    return { projectId, downloadedAlertCharges, requesting, error, alertCharges }
 }
 
 const mapDispatchToProps = dispatch => {
