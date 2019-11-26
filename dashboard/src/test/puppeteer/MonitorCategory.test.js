@@ -244,7 +244,7 @@ describe('Monitor Category', () => {
             await page.waitForSelector('#monitors:nth-of-type(2)');
             await page.click('#monitors:nth-of-type(2)');
 
-            var deleteButtonSelector = '#monitorCategoryList > div > div > div:nth-child(2) > div:nth-child(3) > button'
+            var deleteButtonSelector = '#deleteMonitorCategoryBtn > button'
             
             await page.waitForSelector(deleteButtonSelector);
             await page.click(deleteButtonSelector);
