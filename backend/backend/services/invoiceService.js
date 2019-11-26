@@ -12,7 +12,7 @@ module.exports = {
     //Param 3: startingAfter: A cursor for use in pagination. startingAfter is an object ID
     //         that helps to fetch items fro the next list.
     //Returns : promise
-    get: async function (userId, startingAfter) {
+    get: async function (userId, startingAfter, endingBefore) {
 
         try {
             var user = await UserService.findOneBy({ _id: userId });
@@ -31,7 +31,9 @@ module.exports = {
                 {
                     customer: user.stripeCustomerId,
                     limit: 10,
-                    starting_after: startingAfter
+                    starting_after: startingAfter,
+                    ending_before: endingBefore,
+                    'include[]': 'total_count'
                 });
             if (!invoices || !invoices.data) {
                 let error = new Error('Your invoice cannot be retrieved.');
@@ -39,7 +41,7 @@ module.exports = {
                 ErrorService.log('InvoiceService.get', error);
                 throw error;
             }
-            return invoices.data.filter(invoice => invoice.total > 0);
+            return invoices;
         }
     }
 };

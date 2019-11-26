@@ -85,16 +85,18 @@ describe('Invoice API', function () {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should filter 0$ bills', async function () {
+    it('should return invoices', async function () {
         var authorization = `Basic ${token}`;
         var invoices = await request.post(`/invoice/${projectId}`).set('Authorization', authorization);
         expect(invoices.status).to.be.equal(200);
         expect(invoices.body).to.be.an('object');
         expect(invoices.body).to.have.property('data');
-        expect(invoices.body.data).to.be.an('array');
-        expect(invoices.body.data).to.have.length(2);
+        expect(invoices.body.data).to.be.an('object');
+        expect(invoices.body.data).to.have.property('data');
+        expect(invoices.body.data.data).to.be.an('array');
+        expect(invoices.body.data.data).to.have.length(5);
         expect(invoices.body).to.have.property('count');
-        expect(invoices.body.count).to.be.an('number').to.be.equal(2);
-        expect(invoices.body.data[0].total).to.be.equal(5000);
+        expect(invoices.body.count).to.be.an('number').to.be.equal(5);
+        expect(invoices.body.data.data[0].total).to.be.equal(5000);
     });
 });
