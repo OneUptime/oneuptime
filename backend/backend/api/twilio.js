@@ -165,18 +165,14 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function 
     var { to } = req.body;
     var userId = req.user ? req.user.id : null;
     try {
-        const phoneRegEx = /^((\+\d{1,3}(-| )?\(?\d\)?(-| )?\d{1,3})|(\(?\d{2,3}\)?))(-| )?(\d{3,4})(-| )?(\d{4,5})(( x| ext)\d{1,5}){0,1}$/;
-        if (phoneRegEx.test(to)) {
-            var {validateResend,problem} = await SmsCountService.validateResend(userId);
-            if (validateResend) {
-                var sendVerifyToken = await sendVerificationSMS(to, userId);
-                return sendItemResponse(req, res, sendVerifyToken);
-            }
-            else {
-                return sendErrorResponse(req, res, { statusCode: 400, message: problem });
-            }
+        var {validateResend,problem} = await SmsCountService.validateResend(userId);
+        if (validateResend) {
+            var sendVerifyToken = await sendVerificationSMS(to, userId);
+            return sendItemResponse(req, res, sendVerifyToken);
         }
-        return sendErrorResponse(req, res, { statusCode: 400, message: 'Please provide a valid phone number' });
+        else {
+            return sendErrorResponse(req, res, { statusCode: 400, message: problem });
+        }
     } catch (error) {
         return sendErrorResponse(req, res, { status: 'action failed' });
     }

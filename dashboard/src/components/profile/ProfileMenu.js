@@ -46,8 +46,15 @@ export class ProfileMenu extends Component {
     }
 
     render() {
+        const { profileSettings } = this.props;
+
         var name = User.getName();
         var email = User.getEmail();
+
+        if (profileSettings && profileSettings.data && profileSettings.data.email && profileSettings.data.email !== email) {
+            email = profileSettings.data.email;
+            User.setEmail(profileSettings.data.email);
+        }
 
         return this.props.visible ?
             (
@@ -116,7 +123,11 @@ export class ProfileMenu extends Component {
 
 ProfileMenu.displayName = 'ProfileMenu'
 
-const mapStateToProps = state_Ignored => ({});
+const mapStateToProps = state => {
+    return {
+        profileSettings: state.profileSettings && state.profileSettings.profileSetting
+    }
+};
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators({ openModal, closeModal, hideProfileMenu, logoutUser }, dispatch);
@@ -127,7 +138,16 @@ ProfileMenu.propTypes = {
     hideProfileMenu: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
-    logoutUser: PropTypes.func.isRequired 
+    logoutUser: PropTypes.func.isRequired,
+    profileSettings:PropTypes.object,
+    data:PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined])
+    ]),
+    email:PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined])
+    ])
 }
 
 ProfileMenu.contextTypes = {

@@ -155,9 +155,9 @@ module.exports = {
                 to = '+' + to;
             }
             var channel = 'sms';
-            var verificationRequest = {};// await client.verify.services(twilioCredentials.verificationSid)
-            //.verifications
-            // .create({ to, channel });
+            var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
+                .verifications
+                .create({ to, channel });
             await SmsCountService.create(userId, to);
             return verificationRequest;
         } catch (error) {
