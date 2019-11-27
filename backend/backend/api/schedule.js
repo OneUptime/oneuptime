@@ -153,28 +153,6 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 });
             }
 
-            if(!escalation.timezone){
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Timezone is required' 
-                });
-            }
-            
-            if(!escalation.startTime){
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Escalation start time is required'
-                });
-            }
-            
-            if(!escalation.endTime){
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Escalation end time is required'
-                });
-            }
-          
-
             data.member = escalation.member;
             data.email = escalation.email;
             data.call = escalation.call;

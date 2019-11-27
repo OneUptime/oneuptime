@@ -53,29 +53,6 @@ function validate(values) {
                         escalationArrayErrors[j] = escalationErrors;
                     }
                 }
-                if (val) {
-
-                    if (val.startTime === '') {
-                        escalationErrors.startTime = 'Please select a starting time.';
-                        escalationArrayErrors[j] = escalationErrors;
-                    }
-                }
-
-                if (val) {
-
-                    if (val.endTime === '') {
-                        escalationErrors.endTime = 'Please select a ending time.';
-                        escalationArrayErrors[j] = escalationErrors;
-                    }
-                }
-
-                if (val) {
-
-                    if (val.timezone === '') {
-                        escalationErrors.timezone = 'Please select a timezone.';
-                        escalationArrayErrors[j] = escalationErrors;
-                    }
-                }
             })
             repeatErrors.escalation = escalationArrayErrors;
             alertArrayErrors[i] = repeatErrors;
