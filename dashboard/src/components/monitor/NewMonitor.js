@@ -87,7 +87,7 @@ class NewMonitor extends Component {
         var thisObj = this;
 
         var { upgradeModalId } = this.state;
-        const postObj = { data: {}, criteria: { up: {}, down: {}, degraded: {} } };
+        const postObj = { data: {}, criteria: {} };
         postObj.projectId = values[`subProject_${this.props.index}`]
         postObj.name = values[`name_${this.props.index}`];
         postObj.type = values[`type_${this.props.index}`] ? values[`type_${this.props.index}`] : this.props.editMonitorProp.type;
