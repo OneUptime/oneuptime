@@ -73,7 +73,7 @@ ProbeBar.propTypes = {
     status: PropTypes.string,
     selectbutton: PropTypes.func,
     activeProbe: PropTypes.number,
-    lastAlive: PropTypes.instanceOf(Date)
+    lastAlive: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string])
 };
 
 export default ProbeBar;

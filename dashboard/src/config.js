@@ -165,7 +165,7 @@ export const Validate = {
         return false;
     },
 
-    isValidBusinessEmail(email){
+    isValidBusinessEmail(email) {
         return emaildomains.test(email);
     },
 
@@ -221,6 +221,8 @@ export const ValidateField = {
     select: value => value ? (value.value ? (value.value.length && value.value.trim() !== '' ? undefined : 'Please select a value') : (value.length && value.trim() !== '' ? undefined : 'Please select a value')) : 'Please select a value',
 
     maxValue10000: value => value && value.length && value < 10000 ? undefined : `input value should be less than ${10000}`,
+
+    maxValue20000: value => value && value.length && value < 20000 ? undefined : `input value should be less than ${20000}`,
 
     isDomain: domain => domain.search(/\./) >= 0 ? undefined : 'Please enter a valid Domain',
 

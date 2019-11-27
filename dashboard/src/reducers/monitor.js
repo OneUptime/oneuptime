@@ -434,11 +434,6 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...state,
 
-                newMonitor: {
-                    ...state.newMonitor,
-
-                    initialValue: action.payload.data.default
-                },
                 monitorCriteria: {
                     requesting: false,
                     error: null,
@@ -463,10 +458,16 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case SET_MONITOR_CRITERIA:
             monitorType = action.payload.type;
-            initialValue = Object.assign({}, (monitorType && monitorType !== '' && monitorType === 'url' ?
-                state.monitorCriteria.criteria[monitorType]
-                :
-                state.monitorCriteria.criteria.default)
+            initialValue = Object.assign({}, (
+                monitorType
+                    && monitorType !== ''
+                    && (monitorType === 'url'
+                        || monitorType === 'api'
+                        || monitorType === 'script'
+                        || monitorType === 'server-monitor') ?
+                    state.monitorCriteria.criteria[monitorType]
+                    :
+                    null)
             );
 
             return Object.assign({}, state, {
@@ -477,7 +478,10 @@ export default function monitor(state = INITIAL_STATE, action) {
                     initialValue: {
                         ...initialValue,
                         type_1000: monitorType,
-                        name_1000: action.payload.name
+                        name_1000: action.payload.name,
+                        monitorCategoryId_1000: action.payload.category,
+                        subProject_1000: action.payload.subProject,
+                        callSchedule_1000: action.payload.schedule
                     }
                 },
             });
