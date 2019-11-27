@@ -69,14 +69,14 @@ module.exports = {
                 return {
                     alertType: 'call',
                     category: 'non-us',
-                    price: 1.0,
+                    price: 2.0,
                     minimumBalance: 20
                 };
             } else if (country === 'risk') {
                 return {
                     alertType: 'call',
                     category: 'risk',
-                    price: 1.0,
+                    price: 5.0,
                     minimumBalance: 50
                 };
             } else
