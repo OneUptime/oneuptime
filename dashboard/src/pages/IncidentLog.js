@@ -11,6 +11,7 @@ import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
+import { LoadingState } from '../components/basic/Loader';
 
 class IncidentLog extends React.Component {
 
@@ -142,6 +143,9 @@ class IncidentLog extends React.Component {
                             {
                                 allIncidents
                             }
+                            <ShouldRender if={this.props.incidents.requesting}>
+                                <LoadingState />
+                            </ShouldRender>
                         </div>
                     </div>
                 </div>

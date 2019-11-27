@@ -292,11 +292,11 @@ describe('StatusPage API With SubProjects', () => {
             await page.type('textarea[name=description]', 'Statuspage Description');
             await page.waitForSelector('#btnAddLink');
             await page.click('#btnAddLink');
-            await page.waitForSelector('#name_0');
-            await page.click('#name_0');
-            await page.type('#name_0', 'Home');
-            await page.click('#url_0');
-            await page.type('#url_0', 'https://fyipe.com');
+            await page.waitForSelector('#name');
+            await page.click('#name');
+            await page.type('#name', 'Home');
+            await page.click('#url');
+            await page.type('#url', 'https://fyipe.com');
             await page.click('#btnSaveLinks');
             await page.waitFor(5000);
             
