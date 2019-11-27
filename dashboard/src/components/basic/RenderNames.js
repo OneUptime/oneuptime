@@ -154,18 +154,19 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) =>
                                             />
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            <div className="bs-Fieldset-row">
-                                <label className="bs-Fieldset-label">Timezone</label>
-                                <div className="bs-Fieldset-fields">
-                                    <Field
-                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                        type="text"
-                                        name={`${inputarray}.timezone`}
-                                        component={TimezoneSelector}
-                                        placeholder="CXT - Christmas"
-                                    />
+                                    <div className="bs-Fieldset-row" style={{paddingLeft:'0px'}}>
+                                      <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>Zone</label>
+                                      <div className="bs-Fieldset-fields">
+                                          <Field
+                                              className="db-BusinessSettings-input TextInput bs-TextInput"
+                                              type="text"
+                                              name={`${inputarray}.timezone`}
+                                              component={TimezoneSelector}
+                                              style={{width:'250px'}}
+                                              placeholder="CXT - Christmas"
+                                          />
+                                      </div>
+                                  </div>
                                 </div>
                             </div>
                             <ShouldRender if={fields.length > 1}>
