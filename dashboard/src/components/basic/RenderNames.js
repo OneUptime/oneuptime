@@ -155,7 +155,7 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) =>
                                         </div>
                                     </div>
                                     <div className="bs-Fieldset-row" style={{paddingLeft:'0px'}}>
-                                      <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>Zone</label>
+                                      <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}></label>
                                       <div className="bs-Fieldset-fields">
                                           <Field
                                               className="db-BusinessSettings-input TextInput bs-TextInput"
