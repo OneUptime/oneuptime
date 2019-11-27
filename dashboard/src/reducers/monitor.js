@@ -462,7 +462,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                 monitorType
                     && monitorType !== ''
                     && (monitorType === 'url'
-                        || monitorType === 'api') ?
+                        || monitorType === 'api'
+                        || monitorType === 'script'
+                        || monitorType === 'server-monitor') ?
                     state.monitorCriteria.criteria[monitorType]
                     :
                     null)
@@ -476,7 +478,10 @@ export default function monitor(state = INITIAL_STATE, action) {
                     initialValue: {
                         ...initialValue,
                         type_1000: monitorType,
-                        name_1000: action.payload.name
+                        name_1000: action.payload.name,
+                        monitorCategoryId_1000: action.payload.category,
+                        subProject_1000: action.payload.subProject,
+                        callSchedule_1000: action.payload.schedule
                     }
                 },
             });

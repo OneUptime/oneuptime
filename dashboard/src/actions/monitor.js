@@ -450,12 +450,18 @@ export function fetchMonitorCriteriaFailure(error) {
     };
 }
 
-export function setMonitorCriteria(monitorName, monitorType) {
+export function setMonitorCriteria(monitorName, monitorCategory, monitorSubProject, monitorCallSchedule, monitorType) {
 
     return function (dispatch) {
         dispatch({
             type: types.SET_MONITOR_CRITERIA,
-            payload: { name: monitorName, type: monitorType }
+            payload: {
+                name: monitorName,
+                category: monitorCategory,
+                subProject: monitorSubProject,
+                schedule: monitorCallSchedule,
+                type: monitorType
+            }
         });
     };
 }
