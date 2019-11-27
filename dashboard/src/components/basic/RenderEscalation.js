@@ -13,6 +13,7 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
         <ul>
             {
                 fields.map((policy, i) => {
+
                     return (
                         <li key={i} style={{ margin: '5px 0px' }}>
                             <div className="Card-root" style={{ backgroundColor: i === 0 ? '#f6f9fc' : '#ffffff' }}>
@@ -118,7 +119,24 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                     <button
                                         type="button"
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                        onClick={() => fields.push({ callFrequency: '10',teamMember: [{ member: '', email: true, sms: true, call: true, timezone: '', startTime: '', endTime: '' }] })}
+                                        onClick={() => fields.push(
+                                            { 
+                                                callFrequency: '10',
+                                                smsFrequency: '10',
+                                                emailFrequency: '10',
+                                                teamMember: [
+                                                    { 
+                                                        member: '',
+                                                        email: true,
+                                                        sms: true,
+                                                        call: true,
+                                                        timezone: '',
+                                                        startTime: '',
+                                                        endTime: ''
+                                                    }
+                                                ]
+                                            }
+                                        )}
                                     >
                                         Add Escalation Policy
                                     </button>

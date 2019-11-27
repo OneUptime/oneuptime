@@ -47,6 +47,8 @@ module.exports = {
     create: async function (data) {
         let escalationModel = new EscalationModel();
         escalationModel.callFrequency = data.callFrequency || null;
+        escalationModel.smsFrequency = data.smsFrequency || null;
+        escalationModel.emailFrequency = data.emailFrequency || null;
         escalationModel.projectId = data.projectId || null;
         escalationModel.scheduleId = data.scheduleId || null;
         escalationModel.createdById = data.createdById || null;
@@ -112,16 +114,20 @@ module.exports = {
                 throw error;
             }
             let callFrequency = data.callFrequency || escalation.callFrequency;
+            let smsFrequency = data.smsFrequency || escalation.smsFrequency;
+            let emailFrequency = data.emailFrequency || escalation.smsFrequency;
             let projectId = data.projectId || escalation.projectId;
             let createdById = data.createdById || escalation.createdById;
             let teamMember = data.teamMember || escalation.teamMember;
             try{
                 escalation = await EscalationModel.findByIdAndUpdate(data._id, {
                     $set:{
-                        callFrequency: callFrequency,
-                        projectId: projectId,
-                        createdById: createdById,
-                        teamMember: teamMember,
+                        callFrequency,
+                        smsFrequency,
+                        emailFrequency,
+                        projectId,
+                        createdById,
+                        teamMember,
                         createdAt : Date.now(),
                     }
                 }, {
