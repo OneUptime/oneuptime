@@ -47,6 +47,34 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                                             />
                                                         </div>
                                                     </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">SMS Frequency</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type="text"
+                                                                name={`${policy}.smsFrequency`}
+                                                                component={RenderField}
+                                                                style={{ width: '250px' }}
+                                                                defaultValue="10"
+                                                                subProjectId={subProjectId}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Email Frequency</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type="text"
+                                                                name={`${policy}.emailFrequency`}
+                                                                component={RenderField}
+                                                                style={{ width: '250px' }}
+                                                                defaultValue="10"
+                                                                subProjectId={subProjectId}
+                                                            />
+                                                        </div>
+                                                    </div>
                                                     <div className="bs-Fieldset-rows">
 
                                                         <FieldArray
