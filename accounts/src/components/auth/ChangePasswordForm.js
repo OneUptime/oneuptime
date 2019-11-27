@@ -9,6 +9,9 @@ import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField';
 import { Link } from 'react-router-dom'
 
+const errorStyle = {
+	color: '#c23d4b'
+}
 export class ChangePasswordForm extends Component {
 
   submitForm =(values)=> {
@@ -17,14 +20,21 @@ export class ChangePasswordForm extends Component {
   }
 
   render() {
+    const changePasswordStateError = this.props.changePasswordState.error;
+		let header;
+		if (changePasswordStateError) {
+			header = <span style={errorStyle}>{changePasswordStateError}</span> 
+		} else {
+			header = <span>Reset Password</span>
+		}
     return (
       <div id="main-body" className="box css">
         <div className="inner">
           <form onSubmit={this.props.handleSubmit(this.submitForm)} className="request-reset">
-            <div className="request-reset-step step" >
+            <div className="request-reset-step" >
               <div className="title">
                 <h2>
-                  <span > {this.props.changePasswordState.error ? <span className="error" >{this.props.changePasswordState.error}</span> : 'Reset Password'} </span>
+                  {header}
                 </h2>
               </div>
 
@@ -32,13 +42,12 @@ export class ChangePasswordForm extends Component {
 
 
               {this.props.changePasswordState.success && <p className="message"> Your password is changed. Please <Link to="/login"> click here to login </Link> </p>}
-              {!this.props.changePasswordState.success && <p className="message"> Enter your email address below and we will send you a link to
-                                reset your password. </p>}
+              {!this.props.changePasswordState.success && <p className="message"> Please enter a new password to continue</p>}
 
 
               {!this.props.changePasswordState.success && <div> <p className="text">
                 <span>
-                  <label htmlFor="password">  Password </label>
+                  <label htmlFor="password">  New Password </label>
                   <Field
                     component={RenderField}
                     type="password"
@@ -50,7 +59,7 @@ export class ChangePasswordForm extends Component {
               </p>
                 <p className="text">
                   <span>
-                    <label htmlFor="confirmPassword">  Confirm Password </label>
+                    <label htmlFor="confirmPassword">  Confirm New Password </label>
                     <Field
                       component={RenderField}
                       type="password"
@@ -83,8 +92,14 @@ function validate(values) {
   if (!Validate.text(values.password)) {
     errors.password = 'Password is required.'
   }
+  if (Validate.text(values.password) && !Validate.isStrongPassword(values.password)) {
+    errors.password = 'Password should be atleast 8 characters long'
+  }
   if (!Validate.text(values.confirmPassword)) {
-    errors.confirmPassword = 'Confirm Password is invalid.'
+    errors.confirmPassword = 'Confirm Password is required.';
+  }
+  if (!Validate.compare(values.password, values.confirmPassword)) {
+    errors.confirmPassword = 'Password and confirm password should match.';
   }
   return errors;
 }

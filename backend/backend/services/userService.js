@@ -139,8 +139,8 @@ module.exports = {
             var profilePic = data.profilePic || user.profilePic;
             var jwtRefreshToken = data.jwtRefreshToken || user.jwtRefreshToken;
             var stripeCustomerId = data.stripeCustomerId || user.stripeCustomerId;
-            var resetPasswordToken = data.resetPasswordToken || user.resetPasswordToken;
-            var resetPasswordExpires = data.resetPasswordExpires || user.resetPasswordExpires;
+            var resetPasswordToken = data.resetPasswordToken;
+            var resetPasswordExpires = data.resetPasswordExpires;
             var createdAt = data.createdAt || user.createdAt;
             var timezone = data.timezone || user.timezone;
             var lastActive = data.lastActive || user.lastActive;
@@ -523,10 +523,7 @@ module.exports = {
         }
 
         if (!user) {
-            let error = new Error('User does not exist.');
-            error.code = 400;
-            ErrorService.log('UserService.resetPassword', error);
-            throw error;
+            return null;
         } else {
             try {
                 var hash = await bcrypt.hash(password, constants.saltRounds);
@@ -540,8 +537,8 @@ module.exports = {
                 user = await _this.update({
                     _id: user._id,
                     password: hash,
-                    resetPasswordToken: null,
-                    resetPasswordExpires: null
+                    resetPasswordToken: '',
+                    resetPasswordExpires: ''
                 });
             } catch (error) {
                 ErrorService.log('UserService.update', error);
