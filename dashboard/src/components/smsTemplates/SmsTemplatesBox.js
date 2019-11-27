@@ -56,7 +56,7 @@ class SmsTemplatesBox extends React.Component {
                                                 </span>
                                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <span>
-                                                        Customize your sms templates
+                                                        Customize your SMS templates.
                                                         </span>
                                                 </span>
                                             </div>

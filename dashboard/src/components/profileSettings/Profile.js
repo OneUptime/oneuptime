@@ -376,7 +376,7 @@ export class ProfileSetting extends Component {
                                                                 disabled={profileSettings && profileSettings.requesting}
                                                                 type="button"
                                                                 onClick={() => this.handleSendVerificationSMS()}>
-                                                                {!sendVerificationSMSRequesting && <span>Send verification sms.</span>}
+                                                                {!sendVerificationSMSRequesting && <span>Send verification SMS.</span>}
                                                                 {sendVerificationSMSRequesting && <div style={{ marginTop: -20 }}> <ListLoader /> </div>}
                                                             </button>
                                                         </div>

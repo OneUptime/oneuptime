@@ -144,18 +144,18 @@ export class SmsSmtpBox extends Component {
                                                             </div>
                                                             <ShouldRender if={this.props.showSmsSmtpConfiguration}>
                                                                 <div className="bs-Fieldset-row">
-                                                                    <label className="bs-Fieldset-label">Account SID</label>
+                                                                    <label className="bs-Fieldset-label">Application SID</label>
                                                                     <div className="bs-Fieldset-fields">
                                                                         <Field className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             component={RenderField}
                                                                             type="text"
                                                                             name="accountSid"
                                                                             id="accountSid"
-                                                                            placeholder="Account SID"
+                                                                            placeholder="Application SID"
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span>Account SID for your Twilio Account.
+                                                                        <p className="bs-Fieldset-explanation"><span><a target="_blank" href="https://support.twilio.com/hc/en-us/articles/223136607-What-is-an-Application-SID-">Application SID for your Twilio Account.</a>
                                                                                     </span></p>
                                                                     </div>
                                                                 </div>
@@ -171,7 +171,7 @@ export class SmsSmtpBox extends Component {
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span>Auth Token for your Twilio Account.
+                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223136027-Auth-Tokens-and-How-to-Change-Them" target="_blank">Auth Tokenfor your Twilio Account.</a>
                                                                                     </span></p>
                                                                     </div>
                                                                 </div>
@@ -187,7 +187,7 @@ export class SmsSmtpBox extends Component {
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span>Phone Number associated with your twilio account.
+                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223181428-Assigning-Twilio-number-to-an-SMS-application" target="_blank"> Phone Number associated with your twilio account</a>.
                                                                                     </span></p>
                                                                     </div>
                                                                 </div>
