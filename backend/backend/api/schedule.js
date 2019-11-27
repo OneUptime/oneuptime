@@ -129,6 +129,8 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             });
         }
         storagevalue.callFrequency = value.callFrequency;
+        storagevalue.smsFrequency = value.smsFrequency;
+        storagevalue.emailFrequency = value.emailFrequency;
         storagevalue.projectId = req.params.projectId;
         storagevalue.scheduleId = scheduleId;
         storagevalue.createdById = userId;
@@ -148,27 +150,6 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Alert Via is required'
-                });
-            }
-
-            if(!escalation.timezone){
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Timezone is required'
-                });
-            }
-
-            if(!escalation.startTime){
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Escalation start time is required'
-                });
-            }
-
-            if(!escalation.endTime){
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Escalation end time is required'
                 });
             }
 
