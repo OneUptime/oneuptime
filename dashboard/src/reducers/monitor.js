@@ -434,11 +434,6 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...state,
 
-                newMonitor: {
-                    ...state.newMonitor,
-
-                    initialValue: action.payload.data.default
-                },
                 monitorCriteria: {
                     requesting: false,
                     error: null,
@@ -463,10 +458,14 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case SET_MONITOR_CRITERIA:
             monitorType = action.payload.type;
-            initialValue = Object.assign({}, (monitorType && monitorType !== '' && monitorType === 'url' ?
-                state.monitorCriteria.criteria[monitorType]
-                :
-                state.monitorCriteria.criteria.default)
+            initialValue = Object.assign({}, (
+                monitorType
+                    && monitorType !== ''
+                    && (monitorType === 'url'
+                        || monitorType === 'api') ?
+                    state.monitorCriteria.criteria[monitorType]
+                    :
+                    null)
             );
 
             return Object.assign({}, state, {

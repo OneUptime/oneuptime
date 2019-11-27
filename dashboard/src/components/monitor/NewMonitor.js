@@ -447,14 +447,6 @@ class NewMonitor extends Component {
                                                             />
                                                         </div>
                                                     </div>}
-                                                    <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script') && !this.state.advance}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label"></label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <button className="button-as-anchor" onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</button>
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
                                                     <ShouldRender if={type === 'script'}>
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">Script</label>
@@ -475,6 +467,14 @@ class NewMonitor extends Component {
                                                                         />
                                                                     </span>
                                                                 </span>
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
+                                                    <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script') && !this.state.advance}>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label"></label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <button className="button-as-anchor" onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</button>
                                                             </div>
                                                         </div>
                                                     </ShouldRender>
