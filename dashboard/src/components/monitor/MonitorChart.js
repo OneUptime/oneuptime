@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -51,7 +51,7 @@ const calculateTime = (probeStatus) => {
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
 };
 
-export function MonitorChart({ probe, startDate, endDate, probeData, type, status, showAll }) {
+export function MonitorChart({ probe, startDate, endDate, probeData, type, status, showAll, activeProbe, probes }) {
     var block = [];
     var { timeBlock, uptimePercent } = probe && probe.probeStatus ? calculateTime(probe.probeStatus) : calculateTime([]);
     for (var i = 0; i < 90; i++) {
@@ -82,9 +82,26 @@ export function MonitorChart({ probe, startDate, endDate, probeData, type, statu
         case 'offline':
             statusColor = 'red';
             break;
+        case 'online':
+            statusColor = 'green';
+            break;
         default:
             statusColor = 'blue'
     }
+
+    const [now, setNow] = useState(Date.now());
+    const activeProbeObj = (probes && probes.length > 0 && probes[activeProbe || 0] ? probes[activeProbe || 0] : probe);
+    const lastAlive = activeProbeObj && activeProbeObj.lastAlive ? activeProbeObj.lastAlive : now;
+
+    useEffect(() => {
+        let nowHandler = setTimeout(() => {
+            setNow(Date.now());
+        }, 65000);
+
+        return () => {
+            clearTimeout(nowHandler);
+        };
+    });
 
     if (type === 'server-monitor') {
         monitorInfo = <Fragment>
@@ -220,30 +237,43 @@ export function MonitorChart({ probe, startDate, endDate, probeData, type, statu
         monitorInfo = <div className="db-Trend">
             <div className="block-chart-side line-chart">
                 <div className="db-TrendRow">
-                    <div className="db-Trend-colInformation">
-                        <div className="db-Trend-rowTitle" title="Response Time">
-                            <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                    {lastAlive && moment(now).diff(moment(lastAlive), 'minutes') > 1 ?
+                        <div className="db-Trend-colInformation probe-offline">
+                            <div className="db-Trend-rowTitle" title="Currently not monitoring">
+                                <div className="db-Trend-title"><strong><span className="chart-font">Currently not monitoring</span></strong></div>
+                            </div>
+                            <div className="db-Trend-rowTitle">
+                                <div className="db-Trend-title description"><small><span className="chart-font">We&apos;re currently not monitoring this monitor from this probe because the probe is offline.</span></small></div>
+                            </div>
                         </div>
-                        <div className="db-Trend-row">
-                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
-                        </div>
-                    </div>
-                    <div className="db-Trend-colInformation">
-                        <div className="db-Trend-rowTitle" title="Monitor Status">
-                            <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
-                        </div>
-                        <div className="db-Trend-row">
-                            <div className="db-Trend-col db-Trend-colValue"><span> <span className={`chart-font Text-color--${statusColor}`}>{monitorStatus}</span></span></div>
-                        </div>
-                    </div>
-                    <div className="db-Trend-colInformation">
-                        <div className="db-Trend-rowTitle" title="Uptime Stats">
-                            <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
-                        </div>
-                        <div className="db-Trend-row">
-                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
-                        </div>
-                    </div>
+                        :
+                        <>
+                            <div className="db-Trend-colInformation">
+                                <div className="db-Trend-rowTitle" title="Response Time">
+                                    <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                                </div>
+                                <div className="db-Trend-row">
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
+                                </div>
+                            </div>
+                            <div className="db-Trend-colInformation">
+                                <div className="db-Trend-rowTitle" title="Monitor Status">
+                                    <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
+                                </div>
+                                <div className="db-Trend-row">
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className={`chart-font Text-color--${statusColor}`}>{monitorStatus}</span></span></div>
+                                </div>
+                            </div>
+                            <div className="db-Trend-colInformation">
+                                <div className="db-Trend-rowTitle" title="Uptime Stats">
+                                    <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
+                                </div>
+                                <div className="db-Trend-row">
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
+                                </div>
+                            </div>
+                        </>
+                    }
                 </div>
             </div>
             <div className="block-chart-main line-chart">
@@ -306,14 +336,17 @@ MonitorChart.propTypes = {
     probeData: PropTypes.array,
     status: PropTypes.string,
     type: PropTypes.string,
-    showAll: PropTypes.bool
+    showAll: PropTypes.bool,
+    activeProbe: PropTypes.number,
+    probes: PropTypes.array
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
 const mapStateToProps = (state) => {
     return {
-        activeProbe: state.monitor.activeProbe
+        activeProbe: state.monitor.activeProbe,
+        probes: state.probe.probes.data
     };
 };
 
