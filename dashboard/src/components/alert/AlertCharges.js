@@ -118,7 +118,8 @@ AlertCharge.propTypes = {
     downloadAlertCharges: PropTypes.func.isRequired,
     downloadedAlertCharges: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
     error: PropTypes.string,
-    requesting: PropTypes.bool
+    requesting: PropTypes.bool,
+    alertCharges: PropTypes.oneOfType([PropTypes.object, PropTypes.array])
 }
 
 AlertCharge.contextTypes = {

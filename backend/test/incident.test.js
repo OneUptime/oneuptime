@@ -144,6 +144,19 @@ describe('Incident API', function () {
 
     it('should not send incident alert when balance is below minimum amount', async function () {
         var authorization = `Basic ${token}`;
+        await ProjectModel.findByIdAndUpdate(projectId, {
+            $set: {
+                alertEnable: true,
+                alertOptions: {
+                    minimumBalance: 50,
+                    rechargeToBalance: 100,
+                    billingUS: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: false
+                }
+            }
+        });
+        await sleep(5000);
         await UserModel.findByIdAndUpdate(userId, {
             $set: {
                 alertPhoneNumber: TwilioConfig.testphoneNumber
@@ -199,15 +212,7 @@ describe('Incident API', function () {
         var authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
             $set: {
-                balance: 100,
-                alertEnable: true,
-                alertOptions: {
-                    minimumBalance: 50,
-                    rechargeToBalance: 100,
-                    billingUS: true,
-                    billingNonUSCountries: true,
-                    billingRiskCountries: false
-                }
+                balance: 100
             }
         });
         var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
