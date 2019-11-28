@@ -94,7 +94,7 @@ class UptimeGraphs extends Component {
           <span style={status}></span>
           <span className="uptime-stat-name">{this.props.monitor.name}</span>
           <span className="url" style={{ paddingLeft: '0px' }}>{this.props.monitor && this.props.monitor.data && this.props.monitor.data.url ? <a style={{ color: '#8898aa', textDecoration: 'none', paddingLeft: '0px' }}
-            href={this.props.monitor.data.url} target="_blank" rel="noopener noreferrer">{this.props.monitor.data.url}</a> :<span style={{ color: '#8898aa', textDecoration: 'none', paddingLeft: '0px' }}>{this.props.monitor.type}</span> }</span>
+            href={this.props.monitor.data.url} target="_blank" rel="noopener noreferrer">{this.props.monitor.data.url}</a> :<span style={{ color: '#8898aa', textDecoration: 'none', paddingLeft: '0px' }}>{this.props.monitor.type === 'manual' ? '' : this.props.monitor.type}</span> }</span>
           <span className="percentage"><em>{uptime}%</em> uptime for the last {upDays > 90 ? 90 : upDays} day{upDays > 1 ? 's' : ''}</span>
         </div>
         <div className="block-chart">
