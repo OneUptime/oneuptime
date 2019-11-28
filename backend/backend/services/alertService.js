@@ -176,6 +176,7 @@ module.exports = {
             var _this = this;
             var date = new Date();
             let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+            let projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
             try {
                 var monitor = await MonitorService.findOneBy({ _id: monitorId });
             } catch (error) {
@@ -189,7 +190,14 @@ module.exports = {
                 throw error;
             }
 
-            if (schedules.length > 0) {
+            try {
+                var project = await ProjectService.findOneBy({ _id: projectId });
+            } catch (error) {
+                ErrorService.log('ScheduleService.findBy', error);
+                throw error;
+            }
+
+            if (schedules.length > 0 && project.alertEnable) {
                 schedules.forEach(async schedule => {
                     let monitorName = monitor.name;
                     if (schedule.escalationIds.length) {
@@ -251,7 +259,7 @@ module.exports = {
                                                             alertStatus = 'success';
                                                             alert = await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
                                                             balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.SMS);
-                                                            AlertChargeModelService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
+                                                            AlertChargeService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
                                                         }
                                                     } else {
                                                         alertStatus = 'Blocked - Low balance';
@@ -273,7 +281,7 @@ module.exports = {
                                                             alertStatus = 'success';
                                                             alert = await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
                                                             balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.Call);
-                                                            AlertChargeModelService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
+                                                            AlertChargeService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
                                                         }
                                                     } else {
                                                         alertStatus = 'Blocked - Low balance';
@@ -547,7 +555,7 @@ let MonitorService = require('./monitorService');
 let TwilioService = require('./twilioService');
 let ErrorService = require('./errorService');
 let StatusPageService = require('./statusPageService');
-let AlertChargeModelService = require('./alertChargeService');
+let AlertChargeService = require('./alertChargeService');
 let jwtKey = require('../config/keys');
 let countryCode = require('../config/countryCode');
 let jwt = require('jsonwebtoken');
