@@ -13541,7 +13541,7 @@ exports[`Storyshots Profile Settings ChangePasswordSetting 1`] = `
           </span>
           <p>
             <span>
-              Change your password to something you can remember.
+              We recommend you use password manager to store your Fyipe Password.
             </span>
           </p>
         </div>
