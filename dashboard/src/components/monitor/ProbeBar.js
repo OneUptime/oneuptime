@@ -8,7 +8,7 @@ let greenBackground = {
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
-    backgroundColor: 'rgb(117, 211, 128)'// "green-status"
+    backgroundColor: '#24b47e'
 };
 let yellowBackground = {
     display: 'inline-block',
@@ -16,7 +16,7 @@ let yellowBackground = {
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
-    backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
+    backgroundColor: '#e39f48'
 };
 let redBackground = {
     display: 'inline-block',
@@ -24,7 +24,7 @@ let redBackground = {
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
-    backgroundColor: 'rgb(250, 117, 90)'// "red-status"
+    backgroundColor: '#e25950'
 };
 let greyBackground = {
     display: 'inline-block',
@@ -32,7 +32,7 @@ let greyBackground = {
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
-    backgroundColor: 'rgba(107, 124, 147, 0.2)'// "grey-status"
+    backgroundColor: 'rgba(107, 124, 147, 0.2)'
 };
 
 function ProbeBar({ index, name, status, selectbutton, activeProbe, lastAlive }) {
