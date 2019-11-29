@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import { FlatLoader as Loader } from '../basic/Loader';
 import { ResponsiveContainer, AreaChart as Chart, Area, CartesianGrid, Tooltip } from 'recharts';
 import * as _ from 'lodash';
 import { formatDecimal, formatBytes } from '../../config';
@@ -45,8 +47,8 @@ class AreaChart extends Component {
     }
 
     render() {
-        const { type, data, name, symbol } = this.props;
-
+        const { type, data, name, symbol, requesting } = this.props;
+        console.log(requesting);
         if (data && data.length > 0) {
             const _data = (type === 'server-monitor' ? data.flatMap(a => {
                 const b = a.data[name], c = b.length > 0 ? b[0] : b;
@@ -67,7 +69,7 @@ class AreaChart extends Component {
         } else {
             return (
                 <div style={noDataStyle}>
-                    <h3>NO DATA</h3>
+                    {requesting ? <Loader /> : <h3>NO DATA</h3>}
                 </div>
             );
         }
@@ -80,7 +82,14 @@ AreaChart.propTypes = {
     data: PropTypes.array,
     type: PropTypes.string.isRequired,
     name: PropTypes.string,
-    symbol: PropTypes.string
+    symbol: PropTypes.string,
+    requesting: PropTypes.bool
 };
 
-export default AreaChart;
+function mapStateToProps(state) {
+    return {
+        requesting: state.monitor.fetchMonitorLogsRequest
+    };
+}
+
+export default connect(mapStateToProps)(AreaChart);
