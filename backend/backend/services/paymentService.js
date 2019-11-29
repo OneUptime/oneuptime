@@ -82,11 +82,9 @@ module.exports = {
             quantity: 1
         });
 
-        var alertItems = [];
         var extraUserItems = [];
         var subscriptionObj = {};
 
-        Plans.getAlertsPlans().map((planId) => alertItems.push({ plan: planId }));
         var extraUserplanId = Plans.getPlanById(stripePlanId);
         extraUserItems.push({
             plan: extraUserplanId.extraUserPlanId,
@@ -107,26 +105,16 @@ module.exports = {
             throw error;
         }
         try{
-            var subscription2 = await stripe.subscriptions.create({
-                customer: stripeCustomerId,
-                items: alertItems
-            });
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
-            throw error;
-        }
-        try{
             var subscription3 = await stripe.subscriptions.create({
                 customer: stripeCustomerId,
                 items: extraUserItems
             });
         }catch(error){
             ErrorService.log('stripe.subscriptions.create', error);
-            throw error;
+            throw error; 
         }
         return ({
             stripeSubscriptionId: subscription1.id,
-            stripeMeteredSubscriptionId: subscription2.id,
             stripeExtraUserSubscriptionId : subscription3.id
         });
     },
@@ -179,7 +167,7 @@ module.exports = {
         }
     },
 
-    removeSubscription: async function (stripeSubscriptionId, stripeMeteredSubscriptionId,stripeExtraUserSubscriptionId) {
+    removeSubscription: async function (stripeSubscriptionId, stripeExtraUserSubscriptionId) {
 
         var confirmations = [];
         try{
@@ -189,13 +177,7 @@ module.exports = {
             throw error;
         }
         try{
-            confirmations[1] = await stripe.subscriptions.del(stripeMeteredSubscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.del', error);
-            throw error;
-        }
-        try{
-            confirmations[2] = await stripe.subscriptions.del(stripeExtraUserSubscriptionId);
+            confirmations[1] = await stripe.subscriptions.del(stripeExtraUserSubscriptionId);
         }catch(error){
             ErrorService.log('stripe.subscriptions.del', error);
             throw error;
@@ -238,50 +220,6 @@ module.exports = {
         }
         return subscriptions.id;
     },
-
-    // chargeAlert: async function (planId, stripeMeteredSubscriptionId) {
-    //     try{
-    //         var subscription = await stripe.subscriptions.retrieve(stripeMeteredSubscriptionId);
-    //     }catch(error){
-    //         ErrorService.log('stripe.subscriptions.retrieve', error);
-    //         throw error;
-    //     }
-    //     try{
-    //         var plan = await Plans.getPlanById(planId);
-    //     }catch(error){
-    //         ErrorService.log('Plans.getPlanById', error);
-    //         throw error;
-    //     }
-    //     var subscriptionItemId = null;
-    //     if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
-    //         let error = new Error('Your subscription cannot be retrieved.');
-    //         error.code = 400;
-    //         ErrorService.log('PaymentService.chargeAlert', error);
-    //         throw error;
-    //     } else {
-    //         for (var i = 0; i < subscription.items.data.length; i++) {
-
-    //             if (subscription.items.data[i].plan.id === plan.alertPlanId) {
-    //                 subscriptionItemId = subscription.items.data[i].id;
-    //                 break;
-    //                 //do nothing.
-    //             }
-    //         }
-    //         var today = new Date();
-    //         try{
-    //             var subscriptionItem = await stripe.usageRecords.create(subscriptionItemId, {
-    //                 quantity: 1,
-    //                 timestamp: today.getTime() + today.getTimezoneOffset(),
-    //                 action: 'increment'
-    //             });
-    //         }catch(error){
-    //             ErrorService.log('stripe.usageRecords.create', error);
-    //             throw error;
-    //         }
-    //         return subscriptionItem;
-    //     }
-    // },
-
     chargeAlert: async function(userId, projectId, chargeAmount){
         try{
             var project = await ProjectService.findOneBy({

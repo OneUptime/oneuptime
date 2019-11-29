@@ -44,7 +44,6 @@ module.exports = {
         projectModel.stripePlanId = data.stripePlanId || null;
         projectModel.stripeSubscriptionId = data.stripeSubscriptionId || null;
         projectModel.stripeExtraUserSubscriptionId = data.stripeExtraUserSubscriptionId || null;
-        projectModel.stripeMeteredSubscriptionId = data.stripeMeteredSubscriptionId || null;
         projectModel.parentProjectId = data.parentProjectId || null;
         projectModel.seats = '1';
         projectModel.isBlocked = data.isBlocked || false;
@@ -90,7 +89,7 @@ module.exports = {
         if (project) {
             if (project.stripeSubscriptionId) {
                 try {
-                    await PaymentService.removeSubscription(project.stripeSubscriptionId, project.stripeMeteredSubscriptionId, project.stripeExtraUserSubscriptionId);
+                    await PaymentService.removeSubscription(project.stripeSubscriptionId, project.stripeExtraUserSubscriptionId);
                 } catch (error) {
                     ErrorService.log('PaymentService.removeSubscription', error);
                     throw error;
@@ -174,7 +173,6 @@ module.exports = {
             var stripePlanId = data.stripePlanId || oldProject.stripePlanId;
             var stripeSubscriptionId = data.stripeSubscriptionId || oldProject.stripeSubscriptionId;
             var stripeExtraUserSubscriptionId = data.stripeExtraUserSubscriptionId || oldProject.stripeExtraUserSubscriptionId;
-            var stripeMeteredSubscriptionId = data.stripeMeteredSubscriptionId || oldProject.stripeMeteredSubscriptionId;
             var parentProjectId = data.parentProjectId || oldProject.parentProjectId;
             var users = oldProject.users;
             var seats = data.seats || oldProject.seats;
@@ -210,7 +208,6 @@ module.exports = {
                         stripePlanId: stripePlanId,
                         stripeSubscriptionId: stripeSubscriptionId,
                         stripeExtraUserSubscriptionId: stripeExtraUserSubscriptionId,
-                        stripeMeteredSubscriptionId: stripeMeteredSubscriptionId,
                         parentProjectId: parentProjectId,
                         seats: seats,
                         alertEnable,
@@ -561,7 +558,6 @@ module.exports = {
                     deletedAt: null,
                     stripeSubscriptionId: subscription.stripeSubscriptionId,
                     stripeExtraUserSubscriptionId: subscription.stripeExtraUserSubscriptionId,
-                    stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
                 });
                 let projectSeats = project.seats;
                 await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
@@ -586,7 +582,6 @@ module.exports = {
                     deletedAt: null,
                     stripeSubscriptionId: subscription.stripeSubscriptionId,
                     stripeExtraUserSubscriptionId: subscription.stripeExtraUserSubscriptionId,
-                    stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
                 });
                 let projectSeats = project.seats;
                 await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));

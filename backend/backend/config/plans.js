@@ -6,17 +6,6 @@
 
 module.exports = {
 
-
-    getAlertsPlans(){
-        if (!process.env['STRIPE_PRIVATE_KEY'] || (process.env['STRIPE_PRIVATE_KEY'] && process.env['STRIPE_PRIVATE_KEY'].startsWith('sk_test'))) {
-            return ['plan_EgTMvMFtPvwmLr'];
-        }
-        else{
-            return ['plan_EgTHQWViVcq3d4'];
-        }
-
-    },
-
     getPlans() {
         //if in testing.
         if (!process.env['STRIPE_PRIVATE_KEY'] || (process.env['STRIPE_PRIVATE_KEY'] && process.env['STRIPE_PRIVATE_KEY'].startsWith('sk_test'))) {
@@ -28,9 +17,6 @@ module.exports = {
                     amount: 8,
                     details: '$8 / Month',
                     monitorLimit: 5,
-                    alertsType:'Local',
-                    globalAlertPrice:1.0,
-                    alertPlanId: 'plan_EgTMvMFtPvwmLr',
                     userLimit: 1,
                     extraUserFee: 8,
                     extraUserPlanId: 'plan_EgTNrPTvHRIW0R'
@@ -42,9 +28,6 @@ module.exports = {
                     amount: 80.4,
                     details: '$80.4 / Year',
                     monitorLimit: 5,
-                    alertsType:'Local',
-                    globalAlertPrice:1.0,
-                    alertPlanId: 'plan_EgTMvMFtPvwmLr',
                     userLimit: 1,
                     extraUserFee: 80.4,
                     extraUserPlanId: 'plan_EgTO1pti0ML00R'
@@ -59,9 +42,6 @@ module.exports = {
                     amount: 8,
                     details: '$8 / Month',
                     monitorLimit: 5,
-                    alertsType:'Local',
-                    globalAlertPrice:1.0,
-                    alertPlanId: 'plan_EgTHQWViVcq3d4',
                     userLimit: 1,
                     extraUserFee: 8,
                     extraUserPlanId: 'plan_EgTCjBkFgAlQhP'
@@ -73,9 +53,6 @@ module.exports = {
                     amount: 80.4,
                     details: '$80.4 / Year',
                     monitorLimit: 5,
-                    alertsType:'Local',
-                    globalAlertPrice:1.0,
-                    alertPlanId: 'plan_EgTHQWViVcq3d4',
                     userLimit: 1,
                     extraUserFee: 80.4,
                     extraUserPlanId: 'plan_EgTCTRWdPHLaj0'
