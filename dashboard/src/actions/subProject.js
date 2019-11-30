@@ -29,33 +29,35 @@ export const resetSubProjects = () => {
 	};
 };
 
-export function getSubProjects(projectId) {
+export function getSubProjects(projectId,skip=0,limit=10) {
 
 	return function (dispatch) {
-		var promise = getApi(`project/${projectId}/subProjects`);
+		var promise = getApi(`project/${projectId}/subProjects?skip=${skip}&limit=${limit}`);
 		dispatch(subProjectsRequest(promise));
 
-		promise.then(function (subProjects) {
-
-			dispatch(subProjectsSuccess(subProjects.data));
-
-            subProjects = subProjects.data.data;
-            
-		}, function (error) {
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if(error && error.message){
-				error = error.message;
-			}
-			else{
-				error = 'Network Error';
-			}
-			dispatch(subProjectsError(errors(error)));
-
-		});
+		promise.then( function(subProjects) {
+        let subData = {
+          subProjects: subProjects.data.data,
+          count: subProjects.data.count,
+          skip,
+          limit
+        };
+        dispatch(subProjectsSuccess(subData));
+      },
+      function(error) {
+        if (error && error.response && error.response.data)
+          error = error.response.data;
+        if (error && error.data) {
+          error = error.data;
+        }
+        if (error && error.message) {
+          error = error.message;
+        } else {
+          error = 'Network Error';
+        }
+        dispatch(subProjectsError(errors(error)));
+      }
+    );
 
 		return promise;
 	};
@@ -88,11 +90,22 @@ export const resetCreateSubProject = () => {
 	};
 };
 
-export function createSubProject(projectId, values) {
+export const resetCreateNewSubProject = () => {
+	return {
+		type: types.CREATE_NEW_SUBPROJECT_RESET,
+	};
+};
 
+export function createNewSubProjectReset() {
+    return function (dispatch) {
+        dispatch(resetCreateNewSubProject());
+}
+}
+
+export function createSubProject(projectId, subProjectName) {
 	return function (dispatch) {
 
-		var promise = postApi(`project/${projectId}/subProject`, values.subProjects);
+		var promise = postApi(`project/${projectId}/subProject`, {subProjectName});
 
 		dispatch(createSubProjectRequest());
 
@@ -112,7 +125,7 @@ export function createSubProject(projectId, values) {
 				error = 'Network Error';
 			}
 			dispatch(createSubProjectError(errors(error)));
-
+			return {error};
 		});
 	};
 }
@@ -176,7 +189,6 @@ export function resetSubProjectToken(projectId, subProjectId) {
 	}
 }
 
-
 export function renameSubProjectReset() {
 	return {
 		type: types.RENAME_SUBPROJECT_RESET,
@@ -203,17 +215,23 @@ export function renameSubProjectError(error) {
 	};
 }
 
+export function resetRenameSubProject() {
+    return function (dispatch) {
+        dispatch(renameSubProjectReset());
+}
+}
+
 export function renameSubProject(projectId, subProjectId, subProjectName) {
 
 	return function (dispatch) {
 
-		var promise = putApi(`subProject/${projectId}/${subProjectId}/rename`, { subProjectName });
+		var promise = putApi(`project/${projectId}/${subProjectId}/renameSubProject`, { subProjectName });
 
 		dispatch(renameSubProjectRequest());
 
 		promise.then(function (project) {
 			dispatch(renameSubProjectSuccess(project));
-
+			return project;
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
@@ -227,11 +245,8 @@ export function renameSubProject(projectId, subProjectId, subProjectName) {
 				error = 'Network Error';
 			}
 			dispatch(renameSubProjectError(errors(error)));
-
-		}).then(function () {
-			dispatch(renameSubProjectReset())
-		});
-
+			return {error};
+		})
 		return promise;
 	}
 }
@@ -257,17 +272,29 @@ export function deleteSubProjectError(error) {
 	};
 }
 
+export function deleteSubProjectReset() {
+	return {
+		type: types.DELETE_SUBPROJECT_RESET,
+	};
+}
+
+export function resetDeleteSubProject() {
+    return function (dispatch) {
+        dispatch(deleteSubProjectReset());
+}
+}
+
 export function deleteSubProject(projectId, subProjectId) {
 
 	return function (dispatch) {
 
-		var promise = deleteApi(`subProject/${projectId}/${subProjectId}/deleteProject`, { subProjectId });
+		var promise = deleteApi(`project/${projectId}/${subProjectId}/deleteSubProject`, { subProjectId });
 
 		dispatch(deleteSubProjectRequest());
 
 		promise.then(function () {
 			dispatch(deleteSubProjectSuccess(subProjectId));
-
+			return subProjectId;
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
@@ -281,7 +308,7 @@ export function deleteSubProject(projectId, subProjectId) {
 				error = 'Network Error';
 			}
 			dispatch(deleteSubProjectError(errors(error)));
-
+			return {error};
 		});
 
 		return promise;

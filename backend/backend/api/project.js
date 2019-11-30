@@ -495,66 +495,93 @@ router.delete('/:projectId/user/:userId/exitProject', getUser, isAuthorized, asy
 router.post('/:projectId/subProject', getUser, isAuthorized, async function (req, res) {
     var userId = req.user ? req.user.id : null;
     var parentProjectId = req.params.projectId;
-
-    if (Array.isArray(req.body)) {
-        let data = [];
-        if (req.body.length > 0) {
-            for (let val of req.body) {
-                if (!val._id) {
-                    // Sanitize
-                    if (!val.name) {
-                        return sendErrorResponse(req, res, {
-                            code: 400,
-                            message: 'Subproject name must be present.'
-                        });
-                    }
-
-                    if (typeof val.name !== 'string') {
-                        return sendErrorResponse(req, res, {
-                            code: 400,
-                            message: 'Subproject name is not in string format.'
-                        });
-                    }
-
-                    try {
-                        // check if project has a sub-project with provided name
-                        let countSubProject = await ProjectService.countBy({ name: val.name, parentProjectId: req.params.projectId });
-                        if (countSubProject > 0) {
-                            return sendErrorResponse(req, res, {
-                                code: 400,
-                                message: 'You already have a sub-project with same name.'
-                            });
-                        }
-                    } catch (error) {
-                        return sendErrorResponse(req, res, error);
-                    }
-                }
-                val.userId = userId;
-                val.parentProjectId = parentProjectId;
-                data.push(val);
-            }
-
-            try {
-                let subProjects = await ProjectService.addSubProjects(data, parentProjectId, userId);
-                return sendItemResponse(req, res, subProjects);
-            } catch (error) {
-                return sendErrorResponse(req, res, error);
-            }
-        } else {
-            try {
-                let subProjects = await ProjectService.addSubProjects(data, parentProjectId, userId);
-                return sendItemResponse(req, res, subProjects);
-            } catch (error) {
-                return sendErrorResponse(req, res, error);
-            }
-        }
-    } else {
+    var subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
+    if (!subProjectName) {
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Subprojects are expected in array format.'
+            message: 'Subproject name must be present.'
+        });
+    }
+    if (typeof subProjectName !== 'string') {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Subproject name is not in string format.'
+        });
+    }
+    try {
+        // check if project has a sub-project with provided name
+        let countSubProject = await ProjectService.countBy({
+            name: subProjectName,
+            parentProjectId: parentProjectId
+        });
+        if (countSubProject > 0) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You already have a sub-project with same name.'
+            });
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+    let data = {
+        name : subProjectName,
+        userId,
+        parentProjectId
+    };
+
+    try {
+        let subProjects = await ProjectService.create(data);
+        return sendItemResponse(req, res, subProjects);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Description: Rename subproject.
+router.put('/:projectId/:subProjectId/renameSubProject', getUser, isAuthorized, async function (req, res) {
+    const subProjectId = req.params.subProjectId;
+    const subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
+    if (!subProjectId) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'SubProjectId must be present.'
         });
     }
 
+    if (!subProjectName) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'SubProject Name must be present.'
+        });
+    }
+
+    try {
+        const subProject = await ProjectService.renameSubProject(subProjectId,subProjectName);
+        return sendItemResponse(req, res, subProject);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Description: Delete subproject.
+router.delete('/:projectId/:subProjectId/deleteSubProject', getUser, isAuthorized, async function (req, res) {
+    const parentProjectId = req.params.projectId;
+    const subProjectId = req.params.subProjectId;
+    const userId = req.user.id;
+
+    if (!subProjectId) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'SubProjectId must be present.'
+        });
+    }
+
+    try {
+        var subProject = await ProjectService.deleteBy({ _id: subProjectId,parentProjectId }, userId);
+        return sendItemResponse(req, res, subProject);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
 });
 
 // Description: Fetch all subprojects.
@@ -564,10 +591,12 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function (req
 router.get('/:projectId/subProjects', getUser, isAuthorized, async function (req, res) {
     var parentProjectId = req.params.projectId;
     var userId = req.user ? req.user.id : null;
+    var skip = req.query.skip || 0;
+    var limit = req.query.limit || 10;
 
     // Call the ProjectService
     try {
-        var subProjects = await ProjectService.findBy({ parentProjectId, 'users.userId': userId });
+        var subProjects = await ProjectService.findBy({ parentProjectId, 'users.userId': userId },limit,skip);
         var count = await ProjectService.countBy({ parentProjectId, 'users.userId': userId });
         return sendListResponse(req, res, subProjects, count);
     } catch (error) {

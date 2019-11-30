@@ -231,6 +231,23 @@ module.exports = {
             return updatedProject;
         }
     },
+
+    renameSubProject: async function (subProjectId,subProjectName) {
+        try {
+            var updatedSubProject = await ProjectModel.findByIdAndUpdate(subProjectId, {
+                $set: {
+                    name: subProjectName
+                }
+            }, {
+                new: true
+            });
+        } catch (error) {
+            ErrorService.log('ProjectModel.findByIdAndUpdate', error);
+            throw error;
+        }
+        return updatedSubProject;
+    },
+
     updateAlertOptions: async function (data) {
         var projectId = data._id;
         var userId = data.userId;
@@ -457,38 +474,6 @@ module.exports = {
             throw error;
         }
         return 'Project(s) Removed Successfully!';
-    },
-
-    addSubProjects: async function (data, parentProjectId, userId) {
-        let _this = this;
-        let subProjectIds = [];
-
-        for (let value of data) {
-            let subProject = await _this.update(value);
-            subProjectIds.push(subProject._id);
-        }
-
-        await _this.subProjectCheck(subProjectIds, parentProjectId, userId);
-
-        let subProjects = await Promise.all(subProjectIds.map(async (subProjectId) => {
-            return await _this.findOneBy({ _id: subProjectId });
-        }));
-
-        return subProjects;
-    },
-
-    subProjectCheck: async function (subProjectIds, parentProjectId, userId) {
-        let _this = this;
-        let subProjects = await _this.findBy({ parentProjectId: parentProjectId });
-
-        subProjects = subProjects.map(i => i._id.toString());
-        subProjectIds = subProjectIds.map(i => i.toString());
-
-        subProjects.map(async (id) => {
-            if (subProjectIds.indexOf(id) < 0) {
-                await _this.deleteBy({ _id: id }, userId);
-            }
-        });
     },
 
     getAllProjects: async function (skip, limit) {

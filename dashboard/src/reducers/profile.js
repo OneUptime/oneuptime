@@ -60,6 +60,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
+                    data: state.profileSetting.data
                 },
 
             });
@@ -81,6 +82,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
+                    data: state.profileSetting.data
                 },
             });
 

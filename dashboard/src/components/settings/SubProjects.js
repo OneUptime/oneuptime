@@ -1,164 +1,213 @@
-import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import { reduxForm, FieldArray } from 'redux-form';
-import { createSubProject, createSubProjectRequest, createSubProjectSuccess, createSubProjectError, getSubProjects } from '../../actions/subProject';
-import SubProject from './SubProject';
-import { Validate } from '../../config';
-import { FormLoader } from '../basic/Loader';
-import ShouldRender from '../basic/ShouldRender';
-import PropTypes from 'prop-types';
-
-//Client side validation
-function validate(values) {
-    const errors = {};
-    const subProjectsArrayErrors = [];
-
-    if (values.subProjects) {
-        for (var i = 0; i < values.subProjects.length; i++) {
-            const subProjectErrors = {}
-            if (values.subProjects[i].name) {
-
-                if (!Validate.text(values.subProjects[i].name)) {
-                    subProjectErrors.name = 'Name is not in text format.'
-                    subProjectsArrayErrors[i] = subProjectErrors
-                }
-            }
-        }
-
-        if (subProjectsArrayErrors.length) {
-            errors.subProjects = subProjectsArrayErrors
-        }
-    }
-
-    return errors;
-}
+import React, { Component } from 'react'
+import PropTypes from 'prop-types'
+import { connect } from 'react-redux'
+import { bindActionCreators } from 'redux'
+import ShouldRender from '../basic/ShouldRender'
+import SubProjectTable from './SubProjectTable'
+import SubProjectForm from './SubProjectForm'
+import uuid from 'uuid'
+import DataPathHoC from '../DataPathHoC'
+import { openModal, closeModal } from '../../actions/modal'
+import { getSubProjects } from '../../actions/subProject'
 
 export class SubProjects extends Component {
-    submitForm = (values) => {
-        this.props.createSubProject(this.props.currentProject._id, values);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('SubProjects Updated', values);
-        }
-    }
+  constructor(props) {
+    super(props)
+    this.state = { subProjectModalId: uuid.v4() }
+  }
 
-    render() {
-        const { handleSubmit, subProject } = this.props;
+  paginatePrev = () => {
+    let { skip, getSubProjects, currentProject } = this.props
+    getSubProjects(currentProject._id, skip ? skip - 10 : 10, 10)
+  }
 
-        return (
-            <div className="Box-root Margin-bottom--12">
-                <div className="bs-ContentSection Card-root Card-shadow--medium">
-                    <div className="Box-root">
-                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                            <div className="Box-root">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Sub Projects</span>
-                                </span>
-                                <p>
-                                    <span>
-                                        Subprojects let’s you have flexible access controls between Fyipe resources and your team.
-                                    </span>
-                                </p>
-                            </div>
+  paginateNext = () => {
+    let { skip, getSubProjects, currentProject } = this.props
+    getSubProjects(currentProject._id, skip ? skip + 10 : 10, 10)
+  }
+
+  render() {
+    const { limit, skip, count, subProjectState } = this.props
+    const { subProjects } = subProjectState
+    let canNext = count > skip + limit ? false : true
+    let canPrev = skip <= 0 ? true : false
+    const _this = this
+    return (
+      <div className='bs-BIM'>
+        <div className='Box-root Margin-bottom--12'>
+          <div className='bs-ContentSection Card-root Card-shadow--medium'>
+            <div className='Box-root'>
+              <div className='ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16'>
+                <div className='Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween'>
+                  <div className='ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center'>
+                    <span className='ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap'>
+                      <span>Sub Projects</span>
+                    </span>
+                    <span className='ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap'>
+                      <span>Subprojects let’s you have flexible access controls between Fyipe resources and your team.</span>
+                    </span>
+                  </div>
+                  <div className='ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16'>
+                    <div className='Box-root'>
+                      <button
+                        id={`btn_${this.props.subProjectName}`}
+                        disabled={subProjectState.requesting}
+                        onClick={() =>
+                          this.props.openModal({
+                            id: this.state.subProjectModalId,
+                            content: DataPathHoC(SubProjectForm, {
+                              subProjectModalId: this.state.subProjectModalId,
+                              editSubProject: false,
+                              subProjectId: null,
+                              subProjectTitle: null
+                            })
+                          })
+                        }
+                        className='Button bs-ButtonLegacy ActionIconParent'
+                        type='button'>
+                        <div className='bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4'>
+                          <div className='Box-root Margin-right--8'>
+                            <div className='SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex'></div>
+                          </div>
+                          <span className='bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new'>
+                            <span>Add Subproject</span>
+                          </span>
                         </div>
-                        <form onSubmit={handleSubmit(this.submitForm)} id="frmSubProjects">
-                            <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                                <div>
-                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                        <fieldset className="bs-Fieldset">
-                                            <div className="bs-Fieldset-rows">
-                                                <FieldArray 
-                                                    name="subProjects" 
-                                                    component={SubProject} 
-                                                />
-                                            </div>
-                                        </fieldset>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-
-                                <div className="bs-Tail-copy">
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
-                                        <ShouldRender if={this.props.subProject.newSubProject.error}>
-                                            <div className="Box-root Margin-right--8">
-                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
-                                                </div>
-                                            </div>
-                                            <div className="Box-root">
-                                                <span style={{ color: 'red' }}>
-                                                    {this.props.subProject.newSubProject.error}
-                                                </span>
-                                            </div>
-                                        </ShouldRender>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <button
-                                        id="btnSaveSubproject"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                        disabled={subProject.newSubProject.requesting}
-                                        type="submit"
-                                    >
-                                        {!subProject.newSubProject.requesting && <span>Save</span>}
-                                        {subProject.newSubProject.requesting && <FormLoader />}
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
+                      </button>
                     </div>
+                  </div>
                 </div>
+              </div>
+              <div className='bs-ContentSection-content Box-root'>
+                <div className='bs-ObjectList db-UserList'>
+                  <div className='bs-ObjectList-rows'>
+                    <header className='bs-ObjectList-row bs-ObjectList-row--header'>
+                      <div className='bs-ObjectList-cell'>Name</div>
+                      <div className='bs-ObjectList-cell'>Members</div>
+                      <div className='bs-ObjectList-cell'>Created</div>
+                      <div className='bs-ObjectList-cell'></div>
+                      <div className='bs-ObjectList-cell'></div>
+                    </header>
+                    {subProjects && subProjects.length > 0
+                      ? subProjects.map(subProject => {
+                          return <SubProjectTable subProject={subProject} key={subProject._id} />
+                        })
+                      : ''}
+                  </div>
+                </div>
+              </div>
+              <ShouldRender if={subProjects && subProjects.length <= 0}>
+                <div className='Flex-flex Flex-alignItems--center Flex-justifyContent--center' style={{ marginTop: '20px' }}>
+                  You don&#39;t have any sub project at this time!
+                </div>
+              </ShouldRender>
+              <div
+                className={`bs-Tail ${subProjects && subProjects.length <= 0 ? '' : 'bs-Tail--separated'} bs-Tail--short`}
+                style={{ marginTop: '0px', marginBottom: '0px' }}>
+                <ShouldRender if={subProjects.error}>
+                  <div className='bs-Tail-copy'>
+                    <div
+                      className='Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart'
+                      style={{ marginTop: '10px' }}>
+                      <div className='Box-root Margin-right--8'>
+                        <div className='Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex'></div>
+                      </div>
+                      <div className='Box-root'>
+                        <span style={{ color: 'red' }}>{subProjects.error}</span>
+                      </div>
+                    </div>
+                  </div>
+                </ShouldRender>
+                <ShouldRender if={!subProjects.error}>
+                  <div className='bs-Tail-copy'>
+                    <span>
+                      {count} Sub Project{count > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </ShouldRender>
+                <div className='bs-Tail-actions'>
+                  <div className='ButtonGroup Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart'>
+                    <div className='Box-root Margin-right--8'>
+                      <button
+                        data-test='SubProjects-paginationButton'
+                        className={'Button bs-ButtonLegacy'}
+                        type='button'
+                        disabled={canPrev}
+                        onClick={() => _this.paginatePrev()}>
+                        <div className='Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4'>
+                          <span className='Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap'>
+                            <span>Previous</span>
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                    <div className='Box-root'>
+                      <button
+                        data-test='SubProjects-paginationButton'
+                        className={'Button bs-ButtonLegacy'}
+                        type='button'
+                        disabled={canNext}
+                        onClick={() => _this.paginateNext()}>
+                        <div className='Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4'>
+                          <span className='Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap'>
+                            <span>Next</span>
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-        );
-    }
+          </div>
+        </div>
+      </div>
+    )
+  }
 }
 
 SubProjects.displayName = 'SubProjects'
 
 SubProjects.propTypes = {
-    createSubProject: PropTypes.func.isRequired,
-    handleSubmit: PropTypes.func.isRequired,
-    currentProject: PropTypes.object.isRequired,
-    subProject: PropTypes.object.isRequired,
+  count: PropTypes.number,
+  currentProject: PropTypes.object,
+  getSubProjects: PropTypes.func,
+  limit: PropTypes.number,
+  openModal: PropTypes.func,
+  skip: PropTypes.number,
+  subProjectName: PropTypes.string,
+  subProjectState: PropTypes.object
 }
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    {
-        createSubProject,
-        createSubProjectRequest,
-        createSubProjectSuccess,
-        createSubProjectError,
-        getSubProjects
-    }, dispatch
-)
+const mapDispatchToProps = dispatch => {
+  return bindActionCreators({ openModal, closeModal, getSubProjects }, dispatch)
+}
 
 const mapStateToProps = state => {
-    const status = state.subProject.subProjects || [];
-    let subProjects = [];
+  let skip = state.subProject.subProjects && state.subProject.subProjects.skip ? state.subProject.subProjects.skip : 0
+  let limit = state.subProject.subProjects && state.subProject.subProjects.limit ? state.subProject.subProjects.limit : 10
+  let count = state.subProject.subProjects && state.subProject.subProjects.count ? state.subProject.subProjects.count : 0
 
-    status.subProjects && status.subProjects.forEach((subProject) => {
-        subProjects.push({
-            _id: subProject._id || null,
-            name: subProject.name        
-        })
-    });
-
-    return {
-        initialValues: { subProjects },
-        subProject: state.subProject,
-        currentProject: state.project.currentProject,
-    };
+  if (skip && typeof skip === 'string') {
+    skip = parseInt(skip, 10)
+  }
+  if (limit && typeof limit === 'string') {
+    limit = parseInt(limit, 10)
+  }
+  if (count && typeof count === 'string') {
+    count = parseInt(count, 10)
+  }
+  return {
+    subProjectState: state.subProject.subProjects,
+    currentProject: state.project.currentProject,
+    skip,
+    limit,
+    count
+  }
 }
 
-let SubProjectsForm = reduxForm({
-    form: 'SubProjects', // a unique identifier for this form
-    validate, // <--- validation function given to redux-for
-    enableReinitialize: true
-})(SubProjects);
-
 SubProjects.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
+  mixpanel: PropTypes.object.isRequired
+}
 
-export default connect(mapStateToProps, mapDispatchToProps)(SubProjectsForm);
+export default connect(mapStateToProps, mapDispatchToProps)(SubProjects)
