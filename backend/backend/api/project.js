@@ -538,7 +538,7 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function (req
 });
 
 // Description: Rename subproject.
-router.put('/:projectId/:subProjectId/renameSubProject', getUser, isAuthorized, async function (req, res) {
+router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (req, res) {
     const subProjectId = req.params.subProjectId;
     const subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
     if (!subProjectId) {
@@ -556,7 +556,7 @@ router.put('/:projectId/:subProjectId/renameSubProject', getUser, isAuthorized, 
     }
 
     try {
-        const subProject = await ProjectService.renameSubProject(subProjectId,subProjectName);
+        const subProject = await ProjectService.update({_id:subProjectId,name:subProjectName});
         return sendItemResponse(req, res, subProject);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -564,7 +564,7 @@ router.put('/:projectId/:subProjectId/renameSubProject', getUser, isAuthorized, 
 });
 
 // Description: Delete subproject.
-router.delete('/:projectId/:subProjectId/deleteSubProject', getUser, isAuthorized, async function (req, res) {
+router.delete('/:projectId/:subProjectId', getUser, isAuthorized, async function (req, res) {
     const parentProjectId = req.params.projectId;
     const subProjectId = req.params.subProjectId;
     const userId = req.user.id;

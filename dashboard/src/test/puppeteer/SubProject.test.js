@@ -113,7 +113,7 @@ describe('Sub-Project API', () => {
 
             const spanSelector = await page.$('#subProjectCreateErrorMessage');
 
-            expect(await (await spanSelector.getProperty('innerText')).jsonValue()).toEqual('Subproject name must be present.')
+            expect(await (await spanSelector.getProperty('textContent')).jsonValue()).toEqual('Subproject name must be present.')
         });
 
         cluster.queue({ email, password, userCredentials });
@@ -169,7 +169,7 @@ describe('Sub-Project API', () => {
 
             const subProjectSelector = await page.$('#sub_project_name_0');
 
-            expect(await (await subProjectSelector.getProperty('value')).jsonValue()).toEqual(subProjectName)
+            expect(await (await subProjectSelector.getProperty('textContent')).jsonValue()).toEqual(subProjectName)
         });
 
         cluster.queue({ email, password, userCredentials });
@@ -223,7 +223,7 @@ describe('Sub-Project API', () => {
 
             const subProjectSelector = await page.$('#sub_project_name_0');
 
-            expect(await (await subProjectSelector.getProperty('value')).jsonValue()).toEqual(subProjectName + editSubProjectName)
+            expect(await (await subProjectSelector.getProperty('textContent')).jsonValue()).toEqual(subProjectName + editSubProjectName)
 
             subProjectName = subProjectName + editSubProjectName
         });
@@ -277,7 +277,7 @@ describe('Sub-Project API', () => {
 
             const spanSelector = await page.$('#subProjectCreateErrorMessage');
 
-            expect(await (await spanSelector.getProperty('innerText')).jsonValue()).toEqual('You already have a sub-project with same name.')
+            expect(await (await spanSelector.getProperty('textContent')).jsonValue()).toEqual('You already have a sub-project with same name.')
         });
 
         cluster.queue({ email, password, userCredentials });

@@ -269,7 +269,7 @@ describe('Projects SubProjects API', function () {
 
     it('should not rename a subproject when the subproject is null or invalid or empty', function (done) {
         var authorization = `Basic ${token}`;
-        request.put(`/project/${projectId}/${subProjectId}/renameSubProject`).set('Authorization', authorization).send({
+        request.put(`/project/${projectId}/${subProjectId}`).set('Authorization', authorization).send({
             subProjectName: null,
         }).end(function (err, res) {
             expect(res).to.have.status(400);
@@ -279,7 +279,7 @@ describe('Projects SubProjects API', function () {
 
     it('should rename a subproject with valid name', function (done) {
         var authorization = `Basic ${token}`;
-        request.put(`/project/${projectId}/${subProjectId}/renameSubProject`).set('Authorization', authorization).send({
+        request.put(`/project/${projectId}/${subProjectId}`).set('Authorization', authorization).send({
             subProjectName: 'Renamed SubProject',
         }).end(function (err, res) {
             expect(res).to.have.status(200);
@@ -290,7 +290,7 @@ describe('Projects SubProjects API', function () {
 
     it('should delete a subproject', function (done) {
         var authorization = `Basic ${token}`;
-        request.delete(`/project/${projectId}/${subProjectId}/deleteSubProject`)
+        request.delete(`/project/${projectId}/${subProjectId}`)
             .set('Authorization', authorization).end(function (err, res) {
                 expect(res).to.have.status(200);
                 done();

@@ -232,22 +232,6 @@ module.exports = {
         }
     },
 
-    renameSubProject: async function (subProjectId,subProjectName) {
-        try {
-            var updatedSubProject = await ProjectModel.findByIdAndUpdate(subProjectId, {
-                $set: {
-                    name: subProjectName
-                }
-            }, {
-                new: true
-            });
-        } catch (error) {
-            ErrorService.log('ProjectModel.findByIdAndUpdate', error);
-            throw error;
-        }
-        return updatedSubProject;
-    },
-
     updateAlertOptions: async function (data) {
         var projectId = data._id;
         var userId = data.userId;

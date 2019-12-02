@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
-//import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
 import {
@@ -13,16 +12,7 @@ import {
   resetRenameSubProject,
   createNewSubProjectReset
 } from '../../actions/subProject';
-/*
-function validate(values) {
-  const errors = {};
 
-  if (!Validate.text(values.subProjectName)) {
-    errors.subProjectName = 'Sub Project Name is required!';
-  }
-  return errors;
-}
-*/
 export class SubProjectForm extends React.Component {
   submitForm = values => {
     const { subProjectName } = values;

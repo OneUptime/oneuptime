@@ -225,7 +225,7 @@ export function renameSubProject(projectId, subProjectId, subProjectName) {
 
 	return function (dispatch) {
 
-		var promise = putApi(`project/${projectId}/${subProjectId}/renameSubProject`, { subProjectName });
+		var promise = putApi(`project/${projectId}/${subProjectId}`, { subProjectName });
 
 		dispatch(renameSubProjectRequest());
 
@@ -288,7 +288,7 @@ export function deleteSubProject(projectId, subProjectId) {
 
 	return function (dispatch) {
 
-		var promise = deleteApi(`project/${projectId}/${subProjectId}/deleteSubProject`, { subProjectId });
+		var promise = deleteApi(`project/${projectId}/${subProjectId}`, { subProjectId });
 
 		dispatch(deleteSubProjectRequest());
 
