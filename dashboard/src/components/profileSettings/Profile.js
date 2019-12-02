@@ -322,7 +322,7 @@ export class ProfileSetting extends Component {
                                                     }
                                                 </div>
                                             </div>
-                                            <ShouldRender if={(emailValue !== profileSettingState.userEmail) || !isVerified}>
+                                            <ShouldRender if={!profileSettings.requesting && ((emailValue !== profileSettingState.userEmail) || !isVerified)}>
                                                 <div className="bs-Fieldset-row" style={{ marginBottom: -5, marginTop: -5 }}>
                                                     <label className="bs-Fieldset-label"></label>
                                                     <div className="bs-Fieldset-fields">
@@ -346,6 +346,7 @@ export class ProfileSetting extends Component {
                                                         defaultCountry={'us'}
                                                         value={profileSettingState.alertPhoneNumber}
                                                         onChange={this.handleOnChange}
+                                                        disabled={profileSettings && profileSettings.requesting}
                                                         inputStyle={{ width: 250, height: 28, fontSize: 14, color: '#525f7f', fontFamily: 'camphor' }}
                                                     />
                                                 </div>
@@ -366,7 +367,7 @@ export class ProfileSetting extends Component {
                                                     }
                                                 </div>
                                             </div>
-                                            <ShouldRender if={!sendVerificationSMSError || (sendVerificationSMSError && (!initPhoneVerification || (profileSettingState.alertPhoneNumber !== profileSettingState.initPhoneVerificationNumber)))}>
+                                            <ShouldRender if={!profileSettings.requesting && (!sendVerificationSMSError || (sendVerificationSMSError && (!initPhoneVerification || (profileSettingState.alertPhoneNumber !== profileSettingState.initPhoneVerificationNumber))))}>
                                                 <ShouldRender if={!verified && (profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber) && !initPhoneVerification}>
                                                     <div className="bs-Fieldset-row" style={{ marginBottom: -5, marginTop: -5 }}>
                                                         <label className="bs-Fieldset-label"></label>
@@ -506,6 +507,7 @@ export class ProfileSetting extends Component {
                                                                         id="profilePic"
                                                                         accept="image/jpeg, image/jpg, image/png"
                                                                         onChange={this.changefile}
+                                                                        disabled={profileSettings && profileSettings.requesting}
                                                                         fileInputKey={profileSettingState.fileInputKey}
                                                                     />
                                                                 </div>
@@ -514,16 +516,17 @@ export class ProfileSetting extends Component {
                                                         </div>
                                                         <ShouldRender if={profilePic}>
                                                             <div className="bs-Fieldset-fields">
-                                                                <label
+                                                                <button
                                                                     className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
                                                                     type="button"
                                                                     onClick={this.removeProfilePic}
+                                                                    disabled={profileSettings && profileSettings.requesting}
                                                                 >
                                                                     <span className="bs-Button--icon bs-Button--delete"></span>
                                                                     <span>
                                                                         Remove Profile Picture
                                                                     </span>
-                                                                </label>
+                                                                </button>
                                                             </div>
                                                         </ShouldRender>
                                                     </div>
@@ -543,6 +546,7 @@ export class ProfileSetting extends Component {
                                                             placeholder="Select your timezone"
                                                             type="button"
                                                             style={{ width: '323px' }}
+                                                            disabled={profileSettings && profileSettings.requesting}
                                                         />
                                                     </span>
                                                 </div>

@@ -28,23 +28,23 @@ module.exports = {
             }
         })
     },
-    createProject: { 
+    createProject: {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-            alertOptions: { 
+            alertOptions: {
                 billingUS: true,
                 billingNonUSCountries: false,
-                billingRiskCountries: false 
+                billingRiskCountries: false
             },
             seats: '1',
             deleted: false,
             alertEnable: false,
             _id: '5d306867d4dea33e5cf82359',
-            users: [ { 
+            users: [ {
                 _id: '5d306867d4dea33e5cf8235a',
                 userId: '5d301b203c5a922d289d1f2e',
-                role: 'Owner' 
+                role: 'Owner'
             } ],
             createdAt: '2019-07-18T12:39:03.647Z',
             name: 'NewProject',
@@ -55,31 +55,31 @@ module.exports = {
             stripeExtraUserSubscriptionId: 'sub_FSTqosKiXgQzgW',
             stripeMeteredSubscriptionId: 'sub_FSTqO22Ygw94hp',
             parentProjectId: null,
-            __v: 0 
+            __v: 0
         }),
     },
-    isInvited: { 
+    isInvited: {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify(false),
     },
-    renameProject: { 
+    renameProject: {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-            alertOptions: { 
+            alertOptions: {
                 billingUS: true,
                 billingNonUSCountries: false,
-                billingRiskCountries: false 
+                billingRiskCountries: false
             },
             seats: '1',
             deleted: false,
             alertEnable: false,
             _id: '5d310b13afc464388ca792d1',
-            users: [ { 
+            users: [ {
                 _id: '5d306867d4dea33e5cf8235a',
                 userId: '5d301b203c5a922d289d1f2e',
-                role: 'Owner' 
+                role: 'Owner'
             } ],
             createdAt: '2019-07-18T12:39:03.647Z',
             name: 'RenamedProject',
@@ -90,27 +90,27 @@ module.exports = {
             stripeExtraUserSubscriptionId: 'sub_FSTqosKiXgQzgW',
             stripeMeteredSubscriptionId: 'sub_FSTqO22Ygw94hp',
             parentProjectId: null,
-            __v: 0 
+            __v: 0
         }),
     },
     getProjects: {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-            data: [ { 
-                alertOptions: { 
+            data: [ {
+                alertOptions: {
                     billingUS: true,
                     billingNonUSCountries: false,
-                    billingRiskCountries: false 
+                    billingRiskCountries: false
                 },
                 seats: '1',
                 deleted: false,
                 alertEnable: false,
                 _id: '5d310b13afc464388ca792d1',
-                users: [ { 
+                users: [ {
                     _id: '5d306867d4dea33e5cf8235a',
                     userId: '5d301b203c5a922d289d1f2e',
-                    role: 'Owner' 
+                    role: 'Owner'
                 } ],
                 createdAt: '2019-07-19T00:13:07.595Z',
                 name: 'TestProject',
@@ -121,7 +121,7 @@ module.exports = {
                 stripeExtraUserSubscriptionId: 'sub_FSf2mKnBU3waFa',
                 stripeMeteredSubscriptionId: 'sub_FSf2RVscGk0euo',
                 parentProjectId: null,
-                __v: 0 
+                __v: 0
                 } ],
             count: 1
         })
@@ -129,9 +129,9 @@ module.exports = {
     createSubProject: {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([ { 
+        body: JSON.stringify( {
             alertOptions:
-            { 
+            {
                 billingUS: true,
                 billingNonUSCountries: false,
                 billingRiskCountries: false
@@ -140,10 +140,10 @@ module.exports = {
            deleted: false,
            alertEnable: false,
            _id: '5d31113e39848820e8f14afc',
-           users: [ { 
+           users: [ {
                 _id: '5d306867d4dea33e5cf8235a',
                 userId: '5d301b203c5a922d289d1f2e',
-                role: 'Owner' 
+                role: 'Owner'
             } ],
            createdAt: '2019-07-19T00:39:26.447Z',
            name: 'NewSubProject',
@@ -154,14 +154,14 @@ module.exports = {
            stripeExtraUserSubscriptionId: null,
            stripeMeteredSubscriptionId: null,
            parentProjectId: { _id: '5d310b13afc464388ca792d1', name: 'TestProject' },
-           __v: 0 } 
-        ])
+           __v: 0 }
+        )
     },
     teamLoading: {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([ 
-            { 
+        body: JSON.stringify([
+            {
                 teamMembers: [ {
                     userId: '5d301b203c5a922d289d1f2e',
                     email: 'noreply@fyipe.com',
@@ -170,9 +170,9 @@ module.exports = {
                     lastActive: '2019-07-19T01:02:06.216Z'
                 } ],
                 count: 1,
-                _id: '5d310b13afc464388ca792d1' 
+                _id: '5d310b13afc464388ca792d1'
             },
-            { 
+            {
                 teamMembers: [ {
                     userId: '5d301b203c5a922d289d1f2e',
                     email: 'noreply@fyipe.com',
@@ -181,28 +181,28 @@ module.exports = {
                     lastActive: '2019-07-19T01:02:06.216Z'
                 } ],
                 count: 1,
-                _id: '5d31113e39848820e8f14afc' 
+                _id: '5d31113e39848820e8f14afc'
             }
         ])
     },
     getSubProjects: {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ 
-            data: [ { 
-                alertOptions: { 
+        body: JSON.stringify({
+            data: [ {
+                alertOptions: {
                     billingUS: true,
                     billingNonUSCountries: false,
-                    billingRiskCountries: false 
+                    billingRiskCountries: false
                 },
                 seats: '1',
                 deleted: false,
                 alertEnable: false,
                 _id: '5d31741913376c409469c683',
-                users: [ { 
+                users: [ {
                     _id: '5d306867d4dea33e5cf8235a',
                     userId: '5d301b203c5a922d289d1f2e',
-                    role: 'Owner' 
+                    role: 'Owner'
                 } ],
                 createdAt: '2019-07-19T07:41:13.426Z',
                 name: 'NewSubProject',
@@ -213,29 +213,29 @@ module.exports = {
                 stripeExtraUserSubscriptionId: null,
                 stripeMeteredSubscriptionId: null,
                 parentProjectId: { _id: '5d310b13afc464388ca792d1', name: 'TestProject' },
-                __v: 0 
+                __v: 0
             } ],
-           count: 1 
+           count: 1
         })
     },
     teamCreate: {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ 
-            data: [ { 
-                alertOptions: { 
+        body: JSON.stringify({
+            data: [ {
+                alertOptions: {
                     billingUS: true,
                     billingNonUSCountries: false,
-                    billingRiskCountries: false 
+                    billingRiskCountries: false
                 },
                 seats: '1',
                 deleted: false,
                 alertEnable: false,
                 _id: '5d31741913376c409469c683',
-                users: [ { 
+                users: [ {
                     _id: '5d306867d4dea33e5cf8235a',
                     userId: '5d301b203c5a922d289d1f2e',
-                    role: 'Owner' 
+                    role: 'Owner'
                 } ],
                 createdAt: '2019-07-19T07:41:13.426Z',
                 name: 'NewSubProject',
@@ -246,9 +246,9 @@ module.exports = {
                 stripeExtraUserSubscriptionId: null,
                 stripeMeteredSubscriptionId: null,
                 parentProjectId: { _id: '5d310b13afc464388ca792d1', name: 'TestProject' },
-                __v: 0 
+                __v: 0
             } ],
-           count: 1 
+           count: 1
         })
     },
 }

@@ -13,78 +13,74 @@ import { hideDeleteModal } from '../actions/project';
 import PropTypes from 'prop-types';
 
 class Settings extends Component {
-    componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Project Settings Page Loaded');
-        }
+  componentDidMount() {
+    if (window.location.href.indexOf('localhost') <= -1) {
+      this.context.mixpanel.track('Project Settings Page Loaded');
     }
+  }
 
-    handleKeyBoard = (e) => {
-        switch (e.key) {
-            case 'Escape':
-                this.props.hideDeleteModal()
-                return true;
-            default:
-                return false;
-        }
+  handleKeyBoard = e => {
+    switch (e.key) {
+      case 'Escape':
+        this.props.hideDeleteModal();
+        return true;
+      default:
+        return false;
     }
+  };
 
-    render() {
-        return (
-            <Dashboard>
-                <div onKeyDown={this.handleKeyBoard} className="Margin-vertical--12">
+  render() {
+    return (
+      <Dashboard>
+        <div onKeyDown={this.handleKeyBoard} className="Margin-vertical--12">
+          <div>
+            <div>
+              <div className="db-BackboneViewContainer">
+                <div className="react-settings-view react-view">
+                  <span>
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <span>
-                                        <div>
-                                            <div>
+                      <div>
+                        <RenderIfOwner>
+                          <ProjectSettings />
+                        </RenderIfOwner>
 
-                                                <RenderIfOwner>
-                                                    <ProjectSettings />
-                                                </RenderIfOwner>
+                        <APISettings />
 
-                                                <APISettings />
+                        <RenderIfOwner>
+                          <SubProjects />
+                        </RenderIfOwner>
 
-                                                <RenderIfOwner>
-                                                    <SubProjects />
-                                                </RenderIfOwner>
+                        <RenderIfOwner>
+                          <DeleteProject />
+                        </RenderIfOwner>
 
-                                                <RenderIfOwner>
-                                                    <DeleteProject />
-                                                </RenderIfOwner>
-
-                                                <RenderIfMember>
-                                                    <ExitProject />
-                                                </RenderIfMember>
-
-                                            </div>
-                                        </div>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                        <RenderIfMember>
+                          <ExitProject />
+                        </RenderIfMember>
+                      </div>
                     </div>
+                  </span>
                 </div>
-            </Dashboard>
-        )
-    }
+              </div>
+            </div>
+          </div>
+        </div>
+      </Dashboard>
+    );
+  }
 }
 
-const mapDispatchToProps = dispatch => (
-    bindActionCreators({ hideDeleteModal }, dispatch)
-)
-
+const mapDispatchToProps = dispatch =>
+  bindActionCreators({ hideDeleteModal }, dispatch);
 
 Settings.propTypes = {
-    hideDeleteModal: PropTypes.func.isRequired,
+  hideDeleteModal: PropTypes.func.isRequired
 };
 
 Settings.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
+  mixpanel: PropTypes.object.isRequired
 };
 
-Settings.displayName = 'Settings'
+Settings.displayName = 'Settings';
 
 export default connect(null, mapDispatchToProps)(Settings);
