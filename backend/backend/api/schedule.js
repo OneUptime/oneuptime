@@ -149,12 +149,12 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 });
             }
 
-            // if(!escalation.email && !escalation.call && !escalation.sms){
-            //     return sendErrorResponse(req, res, {
-            //         code: 400,
-            //         message: 'Alert Via is required'
-            //     });
-            // }
+            if(!escalation.email || !escalation.call || !escalation.sms){
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'At least one type of alert is required'
+                });
+            }
 
             data.member = escalation.member;
             data.startTime = escalation.startTime;
