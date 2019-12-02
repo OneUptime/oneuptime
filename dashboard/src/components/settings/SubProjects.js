@@ -50,7 +50,7 @@ export class SubProjects extends Component {
                   <div className='ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16'>
                     <div className='Box-root'>
                       <button
-                        id={`btn_${this.props.subProjectName}`}
+                        id='btn_Add_SubProjects'
                         disabled={subProjectState.requesting}
                         onClick={() =>
                           this.props.openModal({
@@ -89,8 +89,8 @@ export class SubProjects extends Component {
                       <div className='bs-ObjectList-cell'></div>
                     </header>
                     {subProjects && subProjects.length > 0
-                      ? subProjects.map(subProject => {
-                          return <SubProjectTable subProject={subProject} key={subProject._id} />
+                      ? subProjects.map((subProject,i) => {
+                          return <SubProjectTable subProject={subProject} key={subProject._id} loop={i}/>
                         })
                       : ''}
                   </div>
@@ -175,7 +175,6 @@ SubProjects.propTypes = {
   limit: PropTypes.number,
   openModal: PropTypes.func,
   skip: PropTypes.number,
-  subProjectName: PropTypes.string,
   subProjectState: PropTypes.object
 }
 

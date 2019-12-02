@@ -23,7 +23,7 @@ export class SubProjectTable extends Component {
 		return (
 			<div className='bs-ObjectList-row db-UserListRow'>
 				<div className='bs-ObjectList-cell bs-u-v-middle' style={{ padding: '10px 10px 10px 20px' }}>
-					<div className='bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted'>
+					<div className='bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted' id={`sub_project_name_${this.props.loop}`}>
 						{subProject.name}
 					</div>
 				</div>
@@ -45,6 +45,7 @@ export class SubProjectTable extends Component {
 						<div className='Flex-flex Flex-alignContent--spaceBetween'>
 							<button
 								title='edit'
+								id={`sub_project_edit_${this.props.loop}`}
 								disabled={disabled}
 								className='bs-Button bs-DeprecatedButton Margin-left--8'
 								type='button'
@@ -63,6 +64,7 @@ export class SubProjectTable extends Component {
 							</button>
 							<button
 								title='delete'
+								id={`sub_project_delete_${this.props.loop}`}
 								disabled={disabled}
 								className='bs-Button bs-DeprecatedButton Margin-left--8'
 								type='button'
@@ -89,6 +91,7 @@ export class SubProjectTable extends Component {
 SubProjectTable.displayName = 'SubProjectTable'
 
 SubProjectTable.propTypes = {
+  loop: PropTypes.number,
   openModal: PropTypes.func,
   subProject: PropTypes.object,
   subProjectState: PropTypes.object

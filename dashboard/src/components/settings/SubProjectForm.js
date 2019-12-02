@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
-import { Validate } from '../../config';
+//import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
 import {
@@ -13,7 +13,7 @@ import {
   resetRenameSubProject,
   createNewSubProjectReset
 } from '../../actions/subProject';
-
+/*
 function validate(values) {
   const errors = {};
 
@@ -22,7 +22,7 @@ function validate(values) {
   }
   return errors;
 }
-
+*/
 export class SubProjectForm extends React.Component {
   submitForm = values => {
     const { subProjectName } = values;
@@ -87,7 +87,7 @@ export class SubProjectForm extends React.Component {
       (!editSubProject && subProject.newSubProject.requesting) ||
       (editSubProject && subProject.renameSubProject.requesting);
     return (
-      <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
+      <form onSubmit={handleSubmit(this.submitForm.bind(this))} id='frmSubProjects'>
         <div
           onKeyDown={this.handleKeyBoard}
           className='ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center'
@@ -117,7 +117,7 @@ export class SubProjectForm extends React.Component {
                         subProject.renameSubProject.error
                       }
                     >
-                      <p className='bs-Modal-message'>
+                      <p className='bs-Modal-message' id='subProjectEditErrorMessage'>
                         {subProject.renameSubProject.error}
                       </p>
                     </ShouldRender>
@@ -128,7 +128,7 @@ export class SubProjectForm extends React.Component {
                         subProject.newSubProject.error
                       }
                     >
-                      <p className='bs-Modal-message'>
+                      <p className='bs-Modal-message' id='subProjectCreateErrorMessage'>
                         {subProject.newSubProject.error}
                       </p>
                     </ShouldRender>
@@ -136,7 +136,6 @@ export class SubProjectForm extends React.Component {
                 </div>
                 <div className='bs-Modal-body'>
                   <Field
-                    required={true}
                     component='input'
                     name='subProjectName'
                     placeholder='Sub Project Name'
@@ -167,7 +166,7 @@ export class SubProjectForm extends React.Component {
                       <span>Cancel</span>
                     </button>
                     <button
-                      id='btnCreateSubProject'
+                      id='btnAddSubProjects'
                       className={`bs-Button bs-DeprecatedButton bs-Button--blue ${disabled &&
                         'bs-is-disabled'}`}
                       type='save'
@@ -195,7 +194,6 @@ SubProjectForm.displayName = 'SubProjectForm';
 
 let CreateSubProjectForm = reduxForm({
   form: 'SubProjectModalForm',
-  validate,
   enableReinitialize: true
 })(SubProjectForm);
 
