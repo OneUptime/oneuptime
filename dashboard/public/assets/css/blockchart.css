@@ -11,6 +11,7 @@ div.block-chart-main.line-chart {
   height: 76px;
   margin-left: 0;
   flex-basis: 50%;
+  width: 50%;
   display: flex;
   flex-flow: column wrap;
   justify-content: center;
@@ -30,6 +31,14 @@ div.block-chart-side {
   flex-grow: 1;
   height: 76px;
   flex-basis: 50%;
+  width: 50%;
+  overflow: hidden;
+}
+div.block-chart-side .probe-offline .description {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: keep-all;
+  line-height: 1;
 }
 div.block-chart-side.line-chart {
   height: auto;
@@ -71,63 +80,61 @@ div.block-chart div.bar {
   background: rgb(0, 128, 168);
 }
 
-    div.block-chart div.bar:hover {
-      opacity: 1.0;
-    }
+div.block-chart div.bar:hover {
+  opacity: 1;
+}
 
-    div.block-chart div.bar.empty {
-      float: left;
-      position: relative;
-      height: 100%;
-      width: 6px;
+div.block-chart div.bar.empty {
+  float: left;
+  position: relative;
+  height: 100%;
+  width: 6px;
 
-      cursor: pointer;
+  cursor: pointer;
 
-      /* Border instead of margin so we get the hover behavior we want */
-      border-left: 1px solid #fff;
-      border-right: 1px solid #fff;
+  /* Border instead of margin so we get the hover behavior we want */
+  border-left: 1px solid #fff;
+  border-right: 1px solid #fff;
 
-      opacity: 0.6;
+  opacity: 0.6;
 
-      /* DEFAULT IS GREEN */
-      background: rgb(0, 128, 168);
-    }
+  /* DEFAULT IS GREEN */
+  background: rgb(0, 128, 168);
+}
 
-    div.block-chart div.bar.empty:hover {
-      opacity: 1.0;
-    }
+div.block-chart div.bar.empty:hover {
+  opacity: 1;
+}
 
-    div.block-chart div.bar.mid {
-      background: #FFDE24;
-    }
+div.block-chart div.bar.mid {
+  background: #ffde24;
+}
 
-    div.block-chart div.bar.down {
-      background: #FA6D46;
-    }
+div.block-chart div.bar.down {
+  background: #fa6d46;
+}
 
-    div.block-chart div.bar:first-child {
-      border-left: 0;
-    }
-    div.block-chart div.bar:last-child {
-      border-right: 0;
-    }
+div.block-chart div.bar:first-child {
+  border-left: 0;
+}
+div.block-chart div.bar:last-child {
+  border-right: 0;
+}
 
-******* Tipsy Tooltips ******/
-
-.tipsy {
+******* Tipsy Tooltips ******/ .tipsy {
   font-size: 12px;
   position: absolute;
   padding: 5px;
   z-index: 100000;
 }
-  .tipsy-inner {
-    background-color: #32325d;
-    color: #FFF;
-    max-width: 200px;
-    padding: 5px 12px 5px 12px;
-    line-height: 19px;
-    text-align: center;
-  }
+.tipsy-inner {
+  background-color: #32325d;
+  color: #fff;
+  max-width: 200px;
+  padding: 5px 12px 5px 12px;
+  line-height: 19px;
+  text-align: center;
+}
 
 /* Rounded corners */
 .tipsy-inner {
@@ -179,7 +186,8 @@ div.block-chart div.bar {
   border-right-color: transparent;
 }
 .tipsy-ne .tipsy-arrow {
-  top: 0; right: 10px;
+  top: 0;
+  right: 10px;
   border-bottom-style: solid;
   border-top: none;
   border-left-color: transparent;
@@ -195,7 +203,8 @@ div.block-chart div.bar {
   border-right-color: transparent;
 }
 .tipsy-sw .tipsy-arrow {
-  bottom: 0; left: 10px;
+  bottom: 0;
+  left: 10px;
   border-top-style: solid;
   border-bottom: none;
   border-left-color: transparent;
@@ -229,21 +238,21 @@ div.block-chart div.bar {
 }
 
 @media only screen and (max-width: 1180px) {
-   div.block-chart div.bar {
-      width: 5px;
-    }
-    div.block-chart div.bar.empty {
-      width: 5px;
-    }
-    .chart-font{
-      font-size: 90%;
-    }
+  div.block-chart div.bar {
+    width: 5px;
+  }
+  div.block-chart div.bar.empty {
+    width: 5px;
+  }
+  .chart-font {
+    font-size: 90%;
+  }
 }
-.btn-group{
-  display:flex;
-  flex-direction:row;
+.btn-group {
+  display: flex;
+  flex-direction: row;
   flex-wrap: nowrap;
-  width:100%;
+  width: 100%;
 }
 .btn-group .icon-container {
   background-color: #f6f9fc; /* Green background */
@@ -253,12 +262,12 @@ div.block-chart div.bar {
   cursor: pointer; /* Pointer/hand icon */
   box-sizing: border-box;
   outline: none;
-  width:100%;
+  width: 100%;
   font-size: 14px;
   line-height: 20px;
 }
 
-.btn-group .icon-container.selected{
+.btn-group .icon-container.selected {
   background-color: #f6f9fc;
   border-bottom: none;
   color: black;

@@ -61,7 +61,7 @@ export class AlertChargesList extends Component {
                     <tbody>
                         {!isRequesting && alertCharges && alertCharges.length > 0 &&
                             alertCharges.map(alertCharge => 
-                                <tr className="Table-row db-ListViewItem bs-ActionsParent" key={alertCharge.alertId}>
+                                <tr className="Table-row db-ListViewItem bs-ActionsParent" key={alertCharge.alertId._id}>
                                     <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink" style={{ height: '1px' }}>
                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                             <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--cyan">
@@ -168,7 +168,7 @@ AlertChargesList.propTypes = {
     ]),
     isRequesting: PropTypes.bool,
     error: PropTypes.oneOfType([
-        PropTypes.object,
+        PropTypes.string,
         PropTypes.oneOf([null, undefined])
     ]),
     projectId: PropTypes.string,

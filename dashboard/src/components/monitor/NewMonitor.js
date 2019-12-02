@@ -87,10 +87,10 @@ class NewMonitor extends Component {
         var thisObj = this;
 
         var { upgradeModalId } = this.state;
-        const postObj = { data: {}, criteria: { up: {}, down: {}, degraded: {} } };
+        const postObj = { data: {}, criteria: {} };
         postObj.projectId = values[`subProject_${this.props.index}`]
         postObj.name = values[`name_${this.props.index}`];
-        postObj.type = values[`type_${this.props.index}`] ? values[`type_${this.props.index}`] : this.props.editMonitorProp.type;
+        postObj.type = values[`type_${this.props.index}`] ? values[`type_${this.props.index}`] : (this.props.edit ? this.props.editMonitorProp.type : this.props.type);
         postObj.monitorCategoryId = values[`monitorCategoryId_${this.props.index}`]
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
         if (!postObj.projectId) postObj.projectId = this.props.currentProject._id;
@@ -213,7 +213,7 @@ class NewMonitor extends Component {
 
     changeBox = (e, value) => {
         this.setState({ advance: false, type: value });
-        this.props.setMonitorCriteria(this.props.name, value);
+        this.props.setMonitorCriteria(this.props.name, this.props.category, this.props.subProject, this.props.schedule, value);
     }
 
     scriptTextChange = (newValue) => {
@@ -447,14 +447,6 @@ class NewMonitor extends Component {
                                                             />
                                                         </div>
                                                     </div>}
-                                                    <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script') && !this.state.advance}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label"></label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <button className="button-as-anchor" onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</button>
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
                                                     <ShouldRender if={type === 'script'}>
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">Script</label>
@@ -475,6 +467,14 @@ class NewMonitor extends Component {
                                                                         />
                                                                     </span>
                                                                 </span>
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
+                                                    <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script') && !this.state.advance}>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label"></label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <button className="button-as-anchor" onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</button>
                                                             </div>
                                                         </div>
                                                     </ShouldRender>
@@ -580,14 +580,20 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 const mapStateToProps = (state, ownProps) => {
     var name = selector(state, 'name_1000');
     var type = selector(state, 'type_1000');
+    var category = selector(state, 'monitorCategoryId_1000');
+    var subProject = selector(state, 'subProject_1000');
+    var schedule = selector(state, 'callSchedule_1000');
 
     if (ownProps.edit) {
         const monitorId = ownProps.match ? ownProps.match.params ? ownProps.match.params.monitorId : null : null;
         return {
             monitor: state.monitor,
             currentProject: state.project.currentProject,
-            name: name,
-            type: type,
+            name,
+            type,
+            category,
+            subProject,
+            schedule,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
             monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
@@ -598,8 +604,11 @@ const mapStateToProps = (state, ownProps) => {
             initialValues: state.monitor.newMonitor.initialValue,
             monitor: state.monitor,
             currentProject: state.project.currentProject,
-            name: name,
-            type: type,
+            name,
+            type,
+            category,
+            subProject,
+            schedule,
             monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data
@@ -622,6 +631,9 @@ NewMonitor.propTypes = {
     edit: PropTypes.bool,
     name: PropTypes.string,
     type: PropTypes.string,
+    category: PropTypes.string,
+    subProject: PropTypes.string,
+    schedule: PropTypes.string,
     subProjects: PropTypes.array,
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,

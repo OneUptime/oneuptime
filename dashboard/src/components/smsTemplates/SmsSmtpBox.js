@@ -85,7 +85,7 @@ export class SmsSmtpBox extends Component {
     render() {
         const { handleSubmit } = this.props;
         return (
-            <div className="db-World-contentPane Box-root" style={{paddingTop: 0}}>
+            <div className="db-World-contentPane Box-root" style={{ paddingTop: 0 }}>
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -144,19 +144,19 @@ export class SmsSmtpBox extends Component {
                                                             </div>
                                                             <ShouldRender if={this.props.showSmsSmtpConfiguration}>
                                                                 <div className="bs-Fieldset-row">
-                                                                    <label className="bs-Fieldset-label">Account SID</label>
+                                                                    <label className="bs-Fieldset-label">Application SID</label>
                                                                     <div className="bs-Fieldset-fields">
                                                                         <Field className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             component={RenderField}
                                                                             type="text"
                                                                             name="accountSid"
                                                                             id="accountSid"
-                                                                            placeholder="Account SID"
+                                                                            placeholder="Application SID"
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span>Account SID for your Twilio Account.
-                                                                                    </span></p>
+                                                                        <p className="bs-Fieldset-explanation"><span><a target="_blank" rel="noopener noreferrer" href="https://support.twilio.com/hc/en-us/articles/223136607-What-is-an-Application-SID-">Application SID for your Twilio Account.</a>
+                                                                        </span></p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bs-Fieldset-row">
@@ -171,8 +171,8 @@ export class SmsSmtpBox extends Component {
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span>Auth Token for your Twilio Account.
-                                                                                    </span></p>
+                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223136027-Auth-Tokens-and-How-to-Change-Them" target="_blank" rel="noopener noreferrer">Auth Tokenfor your Twilio Account.</a>
+                                                                        </span></p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bs-Fieldset-row">
@@ -187,7 +187,7 @@ export class SmsSmtpBox extends Component {
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span>Phone Number associated with your twilio account.
+                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223181428-Assigning-Twilio-number-to-an-SMS-application" target="_blank" rel="noopener noreferrer"> Phone Number associated with your twilio account</a>.
                                                                                     </span></p>
                                                                     </div>
                                                                 </div>

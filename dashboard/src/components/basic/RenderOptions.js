@@ -32,8 +32,8 @@ const mapValue = {
     'contains': 'Contains',
     'doesNotContain': 'Does not Contain',
     'jsExpression': 'Javascript Expression',
-    'executesIn': 'Executes in',
-    'doesNotExecuteIn': 'Does not execute in',
+    'executesIn': 'Executes Less Than',
+    'doesNotExecuteIn': 'Executes Greater Than',
     'throwsError': 'Throws error',
     'doesNotThrowError': 'Does not throw error'
 }
@@ -139,7 +139,7 @@ export class RenderOption extends Component {
                             options={[
                                 { value: '', label: 'None' },
                                 { value: 'responseTime', label: 'Response Time', show: type !== 'script' && type !== 'server-monitor' },
-                                { value: 'doesRespond', label: 'Does Respond', show: type !== 'script' && type !== 'server-monitor' },
+                                { value: 'doesRespond', label: 'Is Online', show: type !== 'script' },
                                 { value: 'statusCode', label: 'Status Code', show: type !== 'script' && type !== 'server-monitor' },
                                 { value: 'responseBody', label: 'Response Body', show: type !== 'script' && type !== 'server-monitor' },
                                 { value: 'executes', label: 'Executes', show: type === 'script' },
@@ -147,12 +147,13 @@ export class RenderOption extends Component {
                                 { value: 'javascriptExpression', label: 'JavaScript Expression', show: type === 'script' },
                                 { value: 'cpuLoad', label: 'CPU Load', show: type === 'server-monitor' },
                                 { value: 'memoryUsage', label: 'Memory Usage', show: type === 'server-monitor' },
-                                { value: 'storageUsage', label: 'Storage Usage', show: type === 'server-monitor' },
+                                { value: 'storageUsage', label: 'Free Storage', show: type === 'server-monitor' },
                                 { value: 'temperature', label: 'Temperature', show: type === 'server-monitor' }
                             ]}
                         />
                     </div>
                 </div>
+
                 {bodyfield && bodyfield.responseType === 'javascriptExpression' ?
                     <div className="bs-Fieldset-row" style={bodyfield !== '' && bodyfield.responseType === 'javascriptExpression' ? flexStyle : flexStylehidden}>
                         <label className="bs-Fieldset-label" style={{ padding: '6px' }}>JavaScript Expression</label>
@@ -184,8 +185,8 @@ export class RenderOption extends Component {
                                     { value: 'greaterThan', label: 'Greater Than', show: bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') },
                                     { value: 'lessThan', label: 'Less Than', show: bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') },
                                     { value: 'inBetween', label: 'In Between', show: bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') },
-                                    { value: 'isUp', label: 'Is Up', show: bodyfield && bodyfield.responseType === 'doesRespond' },
-                                    { value: 'isDown', label: 'Is Down', show: bodyfield && bodyfield.responseType === 'doesRespond' },
+                                    { value: 'isUp', label: 'True', show: bodyfield && bodyfield.responseType === 'doesRespond' },
+                                    { value: 'isDown', label: 'False', show: bodyfield && bodyfield.responseType === 'doesRespond' },
                                     { value: 'equalTo', label: 'Equal To', show: bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') },
                                     { value: 'notEqualTo', label: 'Not Equal To', show: bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') },
                                     { value: 'gtEqualTo', label: 'Greater Than Equal To', show: bodyfield && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'statusCode' || type === 'server-monitor') },
@@ -195,34 +196,41 @@ export class RenderOption extends Component {
                                     { value: 'jsExpression', label: 'Javascript Expression', show: bodyfield && bodyfield.responseType === 'responseBody' },
                                     { value: 'empty', label: 'Is empty', show: bodyfield && bodyfield.responseType === 'responseBody' },
                                     { value: 'notEmpty', label: 'Is not empty', show: bodyfield && bodyfield.responseType === 'responseBody' },
-                                    { value: 'executesIn', label: 'Executes in', show: bodyfield && bodyfield.responseType === 'executes' },
-                                    { value: 'doesNotExecuteIn', label: 'Does not execute in', show: bodyfield && bodyfield.responseType === 'executes' },
+                                    { value: 'executesIn', label: 'Executes Less Than', show: bodyfield && bodyfield.responseType === 'executes' },
+                                    { value: 'doesNotExecuteIn', label: 'Executes Greater Than', show: bodyfield && bodyfield.responseType === 'executes' },
                                     { value: 'throwsError', label: 'Throws error', show: bodyfield && bodyfield.responseType === 'error' },
-                                    { value: 'doesNotThrowError', label: 'Does not throw error', show: bodyfield && bodyfield.responseType === 'error' },
+                                    { value: 'doesNotThrowError', label: 'Does not throw error', show: bodyfield && bodyfield.responseType === 'error' }
                                 ]}
                             />
                         </div>
                     </div>}
 
-                <div className="bs-Fieldset-row" style={filterval !== '' && firstField.indexOf(filterval) > -1 ? filterval === 'jsExpression' ? Object.assign({}, flexStyle, { width: '426px' }) : flexStyle : flexStylehidden}>
-                    <label className="bs-Fieldset-label" style={{ padding: '6px' }}>{filterval && mapValue[filterval] ? mapValue[filterval] : ''}</label>
-                    <div className="bs-Fieldset-fields">
-                        <Field
-                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                            type="text"
-                            name={`${fieldnameprop}.field1`}
-                            component={RenderField}
-                            validate={filterval !== '' && firstField.indexOf(filterval) > -1 ? filterval === 'jsExpression' || bodyfield.responseType === 'error' ? ValidateField.required : [ValidateField.required, ValidateField.maxValue10000] : undefined}
-                            placeholder={bodyfield && filterval && bodyfield.responseType && placeholderfilter.indexOf(filterval) <= -1 && placeholders[filterval][bodyfield.responseType] ? placeholders[filterval][bodyfield.responseType] : ''}
-                            style={filterval !== '' && filterval === 'jsExpression' ? { width: '426px' } : bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' ? { width: '180px' } : { width: '200px' }}
-                        />
-                    </div>
-                </div>
-                {bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>ms</span> : ''}
-                {bodyfield && filterval !== '' && (bodyfield.responseType === 'cpuLoad' || bodyfield.responseType === 'memoryUsage' || bodyfield.responseType === 'storageUsage') ? <span style={{ display: 'inline-block', marginTop: '37px' }}>%</span> : ''}
-                {bodyfield && filterval !== '' && bodyfield.responseType === 'temperature' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>&deg;c</span> : ''}
+                {bodyfield && filterval !== '' && bodyfield.responseType === 'error' ? '' :
+                    <>
+                        <div className="bs-Fieldset-row" style={filterval !== '' && firstField.indexOf(filterval) > -1 ? filterval === 'jsExpression' ? Object.assign({}, flexStyle, { width: '426px' }) : flexStyle : flexStylehidden}>
+                            <label className="bs-Fieldset-label" style={{ padding: '6px' }}>{filterval && mapValue[filterval] ? mapValue[filterval] : ''}</label>
+                            <div className="bs-Fieldset-fields">
+                                <Field
+                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                    type="text"
+                                    name={`${fieldnameprop}.field1`}
+                                    component={RenderField}
+                                    validate={filterval !== '' && firstField.indexOf(filterval) > -1 ? filterval === 'jsExpression' ? ValidateField.required : [ValidateField.required, ValidateField.maxValue20000] : undefined}
+                                    placeholder={bodyfield && filterval && bodyfield.responseType && placeholderfilter.indexOf(filterval) <= -1 && placeholders[filterval][bodyfield.responseType] ? placeholders[filterval][bodyfield.responseType] : ''}
+                                    style={filterval !== '' && filterval === 'jsExpression' ? { width: '426px' } : bodyfield && filterval !== '' && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'executes') ? { width: '180px' } : { width: '200px' }}
+                                />
+                            </div>
+                        </div>
+
+                        {bodyfield && filterval !== '' && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'executes') ? <span style={{ display: 'inline-block', marginTop: '37px' }}>ms</span> : ''}
+                        {bodyfield && filterval !== '' && bodyfield.responseType === 'cpuLoad' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>%</span> : ''}
+                        {bodyfield && filterval !== '' && (bodyfield.responseType === 'memoryUsage' || bodyfield.responseType === 'storageUsage') ? <span style={{ display: 'inline-block', marginTop: '37px' }}>gb</span> : ''}
+                        {bodyfield && filterval !== '' && bodyfield.responseType === 'temperature' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>&deg;c</span> : ''}
+                    </>
+                }
+
                 {filterval !== '' && filterval === 'jsExpression' ? '' :
-                    <React.Fragment>
+                    <>
                         <div className="bs-Fieldset-row" style={filterval !== '' && filterval === 'inBetween' ? flexStyle : flexStylehidden}>
                             <label className="bs-Fieldset-label" style={{ padding: '6px' }}>End Value</label>
                             <div className="bs-Fieldset-fields">
@@ -231,17 +239,20 @@ export class RenderOption extends Component {
                                     type="text"
                                     name={`${fieldnameprop}.field2`}
                                     component={RenderField}
-                                    validate={filterval !== '' && filterval === 'inBetween' ? [ValidateField.required, ValidateField.maxValue10000] : undefined}
+                                    validate={filterval !== '' && filterval === 'inBetween' ? [ValidateField.required, ValidateField.maxValue20000] : undefined}
                                     placeholder={bodyfield && filterval && bodyfield.responseType && placeholderfilter.indexOf(filterval) <= -1 && placeholders[filterval][bodyfield.responseType] ? placeholders['lessThan'][bodyfield.responseType] : ''}
-                                    style={bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? { width: '180px' } : { width: '200px' }}
+                                    style={bodyfield && filterval !== '' && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'executes') && filterval === 'inBetween' ? { width: '180px' } : { width: '200px' }}
                                 />
                             </div>
                         </div>
-                        {bodyfield && filterval !== '' && bodyfield.responseType === 'responseTime' && filterval === 'inBetween' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>ms</span> : ''}
-                        {bodyfield && filterval !== '' && (bodyfield.responseType === 'cpuLoad' || bodyfield.responseType === 'memoryUsage' || bodyfield.responseType === 'storageUsage') && filterval === 'inBetween' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>%</span> : ''}
+
+                        {bodyfield && filterval !== '' && (bodyfield.responseType === 'responseTime' || bodyfield.responseType === 'executes') && filterval === 'inBetween' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>ms</span> : ''}
+                        {bodyfield && filterval !== '' && bodyfield.responseType === 'cpuLoad' && filterval === 'inBetween' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>%</span> : ''}
+                        {bodyfield && filterval !== '' && (bodyfield.responseType === 'memoryUsage' || bodyfield.responseType === 'storageUsage') && filterval === 'inBetween' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>gb</span> : ''}
                         {bodyfield && filterval !== '' && bodyfield.responseType === 'temperature' && filterval === 'inBetween' ? <span style={{ display: 'inline-block', marginTop: '37px' }}>&deg;c</span> : ''}
-                    </React.Fragment>
+                    </>
                 }
+
                 <div className="bs-Fieldset-row" style={{ display: 'inline-block', padding: '4px' }}>
                     <label className="bs-Fieldset-label" style={{ padding: '6px' }}></label>
                     <div className="bs-Fieldset-fields">
