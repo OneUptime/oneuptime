@@ -151,7 +151,7 @@ module.exports = {
         await MonitorService.sendResponseTime(savedLog);
         await MonitorService.sendMonitorLog(savedLog);
 
-        if (data.probeId) await this.sendProbe(data.probeId);
+        if (data.probeId && data.monitorId) await this.sendProbe(data.probeId, data.monitorId);
 
         return savedLog;
     },
@@ -194,7 +194,7 @@ module.exports = {
         return MonitorStatus;
     },
 
-    sendProbe: async function (probeId) {
+    sendProbe: async function (probeId, monitorId) {
         try {
             var probe = await this.findOneBy({ _id: probeId });
         } catch (error) {
@@ -204,7 +204,7 @@ module.exports = {
         if (probe) {
             try {
                 delete probe._doc.deleted;
-                await RealTimeService.updateProbe(probe);
+                await RealTimeService.updateProbe(probe, monitorId);
             } catch (error) {
                 ErrorService.log('RealTimeService.updateProbe', error);
                 throw error;
