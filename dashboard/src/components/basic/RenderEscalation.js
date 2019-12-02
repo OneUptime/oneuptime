@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 import { FieldArray } from 'redux-form';
-import { Field } from 'redux-form';
+import { Field, /* formValueSelector */ } from 'redux-form';
+// import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderNames } from './RenderNames';
 import { RenderField } from './RenderField';
@@ -13,7 +14,6 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
         <ul>
             {
                 fields.map((policy, i) => {
-
                     return (
                         <li key={i} style={{ margin: '5px 0px' }}>
                             <div className="Card-root" style={{ backgroundColor: i === 0 ? '#f6f9fc' : '#ffffff' }}>
@@ -32,6 +32,100 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f6f9fc' }}>
                                         <div>
+                                            <div className="bs-Fieldset-row" style={{ marginBottom: '-20px'}}>
+                                                <label className="bs-Fieldset-label"><span>Alert Via.</span></label>
+                                                <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
+                                                    <div className="Box-root" style={{ height: '5px' }}></div>
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <label className="Checkbox">
+                                                            <Field
+                                                                component="input"
+                                                                type="checkbox"
+                                                                name={`${policy}.email`}
+                                                                data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                className="Checkbox-source"
+                                                            />
+                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                <div className="Checkbox-target Box-root">
+                                                                    <div className="Checkbox-color Box-root"></div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Email</span>
+                                                                </span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div className="Box-root Padding-left--24">
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <div className="Box-root">
+                                                            <div className="Box-root">
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
+                                                    <div className="Box-root" style={{ height: '5px' }}></div>
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <label className="Checkbox">
+                                                            <Field
+                                                                component="input"
+                                                                type="checkbox"
+                                                                name={`${policy}.sms`}
+                                                                data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                className="Checkbox-source"
+                                                            />
+                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                <div className="Checkbox-target Box-root">
+                                                                    <div className="Checkbox-color Box-root"></div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>SMS</span>
+                                                                </span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div className="Box-root Padding-left--24">
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <div className="Box-root">
+                                                            <div className="Box-root">
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
+                                                    <div className="Box-root" style={{ height: '5px' }}></div>
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <label className="Checkbox">
+                                                            <Field
+                                                                component="input"
+                                                                type="checkbox"
+                                                                name={`${policy}.call`}
+                                                                data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                className="Checkbox-source"
+                                                            />
+                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                <div className="Checkbox-target Box-root">
+                                                                    <div className="Checkbox-color Box-root"></div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Call</span>
+                                                                </span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                            </div>
                                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                 <fieldset className="bs-Fieldset">
                                                     <div className="bs-Fieldset-row">
@@ -124,12 +218,12 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                                 callFrequency: '10',
                                                 smsFrequency: '10',
                                                 emailFrequency: '10',
+                                                email: true,
+                                                sms: true,
+                                                call: true,
                                                 teamMember: [
                                                     { 
                                                         member: '',
-                                                        email: true,
-                                                        sms: true,
-                                                        call: true,
                                                         timezone: '',
                                                         startTime: '',
                                                         endTime: ''
