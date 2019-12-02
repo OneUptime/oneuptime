@@ -1,34 +1,53 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import Select from 'react-select-fyipe';
-import { Times } from './TimeArray';
+import { TimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers'
+import { createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles';
+import DateFnsUtils from '@date-io/date-fns';
+
+const theme = createMuiTheme({
+    palette: {
+        primary: {
+            main: '#0080a8'
+        },
+        secondary: {
+            main: '#0066ff'
+        }
+    }
+})
 
 const TimeSelector = ({ input, meta: { touched, error }, style }) => {
-    const options = [{ value: '', label: 'Select Time...' }].concat(Times.map(time => {
-        return {
-            value: time,
-            label: time
-        }
-    }));
-    const filteredOpt = options.filter(opt => opt.value === input.value);
-    const [value, setValue] = useState({ value: input.value, label: filteredOpt.length > 0 ? filteredOpt[0].label : 'Select Time...' });
+    const [value, setValue] = useState(input.value);
     const handleChange = (option) => {
         setValue(option);
         if (input.onChange) {
-            input.onChange(option.value);
+            input.onChange(option.toString());
         }
     };
 
+
     return (
         <span>
-            <div style={{ ...style, height: '28px' }}>
-                <Select
-                    name={input.name}
-                    value={value}
-                    onChange={handleChange}
-                    className="db-select-nw"
-                    options={options.filter(opt => opt.show !== undefined ? opt.show : true)}
-                />
+            <div style={{ ...style, height: '28px', marginTop: '-15px' }}>
+                
+                <MuiThemeProvider theme={theme}>
+                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
+                    <TimePicker
+                        name={input.name}
+                        margin="normal"
+                        id="time-picker"
+                        value={value}
+                        error={false}
+                        invalidDateMessage={false}
+                        variant="modal"
+                        onChange={handleChange}
+                        KeyboardButtonProps={{
+                          'aria-label': 'change time',
+                        }}
+                        emptyLabel="Select Time"
+                        initialFocusedDate={null}
+                    />
+                  </MuiPickersUtilsProvider>
+                </MuiThemeProvider>
             </div>
             {
                 touched && error && <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '5px' }}>
