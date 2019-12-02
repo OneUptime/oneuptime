@@ -46,6 +46,9 @@ module.exports = {
 
     create: async function (data) {
         let escalationModel = new EscalationModel();
+        escalationModel.call = data.call || null;
+        escalationModel.email = data.email || null;
+        escalationModel.sms = data.sms || null;
         escalationModel.callFrequency = data.callFrequency || null;
         escalationModel.smsFrequency = data.smsFrequency || null;
         escalationModel.emailFrequency = data.emailFrequency || null;
@@ -113,6 +116,9 @@ module.exports = {
                 ErrorService.log('EscalationService.findOneBy', error);
                 throw error;
             }
+            let email = data.email || escalation.email;
+            let sms = data.sms || escalation.sms;
+            let call = data.call || escalation.call;
             let callFrequency = data.callFrequency || escalation.callFrequency;
             let smsFrequency = data.smsFrequency || escalation.smsFrequency;
             let emailFrequency = data.emailFrequency || escalation.smsFrequency;
@@ -122,6 +128,9 @@ module.exports = {
             try{
                 escalation = await EscalationModel.findByIdAndUpdate(data._id, {
                     $set:{
+                        call,
+                        sms,
+                        email,
                         callFrequency,
                         smsFrequency,
                         emailFrequency,

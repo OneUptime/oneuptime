@@ -6,13 +6,13 @@ var escalationSchema = new Schema({
     callFrequency: String,
     emailFrequency: String,
     smsFrequency: String,
+    call: {type: Boolean, default: false},
+    email: {type: Boolean, default: false},
+    sms: {type: Boolean, default: false},
     createdById: { type: String, ref: 'User' },
     scheduleId: String,
     teamMember: [
         {
-            call: {type: Boolean, default: false},
-            email: {type: Boolean, default: false},
-            sms: {type: Boolean, default: false},
             startTime: String,
             endTime: String,
             timezone: String,
