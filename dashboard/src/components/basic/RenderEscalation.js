@@ -1,19 +1,21 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 import { FieldArray } from 'redux-form';
-import { Field, /* formValueSelector */ } from 'redux-form';
-// import { connect } from 'react-redux';
+import { Field, formValueSelector } from 'redux-form';
+import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderNames } from './RenderNames';
 import { RenderField } from './RenderField';
 
 
-const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId }) => {
+let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, form }) => {
  
     return (
         <ul>
             {
                 fields.map((policy, i) => {
+                    const { email, sms, call } = form[i];
+
                     return (
                         <li key={i} style={{ margin: '5px 0px' }}>
                             <div className="Card-root" style={{ backgroundColor: i === 0 ? '#f6f9fc' : '#ffffff' }}>
@@ -128,48 +130,54 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                             </div>
                                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                 <fieldset className="bs-Fieldset">
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">Call Frequency</label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                type="text"
-                                                                name={`${policy}.callFrequency`}
-                                                                component={RenderField}
-                                                                style={{ width: '250px' }}
-                                                                defaultValue="10"
-                                                                subProjectId={subProjectId}
-                                                            />
+                                                    {call && (
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">Call Frequency</label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    type="text"
+                                                                    name={`${policy}.callFrequency`}
+                                                                    component={RenderField}
+                                                                    style={{ width: '250px' }}
+                                                                    defaultValue="10"
+                                                                    subProjectId={subProjectId}
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">SMS Frequency</label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                type="text"
-                                                                name={`${policy}.smsFrequency`}
-                                                                component={RenderField}
-                                                                style={{ width: '250px' }}
-                                                                defaultValue="10"
-                                                                subProjectId={subProjectId}
-                                                            />
+                                                    )}
+                                                    {sms && (
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">SMS Frequency</label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    type="text"
+                                                                    name={`${policy}.smsFrequency`}
+                                                                    component={RenderField}
+                                                                    style={{ width: '250px' }}
+                                                                    defaultValue="10"
+                                                                    subProjectId={subProjectId}
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">Email Frequency</label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                type="text"
-                                                                name={`${policy}.emailFrequency`}
-                                                                component={RenderField}
-                                                                style={{ width: '250px' }}
-                                                                defaultValue="10"
-                                                                subProjectId={subProjectId}
-                                                            />
+                                                    )}
+                                                    {email && (
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">Email Frequency</label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    type="text"
+                                                                    name={`${policy}.emailFrequency`}
+                                                                    component={RenderField}
+                                                                    style={{ width: '250px' }}
+                                                                    defaultValue="10"
+                                                                    subProjectId={subProjectId}
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    )}
                                                     <div className="bs-Fieldset-rows">
 
                                                         <FieldArray
@@ -247,7 +255,16 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
     )
 }
 
-RenderEscalation.displayName = 'RenderEscalation'
+RenderEscalation.displayName = 'RenderEscalation';
+
+const selector = formValueSelector('OnCallAlertBox');
+
+RenderEscalation = connect(state => {
+    const form = selector(state, 'OnCallAlertBox')
+    return {
+      form
+    }
+})(RenderEscalation)
 
 RenderEscalation.propTypes = {
     subProjectId: PropTypes.string.isRequired,
@@ -256,6 +273,7 @@ RenderEscalation.propTypes = {
         PropTypes.array,
         PropTypes.object
     ]).isRequired,
+    form: PropTypes.array.isRequired,
     // touched:PropTypes.bool,
     // error:PropTypes.string,
 }
