@@ -116,15 +116,17 @@ module.exports = {
                 ErrorService.log('EscalationService.findOneBy', error);
                 throw error;
             }
-            let email = data.email || escalation.email;
-            let sms = data.sms || escalation.sms;
-            let call = data.call || escalation.call;
+
+            let email = (data.email !== null || data.email) !== undefined ? data.email : escalation.email;
+            let sms = (data.sms !== null || data.sms !== undefined) ? data.sms : escalation.sms;
+            let call = (data.call !== null || data.call !== undefined) ? data.call : escalation.call;
             let callFrequency = data.callFrequency || escalation.callFrequency;
             let smsFrequency = data.smsFrequency || escalation.smsFrequency;
             let emailFrequency = data.emailFrequency || escalation.smsFrequency;
             let projectId = data.projectId || escalation.projectId;
             let createdById = data.createdById || escalation.createdById;
             let teamMember = data.teamMember || escalation.teamMember;
+
             try{
                 escalation = await EscalationModel.findByIdAndUpdate(data._id, {
                     $set:{
