@@ -32,7 +32,7 @@ export function updateProfileSetting(values) {
 
 	return function (dispatch) {
 		let data = new FormData();
-		console.log(values);
+
 		if (values.profilePic && values.profilePic !== 'null' && values.profilePic[0]) {
 			if (!values.removedPic) {
 				data.append('profilePic', values.profilePic[0], values.profilePic[0].name);
@@ -253,23 +253,23 @@ export function sendEmailVerificationError(error) {
 }
 
 export function sendEmailVerificationLink(values) {
-	return function(dispatch){
+	return function (dispatch) {
 
 		var promise = postApi('user/resend', values);
 		dispatch(sendEmailVerificationRequest());
 
-		promise.then(function(data){
+		promise.then(function (data) {
 			dispatch(sendEmailVerificationSuccess(data));
-		}, function(error){
-			if(error && error.response && error.response.data)
+		}, function (error) {
+			if (error && error.response && error.response.data)
 				error = error.response.data;
-			if(error && error.data){
+			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(sendEmailVerificationError(errors(error)));

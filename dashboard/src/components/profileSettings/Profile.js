@@ -199,7 +199,7 @@ export class ProfileSetting extends Component {
         }
         const { updateProfileSetting, resetFile } = this.props;
 
-        values.removedPic = removedPic; console.log(values);
+        values.removedPic = removedPic;
         updateProfileSetting(values).then(function () {
             resetFile();
         });

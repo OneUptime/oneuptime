@@ -48,7 +48,7 @@ class AreaChart extends Component {
 
     render() {
         const { type, data, name, symbol, requesting } = this.props;
-        console.log(requesting);
+        
         if (data && data.length > 0) {
             const _data = (type === 'server-monitor' ? data.flatMap(a => {
                 const b = a.data[name], c = b.length > 0 ? b[0] : b;
