@@ -8,7 +8,7 @@ let errorStyle = {
     topMargin: '5px'
 };
 
-const TimezoneSelector = ({ input, placeholder, style, meta: { touched, error }, id }) => {
+const TimezoneSelector = ({ input, placeholder, style, meta: { touched, error }, id,disabled }) => {
     const options = [{ value: '', label: 'Select Timezone...' }].concat(Zones.map(zone => (
         { value: zone.name, label: zone.name }
     )));
@@ -30,6 +30,7 @@ const TimezoneSelector = ({ input, placeholder, style, meta: { touched, error },
                     onChange={handleChange}
                     className="db-select-nw"
                     id={id}
+                    isDisabled={disabled}
                     options={options.filter(opt => opt.show !== undefined ? opt.show : true)}
                 />
             </div>
@@ -45,7 +46,8 @@ TimezoneSelector.propTypes = {
     placeholder: PropTypes.string,
     meta: PropTypes.object.isRequired,
     style: PropTypes.object,
-    id: PropTypes.string
+    id: PropTypes.string,
+    disabled:PropTypes.bool
 };
 
 export default TimezoneSelector;

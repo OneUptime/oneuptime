@@ -214,21 +214,10 @@ describe('Projects SubProjects API', function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
     });
 
-    it('should not create a subproject when subproject payload is an object and not an array.', function (done) {
-        var authorization = `Basic ${token}`;
-        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({}).end(function (err, res) {
-            expect(res).to.have.status(400);
-            expect(res.body.message).to.be.equal('Subprojects are expected in array format.');
-            done();
-        });
-    });
-
     it('should not create a subproject without a name.', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send(
-            [
-                { name: '' }
-            ]
+            { subProjectName: '' }
         ).end(function (err, res) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('Subproject name must be present.');
@@ -239,13 +228,10 @@ describe('Projects SubProjects API', function () {
     it('should create a subproject.', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send(
-            [
-                { name: 'New SubProject' }
-            ]
+            { subProjectName: 'New SubProject' }
         ).end(function (err, res) {
-            subProjectId = res.body[0]._id;
+            subProjectId = res.body._id;
             expect(res).to.have.status(200);
-            expect(res.body).to.be.an('array');
             done();
         });
     });
@@ -283,8 +269,8 @@ describe('Projects SubProjects API', function () {
 
     it('should not rename a subproject when the subproject is null or invalid or empty', function (done) {
         var authorization = `Basic ${token}`;
-        request.put(`/project/${subProjectId}/renameProject`).set('Authorization', authorization).send({
-            projectName: null,
+        request.put(`/project/${projectId}/${subProjectId}`).set('Authorization', authorization).send({
+            subProjectName: null,
         }).end(function (err, res) {
             expect(res).to.have.status(400);
             done();
@@ -293,8 +279,8 @@ describe('Projects SubProjects API', function () {
 
     it('should rename a subproject with valid name', function (done) {
         var authorization = `Basic ${token}`;
-        request.put(`/project/${subProjectId}/renameProject`).set('Authorization', authorization).send({
-            projectName: 'Renamed SubProject',
+        request.put(`/project/${projectId}/${subProjectId}`).set('Authorization', authorization).send({
+            subProjectName: 'Renamed SubProject',
         }).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body.name).to.be.equal('Renamed SubProject');
@@ -304,7 +290,7 @@ describe('Projects SubProjects API', function () {
 
     it('should delete a subproject', function (done) {
         var authorization = `Basic ${token}`;
-        request.delete(`/project/${subProjectId}/deleteProject`)
+        request.delete(`/project/${projectId}/${subProjectId}`)
             .set('Authorization', authorization).end(function (err, res) {
                 expect(res).to.have.status(200);
                 done();
