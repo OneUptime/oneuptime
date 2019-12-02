@@ -128,6 +128,13 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 message: 'Call Frequency is required'
             });
         }
+
+        if(!value.email && !value.call && !value.sms){
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'At least one type of alert is required'
+            });
+        }
         storagevalue.callFrequency = value.callFrequency;
         storagevalue.smsFrequency = value.smsFrequency;
         storagevalue.emailFrequency = value.emailFrequency;
@@ -137,6 +144,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
         storagevalue.projectId = req.params.projectId;
         storagevalue.scheduleId = scheduleId;
         storagevalue.createdById = userId;
+
         if(value._id) storagevalue._id = value._id;
 
         for(let escalation of value.teamMember){
@@ -146,13 +154,6 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Team Members is required'
-                });
-            }
-
-            if(!escalation.email || !escalation.call || !escalation.sms){
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'At least one type of alert is required'
                 });
             }
 
