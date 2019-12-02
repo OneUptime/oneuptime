@@ -5,6 +5,7 @@ import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import DataPathHoC from '../DataPathHoC';
 import StatusPage from './RowData'
 import PropTypes from 'prop-types';
+import { ListLoader } from '../basic/Loader';
 
 const StatusPageProjectBox = (props) => (
 
@@ -81,6 +82,7 @@ const StatusPageProjectBox = (props) => (
                 }
             </tbody>
         </table>
+        {props.statusPage.requesting ? <ListLoader /> : null}
         <ShouldRender if={!props.statusPage.requesting && props.statusPages.length === 0}>
             <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
                 You don&#39;t have any status page at this time!
