@@ -185,8 +185,8 @@ const mapStateToProps = (state, props) => {
             smsFrequency: '10',
             emailFrequency: '10',
             email: true,
-            sms: true,
-            call: true,
+            sms: false,
+            call: false,
             teamMember: [
                 {
                     member: '',
