@@ -232,7 +232,7 @@ export class MonitorDetail extends Component {
                             })}
                         </div>
                     </ShouldRender>
-                    <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} />
+                    <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} monitor={monitor} probeData={probeData} status={status} />
                 </ShouldRender>
 
                 {monitor && monitor.type ?
@@ -240,7 +240,7 @@ export class MonitorDetail extends Component {
                         <div>
                             <ShouldRender if={monitor.probes && monitor.probes.length > 0}>
                                 {monitor && monitor.probes && monitor.probes.length < 2 ?
-                                    <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} />
+                                    <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} monitor={monitor} probeData={probeData} status={status} />
                                     : ''
                                 }
                                 <div className="db-RadarRulesLists-page">
@@ -271,7 +271,7 @@ export class MonitorDetail extends Component {
                         :
                         <div>
                             {monitor && monitor.probes && monitor.probes.length < 2 ?
-                                <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} />
+                                <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} monitor={monitor} probeData={probeData} status={status} />
                                 :
                                 ''
                             }

@@ -557,7 +557,7 @@ export const getMonitorStatus = (incidents, logs) => {
     let incident = incidents && incidents.length > 0 ? incidents[0] : null;
     let log = logs && logs.length > 0 ? logs[0] : null;
 
-    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'offline'));
+    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'online'));
 
-    return statusCompare || 'offline';
+    return statusCompare || 'online';
 };
