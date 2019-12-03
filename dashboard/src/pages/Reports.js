@@ -125,10 +125,10 @@ export class Reports extends Component {
                           <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                               <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                <span>Monthly Incidents</span>
+                                <span>Incidents</span>
                               </span>
                               <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                <span> Graph comparing number of monthly incidents</span>
+                                <span> Graph comparing number of incidents</span>
                               </span>
                             </div>
                           </div>
