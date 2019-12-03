@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { FlatLoader as Loader } from '../basic/Loader';
+import { LargeSpinner as Loader } from '../basic/Loader';
 import { ResponsiveContainer, AreaChart as Chart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import {
     getMonthlyResolveTime,
