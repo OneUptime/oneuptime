@@ -180,6 +180,7 @@ module.exports = {
         var _this = this;
         var subProject = null;
         var project = await ProjectService.findOneBy({_id: projectId});
+        var registerUrl = ACCOUNTS_HOST ? `${ACCOUNTS_HOST}/register` : 'https://accounts.fyipe.com/register';
         if(project.parentProjectId){
             subProject = project;
             project = await ProjectService.findOneBy({_id: subProject.parentProjectId});
@@ -234,7 +235,7 @@ module.exports = {
                 if(role === 'Viewer'){
                     await MailService.sendNewStatusPageViewerMail(project, addedBy, member.email);
                 }else{
-                    await MailService.sendNewUserAddedToProjectMail(project, addedBy, member.email);
+                    await MailService.sendNewUserAddedToProjectMail(project, addedBy, member.email, registerUrl);
                 }
                 await NotificationService.create(project._id, `New user added to the project by ${addedBy.name}`,addedBy.id,'information');
             }
@@ -519,5 +520,6 @@ var NotificationService = require('../services/notificationService');
 var RealTimeService = require('../services/realTimeService');
 var ErrorService = require('./errorService');
 var domains = require('../config/domains');
+var { ACCOUNTS_HOST } = process.env;
 
 

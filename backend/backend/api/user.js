@@ -106,7 +106,7 @@ router.post('/signup', async function (req, res) {
 
                 // Call the MailService.
                 MailService.sendSignupMail(user.email, user.name);
-
+                UserService.sendToken(user, user.email);
                 // create access token and refresh token.
                 let authUserObj = {
                     id: user._id,
