@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { FlatLoader as Loader } from '../basic/Loader';
+import { LargeSpinner as Loader } from '../basic/Loader';
 import { ResponsiveContainer, AreaChart as Chart, Area, CartesianGrid, Tooltip } from 'recharts';
 import * as _ from 'lodash';
 import { formatDecimal, formatBytes } from '../../config';
@@ -48,7 +48,7 @@ class AreaChart extends Component {
 
     render() {
         const { type, data, name, symbol, requesting } = this.props;
-        
+
         if (data && data.length > 0) {
             const _data = (type === 'server-monitor' ? data.flatMap(a => {
                 const b = a.data[name], c = b.length > 0 ? b[0] : b;
