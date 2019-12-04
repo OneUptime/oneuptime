@@ -37,13 +37,13 @@ describe('Team API With SubProjects', () => {
             throw err;
         });
 
-        // Register user 
+        // Register user
         await cluster.task(async ({ page, data }) => {
             const user = {
                 email: data.email,
                 password: data.password
             }
-            
+
             // intercept request and mock response for login
             await page.setRequestInterception(true);
             await page.on('request', async (request) => {
@@ -71,7 +71,7 @@ describe('Team API With SubProjects', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-        
+
             if(data.isParentUser){
                 // rename default project
                 await init.renameProject(data.projectName, page);
@@ -88,11 +88,11 @@ describe('Team API With SubProjects', () => {
         await cluster.close();
         done();
     });
-    
+
     afterAll(async (done) => {
         done();
     });
-    
+
     test('should add a new user to parent project and all sub-projects (role -> `Administrator`)', async (done)=>{
         expect.assertions(1);
 
@@ -143,12 +143,12 @@ describe('Team API With SubProjects', () => {
 
                 const projectSpanSelector = await page.$(`#span_${data.projectName}`);
                 let textContent = await projectSpanSelector.getProperty('innerText');
-                
+
                 textContent = await textContent.jsonValue();
                 expect(textContent).toEqual(data.projectName);
 
                 const element = await page.$(`#accountSwitcher > div[title="${data.projectName}"]`);
-                
+
                 await element.click();
                 await page.waitFor(5000);
             }
@@ -211,12 +211,12 @@ describe('Team API With SubProjects', () => {
 
                 const projectSpanSelector = await page.$(`#span_${projectName}`);
                 let textContent = await projectSpanSelector.getProperty('innerText');
-                
+
                 textContent = await textContent.jsonValue();
                 expect(textContent).toEqual(projectName);
-                
+
                 const element = await page.$(`#accountSwitcher > div[title="${projectName}"]`);
-                
+
                 await element.click();
                 await page.waitFor(5000);
             }
@@ -233,7 +233,7 @@ describe('Team API With SubProjects', () => {
 
     test('should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)', async (done) =>{
         expect.assertions(1);
-        
+
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -265,7 +265,7 @@ describe('Team API With SubProjects', () => {
             await page.waitForSelector(`div[title="${data.newRole}"]`);
             await page.click(`div[title="${data.newRole}"]`);
             await page.waitFor(5000);
-            
+
             const userRoleValue = await page.$eval(`div[title="${data.newRole}"]`, el => el.textContent);
 
             expect(userRoleValue).toBe(data.newRole);
@@ -306,6 +306,8 @@ describe('Team API With SubProjects', () => {
             await page.click('#teamMembers');
             await page.waitForSelector(`button[title="delete"]`);
             await page.click(`button[title="delete"]`);
+            await page.waitForSelector('#removeTeamUser');
+            await page.click('#removeTeamUser');
             await page.waitFor(5000);
         });
 
@@ -315,4 +317,4 @@ describe('Team API With SubProjects', () => {
         done();
 
     }, operationTimeOut);
-});     
+});
