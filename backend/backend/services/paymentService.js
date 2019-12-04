@@ -82,14 +82,8 @@ module.exports = {
             quantity: 1
         });
 
-        var extraUserItems = [];
         var subscriptionObj = {};
 
-        var extraUserplanId = Plans.getPlanById(stripePlanId);
-        extraUserItems.push({
-            plan: extraUserplanId.extraUserPlanId,
-            quantity: 0
-        });
         if (coupon) {
             subscriptionObj = { customer: stripeCustomerId, items: items, coupon: coupon, trial_period_days: 14 };
         }
@@ -99,23 +93,13 @@ module.exports = {
         }
 
         try{
-            var subscription1 = await stripe.subscriptions.create(subscriptionObj);
+            var subscription = await stripe.subscriptions.create(subscriptionObj);
         }catch(error){
             ErrorService.log('stripe.subscriptions.create', error);
             throw error;
         }
-        try{
-            var subscription3 = await stripe.subscriptions.create({
-                customer: stripeCustomerId,
-                items: extraUserItems
-            });
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
-            throw error; 
-        }
         return ({
-            stripeSubscriptionId: subscription1.id,
-            stripeExtraUserSubscriptionId : subscription3.id
+            stripeSubscriptionId: subscription.id,
         });
     },
 
@@ -141,14 +125,14 @@ module.exports = {
         } else {
             for (var i = 0; i < subscription.items.data.length; i++) {
                 try{
-                    plan = await Plans.getPlanByExtraUserId(subscription.items.data[i].plan.id);
+                    plan = await Plans.getPlanById(subscription.items.data[i].plan.id);
                 }catch(error){
-                    ErrorService.log('Plans.getPlanByExtraUserId', error);
+                    ErrorService.log('Plans.getPlanById', error);
                     throw error;
                 }
                 if (plan) {
                     var item = {
-                        plan: plan.extraUserPlanId,
+                        plan: plan.planId,
                         id: subscription.items.data[i].id,
                         quantity: seats
                     };
@@ -167,17 +151,11 @@ module.exports = {
         }
     },
 
-    removeSubscription: async function (stripeSubscriptionId, stripeExtraUserSubscriptionId) {
+    removeSubscription: async function (stripeSubscriptionId) {
 
         var confirmations = [];
         try{
             confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.del', error);
-            throw error;
-        }
-        try{
-            confirmations[1] = await stripe.subscriptions.del(stripeExtraUserSubscriptionId);
         }catch(error){
             ErrorService.log('stripe.subscriptions.del', error);
             throw error;

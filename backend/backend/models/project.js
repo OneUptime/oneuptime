@@ -18,7 +18,6 @@ var projectSchema = new Schema({
 
     stripePlanId: String,
     stripeSubscriptionId: String, // this is for plans.
-    stripeExtraUserSubscriptionId: String,
     parentProjectId: { type: String, ref: 'Project' },
     seats: { type: String, default: '1' },
     createdAt: {

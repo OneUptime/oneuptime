@@ -117,7 +117,6 @@ module.exports = {
             if (typeof (projectSeats) === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
-            var userSeatsLeft = projectSeats - seats < 1 ? 0 : projectSeats - seats;
 
             // Checks if users to be added as team members are already present or not.
             let isUserInProject = await _this.checkUser(teamMembers, emails);
@@ -127,25 +126,15 @@ module.exports = {
                 ErrorService.log('TeamService.inviteTeamMembers', error);
                 throw error;
             } else {
-                if (userSeatsLeft >= emails.length) {
-                    try{
-                        var invited = await _this.inviteTeamMembersMethod(projectId, emails, role, addedBy, null);
-                    }catch(error){
-                        ErrorService.log('TeamService.inviteTeamMembersMethod', error);
-                        throw error;
-                    }        
-                    return invited;
-                }else if (userSeatsLeft < emails.length) {
-                    // Get the users exceeding the seats left - emails.length - userSeatsLeft
-                    var extraUsersToAdd = emails.length - userSeatsLeft;
-                    try{
-                        var invite = await _this.inviteTeamMembersMethod(projectId, emails, role, addedBy, extraUsersToAdd);
-                    }catch(error){
-                        ErrorService.log('TeamService.inviteTeamMembersMethod', error);
-                        throw error;
-                    }        
-                    return invite;
+                // Get no of users to be added
+                var extraUsersToAdd = emails.length;
+                try {
+                    var invite = await _this.inviteTeamMembersMethod(projectId, emails, role, addedBy, extraUsersToAdd);
+                } catch (error) {
+                    ErrorService.log('TeamService.inviteTeamMembersMethod', error);
+                    throw error;
                 }
+                return invite;
             }
         }
     },
@@ -259,29 +248,23 @@ module.exports = {
             }));
         }
         projectUsers = await _this.getTeamMembersBy({ parentProjectId: project._id });
-        try{
-            var seats = await _this.getSeats(projectUsers);
-        }catch(error){
-            ErrorService.log('TeamService.getSeats', error);
-            throw error;
-        }
         var projectSeats = project.seats;
         if (typeof (projectSeats) === 'string') {
             projectSeats = parseInt(projectSeats);
         }
-        if (extraUsersToAdd && seats > projectSeats) {
-            try{
-                await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (seats - 1));
-            }catch(error){
-                ErrorService.log('PaymentService.changeSeats', error);
-                throw error;
-            }   
-            try{
-                await ProjectService.update({ _id: project._id, seats: seats.toString() });
-            }catch(error){
-                ErrorService.log('ProjectService.update', error);
-                throw error;
-            }
+        var newProjectSeats = projectSeats + extraUsersToAdd;
+
+        try {
+            await PaymentService.changeSeats(project.stripeSubscriptionId, newProjectSeats);
+        } catch (error) {
+            ErrorService.log('PaymentService.changeSeats', error);
+            throw error;
+        }
+        try {
+            await ProjectService.update({ _id: project._id, seats: newProjectSeats.toString() });
+        } catch (error) {
+            ErrorService.log('ProjectService.update', error);
+            throw error;
         }
         var response = [];
         var team = await _this.getTeamMembersBy({ _id: project._id });
@@ -521,5 +504,3 @@ var RealTimeService = require('../services/realTimeService');
 var ErrorService = require('./errorService');
 var domains = require('../config/domains');
 var { ACCOUNTS_HOST } = process.env;
-
-
