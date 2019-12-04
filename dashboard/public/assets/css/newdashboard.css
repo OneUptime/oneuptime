@@ -4,6 +4,16 @@
   position: absolute !important;
 }
 
+.db-select-ne {
+  width: 85px;
+  font-size: 14px;
+}
+
+.db-select-ne .css-vuqqju {
+  border: none !important;
+  box-shadow: none !important;
+}
+
 .db-select-nw-180 {
   width: 180px;
 }
@@ -12,7 +22,8 @@
   width: 100px;
 }
 
-.db-select-nw > div {
+.db-select-nw > div,
+.db-select-ne > div {
   -webkit-flex-flow: unset;
   -ms-flex-flow: unset;
   flex-flow: unset;
@@ -25,6 +36,21 @@
     0 0 0 2px rgba(50, 151, 211, 0.25), 0 1px 1px rgba(0, 0, 0, 0.08);
 }
 
+.db-select-ne > span + div {
+  border: none;
+  box-shadow: none;
+}
+
+.db-select-ne .css-1hwfws3 {
+  padding: 2px 3px;
+}
+
+.db-select-ne .css-1ep9fjw,
+.db-select-ne .css-1uq0kb5 {
+  padding: 8px 0;
+  color: #525f7f;
+}
+
 div.css-xp4uvy {
   font-size: 14px;
   color: #525f7f;
@@ -35,7 +61,7 @@ div.css-15k3avv > div > div:not(.css-1t862kv):hover {
   cursor: pointer;
 }
 
-div.css-15k3avv  {
+div.css-15k3avv {
   z-index: 99999;
 }
 
