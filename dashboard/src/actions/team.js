@@ -178,6 +178,18 @@ export function teamDeleteError(error) {
 	};
 }
 
+export function teamDeleteReset() {
+	return {
+		type: types.TEAM_DELETE_RESET
+	};
+}
+
+export function resetTeamDelete(){
+	return function(dispatch){
+		dispatch(teamDeleteReset());
+	}
+}
+
 // Calls the API to delete team meber.
 export function teamDelete(projectId, teamMemberId) {
 	return function (dispatch) {
@@ -188,7 +200,7 @@ export function teamDelete(projectId, teamMemberId) {
 		promise.then(function (response) {
 			var team = response.data;
 			dispatch(teamDeleteSuccess(team));
-
+			return {team};
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
@@ -202,6 +214,7 @@ export function teamDelete(projectId, teamMemberId) {
 				error = 'Network Error';
 			}
 			dispatch(teamDeleteError(errors(error)));
+			return {error};
 		});
 
 		return promise;
