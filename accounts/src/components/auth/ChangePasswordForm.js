@@ -46,7 +46,7 @@ export class ChangePasswordForm extends Component {
 
 
               {!this.props.changePasswordState.success && <div> <p className="text">
-                <span>
+                <span id="passwordField">
                   <label htmlFor="password">  New Password </label>
                   <Field
                     component={RenderField}
@@ -58,7 +58,7 @@ export class ChangePasswordForm extends Component {
                 </span>
               </p>
                 <p className="text">
-                  <span>
+                  <span id="confirmPasswordField">
                     <label htmlFor="confirmPassword">  Confirm New Password </label>
                     <Field
                       component={RenderField}
