@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import Select from 'react-select-fyipe';
@@ -17,8 +17,22 @@ const SubProjectSelector = ({ input, className, disabled, meta: { touched, error
             show: renderIfSubProjectAdmin(currentProject, subProjects, subProject._id)
         }
     }));
-    const filteredOpt = options.filter(opt => opt.value === input.value);
-    const [value, setValue] = useState({ value: input.value, label: filteredOpt.length > 0 ? filteredOpt[0].label : 'Select Sub-Project' });
+
+    const filteredOpt = useRef();
+    filteredOpt.current = options.filter(opt => opt.value === input.value);
+
+    const [value, setValue] = useState({
+        value: input.value, label: filteredOpt.current.length > 0 ?
+            filteredOpt.current[0].label : 'Select Sub-Project'
+    });
+
+    useEffect(() => {
+        setValue({
+            value: input.value, label: filteredOpt.current.length > 0 ?
+                filteredOpt.current[0].label : 'Select Sub-Project'
+        });
+    }, [input]);
+
     const handleChange = (option) => {
         setValue(option);
         if (input.onChange) {

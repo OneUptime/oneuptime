@@ -131,9 +131,22 @@ module.exports = {
         }
     },
 
-    updateProbe: async (data) => {
+    updateProbe: async (data, monitorId) => {
         try {
-            CB.CloudNotification.publish('updateProbe', data);
+            var monitor = await MonitorService.findOneBy({ _id: monitorId });
+        } catch (error) {
+            ErrorService.log('MonitorService.findOneBy', error);
+            throw error;
+        }
+        try {
+            var project = await ProjectService.findOneBy({ _id: monitor.projectId });
+        } catch (error) {
+            ErrorService.log('ProjectService.findOneBy', error);
+            throw error;
+        }
+        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+        try {
+            CB.CloudNotification.publish(`updateProbe-${projectId}`, data);
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`updateProbe`)', error);
             throw error;
@@ -207,3 +220,4 @@ module.exports = {
 
 var ErrorService = require('./errorService');
 var ProjectService = require('./projectService');
+var MonitorService = require('./monitorService');

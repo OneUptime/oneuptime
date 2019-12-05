@@ -16,7 +16,8 @@ import {
 	TEAM_UPDATE_ROLE_FAILURE,
 	PAGINATE_NEXT,
 	PAGINATE_PREV,
-	PAGINATE_RESET
+	PAGINATE_RESET,
+	TEAM_DELETE_RESET
 } from '../constants/team';
 
 
@@ -191,6 +192,17 @@ export default (state = initialState, action) => {
 				...state,
 				teamdelete: {
 					error: action.payload,
+					requesting: false,
+					success: false,
+					deleting: []
+				},
+			};
+
+		case TEAM_DELETE_RESET:
+			return {
+				...state,
+				teamdelete: {
+					error: null,
 					requesting: false,
 					success: false,
 					deleting: []

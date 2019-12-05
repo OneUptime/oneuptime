@@ -202,8 +202,8 @@ InvoiceList.propTypes = {
     ]),
     has_more: PropTypes.bool,
     nextCount: PropTypes.number.isRequired,
-    count: PropTypes.number.isRequired,
-    total_count: PropTypes.number.isRequired,
+    count: PropTypes.number,
+    total_count: PropTypes.number,
     prevClicked: PropTypes.func.isRequired
 }
 
