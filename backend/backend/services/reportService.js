@@ -173,7 +173,34 @@ module.exports = {
         }
         return formarted;
     },
+    /**
+      * @param { String } projectId id of current project
+      * @description get the number of incidents for the past 12 months
+      * @returns { Promise } array if resolved || error if rejected
+      */
+    async getIncidentCountBy(subProjectIds, startDate, endDate) {
+        let start = moment(startDate).toDate();
+        let end = moment(endDate).toDate();
 
+        try {
+            var result = await IncidentModel.aggregate([
+                { $match: { $and: [{ projectId: { $in: subProjectIds } }, { createdAt: { $gte: start, $lte: end } }] } },
+                { $group: { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+                { $sort: { '_id.month': 1 } }
+            ]);
+        } catch (error) {
+            ErrorService.log('IncidentModel.aggregate', error);
+            throw error;
+        }
+        const formarted = [];
+        for (const month of result) {
+            formarted.push({
+                month: moment(month._id.month, 'MM').format('MMMM'),
+                incidents: month.count,
+            });
+        }
+        return formarted;
+    },
 };
 
 const moment = require('moment');

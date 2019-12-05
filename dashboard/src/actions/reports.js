@@ -115,9 +115,9 @@ export const getIncidentsError = error => {
   }
 }
 
-export const getIncidents = (projectId) => async dispatch => {
+export const getIncidents = (projectId, filter, startDate, endDate) => async dispatch => {
   try {
-    const promise = getApi(`reports/${projectId}/monthly-incidents`);
+    const promise = getApi(`reports/${projectId}/incidents?startDate=${startDate}&endDate=${endDate}&filter=${filter}`);
     dispatch(getIncidentsRequest(promise));
     const reports = await promise;
     dispatch(getIncidentsSuccess(reports.data));
