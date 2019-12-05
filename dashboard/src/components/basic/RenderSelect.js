@@ -1,10 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types'
 import Select from 'react-select-fyipe';
 
 const RenderSelect = ({ input, placeholder, className, disabled, style, meta, options = [{ value: '', label: 'Select' }], message, id }) => {
-    const filteredOpt = options.filter(opt => opt.value === input.value);
-    const [value, setValue] = useState({ value: input.value, label: filteredOpt.length > 0 ? filteredOpt[0].label : placeholder });
+    const filteredOpt = useRef();
+    filteredOpt.current = options.filter(opt => opt.value === input.value);
+
+    const [value, setValue] = useState({
+        value: input.value, label: filteredOpt.current.length > 0 ?
+            filteredOpt.current[0].label : placeholder
+    });
+
+    useEffect(() => {
+        setValue({
+            value: input.value, label: filteredOpt.current.length > 0 ?
+                filteredOpt.current[0].label : placeholder
+        });
+    }, [input, placeholder]);
+
     const handleChange = (option) => {
         setValue(option);
         if (input.onChange) {

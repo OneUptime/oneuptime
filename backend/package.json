@@ -1,6 +1,6 @@
 {
   "name": "fyipe-backend",
-  "version": "3.0.824",
+  "version": "3.0.829",
   "private": true,
   "dependencies": {
     "@slack/client": "^4.12.0",

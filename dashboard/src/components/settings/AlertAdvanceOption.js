@@ -68,17 +68,17 @@ export class AlertAdvanceOption extends Component {
         if (formValues.billingUS && minimumBalance < 20) {
             this.props.change('minimumBalance', '20')
         }
-        if (formValues.billingNonUSCountries && minimumBalance < 50) {
-            this.props.change('minimumBalance', '50')
-        }
-        if (formValues.billingRiskCountries && minimumBalance < 100) {
-            this.props.change('minimumBalance', '100')
-        }
         if (formValues.billingUS && rechargeToBalance < 40) {
             this.props.change('rechargeToBalance', '40')
         }
+        if (formValues.billingNonUSCountries && minimumBalance < 50) {
+            this.props.change('minimumBalance', '50')
+        }
         if (formValues.billingNonUSCountries && rechargeToBalance < 100) {
             this.props.change('rechargeToBalance', '100')
+        }
+        if (formValues.billingRiskCountries && minimumBalance < 100) {
+            this.props.change('minimumBalance', '100')
         }
         if (formValues.billingRiskCountries && rechargeToBalance < 200) {
             this.props.change('rechargeToBalance', '200')
@@ -86,7 +86,8 @@ export class AlertAdvanceOption extends Component {
     }
 
     render() {
-        const { alertEnable } = this.props;
+        const { alertEnable, formValues } = this.props;
+
         return (
             <div className="db-World-contentPane Box-root" style={{ paddingTop: 0 }}>
                 <div className="db-RadarRulesLists-page">
@@ -163,8 +164,16 @@ export class AlertAdvanceOption extends Component {
                                                                 validate={ValidateField.select}
                                                                 options={[
                                                                     { value: '', label: 'Select amount' },
-                                                                    { value: '20', label: '$20' },
-                                                                    { value: '50', label: '$50' },
+                                                                    {
+                                                                        value: '20', label: '$20', show: formValues
+                                                                            && !formValues.billingNonUSCountries
+                                                                            && (formValues.billingNonUSCountries || !formValues.billingRiskCountries)
+                                                                    },
+                                                                    {
+                                                                        value: '50', label: '$50', show: formValues
+                                                                            && (formValues.billingUS || !formValues.billingUS || formValues.billingNonUSCountries)
+                                                                            && !formValues.billingRiskCountries
+                                                                    },
                                                                     { value: '100', label: '$100' },
                                                                     { value: '200', label: '$200' },
                                                                     { value: '400', label: '$400' },
@@ -185,8 +194,16 @@ export class AlertAdvanceOption extends Component {
                                                                 validate={ValidateField.select}
                                                                 options={[
                                                                     { value: '', label: 'Select amount' },
-                                                                    { value: '40', label: '$40' },
-                                                                    { value: '100', label: '$100' },
+                                                                    {
+                                                                        value: '40', label: '$40', show: formValues
+                                                                            && !formValues.billingNonUSCountries
+                                                                            && (formValues.billingNonUSCountries || !formValues.billingRiskCountries)
+                                                                    },
+                                                                    {
+                                                                        value: '100', label: '$100', show: formValues
+                                                                            && (formValues.billingUS || !formValues.billingUS || formValues.billingNonUSCountries)
+                                                                            && !formValues.billingRiskCountries
+                                                                    },
                                                                     { value: '200', label: '$200' },
                                                                     { value: '400', label: '$400' },
                                                                     { value: '500', label: '$500' },
