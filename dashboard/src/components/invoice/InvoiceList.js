@@ -31,6 +31,9 @@ export class InvoiceList extends Component {
                         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Invoice ID</span></span></div>
                         </td>
+                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
+                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Invoice Description</span></span></div>
+                        </td>
                         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Date</span></span></div>
                         </td>
@@ -57,13 +60,27 @@ export class InvoiceList extends Component {
                 <tbody className="Table-body">
                     {
                         (invoices && invoices.data) && invoices.data.length > 0  ?
-                        invoices.data.map((invoice) => (
+                        invoices.data.map((invoice) => {
+                            var invoiceDescription;
+                            if(invoice.billing_reason === 'subscription_update'){
+                                invoiceDescription = 'Regular Plan';
+                            } else {
+                                invoiceDescription = invoice.description;
+                            }
+                            return (
                             <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem" key={invoice.id} >
                                 
                                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                         <span>{invoice.id}</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                        <span>{invoiceDescription}</span>
                                         </span>
                                     </div>
                                 </td>
@@ -128,7 +145,7 @@ export class InvoiceList extends Component {
                                     </div>
                                 </td>
                             </tr>
-                            ))
+                            )})
                         :
                         <tr></tr>
                    }

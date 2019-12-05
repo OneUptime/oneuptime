@@ -58,7 +58,7 @@ const Services = {
 
                 if (!duplicateCard) {
                     var testChargeValue = 100;
-                    var description = 'Verify if card is billable.';
+                    var description = 'Verify if card is billable';
                     var user = await UserService.findOneBy({ _id: userId });
                     var stripeCustomerId = user.stripeCustomerId;
                     var card = await stripe.customers.createSource(stripeCustomerId, { source: tok });
@@ -69,7 +69,7 @@ const Services = {
                     var paymentIntent = await Services.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
                     return paymentIntent;
                 } else {
-                    var error = new Error('Cannot add duplicate card.');
+                    var error = new Error('Cannot add duplicate card');
                     error.code = 400;
                     throw error;
                 }
@@ -264,7 +264,7 @@ const Services = {
     },
     makeTestCharge: async function (tokenId, email, companyName) {
         try {
-            var description = 'Verify if card is billable.';
+            var description = 'Verify if card is billable';
             var testChargeValue = 100;
             var stripeCustomerId = await PaymentService.createCustomer(email, companyName);
             var card = await stripe.customers.createSource(stripeCustomerId, { source: tokenId });
