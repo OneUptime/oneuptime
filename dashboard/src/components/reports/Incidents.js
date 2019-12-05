@@ -79,11 +79,9 @@ class Incidents extends Component {
         const { incidentReports, filter } = this.props;
 
         if (incidents && incidents.length > 0) {
-            const data = incidents.reverse();
-
             return (
                 <ResponsiveContainer width="100%" height={300}>
-                    <Chart data={data}>
+                    <Chart data={incidents}>
                         <Legend verticalAlign="top" height={36} />
                         <XAxis dataKey={filter} />
                         <YAxis />

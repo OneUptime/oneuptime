@@ -178,26 +178,60 @@ module.exports = {
       * @description get the number of incidents for the past 12 months
       * @returns { Promise } array if resolved || error if rejected
       */
-    async getIncidentCountBy(subProjectIds, startDate, endDate) {
+    async getIncidentCountBy(subProjectIds, startDate, endDate, filter) {
         let start = moment(startDate).toDate();
         let end = moment(endDate).toDate();
+        let group, sort, inputFormat, outputFormat;
+
+        if (filter === 'day') {
+            group = { _id: { day: { $dayOfYear: '$createdAt' } }, count: { $sum: 1 } };
+            sort = { '_id.day': 1 };
+
+            inputFormat = 'DDD';
+            outputFormat = 'MMM Do YYYY';
+        }
+        if (filter === 'week') {
+            group = { _id: { week: { $week: '$createdAt' } }, count: { $sum: 1 } };
+            sort = { '_id.week': 1 };
+
+            inputFormat = 'ww';
+            outputFormat = 'wo [week of] YYYY';
+        }
+        if (filter === 'month') {
+            group = { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 } };
+            sort = { '_id.month': 1 };
+
+            inputFormat = 'MM';
+            outputFormat = 'MMM YYYY';
+        }
+        if (filter === 'year') {
+            group = { _id: { year: { $year: '$createdAt' } }, count: { $sum: 1 } };
+            sort = { '_id.year': 1 };
+
+            inputFormat = 'YYYY';
+            outputFormat = 'YYYY';
+        }
 
         try {
             var result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { createdAt: { $gte: start, $lte: end } }] } },
-                { $group: { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
-                { $sort: { '_id.month': 1 } }
+                { $group: group },
+                { $sort: sort }
             ]);
         } catch (error) {
             ErrorService.log('IncidentModel.aggregate', error);
             throw error;
         }
+
         const formarted = [];
-        for (const month of result) {
-            formarted.push({
-                month: moment(month._id.month, 'MM').format('MMMM'),
-                incidents: month.count,
-            });
+
+        for (const period of result) {
+            const data = {
+                incidents: period.count
+            };
+            data[filter] = moment(period._id[filter], inputFormat).format(outputFormat);
+
+            formarted.push(data);
         }
         return formarted;
     },
