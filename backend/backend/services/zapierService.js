@@ -44,32 +44,32 @@ module.exports = {
         var zapierResponseArray = [];
         var zapierResponse = {};
         var _this = this;
-        try{
+        try {
             var project = await ProjectService.findOneBy({_id: projectId});
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        if (project) {
-            zapierResponse.projectName = project.name;
-            zapierResponse.projectId = project._id;
-            var projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
-            var projectIds = projects.map(project => project._id);
-            var findquery = { projectId: { $in: projectIds }, acknowledged: false, resolved: false };
-            try{
-                var incidents = await IncidentService.findBy(findquery);
-            }catch(error){
-                ErrorService.log('IncidentService.findOneBy', error);
-                throw error;
-            }
-            await Promise.all(incidents.map(async (incident)=>{
-                zapierResponseArray.push(await _this.mapIncidentToResponse(incident, zapierResponse));
-            }));
             
-            return zapierResponseArray;
-        }
-        else {
-            return [];
+            if (project) {
+                zapierResponse.projectName = project.name;
+                zapierResponse.projectId = project._id;
+                var projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
+                var projectIds = projects.map(project => project._id);
+                var findquery = { projectId: { $in: projectIds }, acknowledged: false, resolved: false };
+                var incidents = await IncidentService.findBy(findquery);
+                await Promise.all(incidents.map(async (incident)=>{
+                    zapierResponseArray.push(await _this.mapIncidentToResponse(incident, zapierResponse));
+                }));
+                
+                return zapierResponseArray;
+            }
+            else {
+                return [];
+            }
+        } catch (error) {
+            if (error.message.indexOf('"_id"') !== -1) {
+                ErrorService.log('ProjectService.findOneBy', error);
+            } else {
+                ErrorService.log('IncidentService.findOneBy', error);
+            }
+            throw error;
         }
     },
 
@@ -77,32 +77,31 @@ module.exports = {
         var zapierResponseArray = [];
         var zapierResponse = {};
         var _this = this;
-        try{
+        try {
             var project = await ProjectService.findOneBy({_id: projectId});
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        if (project) {
-            zapierResponse.projectName = project.name;
-            zapierResponse.projectId = project._id;
-            var projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
-            var projectIds = projects.map(project => project._id);
-            var findquery = { projectId: { $in: projectIds }, acknowledged: true, resolved: false };
-            try{
+            if (project) {
+                zapierResponse.projectName = project.name;
+                zapierResponse.projectId = project._id;
+                var projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
+                var projectIds = projects.map(project => project._id);
+                var findquery = { projectId: { $in: projectIds }, acknowledged: true, resolved: false };
                 var incidents = await IncidentService.findBy(findquery);
-            }catch(error){
-                ErrorService.log('IncidentService.findOneBy', error);
-                throw error;
+                await Promise.all(incidents.map(async (incident)=>{
+                    zapierResponseArray.push(await _this.mapIncidentToResponse(incident, zapierResponse));
+                }));
+                
+                return zapierResponseArray;
             }
-            await Promise.all(incidents.map(async (incident)=>{
-                zapierResponseArray.push(await _this.mapIncidentToResponse(incident, zapierResponse));
-            }));
-            
-            return zapierResponseArray;
-        }
-        else {
-            return [];
+            else {
+                return [];
+            }
+        } catch (error) {
+            if (error.message.indexOf('_id') !== -1) {
+                ErrorService.log('ProjectService.findOneBy', error);
+            } else {
+                ErrorService.log('IncidentService.findOneBy', error);
+            }
+            throw error;
         }
     },
 
@@ -110,32 +109,32 @@ module.exports = {
         var zapierResponseArray = [];
         var zapierResponse = {};
         var _this = this;
-        try{
+        try {
             var project = await ProjectService.findOneBy({_id: projectId});
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        if (project) {
-            zapierResponse.projectName = project.name;
-            zapierResponse.projectId = project._id;
-            var projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
-            var projectIds = projects.map(project => project._id);
-            var findquery = { projectId: { $in: projectIds }, acknowledged: true, resolved: true };
-            try{
+            if (project) {
+                zapierResponse.projectName = project.name;
+                zapierResponse.projectId = project._id;
+                var projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
+                var projectIds = projects.map(project => project._id);
+                var findquery = { projectId: { $in: projectIds }, acknowledged: true, resolved: true };
                 var incidents = await IncidentService.findBy(findquery);
-            }catch(error){
-                ErrorService.log('IncidentService.findOneBy', error);
-                throw error;
+                    
+                await Promise.all(incidents.map(async (incident)=>{
+                    zapierResponseArray.push(await _this.mapIncidentToResponse(incident, zapierResponse));
+                }));
+                
+                return zapierResponseArray;
             }
-            await Promise.all(incidents.map(async (incident)=>{
-                zapierResponseArray.push(await _this.mapIncidentToResponse(incident, zapierResponse));
-            }));
-            
-            return zapierResponseArray;
-        }
-        else {
-            return [];
+            else {
+                return [];
+            }
+        } catch (error) {
+            if (error.message.indexOf('_id') !== -1) {
+                ErrorService.log('ProjectService.findOneBy', error);
+            } else {
+                ErrorService.log('IncidentService.getResolvedIncidents', error);
+            }
+            throw error;
         }
     },
 
@@ -352,45 +351,43 @@ module.exports = {
     pushToZapier: async function (type, incident) {
         var _this = this;
         var projectId = incident.projectId._id || incident.projectId;
-        try{
+        try {
             var project = await ProjectService.findOneBy({_id: projectId});
-        }catch(error){
-            ErrorService.log('ZapierService.findOneBy', error);
-        }
-        if(project.parentProjectId){
-            try{
+            
+            if(project.parentProjectId){
                 project = await ProjectService.findOneBy({_id: project.parentProjectId._id});
-            }catch(error){
+            }
+            var zap = await _this.findBy({ projectId: project._id, type: type, $or: [{monitors: incident.monitorId._id},{monitors:[]}]});
+            
+            if (zap && zap.length) {
+                zap.map(async z => {
+                    var zapierResponse = {};
+                    if (project) {
+                        zapierResponse.projectName = project.name;
+                        zapierResponse.projectId = project._id;
+                        if (incident) {
+                            zapierResponse = await _this.mapIncidentToResponse(incident, zapierResponse);
+                            axios({
+                                method: 'POST',
+                                url: z.url,
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                data: JSON.stringify([zapierResponse])
+                            });
+                        }
+    
+                    }
+    
+                });
+            }
+        } catch (error) {
+            if (error.message.indexOf('at path "projectId"') !== -1) {
+                ErrorService.log('ZapierService.findBy', error);
+                throw error;
+            } else {
                 ErrorService.log('ZapierService.findOneBy', error);
             }
-        }
-        try{
-            var zap = await _this.findBy({ projectId: project._id, type: type, $or: [{monitors: incident.monitorId._id},{monitors:[]}]});
-        }catch(error){
-            ErrorService.log('ZapierService.findBy', error);
-            throw error;
-        }
-        if (zap && zap.length) {
-            zap.map(async z => {
-                var zapierResponse = {};
-                if (project) {
-                    zapierResponse.projectName = project.name;
-                    zapierResponse.projectId = project._id;
-                    if (incident) {
-                        zapierResponse = await _this.mapIncidentToResponse(incident, zapierResponse);
-                        axios({
-                            method: 'POST',
-                            url: z.url,
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            data: JSON.stringify([zapierResponse])
-                        });
-                    }
-
-                }
-
-            });
         }
     },
 

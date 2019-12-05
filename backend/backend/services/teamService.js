@@ -127,24 +127,20 @@ module.exports = {
                 ErrorService.log('TeamService.inviteTeamMembers', error);
                 throw error;
             } else {
-                if (userSeatsLeft >= emails.length) {
-                    try{
+                try {
+                    if (userSeatsLeft >= emails.length) {
                         var invited = await _this.inviteTeamMembersMethod(projectId, emails, role, addedBy, null);
-                    }catch(error){
-                        ErrorService.log('TeamService.inviteTeamMembersMethod', error);
-                        throw error;
-                    }        
-                    return invited;
-                }else if (userSeatsLeft < emails.length) {
-                    // Get the users exceeding the seats left - emails.length - userSeatsLeft
-                    var extraUsersToAdd = emails.length - userSeatsLeft;
-                    try{
+                        return invited;
+                    }else if (userSeatsLeft < emails.length) {
+                        // Get the users exceeding the seats left - emails.length - userSeatsLeft
+                        var extraUsersToAdd = emails.length - userSeatsLeft;
                         var invite = await _this.inviteTeamMembersMethod(projectId, emails, role, addedBy, extraUsersToAdd);
-                    }catch(error){
-                        ErrorService.log('TeamService.inviteTeamMembersMethod', error);
-                        throw error;
-                    }        
-                    return invite;
+                              
+                        return invite;
+                    }
+                } catch (error) {
+                    ErrorService.log('TeamService.inviteTeamMembersMethod', error);
+                    throw error;
                 }
             }
         }
@@ -185,121 +181,111 @@ module.exports = {
             project = await ProjectService.findOneBy({_id: subProject.parentProjectId});
         }
 
-        for (var i = 0; i < emails.length; i++) {
-            // Finds registered users and new users that will be added as team members.
-            try{
+        try {
+            for (var i = 0; i < emails.length; i++) {
+                // Finds registered users and new users that will be added as team members.
                 var user = await UserService.findOneBy({ email: emails[i] });
-            }catch(error){
-                ErrorService.log('UserService.findOneBy', error);
-                throw error;
-            }
-            if (user) {
-                invitedTeamMembers.push(user);
-            } else {
-                try{
+                
+                if (user) {
+                    invitedTeamMembers.push(user);
+                } else {
                     var newUser = await UserService.create({
                         email: emails[i],
                         createdAt: Date.now()
                     });
-                }catch(error){
-                    ErrorService.log('UserService.create', error);
-                    throw error;
-                }    
-                invitedTeamMembers.push(newUser);
+                    
+                    invitedTeamMembers.push(newUser);
+                }
             }
-        }
-        await Promise.all(invitedTeamMembers);
-        let members = [];
-
-        for (let member of invitedTeamMembers){
-            if (member.name) {
-                projectUsers = await _this.getTeamMembersBy({ parentProjectId: project._id });
-                let userInProject = projectUsers.find(user => user.userId === member._id);
-                if(userInProject){
-                    if(role === 'Viewer'){
-                        await MailService.sendExistingStatusPageViewerMail(subProject, addedBy, member.email);    
+            await Promise.all(invitedTeamMembers);
+            let members = [];
+    
+            for (let member of invitedTeamMembers){
+                if (member.name) {
+                    projectUsers = await _this.getTeamMembersBy({ parentProjectId: project._id });
+                    let userInProject = projectUsers.find(user => user.userId === member._id);
+                    if(userInProject){
+                        if(role === 'Viewer'){
+                            await MailService.sendExistingStatusPageViewerMail(subProject, addedBy, member.email);    
+                        }else{
+                            await MailService.sendExistingUserAddedToSubProjectMail(subProject, addedBy, member.email);
+                        }
+                        await NotificationService.create(project._id, `New user added to ${subProject.name} subproject by ${addedBy.name}`,addedBy.id,'information');
                     }else{
-                        await MailService.sendExistingUserAddedToSubProjectMail(subProject, addedBy, member.email);
+                        if(role === 'Viewer'){
+                            await MailService.sendNewStatusPageViewerMail(project, addedBy, member.email);    
+                        }else{
+                            await MailService.sendExistingUserAddedToProjectMail(project, addedBy, member.email);
+                        }
+                        await NotificationService.create(project._id, `New user added to the project by ${addedBy.name}`,addedBy.id,'information');
                     }
-                    await NotificationService.create(project._id, `New user added to ${subProject.name} subproject by ${addedBy.name}`,addedBy.id,'information');
-                }else{
+                } else {
                     if(role === 'Viewer'){
-                        await MailService.sendNewStatusPageViewerMail(project, addedBy, member.email);    
+                        await MailService.sendNewStatusPageViewerMail(project, addedBy, member.email);
                     }else{
-                        await MailService.sendExistingUserAddedToProjectMail(project, addedBy, member.email);
+                        await MailService.sendNewUserAddedToProjectMail(project, addedBy, member.email);
                     }
                     await NotificationService.create(project._id, `New user added to the project by ${addedBy.name}`,addedBy.id,'information');
                 }
-            } else {
-                if(role === 'Viewer'){
-                    await MailService.sendNewStatusPageViewerMail(project, addedBy, member.email);
-                }else{
-                    await MailService.sendNewUserAddedToProjectMail(project, addedBy, member.email);
-                }
-                await NotificationService.create(project._id, `New user added to the project by ${addedBy.name}`,addedBy.id,'information');
+                members.push({
+                    userId: member._id,
+                    role: role
+                });
             }
-            members.push({
-                userId: member._id,
-                role: role
-            });
-        }
-
-        if(subProject){
-            members = members.concat(subProject.users);
-            await ProjectService.update({_id: subProject._id, users: members});
-        }else{
-            let allProjectMembers = members.concat(project.users);
-            await ProjectService.update({_id: projectId, users: allProjectMembers});
-            var subProjects = await ProjectService.findBy({parentProjectId: project._id});
-            // add user to all subProjects
-            await Promise.all(subProjects.map(async(subProject)=>{
-                let subProjectMembers = members.concat(subProject.users);
-                await ProjectService.update({_id: subProject._id, users: subProjectMembers});
-            }));
-        }
-        projectUsers = await _this.getTeamMembersBy({ parentProjectId: project._id });
-        try{
+    
+            if(subProject){
+                members = members.concat(subProject.users);
+                await ProjectService.update({_id: subProject._id, users: members});
+            }else{
+                let allProjectMembers = members.concat(project.users);
+                await ProjectService.update({_id: projectId, users: allProjectMembers});
+                var subProjects = await ProjectService.findBy({parentProjectId: project._id});
+                // add user to all subProjects
+                await Promise.all(subProjects.map(async(subProject)=>{
+                    let subProjectMembers = members.concat(subProject.users);
+                    await ProjectService.update({_id: subProject._id, users: subProjectMembers});
+                }));
+            }
+            projectUsers = await _this.getTeamMembersBy({ parentProjectId: project._id });
             var seats = await _this.getSeats(projectUsers);
-        }catch(error){
-            ErrorService.log('TeamService.getSeats', error);
-            throw error;
-        }
-        var projectSeats = project.seats;
-        if (typeof (projectSeats) === 'string') {
-            projectSeats = parseInt(projectSeats);
-        }
-        if (extraUsersToAdd && seats > projectSeats) {
-            try{
-                await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (seats - 1));
-            }catch(error){
-                ErrorService.log('PaymentService.changeSeats', error);
-                throw error;
-            }   
-            try{
-                await ProjectService.update({ _id: project._id, seats: seats.toString() });
-            }catch(error){
-                ErrorService.log('ProjectService.update', error);
-                throw error;
+            
+            var projectSeats = project.seats;
+            if (typeof (projectSeats) === 'string') {
+                projectSeats = parseInt(projectSeats);
             }
-        }
-        var response = [];
-        var team = await _this.getTeamMembersBy({ _id: project._id });
-        var teamusers = {
-            projectId: project._id,
-            team: team
-        };
-        response.push(teamusers);
-        var subProjectTeams = await ProjectService.findBy({parentProjectId: project._id});
-        if(subProjectTeams.length > 0){
-            var subProjectTeamsUsers = await Promise.all(subProjectTeams.map(async(subProject)=>{
-                team = await _this.getTeamMembersBy({ _id: subProject._id });
-                teamusers = {
-                    projectId: subProject._id,
-                    team: team
-                };
-                return teamusers;
-            }));
-            response = response.concat(subProjectTeamsUsers);
+            if (extraUsersToAdd && seats > projectSeats) {
+                await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (seats - 1));
+                
+                await ProjectService.update({ _id: project._id, seats: seats.toString() });
+            }
+            var response = [];
+            var team = await _this.getTeamMembersBy({ _id: project._id });
+            var teamusers = {
+                projectId: project._id,
+                team: team
+            };
+            response.push(teamusers);
+            var subProjectTeams = await ProjectService.findBy({parentProjectId: project._id});
+            if(subProjectTeams.length > 0){
+                var subProjectTeamsUsers = await Promise.all(subProjectTeams.map(async(subProject)=>{
+                    team = await _this.getTeamMembersBy({ _id: subProject._id });
+                    teamusers = {
+                        projectId: subProject._id,
+                        team: team
+                    };
+                    return teamusers;
+                }));
+                response = response.concat(subProjectTeamsUsers);
+            }
+        } catch (error) {
+            if (error.message.indexOf('at path "email" for model "User"') !== -1) {
+                ErrorService.log('UserService.findOneBy', error);
+            } else if (error.message === 'Your subscription cannot be retrieved.') {
+                ErrorService.log('PaymentService.changeSeats', error);
+            } else {
+                ErrorService.log('TeamService.inviteTeamMembersMethod', error);
+            }
+            throw error;
         }
         return response;
     },

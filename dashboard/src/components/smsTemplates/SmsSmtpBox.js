@@ -155,8 +155,9 @@ export class SmsSmtpBox extends Component {
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span><a target="_blank" rel="noopener noreferrer" href="https://support.twilio.com/hc/en-us/articles/223136607-What-is-an-Application-SID-">Account SID for your Twilio Account.</a>
-                                                                        </span></p>
+                                                                        {/* eslint-disable-next-line react/jsx-no-target-blank */}
+                                                                        <p className="bs-Fieldset-explanation"><span><a target="_blank" href="https://support.twilio.com/hc/en-us/articles/223136607-What-is-an-Application-SID-">Account SID for your Twilio Account.</a>
+                                                                                    </span></p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bs-Fieldset-row">

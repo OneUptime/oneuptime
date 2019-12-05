@@ -176,14 +176,14 @@ describe('Incident API', function () {
             var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
                 .send([{
                     callFrequency: 10,
+                    call: false,
+                    sms: true,
+                    email: false,
                     teamMember: [{
                         member: userId,
-                        call: false,
-                        sms: true,
                         startTime: '12:01 AM',
                         endTime: '11:59 PM',
                         timezone: 'American Samoa (GMT -11:00)',
-                        email: false
                     }]
                 }]);
             if (createEscalation) {

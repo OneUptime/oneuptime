@@ -61,14 +61,14 @@ module.exports = {
         incidentSMSAction.name = name;
         try {
             await incidentSMSAction.save();
-        } catch (error) {
-            ErrorService.log('incidentSMSAction.save', error);
-            throw error;
-        }
-        try {
+            
             var message = await client.messages.create(options);
         } catch (error) {
-            ErrorService.log('client.messages.create', error);
+            if (error.message.indexOf('"IncidentSMSAction"') !== -1) {
+                ErrorService.log('incidentSMSAction.save', error);
+            } else {
+                ErrorService.log('client.messages.create', error);
+            }
             throw error;
         }
         return message;

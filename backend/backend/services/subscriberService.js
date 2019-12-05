@@ -21,27 +21,19 @@ module.exports = {
 
     update: async function(data){
         let _this = this;
-        if(!data._id){
-            try{
+        try {
+            if(!data._id){
                 let subscriber = await _this.create(data);
                 return subscriber;
-            }catch(error){
-                ErrorService.log('SubscriberService.create', error);
-                throw error;
-            }
-        }else{
-            try{
+            } else {
                 var subscriber = await _this.findByOne({_id: data._id});
-            }catch(error){
-                ErrorService.log('SubscriberService.findByOne', error);
-                throw error;
-            }
-            let monitorId = data.monitorId || subscriber.monitorId;
-            let statusPageId = data.statusPageId || subscriber.statusPageId;
-            let alertVia = data.alertVia || subscriber.alertVia;
-            let contactEmail = data.contactEmail || subscriber.contactEmail;
-            let contactPhone = data.contactPhone || subscriber.contactPhone;
-            try{
+                
+                let monitorId = data.monitorId || subscriber.monitorId;
+                let statusPageId = data.statusPageId || subscriber.statusPageId;
+                let alertVia = data.alertVia || subscriber.alertVia;
+                let contactEmail = data.contactEmail || subscriber.contactEmail;
+                let contactPhone = data.contactPhone || subscriber.contactPhone;
+                
                 var updatedSubscriber = await SubscriberModel.findByIdAndUpdate(data._id, {
                     $set: {
                         statusPageId: statusPageId,
@@ -53,12 +45,12 @@ module.exports = {
                 }, {
                     new: true
                 });
-            }catch(error){
-                ErrorService.log('SubscriberModel.findByIdAndUpdate', error);
-                throw error;
+    
+                return updatedSubscriber;
             }
-
-            return updatedSubscriber;
+        } catch (error) {
+            ErrorService.log('SubscriberModel.findByIdAndUpdate', error);
+            throw error;
         }
     },
 
