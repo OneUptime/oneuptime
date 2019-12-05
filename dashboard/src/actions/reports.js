@@ -94,6 +94,51 @@ export const getActiveMonitors = (projectId, startDate, endDate, skip, limit) =>
   }
 }
 
+export const getIncidentsRequest = promise => {
+  return {
+    type: types.GET_INCIDENTS_REQUEST,
+    payload: promise
+  }
+}
+
+export const getIncidentsSuccess = reports => {
+  return {
+    type: types.GET_INCIDENTS_SUCCESS,
+    payload: reports
+  }
+}
+
+export const getIncidentsError = error => {
+  return {
+    type: types.GET_INCIDENTS_FAILED,
+    payload: error
+  }
+}
+
+export const getIncidents = (projectId) => async dispatch => {
+  try {
+    const promise = getApi(`reports/${projectId}/monthly-incidents`);
+    dispatch(getIncidentsRequest(promise));
+    const reports = await promise;
+    dispatch(getIncidentsSuccess(reports.data));
+  }
+  catch (error) {
+    let newerror = error;
+    if (newerror && newerror.response && newerror.response.data)
+      newerror = newerror.response.data;
+    if (newerror && newerror.data) {
+      newerror = newerror.data;
+    }
+    if (newerror && newerror.message) {
+      newerror = newerror.message;
+    }
+    else {
+      newerror = 'Network Error';
+    }
+    dispatch(getIncidentsError(newerror));
+  }
+}
+
 export const getMonthlyIncidentsRequest = promise => {
   return {
     type: types.GET_MONTHLY_INCIDENTS_REQUEST,

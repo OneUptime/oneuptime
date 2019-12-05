@@ -6,7 +6,7 @@ import DateRangeWrapper from '../components/reports/DateRangeWrapper';
 import Dashboard from '../components/Dashboard';
 import Members from '../components/reports/Members';
 import Monitors from '../components/reports/Monitors';
-import MonthlyIncidents from '../components/reports/MonthlyIncidents';
+import Incidents from '../components/reports/Incidents';
 import AverageTimeChart from '../components/reports/AverageTimeChart';
 import Select from 'react-select-fyipe';
 
@@ -64,11 +64,13 @@ export class Reports extends Component {
             membersEnd: endDate,
             monitorStart: startDate,
             monitorEnd: endDate,
+            incidentFilter: { value: 'month', label: 'Monthly' },
             incidentStart: startDate,
             incidentEnd: endDate
         };
         this.handleMembersChange = this.handleMembersChange.bind(this);
         this.handleMonitorChange = this.handleMonitorChange.bind(this);
+        this.handleIncidentFilterChange = this.handleIncidentFilterChange.bind(this);
         this.handleIncidentChange = this.handleIncidentChange.bind(this);
     }
 
@@ -83,6 +85,12 @@ export class Reports extends Component {
         this.setState({
             monitorStart: startDate,
             monitorEnd: endDate
+        });
+    }
+
+    handleIncidentFilterChange(filter) {
+        this.setState({
+            incidentFilter: filter
         });
     }
 
@@ -158,7 +166,9 @@ export class Reports extends Component {
                                                                         <span className="db-DateRangeInput-start">
                                                                             <Select
                                                                                 name="filter"
+                                                                                value={this.state.incidentFilter}
                                                                                 className="db-select-ne"
+                                                                                onChange={this.handleIncidentFilterChange}
                                                                                 options={[
                                                                                     { value: 'day', label: 'Daily' },
                                                                                     { value: 'week', label: 'Weekly' },
@@ -182,7 +192,8 @@ export class Reports extends Component {
                                                         </div>
                                                     </div>
 
-                                                    <MonthlyIncidents
+                                                    <Incidents
+                                                        filter={this.state.incidentFilter.value}
                                                         startDate={this.state.incidentStart}
                                                         endDate={this.state.incidentEnd}
                                                         currentProject={this.props.match.params.projectId}
