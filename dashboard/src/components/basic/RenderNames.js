@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types'
 import { Field } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
@@ -7,6 +7,7 @@ import TeamSelector from './TeamSelector';
 import TimeSelector from './TimeSelector';
 
 const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) => {
+    const [timeVisible, setTimeVisible] = useState(false);
     return (
         <ul>
             {
@@ -26,108 +27,14 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) =>
                                         subProjectId={subProjectId}
                                     />
                                 </div>
-                            </div>
-
-
-                            <div className="bs-Fieldset-row">
-                                <label className="bs-Fieldset-label"><span>Alert Via.</span></label>
-                                <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
-                                    <div className="Box-root" style={{ height: '5px' }}></div>
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                        <label className="Checkbox">
-                                            <Field
-                                                component="input"
-                                                type="checkbox"
-                                                name={`${inputarray}.email`}
-                                                data-test="RetrySettings-failedPaymentsCheckbox"
-                                                className="Checkbox-source"
-                                            />
-                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                <div className="Checkbox-target Box-root">
-                                                    <div className="Checkbox-color Box-root"></div>
-                                                </div>
-                                            </div>
-                                            <div className="Checkbox-label Box-root Margin-left--8">
-                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <span>Email</span>
-                                                </span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className="Box-root Padding-left--24">
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                        <div className="Box-root">
-                                            <div className="Box-root">
-
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
-                                    <div className="Box-root" style={{ height: '5px' }}></div>
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                        <label className="Checkbox">
-                                            <Field
-                                                component="input"
-                                                type="checkbox"
-                                                name={`${inputarray}.sms`}
-                                                data-test="RetrySettings-failedPaymentsCheckbox"
-                                                className="Checkbox-source"
-                                            />
-                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                <div className="Checkbox-target Box-root">
-                                                    <div className="Checkbox-color Box-root"></div>
-                                                </div>
-                                            </div>
-                                            <div className="Checkbox-label Box-root Margin-left--8">
-                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <span>SMS</span>
-                                                </span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className="Box-root Padding-left--24">
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                        <div className="Box-root">
-                                            <div className="Box-root">
-
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
-                                    <div className="Box-root" style={{ height: '5px' }}></div>
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                        <label className="Checkbox">
-                                            <Field
-                                                component="input"
-                                                type="checkbox"
-                                                name={`${inputarray}.call`}
-                                                data-test="RetrySettings-failedPaymentsCheckbox"
-                                                className="Checkbox-source"
-                                            />
-                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                <div className="Checkbox-target Box-root">
-                                                    <div className="Checkbox-color Box-root"></div>
-                                                </div>
-                                            </div>
-                                            <div className="Checkbox-label Box-root Margin-left--8">
-                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <span>Call</span>
-                                                </span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-
-                            </div>
-
+                            </div>                            
 
                             <div className="bs-Fieldset-row">
                                 <label className="bs-Fieldset-label">Time : </label>
-                                <div className="bs-Fieldset-fields">
+                                {!timeVisible ? (
+                                    <text className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base" style={{ marginTop: '5px', cursor: 'pointer' }} onClick={(() => setTimeVisible(true))}>Add on-call duty times</text>
+                                ) : (
+                                  <div className="bs-Fieldset-fields">
                                     <div className="bs-Fieldset-row" style={{paddingLeft:'0px',paddingTop:'0px'}}>
                                         <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>From</label>
                                         <div className="bs-Fieldset-fields">
@@ -155,7 +62,7 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) =>
                                         </div>
                                     </div>
                                     <div className="bs-Fieldset-row" style={{paddingLeft:'0px'}}>
-                                      <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>Zone</label>
+                                      <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}></label>
                                       <div className="bs-Fieldset-fields">
                                           <Field
                                               className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -168,6 +75,7 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) =>
                                       </div>
                                   </div>
                                 </div>
+                                )}
                             </div>
                             <ShouldRender if={fields.length > 1}>
                             <div className="bs-Fieldset-row">

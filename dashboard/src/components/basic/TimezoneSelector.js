@@ -37,7 +37,7 @@ const TimezoneSelector = ({ input, placeholder, style, meta: { touched, error },
 
     return (
         <span>
-            <div style={{ ...style, height: '28px' }}>
+            <div style={{ ...style, height: '28px', marginTop: '5px' }}>
                 <Select
                     name={input.name}
                     value={value}
