@@ -5,39 +5,34 @@ module.exports = {
     sendNotification: async function (projectId, text, monitor) {
         var self = this;
         var response;
-        try{
+        try {
             var project = await ProjectService.findOneBy({_id: projectId});
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        try{
             var integrations = await IntegrationService.findBy({
                 projectId: projectId,
                 integrationType: 'webhook',
                 monitors: { $in: [monitor._id] }
             });
-        }catch(error){
-            ErrorService.log('IntegrationService.findBy', error);
-            throw error;
-        }
-        // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
-        for (const integration of integrations) {
-            try{
+            // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
+            for (const integration of integrations) {
                 response = await self.notify(project, monitor, text, integration);
-            }catch(error){
-                ErrorService.log('WebHookService.notify', error);
-                throw error;
             }
+        } catch (error) {
+            if (error.message.indexOf('"_id"') !== -1) {
+                ErrorService.log('ProjectService.findOneBy', error);
+            } else if (error.message.indexOf('"projectId"') !== -1) {
+                ErrorService.log('IntegrationService.findBy', error);
+            } else {
+                ErrorService.log('WebHookService.notify', error);
+            }
+            throw error;
         }
         return response;
     },
 
     // send notification to slack workspace channels
     async notify(project, monitor, message, integration) {
-    
-        if(integration.data.endpointType === 'get') {
-            try{
+        try {
+            if(integration.data.endpointType === 'get') {
                 await axios.get(integration.data.endpoint, {
                     message,
                     monitorName: monitor.name,
@@ -49,13 +44,9 @@ module.exports = {
                         'Content-Type': 'application/json'
                     }
                 });
-            }catch(error){
-                ErrorService.log('axios.get', error);
-                throw error;
-            }
-            return 'Webhook successfully pinged';
-        }else if (integration.data.endpointType === 'post') {
-            try{
+                
+                return 'Webhook successfully pinged';
+            } else if (integration.data.endpointType === 'post') {
                 await axios.post(integration.data.endpoint, {
                     message,
                     monitorName: monitor.name,
@@ -67,15 +58,22 @@ module.exports = {
                         'Content-Type': 'application/json'
                     }
                 });
-            }catch(error){
-                ErrorService.log('axios.post', error);
+                
+                return 'Webhook successfully pinged';
+            } else {
+                let error = new Error('Webhook endpoint type missing');
+                error.code = 400;
+                ErrorService.log('WebHookService.notify', error);
                 throw error;
             }
-            return 'Webhook successfully pinged';
-        }else {
-            let error = new Error('Webhook endpoint type missing');
-            error.code = 400;
-            ErrorService.log('WebHookService.notify', error);
+        } catch (error) {
+            if (error.message.indexOf('post') !== -1) {
+                ErrorService.log('axios.post', error);
+            } else if (error.message.indexOf('get') !== -1) {
+                ErrorService.log('axios.get', error);
+            } else {
+                ErrorService.log('WebHookService.notify', error);
+            }
             throw error;
         }
     }

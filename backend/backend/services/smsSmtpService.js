@@ -21,32 +21,24 @@ module.exports = {
 
     update: async function (data) {
         let _this = this;
-        if (!data._id) {
-            try {
+        try {
+            if (!data._id) {
                 let smsSmtp = await _this.create(data);
                 return smsSmtp;
-            } catch (error) {
-                ErrorService.log('SmsSmtpService.create', error);
-                throw error;
-            }
-        } else {
-            try {
+            } else {
                 var smsSmtp = await _this.findOneBy({ _id: data._id });
                 if (smsSmtp && smsSmtp.authToken) {
                     smsSmtp.authToken = await EncryptDecrypt.encrypt(smsSmtp.authToken);
                 }
-            } catch (error) {
-                ErrorService.log('SmsSmtpService.findOneBy', error);
-                throw error;
-            }
-            if (data.authToken) {
-                data.authToken = await EncryptDecrypt.encrypt(data.authToken);
-            }
-            let accountSid = data.accountSid || smsSmtp.accountSid;
-            let authToken = data.authToken || smsSmtp.authToken;
-            let phoneNumber = data.phoneNumber || smsSmtp.phoneNumber;
-            let enabled = data.smssmtpswitch !== undefined ? data.smssmtpswitch : smsSmtp.enabled;
-            try {
+                    
+                if (data.authToken) {
+                    data.authToken = await EncryptDecrypt.encrypt(data.authToken);
+                }
+                let accountSid = data.accountSid || smsSmtp.accountSid;
+                let authToken = data.authToken || smsSmtp.authToken;
+                let phoneNumber = data.phoneNumber || smsSmtp.phoneNumber;
+                let enabled = data.smssmtpswitch !== undefined ? data.smssmtpswitch : smsSmtp.enabled;
+                
                 var updatedSmsSmtp = await SmsSmtpModel.findByIdAndUpdate(data._id, {
                     $set: {
                         accountSid: accountSid,
@@ -60,12 +52,12 @@ module.exports = {
                 if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
                     updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
                 }
-            } catch (error) {
-                ErrorService.log('SmsSmtpModel.findByIdAndUpdate', error);
-                throw error;
+    
+                return updatedSmsSmtp;
             }
-
-            return updatedSmsSmtp;
+        } catch (error) {
+            ErrorService.log('SmsSmtpModel.findByIdAndUpdate', error);
+            throw error;
         }
     },
 
