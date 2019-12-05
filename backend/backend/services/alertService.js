@@ -226,7 +226,7 @@ module.exports = {
                                             let accessToken = jwt.sign({
                                                 id: user._id
                                             }, jwtKey.jwtSecretKey, { expiresIn: 12 * 60 * 60 * 1000 });
-                                            if (teamMember.email) {
+                                            if (escalation.email) {
                                                 const queryString = `projectId=${incident.projectId}&&userId=${user._id}&&accessToken=${accessToken}`;
                                                 let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
                                                 let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
@@ -249,7 +249,7 @@ module.exports = {
                                                     throw error;
                                                 }
                                             }
-                                            if (teamMember.sms) {
+                                            if (escalation.sms) {
                                                 try{
                                                     let alertStatus, alert, balanceStatus;
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
@@ -270,7 +270,7 @@ module.exports = {
                                                     throw error;
                                                 }
                                             }
-                                            if (teamMember.call) {
+                                            if (escalation.call) {
                                                 try{
                                                     let alertStatus, alert, balanceStatus;
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
