@@ -4,6 +4,8 @@ var Schema = mongoose.Schema;
 var escalationSchema = new Schema({
     projectId: { type: String, ref: 'Project', alias: 'project' },
     callFrequency: String,
+    emailFrequency: String,
+    smsFrequency: String,
     createdById: { type: String, ref: 'User' },
     scheduleId: String,
     teamMember: [

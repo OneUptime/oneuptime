@@ -24,9 +24,24 @@ function validate(values) {
                 if (values.OnCallAlertBox[i].callFrequency === '') {
                     repeatErrors.callFrequency = 'Please enter call frequency.';
                     alertArrayErrors[i] = repeatErrors;
-                }
-                else if (!Validate.number(values.OnCallAlertBox[i].callFrequency)) {
+                } else if (!Validate.number(values.OnCallAlertBox[i].callFrequency)) {
                     repeatErrors.callFrequency = 'Call Frequency is not a number.';
+                    alertArrayErrors[i] = repeatErrors;
+                }
+
+                if (values.OnCallAlertBox[i].smsFrequency === '') {
+                  repeatErrors.smsFrequency = 'Please enter SMS frequency.';
+                  alertArrayErrors[i] = repeatErrors;
+                } else if (!Validate.number(values.OnCallAlertBox[i].smsFrequency)) {
+                    repeatErrors.smsFrequency = 'SMS Frequency is not a number.';
+                    alertArrayErrors[i] = repeatErrors;
+                }
+
+                if (values.OnCallAlertBox[i].emailFrequency === '') {
+                  repeatErrors.emailFrequency = 'Please enter email frequency.';
+                  alertArrayErrors[i] = repeatErrors;
+                } else if (!Validate.number(values.OnCallAlertBox[i].emailFrequency)) {
+                    repeatErrors.emailFrequency = 'Email Frequency is not a number.';
                     alertArrayErrors[i] = repeatErrors;
                 }
             }
@@ -35,29 +50,6 @@ function validate(values) {
                 if (val) {
                     if (val.member === '') {
                         escalationErrors.member = 'Please select a member.';
-                        escalationArrayErrors[j] = escalationErrors;
-                    }
-                }
-                if (val) {
-
-                    if (val.startTime === '') {
-                        escalationErrors.startTime = 'Please select a starting time.';
-                        escalationArrayErrors[j] = escalationErrors;
-                    }
-                }
-
-                if (val) {
-
-                    if (val.endTime === '') {
-                        escalationErrors.endTime = 'Please select a ending time.';
-                        escalationArrayErrors[j] = escalationErrors;
-                    }
-                }
-
-                if (val) {
-
-                    if (val.timezone === '') {
-                        escalationErrors.timezone = 'Please select a timezone.';
                         escalationArrayErrors[j] = escalationErrors;
                     }
                 }
@@ -188,17 +180,22 @@ const mapStateToProps = (state, props) => {
     const { subProjectId } = props.match.params;
 
     let OnCallAlertBox = escalationData && escalationData.length ? escalationData : [
-        { callFrequency: '10',teamMember: [
-            {
-                member: '',
-                email: true,
-                sms: true,
-                call: true,
-                timezone: '',
-                startTime: '',
-                endTime: ''
-            }
-        ]}
+        { 
+            callFrequency: '10',
+            smsFrequency: '10',
+            emailFrequency: '10',
+            teamMember: [
+                {
+                    member: '',
+                    email: true,
+                    sms: true,
+                    call: true,
+                    timezone: '',
+                    startTime: '',
+                    endTime: ''
+                }
+            ]
+        }
     ];
 
     return {

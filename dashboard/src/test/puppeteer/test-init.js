@@ -2,9 +2,9 @@ var utils = require('./test-utils');
 
 module.exports = {
     /**
-     * 
-     * @param { ObjectConstructor } user 
-     * @param { string } page 
+     *
+     * @param { ObjectConstructor } user
+     * @param { string } page
      * @description Registers a new user.
      * @returns { void }
      */
@@ -92,21 +92,21 @@ module.exports = {
         // await page.screenshot({path: 'screenshot-addSchedule.png'});
     },
     addSubProject: async function (subProjectName, page) {
-        const subProjectNameSelector = await page.$('#btnAddSubProjects');
+        const subProjectNameSelector = await page.$('#btn_Add_SubProjects');
         if (subProjectNameSelector) {
-            await page.waitForSelector('#btnAddSubProjects');
+            await page.waitForSelector('#btn_Add_SubProjects');
+            await page.click('#btn_Add_SubProjects');
+            await page.waitForSelector('#title');
+            await page.type('#title', subProjectName);
             await page.click('#btnAddSubProjects');
-            await page.waitForSelector('#sub_project_name_0');
-            await page.type('#sub_project_name_0', subProjectName);
-            await page.click('#btnSaveSubproject');
         } else {
             await page.waitForSelector('#projectSettings');
             await page.click('#projectSettings');
-            await page.waitForSelector('#btnAddSubProjects');
+            await page.waitForSelector('#btn_Add_SubProjects');
+            await page.click('#btn_Add_SubProjects');
+            await page.waitForSelector('#title');
+            await page.type('#title', subProjectName);
             await page.click('#btnAddSubProjects');
-            await page.waitForSelector('#sub_project_name_0');
-            await page.type('#sub_project_name_0', subProjectName);
-            await page.click('#btnSaveSubproject');
         }
         await page.waitFor(5000);
         // await page.screenshot({ path: 'screenshot-addSubProject.png' });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import Select from 'react-select-fyipe';
@@ -8,7 +8,7 @@ let errorStyle = {
     topMargin: '5px'
 };
 
-const TeamSelector = ({ input, placeholder,  meta: { touched, error }, members }) => {
+const TeamSelector = ({ input, placeholder, meta: { touched, error }, members }) => {
     const options = [{ value: '', label: 'Select Team Member...' }].concat(members.map(member => {
         return {
             value: member.userId,
@@ -16,8 +16,22 @@ const TeamSelector = ({ input, placeholder,  meta: { touched, error }, members }
             show: member.role !== 'Viewer'
         }
     }));
-    const filteredOpt = options.filter(opt => opt.value === input.value);
-    const [value, setValue] = useState({ value: input.value, label: filteredOpt.length > 0 ? filteredOpt[0].label : placeholder });
+
+    const filteredOpt = useRef();
+    filteredOpt.current = options.filter(opt => opt.value === input.value);
+
+    const [value, setValue] = useState({
+        value: input.value, label: filteredOpt.current.length > 0 ?
+            filteredOpt.current[0].label : placeholder
+    });
+
+    useEffect(() => {
+        setValue({
+            value: input.value, label: filteredOpt.current.length > 0 ?
+                filteredOpt.current[0].label : placeholder
+        });
+    }, [input, placeholder]);
+
     const handleChange = (option) => {
         setValue(option);
         if (input.onChange) {

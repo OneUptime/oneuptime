@@ -13,6 +13,7 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
         <ul>
             {
                 fields.map((policy, i) => {
+
                     return (
                         <li key={i} style={{ margin: '5px 0px' }}>
                             <div className="Card-root" style={{ backgroundColor: i === 0 ? '#f6f9fc' : '#ffffff' }}>
@@ -40,6 +41,34 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 type="text"
                                                                 name={`${policy}.callFrequency`}
+                                                                component={RenderField}
+                                                                style={{ width: '250px' }}
+                                                                defaultValue="10"
+                                                                subProjectId={subProjectId}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">SMS Frequency</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type="text"
+                                                                name={`${policy}.smsFrequency`}
+                                                                component={RenderField}
+                                                                style={{ width: '250px' }}
+                                                                defaultValue="10"
+                                                                subProjectId={subProjectId}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Email Frequency</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type="text"
+                                                                name={`${policy}.emailFrequency`}
                                                                 component={RenderField}
                                                                 style={{ width: '250px' }}
                                                                 defaultValue="10"
@@ -90,7 +119,24 @@ const RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId 
                                     <button
                                         type="button"
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                        onClick={() => fields.push({ callFrequency: '10',teamMember: [{ member: '', email: true, sms: true, call: true, timezone: '', startTime: '', endTime: '' }] })}
+                                        onClick={() => fields.push(
+                                            { 
+                                                callFrequency: '10',
+                                                smsFrequency: '10',
+                                                emailFrequency: '10',
+                                                teamMember: [
+                                                    { 
+                                                        member: '',
+                                                        email: true,
+                                                        sms: true,
+                                                        call: true,
+                                                        timezone: '',
+                                                        startTime: '',
+                                                        endTime: ''
+                                                    }
+                                                ]
+                                            }
+                                        )}
                                     >
                                         Add Escalation Policy
                                     </button>

@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -9,7 +9,7 @@ import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
 
-const calculateTime = (probeStatus) => {
+const calculateTime = (incidents, activeProbe) => {
     let timeBlock = [];
     let dayStart = moment(Date.now()).startOf('day');
     let totalUptime = 0;
@@ -23,26 +23,35 @@ const calculateTime = (probeStatus) => {
             upTime: 0,
             degradedTime: 0
         };
-        probeStatus.forEach(day => {
-            let start;
-            let end;
-            if (day.endTime === null) {
-                day.endTime = Date.now();
+        incidents.forEach(incident => {
+            const probes = incident.probes;
+            const activeProbeCheck = probes && probes.length === 0 ? true :
+                (probes && probes.length > 0 ? (probes.filter(
+                    probe => probe && probe.probeId && probe.probeId._id === activeProbe._id
+                ).length > 0 ? true : false)
+                    : false
+                );
+            if (activeProbeCheck) {
+                let start;
+                let end;
+                if (incident.resolvedAt === null) {
+                    incident.resolvedAt = Date.now();
+                }
+                if (moment(incident.createdAt).isBefore(dayEnd) && moment(incident.resolvedAt).isAfter(dayStartIn)) {
+                    start = moment(incident.createdAt).isBefore(dayStartIn) ? dayStartIn : moment(incident.createdAt);
+                    end = moment(incident.resolvedAt).isAfter(dayEnd) ? dayEnd : moment(incident.resolvedAt);
+                    if (incident.incidentType === 'offline') {
+                        timeObj.downTime = timeObj.downTime + end.diff(start, 'seconds');
+                    }
+                    if (incident.incidentType === 'degraded') {
+                        timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'seconds');
+                    }
+                    if (incident.incidentType === 'online') {
+                        timeObj.upTime = timeObj.upTime + end.diff(start, 'seconds');
+                    }
+                }
             }
-            if (moment(day.startTime).isBefore(dayEnd) && moment(day.endTime).isAfter(dayStartIn)) {
-                start = moment(day.startTime).isBefore(dayStartIn) ? dayStartIn : moment(day.startTime);
-                end = moment(day.endTime).isAfter(dayEnd) ? dayEnd : moment(day.endTime);
-                if (day.status === 'offline') {
-                    timeObj.downTime = timeObj.downTime + end.diff(start, 'minutes');
-                }
-                else if (day.status === 'degraded') {
-                    timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'minutes');
-                }
-                else if (day.status === 'online') {
-                    timeObj.upTime = timeObj.upTime + end.diff(start, 'minutes');
-                }
-            }
-        })
+        });
         totalUptime = totalUptime + timeObj.upTime;
         totalTime = totalTime + timeObj.upTime + timeObj.degradedTime + timeObj.downTime;
         timeBlock.push(Object.assign({}, timeObj));
@@ -51,10 +60,25 @@ const calculateTime = (probeStatus) => {
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
 };
 
-export function MonitorChart({ probe, startDate, endDate, probeData, type, status, showAll }) {
-    var block = [];
-    var { timeBlock, uptimePercent } = probe && probe.probeStatus ? calculateTime(probe.probeStatus) : calculateTime([]);
-    for (var i = 0; i < 90; i++) {
+export function MonitorChart({ probe, monitor, startDate, endDate, probeData, status, showAll, activeProbe, probes }) {
+    const [now, setNow] = useState(Date.now());
+    const activeProbeObj = (probes && probes.length > 0 && probes[activeProbe || 0] ? probes[activeProbe || 0] : probe);
+    const lastAlive = activeProbeObj && activeProbeObj.lastAlive ? activeProbeObj.lastAlive : now;
+    const { timeBlock, uptimePercent } = monitor.incidents && monitor.incidents.length > 0 ? calculateTime(monitor.incidents, activeProbeObj) : calculateTime([]);
+    const type = monitor.type;
+
+    useEffect(() => {
+        let nowHandler = setTimeout(() => {
+            setNow(Date.now());
+        }, 65000);
+
+        return () => {
+            clearTimeout(nowHandler);
+        };
+    });
+
+    let block = [];
+    for (let i = 0; i < 90; i++) {
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
 
@@ -72,8 +96,6 @@ export function MonitorChart({ probe, startDate, endDate, probeData, type, statu
     let monitorStatus = toPascalCase(status);
     let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '0';
 
-    let monitorInfo;
-
     let statusColor;
     switch (status) {
         case 'degraded':
@@ -82,10 +104,14 @@ export function MonitorChart({ probe, startDate, endDate, probeData, type, statu
         case 'offline':
             statusColor = 'red';
             break;
+        case 'online':
+            statusColor = 'green';
+            break;
         default:
             statusColor = 'blue'
     }
 
+    let monitorInfo;
     if (type === 'server-monitor') {
         monitorInfo = <Fragment>
             <div className="db-Trend">
@@ -220,30 +246,43 @@ export function MonitorChart({ probe, startDate, endDate, probeData, type, statu
         monitorInfo = <div className="db-Trend">
             <div className="block-chart-side line-chart">
                 <div className="db-TrendRow">
-                    <div className="db-Trend-colInformation">
-                        <div className="db-Trend-rowTitle" title="Response Time">
-                            <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                    {lastAlive && moment(now).diff(moment(lastAlive), 'minutes') > 1 ?
+                        <div className="db-Trend-colInformation probe-offline">
+                            <div className="db-Trend-rowTitle" title="Currently not monitoring">
+                                <div className="db-Trend-title"><strong><span className="chart-font">Currently not monitoring</span></strong></div>
+                            </div>
+                            <div className="db-Trend-rowTitle">
+                                <div className="db-Trend-title description"><small><span className="chart-font">We&apos;re currently not monitoring this monitor from this probe because the probe is offline.</span></small></div>
+                            </div>
                         </div>
-                        <div className="db-Trend-row">
-                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
-                        </div>
-                    </div>
-                    <div className="db-Trend-colInformation">
-                        <div className="db-Trend-rowTitle" title="Monitor Status">
-                            <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
-                        </div>
-                        <div className="db-Trend-row">
-                            <div className="db-Trend-col db-Trend-colValue"><span> <span className={`chart-font Text-color--${statusColor}`}>{monitorStatus}</span></span></div>
-                        </div>
-                    </div>
-                    <div className="db-Trend-colInformation">
-                        <div className="db-Trend-rowTitle" title="Uptime Stats">
-                            <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
-                        </div>
-                        <div className="db-Trend-row">
-                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
-                        </div>
-                    </div>
+                        :
+                        <>
+                            <div className="db-Trend-colInformation">
+                                <div className="db-Trend-rowTitle" title="Response Time">
+                                    <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                                </div>
+                                <div className="db-Trend-row">
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
+                                </div>
+                            </div>
+                            <div className="db-Trend-colInformation">
+                                <div className="db-Trend-rowTitle" title="Monitor Status">
+                                    <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
+                                </div>
+                                <div className="db-Trend-row">
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className={`chart-font Text-color--${statusColor}`}>{monitorStatus}</span></span></div>
+                                </div>
+                            </div>
+                            <div className="db-Trend-colInformation">
+                                <div className="db-Trend-rowTitle" title="Uptime Stats">
+                                    <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
+                                </div>
+                                <div className="db-Trend-row">
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
+                                </div>
+                            </div>
+                        </>
+                    }
                 </div>
             </div>
             <div className="block-chart-main line-chart">
@@ -303,17 +342,20 @@ MonitorChart.propTypes = {
     probe: PropTypes.object,
     startDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     endDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    monitor: PropTypes.object,
     probeData: PropTypes.array,
     status: PropTypes.string,
-    type: PropTypes.string,
-    showAll: PropTypes.bool
+    showAll: PropTypes.bool,
+    activeProbe: PropTypes.number,
+    probes: PropTypes.array
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
 const mapStateToProps = (state) => {
     return {
-        activeProbe: state.monitor.activeProbe
+        activeProbe: state.monitor.activeProbe,
+        probes: state.probe.probes.data
     };
 };
 

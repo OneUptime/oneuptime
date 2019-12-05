@@ -161,10 +161,10 @@ export class MonitorViewHeader extends Component {
                                 })}
                             </div>
                         </ShouldRender>
-                        <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} showAll={true} />
+                        <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} monitor={monitor} probeData={probeData} status={status} showAll={true} />
                     </ShouldRender>
                     {monitor && monitor.probes && monitor.probes.length < 2 ?
-                        <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} probeData={probeData} type={monitor.type} status={status} showAll={true} />
+                        <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} monitor={monitor} probeData={probeData} status={status} showAll={true} />
                         : ''
                     }<br />
                 </div>

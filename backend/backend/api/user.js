@@ -265,7 +265,7 @@ router.post('/forgot-password', async function (req, res) {
     if (typeof data.email !== 'string') {
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Email in not in string format.'
+            message: 'Email is not in string format.'
         });
     }
 
@@ -302,7 +302,7 @@ router.post('/reset-password', async function (req, res) {
     if (typeof data.password !== 'string') {
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Password in not in string format.'
+            message: 'Password is not in string format.'
         });
     }
 
@@ -316,7 +316,7 @@ router.post('/reset-password', async function (req, res) {
     if (typeof data.token !== 'string') {
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Token in not in string format.'
+            message: 'Token is not in string format.'
         });
     }
 
@@ -615,24 +615,35 @@ router.get('/confirmation/:token', async function (req, res) {
 router.post('/resend', async function (req, res) {
     if (req.body && req.body.email) {
         var { email, userId } = req.body;
-        var user = await UserModel.findOne({ _id: userId });
-        if (!user) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'No user associated with this account'
-            });
-        }
-        var checkUser = await UserModel.findOne({ email });
-        if (checkUser) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'User already registered with this email'
-            });
+        var user;
+        if (!userId) {
+            user = await UserModel.findOne({ email });
+            if (!user) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'No user associated with this account'
+                });
+            }
+        } else {
+            user = await UserModel.findOne({ _id: userId });
+            if (!user) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'No user associated with this account'
+                });
+            }
+            var checkUser = await UserModel.findOne({ email });
+            if (checkUser) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'User already registered with this email'
+                });
+            }
         }
         if (user.isVerified && user.email === email) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'User has been already verified.'
+                message: 'User has already been verified.'
             });
         }
         var token = await UserService.sendToken(user, email);

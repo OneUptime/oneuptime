@@ -68,7 +68,7 @@ export class ChangePasswordSetting extends Component {
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <span>Change Password</span>
                             </span>
-                            <p><span>Change your password to something you can remember.</span></p>
+                            <p><span>We recommend you use password manager to store your Fyipe Password.</span></p>
                         </div>
                     </div>
                     <form onSubmit={handleSubmit(this.submitForm)}>

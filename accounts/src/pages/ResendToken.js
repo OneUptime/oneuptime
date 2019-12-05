@@ -74,13 +74,13 @@ export class ResendTokenForm extends Component {
                 <p className="error-message hidden" />
 
 
-                {this.props.resendTokenState.success && <p id="reset-password-success" className="message"> An email is on its way to you with new verification link. Please don&apos;t forget to check spam. </p>}
+                {this.props.resendTokenState.success && <p id="resend-verification-success" className="message"> An email is on its way to you with new verification link. Please don&apos;t forget to check spam. </p>}
                 {!this.props.resendTokenState.success && <p className="message"> Enter your email address below and we will resend you a verification link to activate your fyipe account.</p>}
 
 
                 {!this.props.resendTokenState.success && <div> <p className="text">
                   <span>
-                    <label htmlFor="email">  Your Email</label>
+                    <label htmlFor="email">Your Email</label>
                     <Field
                       component={RenderField}
                       type="email"

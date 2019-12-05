@@ -32,10 +32,14 @@ export function updateProfileSetting(values) {
 
 	return function (dispatch) {
 		let data = new FormData();
-		console.log(values);
-		if (values.profilePic && values.profilePic !== 'null' && values.profilePic[0]) {
+		if (values.profilePic && values.profilePic !== 'null') {
 			if (!values.removedPic) {
-				data.append('profilePic', values.profilePic[0], values.profilePic[0].name);
+				if(values.profilePic && typeof values.profilePic !== 'object'){
+					data.append('profilePic', values.profilePic);
+				}
+				else {
+					data.append('profilePic', values.profilePic[0], values.profilePic[0].name);
+				}
 			} else {
 				data.append('profilePic', null);
 			}
@@ -52,7 +56,7 @@ export function updateProfileSetting(values) {
 		promise.then(function (response) {
 			var profileSettings = response.data;
 			dispatch(updateProfileSettingSuccess(profileSettings));
-
+			return profileSettings;
 		}, function (error) {
 
 			if (error && error.response && error.response.data)
@@ -105,8 +109,8 @@ export function updateChangePasswordSetting(data) {
 		dispatch(updateChangePasswordSettingRequest());
 
 		promise.then(function () {
-
 			dispatch(updateChangePasswordSettingSuccess());
+			return {};
 		}, function (error) {
 
 			if (error && error.response && error.response.data)
@@ -177,6 +181,7 @@ export function userSettings() {
 		promise.then(function (response) {
 			var settings = response.data;
 			dispatch(userSettingsSuccess(settings));
+			return settings;
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
@@ -253,23 +258,24 @@ export function sendEmailVerificationError(error) {
 }
 
 export function sendEmailVerificationLink(values) {
-	return function(dispatch){
+	return function (dispatch) {
 
 		var promise = postApi('user/resend', values);
 		dispatch(sendEmailVerificationRequest());
 
-		promise.then(function(data){
+		promise.then(function (data) {
 			dispatch(sendEmailVerificationSuccess(data));
+			return data;
 		}, function(error){
 			if(error && error.response && error.response.data)
 				error = error.response.data;
-			if(error && error.data){
+			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(sendEmailVerificationError(errors(error)));
@@ -288,6 +294,7 @@ export function sendVerificationSMS(projectId, values) {
 		promise.then(function (response) {
 			var vericationAction = response.data;
 			dispatch(sendVerificationSMSSuccess(vericationAction));
+			return vericationAction;
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
@@ -337,6 +344,7 @@ export function verifySMSCode(projectId, values) {
 		promise.then(function (response) {
 			var verificationResult = response.data;
 			dispatch(verifySMSCodeSuccess(verificationResult));
+			return verificationResult;
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;

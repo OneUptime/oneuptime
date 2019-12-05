@@ -80,7 +80,7 @@ module.exports = {
                 monitor.visibleOnStatusPage = data.visibleOnStatusPage;
                 monitor.projectId = data.projectId;
                 if (data.type === 'url' || data.type === 'api' || data.type === 'server-monitor' || data.type === 'script') {
-                    monitor.criteria = data.criteria || MonitorCriteriaService.create(data.type);
+                    monitor.criteria = _.isEmpty(data.criteria) ? MonitorCriteriaService.create(data.type) : data.criteria;
                 }
                 if (data.type === 'api') {
                     if (data.method && data.method.length) monitor.method = data.method;
@@ -611,3 +611,4 @@ var IntegrationService = require('../services/integrationService');
 var TeamService = require('../services/teamService');
 var ErrorService = require('../services/errorService');
 var moment = require('moment');
+var _ = require('lodash');

@@ -143,16 +143,14 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.updatemonitorlogbysocket(data);
                 }
             });
-            CB.CloudNotification.on('updateProbe', function (data) {
+            CB.CloudNotification.on(`updateProbe-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.updateprobebysocket(data);
                 } else {
                     const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
                     const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
-                    if (isUserInSubProject) {
-                        thisObj.props.updateprobebysocket(data);
-                    }
+                    if (isUserInSubProject) thisObj.props.updateprobebysocket(data);
                 }
             });
             CB.CloudNotification.on(`NewNotification-${this.props.project._id}`, function (data) {
