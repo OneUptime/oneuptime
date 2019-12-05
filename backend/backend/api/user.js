@@ -405,7 +405,7 @@ router.put('/profile', getUser, async function (req, res) {
             var user = await UserService.update(data);
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(error);
+            return sendErrorResponse(req, res, error);
         }
     });
 
@@ -437,7 +437,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, 
             var user = await UserService.update(data);
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(error);
+            return sendErrorResponse(req, res, error);
         }
     });
 
