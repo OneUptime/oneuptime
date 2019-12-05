@@ -144,19 +144,19 @@ export class SmsSmtpBox extends Component {
                                                             </div>
                                                             <ShouldRender if={this.props.showSmsSmtpConfiguration}>
                                                                 <div className="bs-Fieldset-row">
-                                                                    <label className="bs-Fieldset-label">Application SID</label>
+                                                                    <label className="bs-Fieldset-label">Account SID</label>
                                                                     <div className="bs-Fieldset-fields">
                                                                         <Field className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             component={RenderField}
                                                                             type="text"
                                                                             name="accountSid"
                                                                             id="accountSid"
-                                                                            placeholder="Application SID"
+                                                                            placeholder="Account SID"
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span><a target="_blank" rel="noopener noreferrer" href="https://support.twilio.com/hc/en-us/articles/223136607-What-is-an-Application-SID-">Application SID for your Twilio Account.</a>
-                                                                        </span></p>
+                                                                        <p className="bs-Fieldset-explanation"><span><a target="_blank" href="https://support.twilio.com/hc/en-us/articles/223136607-What-is-an-Application-SID-">Account SID for your Twilio Account.</a>
+                                                                                    </span></p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bs-Fieldset-row">
