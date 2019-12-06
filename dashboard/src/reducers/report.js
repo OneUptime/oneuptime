@@ -15,6 +15,12 @@ const initialState = {
         monitors: [],
         count: null
     },
+    incidents: {
+        requesting: true,
+        error: null,
+        success: false,
+        reports: [],
+    },
     monthlyIncidents: {
         requesting: true,
         error: null,
@@ -94,6 +100,36 @@ export default function incidents(state = initialState, action) {
                     success: false,
                     monitors: [],
                     count: null
+                },
+            });
+
+        case types.GET_INCIDENTS_REQUEST:
+            return Object.assign({}, state, {
+                incidents: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    reports: []
+                },
+            });
+
+        case types.GET_INCIDENTS_SUCCESS:
+            return Object.assign({}, state, {
+                incidents: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    reports: action.payload.data
+                },
+            });
+
+        case types.GET_INCIDENTS_FAILED:
+            return Object.assign({}, state, {
+                incidents: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    reports: []
                 },
             });
 

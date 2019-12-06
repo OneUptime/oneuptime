@@ -5,10 +5,10 @@ import { connect } from 'react-redux';
 import { LargeSpinner as Loader } from '../basic/Loader';
 import { ResponsiveContainer, AreaChart as Chart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import {
-    getMonthlyIncidents,
-    getMonthlyIncidentsError,
-    getMonthlyIncidentsRequest,
-    getMonthlyIncidentsSuccess
+    getIncidents,
+    getIncidentsError,
+    getIncidentsRequest,
+    getIncidentsSuccess
 } from '../../actions/reports';
 
 const noDataStyle = {
@@ -39,39 +39,51 @@ CustomTooltip.propTypes = {
     label: PropTypes.string
 };
 
-class MonthlyIncidents extends Component {
+class Incidents extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            months: []
+            incidents: []
         }
     }
 
     componentDidMount() {
-        const { getMonthlyIncidents, currentProject } = this.props;
-        getMonthlyIncidents(currentProject);
+        const { getIncidents, currentProject, filter, startDate, endDate } = this.props;
+
+        getIncidents(currentProject, filter, startDate, endDate);
     }
 
-    UNSAFE_componentWillReceiveProps(nextProps) {
-        if (this.state.months !== nextProps.monthlyIncidents.months) {
+    UNSAFE_componentWillReceiveProps(nextProps, prevState) {
+        const {
+            getIncidents,
+            currentProject,
+            filter,
+            startDate,
+            endDate,
+            incidentReports
+        } = nextProps;
+
+        if (filter !== this.props.filter || startDate !== this.props.startDate || endDate !== this.props.endDate) {
+            getIncidents(currentProject, filter, startDate, endDate);
+        }
+
+        if (prevState.incidents !== incidentReports.reports) {
             this.setState({
-                months: nextProps.monthlyIncidents.months
-            })
+                incidents: nextProps.incidentReports.reports
+            });
         }
     }
 
     render() {
-        const { months } = this.state;
-        const { monthlyIncidents } = this.props;
+        const { incidents } = this.state;
+        const { incidentReports, filter } = this.props;
 
-        if (months && months.length > 0) {
-            const data = months.reverse();
-
+        if (incidents && incidents.length > 0) {
             return (
                 <ResponsiveContainer width="100%" height={300}>
-                    <Chart data={data}>
+                    <Chart data={incidents}>
                         <Legend verticalAlign="top" height={36} />
-                        <XAxis dataKey="month" />
+                        <XAxis dataKey={filter} />
                         <YAxis />
                         <Tooltip content={<CustomTooltip />} />
                         <CartesianGrid strokeDasharray="3 3" />
@@ -82,34 +94,37 @@ class MonthlyIncidents extends Component {
         } else {
             return (
                 <div style={noDataStyle}>
-                    {monthlyIncidents.requesting ? <Loader /> : <h3>NO MONTHLY INCIDENTS</h3>}
+                    {incidentReports.requesting ? <Loader /> : <h3>NO INCIDENTS</h3>}
                 </div>
             );
         }
     }
 }
 
-MonthlyIncidents.displayName = 'MonthlyIncidents';
+Incidents.displayName = 'Incidents';
 
 const actionCreators = {
-    getMonthlyIncidents,
-    getMonthlyIncidentsError,
-    getMonthlyIncidentsRequest,
-    getMonthlyIncidentsSuccess
-}
+    getIncidents,
+    getIncidentsError,
+    getIncidentsRequest,
+    getIncidentsSuccess
+};
 
 const mapStateToProps = state => ({
-    monthlyIncidents: state.report.monthlyIncidents
-})
+    incidentReports: state.report.incidents
+});
 
 const mapDispatchToProps = dispatch => ({
     ...bindActionCreators(actionCreators, dispatch),
-})
+});
 
-MonthlyIncidents.propTypes = {
-    getMonthlyIncidents: PropTypes.func,
+Incidents.propTypes = {
+    getIncidents: PropTypes.func,
+    filter: PropTypes.string,
+    startDate: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
+    endDate: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
     currentProject: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
-    monthlyIncidents: PropTypes.object
+    incidentReports: PropTypes.object
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(MonthlyIncidents);
+export default connect(mapStateToProps, mapDispatchToProps)(Incidents);

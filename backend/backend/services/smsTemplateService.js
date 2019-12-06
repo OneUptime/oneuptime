@@ -17,25 +17,17 @@ module.exports = {
 
     update: async function(data){
         let _this = this;
-        if(!data._id){
-            try{
+        try {
+            if (!data._id) {
                 let smsTemplate = await _this.create(data);
-                return smsTemplate;
-            }catch(error){
-                ErrorService.log('SmsTemplateService.create', error);
-                throw error;
-            }
-        }else{
-            try{
+                return smsTemplate;  
+            } else {
                 var smsTemplate = await _this.findOneBy({_id: data._id});
-            }catch(error){
-                ErrorService.log('SmsTemplateService.findByOne', error);
-                throw error;
-            }
-            let body = data.body || smsTemplate.body;
-            let smsType = data.smsType || smsTemplate.smsType;
-            let allowedVariables = smsTemplateVariables[[data.smsType || smsTemplate.smsType || []]];
-            try{
+
+                let body = data.body || smsTemplate.body;
+                let smsType = data.smsType || smsTemplate.smsType;
+                let allowedVariables = smsTemplateVariables[[data.smsType || smsTemplate.smsType || []]];
+
                 var updatedSmsTemplate = await SmsTemplateModel.findByIdAndUpdate(data._id, {
                     $set: {
                         body: body,
@@ -45,12 +37,12 @@ module.exports = {
                 }, {
                     new: true
                 });
-            }catch(error){
-                ErrorService.log('SmsTemplateModel.findByIdAndUpdate', error);
-                throw error;
-            }
 
-            return updatedSmsTemplate;
+                return updatedSmsTemplate;
+            }
+        } catch (error) {
+            ErrorService.log('SmsTemplateModel.findByIdAndUpdate', error);
+            throw error;
         }
     },
 

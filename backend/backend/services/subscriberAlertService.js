@@ -17,27 +17,18 @@ module.exports = {
 
     update: async function(subscriberAlertId, projectId, data){
         let _this = this;
-        if(!data._id){
-            try{
+        try {
+            if(!data._id){
                 let subscriberAlert = await _this.create(data);
                 return subscriberAlert;
-            }catch(error){
-                ErrorService.log('SubscriberAlertService.create', error);
-                throw error;
-            }
-        }else{
-            try{
+            }else{
                 var subscriberAlert = await _this.findByOne({_id: data._id});
-            }catch(error){
-                ErrorService.log('SubscriberAlertService', error);
-                throw error;
-            }
-            let incidentId = data.incidentId || subscriberAlert.incidentId;
-            let subscriberId = data.subscriberId || subscriberAlert.subscriberId;
-            let alertVia = data.alertVia || subscriberAlert.alertVia;
-            let alertStatus = data.alertStatus || subscriberAlert.alertStatus;
-
-            try{
+                
+                let incidentId = data.incidentId || subscriberAlert.incidentId;
+                let subscriberId = data.subscriberId || subscriberAlert.subscriberId;
+                let alertVia = data.alertVia || subscriberAlert.alertVia;
+                let alertStatus = data.alertStatus || subscriberAlert.alertStatus;
+                
                 //find and update
                 subscriberAlert = await SubscriberAlertModel.findByIdAndUpdate(data._id,{
                     $set:{
@@ -50,11 +41,12 @@ module.exports = {
                 }, {
                     new: true
                 });
-            }catch(error){
-                ErrorService.log('SubscriberAlertModel.findByIdAndUpdate', error);
-                throw error;
+                
+                return subscriberAlert;
             }
-            return subscriberAlert;
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.update', error);
+            throw error;
         }
     },
 

@@ -89,4 +89,22 @@ router.get('/:projectId/monthly-incidents', getUser, isAuthorized, getSubProject
     }
 });
 
+/**
+* @Route
+* @description route to fetch incidents count by filter
+* @param Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {projectId}
+* @returns { Array } an array of incidents count
+*/
+router.get('/:projectId/incidents', getUser, isAuthorized, getSubProjects, async (req, res) => {
+    const { startDate, endDate, filter } = req.query;
+    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+    try {
+        // Reports Service
+        var incidents = await ReportService.getIncidentCountBy(subProjectIds, startDate, endDate, filter);
+        return sendListResponse(req, res, incidents);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;

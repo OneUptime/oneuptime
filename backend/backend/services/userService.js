@@ -112,59 +112,50 @@ module.exports = {
 
     update: async function (data) {
         var _this = this;
-        if (!data._id) {
-            try {
+        try {
+            if (!data._id) {
                 let user = await _this.create(data);
                 return user;
-            } catch (error) {
-                ErrorService.log('UserService.create', error);
-                throw error;
-            }
-        } else {
-            try {
+            } else {
                 var user = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
-            } catch (error) {
-                ErrorService.log('UserService.findOneBy', error);
-                throw error;
-            }
-            var name = data.name || user.name;
-            var email = data.email || user.email;
-            var password = data.password || user.password;
-            var companyName = data.companyName || user.companyName;
-            var companyRole = data.companyRole || user.companyRole;
-            var companySize = data.companySize || user.companySize;
-            var referral = data.referral || user.referral;
-            var companyPhoneNumber = data.companyPhoneNumber || user.companyPhoneNumber;
-            var onCallAlert = data.onCallAlert || user.onCallAlert;
-            var profilePic = data.profilePic || user.profilePic;
-            var jwtRefreshToken = data.jwtRefreshToken || user.jwtRefreshToken;
-            var stripeCustomerId = data.stripeCustomerId || user.stripeCustomerId;
-            var resetPasswordToken = data.resetPasswordToken;
-            var resetPasswordExpires = data.resetPasswordExpires;
-            var createdAt = data.createdAt || user.createdAt;
-            var timezone = data.timezone || user.timezone;
-            var lastActive = data.lastActive || user.lastActive;
-            var coupon = data.coupon || user.coupon;
-            var disabled = data.disabled || false;
-            var adminNotes = data.adminNotes || user.adminNotes;
-            var isVerified = data.email ? data.email === user.email && user.isVerified : user.isVerified;
-            var tempEmail = data.tempEmail || user.tempEmail || null;
 
-            var isBlocked = user.isBlocked;
-            if (typeof data.isBlocked === 'boolean') {
-                isBlocked = data.isBlocked;
-            }
-
-            var deleted = user.deleted;
-            var deletedById = user.deletedById;
-            var deletedAt = user.deletedAt;
-            if (data.deleted === false) {
-                deleted = false;
-                deletedById = null;
-                deletedAt = null;
-            }
-
-            try {
+                var name = data.name || user.name;
+                var email = data.email || user.email;
+                var password = data.password || user.password;
+                var companyName = data.companyName || user.companyName;
+                var companyRole = data.companyRole || user.companyRole;
+                var companySize = data.companySize || user.companySize;
+                var referral = data.referral || user.referral;
+                var companyPhoneNumber = data.companyPhoneNumber || user.companyPhoneNumber;
+                var onCallAlert = data.onCallAlert || user.onCallAlert;
+                var profilePic = data.profilePic || user.profilePic;
+                var jwtRefreshToken = data.jwtRefreshToken || user.jwtRefreshToken;
+                var stripeCustomerId = data.stripeCustomerId || user.stripeCustomerId;
+                var resetPasswordToken = data.resetPasswordToken;
+                var resetPasswordExpires = data.resetPasswordExpires;
+                var createdAt = data.createdAt || user.createdAt;
+                var timezone = data.timezone || user.timezone;
+                var lastActive = data.lastActive || user.lastActive;
+                var coupon = data.coupon || user.coupon;
+                var disabled = data.disabled || false;
+                var adminNotes = data.adminNotes || user.adminNotes;
+                var isVerified = data.email ? data.email === user.email && user.isVerified : user.isVerified;
+                var tempEmail = data.tempEmail || user.tempEmail || null;
+    
+                var isBlocked = user.isBlocked;
+                if (typeof data.isBlocked === 'boolean') {
+                    isBlocked = data.isBlocked;
+                }
+    
+                var deleted = user.deleted;
+                var deletedById = user.deletedById;
+                var deletedAt = user.deletedAt;
+                if (data.deleted === false) {
+                    deleted = false;
+                    deletedById = null;
+                    deletedAt = null;
+                }
+    
                 var updatedUser = await UserModel.findOneAndUpdate({ _id: data._id }, {
                     $set: {
                         name: name,
@@ -197,11 +188,15 @@ module.exports = {
                 }, {
                     new: true
                 });
-            } catch (error) {
-                ErrorService.log('UserModel.findOneAndUpdate', error);
-                throw error;
+                return updatedUser;
             }
-            return updatedUser;
+        } catch (error) {
+            if (error.message.indexOf('at path "_id" for model "User"') !== -1) {
+                ErrorService.log('UserService.findOneBy', error);
+            } else {
+                ErrorService.log('UserService.create', error);
+            }
+            throw error;
         }
     },
 
@@ -256,45 +251,31 @@ module.exports = {
         if (util.isEmailValid(email)) {
             try {
                 var user = await _this.findOneBy({ email: email });
-            } catch (error) {
-                ErrorService.log('UserService.findOneBy', error);
-                throw error;
-            }
-            if (user) {
-                let error = new Error('User already exists.');
-                error.code = 400;
-                ErrorService.log('UserService.signup', error);
-                throw error;
-            } else {
-                // Check here is the payment intent is successfully paid. If yes then create the customer else not.
-                var processedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
-                if (processedPaymentIntent.status !== 'succeeded') {
-                    let error = new Error('Unsuccessful attempt to charge card');
+    
+                if (user) {
+                    let error = new Error('User already exists.');
                     error.code = 400;
-                    ErrorService.log('PaymentService.checkPaymentIntent', error);
+                    ErrorService.log('UserService.signup', error);
                     throw error;
-                }
-                var customerId = processedPaymentIntent.customer;
-
-                try {
+                } else {
+                    // Check here is the payment intent is successfully paid. If yes then create the customer else not.
+                    var processedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
+                    if (processedPaymentIntent.status !== 'succeeded') {
+                        let error = new Error('Unsuccessful attempt to charge card');
+                        error.code = 400;
+                        ErrorService.log('PaymentService.checkPaymentIntent', error);
+                        throw error;
+                    }
+                    var customerId = processedPaymentIntent.customer;
+    
                     var hash = await bcrypt.hash(data.password, constants.saltRounds);
-                } catch (error) {
-                    ErrorService.log('bcrypt.hash', error);
-                    throw error;
-                }
-
-                data.password = hash;
-                // creating jwt refresh token
-                data.jwtRefreshToken = randToken.uid(256);
-                //save a user only when payment method is charged and then next steps
-                try {
+    
+                    data.password = hash;
+                    // creating jwt refresh token
+                    data.jwtRefreshToken = randToken.uid(256);
+                    //save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
-                } catch (error) {
-                    ErrorService.log('UserService.create', error);
-                    throw error;
-                }
-
-                try {
+    
                     let createdAt = new Date(user.createdAt).toISOString().split('T', 1);
                     var record = await AirtableService.logUser({
                         name: data.name,
@@ -304,58 +285,55 @@ module.exports = {
                         jobRole: data.companyRole,
                         createdAt
                     });
-                } catch (error) {
-                    ErrorService.log('AirtableService.logUser', error);
-                    throw error;
-                }
-
-                try {
+    
                     await _this.sendToken(user, user.email);
-                } catch (error) {
-                    ErrorService.log(' UserVerificationService.sendToken', error);
-                    throw error;
-                }
-
-                //update customer Id
-                try {
+    
+                    //update customer Id
                     user = await _this.update({ _id: user._id, stripeCustomerId: customerId });
-                } catch (error) {
-                    ErrorService.log('UserService.update', error);
-                    throw error;
-                }
-
-                try {
                     var subscription = await PaymentService.subscribePlan(stripePlanId, customerId, data.coupon);
-                } catch (error) {
-                    ErrorService.log('PaymentService.subscribePlan', error);
-                    throw error;
-                }
-
-                var projectName = 'Unnamed Project';
-                var projectData = {
-                    name: projectName,
-                    userId: user._id,
-                    stripePlanId: stripePlanId,
-                    stripeSubscriptionId: subscription.stripeSubscriptionId
-                };
-                try {
+    
+                    var projectName = 'Unnamed Project';
+                    var projectData = {
+                        name: projectName,
+                        userId: user._id,
+                        stripePlanId: stripePlanId,
+                        stripeSubscriptionId: subscription.stripeSubscriptionId
+                    };
                     await ProjectService.create(projectData);
-                } catch (error) {
-                    ErrorService.log('ProjectService.create', error);
-                    throw error;
+
+                    user.airtableId = record.id || null;
+    
+                    return user;
                 }
-
-                user.airtableId = record.id || null;
-
-                return user;
+            } catch (error) {
+                if (error.message.indexOf('for model "ProjectModel"') !== -1) {
+                    ErrorService.log('ProjectService.create', error);
+                } else if (error.message.indexOf('for model "Subscriptions"') !== -1) {
+                    ErrorService.log('PaymentService.subscribePlan', error);
+                } else if (error.message.indexOf('for model "VerificationTokenModel"') !== -1) {
+                    ErrorService.log('UserVerificationService.sendToken', error);
+                } else if (error.message.indexOf('Airtable') !== -1) {
+                    ErrorService.log('AirtableService.logUser', error);
+                } else {
+                    ErrorService.log('UserService.signup', error);
+                }
+                throw error;
             }
-
         } else {
             let error = new Error('Email is not in valid format.');
             error.code = 400;
             ErrorService.log('UserService.signup', error);
             throw error;
         }
+    },
+    getUserIpLocation: async function (clientIP) {
+        var ipLocation;
+        try {
+            ipLocation = await iplocation(clientIP);
+        } catch (error) {
+            ipLocation = {};
+        }
+        return ipLocation;
     },
 
     //Description: login function to authenticate user.
@@ -369,80 +347,71 @@ module.exports = {
             // find user if present in db.
             try {
                 var user = await _this.findOneBy({ email: email });
-            } catch (error) {
-                ErrorService.log('UserService.findOneBy', error);
-                throw error;
-            }
-            if (!user) {
-                let error = new Error('User does not exist.');
-                error.code = 400;
-                ErrorService.log('UserService.login', error);
-                throw error;
-            } else {
-                var ipLocation;
-                try {
-                    ipLocation = await iplocation(clientIP);
-                } catch (error) {
-                    ipLocation = {};
-                }
-                await LoginIPLog.create({
-                    userId: user._id,
-                    ipLocation
-                });
-                if (user.paymentFailedDate) {
-                    // calculate number of days the subscription renewal has failed.
-                    var oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
-                    var daysAfterPaymentFailed = Math.round((new Date - user.paymentFailedDate) / oneDayInMilliSeconds);
+                
+                if (!user) {
+                    let error = new Error('User does not exist.');
+                    error.code = 400;
+                    ErrorService.log('UserService.login', error);
+                    throw error;
+                } else {
+                    var ipLocation = await _this.getUserIpLocation(clientIP);
+                    await LoginIPLog.create({ userId: user._id, ipLocation });
 
-                    if (daysAfterPaymentFailed >= 15) {
-                        try {
+                    if (user.paymentFailedDate) {
+                        // calculate number of days the subscription renewal has failed.
+                        var oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
+                        var daysAfterPaymentFailed = Math.round((new Date - user.paymentFailedDate) / oneDayInMilliSeconds);
+    
+                        if (daysAfterPaymentFailed >= 15) {
                             user = await _this.update({ _id: user._id, disabled: true });
-                        } catch (error) {
-                            ErrorService.log('UserService.update', error);
+                            
+                            let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
+                            error.code = 400;
+                            ErrorService.log('UserService.login', error);
                             throw error;
                         }
+                    }
+                    var encryptedPassword = user.password;
+    
+                    if (user.disabled) {
                         let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
                         error.code = 400;
                         ErrorService.log('UserService.login', error);
                         throw error;
                     }
-                }
-                var encryptedPassword = user.password;
-
-                if (user.disabled) {
-                    let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
-                    error.code = 400;
-                    ErrorService.log('UserService.login', error);
-                    throw error;
-                }
-                if (!user.isVerified) {
-                    let error = new Error('Verify your email first.');
-                    error.code = 401;
-                    ErrorService.log('UserService.login', error);
-                    throw error;
-                }
-                if (!encryptedPassword) {
-                    let error = new Error('Your account does not exist. Please sign up.');
-                    error.code = 400;
-                    ErrorService.log('UserService.login', error);
-                    throw error;
-                } else {
-                    try {
-                        var res = await bcrypt.compare(password, encryptedPassword);
-                    } catch (error) {
-                        ErrorService.log('bcrypt.compare', error);
-                        throw error;
-                    }
-                    if (res) {
-                        return user;
-
-                    } else {
-                        let error = new Error('Password is incorrect.');
-                        error.code = 400;
+                    if (!user.isVerified) {
+                        let error = new Error('Verify your email first.');
+                        error.code = 401;
                         ErrorService.log('UserService.login', error);
                         throw error;
                     }
+                    if (!encryptedPassword) {
+                        let error = new Error('Your account does not exist. Please sign up.');
+                        error.code = 400;
+                        ErrorService.log('UserService.login', error);
+                        throw error;
+                    } else {
+                        var res = await bcrypt.compare(password, encryptedPassword);
+                        
+                        if (res) {
+                            return user;
+                        } else {
+                            let error = new Error('Password is incorrect.');
+                            error.code = 400;
+                            ErrorService.log('UserService.login', error);
+                            throw error;
+                        }
+                    }
                 }
+            } catch (error) {
+                if (error.message === 'User does not exist.') {
+                    ErrorService.log('UserService.findOneBy', error);
+                } else if (error.message === 'Password is incorrect.') {
+                    ErrorService.log('bcrypt.compare', error);
+                } else {
+                    ErrorService.log('UserService.login', error);
+                }
+                throw error;
             }
         } else {
             let error = new Error('Email is not in valid format.');
@@ -458,44 +427,40 @@ module.exports = {
     //Returns: promise.
     forgotPassword: async function (email) {
         var _this = this;
-        if (util.isEmailValid(email)) {
-            try {
+        try {
+            if (util.isEmailValid(email)) {
                 var user = await this.findOneBy({ email: email });
-            } catch (error) {
-                ErrorService.log('UserService.findOneBy', error);
-                throw error;
-            }
-            if (!user) {
-                let error = new Error('User does not exist.');
-                error.code = 400;
-                ErrorService.log('UserService.forgotPassword', error);
-                throw error;
-            } else {
-                try {
-                    var buf = await crypto.randomBytes(20);
-                } catch (error) {
-                    ErrorService.log('crypto.randomBytes', error);
+                
+                if (!user) {
+                    let error = new Error('User does not exist.');
+                    error.code = 400;
+                    ErrorService.log('UserService.forgotPassword', error);
                     throw error;
-                }
-                var token = buf.toString('hex');
+                } else {
+                    var buf = await crypto.randomBytes(20);
+                    var token = buf.toString('hex');
 
-                //update a user.
-                try {
+                    //update a user.
                     user = await _this.update({
                         _id: user._id,
                         resetPasswordToken: token,
                         resetPasswordExpires: Date.now() + 3600000 // 1 hour
                     });
-                } catch (error) {
-                    ErrorService.log('UserService.update', error);
-                    throw error;
+                    
+                    return user;
                 }
-                return user;
+            } else {
+                let error = new Error('Email is not in valid format.');
+                error.code = 400;
+                ErrorService.log('UserService.forgotPassword', error);
+                throw error;
             }
-        } else {
-            let error = new Error('Email is not in valid format.');
-            error.code = 400;
-            ErrorService.log('UserService.forgotPassword', error);
+        } catch (error) {
+            if (error.message.indexOf('at path "email" for model "User"') !== -1 || error.message === 'User does not exist.') {
+                ErrorService.log('UserService.findOneBy', error);
+            } else {
+                ErrorService.log('UserService.forgotPassword', error);
+            }
             throw error;
         }
 
@@ -515,34 +480,29 @@ module.exports = {
                     $gt: Date.now()
                 }
             });
-        } catch (error) {
-            ErrorService.log('UserService.findOneBy', error);
-            throw error;
-        }
-
-        if (!user) {
-            return null;
-        } else {
-            try {
+    
+            if (!user) {
+                return null;
+            } else {
                 var hash = await bcrypt.hash(password, constants.saltRounds);
-            } catch (error) {
-                ErrorService.log('bcrypt.hash', error);
-                throw error;
-            }
-
-            //update a user.
-            try {
+    
+                //update a user.
                 user = await _this.update({
                     _id: user._id,
                     password: hash,
                     resetPasswordToken: '',
                     resetPasswordExpires: ''
                 });
-            } catch (error) {
-                ErrorService.log('UserService.update', error);
-                throw error;
+    
+                return user;
             }
-            return user;
+        } catch (error) {
+            if (error.message.indexOf('at path "resetPasswordToken" for model "User"') !== -1) {
+                ErrorService.log('UserService.update', error);
+            } else {
+                ErrorService.log('UserService.resetPassword', error);
+            }
+            throw error;
         }
     },
 
@@ -554,34 +514,35 @@ module.exports = {
         var _this = this;
         try {
             var user = await _this.findOneBy({ jwtRefreshToken: refreshToken });
-        } catch (error) {
-            ErrorService.log('UserService.findOneBy', error);
-            throw error;
-        }
-        if (!user) {
-            let error = new Error('Invalid Refresh Token');
-            error.code = 400;
-            ErrorService.log('UserService.getNewToken', error);
-            throw error;
-        } else {
-            var userObj = {
-                id: user._id,
-            };
-            var accessToken = `${jwt.sign(userObj, jwtKey.jwtSecretKey, { expiresIn: 86400 })}`;
-            var jwtRefreshToken = randToken.uid(256);
-            try {
-                user = await _this.update({ _id: user._id, jwtRefreshToken: jwtRefreshToken });
-            } catch (error) {
-                ErrorService.log('UserService.update', error);
+            
+            if (!user) {
+                let error = new Error('Invalid Refresh Token');
+                error.code = 400;
+                ErrorService.log('UserService.getNewToken', error);
                 throw error;
-            }
+            } else {
+                var userObj = { id: user._id };
 
-            var token = {
-                accessToken: accessToken,
-                refreshToken: refreshToken
-            };
-            return token;
+                var accessToken = `${jwt.sign(userObj, jwtKey.jwtSecretKey, { expiresIn: 86400 })}`;
+                var jwtRefreshToken = randToken.uid(256);
+
+                user = await _this.update({ _id: user._id, jwtRefreshToken: jwtRefreshToken });
+    
+                var token = {
+                    accessToken: accessToken,
+                    refreshToken: refreshToken
+                };
+                return token;
+            }
+        } catch (error) {
+            if (error.message.indexOf('at path "_id" for model "User"') !== -1) {
+                ErrorService.log('UserService.update', error);
+            } else {
+                ErrorService.log('UserService.getNewToken', error);
+            }
+            throw error;
         }
+        
     },
 
     changePassword: async function (data) {
@@ -589,39 +550,32 @@ module.exports = {
         var currentPassword = data.currentPassword;
         try {
             var user = await _this.findOneBy({ _id: data._id });
-        } catch (error) {
-            ErrorService.log('UserService.findOneBy', error);
-            throw error;
-        }
-        var encryptedPassword = user.password;
-        try {
+            var encryptedPassword = user.password;
+
             var check = await bcrypt.compare(currentPassword, encryptedPassword);
-        } catch (error) {
-            ErrorService.log('bcrypt.compare', error);
-            throw error;
-        }
-        if (check) {
-            var newPassword = data.newPassword;
-            try {
+            if (check) {
+                var newPassword = data.newPassword;
                 var hash = await bcrypt.hash(newPassword, constants.saltRounds);
-            } catch (error) {
-                ErrorService.log('bcrypt.hash', error);
-                throw error;
-            }
-            data.password = hash;
-            try {
+                
+                data.password = hash;
                 user = await _this.update(data);
-            } catch (error) {
-                ErrorService.log('UserService.update', error);
+                
+                return user;
+            } else {
+                let error = new Error('Current Password is incorrect.');
+                error.code = 400;
+                ErrorService.log('UserService.changePassword', error);
                 throw error;
             }
-            return user;
-        } else {
-            let error = new Error('Current Password is incorrect.');
-            error.code = 400;
-            ErrorService.log('UserService.changePassword', error);
+        } catch (error) {
+            if (error.message.indexOf('at path "_id" for model "User"') !== -1) {
+                ErrorService.log('UserService.findOneBy', error);
+            } else {
+                ErrorService.log('UserService.changePassword', error);
+            }
             throw error;
         }
+        
     },
 
     getAllUsers: async function (skip, limit) {
