@@ -27,6 +27,7 @@ class SocketApp extends Component {
                 CB.CloudNotification.off(`incidentCreated-${this.props.project._id}`);
                 CB.CloudNotification.off(`updateResponseTime-${this.props.project._id}`);
                 CB.CloudNotification.off(`updateMonitorLog-${this.props.project._id}`);
+                CB.CloudNotification.off(`updateProbe-${this.props.project._id}`);
                 CB.CloudNotification.off(`NewNotification-${this.props.project._id}`);
                 CB.CloudNotification.off(`TeamMemberRoleUpdate-${this.props.project._id}`);
                 CB.CloudNotification.off(`TeamMemberCreate-${this.props.project._id}`);
@@ -119,13 +120,13 @@ class SocketApp extends Component {
             CB.CloudNotification.on(`incidentCreated-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
-                    if (data && data.createdById && data.createdById._id !== User.getUserId()) {
+                    if (data && ((data.createdById && data.createdById._id !== User.getUserId()) || data.createdById === null)) {
                         thisObj.props.incidentcreatedbysocket(data);
                     }
                 } else {
                     const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
                     const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
-                    if (data && data.createdById && data.createdById._id !== User.getUserId()) {
+                    if (data && ((data.createdById && data.createdById._id !== User.getUserId()) || data.createdById === null)) {
                         if (isUserInSubProject) thisObj.props.incidentcreatedbysocket(data);
                     }
                 }
