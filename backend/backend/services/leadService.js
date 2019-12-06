@@ -25,31 +25,20 @@ module.exports = {
 
 
         lead = await lead.save();
-        try{
+        try {
             MailService.sendLeadEmailToFyipeTeam(lead);
-        }catch(error){
-            ErrorService.log('MailService.sendLeadEmailToFyipeTeam', error);
-            throw error;
-        }
-        if (data.type) {
-
-            if (data.type === 'demo') {
-                try{
+            if (data.type) {
+                if (data.type === 'demo') {
                     await MailService.sendRequestDemoEmail(data.email);
-                }catch(error){
-                    ErrorService.log('MailService.sendRequestDemoEmail', error);
-                    throw error;
                 }
-            }
-
-            if (data.type === 'whitepaper') {
-                try{
+    
+                if (data.type === 'whitepaper') {
                     await MailService.sendWhitepaperEmail(data.email, data.whitepaperName); //whitepaper name should be stored in moreInfo.
-                }catch(error){
-                    ErrorService.log('MailService.sendWhitepaperEmail', error);
-                    throw error;
                 }
             }
+        } catch (error) {
+            ErrorService.log('MailService.create', error);
+            throw error;
         }
 
         return lead;

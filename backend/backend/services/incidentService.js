@@ -39,67 +39,54 @@ module.exports = {
         try {
             var project = await ProjectService.findOneBy({ _id: data.projectId });
             var users = project && project.users && project.users.length ? project.users.map(({ userId }) => userId) : [];
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        try {
             var monitorCount = await MonitorService.countBy({ _id: data.monitorId });
-        } catch (error) {
-            ErrorService.log('MonitorService.countBy', error);
-            throw error;
-        }
-        if (monitorCount > 0) {
-            var incident = new IncidentModel();
-            incident.projectId = data.projectId || null;
-            incident.monitorId = data.monitorId || null;
-            incident.createdById = data.createdById || null;
-            incident.notClosedBy = users;
-            if (data.incidentType) {
-                incident.incidentType = data.incidentType;
-                MonitorStatusService.create({
-                    status: data.incidentType,
-                    monitorId: data.monitorId
-                });
-            }
-            if (data.probeId) {
-                incident.probes = [{
-                    probeId: data.probeId,
-                    updatedAt: Date.now(),
-                    status: true
-                }];
-            }
-            if (data.manuallyCreated) {
-                incident.manuallyCreated = true;
-            }
-            else {
-                incident.manuallyCreated = false;
-            }
-            try {
+
+            if (monitorCount > 0) {
+                var incident = new IncidentModel();
+                incident.projectId = data.projectId || null;
+                incident.monitorId = data.monitorId || null;
+                incident.createdById = data.createdById || null;
+                incident.notClosedBy = users;
+                if (data.incidentType) {
+                    incident.incidentType = data.incidentType;
+                    MonitorStatusService.create({
+                        status: data.incidentType,
+                        monitorId: data.monitorId
+                    });
+                }
+                if (data.probeId) {
+                    incident.probes = [{
+                        probeId: data.probeId,
+                        updatedAt: Date.now(),
+                        status: true
+                    }];
+                }
+                if (data.manuallyCreated) {
+                    incident.manuallyCreated = true;
+                }
+                else {
+                    incident.manuallyCreated = false;
+                }
                 incident = await incident.save();
-            } catch (error) {
-                ErrorService.log('incident.save', error);
-                throw error;
-            }
-            try {
                 incident = await _this.findOneBy({ _id: incident._id });
-            } catch (error) {
-                ErrorService.log('IncidentService.findOneBy', error);
-                throw error;
-            }
-            try {
                 await _this._sendIncidentCreatedAlert(incident);
-            } catch (error) {
-                ErrorService.log('IncidentService._sendIncidentCreatedAlert', error);
+
+                return incident;
+            } else {
+                let error = new Error('Monitor is not present.');
+                ErrorService.log('IncidentService.create', error);
+                error.code = 400;
+
                 throw error;
             }
-            return incident;
-
-        } else {
-            let error = new Error('Monitor is not present.');
-            ErrorService.log('IncidentService.create', error);
-            error.code = 400;
-
+        } catch (error) {
+            if (error.message.indexOf('at path "_id" for model "Monitor"') !== -1) {
+                ErrorService.log('MonitorService.countBy', error);
+            } else if (error.message.indexOf('at path "_id" for model "Project"') !== -1) {
+                ErrorService.log('ProjectService.findOneBy', error);
+            } else {
+                ErrorService.log('IncidentService.create', error);
+            }
             throw error;
         }
     },
@@ -164,52 +151,44 @@ module.exports = {
 
     update: async function (data) {
         var _this = this;
-        if (!data._id) {
-            try {
+        try {
+            if (!data._id) {
                 var incident = await _this.create(data);
-            } catch (error) {
-                ErrorService.log('IncidentService.create', error);
-                throw error;
-            }
-            return incident;
-        }else{
-            try{
-                var oldIncident = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
-            }catch(error){
-                ErrorService.log('IncidentService.findOneBy', error);
-                throw error;
-            }
-            var projectId = data.projectId || oldIncident.projectId;
-            var monitorId = data.monitorId || oldIncident.monitorId;
-            var acknowledge = data.acknowledged || oldIncident.acknowledged;
-            var acknowledgedBy = data.acknowledgedBy || oldIncident.acknowledgedBy;
-            var acknowledgedAt = data.acknowledgedAt || oldIncident.acknowledgedAt;
-            var resolved = data.resolved || oldIncident.resolved;
-            var resolvedBy = data.resolvedBy || oldIncident.resolvedBy;
-            var resolvedAt = data.resolvedAt || oldIncident.resolvedAt;
-            var internalNote = data.internalNote || oldIncident.internalNote;
-            var investigationNote = data.investigationNote || oldIncident.investigationNote;
-            var createdById = data.createdById || oldIncident.createdById;
-            var notClosedBy = oldIncident.notClosedBy;
-            var acknowledgedByZapier = data.acknowledgedByZapier || oldIncident.acknowledgedByZapier;
-            var resolvedByZapier = data.resolvedByZapier || oldIncident.resolvedByZapier;
-            var createdByZapier = data.createdByZapier || oldIncident.createdByZapier;
-            var incidentType = data.incidentType || oldIncident.incidentType;
-            var probes = data.probes || oldIncident.probes;
-            if (data.notClosedBy) {
-                notClosedBy = notClosedBy.concat(data.notClosedBy);
-            }
-            var manuallyCreated = data.manuallyCreated || oldIncident.manuallyCreated || false;
-            var deleted = oldIncident.deleted || false;
-            var deletedById = oldIncident.deletedById;
-            var deletedAt = oldIncident.deletedAt;
 
-            if(data.deleted === false){
-                deleted = false;
-                deletedById = null;
-                deletedAt = null;
-            }
-            try{
+                return incident;
+            } else {
+                var oldIncident = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
+
+                var projectId = data.projectId || oldIncident.projectId;
+                var monitorId = data.monitorId || oldIncident.monitorId;
+                var acknowledge = data.acknowledged || oldIncident.acknowledged;
+                var acknowledgedBy = data.acknowledgedBy || oldIncident.acknowledgedBy;
+                var acknowledgedAt = data.acknowledgedAt || oldIncident.acknowledgedAt;
+                var resolved = data.resolved || oldIncident.resolved;
+                var resolvedBy = data.resolvedBy || oldIncident.resolvedBy;
+                var resolvedAt = data.resolvedAt || oldIncident.resolvedAt;
+                var internalNote = data.internalNote || oldIncident.internalNote;
+                var investigationNote = data.investigationNote || oldIncident.investigationNote;
+                var createdById = data.createdById || oldIncident.createdById;
+                var notClosedBy = oldIncident.notClosedBy;
+                var acknowledgedByZapier = data.acknowledgedByZapier || oldIncident.acknowledgedByZapier;
+                var resolvedByZapier = data.resolvedByZapier || oldIncident.resolvedByZapier;
+                var createdByZapier = data.createdByZapier || oldIncident.createdByZapier;
+                var incidentType = data.incidentType || oldIncident.incidentType;
+                var probes = data.probes || oldIncident.probes;
+                if (data.notClosedBy) {
+                    notClosedBy = notClosedBy.concat(data.notClosedBy);
+                }
+                var manuallyCreated = data.manuallyCreated || oldIncident.manuallyCreated || false;
+                var deleted = oldIncident.deleted || false;
+                var deletedById = oldIncident.deletedById;
+                var deletedAt = oldIncident.deletedAt;
+    
+                if(data.deleted === false){
+                    deleted = false;
+                    deletedById = null;
+                    deletedAt = null;
+                }
                 var updatedIncident = await IncidentModel.findByIdAndUpdate(data._id, {
                     $set: {
                         projectId: projectId,
@@ -235,85 +214,52 @@ module.exports = {
                         deletedAt
                     }
                 }, { new: true });
-            } catch (error) {
-                ErrorService.log('IncidentModel.findByIdAndUpdate', error);
-                throw error;
+
+                return updatedIncident;
             }
-            return updatedIncident;
+        } catch (error) {
+            ErrorService.log('IncidentService.update', error);
+            throw error;  
         }
     },
 
     async _sendIncidentCreatedAlert(incident) {
         try {
             await AlertService.sendIncidentCreated(incident);
-        } catch (error) {
-            ErrorService.log('AlertService.sendIncidentCreated', error);
-            throw error;
-        }
-        try {
             await AlertService.sendIncidentCreatedToSubscribers(incident);
-        } catch (error) {
-            ErrorService.log('AlertService.sendIncidentCreatedToSubscribers', error);
-            throw error;
-        }
-        try {
             await ZapierService.pushToZapier('incident_created', incident);
-        } catch (error) {
-            ErrorService.log('ZapierService.pushToZapier', error);
-            throw error;
-        }
-        try {
             await RealTimeService.sendIncidentCreated(incident);
-        } catch (error) {
-            ErrorService.log('RealTimeService.sendIncidentCreated', error);
-            throw error;
-        }
-        if (!incident.createdById) {
-            let msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
-            let slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *Fyipe*`;
-            try {
+
+            if (!incident.createdById) {
+                let msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
+                let slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *Fyipe*`;
                 await NotificationService.create(incident.projectId, msg, 'fyipe', 'warning');
-            } catch (error) {
-                ErrorService.log('NotificationService.create', error);
-                throw error;
-            }
-            try {
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
-            } catch (error) {
-                ErrorService.log('SlackService.sendNotification', error);
-                throw error;
-            }
-            try {
                 // Ping webhook
                 await WebHookService.sendNotification(incident.projectId, msg, incident.monitorId);
-            } catch (error) {
-                ErrorService.log('WebHookService.sendNotification', error);
-                throw error;
-            }
-        } else {
-            let msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
-            let slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *${incident.createdById.name}*`;
-            try {
+            } else {
+                let msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
+                let slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *${incident.createdById.name}*`;
                 await NotificationService.create(incident.projectId, msg, incident.createdById.name, 'warning');
-            } catch (error) {
-                ErrorService.log('NotificationService.create', error);
-                throw error;
-            }
-            try {
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
-            } catch (error) {
-                ErrorService.log('SlackService.sendNotification', error);
-                throw error;
-            }
-            try {
                 // Ping webhook
                 await WebHookService.sendNotification(incident.projectId, msg, incident.monitorId);
-            } catch (error) {
-                ErrorService.log('WebHookService.sendNotification', error);
-                throw error;
             }
+        } catch (error) {
+            if (error.message.indexOf('Notification') !== -1) {
+                ErrorService.log('NotificationService.create', error);
+            } else if (error.message.indexOf('Slack') !== -1) {
+                ErrorService.log('SlackService.sendNotification', error);
+            } else if (error.message.indexOf('WebHook') !== -1) {
+                ErrorService.log('WebHookService.sendNotification', error);
+            } else if (error.message.indexOf('for model "Zapier"') !== -1) {
+                ErrorService.log('ZapierService.pushToZapier', error);
+            } else {
+                ErrorService.log('IncidentService._sendIncidentCreatedAlert', error);
+            }
+            throw error; 
         }
     },
 
@@ -327,12 +273,7 @@ module.exports = {
         var _this = this;
         try {
             var incident = await _this.findOneBy({ _id: incidentId, acknowledged: false });
-        } catch (error) {
-            ErrorService.log('IncidentService.findOneBy', error);
-            throw error;
-        }
-        if (incident) {
-            try {
+            if (incident) {
                 incident = await _this.update({
                     _id: incident._id,
                     acknowledged: true,
@@ -340,73 +281,44 @@ module.exports = {
                     acknowledgedAt: Date.now(),
                     acknowledgedByZapier: zapier
                 });
-            } catch (error) {
-                ErrorService.log('IncidentService.update', error);
-                throw error;
-            }
-            var downtime = (new Date().getTime() - new Date(incident.createdAt).getTime()) / (1000 * 60);
-            var downtimestring = `${Math.ceil(downtime)} minutes`;
-            if (downtime < 1) {
-                downtimestring = 'less than a minute';
-            }
-            if (downtime > 60) {
-                downtimestring = `${Math.floor(downtime / 60)} hours ${Math.floor(downtime % 60)} minutes`;
-            }
-
-            var msg = `${incident.monitorId.name} monitor was acknowledged by ${name}`;
-            var slackMsg = `*${incident.monitorId.name}* monitor was acknowledged by *${name}* after being down for _${downtimestring}_`;
-
-            try {
+                var downtime = (new Date().getTime() - new Date(incident.createdAt).getTime()) / (1000 * 60);
+                var downtimestring = `${Math.ceil(downtime)} minutes`;
+                if (downtime < 1) {
+                    downtimestring = 'less than a minute';
+                }
+                if (downtime > 60) {
+                    downtimestring = `${Math.floor(downtime / 60)} hours ${Math.floor(downtime % 60)} minutes`;
+                }
+    
+                var msg = `${incident.monitorId.name} monitor was acknowledged by ${name}`;
+                var slackMsg = `*${incident.monitorId.name}* monitor was acknowledged by *${name}* after being down for _${downtimestring}_`;
+    
                 // send slack notification
                 await NotificationService.create(incident.projectId, `An Incident was acknowledged by ${name}`, userId, 'acknowledge');
-            } catch (error) {
-                ErrorService.log('NotificationService.create', error);
-                throw error;
-            }
-            try {
                 await SlackService.sendNotification(incident.projectId, incident._id, userId, slackMsg, incident);
-            } catch (error) {
-                ErrorService.log('SlackService.sendNotification', error);
-                throw error;
-            }
-            try {
                 // Ping webhook
                 var monitor = await MonitorService.findOneBy({ _id: incident.monitorId });
-            } catch (error) {
-                ErrorService.log('MonitorService.findOneBy', error);
-                throw error;
-            }
-            try {
                 incident = await _this.findOneBy({ _id: incident._id });
-            } catch (error) {
-                ErrorService.log('IncidentService.this.findOneBy', error);
-                throw error;
-            }
-            try {
+
                 await WebHookService.sendNotification(incident.projectId, msg, monitor);
-            } catch (error) {
-                ErrorService.log('WebHookService.sendNotification', error);
-                throw error;
-            }
-            try {
                 await RealTimeService.incidentAcknowledged(incident);
-            } catch (error) {
-                ErrorService.log('RealTimeService.incidentAcknowledged', error);
-                throw error;
-            }
-            try {
                 await ZapierService.pushToZapier('incident_acknowledge', incident);
-            } catch (error) {
-                ErrorService.log('ZapierService.pushToZapier', error);
-                throw error;
-            }
-        } else {
-            try {
+            } else {
                 incident = await _this.findOneBy({ _id: incidentId, acknowledged: true });
-            } catch (error) {
-                ErrorService.log('IncidentService.findOneBy', error);
-                throw error;
             }
+        } catch (error) {
+            if (error.message.indexOf('Notification') !== -1) {
+                ErrorService.log('NotificationService.create', error);
+            } else if (error.message.indexOf('Slack') !== -1) {
+                ErrorService.log('SlackService.sendNotification', error);
+            } else if (error.message.indexOf('WebHook') !== -1) {
+                ErrorService.log('WebHookService.sendNotification', error);
+            } else if (error.message.indexOf('for model "Zapier"') !== -1) {
+                ErrorService.log('ZapierService.pushToZapier', error);
+            } else {
+                ErrorService.log('IncidentService.acknowledge', error);
+            }
+            throw error;    
         }
 
         return incident;
@@ -422,49 +334,27 @@ module.exports = {
 
         try {
             var incident = await _this.findOneBy({ _id: incidentId });
-        } catch (error) {
-            ErrorService.log('IncidentService.findOneBy', error);
-            throw error;
-        }
-        if (!incident.acknowledged) {
-            data.acknowledged = true;
-            data.acknowledgedBy = userId;
-            data.acknowledgedAt = Date.now();
-            data.acknowledgedByZapier = zapier;
-        }
-        data.resolved = true;
-        data.resolvedBy = userId;
-        data.resolvedAt = Date.now();
-        data.resolvedByZapier = zapier;
-        data._id = incidentId;
-        try {
+
+            if (!incident.acknowledged) {
+                data.acknowledged = true;
+                data.acknowledgedBy = userId;
+                data.acknowledgedAt = Date.now();
+                data.acknowledgedByZapier = zapier;
+            }
+            data.resolved = true;
+            data.resolvedBy = userId;
+            data.resolvedAt = Date.now();
+            data.resolvedByZapier = zapier;
+            data._id = incidentId;
+
             incident = await _this.update(data);
-        } catch (error) {
-            ErrorService.log('IncidentService.update', error);
-            throw error;
-        }
-        try {
             incident = await _this.findOneBy({ _id: incident._id });
-        } catch (error) {
-            ErrorService.log('IncidentService.findOneBy', error);
-            throw error;
-        }
-        try {
+
             await _this.sendIncidentResolvedNotification(incident, name);
-        } catch (error) {
-            ErrorService.log('IncidentService.sendIncidentResolvedNotification', error);
-            throw error;
-        }
-        try {
             await RealTimeService.incidentResolved(incident);
-        } catch (error) {
-            ErrorService.log('RealTimeService.incidentResolved', error);
-            throw error;
-        }
-        try {
             await ZapierService.pushToZapier('incident_resolve', incident);
         } catch (error) {
-            ErrorService.log('ZapierService.pushToZapier', error);
+            ErrorService.log('IncidentService.resolve', error);
             throw error;
         }
         return incident;
@@ -510,66 +400,48 @@ module.exports = {
         var _this = this;
         try {
             var resolvedincident = await _this.findOneBy({ _id: incident._id });
-        } catch (error) {
-            ErrorService.log('IncidentService.findOneBy', error);
-            throw error;
-        }
-        var downtime = (new Date().getTime() - new Date(resolvedincident.createdAt).getTime()) / (1000 * 60);
-        var downtimestring = `${Math.ceil(downtime)} minutes`;
-        var msg, slackMsg;
-        if (downtime < 1) {
-            downtimestring = 'less than a minute';
-        }
-        if (downtime > 60) {
-            downtimestring = `${Math.floor(downtime / 60)} hours ${Math.floor(downtime % 60)} minutes`;
-        }
-        if (resolvedincident.resolvedBy) {
-            msg = `${resolvedincident.monitorId.name} monitor was down for ${downtimestring} and is now resolved by ${name || resolvedincident.resolvedBy.name}`;
-            slackMsg = `*${resolvedincident.monitorId.name}* monitor was down for _${downtimestring}_ and is now resolved by *${name || resolvedincident.resolvedBy.name}*`;
-            try {
+            var downtime = (new Date().getTime() - new Date(resolvedincident.createdAt).getTime()) / (1000 * 60);
+            var downtimestring = `${Math.ceil(downtime)} minutes`;
+            var msg, slackMsg;
+            if (downtime < 1) {
+                downtimestring = 'less than a minute';
+            }
+            if (downtime > 60) {
+                downtimestring = `${Math.floor(downtime / 60)} hours ${Math.floor(downtime % 60)} minutes`;
+            }
+            if (resolvedincident.resolvedBy) {
+                msg = `${resolvedincident.monitorId.name} monitor was down for ${downtimestring} and is now resolved by ${name || resolvedincident.resolvedBy.name}`;
+                slackMsg = `*${resolvedincident.monitorId.name}* monitor was down for _${downtimestring}_ and is now resolved by *${name || resolvedincident.resolvedBy.name}*`;
+
                 await NotificationService.create(incident.projectId, msg, resolvedincident.resolvedBy._id, 'success');
-            } catch (error) {
-                ErrorService.log('NotificationService.create', error);
-                throw error;
-            }
-            try {
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
-            } catch (error) {
-                ErrorService.log('SlackService.sendNotification', error);
-                throw error;
-            }
-            try {
                 // Ping webhook
                 await WebHookService.sendNotification(incident.projectId, msg, resolvedincident.monitorId);
-            } catch (error) {
-                ErrorService.log('WebHookService.sendNotification', error);
-                throw error;
             }
-        }
-        else {
-            msg = `${resolvedincident.monitorId.name} monitor was down for ${downtimestring} and is now resolved by ${name || 'fyipe'}`;
-            slackMsg = `*${resolvedincident.monitorId.name}* monitor was down for _${downtimestring}_ and is now resolved by *${name || 'fyipe'}*`;
-            try {
+            else {
+                msg = `${resolvedincident.monitorId.name} monitor was down for ${downtimestring} and is now resolved by ${name || 'fyipe'}`;
+                slackMsg = `*${resolvedincident.monitorId.name}* monitor was down for _${downtimestring}_ and is now resolved by *${name || 'fyipe'}*`;
+                
                 await NotificationService.create(incident.projectId, msg, 'fyipe', 'success');
-            } catch (error) {
-                ErrorService.log('NotificationService.create', error);
-                throw error;
-            }
-            try {
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
-            } catch (error) {
-                ErrorService.log('SlackService.sendNotification', error);
-                throw error;
-            }
-            try {
                 // Ping webhook
                 await WebHookService.sendNotification(incident.projectId, msg, resolvedincident.monitorId);
-            } catch (error) {
-                ErrorService.log('WebHookService.sendNotification', error);
-                throw error;
             }
+        } catch (error) {
+            if (error.message.indexOf('Notification') !== -1) {
+                ErrorService.log('NotificationService.create', error);
+            } else if (error.message.indexOf('Slack') !== -1) {
+                ErrorService.log('SlackService.sendNotification', error);
+            } else if (error.message.indexOf('WebHook') !== -1) {
+                ErrorService.log('WebHookService.sendNotification', error);
+            } else if (error.message.indexOf('for model "Zapier"') !== -1) {
+                ErrorService.log('ZapierService.pushToZapier', error);
+            } else {
+                ErrorService.log('IncidentService.sendIncidentResolvedNotification', error);
+            }
+            throw error;
         }
     },
     
@@ -579,44 +451,40 @@ module.exports = {
         var limit = 3;
         try {
             var monitors = await MonitorService.findBy(query.query, query.limit, query.skip);
-        } catch (error) {
-            ErrorService.log('MonitorService.findBy', error);
-            throw error;
-        }
-        if (monitors.length) {
-            await Promise.all(monitors.map(async (element) => {
-                if (element && element._doc) {
-                    element = element._doc;
-                }
-                try {
-                    var count = await thisObj.countBy({ monitorId: element._id });
-                } catch (error) {
-                    ErrorService.log('IncidentService.countBy', error);
-                    throw error;
-                }
-                if (count && count._doc) {
-                    count = count._doc;
-                }
-                try {
-                    var inc = await thisObj.findBy({ monitorId: element._id }, limit);
-                } catch (error) {
-                    ErrorService.log('IncidentService.findBy', error);
-                    throw error;
-                }
-                if (inc && inc._doc) {
-                    inc = inc._doc;
-                }
-                element.probes = await ProbeService.getMonitorData(element._id || element.id);
-                element.count = count;
-                element.incidents = inc;
-                element.skip = 0;
-                element.limit = 3;
-                newmonitors.push(element);
-            }));
-            return newmonitors;
 
-        } else {
-            return [];
+            if (monitors.length) {
+                await Promise.all(monitors.map(async (element) => {
+                    if (element && element._doc) {
+                        element = element._doc;
+                    }
+                    var count = await thisObj.countBy({ monitorId: element._id });
+
+                    if (count && count._doc) {
+                        count = count._doc;
+                    }
+                    var inc = await thisObj.findBy({ monitorId: element._id }, limit);
+                    if (inc && inc._doc) {
+                        inc = inc._doc;
+                    }
+                    element.probes = await ProbeService.getMonitorData(element._id || element.id);
+                    element.count = count;
+                    element.incidents = inc;
+                    element.skip = 0;
+                    element.limit = 3;
+                    newmonitors.push(element);
+                }));
+                return newmonitors;
+    
+            } else {
+                return [];
+            }
+        } catch (error) {
+            if (error.message.indexOf('for model "Monitor"') !== -1) {
+                ErrorService.log('MonitorService.findBy', error);
+            } else {
+                ErrorService.log('IncidentService.getMonitorsWithIncidentsBy', error);
+            }
+            throw error; 
         }
     },
 
