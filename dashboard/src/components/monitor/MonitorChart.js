@@ -64,7 +64,12 @@ export function MonitorChart({ probe, monitor, startDate, endDate, probeData, st
     const [now, setNow] = useState(Date.now());
     const activeProbeObj = (probes && probes.length > 0 && probes[activeProbe || 0] ? probes[activeProbe || 0] : probe);
     const lastAlive = activeProbeObj && activeProbeObj.lastAlive ? activeProbeObj.lastAlive : now;
-    const { timeBlock, uptimePercent } = monitor.incidents && monitor.incidents.length > 0 ? calculateTime(monitor.incidents, activeProbeObj) : calculateTime([]);
+    const { timeBlock, uptimePercent } = monitor.incidents && monitor.incidents.length > 0 ?
+        calculateTime(monitor.incidents.length > 3 ?
+            monitor.incidents.splice(0, 3)
+            : monitor.incidents, activeProbeObj
+        )
+        : calculateTime([]);
     const type = monitor.type;
 
     useEffect(() => {
@@ -94,7 +99,7 @@ export function MonitorChart({ probe, monitor, startDate, endDate, probeData, st
 
     let responseTime = checkLogs ? data[0].responseTime : '0';
     let monitorStatus = toPascalCase(status);
-    let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '0';
+    let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
     let statusColor;
     switch (status) {
