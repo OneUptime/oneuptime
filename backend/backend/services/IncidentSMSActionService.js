@@ -10,19 +10,14 @@ module.exports = {
     },
 
     update: async (incidentSMSActionId, update)=>{
-        try{
+        try {
             var incidentSMSAction = incidentSMSActionModel.findById(incidentSMSActionId);
-        }catch(error){
-            ErrorService.log('incidentSMSActionModel.findById', error);
-            throw error;
-        }
-        incidentSMSAction.acknowledged = !!update.acknowledged;
-        incidentSMSAction.resolved = !!update.resolved;
-        try{
+            incidentSMSAction.acknowledged = !!update.acknowledged;
+            incidentSMSAction.resolved = !!update.resolved;
             var incidentafter = await incidentSMSAction.save();
-        }catch(error){
-            ErrorService.log('incidentSMSAction.save', error);
-            throw error;
+        } catch (error) {
+            ErrorService.log('incidentSMSAction.update', error);
+            throw error;  
         }
         return incidentafter;
     }

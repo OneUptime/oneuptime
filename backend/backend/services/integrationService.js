@@ -40,18 +40,14 @@ module.exports = {
                 integrationModel.monitors.push(monitor);
             }
         }
-        try{
+        try {
             var integration = await integrationModel.save();
-        }catch(error){
+            integration = await _this.findOneBy({_id: integration._id});
+        } catch (error) {
             ErrorService.log('integrationModel.save', error);
             throw error;
         }
-        try{
-            integration = await _this.findOneBy({_id: integration._id});
-        }catch(error){
-            ErrorService.log('IntegrationService.findOneBy', error);
-            throw error;
-        }
+
         return integration;
     },
 
@@ -111,23 +107,12 @@ module.exports = {
 
     update: async function(data){
         var _this = this;
-        if(!data._id){
-            try{
+        try {
+            if(!data._id){
                 let integration = await _this.create(data.projectId, data.userId, data, data.integrationType);
                 return integration;
-            }catch(error){
-                ErrorService.log('IntegrationService.create', error);
-                throw error;
-            }
-        }else{
-            try{
-                var integration = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
-            }catch(error){
-                ErrorService.log('IntegrationService.findOneBy', error);
-                throw error;
-            }
-
-            try{
+            }else{
+                var integration = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});    
                 var updatedIntegration = await IntegrationModel.findOneAndUpdate({_id:integration._id, deleted:false}, {
                     $set: {
                         monitors: data.monitorIds,
@@ -136,17 +121,12 @@ module.exports = {
                         'data.endpointType': data.endpointType
                     }
                 }, { new: true });
-            }catch(error){
-                ErrorService.log('IntegrationModel.findOneAndUpdate', error);
-                throw error;
-            }
-            try{
                 updatedIntegration = await _this.findOneBy({_id: updatedIntegration._id});
-            }catch(error){
-                ErrorService.log('IntegrationService.findOneBy', error);
-                throw error;
+                return updatedIntegration;
             }
-            return updatedIntegration;
+        } catch (error) {
+            ErrorService.log('IntegrationService.findOneAndUpdate', error);
+            throw error; 
         }
     },
 

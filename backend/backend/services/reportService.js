@@ -41,22 +41,23 @@ module.exports = {
                     }
                 }
             ]);
-        } catch (error) {
-            ErrorService.log('IncidentModel.aggregate', error);
-            throw error;
-        }
-        let arr = [];
-        let wrapper = {};
-        const filterMembers = result[0].members.filter(member => member._id !== null);
-        for (const member of filterMembers) {
-            try {
+
+            var arr = [];
+            var wrapper = {};
+            const filterMembers = result[0].members.filter(member => member._id !== null);
+            for (const member of filterMembers) {
                 var response = await UserService.findOneBy({ _id: member._id });
-            } catch (error) {
-                ErrorService.log('', error);
-                throw error;
+
+                let result = { memberId: member._id, memberName: response.name, incidents: member.incidents, averageAcknowledgeTime: member.averageAcknowledge, averageResolved: member.averageResolved };
+                arr.push(result);
             }
-            let result = { memberId: member._id, memberName: response.name, incidents: member.incidents, averageAcknowledgeTime: member.averageAcknowledge, averageResolved: member.averageResolved };
-            arr.push(result);
+        } catch (error) {
+            if (error.message.indexOf('for model "Incident"') !== -1) {
+                ErrorService.log('IncidentModel.aggregate', error);
+            } else {
+                ErrorService.log('IncidentModel.getMostActiveMembers', error);
+            }
+            throw error;
         }
         wrapper['members'] = arr;
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
@@ -96,23 +97,25 @@ module.exports = {
                     }
                 }
             ]);
+
+            var arr = [];
+            var wrapper = {};
+            for (const monitor of result[0].monitors) {
+                var response = await MonitorService.findOneBy({ _id: monitor._id });
+
+                if (!response) response = {};
+                let monitorObj = { monitorId: monitor._id, monitorName: response.name, incidents: monitor.incidents, averageAcknowledgeTime: monitor.averageAcknowledge, averageResolved: monitor.averageResolved };
+                arr.push(monitorObj);
+            }
         } catch (error) {
-            ErrorService.log('IncidentModel.aggregate', error);
+            if (error.message.indexOf('for model "Incident"') !== -1) {
+                ErrorService.log('IncidentModel.aggregate', error);
+            } else {
+                ErrorService.log('IncidentModel.getMostActiveMonitors', error);
+            }
             throw error;
         }
-        let arr = [];
-        let wrapper = {};
-        for (const monitor of result[0].monitors) {
-            try {
-                var response = await MonitorService.findOneBy({ _id: monitor._id });
-            } catch (error) {
-                ErrorService.log('', error);
-                throw error;
-            }
-            if (!response) response = {};
-            let monitorObj = { monitorId: monitor._id, monitorName: response.name, incidents: monitor.incidents, averageAcknowledgeTime: monitor.averageAcknowledge, averageResolved: monitor.averageResolved };
-            arr.push(monitorObj);
-        }
+        
         wrapper['monitors'] = arr;
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
