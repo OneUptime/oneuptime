@@ -46,11 +46,11 @@ router.put('/:projectId/:notificationId/read', getUser, isAuthorized, async func
     }
 });
 
-router.put('/:projectId/readAll', getUser, isAuthorized, async function (req, res) {
-    let projectId = req.params.projectId || null;
+router.put('/:projectId/readAll', getUser, isAuthorized, getSubProjects, async function (req, res) {
+    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
     let userId = req.user ? req.user.id : null;
     try {
-        let notifications = await NotificationService.updateManyBy({ projectId }, { read: userId });
+        let notifications = await NotificationService.updateManyBy({ projectId: { $in: subProjectIds } }, { read: userId });
 
         if (notifications.ok === 1 && notifications.n > 0) {
             return sendItemResponse(req, res, { count: notifications.n, read: notifications.nModified });
