@@ -117,7 +117,6 @@ module.exports = {
             if (typeof (projectSeats) === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
-            var userSeatsLeft = projectSeats - seats < 1 ? 0 : projectSeats - seats;
 
             // Checks if users to be added as team members are already present or not.
             let isUserInProject = await _this.checkUser(teamMembers, emails);
@@ -127,21 +126,15 @@ module.exports = {
                 ErrorService.log('TeamService.inviteTeamMembers', error);
                 throw error;
             } else {
+                // Get no of users to be added
+                var extraUsersToAdd = emails.length;
                 try {
-                    if (userSeatsLeft >= emails.length) {
-                        var invited = await _this.inviteTeamMembersMethod(projectId, emails, role, addedBy, null);
-                        return invited;
-                    }else if (userSeatsLeft < emails.length) {
-                        // Get the users exceeding the seats left - emails.length - userSeatsLeft
-                        var extraUsersToAdd = emails.length - userSeatsLeft;
-                        var invite = await _this.inviteTeamMembersMethod(projectId, emails, role, addedBy, extraUsersToAdd);
-                              
-                        return invite;
-                    }
+                    var invite = await _this.inviteTeamMembersMethod(projectId, emails, role, addedBy, extraUsersToAdd);
                 } catch (error) {
                     ErrorService.log('TeamService.inviteTeamMembersMethod', error);
                     throw error;
                 }
+                return invite;
             }
         }
     },
@@ -176,6 +169,7 @@ module.exports = {
         var _this = this;
         var subProject = null;
         var project = await ProjectService.findOneBy({_id: projectId});
+        var registerUrl = ACCOUNTS_HOST ? `${ACCOUNTS_HOST}/register` : 'https://accounts.fyipe.com/register';
         if(project.parentProjectId){
             subProject = project;
             project = await ProjectService.findOneBy({_id: subProject.parentProjectId});
@@ -223,7 +217,7 @@ module.exports = {
                     if(role === 'Viewer'){
                         await MailService.sendNewStatusPageViewerMail(project, addedBy, member.email);
                     }else{
-                        await MailService.sendNewUserAddedToProjectMail(project, addedBy, member.email);
+                        await MailService.sendNewUserAddedToProjectMail(project, addedBy, member.email, registerUrl);
                     }
                     await NotificationService.create(project._id, `New user added to the project by ${addedBy.name}`,addedBy.id,'information');
                 }
@@ -247,17 +241,17 @@ module.exports = {
                 }));
             }
             projectUsers = await _this.getTeamMembersBy({ parentProjectId: project._id });
-            var seats = await _this.getSeats(projectUsers);
             
             var projectSeats = project.seats;
             if (typeof (projectSeats) === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
-            if (extraUsersToAdd && seats > projectSeats) {
-                await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (seats - 1));
-                
-                await ProjectService.update({ _id: project._id, seats: seats.toString() });
-            }
+            var newProjectSeats = projectSeats + extraUsersToAdd;
+
+            await PaymentService.changeSeats(project.stripeSubscriptionId, newProjectSeats);
+
+            await ProjectService.update({ _id: project._id, seats: newProjectSeats.toString() });
+
             var response = [];
             var team = await _this.getTeamMembersBy({ _id: project._id });
             var teamusers = {
@@ -505,5 +499,4 @@ var NotificationService = require('../services/notificationService');
 var RealTimeService = require('../services/realTimeService');
 var ErrorService = require('./errorService');
 var domains = require('../config/domains');
-
-
+var { ACCOUNTS_HOST } = process.env;

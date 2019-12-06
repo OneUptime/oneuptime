@@ -263,7 +263,7 @@ module.exports = {
             if (projectSeats && projectSeats > seats && monitorsCount > 0 && monitorsCount <= ((projectSeats - 1) * 5)) {
                 projectSeats = projectSeats - 1;
                 try {
-                    await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
+                    await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
                 } catch (error) {
                     ErrorService.log('PaymentService.changeSeats', error);
                     throw error;
@@ -470,7 +470,7 @@ module.exports = {
         }
         projectSeats = projectSeats + 1;
         try {
-            await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
+            await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
         } catch (error) {
             ErrorService.log('PaymentService.changeSeats', error);
             throw error;

@@ -131,12 +131,6 @@ router.post('/create', getUser, async function (req, res) {
                 if (!data.stripeSubscriptionId) {
                     data.stripeSubscriptionId = subscriptionnew.stripeSubscriptionId;
                 }
-                if (!data.stripeExtraUserSubscriptionId) {
-                    data.stripeExtraUserSubscriptionId = subscriptionnew.stripeExtraUserSubscriptionId;
-                }
-                if (!data.stripeMeteredSubscriptionId) {
-                    data.stripeMeteredSubscriptionId = subscriptionnew.stripeMeteredSubscriptionId;
-                }
                 var project = await ProjectService.create(data);
                 await MailService.sendCreateProjectMail(projectName, user.email);
                 return sendItemResponse(req, res, project);
@@ -153,12 +147,6 @@ router.post('/create', getUser, async function (req, res) {
                 }
                 if (!data.stripeSubscriptionId) {
                     data.stripeSubscriptionId = subscription.stripeSubscriptionId;
-                }
-                if (!data.stripeExtraUserSubscriptionId) {
-                    data.stripeExtraUserSubscriptionId = subscription.stripeExtraUserSubscriptionId;
-                }
-                if (!data.stripeMeteredSubscriptionId) {
-                    data.stripeMeteredSubscriptionId = subscription.stripeMeteredSubscriptionId;
                 }
                 project = await ProjectService.create(data);
                 user = await UserService.findOneBy({ _id: userId });

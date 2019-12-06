@@ -43,8 +43,6 @@ module.exports = {
         projectModel.apiKey = uuidv1();
         projectModel.stripePlanId = data.stripePlanId || null;
         projectModel.stripeSubscriptionId = data.stripeSubscriptionId || null;
-        projectModel.stripeExtraUserSubscriptionId = data.stripeExtraUserSubscriptionId || null;
-        projectModel.stripeMeteredSubscriptionId = data.stripeMeteredSubscriptionId || null;
         projectModel.parentProjectId = data.parentProjectId || null;
         projectModel.seats = '1';
         projectModel.isBlocked = data.isBlocked || false;
@@ -90,7 +88,7 @@ module.exports = {
         if (project) {
             if (project.stripeSubscriptionId) {
                 try {
-                    await PaymentService.removeSubscription(project.stripeSubscriptionId, project.stripeMeteredSubscriptionId, project.stripeExtraUserSubscriptionId);
+                    await PaymentService.removeSubscription(project.stripeSubscriptionId);
                 } catch (error) {
                     ErrorService.log('PaymentService.removeSubscription', error);
                     throw error;
@@ -173,8 +171,6 @@ module.exports = {
             var apiKey = data.apiKey || oldProject.apiKey || uuidv1();
             var stripePlanId = data.stripePlanId || oldProject.stripePlanId;
             var stripeSubscriptionId = data.stripeSubscriptionId || oldProject.stripeSubscriptionId;
-            var stripeExtraUserSubscriptionId = data.stripeExtraUserSubscriptionId || oldProject.stripeExtraUserSubscriptionId;
-            var stripeMeteredSubscriptionId = data.stripeMeteredSubscriptionId || oldProject.stripeMeteredSubscriptionId;
             var parentProjectId = data.parentProjectId || oldProject.parentProjectId;
             var users = oldProject.users;
             var seats = data.seats || oldProject.seats;
@@ -209,8 +205,6 @@ module.exports = {
                         apiKey: apiKey,
                         stripePlanId: stripePlanId,
                         stripeSubscriptionId: stripeSubscriptionId,
-                        stripeExtraUserSubscriptionId: stripeExtraUserSubscriptionId,
-                        stripeMeteredSubscriptionId: stripeMeteredSubscriptionId,
                         parentProjectId: parentProjectId,
                         seats: seats,
                         alertEnable,
@@ -432,7 +426,7 @@ module.exports = {
                     if (count < 1 && countMonitor <= ((projectSeats - 1) * 5)) {
                         projectSeats = projectSeats - 1;
                         try {
-                            await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
+                            await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
                         } catch (error) {
                             ErrorService.log('PaymentService.changeSeats', error);
                             throw error;
@@ -528,12 +522,10 @@ module.exports = {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
-                    stripeSubscriptionId: subscription.stripeSubscriptionId,
-                    stripeExtraUserSubscriptionId: subscription.stripeExtraUserSubscriptionId,
-                    stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
+                    stripeSubscriptionId: subscription.stripeSubscriptionId
                 });
                 let projectSeats = project.seats;
-                await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
+                await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
                 await ScheduleService.restoreBy({ projectId, deleted: true });
                 await StatusPageService.restoreBy({ projectId, deleted: true });
                 await integrationService.restoreBy({ projectId, deleted: true });
@@ -553,12 +545,10 @@ module.exports = {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
-                    stripeSubscriptionId: subscription.stripeSubscriptionId,
-                    stripeExtraUserSubscriptionId: subscription.stripeExtraUserSubscriptionId,
-                    stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
+                    stripeSubscriptionId: subscription.stripeSubscriptionId
                 });
                 let projectSeats = project.seats;
-                await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, (projectSeats));
+                await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
                 await integrationService.restoreBy({ projectId, deleted: true });
                 await ScheduleService.restoreBy({ projectId, deleted: true });
                 await StatusPageService.restoreBy({ projectId, deleted: true });
