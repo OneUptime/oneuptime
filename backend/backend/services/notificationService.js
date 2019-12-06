@@ -59,14 +59,9 @@ module.exports = {
         notification.meta = meta;
         try {
             notification = await notification.save();
-        } catch (error) {
-            ErrorService.log('notification.save', error);
-            throw error;
-        }
-        try {
             await RealTimeService.sendNotification(notification);
         } catch (error) {
-            ErrorService.log('RealTimeService.sendNotification', error);
+            ErrorService.log('Notification.save', error);
             throw error;
         }
         return notification;
@@ -87,34 +82,25 @@ module.exports = {
 
     updateBy: async function (data) {
         let _this = this;
-        if (!data._id) {
-            try {
+        try {
+            if (!data._id) {
                 let notification = await _this.create(data.projectId, data.message, data.userId, data.icon);
                 return notification;
-            } catch (error) {
-                ErrorService.log('NotificationService.create', error);
-                throw error;
-            }
-        } else {
-            try {
+            } else {
                 var notification = await _this.findOneBy({ _id: data._id });
-            } catch (error) {
-                ErrorService.log('Notification.findOneBy', error);
-                throw error;
-            }
-            let projectId = data.projectId || notification.projectId;
-            let createdAt = data.createdAt || notification.createdAt;
-            let createdBy = data.createdBy || notification.createdBy;
-            let message = data.message || notification.message;
-            let read = notification.read;
-            let meta = data.meta || notification.meta;
-            if (data.read) {
-                for (let userId of data.read) {
-                    read.push(userId);
+
+                let projectId = data.projectId || notification.projectId;
+                let createdAt = data.createdAt || notification.createdAt;
+                let createdBy = data.createdBy || notification.createdBy;
+                let message = data.message || notification.message;
+                let read = notification.read;
+                let meta = data.meta || notification.meta;
+                if (data.read) {
+                    for (let userId of data.read) {
+                        read.push(userId);
+                    }
                 }
-            }
-            let icon = data.icon || notification.icon;
-            try {
+                let icon = data.icon || notification.icon;
                 notification = await NotificationModel.findByIdAndUpdate(data._id, {
                     $set: {
                         projectId: projectId,
@@ -128,12 +114,12 @@ module.exports = {
                 }, {
                     new: true
                 });
-            } catch (error) {
-                ErrorService.log('NotificationModel.findByIdAndUpdate', error);
-                throw error;
+    
+                return notification;
             }
-
-            return notification;
+        } catch (error) {
+            ErrorService.log('NotificationModel.findByIdAndUpdate', error);
+            throw error;
         }
     },
 

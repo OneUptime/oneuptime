@@ -43,20 +43,16 @@ module.exports = {
     update: async function (data) {
         try {
             var oldScheduledEvent = await ScheduledEventModel.findOne({ _id: data._id });
-        } catch (error) {
-            ErrorService.log('ScheduledEventModel.findOne', error);
-            throw error;
-        }
-        var name = data.name || oldScheduledEvent.name;
-        var startDate = data.startDate || oldScheduledEvent.startDate;
-        var endDate = data.endDate || oldScheduledEvent.endDate;
-        var description = data.description || oldScheduledEvent.description;
-        var showEventOnStatusPage = data.showEventOnStatusPage !== undefined ? data.showEventOnStatusPage : oldScheduledEvent.showEventOnStatusPage;
-        var callScheduleOnEvent = data.callScheduleOnEvent !== undefined ? data.callScheduleOnEvent : oldScheduledEvent.callScheduleOnEvent;
-        var monitorDuringEvent = data.monitorDuringEvent !== undefined ? data.monitorDuringEvent : oldScheduledEvent.monitorDuringEvent;
-        var alertSubscriber = data.alertSubscriber !== undefined ? data.alertSubscriber : oldScheduledEvent.alertSubscriber;
 
-        try {
+            var name = data.name || oldScheduledEvent.name;
+            var startDate = data.startDate || oldScheduledEvent.startDate;
+            var endDate = data.endDate || oldScheduledEvent.endDate;
+            var description = data.description || oldScheduledEvent.description;
+            var showEventOnStatusPage = data.showEventOnStatusPage !== undefined ? data.showEventOnStatusPage : oldScheduledEvent.showEventOnStatusPage;
+            var callScheduleOnEvent = data.callScheduleOnEvent !== undefined ? data.callScheduleOnEvent : oldScheduledEvent.callScheduleOnEvent;
+            var monitorDuringEvent = data.monitorDuringEvent !== undefined ? data.monitorDuringEvent : oldScheduledEvent.monitorDuringEvent;
+            var alertSubscriber = data.alertSubscriber !== undefined ? data.alertSubscriber : oldScheduledEvent.alertSubscriber;
+    
             var updatedScheduledEvent = await ScheduledEventModel.findByIdAndUpdate(data._id, {
                 $set: {
                     name,
@@ -69,8 +65,8 @@ module.exports = {
                     alertSubscriber
                 }
             }, { new: true });
-        } catch (error){
-            ErrorService.log('ScheduledEventModel.findByIdAndUpdate', error);
+        } catch (error) {
+            ErrorService.log('ScheduledEventModel.update', error);
             throw error;
         }
 

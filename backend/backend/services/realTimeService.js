@@ -6,12 +6,8 @@ module.exports = {
     sendIncidentCreated: async (incident) => {
         try {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
-        try {
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+            
             CB.CloudNotification.publish(`incidentCreated-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`incidentCreated`)', error);
@@ -22,12 +18,8 @@ module.exports = {
     sendMonitorCreated: async (monitor) => {
         try {
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
-        try {
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
+            
             CB.CloudNotification.publish(`createMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`createMonitor`)', error);
@@ -38,12 +30,8 @@ module.exports = {
     sendMonitorDelete: async (monitor) => {
         try {
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
-        try {
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
+
             CB.CloudNotification.publish(`deleteMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`deleteMonitor`)', error);
@@ -54,28 +42,20 @@ module.exports = {
     incidentResolved: async (incident) => {
         try {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
-        try {
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+
             CB.CloudNotification.publish(`incidentResolved-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`incidentResolved`)', error);
-            throw error;
+            throw error; 
         }
     },
 
     incidentAcknowledged: async (incident) => {
         try {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
-        try {
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+
             CB.CloudNotification.publish(`incidentAcknowledged-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`incidentAcknowledged`)', error);
@@ -86,12 +66,8 @@ module.exports = {
     monitorEdit: async (monitor) => {
         try {
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
-        try {
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
+            
             CB.CloudNotification.publish(`updateMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`updateMonitor`)', error);
@@ -102,15 +78,15 @@ module.exports = {
     updateResponseTime: async (data, projectId) => {
         try {
             var project = await ProjectService.findOneBy({ _id: projectId });
+
+            projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+            CB.CloudNotification.publish(`updateResponseTime-${projectId}`, data);          
         } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try {
-            CB.CloudNotification.publish(`updateResponseTime-${projectId}`, data);
-        } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`updateResponseTime`)', error);
+            if (error.message.indexOf('at path "_id"') !== -1) {
+                ErrorService.log('ProjectService.findOneBy', error);
+            } else {
+                ErrorService.log('CB.CloudNotification.publish(`updateResponseTime`)', error);
+            }
             throw error;
         }
     },
@@ -118,12 +94,8 @@ module.exports = {
     updateMonitorLog: async (data, monitorId, projectId) => {
         try {
             var project = await ProjectService.findOneBy({ _id: projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try {
+
+            projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             CB.CloudNotification.publish(`updateMonitorLog-${projectId}`, { projectId, monitorId, data });
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`updateMonitorLog`)', error);
@@ -134,18 +106,9 @@ module.exports = {
     updateProbe: async (data, monitorId) => {
         try {
             var monitor = await MonitorService.findOneBy({ _id: monitorId });
-        } catch (error) {
-            ErrorService.log('MonitorService.findOneBy', error);
-            throw error;
-        }
-        try {
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try {
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+            
             CB.CloudNotification.publish(`updateProbe-${projectId}`, data);
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`updateProbe`)', error);
@@ -156,15 +119,15 @@ module.exports = {
     sendNotification: async (data) => {
         try {
             var project = await ProjectService.findOneBy({ _id: data.projectId });
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : data.projectId;
+            
+            CB.CloudNotification.publish(`NewNotification-${projectId}`, data);          
         } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : data.projectId;
-        try {
-            CB.CloudNotification.publish(`NewNotification-${projectId}`, data);
-        } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`NewNotification`)', error);
+            if (error.message.indexOf('at path "_id"') !== -1) {
+                ErrorService.log('ProjectService.findOneBy', error);
+            } else {
+                ErrorService.log('CB.CloudNotification.publish(`NewNotification`)', error);
+            }
             throw error;
         }
     },
@@ -172,12 +135,8 @@ module.exports = {
     updateTeamMemberRole: async (projectId, data) => {
         try {
             var project = await ProjectService.findOneBy({ _id: projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try {
+
+            projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             CB.CloudNotification.publish(`TeamMemberRoleUpdate-${projectId}`, data);
         } catch (error) {
             ErrorService.log('CB.CloudNotification.publish(`TeamMemberRoleUpdate`)', error);
@@ -188,15 +147,15 @@ module.exports = {
     createTeamMember: async (projectId, data) => {
         try {
             var project = await ProjectService.findOneBy({ _id: projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try {
+
+            projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             CB.CloudNotification.publish(`TeamMemberCreate-${projectId}`, data);
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`TeamMemberCreate`)', error);
+            if (error.message.indexOf('at path "_id"') !== -1) {
+                ErrorService.log('ProjectService.findOneBy', error);
+            } else {
+                ErrorService.log('CB.CloudNotification.publish(`TeamMemberCreate`)', error);
+            }
             throw error;
         }
     },
@@ -204,15 +163,15 @@ module.exports = {
     deleteTeamMember: async (projectId, data) => {
         try {
             var project = await ProjectService.findOneBy({ _id: projectId });
+
+            projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+            CB.CloudNotification.publish(`TeamMemberDelete-${projectId}`, data);        
         } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try {
-            CB.CloudNotification.publish(`TeamMemberDelete-${projectId}`, data);
-        } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`TeamMemberDelete`)', error);
+            if (error.message.indexOf('at path "_id"') !== -1) {
+                ErrorService.log('ProjectService.findOneBy', error);
+            } else {
+                ErrorService.log('CB.CloudNotification.publish(`TeamMemberDelete`)', error);
+            }
             throw error;
         }
     },

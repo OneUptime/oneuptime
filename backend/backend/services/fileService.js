@@ -6,21 +6,20 @@
  */
 module.exports = {
     findOneBy: async function (query) {
-        try{
+        try {
             var gfs = await Grid(mongoose.connection.db, mongoose.mongo);
-        }catch(error){
-            ErrorService.log('Grid(mongoose.connection.db, mongoose.mongo)', error);
-            throw error;
-        }
-        gfs.collection('uploads');
-        if(!query){
-            query = {};
-        }
-        // query.deleted = false;
-        try{
+            gfs.collection('uploads');
+            if(!query){
+                query = {};
+            }
+            // query.deleted = false;
             var file = await gfs.files.findOne(query);
-        }catch(error){
-            ErrorService.log('gfs.files.findOne', error);
+        } catch (error) {
+            if (error.message.indexOf('connection') !== -1) {
+                ErrorService.log('Grid(mongoose.connection.db, mongoose.mongo)', error);
+            } else {
+                ErrorService.log('gfs.files.findOne', error);
+            }
             throw error;
         }
         if (!file) {
