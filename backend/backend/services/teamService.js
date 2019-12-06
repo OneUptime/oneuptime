@@ -248,7 +248,7 @@ module.exports = {
             }
             var newProjectSeats = projectSeats + extraUsersToAdd;
 
-            await PaymentService.changeSeats(project.stripeExtraUserSubscriptionId, newProjectSeats);
+            await PaymentService.changeSeats(project.stripeSubscriptionId, newProjectSeats);
 
             await ProjectService.update({ _id: project._id, seats: newProjectSeats.toString() });
 
