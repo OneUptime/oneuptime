@@ -297,9 +297,7 @@ module.exports = {
                         name: projectName,
                         userId: user._id,
                         stripePlanId: stripePlanId,
-                        stripeSubscriptionId: subscription.stripeSubscriptionId,
-                        stripeExtraUserSubscriptionId: subscription.stripeExtraUserSubscriptionId,
-                        stripeMeteredSubscriptionId: subscription.stripeMeteredSubscriptionId
+                        stripeSubscriptionId: subscription.stripeSubscriptionId
                     };
                     await ProjectService.create(projectData);
 

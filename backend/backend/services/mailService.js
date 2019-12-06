@@ -287,7 +287,7 @@ module.exports = {
     // Params:
     // Param 1: userEmail: Email of users
     // Returns: promise
-    sendNewUserAddedToProjectMail: async function (project, addedByUser, email) {
+    sendNewUserAddedToProjectMail: async function (project, addedByUser, email, registerUrl) {
 
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
@@ -296,7 +296,8 @@ module.exports = {
             template: 'new_user_added_to_project_body',
             context: {
                 projectName: project.name,
-                userName: addedByUser.name
+                userName: addedByUser.name,
+                registerUrl
             }
         };
 

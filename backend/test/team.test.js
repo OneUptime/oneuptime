@@ -197,7 +197,7 @@ describe('Team API with Sub-Projects', async function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email, 'noreply1@fyipe.com', 'testmail@fyipe.com'] } });
     });
 
-    it('should add a new user to sub-project (role -> `Member`, project seat -> 2)', async () => {
+    it('should add a new user to sub-project (role -> `Member`, project seat -> 3)', async () => {
         var authorization = `Basic ${token}`;
         var res = await request.post(`/team/${subProjectId}`).set('Authorization', authorization).send({
             emails: userData.newUser.email,
@@ -209,10 +209,10 @@ describe('Team API with Sub-Projects', async function () {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
         expect(subProjectTeamMembers[0].email).to.equal(userData.newUser.email);
-        expect(parseInt(project.seats)).to.be.equal(2);
+        expect(parseInt(project.seats)).to.be.equal(3);
     });
 
-    it('should add a new user to parent project and all sub-projects (role -> `Administrator`, project seat -> 3)', async () => {
+    it('should add a new user to parent project and all sub-projects (role -> `Administrator`, project seat -> 4)', async () => {
         var authorization = `Basic ${token}`;
         var res = await request.post(`/team/${projectId}`).set('Authorization', authorization).send({
             emails: userData.anotherUser.email,
@@ -226,7 +226,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(res.body).to.be.an('array');
         expect(projectTeamMembers[0].email).to.equal(userData.anotherUser.email);
         expect(subProjectTeamMembers[0].email).to.equal(userData.anotherUser.email);
-        expect(parseInt(project.seats)).to.be.equal(3);
+        expect(parseInt(project.seats)).to.be.equal(4);
     });
 
     it('should update existing user role in sub-project (old role -> member, new role -> administrator)', function (done) {
@@ -278,23 +278,23 @@ describe('Team API with Sub-Projects', async function () {
         });
     });
 
-    it('should remove user from sub-project Team Members (team members count -> 2, project seat -> 2)', async () => {
+    it('should remove user from sub-project Team Members (project team members count -> 2, project seat -> 3)', async () => {
         var authorization = `Basic ${token}`;
         var res = await request.delete(`/team/${subProjectId}/${subProjectTeamMemberId}`).set('Authorization', authorization);
         const subProjectTeamMembers = res.body.find(teamMembers => teamMembers.projectId === subProjectId).team;
         var project = await ProjectService.findOneBy({ _id: projectId });
         expect(res).to.have.status(200);
         expect(subProjectTeamMembers.length).to.be.equal(2);
-        expect(parseInt(project.seats)).to.be.equal(2);
+        expect(parseInt(project.seats)).to.be.equal(3);
     });
 
-    it('should remove user from project Team Members and all sub-projects (team members count -> 1, project seat -> 1)', async () => {
+    it('should remove user from project Team Members and all sub-projects (sub-project team members count -> 1, project seat -> 2)', async () => {
         var authorization = `Basic ${token}`;
         var res = await request.delete(`/team/${projectId}/${projectTeamMemberId}`).set('Authorization', authorization);
         const projectTeamMembers = res.body.find(teamMembers => teamMembers.projectId === projectId).team;
         var project = await ProjectService.findOneBy({ _id: projectId });
         expect(res).to.have.status(200);
         expect(projectTeamMembers.length).to.be.equal(1);
-        expect(parseInt(project.seats)).to.be.equal(1);
+        expect(parseInt(project.seats)).to.be.equal(2);
     });
 });
