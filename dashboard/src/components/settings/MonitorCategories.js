@@ -125,7 +125,7 @@ export class MonitorCategories extends Component {
                                                             </div>
                                                         </button>
                                                     </div>
-                                                    <div className="Box-root Margin-right--8" id="deleteMonitorCategoryBtn">
+                                                    <div className="Box-root Margin-left--8" id="deleteMonitorCategoryBtn">
                                                         <button onClick={() => {
                                                             this.props.openModal({
                                                                 id: this.state.removeMonitorCategoryModalId,
