@@ -297,7 +297,7 @@ describe('StatusPage API With SubProjects', () => {
             await page.type('#name', 'Home');
             await page.click('#url');
             await page.type('#url', 'https://fyipe.com');
-            await page.click('#btnSaveLinks');
+            await page.click('#createFooter');
             await page.waitFor(5000);
             
         });

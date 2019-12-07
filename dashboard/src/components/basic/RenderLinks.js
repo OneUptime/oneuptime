@@ -2,8 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types'
 import DataPathHoC from '../DataPathHoC';
 import UpdateFooterLink from '../modals/FooterLink';
+import RemoveFooterLink from '../modals/RemoveFooterLink';
 
-const RenderLinks = ({ fields, openModal, createFooterLinkModalId, submitForm, statusPage }) => {
+const RenderLinks = ({ fields, openModal, createFooterLinkModalId, submitForm, statusPage, removeFooterLink, removeFooterLinkModalId }) => {
     return (
         <ul>
             <table className="Table">
@@ -38,9 +39,9 @@ const RenderLinks = ({ fields, openModal, createFooterLinkModalId, submitForm, s
                             return (
                                 <tr id={`name_${i}`} key={i} className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem" style={{ cursor: 'auto' }}>
                                     <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ minWidth: '210px' }}>
-                                        <div className="db-ListViewItem-cellContent Box-root Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20" >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20" style={{ marginLeft: '-23px' }}>
                                             <div className="bs-Fieldset-fields">
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-vertical--8" style={{ marginLeft: '-23px' }}>
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-vertical--8">
                                                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap" id={`name_${i}`}>
                                                         {link.name}
                                                     </span>
@@ -88,7 +89,19 @@ const RenderLinks = ({ fields, openModal, createFooterLinkModalId, submitForm, s
                                                 <div className="Box-root Margin-right--8" id="removeFooterLink">
                                                     <button
                                                         type="button"
-                                                        onClick={() => fields.remove(i)}
+                                                        onClick={() => {
+                                                            openModal({
+                                                                id: removeFooterLinkModalId,
+                                                                onClose: () => '',
+                                                                onConfirm: () => {
+                                                                    return new Promise((resolve)=>{
+                                                                        removeFooterLink(link.name);
+                                                                        resolve(true);
+                                                                    })
+                                                                },
+                                                                content: RemoveFooterLink
+                                                            })
+                                                        }}
                                                         className="Button bs-ButtonLegacy"
                                                     >
                                                         <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
@@ -115,7 +128,9 @@ RenderLinks.displayName = 'RenderLinks'
 
 RenderLinks.propTypes = {
     submitForm: PropTypes.func.isRequired,
+    removeFooterLink: PropTypes.func.isRequired,
     createFooterLinkModalId: PropTypes.string,
+    removeFooterLinkModalId: PropTypes.string,
     statusPage: PropTypes.object,
     openModal: PropTypes.func.isRequired,
     fields: PropTypes.oneOfType([
