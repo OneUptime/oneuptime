@@ -1,5 +1,4 @@
 import React, { Fragment, useState, useEffect } from 'react';
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import BlockChart from '../blockchart/BlockChart';
@@ -60,12 +59,22 @@ const calculateTime = (incidents, activeProbe) => {
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
 };
 
-export function MonitorChart({ probe, monitor, startDate, endDate, probeData, status, showAll, activeProbe, probes }) {
+export function MonitorChart({ probe, monitor, data, status, showAll, activeProbe, probes }) {
     const [now, setNow] = useState(Date.now());
+
     const activeProbeObj = (probes && probes.length > 0 && probes[activeProbe || 0] ? probes[activeProbe || 0] : probe);
     const lastAlive = activeProbeObj && activeProbeObj.lastAlive ? activeProbeObj.lastAlive : now;
-    const { timeBlock, uptimePercent } = monitor.incidents && monitor.incidents.length > 0 ? calculateTime(monitor.incidents, activeProbeObj) : calculateTime([]);
+
+    const { timeBlock, uptimePercent } = monitor.incidents && monitor.incidents.length > 0 ? calculateTime(monitor.incidents.length > 3 ?
+        monitor.incidents.splice(0, 3) : monitor.incidents, activeProbeObj)
+        : calculateTime([], activeProbeObj);
+
     const type = monitor.type;
+    const checkLogs = data && data.length > 0;
+
+    const responseTime = checkLogs ? data[0].responseTime : '0';
+    const monitorStatus = toPascalCase(status);
+    const uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
     useEffect(() => {
         let nowHandler = setTimeout(() => {
@@ -81,20 +90,6 @@ export function MonitorChart({ probe, monitor, startDate, endDate, probeData, st
     for (let i = 0; i < 90; i++) {
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
-
-    let data = probeData && probeData.length > 0 ? probeData.filter(
-        log => moment(new Date(log.createdAt)).isBetween(
-            new Date(startDate),
-            new Date(endDate),
-            'day',
-            '[]'
-        )
-    ) : [];
-    let checkLogs = data && data.length > 0;
-
-    let responseTime = checkLogs ? data[0].responseTime : '0';
-    let monitorStatus = toPascalCase(status);
-    let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '0';
 
     let statusColor;
     switch (status) {
@@ -340,17 +335,13 @@ MonitorChart.displayName = 'MonitorChart';
 
 MonitorChart.propTypes = {
     probe: PropTypes.object,
-    startDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
-    endDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     monitor: PropTypes.object,
-    probeData: PropTypes.array,
+    data: PropTypes.array,
     status: PropTypes.string,
     showAll: PropTypes.bool,
     activeProbe: PropTypes.number,
     probes: PropTypes.array
 };
-
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
 const mapStateToProps = (state) => {
     return {
@@ -359,4 +350,4 @@ const mapStateToProps = (state) => {
     };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(MonitorChart);
+export default connect(mapStateToProps)(MonitorChart);

@@ -8,7 +8,7 @@ import DateRangeWrapper from './DateRangeWrapper';
 import MonitorTitle from './MonitorTitle';
 import ProbeBar from './ProbeBar';
 import moment from 'moment';
-import { editMonitorSwitch, deleteMonitor } from '../../actions/monitor';
+import { editMonitorSwitch, fetchMonitorLogs, deleteMonitor } from '../../actions/monitor';
 import DeleteMonitor from '../modals/DeleteMonitor';
 import { FormLoader } from '../basic/Loader';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
@@ -32,8 +32,19 @@ export class MonitorViewHeader extends Component {
         this.deleteMonitor = this.deleteMonitor.bind(this);
     }
 
+    componentDidMount() {
+        const { fetchMonitorLogs, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
+        fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+    }
+
     handleDateChange = (startDate, endDate) => {
         this.setState({ startDate, endDate });
+
+        const { fetchMonitorLogs, monitor } = this.props;
+
+        fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
     }
 
     editMonitor = () => {
@@ -75,21 +86,21 @@ export class MonitorViewHeader extends Component {
     }
 
     render() {
-        let { deleteModalId, startDate, endDate } = this.state;
-        let { monitor, subProjects, monitorState, activeProbe, currentProject, probes } = this.props;
+        const { deleteModalId, startDate } = this.state;
+        const { monitor, subProjects, monitorState, activeProbe, currentProject, probes } = this.props;
 
         const subProjectId = monitor.projectId._id || monitor.projectId;
         const subProject = subProjects.find(subProject => subProject._id === subProjectId);
+
+        const probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
+        const probeData = this.filterProbeData(monitor, probe);
+
+        const status = getMonitorStatus(monitor.incidents, probeData);
 
         let deleting = false;
         if (monitorState && monitorState.deleteMonitor && monitorState.deleteMonitor === monitor._id) {
             deleting = true;
         }
-
-        let probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
-        let probeData = this.filterProbeData(monitor, probe);
-
-        let status = getMonitorStatus(monitor.incidents, probeData);
 
         return (
             <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium" onKeyDown={this.handleKeyBoard}>
@@ -161,10 +172,10 @@ export class MonitorViewHeader extends Component {
                                 })}
                             </div>
                         </ShouldRender>
-                        <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} monitor={monitor} probeData={probeData} status={status} showAll={true} />
+                        <MonitorChart key={uuid.v4()} probe={probe} monitor={monitor} data={probeData} status={status} showAll={true} />
                     </ShouldRender>
                     {monitor && monitor.probes && monitor.probes.length < 2 ?
-                        <MonitorChart startDate={startDate} endDate={endDate} key={uuid.v4()} probe={probe} monitor={monitor} probeData={probeData} status={status} showAll={true} />
+                        <MonitorChart key={uuid.v4()} probe={probe} monitor={monitor} data={probeData} status={status} showAll={true} />
                         : ''
                     }<br />
                 </div>
@@ -178,6 +189,7 @@ MonitorViewHeader.displayName = 'MonitorViewHeader';
 MonitorViewHeader.propTypes = {
     monitor: PropTypes.object.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
+    fetchMonitorLogs: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
     deleteMonitor: PropTypes.func.isRequired,
     openModal: PropTypes.func,
@@ -192,6 +204,7 @@ MonitorViewHeader.propTypes = {
 
 const mapDispatchToProps = dispatch => bindActionCreators({
     editMonitorSwitch,
+    fetchMonitorLogs,
     deleteMonitor,
     selectedProbe,
     openModal,

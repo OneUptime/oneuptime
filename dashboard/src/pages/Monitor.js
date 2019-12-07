@@ -12,7 +12,7 @@ import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMemb
 import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
-import { fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors } from '../actions/monitor';
+import { fetchMonitorsIncidents, fetchMonitors } from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
@@ -38,7 +38,6 @@ class DashboardView extends Component {
             this.props.monitor.monitorsList.monitors.forEach((subProject) => {
                 if (subProject.monitors.length > 0) {
                     subProject.monitors.forEach((monitor) => {
-                        this.props.fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id);
                         this.props.fetchMonitorsIncidents(monitor.projectId._id || monitor.projectId, monitor._id, 0, 3);
                     });
                 }
@@ -191,7 +190,7 @@ class DashboardView extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ destroy, fetchMonitorsIncidents, fetchMonitorLogs, fetchMonitors, loadPage, fetchTutorial }, dispatch);
+    return bindActionCreators({ destroy, fetchMonitorsIncidents, fetchMonitors, loadPage, fetchTutorial }, dispatch);
 };
 
 const mapStateToProps = state => {
@@ -258,7 +257,6 @@ DashboardView.propTypes = {
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
-    fetchMonitorLogs: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     monitorTutorial: PropTypes.object,

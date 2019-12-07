@@ -199,7 +199,7 @@ module.exports = {
         query.deleted = false;
         try {
             var monitor = await MonitorModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } }, { new: true }).populate('deletedById', 'name');
-			
+
             if (monitor) {
                 var subProject = null;
                 var project = await ProjectService.findOneBy({ _id: monitor.projectId });
@@ -228,7 +228,7 @@ module.exports = {
                     await ProjectService.update({ _id: project._id, seats: projectSeats.toString() });
                 }
                 var incidents = await IncidentService.findBy({ monitorId: monitor._id });
-				
+
                 await Promise.all(incidents.map(async (incident) => {
                     await IncidentService.deleteBy({ _id: incident._id }, userId);
                 }));
@@ -242,7 +242,7 @@ module.exports = {
                 await IntegrationService.removeMonitor(monitor._id);
                 await NotificationService.create(monitor.projectId, `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`, monitor.deletedById._id, 'monitoraddremove');
                 await RealTimeService.sendMonitorDelete(monitor);
-				
+
                 return monitor;
             } else {
                 return null;
@@ -294,7 +294,7 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('MonitorModel.getProbeMonitors', error);
-            throw error;  
+            throw error;
         }
     },
 
@@ -331,13 +331,13 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('MonitoService.updateDeviceMonitorPingTime', error);
-            throw error;  
+            throw error;
         }
     },
 
-    async getMonitorLogs(monitorId) {
+    async getMonitorLogs(monitorId, startDate, endDate) {
         try {
-            var monitorData = await MonitorLogModel.find({ monitorId: monitorId })
+            var monitorData = await MonitorLogModel.find({ monitorId: monitorId, createdAt: { $gte: startDate, $lte: endDate } })
                 .sort([['createdAt', -1]]);
         } catch (error) {
             ErrorService.log('monitorLogModel.find', error);
