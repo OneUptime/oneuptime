@@ -108,15 +108,11 @@ class CreateFooterLink extends Component {
 										<span>Cancel</span>
 									</button>
 									<button
-										id="createIncident"
+										id="createFooter"
 										className="bs-Button bs-DeprecatedButton bs-Button--blue"
-										disabled={data && data.statusPage.links.requesting}
+										disabled={this.props.statusPage.links.requesting}
 										type="submit">
-										{
-											data.statusPage.links && !data.statusPage.links.requesting && <span>
-												{data && data.footerName ? 'Update': 'Add'}
-											</span>
-										}
+										{this.props.statusPage.links && !this.props.statusPage.links.requesting && <span>{data && data.footerName ? 'Update': 'Add'}</span>}
 										{this.props.statusPage.links && this.props.statusPage.links.requesting && <FormLoader />}
 									</button>
 								</div>
