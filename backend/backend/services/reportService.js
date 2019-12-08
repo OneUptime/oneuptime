@@ -134,24 +134,24 @@ module.exports = {
         let group, sort, inputFormat, outputFormat;
 
         if (filter === 'day') {
-            group = { _id: { day: { $dayOfYear: '$createdAt' } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+            group = { _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
             sort = { '_id.day': 1 };
 
-            inputFormat = 'DDD';
+            inputFormat = 'YYYY-MM-DD';
             outputFormat = 'MMM Do YYYY';
         }
         if (filter === 'week') {
-            group = { _id: { week: { $week: '$createdAt' } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+            group = { _id: { week: { $dateToString: { format: "%Y-%U", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
             sort = { '_id.week': 1 };
 
-            inputFormat = 'ww';
+            inputFormat = 'YYYY-ww';
             outputFormat = 'wo [week of] YYYY';
         }
         if (filter === 'month') {
-            group = { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+            group = { _id: { month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
             sort = { '_id.month': 1 };
 
-            inputFormat = 'MM';
+            inputFormat = 'YYYY-MM';
             outputFormat = 'MMM YYYY';
         }
         if (filter === 'year') {
@@ -201,24 +201,24 @@ module.exports = {
         let group, sort, inputFormat, outputFormat;
 
         if (filter === 'day') {
-            group = { _id: { day: { $dayOfYear: '$createdAt' } }, count: { $sum: 1 } };
+            group = { _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }, count: { $sum: 1 } };
             sort = { '_id.day': 1 };
 
-            inputFormat = 'DDD';
+            inputFormat = 'YYYY-MM-DD';
             outputFormat = 'MMM Do YYYY';
         }
         if (filter === 'week') {
-            group = { _id: { week: { $week: '$createdAt' } }, count: { $sum: 1 } };
+            group = { _id: { week: { $dateToString: { format: "%Y-%U", date: "$createdAt" } } }, count: { $sum: 1 } };
             sort = { '_id.week': 1 };
 
-            inputFormat = 'ww';
+            inputFormat = 'YYYY-ww';
             outputFormat = 'wo [week of] YYYY';
         }
         if (filter === 'month') {
-            group = { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 } };
+            group = { _id: { month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } } }, count: { $sum: 1 } };
             sort = { '_id.month': 1 };
 
-            inputFormat = 'MM';
+            inputFormat = 'YYYY-MM';
             outputFormat = 'MMM YYYY';
         }
         if (filter === 'year') {

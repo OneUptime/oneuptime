@@ -25,13 +25,14 @@ let token, userId, airtableId, projectId, monitorId, monitor = {
 };
 let endDate = moment().format('YYYY-MM-DD');
 let startDate = moment().subtract(7, 'd').format('YYYY-MM-DD');
+let filter = 'month';
 
 describe('Reports API', function () {
     this.timeout(20000);
 
     before(function (done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createUser(request, userData.user, function (err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -92,18 +93,18 @@ describe('Reports API', function () {
             });
     });
 
-    it('should return average resolved incident in a month', (done) => {
+    it('should return average resolved incidents time', (done) => {
         const authorization = `Basic ${token}`;
-        request.get(`/reports/${projectId}/average-resolved`).set('Authorization', authorization).end((err, res) => {
+        request.get(`/reports/${projectId}/average-resolved?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`).set('Authorization', authorization).end((err, res) => {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             done();
         });
     });
 
-    it('should return monthly average time to resolve incidents', (done) => {
+    it('should return number of incidents', (done) => {
         const authorization = `Basic ${token}`;
-        request.get(`/reports/${projectId}/monthly-incidents`).set('Authorization', authorization).end((err, res) => {
+        request.get(`/reports/${projectId}/incidents?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`).set('Authorization', authorization).end((err, res) => {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             done();
