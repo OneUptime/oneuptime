@@ -21,17 +21,11 @@ const initialState = {
         success: false,
         reports: [],
     },
-    monthlyIncidents: {
-        requesting: true,
-        error: null,
-        success: false,
-        months: [],
-    },
     averageTime: {
         requesting: true,
         error: null,
         success: false,
-        months: [],
+        reports: [],
     }
 }
 
@@ -133,63 +127,33 @@ export default function incidents(state = initialState, action) {
                 },
             });
 
-        case types.GET_MONTHLY_INCIDENTS_REQUEST:
-            return Object.assign({}, state, {
-                monthlyIncidents: {
-                    requesting: true,
-                    error: null,
-                    success: false,
-                    months: []
-                },
-            });
-
-        case types.GET_MONTHLY_INCIDENTS_SUCCESS:
-            return Object.assign({}, state, {
-                monthlyIncidents: {
-                    requesting: false,
-                    error: null,
-                    success: true,
-                    months: action.payload.data
-                },
-            });
-
-        case types.GET_MONTHLY_INCIDENTS_FAILED:
-            return Object.assign({}, state, {
-                monthlyIncidents: {
-                    requesting: false,
-                    error: action.payload,
-                    success: false,
-                    months: []
-                },
-            });
-
-        case types.GET_MONTHLY_RESOLVE_TIME_REQUEST:
+        case types.GET_RESOLVE_TIME_REQUEST:
             return Object.assign({}, state, {
                 averageTime: {
                     requesting: true,
                     error: null,
                     success: false,
-                    months: []
+                    reports: []
                 },
             });
 
-        case types.GET_MONTHLY_RESOLVE_TIME_SUCCESS:
+        case types.GET_RESOLVE_TIME_SUCCESS:
             return Object.assign({}, state, {
                 averageTime: {
                     requesting: false,
                     error: null,
                     success: true,
-                    months: action.payload.data
+                    reports: action.payload.data
                 },
             });
 
-        case types.GET_MONTHLY_RESOLVE_TIME_FAILED:
+        case types.GET_RESOLVE_TIME_FAILED:
             return Object.assign({}, state, {
                 averageTime: {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    months: []
+                    reports: []
                 },
             });
 
