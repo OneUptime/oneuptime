@@ -115,69 +115,83 @@ module.exports = {
             }
             throw error;
         }
-        
+
         wrapper['monitors'] = arr;
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
     },
     /**
-   * @param { String } projectId id of current project
+   * @param { String } subProjectIds id of current project
+   * @param { String } startDate start date of range
+   * @param { String } startDate end date of range
+   * @param { String } filter date filter
    * @description get the average resolve time for the current month
    * @returns { Promise } array if resolved || error if rejected
    */
-    async getAverageTimeMonth(subProjectIds) {
-        const endDate = new Date();
-        const startDate = moment(endDate).subtract(11, 'months').toDate();
+    async getAverageTimeBy(subProjectIds, startDate, endDate, filter) {
+        let start = moment(startDate).toDate();
+        let end = moment(endDate).toDate();
+        let group, sort, inputFormat, outputFormat;
+
+        if (filter === 'day') {
+            group = { _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+            sort = { '_id.day': 1 };
+
+            inputFormat = 'YYYY-MM-DD';
+            outputFormat = 'MMM Do YYYY';
+        }
+        if (filter === 'week') {
+            group = { _id: { week: { $dateToString: { format: "%Y-%U", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+            sort = { '_id.week': 1 };
+
+            inputFormat = 'YYYY-ww';
+            outputFormat = 'wo [week of] YYYY';
+        }
+        if (filter === 'month') {
+            group = { _id: { month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+            sort = { '_id.month': 1 };
+
+            inputFormat = 'YYYY-MM';
+            outputFormat = 'MMM YYYY';
+        }
+        if (filter === 'year') {
+            group = { _id: { year: { $year: '$createdAt' } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+            sort = { '_id.year': 1 };
+
+            inputFormat = 'YYYY';
+            outputFormat = 'YYYY';
+        }
+
         try {
             var result = await IncidentModel.aggregate([
-                { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: startDate, $lte: endDate } }] } },
+                { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, createdAt: 1 } },
-                { $group: { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } } },
-                { $sort: { '_id.month': 1 } }
+                { $group: group },
+                { $sort: sort }
             ]);
         } catch (error) {
             ErrorService.log('IncidentModel.aggregate', error);
             throw error;
         }
+
         const formarted = [];
-        for (const month of result) {
-            formarted.push({
-                month: moment(month._id.month, 'MM').format('MMMM'),
-                incidents: month.count,
-                averageResolved: parseInt(moment.duration(month.averageResolveTime).asSeconds().toFixed(0), 10)
-            });
+
+        for (const period of result) {
+            const data = {
+                incidents: period.count,
+                averageResolved: parseInt(moment.duration(period.averageResolveTime).asSeconds().toFixed(0), 10)
+            };
+            data[filter] = moment(period._id[filter], inputFormat).format(outputFormat);
+
+            formarted.push(data);
         }
         return formarted;
     },
     /**
-   * @param { String } projectId id of current project
-   * @description get the number of incidents for the past 12 months
-   * @returns { Promise } array if resolved || error if rejected
-   */
-    async getMonthlyIncidentCount(subProjectIds) {
-        const endDate = new Date();
-        const startDate = moment(endDate).subtract(11, 'months').toDate();
-        try {
-            var result = await IncidentModel.aggregate([
-                { $match: { $and: [{ projectId: { $in: subProjectIds } }, { createdAt: { $gte: startDate, $lte: endDate } }] } },
-                { $group: { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
-                { $sort: { '_id.month': 1 } }
-            ]);
-        } catch (error) {
-            ErrorService.log('IncidentModel.aggregate', error);
-            throw error;
-        }
-        const formarted = [];
-        for (const month of result) {
-            formarted.push({
-                month: moment(month._id.month, 'MM').format('MMMM'),
-                incidents: month.count,
-            });
-        }
-        return formarted;
-    },
-    /**
-      * @param { String } projectId id of current project
+      * @param { String } subProjectIds id of current project
+      * @param { String } startDate start date of range
+      * @param { String } startDate end date of range
+      * @param { String } filter date filter
       * @description get the number of incidents for the past 12 months
       * @returns { Promise } array if resolved || error if rejected
       */
@@ -187,24 +201,24 @@ module.exports = {
         let group, sort, inputFormat, outputFormat;
 
         if (filter === 'day') {
-            group = { _id: { day: { $dayOfYear: '$createdAt' } }, count: { $sum: 1 } };
+            group = { _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }, count: { $sum: 1 } };
             sort = { '_id.day': 1 };
 
-            inputFormat = 'DDD';
+            inputFormat = 'YYYY-MM-DD';
             outputFormat = 'MMM Do YYYY';
         }
         if (filter === 'week') {
-            group = { _id: { week: { $week: '$createdAt' } }, count: { $sum: 1 } };
+            group = { _id: { week: { $dateToString: { format: "%Y-%U", date: "$createdAt" } } }, count: { $sum: 1 } };
             sort = { '_id.week': 1 };
 
-            inputFormat = 'ww';
+            inputFormat = 'YYYY-ww';
             outputFormat = 'wo [week of] YYYY';
         }
         if (filter === 'month') {
-            group = { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 } };
+            group = { _id: { month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } } }, count: { $sum: 1 } };
             sort = { '_id.month': 1 };
 
-            inputFormat = 'MM';
+            inputFormat = 'YYYY-MM';
             outputFormat = 'MMM YYYY';
         }
         if (filter === 'year') {

@@ -56,34 +56,17 @@ router.get('/:projectId/active-monitors', getUser, isAuthorized, getSubProjects,
 
 /**
 * @Route
-* @description route to fetch monthly average time to resolve incidents
+* @description route to fetch average time to resolve incidents by filter
 * @param Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {projectId}
 * @returns { Array } an array of monitors orderedby number of incidents
 */
 router.get('/:projectId/average-resolved', getUser, isAuthorized, getSubProjects, async (req, res) => {
-    var userId = req.user ? req.user.id : null;
+    const { startDate, endDate, filter } = req.query;
     var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
     try {
-        // Call Reports Service
-        var months = await ReportService.getAverageTimeMonth(subProjectIds, userId);
-        return sendListResponse(req, res, months);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-/**
-* @Route
-* @description route to fetch monthly average time to resolve incidents
-* @param Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {projectId}
-* @returns { Array } an array of monitors orderedby number of incidents
-*/
-router.get('/:projectId/monthly-incidents', getUser, isAuthorized, getSubProjects, async (req, res) => {
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-    try {
-        // Call Reports Service
-        var months = await ReportService.getMonthlyIncidentCount(subProjectIds);
-        return sendListResponse(req, res, months);
+        // Reports Service
+        var resolveTime = await ReportService.getAverageTimeBy(subProjectIds, startDate, endDate, filter);
+        return sendListResponse(req, res, resolveTime);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
