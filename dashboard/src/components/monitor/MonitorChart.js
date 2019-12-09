@@ -284,20 +284,43 @@ export function MonitorChart({ probe, monitor, data, status, showAll, activeProb
                 <AreaChart type={type} data={data} name={'response time'} symbol="ms" />
             </div>
         </div>
+    } else if (type === 'manual') {
+        monitorInfo = <div className="db-Trend">
+            <div className="block-chart-side line-chart">
+                <div className="db-TrendRow">
+                    <div className="db-Trend-colInformation">
+                        <div className="db-Trend-rowTitle" title="Monitor Status">
+                            <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className={`chart-font Text-color--${statusColor}`}>{monitorStatus}</span></span></div>
+                        </div>
+                    </div>
+                    <div className="db-Trend-colInformation">
+                        <div className="db-Trend-rowTitle" title="Uptime Stats">
+                            <div className="db-Trend-title"><span className="chart-font">Uptime Stats</span></div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="block-chart-main line-chart">
+                <AreaChart type={type} data={timeBlock} name={'downtime'} symbol="secs" />
+            </div>
+        </div>
     } else {
         monitorInfo = <div className="db-Trend">
             <span></span>
-            {
-                type !== 'manual' ?
-                    <div className="db-Trend-colInformation">
-                        <div className="db-Trend-rowTitle" title="Gross volume">
-                            <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
-                        </div>
-                        <div className="db-Trend-row">
-                            <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
-                        </div>
-                    </div> : null
-            }
+            <div className="db-Trend-colInformation">
+                <div className="db-Trend-rowTitle" title="Gross volume">
+                    <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                </div>
+                <div className="db-Trend-row">
+                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
+                </div>
+            </div>
             <div className="db-Trend-colInformation">
                 <div className="db-Trend-rowTitle" title="Gross volume">
                     <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>

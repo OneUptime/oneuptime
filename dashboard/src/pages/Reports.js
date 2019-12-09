@@ -7,7 +7,7 @@ import Dashboard from '../components/Dashboard';
 import Members from '../components/reports/Members';
 import Monitors from '../components/reports/Monitors';
 import Incidents from '../components/reports/Incidents';
-import AverageTimeChart from '../components/reports/AverageTimeChart';
+import ResolveTime from '../components/reports/ResolveTime';
 import Select from 'react-select-fyipe';
 
 const styles = {
@@ -64,13 +64,18 @@ export class Reports extends Component {
             membersEnd: endDate,
             monitorStart: startDate,
             monitorEnd: endDate,
+            resolveTimeFilter: { value: 'month', label: 'Monthly' },
             incidentFilter: { value: 'month', label: 'Monthly' },
+            resolveTimeStart: startDate,
+            resolveTimeEnd: endDate,
             incidentStart: startDate,
             incidentEnd: endDate
         };
         this.handleMembersChange = this.handleMembersChange.bind(this);
         this.handleMonitorChange = this.handleMonitorChange.bind(this);
+        this.handleResolveTimeFilterChange = this.handleResolveTimeFilterChange.bind(this);
         this.handleIncidentFilterChange = this.handleIncidentFilterChange.bind(this);
+        this.handleResolveTimeChange = this.handleResolveTimeChange.bind(this);
         this.handleIncidentChange = this.handleIncidentChange.bind(this);
     }
 
@@ -88,9 +93,22 @@ export class Reports extends Component {
         });
     }
 
+    handleResolveTimeFilterChange(filter) {
+        this.setState({
+            resolveTimeFilter: filter
+        });
+    }
+
     handleIncidentFilterChange(filter) {
         this.setState({
             incidentFilter: filter
+        });
+    }
+
+    handleResolveTimeChange(startDate, endDate) {
+        this.setState({
+            resolveTimeStart: startDate,
+            resolveTimeEnd: endDate
         });
     }
 
@@ -128,8 +146,53 @@ export class Reports extends Component {
                                                                 <span> Average incident resolve time for the past 12 monhts</span>
                                                             </span>
                                                         </div>
+
+                                                        <div className="db-Trends-timeControls Margin-horizontal--12" style={{ justifyContent: 'flex-end' }}>
+                                                            <div className="db-DateRangeInputWithComparison">
+                                                                <div
+                                                                    className="db-DateRangeInput bs-Control"
+                                                                    style={{ cursor: 'pointer', padding: '0' }}
+                                                                >
+                                                                    <div
+                                                                        className="db-DateRangeInput-input"
+                                                                        role="button"
+                                                                        tabIndex="0"
+                                                                        style={{ cursor: 'pointer' }}
+                                                                    >
+                                                                        <span className="db-DateRangeInput-start">
+                                                                            <Select
+                                                                                name="filter"
+                                                                                value={this.state.resolveTimeFilter}
+                                                                                className="db-select-ne"
+                                                                                onChange={this.handleResolveTimeFilterChange}
+                                                                                options={[
+                                                                                    { value: 'day', label: 'Daily' },
+                                                                                    { value: 'week', label: 'Weekly' },
+                                                                                    { value: 'month', label: 'Monthly' },
+                                                                                    { value: 'year', label: 'Yearly' }
+                                                                                ]}
+                                                                            />
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="db-Trends-timeControls" style={{ justifyContent: 'flex-end' }}>
+                                                            <DateRangeWrapper
+                                                                selected={this.state.resolveTimeStart}
+                                                                style={{ justifyContent: 'flex-end' }}
+                                                                onChange={this.handleResolveTimeChange}
+                                                                dateRange={30}
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <AverageTimeChart currentProject={this.props.match.params.projectId} />
+                                                    <ResolveTime
+                                                        filter={this.state.resolveTimeFilter.value}
+                                                        startDate={this.state.resolveTimeStart}
+                                                        endDate={this.state.resolveTimeEnd}
+                                                        currentProject={this.props.match.params.projectId}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
@@ -155,7 +218,6 @@ export class Reports extends Component {
                                                                 <div
                                                                     className="db-DateRangeInput bs-Control"
                                                                     style={{ cursor: 'pointer', padding: '0' }}
-                                                                // onClick={}
                                                                 >
                                                                     <div
                                                                         className="db-DateRangeInput-input"

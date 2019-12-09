@@ -5,10 +5,10 @@ import { connect } from 'react-redux';
 import { LargeSpinner as Loader } from '../basic/Loader';
 import { ResponsiveContainer, AreaChart as Chart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import {
-    getMonthlyResolveTime,
-    getMonthlyResolveTimeError,
-    getMonthlyResolveTimeRequest,
-    getMonthlyResolveTimeSuccess
+    getResolveTime,
+    getResolveTimeError,
+    getResolveTimeRequest,
+    getResolveTimeSuccess
 } from '../../actions/reports';
 
 const noDataStyle = {
@@ -39,39 +39,51 @@ CustomTooltip.propTypes = {
     label: PropTypes.string
 };
 
-class AverageTimeChart extends Component {
+class ResolveTime extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            months: []
+            resolveTime: []
         }
     }
 
     componentDidMount() {
-        const { getMonthlyResolveTime, currentProject } = this.props;
-        getMonthlyResolveTime(currentProject);
+        const { getResolveTime, currentProject, filter, startDate, endDate } = this.props;
+
+        getResolveTime(currentProject, filter, startDate, endDate);
     }
 
-    UNSAFE_componentWillReceiveProps(nextProps) {
-        if (this.state.months !== nextProps.averageTime.months) {
+    UNSAFE_componentWillReceiveProps(nextProps, prevState) {
+        const {
+            getResolveTime,
+            currentProject,
+            filter,
+            startDate,
+            endDate,
+            resolveTimeReports
+        } = nextProps;
+
+        if (filter !== this.props.filter || startDate !== this.props.startDate || endDate !== this.props.endDate) {
+            getResolveTime(currentProject, filter, startDate, endDate);
+        }
+
+        if (prevState.resolveTime !== resolveTimeReports.reports) {
             this.setState({
-                months: nextProps.averageTime.months
-            })
+                resolveTime: nextProps.resolveTimeReports.reports
+            });
         }
     }
 
     render() {
-        const { months } = this.state;
-        const { averageTime } = this.props;
+        const { resolveTime } = this.state;
+        const { resolveTimeReports, filter } = this.props;
 
-        if (months && months.length > 0) {
-            const data = months.reverse();
-
+        if (resolveTime && resolveTime.length > 0) {
             return (
                 <ResponsiveContainer width="100%" height={300}>
-                    <Chart data={data}>
+                    <Chart data={resolveTime}>
                         <Legend verticalAlign="top" height={36} />
-                        <XAxis dataKey="month" />
+                        <XAxis dataKey={filter} />
                         <YAxis />
                         <Tooltip content={<CustomTooltip />} />
                         <CartesianGrid strokeDasharray="3 3" />
@@ -82,34 +94,37 @@ class AverageTimeChart extends Component {
         } else {
             return (
                 <div style={noDataStyle}>
-                    {averageTime.requesting ? <Loader /> : <h3>NO AVG RESOLVE TIME</h3>}
+                    {resolveTimeReports.requesting ? <Loader /> : <h3>NO AVG RESOLVE TIME</h3>}
                 </div>
             );
         }
     }
 }
 
-AverageTimeChart.displayName = 'AverageTimeChart';
+ResolveTime.displayName = 'ResolveTime';
 
 const actionCreators = {
-    getMonthlyResolveTime,
-    getMonthlyResolveTimeError,
-    getMonthlyResolveTimeRequest,
-    getMonthlyResolveTimeSuccess
+    getResolveTime,
+    getResolveTimeError,
+    getResolveTimeRequest,
+    getResolveTimeSuccess
 }
 
 const mapStateToProps = state => ({
-    averageTime: state.report.averageTime
+    resolveTimeReports: state.report.averageTime
 })
 
 const mapDispatchToProps = dispatch => ({
     ...bindActionCreators(actionCreators, dispatch),
 })
 
-AverageTimeChart.propTypes = {
-    getMonthlyResolveTime: PropTypes.func,
+ResolveTime.propTypes = {
+    getResolveTime: PropTypes.func,
+    filter: PropTypes.string,
+    startDate: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
+    endDate: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
     currentProject: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
-    averageTime: PropTypes.object
+    resolveTimeReports: PropTypes.object
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(AverageTimeChart);
+export default connect(mapStateToProps, mapDispatchToProps)(ResolveTime);
