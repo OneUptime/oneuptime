@@ -184,6 +184,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                             name={`${policy}.teamMember`}
                                                             component={RenderNames}
                                                             subProjectId={subProjectId}
+                                                            policyIndex={i}
                                                         />
                                                     </div>
                                                 </fieldset>

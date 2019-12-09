@@ -6,7 +6,7 @@ import TimezoneSelector from './TimezoneSelector';
 import TeamSelector from './TeamSelector';
 import TimeSelector from './TimeSelector';
 
-const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) => {
+const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex }) => {
     const [timeVisible, setTimeVisible] = useState(false);
     return (
         <ul>
@@ -25,6 +25,7 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) =>
                                         component={TeamSelector}
                                         placeholder="Nawaz"
                                         subProjectId={subProjectId}
+                                        policyIndex={policyIndex}
                                     />
                                 </div>
                             </div>                            
@@ -144,7 +145,8 @@ RenderNames.propTypes = {
     fields: PropTypes.oneOfType([
         PropTypes.array,
         PropTypes.object
-    ]).isRequired
+    ]).isRequired,
+    policyIndex: PropTypes.number.isRequired,
 }
 
 export { RenderNames }
