@@ -9,111 +9,56 @@ var MonitorService = require('../services/monitorService'),
 // creates incident if a website is down and resolves it when they come back up
 module.exports = {
     checkAllDeviceMonitor: async () => {
-        var newDate = new moment();
-        var resDate = new Date();
-        try{
+        try {
+            var newDate = new moment();
+            var resDate = new Date();
             var monitors = await MonitorService.getDeviceMonitorsPing();
-        }catch(error){
-            ErrorService.log('MonitorService.getDeviceMonitorsPing', error);
-            throw error;
-        }        
-        if(monitors){
-            monitors.forEach(async (monitor) => {
-                var d = new moment(monitor.lastPingTime);
-
-                if(newDate.diff(d, 'minutes') > 3) {
-                    try{
+            if(monitors){
+                monitors.forEach(async (monitor) => {
+                    var d = new moment(monitor.lastPingTime);
+    
+                    if (newDate.diff(d, 'minutes') > 3) {
                         var mon1 = await MonitorService.getMonitorTime(monitor._id, newDate);
-                    }catch(error){
-                        ErrorService.log('MonitorService.getMonitorTime', error);
-                        throw error;
-                    }        
-                    if(mon1.status === 'online') {
-                        try{
+                        if(mon1.status === 'online') {
                             await job(monitor);
-                        }catch(error){
-                            ErrorService.log('DeviceMonitorsCron.job', error);
-                            throw error;
-                        }            
-                    }
-                } else {
-                    var res = (new Date()).getTime() - resDate.getTime();
-                    try{
+                        }
+                    } else {
+                        var res = (new Date()).getTime() - resDate.getTime();
                         var mon2 = await MonitorService.getMonitorTime(monitor._id, newDate);
-                    }catch(error){
-                        ErrorService.log('MonitorService.getMonitorTime', error);
-                        throw error;
-                    }        
-                    if(mon2.status === 'offline') {
-                        try{
+                        if(mon2.status === 'offline') {
                             await job(monitor, res);
-                        }catch(error){
-                            ErrorService.log('DeviceMonitorsCron.job', error);
-                            throw error;
-                        }            
+                        }
                     }
-                }
-            });
-        } else {
-            return;
+                });
+            } else {
+                return;
+            }
+        } catch (error) {
+            ErrorService.log('deviceMonitorsCron.checkAllDeviceMonitor', error);
+            throw error;
         }
     }
 };
 
 var job = async (monitor, res) => {
-    if (res) {
-        try{
+    try {
+        if (res) {
             await MonitorService.setMonitorTime(monitor._id, res, 'online');
-        }catch(error){
-            ErrorService.log('MonitorService.setMonitorTime', error);
-            throw error;
-        }
-        try{
             var incident = await IncidentService.findBy({ monitorId: monitor._id, createdById: null, resolved: false,manuallyCreated:false });
-        }catch(error){
-            ErrorService.log('IncidentService.findBy', error);
-            throw error;
-        }
-        if (incident.length) {
-            try{
+            if (incident.length) {
                 incident = await IncidentService.resolve({ incidentId: incident[0]._id }, null);
-            }catch(error){
-                ErrorService.log('IncidentService.resolve', error);
-                throw error;
-            }
-            try{
                 await ZapierService.pushToZapier('incident_resolve', incident);
-            }catch(error){
-                ErrorService.log('ZapierService.pushToZapier', error);
-                throw error;
             }
-        }
-    } else {
-        try{
+        } else {
             await MonitorService.setMonitorTime(monitor._id, 0, 'offline');
-        }catch(error){
-            ErrorService.log('MonitorService.setMonitorTime', error);
-            throw error;
-        }
-        try{
             var incident1 = await IncidentService.findBy({ monitorId: monitor._id, createdById: null, resolved: false,manuallyCreated:false });
-        }catch(error){
-            ErrorService.log('IncidentService.findBy', error);
-            throw error;
-        }
-        if (!incident1.length) {
-            try{
+            if (!incident1.length) {
                 var incident2 = await IncidentService.create({ monitorId: monitor._id, projectId: monitor.projectId }, null);
-            }catch(error){
-                ErrorService.log('IncidentService.create', error);
-                throw error;
-            }
-            try{
                 ZapierService.pushToZapier('incident_created', incident2);
-            }catch(error){
-                ErrorService.log('ZapierService.pushToZapier', error);
-                throw error;
             }
         }
+    } catch (error) {
+        ErrorService.log('deviceMonitorsCron.job', error);
+        throw error;
     }
 };

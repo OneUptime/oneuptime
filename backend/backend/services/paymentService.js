@@ -7,7 +7,7 @@ module.exports = {
     //Param 4: expYear: Card expiry year.
     //Returns: promise
     createToken: async function (cardNumber, cvc, expMonth, expYear, zipCode) {
-        try{
+        try {
             var token = await stripe.tokens.create({
                 card: {
                     'number': cardNumber,
@@ -16,11 +16,11 @@ module.exports = {
                     'cvc': cvc,
                     'address_zip': zipCode
                 }});
-        }catch(error){
-            ErrorService.log('stripe.tokens.create', error);
+            return token.id;
+        } catch (error) {
+            ErrorService.log('PaymentService.create', error);
             throw error;
         }
-        return token.id;
     },
 
     //Description: Retrieve payment intent.
@@ -28,11 +28,11 @@ module.exports = {
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
     checkPaymentIntent: async function (paymentIntent) {
-        try{
+        try {
             var processedPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
             return processedPaymentIntent;
-        }catch(error){
-            ErrorService.log('stripe.paymentIntents.retrieve', error);
+        } catch (error) {
+            ErrorService.log('PaymentService.retrieve', error);
             throw error;
         }
     },
@@ -44,29 +44,29 @@ module.exports = {
     //Returns: promise
     createCustomer: async function (email, companyName) {
 
-        try{
+        try {
             var customer = await stripe.customers.create({
                 email: email,
                 description: companyName
             });
             return customer.id;
-        } catch(error) {
-            ErrorService.log('stripe.customers.create', error);
+        } catch (error) {
+            ErrorService.log('PaymentService.create', error);
             throw error;
         }
     },
 
     // eslint-disable-next-line no-unused-vars
     addPayment: async function (customerId, stripeToken) {
-        try{
+        try {
             var card = await stripe.customers.createSource(
                 customerId,
             );
-        }catch(error){
-            ErrorService.log('stripe.customers.createSource', error);
+            return card;
+        } catch (error) {
+            ErrorService.log('PaymentService.addPayment', error);
             throw error;
         }
-        return card;
     },
 
     //Description: Subscribe plan to user.
@@ -75,32 +75,30 @@ module.exports = {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
     subscribePlan: async function (stripePlanId, stripeCustomerId, coupon) {
-
-        var items = [];
-        items.push({
-            plan: stripePlanId,
-            quantity: 1
-        });
-
-        var subscriptionObj = {};
-
-        if (coupon) {
-            subscriptionObj = { customer: stripeCustomerId, items: items, coupon: coupon, trial_period_days: 14 };
-        }
-
-        else {
-            subscriptionObj = { customer: stripeCustomerId, items: items, trial_period_days: 14 };
-        }
-
-        try{
+        try {
+            var items = [];
+            items.push({
+                plan: stripePlanId,
+                quantity: 1
+            });
+    
+            var subscriptionObj = {};
+    
+            if (coupon) {
+                subscriptionObj = { customer: stripeCustomerId, items: items, coupon: coupon, trial_period_days: 14 };
+            }
+    
+            else {
+                subscriptionObj = { customer: stripeCustomerId, items: items, trial_period_days: 14 };
+            }
             var subscription = await stripe.subscriptions.create(subscriptionObj);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
+            return ({
+                stripeSubscriptionId: subscription.id,
+            });
+        } catch (error) {
+            ErrorService.log('PaymentService.subscribePlan', error);
             throw error;
         }
-        return ({
-            stripeSubscriptionId: subscription.id,
-        });
     },
 
     //Description: Call this fuction when you add and remove a team member from Fyipe. This would add and remove seats based on how many users are in the project.
@@ -109,97 +107,79 @@ module.exports = {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
     changeSeats: async function (subscriptionId, seats) {
-        try{
+        try {
             var subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.retrieve', error);
-            throw error;
-        }
-        var plan = null;
-        var items = [];
-        if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
-            let error = new Error('Your subscription cannot be retrieved.');
-            error.code = 400;
+
+            var plan = null;
+            var items = [];
+            if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
+                let error = new Error('Your subscription cannot be retrieved.');
+                error.code = 400;
+                ErrorService.log('PaymentService.changeSeats', error);
+                throw error;
+            } else {
+                for (var i = 0; i < subscription.items.data.length; i++) {
+                    plan = await Plans.getPlanById(subscription.items.data[i].plan.id);
+
+                    if (plan) {
+                        var item = {
+                            plan: plan.planId,
+                            id: subscription.items.data[i].id,
+                            quantity: seats
+                        };
+    
+                        items.push(item);
+                    }
+                }
+                subscription = await stripe.subscriptions.update(subscriptionId, { items: items });
+
+                return(subscription.id);
+            }
+        } catch (error) {
             ErrorService.log('PaymentService.changeSeats', error);
             throw error;
-        } else {
-            for (var i = 0; i < subscription.items.data.length; i++) {
-                try{
-                    plan = await Plans.getPlanById(subscription.items.data[i].plan.id);
-                }catch(error){
-                    ErrorService.log('Plans.getPlanById', error);
-                    throw error;
-                }
-                if (plan) {
-                    var item = {
-                        plan: plan.planId,
-                        id: subscription.items.data[i].id,
-                        quantity: seats
-                    };
-
-                    items.push(item);
-                }
-
-            }
-            try{
-                subscription = await stripe.subscriptions.update(subscriptionId, { items: items });
-            }catch(error){
-                ErrorService.log('stripe.subscriptions.update', error);
-                throw error;
-            }
-            return(subscription.id);
         }
     },
 
     removeSubscription: async function (stripeSubscriptionId) {
-
-        var confirmations = [];
-        try{
+        try {
+            var confirmations = [];
             confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
-        }catch(error){
+            return confirmations;
+        } catch (error) {
             ErrorService.log('stripe.subscriptions.del', error);
             throw error;
         }
-        return confirmations;
     },
 
 
     changePlan: async function (subscriptionId, planId, seats ,trialLeft) {
-        var subscriptionObj = {};
-        try{
+        try {
+            var subscriptionObj = {};
             var subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.retrieve', error);
-            throw error;
-        }
-        try{
             await stripe.subscriptions.del(subscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.del', error);
-            throw error;
-        }
-        var items = [];
-        items.push({
-            plan: planId,
-            quantity: seats
-        });
-        if (trialLeft && trialLeft < 14) {
-            trialLeft = 14 - trialLeft;
-            subscriptionObj = { customer: subscription.customer, items: items,trial_period_days: trialLeft };
-        }
-        else {
-            subscriptionObj = { customer: subscription.customer, items: items,};
-        }
-        try{
+
+            var items = [];
+            items.push({
+                plan: planId,
+                quantity: seats
+            });
+            if (trialLeft && trialLeft < 14) {
+                trialLeft = 14 - trialLeft;
+                subscriptionObj = { customer: subscription.customer, items: items,trial_period_days: trialLeft };
+            }
+            else {
+                subscriptionObj = { customer: subscription.customer, items: items,};
+            }
             var subscriptions = await stripe.subscriptions.create(subscriptionObj);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
+            return subscriptions.id;
+        } catch (error) {
+            ErrorService.log('PaymentService.changePlan', error);
             throw error;
         }
-        return subscriptions.id;
     },
     chargeAlert: async function(userId, projectId, chargeAmount){
-        try{
+        try {
             var project = await ProjectService.findOneBy({
                 _id: projectId
             });
@@ -236,7 +216,7 @@ module.exports = {
     //Param 1: stripeCustomerId: Received during signup process.
     //Returns : promise
     chargeExtraUser: async function (stripeCustomerId, extraUserPlanId, extraUsersToAdd) {
-        try{
+        try {
             var subscription = await stripe.subscriptions.create({
                 customer: stripeCustomerId,
                 items: [
@@ -246,11 +226,11 @@ module.exports = {
                     },
                 ]
             });
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
+            return subscription;
+        } catch (error) {
+            ErrorService.log('paymentService.chargeExtraUser', error);
             throw error;
         }
-        return subscription;
     },
 
     //Description: Call this fuction when a user is almost done with signing up.
@@ -260,8 +240,8 @@ module.exports = {
     //Param 1: stripeCustomerId: Received during signup process.
     //Returns : promise
     testCardCharge: async function(customerId) {
-        var testChargeValue = 100;
-        try{
+        try {
+            var testChargeValue = 100;
             var charge = await stripe.charges.create(
                 {
                     amount: testChargeValue,
@@ -269,17 +249,17 @@ module.exports = {
                     customer: customerId,
                     description: 'Verify if card is billable.'
                 });
-        }catch(error){
-            ErrorService.log('stripe.charges.create', error);
+            if (!charge || !charge.paid) {
+                let error = new Error('Card is not billable. Account will be disabled in 15 days.');
+                error.code;
+                ErrorService.log('paymentService.create', error);
+                throw error;
+            }
+            return charge;
+        } catch (error) {
+            ErrorService.log('paymentService.testCardCharge', error);
             throw error;
         }
-        if (!charge || !charge.paid) {
-            let error = new Error('Card is not billable. Account will be disabled in 15 days.');
-            error.code;
-            ErrorService.log('paymentService.create', error);
-            throw error;
-        }
-        return charge;
     }
 };
 

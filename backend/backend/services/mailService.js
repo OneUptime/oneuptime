@@ -85,82 +85,80 @@ module.exports = {
     // Returns: promise
     sendSignupMail: async function (userEmail, name) {
 
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: userEmail,
-            subject: 'Welcome to Fyipe.',
-            template: 'sign_up_body',
-            context: {
-                name: name.split(' ')[0].toString()
-            }
-        };
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: userEmail,
+                subject: 'Welcome to Fyipe.',
+                template: 'sign_up_body',
+                context: {
+                    name: name.split(' ')[0].toString()
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendMail', error);
             throw error;
         }
-        return info;
     },
     sendVerifyEmail: async function (tokenVerifyURL, name, email) {
 
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'Activate your Fyipe account',
-            template: 'send_verification_email',
-            context: {
-                tokenVerifyURL,
-                name: name.split(' ')[0].toString()
-            }
-        };
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'Activate your Fyipe account',
+                template: 'send_verification_email',
+                context: {
+                    tokenVerifyURL,
+                    name: name.split(' ')[0].toString()
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendVerifyEmail', error);
             throw error;
         }
-        return info;
     },
     sendLeadEmailToFyipeTeam: async function (lead) {
-
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: 'noreply@fyipe.com',
-            subject: 'New Lead Added',
-            template: 'lead_to_fyipe_team',
-            context: {
-                text: JSON.stringify(lead, null, 2)
-            }
-        };
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: 'noreply@fyipe.com',
+                subject: 'New Lead Added',
+                template: 'lead_to_fyipe_team',
+                context: {
+                    text: JSON.stringify(lead, null, 2)
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendLeadEmailToFyipeTeam', error);
             throw error;
         }
-        return info;
     },
 
     sendUserFeedbackResponse: async function (userEmail, name) {
 
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: userEmail,
-            subject: 'Thank you for your feedback!',
-            template: 'feedback_response',
-            context: {
-                name: name.split(' ')[0].toString()
-            }
-        };
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: userEmail,
+                subject: 'Thank you for your feedback!',
+                template: 'feedback_response',
+                context: {
+                    name: name.split(' ')[0].toString()
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendUserFeedbackResponse', error);
             throw error;
         }
-        return info;
     },
 
     sendRequestDemoEmail: async function (to) {
@@ -242,23 +240,22 @@ module.exports = {
     // Param 3: token: Password reset token
     // Returns: promise
     sendForgotPasswordMail: async function (forgotPasswordURL, email) {
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'Password Reset for Fyipe',
-            template: 'forgot_password_body',
-            context: {
-                forgotPasswordURL
-            }
-        };
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'Password Reset for Fyipe',
+                template: 'forgot_password_body',
+                context: {
+                    forgotPasswordURL
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
             ErrorService.log('mailer.sendMail', error);
             throw error;
         }
-        return info;
     },
 
     // Description: Mails to user after their password has been successfully set.
@@ -267,20 +264,20 @@ module.exports = {
     // Returns: promise
     sendResetPasswordConfirmMail: async function (email) {
 
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'Your password has been changed.',
-            template: 'reset_password_body',
-
-        };
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'Your password has been changed.',
+                template: 'reset_password_body',
+    
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendResetPasswordConfirmMail', error);
             throw error;
         }
-        return info;
     },
 
     // Description: Mail to users for registering  after they have been added by Admin to Project.
@@ -288,48 +285,44 @@ module.exports = {
     // Param 1: userEmail: Email of users
     // Returns: promise
     sendNewUserAddedToProjectMail: async function (project, addedByUser, email, registerUrl) {
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'You\'ve been added to a project on Fyipe',
-            template: 'new_user_added_to_project_body',
-            context: {
-                projectName: project.name,
-                userName: addedByUser.name,
-                registerUrl
-            }
-        };
-
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'You\'ve been added to a project on Fyipe',
+                template: 'new_user_added_to_project_body',
+                context: {
+                    projectName: project.name,
+                    userName: addedByUser.name,
+                    registerUrl
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendNewUserAddedToProjectMail', error);
             throw error;
         }
-        return info;
     },
 
     sendExistingUserAddedToProjectMail: async function (project, addedByUser, email) {
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'You\'ve been added to a project on Fyipe',
-            template: 'existing_user_added_to_project_body',
-            context: {
-                projectName: project.name,
-                userName: addedByUser.name
-            }
-        };
-
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'You\'ve been added to a project on Fyipe',
+                template: 'existing_user_added_to_project_body',
+                context: {
+                    projectName: project.name,
+                    userName: addedByUser.name
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendExistingUserAddedToProjectMail', error);
             throw error;
         }
-        return info;
     },
 
     sendExistingStatusPageViewerMail: async function (subProject, addedByUser, email) {
@@ -384,69 +377,64 @@ module.exports = {
     },
 
     sendChangeRoleEmailToUser: async function (project, addedByUser, email, role) {
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'You\'ve been assigned a new role',
-            template: 'change_role',
-            context: {
-                projectName: project.name,
-                userName: addedByUser.name,
-                role: role
-            }
-        };
-
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'You\'ve been assigned a new role',
+                template: 'change_role',
+                context: {
+                    projectName: project.name,
+                    userName: addedByUser.name,
+                    role: role
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendChangeRoleEmailToUser', error);
             throw error;
         }
-        return info;
     },
 
     sendRemoveFromProjectEmailToUser: async function (project, removedByUser, email) {
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'You\'ve been removed from a project on Fyipe',
-            template: 'removed_from_project',
-            context: {
-                projectName: project.name,
-                userName: removedByUser.name,
-            }
-        };
-
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'You\'ve been removed from a project on Fyipe',
+                template: 'removed_from_project',
+                context: {
+                    projectName: project.name,
+                    userName: removedByUser.name,
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendRemoveFromProjectEmailToUser', error);
             throw error;
         }
-        return info;
     },
 
-    sendRemoveFromSubProjectEmailToUser: async function (subProject, removedByUser, email) {
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'You\'ve been removed from a subproject on Fyipe',
-            template: 'removed_from_subproject',
-            context: {
-                subProjectName: subProject.name,
-                userName: removedByUser.name,
-            }
-        };
-
+    sendRemoveFromSubProjectEmailToUser: async function (subProject, removedByUser, email) {        
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'You\'ve been removed from a subproject on Fyipe',
+                template: 'removed_from_subproject',
+                context: {
+                    subProjectName: subProject.name,
+                    userName: removedByUser.name,
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendRemoveFromSubProjectEmailToUser', error);
             throw error;
         }
-        return info;
     },
 
     /**
@@ -491,49 +479,47 @@ module.exports = {
      * @param {string} projectId Id of the project whose monitor has incident.
      */
     sendIncidentCreatedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, projectId, emailTemplate) {
-        var { template, subject } = await getTemplates(emailTemplate);
-        let data = {
-            incidentTime,
-            monitorName,
-            userName,
-            userId,
-            projectId,
-        };
-        template = template(data);
-        subject = subject(data);
-        var smtpSettings = await getSmtpSettings(projectId);
-        let privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
-        var mailOptions = {
-            from: '"Fyipe " <' + smtpSettings.from + '>',
-            to: email,
-            subject: subject,
-            template: 'template',
-            context: {
-                body: template
-            }
-        };
-
         try {
+            var { template, subject } = await getTemplates(emailTemplate);
+            let data = {
+                incidentTime,
+                monitorName,
+                userName,
+                userId,
+                projectId,
+            };
+            template = template(data);
+            subject = subject(data);
+            var smtpSettings = await getSmtpSettings(projectId);
+            let privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
+            var mailOptions = {
+                from: '"Fyipe " <' + smtpSettings.from + '>',
+                to: email,
+                subject: subject,
+                template: 'template',
+                context: {
+                    body: template
+                }
+            };
             var info = await privateMailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendIncidentCreatedMailToSubscriber', error);
             throw error;
         }
-        return info;
     },
 
     testSmtpConfig: async function (data) {
-        var privateMailer = await createMailer(data.host, data.port, data.user, data.pass, data.secure);
-        var mailOptions = {
-            from: '"Fyipe " <' + data.from + '>',
-            to: data.email,
-            subject: 'Email Smtp Settings Test',
-            template: 'smtp_test',
-            context: {
-            }
-        };
-
         try {
+            var privateMailer = await createMailer(data.host, data.port, data.user, data.pass, data.secure);
+            var mailOptions = {
+                from: '"Fyipe " <' + data.from + '>',
+                to: data.email,
+                subject: 'Email Smtp Settings Test',
+                template: 'smtp_test',
+                context: {
+                }
+            };
             var info = await privateMailer.sendMail(mailOptions);
             return info;
         } catch (error) {
@@ -550,50 +536,46 @@ module.exports = {
                 err = new Error('Please check your settings again.');
                 err.code = 400;
             }
-            ErrorService.log('mailer.testSmtpConfig', error);
+            ErrorService.log('mailService.testSmtpConfig', error);
             throw err;
         }
     },
 
     sendChangePlanMail: async function (projectName, oldPlan, newPlan, email) {
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'Change of Subscription Plan',
-            template: 'changed_subscription_plan',
-            context: {
-                projectName: projectName,
-                oldPlan: oldPlan,
-                newPlan: newPlan
-            }
-        };
-
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'Change of Subscription Plan',
+                template: 'changed_subscription_plan',
+                context: {
+                    projectName: projectName,
+                    oldPlan: oldPlan,
+                    newPlan: newPlan
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendChangePlanMail', error);
             throw error;
         }
         return info;
     },
 
-    sendCreateProjectMail: async function (projectName, email) {
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'New Project',
-            template: 'create_project',
-            context: {
-                projectName: projectName
-            }
-        };
-
+    sendCreateProjectMail: async function (projectName, email) {        
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'New Project',
+                template: 'create_project',
+                context: {
+                    projectName: projectName
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendCreateProjectMail', error);
             throw error;
         }
         return info;
@@ -616,49 +598,45 @@ module.exports = {
     },
 
     sendUpgradeToEnterpriseMail: async function (projectName, projectId, oldPlan, email) {
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: 'support@fyipe.com',
-            subject: 'Upgrade to enterprise plan request from ' + email,
-            template: 'enterprise_upgrade',
-            context: {
-                projectName: projectName,
-                projectId: projectId,
-                oldPlan: oldPlan,
-                email: email
-            }
-        };
-
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: 'support@fyipe.com',
+                subject: 'Upgrade to enterprise plan request from ' + email,
+                template: 'enterprise_upgrade',
+                context: {
+                    projectName: projectName,
+                    projectId: projectId,
+                    oldPlan: oldPlan,
+                    email: email
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendUpgradeToEnterpriseMail', error);
             throw error;
         }
-        return info;
     },
 
     sendPaymentFailedEmail: async function (projectName, email, name, chargeAttemptStage) {
-
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'Subscription Payment Failed',
-            template: 'subscription_payment_failed',
-            context: {
-                projectName,
-                name,
-                chargeAttemptStage
-            }
-        };
-
         try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'Subscription Payment Failed',
+                template: 'subscription_payment_failed',
+                context: {
+                    projectName,
+                    name,
+                    chargeAttemptStage
+                }
+            };
             var info = await mailer.sendMail(mailOptions);
+            return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendPaymentFailedEmail', error);
             throw error;
         }
-        return info;
     }
 };

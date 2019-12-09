@@ -2,20 +2,20 @@
 module.exports = {
 
     findBy: async function (query, limit, skip) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof (skip) === 'string') skip = parseInt(skip);
-
-        if (typeof (limit) === 'string') limit = parseInt(limit);
-
-        if (!query) {
-            query = {};
-        }
-
-        if(!query.deleted) query.deleted = false;
-        try{
+        try {
+            if (!skip) skip = 0;
+    
+            if (!limit) limit = 0;
+    
+            if (typeof (skip) === 'string') skip = parseInt(skip);
+    
+            if (typeof (limit) === 'string') limit = parseInt(limit);
+    
+            if (!query) {
+                query = {};
+            }
+    
+            if(!query.deleted) query.deleted = false;
             var incidents = await IncidentModel.find(query)
                 .limit(limit)
                 .skip(skip)
@@ -25,18 +25,18 @@ module.exports = {
                 .populate('createdById', 'name')
                 .populate('probes.probeId', 'probeName')
                 .sort({ createdAt: 'desc' });
+            return incidents;
         } catch (error) {
-            ErrorService.log('IncidentModel.find', error);
+            ErrorService.log('IncidentService.findBy', error);
             throw error;
         }
 
-        return incidents;
     },
 
     create: async function (data) {
-        var _this = this;
-        //create a promise;
         try {
+            var _this = this;
+            //create a promise;
             var project = await ProjectService.findOneBy({ _id: data.projectId });
             var users = project && project.users && project.users.length ? project.users.map(({ userId }) => userId) : [];
             var monitorCount = await MonitorService.countBy({ _id: data.monitorId });
@@ -80,48 +80,39 @@ module.exports = {
                 throw error;
             }
         } catch (error) {
-            if (error.message.indexOf('at path "_id" for model "Monitor"') !== -1) {
-                ErrorService.log('MonitorService.countBy', error);
-            } else if (error.message.indexOf('at path "_id" for model "Project"') !== -1) {
-                ErrorService.log('ProjectService.findOneBy', error);
-            } else {
-                ErrorService.log('IncidentService.create', error);
-            }
+            ErrorService.log('IncidentService.create', error);
             throw error;
         }
     },
 
     countBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        if(!query.deleted) query.deleted = false;
         try{
+            if (!query) {
+                query = {};
+            }
+    
+            if(!query.deleted) query.deleted = false;
             var count = await IncidentModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('IncidentModel.count', error);
+            ErrorService.log('IncidentService.countBy', error);
             throw error;
         }
-
-        return count;
     },
 
     deleteBy: async function (query, userId) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+    
+            query.deleted = false;
             var incidents = await IncidentModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } });
+            return incidents;
         } catch (error) {
             ErrorService.log('IncidentModel.findOneAndUpdate', error);
             throw error;
         }
-
-        return incidents;
     },
 
     // Description: Get Incident by incident Id.
@@ -129,29 +120,28 @@ module.exports = {
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
     findOneBy: async function (query) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+    
+            query.deleted = false;
             var incident = await IncidentModel.findOne(query)
                 .populate('acknowledgedBy', 'name')
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
                 .populate('probes.probeId', 'probeName');
+            return incident;
         } catch (error) {
             ErrorService.log('IncidentModel.findOne', error);
             throw error;
         }
-        return incident;
     },
 
     update: async function (data) {
-        var _this = this;
         try {
+            var _this = this;
             if (!data._id) {
                 var incident = await _this.create(data);
 
@@ -248,17 +238,7 @@ module.exports = {
                 await WebHookService.sendNotification(incident.projectId, msg, incident.monitorId);
             }
         } catch (error) {
-            if (error.message.indexOf('Notification') !== -1) {
-                ErrorService.log('NotificationService.create', error);
-            } else if (error.message.indexOf('Slack') !== -1) {
-                ErrorService.log('SlackService.sendNotification', error);
-            } else if (error.message.indexOf('WebHook') !== -1) {
-                ErrorService.log('WebHookService.sendNotification', error);
-            } else if (error.message.indexOf('for model "Zapier"') !== -1) {
-                ErrorService.log('ZapierService.pushToZapier', error);
-            } else {
-                ErrorService.log('IncidentService._sendIncidentCreatedAlert', error);
-            }
+            ErrorService.log('IncidentService._sendIncidentCreatedAlert', error);
             throw error; 
         }
     },
@@ -270,8 +250,8 @@ module.exports = {
      * @returns {object} Promise with incident or error.
      */
     acknowledge: async function (incidentId, userId, name, zapier) {
-        var _this = this;
         try {
+            var _this = this;
             var incident = await _this.findOneBy({ _id: incidentId, acknowledged: false });
             if (incident) {
                 incident = await _this.update({
@@ -306,22 +286,11 @@ module.exports = {
             } else {
                 incident = await _this.findOneBy({ _id: incidentId, acknowledged: true });
             }
+            return incident;
         } catch (error) {
-            if (error.message.indexOf('Notification') !== -1) {
-                ErrorService.log('NotificationService.create', error);
-            } else if (error.message.indexOf('Slack') !== -1) {
-                ErrorService.log('SlackService.sendNotification', error);
-            } else if (error.message.indexOf('WebHook') !== -1) {
-                ErrorService.log('WebHookService.sendNotification', error);
-            } else if (error.message.indexOf('for model "Zapier"') !== -1) {
-                ErrorService.log('ZapierService.pushToZapier', error);
-            } else {
-                ErrorService.log('IncidentService.acknowledge', error);
-            }
+            ErrorService.log('IncidentService.acknowledge', error);
             throw error;    
         }
-
-        return incident;
     },
 
     // Description: Update user who resolved incident.
@@ -329,10 +298,9 @@ module.exports = {
     // Param 1: data: {incidentId}
     // Returns: promise with incident or error.
     resolve: async function (incidentId, userId, name, zapier) {
-        var _this = this;
-        var data = {};
-
         try {
+            var _this = this;
+            var data = {};
             var incident = await _this.findOneBy({ _id: incidentId });
 
             if (!incident.acknowledged) {
@@ -353,11 +321,11 @@ module.exports = {
             await _this.sendIncidentResolvedNotification(incident, name);
             await RealTimeService.incidentResolved(incident);
             await ZapierService.pushToZapier('incident_resolve', incident);
+            return incident;
         } catch (error) {
             ErrorService.log('IncidentService.resolve', error);
             throw error;
         }
-        return incident;
     },
 
     //
@@ -397,8 +365,8 @@ module.exports = {
     },
 
     sendIncidentResolvedNotification: async function (incident, name) {
-        var _this = this;
         try {
+            var _this = this;
             var resolvedincident = await _this.findOneBy({ _id: incident._id });
             var downtime = (new Date().getTime() - new Date(resolvedincident.createdAt).getTime()) / (1000 * 60);
             var downtimestring = `${Math.ceil(downtime)} minutes`;
@@ -430,26 +398,16 @@ module.exports = {
                 await WebHookService.sendNotification(incident.projectId, msg, resolvedincident.monitorId);
             }
         } catch (error) {
-            if (error.message.indexOf('Notification') !== -1) {
-                ErrorService.log('NotificationService.create', error);
-            } else if (error.message.indexOf('Slack') !== -1) {
-                ErrorService.log('SlackService.sendNotification', error);
-            } else if (error.message.indexOf('WebHook') !== -1) {
-                ErrorService.log('WebHookService.sendNotification', error);
-            } else if (error.message.indexOf('for model "Zapier"') !== -1) {
-                ErrorService.log('ZapierService.pushToZapier', error);
-            } else {
-                ErrorService.log('IncidentService.sendIncidentResolvedNotification', error);
-            }
+            ErrorService.log('IncidentService.sendIncidentResolvedNotification', error);
             throw error;
         }
     },
     
     getMonitorsWithIncidentsBy: async function (query) {
-        var thisObj = this;
-        var newmonitors = [];
-        var limit = 3;
         try {
+            var thisObj = this;
+            var newmonitors = [];
+            var limit = 3;
             var monitors = await MonitorService.findBy(query.query, query.limit, query.skip);
 
             if (monitors.length) {
@@ -479,11 +437,7 @@ module.exports = {
                 return [];
             }
         } catch (error) {
-            if (error.message.indexOf('for model "Monitor"') !== -1) {
-                ErrorService.log('MonitorService.findBy', error);
-            } else {
-                ErrorService.log('IncidentService.getMonitorsWithIncidentsBy', error);
-            }
+            ErrorService.log('IncidentService.getMonitorsWithIncidentsBy', error);
             throw error; 
         }
     },
@@ -491,11 +445,11 @@ module.exports = {
     hardDeleteBy: async function (query) {
         try {
             await IncidentModel.deleteMany(query);
+            return 'Incident(s) removed successfully!';
         } catch (error) {
             ErrorService.log('IncidentModel.deleteMany', error);
             throw error;
         }
-        return 'Incident(s) removed successfully!';
     },
 
     restoreBy: async function(query){

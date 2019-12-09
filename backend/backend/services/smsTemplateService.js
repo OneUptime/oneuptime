@@ -1,23 +1,23 @@
 module.exports = {
     create: async function (data) {
-
-        var smsTemplateModel = new SmsTemplateModel();
-        smsTemplateModel.projectId = data.projectId || null;
-        smsTemplateModel.body = data.body || null;
-        smsTemplateModel.smsType = data.smsType || null;
-        smsTemplateModel.allowedVariables = smsTemplateVariables[[data.smsType]];
-        try{
+        try {
+            var smsTemplateModel = new SmsTemplateModel();
+            smsTemplateModel.projectId = data.projectId || null;
+            smsTemplateModel.body = data.body || null;
+            smsTemplateModel.smsType = data.smsType || null;
+            smsTemplateModel.allowedVariables = smsTemplateVariables[[data.smsType]];
             var smsTemplate = await smsTemplateModel.save();
-        }catch(error){
-            ErrorService.log('smsTemplateModel.save', error);
+
+            return smsTemplate;
+        } catch (error) {
+            ErrorService.log('SmsTemplateService.save', error);
             throw error;
         }
-        return smsTemplate;
     },
 
     update: async function(data){
-        let _this = this;
         try {
+            let _this = this;
             if (!data._id) {
                 let smsTemplate = await _this.create(data);
                 return smsTemplate;  
@@ -41,13 +41,13 @@ module.exports = {
                 return updatedSmsTemplate;
             }
         } catch (error) {
-            ErrorService.log('SmsTemplateModel.findByIdAndUpdate', error);
+            ErrorService.log('SmsTemplateService.findByIdAndUpdate', error);
             throw error;
         }
     },
 
     deleteBy: async function(query, userId){
-        try{
+        try {
             var smsTemplate = await SmsTemplateModel.findOneAndUpdate(query, {
                 $set:{
                     deleted:true,
@@ -57,92 +57,88 @@ module.exports = {
             },{
                 new: true
             });
-        }catch(error){
-            ErrorService.log('SmaTemplateModel.findOneAndUpdate', error);
+            return smsTemplate;
+        } catch (error) {
+            ErrorService.log('SmsTemplateService.findOneAndUpdate', error);
             throw error;
         }
-        return smsTemplate;
     },
 
     findBy: async function(query, skip, limit){
-        if(!skip) skip=0;
-
-        if(!limit) limit=10;
-
-        if(typeof(skip) === 'string'){
-            skip = parseInt(skip);
-        }
-
-        if(typeof(limit) === 'string'){
-            limit = parseInt(limit);
-        }
-
-        if(!query){
-            query = {};
-        }
-
-        query.deleted = false;
-
-        try{
+        try {
+            if(!skip) skip=0;
+    
+            if(!limit) limit=10;
+    
+            if(typeof(skip) === 'string'){
+                skip = parseInt(skip);
+            }
+    
+            if(typeof(limit) === 'string'){
+                limit = parseInt(limit);
+            }
+    
+            if(!query){
+                query = {};
+            }
+    
+            query.deleted = false;
             var smsTemplates = await SmsTemplateModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name');
-        }catch(error){
-            ErrorService.log('SmsTemplateModel.find', error);
+            return smsTemplates;
+        } catch(error) {
+            ErrorService.log('SmsTemplateService.find', error);
             throw error;
         }
-
-        return smsTemplates;
     },
 
     findOneBy: async function(query){
-        if(!query){
-            query = {};
-        }
-
-        query.deleted = false;
-        try{
+        try {
+            if(!query){
+                query = {};
+            }
+    
+            query.deleted = false;
             var smsTemplate = await SmsTemplateModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name');
-        }catch(error){
-            ErrorService.log('SmaTemplateModel.findOne', error);
+            return smsTemplate;
+        } catch (error) {
+            ErrorService.log('SmsTemplateService.findOne', error);
             throw error;
         }
-
-        return smsTemplate;
     },
 
     countBy: async function (query) {
-
-        if(!query){
-            query = {};
-        }
-
-        query.deleted = false;
         try{
+            if(!query){
+                query = {};
+            }
+    
+            query.deleted = false;
             var count = await SmsTemplateModel.count(query);
+            return count;
         }catch(error){
-            ErrorService.log('SmsTemplateModel.count', error);
+            ErrorService.log('SmsTemplateService.count', error);
             throw error;
         }
-        return count;
     },
 
     getTemplates: async function (projectId){
-        let _this = this;
-        var templates = await Promise.all(defaultSmsTemplate.map(async (template)=>{
-            try{
+        try {
+            let _this = this;
+            var templates = await Promise.all(defaultSmsTemplate.map(async (template)=>{
                 var smsTemplate = await _this.findOneBy({projectId: projectId, smsType: template.smsType});
-            }catch(error){
-                ErrorService.log('SmsTemplateService.findOneBy', error);
-                throw error;
-            }
-            return smsTemplate != null && smsTemplate != undefined ? smsTemplate : template;
-        }));
-        return templates;
+                return smsTemplate != null && smsTemplate != undefined ? smsTemplate : template;
+            }));
+            return templates;
+        } catch (error) {
+            ErrorService.log('SmsTemplateService.findOneBy', error);
+            throw error;
+        }
     },
 
     resetTemplate: async function(projectId, templateId){
@@ -159,13 +155,13 @@ module.exports = {
     },
 
     hardDeleteBy: async function(query){
-        try{
+        try {
             await SmsTemplateModel.deleteMany(query);
-        }catch(error){
-            ErrorService.log('SmsTemplateModel.deleteMany', error);
+            return 'SMS Template(s) removed successfully';
+        } catch (error) {
+            ErrorService.log('SmsTemplateService.hardDeleteBy', error);
             throw error;
         }
-        return 'SMS Template(s) removed successfully';
     },
 };
 

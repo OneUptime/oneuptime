@@ -6,38 +6,37 @@ var ErrorService = require('../services/errorService');
 module.exports = {
 
     create: async function ({ projectId, monitorId }, data) {
-        var _this = this;
-        var scheduledEvent = new ScheduledEventModel();
-
-        scheduledEvent.projectId = projectId;
-        scheduledEvent.monitorId = monitorId;
-        scheduledEvent.name = data.name;
-        scheduledEvent.createdById = data.createdById;
-        scheduledEvent.startDate = data.startDate;
-        scheduledEvent.endDate = data.endDate;
-        scheduledEvent.description = data.description;
-
-        if (data.showEventOnStatusPage) {
-            scheduledEvent.showEventOnStatusPage = data.showEventOnStatusPage;
-        }
-        if (data.callScheduleOnEvent) {
-            scheduledEvent.callScheduleOnEvent = data.callScheduleOnEvent;
-        }
-        if (data.monitorDuringEvent) {
-            scheduledEvent.monitorDuringEvent = data.monitorDuringEvent;
-        }
-        if (data.alertSubscriber) {
-            scheduledEvent.alertSubscriber = data.alertSubscriber;
-        }
-
         try {
+            var _this = this;
+            var scheduledEvent = new ScheduledEventModel();
+    
+            scheduledEvent.projectId = projectId;
+            scheduledEvent.monitorId = monitorId;
+            scheduledEvent.name = data.name;
+            scheduledEvent.createdById = data.createdById;
+            scheduledEvent.startDate = data.startDate;
+            scheduledEvent.endDate = data.endDate;
+            scheduledEvent.description = data.description;
+    
+            if (data.showEventOnStatusPage) {
+                scheduledEvent.showEventOnStatusPage = data.showEventOnStatusPage;
+            }
+            if (data.callScheduleOnEvent) {
+                scheduledEvent.callScheduleOnEvent = data.callScheduleOnEvent;
+            }
+            if (data.monitorDuringEvent) {
+                scheduledEvent.monitorDuringEvent = data.monitorDuringEvent;
+            }
+            if (data.alertSubscriber) {
+                scheduledEvent.alertSubscriber = data.alertSubscriber;
+            }
             scheduledEvent = await scheduledEvent.save();
             scheduledEvent = await _this.findOneBy({ _id: scheduledEvent._id });
+            return scheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEvent.save', error);
+            ErrorService.log('ScheduledEventService.create', error);
             throw error;
         }
-        return scheduledEvent;
     },
 
     update: async function (data) {
@@ -65,16 +64,14 @@ module.exports = {
                     alertSubscriber
                 }
             }, { new: true });
+            return updatedScheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEventModel.update', error);
+            ErrorService.log('ScheduledEventService.update', error);
             throw error;
         }
-
-        return updatedScheduledEvent;
     },
 
     deleteBy: async function (query, userId) {
-        
         try {
             var scheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
                 $set: {
@@ -83,34 +80,32 @@ module.exports = {
                     deletedById: userId
                 }
             }, { new: true });
+            return scheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEventModel.findOneAndUpdate', error);
+            ErrorService.log('ScheduledEventService.deleteBy', error);
             throw error;
         }
-        return scheduledEvent;
     },
 
     findBy: async function (query, limit, skip) {
-
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
+            if (!skip) skip = 0;
+    
+            if (!limit) limit = 0;
+    
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+    
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+    
+            if (!query) {
+                query = {};
+            }
+    
+            query.deleted = false;
             var scheduledEvents = await ScheduledEventModel.find(query)
                 .limit(limit)
                 .skip(skip)
@@ -139,22 +134,19 @@ module.exports = {
             }));
 
             return scheduledEvents;
-        }
-        catch (error) {
-            ErrorService.log('ScheduledEventModel.find', error);
+        } catch (error) {
+            ErrorService.log('ScheduledEventService.findBy', error);
             throw error;
         }
     },
 
     findOneBy: async function (query) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
+            if (!query) {
+                query = {};
+            }
+    
+            query.deleted = false;
             var scheduledEvent = await ScheduledEventModel.findOne(query).lean();
 
             if (scheduledEvent.createdById === 'API') {
@@ -175,32 +167,32 @@ module.exports = {
             return scheduledEvent;
         }
         catch (error) {
-            ErrorService.log('ScheduledEventModel.findOne', error);
+            ErrorService.log('ScheduledEventService.findOneBy', error);
             throw error;
         }
     },
 
     countBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
             var count = await ScheduledEventModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('ScheduledEventModel.count', error);
+            ErrorService.log('ScheduledEventService.countBy', error);
             throw error;
         }
-        return count;
     },
 
     hardDeleteBy: async function (query) {
         try {
             await ScheduledEventModel.deleteMany(query);
+            return 'Event(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('ScheduledEventModel.deleteMany', error);
+            ErrorService.log('ScheduledEventService.deleteMany', error);
             throw error;
         }
-        return 'Event(s) removed successfully!';
     },
 };

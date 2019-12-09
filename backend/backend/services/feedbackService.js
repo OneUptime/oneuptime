@@ -11,29 +11,22 @@ module.exports = {
     //Param 3: userId: User Id.
     //Returns: promise
     create: async function (projectId, message, page, createdById) {
-        var feedback = new FeedbackModel();
-
-        feedback.message = message;
-        feedback.page = page;
-        feedback.projectId = projectId;
-        feedback.createdById = createdById;
-
         try {
+            var feedback = new FeedbackModel();
+    
+            feedback.message = message;
+            feedback.page = page;
+            feedback.projectId = projectId;
+            feedback.createdById = createdById;
             feedback = await feedback.save();
-        } catch (error) {
-            ErrorService.log('feedback.save', error);
-            throw error;
-        }
+            feedback = feedback.toObject();
+    
+            var project = await ProjectService.findOneBy({ _id: projectId });
+            feedback.project = project;
 
-        feedback = feedback.toObject();
+            var user = await UserService.findOneBy({ _id: createdById });
+            feedback.createdBy = user;
 
-        var project = await ProjectService.findOneBy({ _id: projectId });
-        feedback.project = project;
-
-        var user = await UserService.findOneBy({ _id: createdById });
-        feedback.createdBy = user;
-
-        try {
             var record = await AirtableService.logFeedback({
                 message,
                 name: user.name,
@@ -42,34 +35,24 @@ module.exports = {
                 page
             });
             feedback.airtableId = record.id || null;
-        } catch (error) {
-            ErrorService.log('AirtableService.logFeedback', error);
-            throw error;
-        }
-
-        try {
+    
             await MailService.sendLeadEmailToFyipeTeam(feedback);
-        } catch (error) {
-            ErrorService.log('MailService.sendLeadEmailToFyipeTeam', error);
-            throw error;
-        }
-        try {
             await MailService.sendUserFeedbackResponse(user.email, user.name);
+            return feedback;
         } catch (error) {
-            ErrorService.log('MailService.sendUserFeedbackResponse', error);
+            ErrorService.log('FeedbackService.create', error);
             throw error;
         }
-        return feedback;
     },
 
     hardDeleteBy: async function (query) {
         try {
             await FeedbackModel.deleteMany(query);
+            return 'Feedback(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('FeedbackModel.deleteMany', error);
+            ErrorService.log('FeedbackService.deleteMany', error);
             throw error;
         }
-        return 'Feedback(s) removed successfully!';
     }
 };
 

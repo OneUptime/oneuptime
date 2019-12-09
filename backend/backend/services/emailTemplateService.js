@@ -7,9 +7,9 @@ module.exports = {
         emailTemplateModel.body = data.body || null;
         emailTemplateModel.emailType = data.emailType || null;
         emailTemplateModel.allowedVariables = emailTemplateVariables[[data.emailType]];
-        try{
+        try {
             var emailTemplate = await emailTemplateModel.save();
-        }catch(error){
+        } catch (error) {
             ErrorService.log('emailTemplateModel.save', error);
             throw error;
         }
@@ -17,27 +17,19 @@ module.exports = {
     },
 
     update: async function(data){
-        let _this = this;
-        if(!data._id){
-            try{
+        try {
+            let _this = this;
+            if (!data._id) {
                 let emailTemplate = await _this.create(data);
                 return emailTemplate;
-            }catch(error){
-                ErrorService.log('EmailTemplateService.create', error);
-                throw error;
-            }
-        }else{
-            try{
+            } else {
                 var emailTemplate = await _this.findOneBy({_id: data._id});
-            }catch(error){
-                ErrorService.log('EmailTemplateService.findByOne', error);
-                throw error;
-            }
-            let subject = data.subject || emailTemplate.subject;
-            let body = data.body || emailTemplate.body;
-            let emailType = data.emailType || emailTemplate.emailType;
-            let allowedVariables = emailTemplateVariables[[data.emailType || emailTemplate.emailType || []]];
-            try{
+
+                let subject = data.subject || emailTemplate.subject;
+                let body = data.body || emailTemplate.body;
+                let emailType = data.emailType || emailTemplate.emailType;
+                let allowedVariables = emailTemplateVariables[[data.emailType || emailTemplate.emailType || []]];
+
                 var updatedEmailTemplate = await EmailTemplateModel.findByIdAndUpdate(data._id, {
                     $set: {
                         subject: subject,
@@ -48,17 +40,16 @@ module.exports = {
                 }, {
                     new: true
                 });
-            }catch(error){
-                ErrorService.log('EmailTemplateModel.findByIdAndUpdate', error);
-                throw error;
+                return updatedEmailTemplate;
             }
-
-            return updatedEmailTemplate;
+        } catch (error) {
+            ErrorService.log('EmailTemplateModel.findByIdAndUpdate', error);
+            throw error;
         }
     },
 
     deleteBy: async function(query, userId){
-        try{
+        try {
             var emailTemplate = await EmailTemplateModel.findOneAndUpdate(query, {
                 $set:{
                     deleted:true,
@@ -68,7 +59,7 @@ module.exports = {
             },{
                 new: true
             });
-        }catch(error){
+        } catch (error) {
             ErrorService.log('EmailTemplateModel.findOneAndUpdate', error);
             throw error;
         }
@@ -76,70 +67,66 @@ module.exports = {
     },
 
     findBy: async function(query, skip, limit){
-        if(!skip) skip=0;
-
-        if(!limit) limit=10;
-
-        if(typeof(skip) === 'string'){
-            skip = parseInt(skip);
-        }
-
-        if(typeof(limit) === 'string'){
-            limit = parseInt(limit);
-        }
-
-        if(!query){
-            query = {};
-        }
-
-        query.deleted = false;
-
-        try{
+        try {
+            if(!skip) skip=0;
+    
+            if(!limit) limit=10;
+    
+            if(typeof(skip) === 'string'){
+                skip = parseInt(skip);
+            }
+    
+            if(typeof(limit) === 'string'){
+                limit = parseInt(limit);
+            }
+    
+            if(!query){
+                query = {};
+            }
+    
+            query.deleted = false;
             var emailTemplates = await EmailTemplateModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name');
-        }catch(error){
+            return emailTemplates;
+        } catch (error) {
             ErrorService.log('EmailTemplateModel.find', error);
             throw error;
         }
-
-        return emailTemplates;
     },
 
     findOneBy: async function(query){
-        if(!query){
-            query = {};
-        }
-
-        query.deleted = false;
-        try{
+        try {
+            if(!query){
+                query = {};
+            }
+    
+            query.deleted = false;
             var emailTemplate = await EmailTemplateModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name');
-        }catch(error){
+            return emailTemplate;
+        } catch (error) {
             ErrorService.log('EmailTemplateModel.findOne', error);
             throw error;
         }
-
-        return emailTemplate;
     },
 
     countBy: async function (query) {
-
-        if(!query){
-            query = {};
-        }
-
-        query.deleted = false;
-        try{
+        try {
+            if(!query){
+                query = {};
+            }
+    
+            query.deleted = false;
             var count = await EmailTemplateModel.count(query);
-        }catch(error){
+            return count;
+        } catch (error) {
             ErrorService.log('EmailTemplateModel.count', error);
             throw error;
         }
-        return count;
     },
 
     getTemplates: async function (projectId){
@@ -166,13 +153,13 @@ module.exports = {
     },
 
     hardDeleteBy: async function(query){
-        try{
+        try {
             await EmailTemplateModel.deleteMany(query);
-        }catch(error){
+            return 'Email Template(s) removed successfully';
+        } catch (error) {
             ErrorService.log('EmailTemplateModel.deleteMany', error);
             throw error;
         }
-        return 'Email Template(s) removed successfully';
     },
 };
 

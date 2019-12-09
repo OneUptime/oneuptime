@@ -33,111 +33,106 @@ const dynamicClient = (accountSid, authToken) => {
 
 module.exports = {
     sendResponseMessage: async function (to, body) {
-        var options = {
-            body,
-            from: twilioCredentials.phoneNumber,
-            to,
-        };
         try {
+            var options = {
+                body,
+                from: twilioCredentials.phoneNumber,
+                to,
+            };
             var message = await client.messages.create(options);
+            return message;
         } catch (error) {
-            ErrorService.log('client.messages.create', error);
+            ErrorService.log('twillioService.sendResponseMessage', error);
             throw error;
         }
-        return message;
     },
     sendIncidentCreatedMessage: async function (incidentTime, monitorName, number, incidentId, userId, name) {
-        var options = {
-            body: `Your monitor ${monitorName} is down. Acknowledge this incident by sending 1 or Resolve by sending 2 to ${twilioCredentials.phoneNumber}. You can also log into Fyipe dashboard to acknowledge or reoslve it.`,
-            from: twilioCredentials.phoneNumber,
-            to: number
-        };
-
-        // create incidentSMSAction entry for matching sms from twilio.
-        const incidentSMSAction = new incidentSMSActionModel();
-        incidentSMSAction.incidentId = incidentId;
-        incidentSMSAction.userId = userId;
-        incidentSMSAction.number = number;
-        incidentSMSAction.name = name;
         try {
+            var options = {
+                body: `Your monitor ${monitorName} is down. Acknowledge this incident by sending 1 or Resolve by sending 2 to ${twilioCredentials.phoneNumber}. You can also log into Fyipe dashboard to acknowledge or reoslve it.`,
+                from: twilioCredentials.phoneNumber,
+                to: number
+            };
+    
+            // create incidentSMSAction entry for matching sms from twilio.
+            const incidentSMSAction = new incidentSMSActionModel();
+            incidentSMSAction.incidentId = incidentId;
+            incidentSMSAction.userId = userId;
+            incidentSMSAction.number = number;
+            incidentSMSAction.name = name;
             await incidentSMSAction.save();
             
             var message = await client.messages.create(options);
+            return message;
         } catch (error) {
-            if (error.message.indexOf('"IncidentSMSAction"') !== -1) {
-                ErrorService.log('incidentSMSAction.save', error);
-            } else {
-                ErrorService.log('client.messages.create', error);
-            }
+            ErrorService.log('twillioService.sendIncidentCreatedMessage', error);
             throw error;
         }
-        return message;
     },
 
     sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, projectId) {
-        let _this = this;
-        var { template } = await _this.getTemplate(smsTemplate);
-        let data = {
-            monitorName: monitorName,
-            incidentTime: incidentTime
-        };
-        template = template(data);
-        let creds = getTwilioSettings(projectId);
-        var options = {
-            body: template,
-            from: creds.phoneNumber,
-            to: number
-        };
-        let newClient = dynamicClient(creds.accountSid, creds.authToken);
         try {
+            let _this = this;
+            var { template } = await _this.getTemplate(smsTemplate);
+            let data = {
+                monitorName: monitorName,
+                incidentTime: incidentTime
+            };
+            template = template(data);
+            let creds = getTwilioSettings(projectId);
+            var options = {
+                body: template,
+                from: creds.phoneNumber,
+                to: number
+            };
+            let newClient = dynamicClient(creds.accountSid, creds.authToken);
             var message = await newClient.messages.create(options);
+            return message;
         } catch (error) {
-            ErrorService.log('newClient.messages.create', error);
+            ErrorService.log('twillioService.sendIncidentCreatedMessageToSubscriber', error);
             throw error;
         }
-        return message;
     },
 
     test: async function (data) {
-        var options = {
-            body: 'This is a test message to check your twilio settings.Please do not reply',
-            from: data.phoneNumber,
-            to: twilioCredentials.testphoneNumber
-        };
-        let newClient = dynamicClient(data.accountSid, data.authToken);
         try {
+            var options = {
+                body: 'This is a test message to check your twilio settings.Please do not reply',
+                from: data.phoneNumber,
+                to: twilioCredentials.testphoneNumber
+            };
+            let newClient = dynamicClient(data.accountSid, data.authToken);
             var message = await newClient.messages.create(options);
+            return message;
         } catch (error) {
             let err = Object.assign({}, error);
             if (err && err.status) {
                 err = new Error(error.message);
                 err.code = 400;
             }
-            ErrorService.log('newClient.messages.create', err);
+            ErrorService.log('twillioService.test', err);
             throw err;
         }
-        return message;
     },
 
     sendIncidentCreatedCall: async function (incidentTime, monitorName, number, accessToken, incidentId, projectId, redialCount) {
-
-        var options = {
-            url: `${baseApiUrl}/twilio/voice/incident?redialCount=${redialCount || 0}&accessToken=${accessToken}&incidentId=${incidentId}&projectId=${projectId}&monitorName=${monitorName.split(' ').join('%20')}`,
-            from: twilioCredentials.phoneNumber,
-            to: number,
-            timeout: 60,
-            method: 'GET',
-            statusCallback: `${baseApiUrl}/twilio/voice/status?redialCount=${redialCount || 0}&accessToken=${accessToken}&incidentId=${incidentId}&projectId=${projectId}&monitorName=${monitorName.split(' ').join('%20')}`,
-            statusCallbackMethod: 'GET',
-            StatusCallbackEvent: ['no-answer', 'canceled', 'failed']
-        };
         try {
+            var options = {
+                url: `${baseApiUrl}/twilio/voice/incident?redialCount=${redialCount || 0}&accessToken=${accessToken}&incidentId=${incidentId}&projectId=${projectId}&monitorName=${monitorName.split(' ').join('%20')}`,
+                from: twilioCredentials.phoneNumber,
+                to: number,
+                timeout: 60,
+                method: 'GET',
+                statusCallback: `${baseApiUrl}/twilio/voice/status?redialCount=${redialCount || 0}&accessToken=${accessToken}&incidentId=${incidentId}&projectId=${projectId}&monitorName=${monitorName.split(' ').join('%20')}`,
+                statusCallbackMethod: 'GET',
+                StatusCallbackEvent: ['no-answer', 'canceled', 'failed']
+            };
             var call = await client.calls.create(options);
+            return call;
         } catch (error) {
-            ErrorService.log('client.calls.create', error);
+            ErrorService.log('twillioService.sendIncidentCreatedCall', error);
             throw error;
         }
-        return call;
     },
 
     getTemplate: async function (smsTemplate) {
@@ -161,7 +156,7 @@ module.exports = {
             await SmsCountService.create(userId, to);
             return verificationRequest;
         } catch (error) {
-            ErrorService.log('client.sms.sendVerificationSMS', error);
+            ErrorService.log('twillioService.sendVerificationSMS', error);
             throw error;
         }
     },
@@ -192,7 +187,7 @@ module.exports = {
                 error.code = 400;
                 throw invalidNumbererror;
             }
-            ErrorService.log('client.sms.verifySMSCode', error);
+            ErrorService.log('twillioService.verifySMSCode', error);
             throw error;
         }
     }

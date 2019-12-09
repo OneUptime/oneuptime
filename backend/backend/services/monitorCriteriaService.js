@@ -105,7 +105,7 @@ const MonitorCriteriaService = {
 
             return criteriaObj;
         } catch (error) {
-            ErrorService.log('MonitorCriteriaService.getCriteria', error);
+            ErrorService.log('MonitorCriteriaService.create', error);
             throw error;
         }
     },
