@@ -25,8 +25,8 @@ export class MonitorViewHeader extends Component {
         this.props = props;
         this.state = {
             deleteModalId: uuid.v4(),
-            startDate: moment().subtract(30, 'd').format('YYYY-MM-DD'),
-            endDate: moment().format('YYYY-MM-DD')
+            startDate: moment().subtract(30, 'd'),
+            endDate: moment()
         }
 
         this.deleteMonitor = this.deleteMonitor.bind(this);
@@ -80,9 +80,11 @@ export class MonitorViewHeader extends Component {
     }
 
     filterProbeData = (monitor, probe) => {
-        return monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(
-            log => log.probeId ? (log.probeId === probe._id) : true
-        ) : [];
+        const data = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(probeLogs => {
+            return probeLogs._id === null || probeLogs._id === probe._id
+        }) : [];
+
+        return data && data.length > 0 ? data[0].logs : [];
     }
 
     render() {

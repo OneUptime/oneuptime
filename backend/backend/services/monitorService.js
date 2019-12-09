@@ -330,22 +330,21 @@ module.exports = {
                 return monitor;
             }
         } catch (error) {
-            ErrorService.log('MonitoService.updateDeviceMonitorPingTime', error);
+            ErrorService.log('MonitorService.updateDeviceMonitorPingTime', error);
             throw error;
         }
     },
 
     async getMonitorLogs(monitorId, startDate, endDate) {
-        try {
-            // get all probes and use probe id to split logs
-            // if no probe is found return as is
-            /*
-            * [ {}, {} ] or [ { probeId, logs: [ {}, {} ] } ]
-            */
-            // check if data[0].probeId ? logData = data[0].logs : logData = data[0]
+        let start = moment(startDate).toDate();
+        let end = moment(endDate).toDate();
 
-            var monitorData = await MonitorLogModel.find({ monitorId: monitorId, createdAt: { $gte: startDate, $lte: endDate } })
-                .sort([['createdAt', -1]]);
+        try {
+            var monitorData = await MonitorLogModel.aggregate([
+                { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
+                { $sort: { 'createdAt': -1 } },
+                { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
+            ]);
         } catch (error) {
             ErrorService.log('monitorLogModel.find', error);
             throw error;
