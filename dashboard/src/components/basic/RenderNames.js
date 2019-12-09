@@ -6,7 +6,7 @@ import TimezoneSelector from './TimezoneSelector';
 import TeamSelector from './TeamSelector';
 import TimeSelector from './TimeSelector';
 
-const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) => {
+const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex }) => {
     const [timeVisible, setTimeVisible] = useState(false);
     return (
         <ul>
@@ -25,6 +25,7 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) =>
                                         component={TeamSelector}
                                         placeholder="Nawaz"
                                         subProjectId={subProjectId}
+                                        policyIndex={policyIndex}
                                     />
                                 </div>
                             </div>                            
@@ -74,6 +75,7 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId }) =>
                                           />
                                       </div>
                                   </div>
+                                  <text className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base" style={{ marginTop: '5px', cursor: 'pointer' }} onClick={(() => setTimeVisible(false))}>Remove on-call duty times</text>
                                 </div>
                                 )}
                             </div>
@@ -144,7 +146,8 @@ RenderNames.propTypes = {
     fields: PropTypes.oneOfType([
         PropTypes.array,
         PropTypes.object
-    ]).isRequired
+    ]).isRequired,
+    policyIndex: PropTypes.number.isRequired,
 }
 
 export { RenderNames }

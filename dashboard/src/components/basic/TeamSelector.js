@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { connect } from 'react-redux';
+import { formValueSelector } from 'redux-form';
 import PropTypes from 'prop-types';
 import Select from 'react-select-fyipe';
 
@@ -8,7 +9,16 @@ let errorStyle = {
     topMargin: '5px'
 };
 
-const TeamSelector = ({ input, placeholder, meta: { touched, error }, members }) => {
+const TeamSelector = ({ input, placeholder, meta: { touched, error }, members, form, policyIndex }) => {
+    const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].teamMember, members);
+    const allowedOptionsForDropdown = [{ value: '', label: 'Select Team Member...' }].concat(allowedTeamMembers.map(member => {
+        return {
+            value: member.userId,
+            label: member.name,
+            show: member.role !== 'Viewer'
+        }
+    }));
+  
     const options = [{ value: '', label: 'Select Team Member...' }].concat(members.map(member => {
         return {
             value: member.userId,
@@ -47,7 +57,7 @@ const TeamSelector = ({ input, placeholder, meta: { touched, error }, members })
                     value={value}
                     onChange={handleChange}
                     className="db-select-nw"
-                    options={options.filter(opt => opt.show !== undefined ? opt.show : true)}
+                    options={allowedOptionsForDropdown.filter(opt => opt.show !== undefined ? opt.show : true)}
                 />
             </div>
             {
@@ -73,14 +83,33 @@ TeamSelector.propTypes = {
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     meta: PropTypes.object.isRequired,
-    members: PropTypes.array
+    members: PropTypes.array,
+    policyIndex: PropTypes.number.isRequired,
+    form: PropTypes.object.isRequired,
 };
 
+function makeAllowedTeamMembers(teamMembers, subProjectTeam = []) {
+    const validTeamMembers = teamMembers.filter(member => member.member);
+    if (!validTeamMembers.length) return subProjectTeam;
+    const allowedTeamMembers = [];
+    validTeamMembers.forEach(member => {
+      const allowedMember = subProjectTeam.find(TM => TM.userId !== member.member);
+      if (allowedMember) {
+          allowedTeamMembers.push(allowedMember);
+      }
+  })
+    return allowedTeamMembers;
+}
+
 function mapStateToProps(state, props) {
+    const selector = formValueSelector('OnCallAlertBox');
+    const form = selector(state, 'OnCallAlertBox');
     const subProjectTeams = state.team.subProjectTeamMembers;
     const members = subProjectTeams.find(subProjectTeam => subProjectTeam._id === props.subProjectId) || {}
+
     return {
-        members: members.teamMembers || []
+        members: members.teamMembers || [],
+        form,
     };
 }
 
