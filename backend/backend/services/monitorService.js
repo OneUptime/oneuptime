@@ -337,6 +337,13 @@ module.exports = {
 
     async getMonitorLogs(monitorId, startDate, endDate) {
         try {
+            // get all probes and use probe id to split logs
+            // if no probe is found return as is
+            /*
+            * [ {}, {} ] or [ { probeId, logs: [ {}, {} ] } ]
+            */
+            // check if data[0].probeId ? logData = data[0].logs : logData = data[0]
+
             var monitorData = await MonitorLogModel.find({ monitorId: monitorId, createdAt: { $gte: startDate, $lte: endDate } })
                 .sort([['createdAt', -1]]);
         } catch (error) {
