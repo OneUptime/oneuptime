@@ -75,6 +75,7 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, poli
                                           />
                                       </div>
                                   </div>
+                                  <text className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base" style={{ marginTop: '5px', cursor: 'pointer' }} onClick={(() => setTimeVisible(false))}>Remove on-call duty times</text>
                                 </div>
                                 )}
                             </div>
