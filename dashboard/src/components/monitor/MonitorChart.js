@@ -26,7 +26,7 @@ const calculateTime = (incidents, activeProbe) => {
             const probes = incident.probes;
             const activeProbeCheck = probes && probes.length === 0 ? true :
                 (probes && probes.length > 0 ? (probes.filter(
-                    probe => probe && probe.probeId && probe.probeId._id === activeProbe._id
+                    probe => probe && probe.probeId && activeProbe && probe.probeId._id === activeProbe._id
                 ).length > 0 ? true : false)
                     : false
                 );
@@ -59,11 +59,11 @@ const calculateTime = (incidents, activeProbe) => {
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
 };
 
-export function MonitorChart({ probe, monitor, data, status, showAll, activeProbe, probes }) {
+export function MonitorChart({ monitor, data, status, showAll, activeProbe, probes }) {
     const [now, setNow] = useState(Date.now());
 
-    const activeProbeObj = (probes && probes.length > 0 && probes[activeProbe || 0] ? probes[activeProbe || 0] : probe);
-    const lastAlive = activeProbeObj && activeProbeObj.lastAlive ? activeProbeObj.lastAlive : now;
+    const activeProbeObj = (probes && probes.length > 0 && probes[activeProbe || 0] ? probes[activeProbe || 0] : null);
+    const lastAlive = activeProbeObj && activeProbeObj.lastAlive ? activeProbeObj.lastAlive : null;
 
     const { timeBlock, uptimePercent } = monitor.incidents && monitor.incidents.length > 0 ? calculateTime(monitor.incidents.length > 3 ?
         monitor.incidents.splice(0, 3) : monitor.incidents, activeProbeObj)
@@ -241,7 +241,7 @@ export function MonitorChart({ probe, monitor, data, status, showAll, activeProb
         monitorInfo = <div className="db-Trend">
             <div className="block-chart-side line-chart">
                 <div className="db-TrendRow">
-                    {lastAlive && moment(now).diff(moment(lastAlive), 'minutes') > 1 ?
+                    {(lastAlive && moment(now).diff(moment(lastAlive), 'minutes') > 1) || !lastAlive ?
                         <div className="db-Trend-colInformation probe-offline">
                             <div className="db-Trend-rowTitle" title="Currently not monitoring">
                                 <div className="db-Trend-title"><strong><span className="chart-font">Currently not monitoring</span></strong></div>
@@ -357,7 +357,6 @@ export function MonitorChart({ probe, monitor, data, status, showAll, activeProb
 MonitorChart.displayName = 'MonitorChart';
 
 MonitorChart.propTypes = {
-    probe: PropTypes.object,
     monitor: PropTypes.object,
     data: PropTypes.array,
     status: PropTypes.string,

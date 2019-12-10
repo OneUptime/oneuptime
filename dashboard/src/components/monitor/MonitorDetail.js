@@ -230,7 +230,7 @@ export class MonitorDetail extends Component {
                                 let probeData = this.filterProbeData(monitor, location);
                                 let status = getMonitorStatus(monitor.incidents, probeData);
                                 let probe = probes.filter(probe => probe._id === location._id);
-                                let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : location.lastAlive;
+                                let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
 
                                 return (
                                     <ProbeBar
@@ -246,7 +246,7 @@ export class MonitorDetail extends Component {
                             })}
                         </div>
                     </ShouldRender>
-                    <MonitorChart key={uuid.v4()} probe={probe} monitor={monitor} data={probeData} status={status} />
+                    <MonitorChart key={uuid.v4()} monitor={monitor} data={probeData} status={status} />
                 </ShouldRender>
 
                 {monitor && monitor.type ?
@@ -254,7 +254,7 @@ export class MonitorDetail extends Component {
                         <div>
                             <ShouldRender if={monitor.probes && monitor.probes.length > 0}>
                                 {monitor && monitor.probes && monitor.probes.length < 2 ?
-                                    <MonitorChart key={uuid.v4()} probe={probe} monitor={monitor} data={probeData} status={status} />
+                                    <MonitorChart key={uuid.v4()} monitor={monitor} data={probeData} status={status} />
                                     : ''
                                 }
                                 <div className="db-RadarRulesLists-page">
@@ -285,7 +285,7 @@ export class MonitorDetail extends Component {
                         :
                         <div>
                             {monitor && monitor.probes && monitor.probes.length < 2 ?
-                                <MonitorChart key={uuid.v4()} probe={probe} monitor={monitor} data={probeData} status={status} />
+                                <MonitorChart key={uuid.v4()} monitor={monitor} data={probeData} status={status} />
                                 :
                                 ''
                             }

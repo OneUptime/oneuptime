@@ -158,7 +158,7 @@ export class MonitorViewHeader extends Component {
                                     let probeData = this.filterProbeData(monitor, location);
                                     let status = getMonitorStatus(monitor.incidents, probeData);
                                     let probe = probes.filter(probe => probe._id === location._id);
-                                    let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : location.lastAlive;
+                                    let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
 
                                     return (
                                         <ProbeBar
@@ -174,10 +174,10 @@ export class MonitorViewHeader extends Component {
                                 })}
                             </div>
                         </ShouldRender>
-                        <MonitorChart key={uuid.v4()} probe={probe} monitor={monitor} data={probeData} status={status} showAll={true} />
+                        <MonitorChart key={uuid.v4()} monitor={monitor} data={probeData} status={status} showAll={true} />
                     </ShouldRender>
                     {monitor && monitor.probes && monitor.probes.length < 2 ?
-                        <MonitorChart key={uuid.v4()} probe={probe} monitor={monitor} data={probeData} status={status} showAll={true} />
+                        <MonitorChart key={uuid.v4()} monitor={monitor} data={probeData} status={status} showAll={true} />
                         : ''
                     }<br />
                 </div>
