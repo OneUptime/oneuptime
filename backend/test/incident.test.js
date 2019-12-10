@@ -186,19 +186,13 @@ describe('Incident API', function () {
                         timezone: 'American Samoa (GMT -11:00)',
                     }]
                 }]);
-                // eslint-disable-next-line
-                console.log('3',createEscalation);
             if (createEscalation) {
                 var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
                     .set('Authorization', authorization)
                     .send(incidentData);
-                    // eslint-disable-next-line
-                    console.log('4',createdIncident);
                 var alert = await AlertModel.findOne({
                     incidentId: createdIncident.body._id
                 });
-                // eslint-disable-next-line
-                console.log('5',alert);
             }
         }
         expect(alert).to.be.an('object');
@@ -225,13 +219,9 @@ describe('Incident API', function () {
             .set('Authorization', authorization)
             .send(incidentData);
         await sleep(10000);
-        // eslint-disable-next-line
-        console.log('6',createdIncident);
         var alert = await AlertModel.findOne({
             incidentId: createdIncident.body._id
         });
-        // eslint-disable-next-line
-        console.log('7',alert);
         expect(alert).to.be.an('object');
         expect(alert.alertStatus).to.be.equal('success');
     });
