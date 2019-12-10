@@ -91,7 +91,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var monitor = await MonitorModel.findOneAndUpdate(query,
                 { $set: data },
@@ -119,21 +119,21 @@ module.exports = {
     async findBy(query, limit, skip) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 0;
-    
+
             if (typeof (skip) === 'string') {
                 skip = parseInt(skip);
             }
-    
+
             if (typeof (limit) === 'string') {
                 limit = parseInt(limit);
             }
-    
+
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var monitors = await MonitorModel.find(query)
                 .sort([['createdAt', -1]])
@@ -152,7 +152,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name');
@@ -168,7 +168,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var count = await MonitorModel.count(query)
                 .populate('project', 'name');
@@ -184,7 +184,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var monitor = await MonitorModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } }, { new: true }).populate('deletedById', 'name');
 
@@ -274,7 +274,7 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('MonitorService.getProbeMonitors', error);
-            throw error;  
+            throw error;
         }
     },
 
@@ -311,7 +311,7 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('MonitorService.updateDeviceMonitorPingTime', error);
-            throw error;  
+            throw error;
         }
     },
 
@@ -390,7 +390,7 @@ module.exports = {
             var monitorIncidents = await IncidentService.findBy({ monitorId });
             var dateNow = moment().utc();
             var days = moment(dateNow).utc().startOf('day').diff(moment(monitorTime.createdAt).utc().startOf('day'), 'days');
-            
+
             if (days > 89) days = 89;
             var times = [];
             for (var i = days; i >= 0; i--) {
@@ -407,7 +407,7 @@ module.exports = {
                         else return false;
                     });
                     status = incidents.some(inc => inc.resolvedAt ? moment(inc.resolvedAt).utc().startOf('day').diff(moment(temp.date).utc().startOf('day'), 'days') > 0 : true) ? 'offline' : 'online';
-    
+
                     incidents = incidents.map(inc => {
                         let creatediff = moment(temp.date).utc().startOf('day').diff(moment(inc.createdAt).utc().startOf('day'), 'days');
                         let resolveddiff = inc.resolvedAt ? moment(temp.date).utc().startOf('day').diff(moment(inc.resolvedAt).utc().startOf('day'), 'days') : moment(temp.date).utc().startOf('day').diff(moment().utc().startOf('day'), 'days');

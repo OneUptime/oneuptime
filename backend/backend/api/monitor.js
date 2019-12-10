@@ -10,6 +10,7 @@ var NotificationService = require('../services/notificationService');
 var RealTimeService = require('../services/realTimeService');
 var ScheduleService = require('../services/scheduleService');
 var ProbeService = require('../services/probeService');
+var ProjectService = require('../services/projectService');
 
 var router = express.Router();
 var isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -194,12 +195,27 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
 router.get('/:projectId/monitor', getUser, isAuthorized, async function (req, res) {
     var projectId = req.params.projectId;
     var type = req.query.type;
-    var query = type ? { projectId, type } : { projectId };
 
     try {
+        var subProject = null;
+        var project = await ProjectService.findOneBy({ _id: projectId });
+        if (project.parentProjectId) {
+            subProject = project;
+            project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
+        }
+
+        var subProjectIds = [];
+        var subProjects = await ProjectService.findBy({ parentProjectId: project._id });
+        if (subProjects && subProjects.length > 0) {
+            subProjectIds = subProjects.map(project => project._id);
+        }
+        subProjectIds.push(project._id);
+
+        var query = type ? { projectId: { $in: subProjectIds }, type } : { projectId: { $in: subProjectIds } };
+
         var monitors = await MonitorService.findBy(query, req.query.limit || 10, req.query.skip || 0);
         var count = await MonitorService.countBy({ projectId });
-        return sendListResponse(req, res, monitors, count); // frontend expects sendListResponse
+        return sendListResponse(req, res, monitors, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -209,10 +225,24 @@ router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, async functi
     var _id = req.params.monitorId;
     var projectId = req.params.projectId;
     var type = req.query.type;
-    var query = type ? { _id, projectId, type } : { _id, projectId };
 
     try {
-        // Call the MonitorService.
+        var subProject = null;
+        var project = await ProjectService.findOneBy({ _id: projectId });
+        if (project.parentProjectId) {
+            subProject = project;
+            project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
+        }
+
+        var subProjectIds = [];
+        var subProjects = await ProjectService.findBy({ parentProjectId: project._id });
+        if (subProjects && subProjects.length > 0) {
+            subProjectIds = subProjects.map(project => project._id);
+        }
+        subProjectIds.push(project._id);
+
+        var query = type ? { _id, projectId: { $in: subProjectIds }, type } : { _id, projectId: { $in: subProjectIds } };
+
         var monitor = await MonitorService.findOneBy(query);
         return sendItemResponse(req, res, monitor);
     } catch (error) {
