@@ -20,17 +20,15 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 //                                                   jwtRefreshToken: token.refreshToken,
 //                                               }
 router.post('/new', async function (req, res) {
-
-    var jwtRefreshToken = req.body.refreshToken;
-
-    if(!jwtRefreshToken){
-        return sendErrorResponse( req, res, {
-            code: 400, 
-            message: 'Refresh Token not found.'
-        });
-    }
-
-    try{
+    try {
+        var jwtRefreshToken = req.body.refreshToken;
+    
+        if(!jwtRefreshToken){
+            return sendErrorResponse( req, res, {
+                code: 400, 
+                message: 'Refresh Token not found.'
+            });
+        }
         var token = await UserService.getNewToken(jwtRefreshToken);
         var tokenData = {
             jwtAccessToken: token.accessToken,
@@ -38,7 +36,7 @@ router.post('/new', async function (req, res) {
         };
         
         return sendItemResponse(req, res, tokenData);
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 

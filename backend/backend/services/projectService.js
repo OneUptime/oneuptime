@@ -21,7 +21,7 @@ module.exports = {
                 .populate('parentProjectId', 'name');
             return projects;
         } catch (error) {
-            ErrorService.log('ProjectService.findBy', error);
+            ErrorService.log('projectService.findBy', error);
             throw error;
         }
     },
@@ -51,7 +51,7 @@ module.exports = {
             var project = await projectModel.save();
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.create', error);
+            ErrorService.log('projectService.create', error);
             throw error;
         }
     },
@@ -105,7 +105,7 @@ module.exports = {
             }
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.deleteBy', error);
+            ErrorService.log('projectService.deleteBy', error);
             throw error;  
         }
     },
@@ -122,7 +122,7 @@ module.exports = {
                 .populate('parentProjectId', 'name');
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
+            ErrorService.log('projectService.findOneBy', error);
             throw error;
         }
     },
@@ -190,7 +190,7 @@ module.exports = {
                 return updatedProject;
             }
         } catch (error) {
-            ErrorService.log('ProjectService.update', error);
+            ErrorService.log('projectService.update', error);
             throw error;  
         }
     },
@@ -250,7 +250,7 @@ module.exports = {
         else {
             var error = new Error('Cannot save project settings');
             error.code = 403;
-            ErrorService.log('ProjectService.updateAlertOptions', error);
+            ErrorService.log('projectService.updateAlertOptions', error);
             throw error;
         }
     },
@@ -259,7 +259,7 @@ module.exports = {
             project = await project.save();
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.saveProject', error);
+            ErrorService.log('projectService.saveProject', error);
             throw error;
         }
     },
@@ -275,7 +275,7 @@ module.exports = {
             }
             return projectsId;
         } catch (error) {
-            ErrorService.log('ProjectService.getProjectIdsBy', error);
+            ErrorService.log('projectService.getProjectIdsBy', error);
             throw error;
         }
     },
@@ -287,7 +287,7 @@ module.exports = {
             var project = await _this.update({ _id: projectId, apiKey: apiKey });
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.resetApiKey', error);
+            ErrorService.log('projectService.resetApiKey', error);
             throw error;
         }
     },
@@ -300,7 +300,7 @@ module.exports = {
             if (!project.stripeSubscriptionId) {
                 let error = new Error('You have not subscribed to a plan.');
                 error.code = 400;
-                ErrorService.log('ProjectService.changePlan', error);
+                ErrorService.log('projectService.changePlan', error);
                 throw error;
             }
             var trialLeft = moment(new Date()).diff(moment(project.createdAt), 'days');
@@ -309,7 +309,7 @@ module.exports = {
             project = await _this.update({ _id: project._id, stripeSubscriptionId: stripeSubscriptionId });
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.changePlan', error);
+            ErrorService.log('projectService.changePlan', error);
             throw error;  
         }
     },
@@ -370,7 +370,7 @@ module.exports = {
             }
             return 'User successfully exited the project';
         } catch (error) {
-            ErrorService.log('ProjectService.exitProject', error);
+            ErrorService.log('projectService.exitProject', error);
             throw error;
         }
     },
@@ -380,7 +380,7 @@ module.exports = {
             await ProjectModel.deleteMany(query);
             return 'Project(s) Removed Successfully!';
         } catch (error) {
-            ErrorService.log('ProjectService.deleteMany', error);
+            ErrorService.log('projectService.hardDeleteBy', error);
             throw error;
         }
     },

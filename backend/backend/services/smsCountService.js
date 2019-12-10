@@ -20,7 +20,7 @@ module.exports = {
                 .populate('userIds', 'name');
             return SmsCount;
         } catch (error) {
-            ErrorService.log('SmsCountService.find', error);
+            ErrorService.log('smsCountService.findBy', error);
             throw error;
         }
     },
@@ -37,7 +37,7 @@ module.exports = {
                 .populate('userIds', 'name');
             return SmsCount;
         } catch (error) {
-            ErrorService.log('SmsCountService.findOneBy', error);
+            ErrorService.log('smsCountService.findOneBy', error);
             throw error;
         }
     },
@@ -50,7 +50,7 @@ module.exports = {
             var smsCount = await smsCountModel.save();
             return smsCount;
         } catch (error) {
-            ErrorService.log('SmsCountService.create', error);
+            ErrorService.log('smsCountService.create', error);
             throw error;
         }
     },
@@ -65,7 +65,7 @@ module.exports = {
             var count = await SmsCountModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('SmsCountService.countBy', error);
+            ErrorService.log('smsCountService.countBy', error);
             throw error;
         }
     },
@@ -81,7 +81,7 @@ module.exports = {
             }
             return {validateResend : smsCount.length > 3 ? false : true,problem : problem || ''};
         } catch (error) {
-            ErrorService.log('SmsCountService.validateResend', error);
+            ErrorService.log('smsCountService.validateResend', error);
             throw error;
         }
     },
@@ -99,7 +99,7 @@ module.exports = {
             });
             return smsCount;
         } catch (error) {
-            ErrorService.log('SmsCountService.deleteBy', error);
+            ErrorService.log('smsCountService.deleteBy', error);
             throw error;
         }
     },
@@ -109,7 +109,7 @@ module.exports = {
             await SmsCountModel.deleteMany(query);
             return 'SmsCount(s) removed successfully';
         } catch (error) {
-            ErrorService.log('SmsCountService.hardDeleteBy', error);
+            ErrorService.log('smsCountService.hardDeleteBy', error);
             throw error;
         }
     }

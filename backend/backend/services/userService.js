@@ -19,7 +19,7 @@ module.exports = {
                 .skip(skip);
             return users;
         } catch (error) {
-            ErrorService.log('userService.find', error);
+            ErrorService.log('userService.findBy', error);
             throw error;
         }
     },
@@ -51,7 +51,7 @@ module.exports = {
             var user = await userModel.save();
             return user;
         } catch (error) {
-            ErrorService.log('userService.save', error);
+            ErrorService.log('userService.create', error);
             throw error;
         }
     },
@@ -66,7 +66,7 @@ module.exports = {
             var count = await UserModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('UserService.count', error);
+            ErrorService.log('userService.countBy', error);
             throw error;
         }
     },
@@ -89,7 +89,7 @@ module.exports = {
             });
             return user;
         } catch (error) {
-            ErrorService.log('UserService.updateMany', error);
+            ErrorService.log('userService.deleteBy', error);
             throw error;
         }
     },
@@ -104,7 +104,7 @@ module.exports = {
                 .sort([['createdAt', -1]]);
             return user;
         } catch (error) {
-            ErrorService.log('UserModel.findOne', error);
+            ErrorService.log('userService.findOneBy', error);
             throw error;
         }
     },
@@ -190,7 +190,7 @@ module.exports = {
                 return updatedUser;
             }
         } catch (error) {
-            ErrorService.log('UserService.update', error);
+            ErrorService.log('userService.update', error);
             throw error;
         }
     },
@@ -249,7 +249,7 @@ module.exports = {
                 if (user) {
                     let error = new Error('User already exists.');
                     error.code = 400;
-                    ErrorService.log('UserService.signup', error);
+                    ErrorService.log('userService.signup', error);
                     throw error;
                 } else {
                     // Check here is the payment intent is successfully paid. If yes then create the customer else not.
@@ -302,11 +302,11 @@ module.exports = {
             } else {
                 let error = new Error('Email is not in valid format.');
                 error.code = 400;
-                ErrorService.log('UserService.signup', error);
+                ErrorService.log('userService.signup', error);
                 throw error;
             }
         } catch (error) {
-            ErrorService.log('UserService.signup', error);
+            ErrorService.log('userService.signup', error);
             throw error;
         }
     },
@@ -335,7 +335,7 @@ module.exports = {
                 if (!user) {
                     let error = new Error('User does not exist.');
                     error.code = 400;
-                    ErrorService.log('UserService.login', error);
+                    ErrorService.log('userService.login', error);
                     throw error;
                 } else {
                     var ipLocation = await _this.getUserIpLocation(clientIP);
@@ -351,7 +351,7 @@ module.exports = {
                             
                             let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
                             error.code = 400;
-                            ErrorService.log('UserService.login', error);
+                            ErrorService.log('userService.login', error);
                             throw error;
                         }
                     }
@@ -360,19 +360,19 @@ module.exports = {
                     if (user.disabled) {
                         let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
                         error.code = 400;
-                        ErrorService.log('UserService.login', error);
+                        ErrorService.log('userService.login', error);
                         throw error;
                     }
                     if (!user.isVerified) {
                         let error = new Error('Verify your email first.');
                         error.code = 401;
-                        ErrorService.log('UserService.login', error);
+                        ErrorService.log('userService.login', error);
                         throw error;
                     }
                     if (!encryptedPassword) {
                         let error = new Error('Your account does not exist. Please sign up.');
                         error.code = 400;
-                        ErrorService.log('UserService.login', error);
+                        ErrorService.log('userService.login', error);
                         throw error;
                     } else {
                         var res = await bcrypt.compare(password, encryptedPassword);
@@ -382,7 +382,7 @@ module.exports = {
                         } else {
                             let error = new Error('Password is incorrect.');
                             error.code = 400;
-                            ErrorService.log('UserService.login', error);
+                            ErrorService.log('userService.login', error);
                             throw error;
                         }
                     }
@@ -390,11 +390,11 @@ module.exports = {
             } else {
                 let error = new Error('Email is not in valid format.');
                 error.code = 400;
-                ErrorService.log('UserService.login', error);
+                ErrorService.log('userService.login', error);
                 throw error;
             }
         } catch (error) {
-            ErrorService.log('UserService.login', error);
+            ErrorService.log('userService.login', error);
             throw error;
         }
     },
@@ -412,7 +412,7 @@ module.exports = {
                 if (!user) {
                     let error = new Error('User does not exist.');
                     error.code = 400;
-                    ErrorService.log('UserService.forgotPassword', error);
+                    ErrorService.log('userService.forgotPassword', error);
                     throw error;
                 } else {
                     var buf = await crypto.randomBytes(20);
@@ -430,11 +430,11 @@ module.exports = {
             } else {
                 let error = new Error('Email is not in valid format.');
                 error.code = 400;
-                ErrorService.log('UserService.forgotPassword', error);
+                ErrorService.log('userService.forgotPassword', error);
                 throw error;
             }
         } catch (error) {
-            ErrorService.log('UserService.forgotPassword', error);
+            ErrorService.log('userService.forgotPassword', error);
             throw error;
         }
     },
@@ -470,7 +470,7 @@ module.exports = {
                 return user;
             }
         } catch (error) {
-            ErrorService.log('UserService.resetPassword', error);
+            ErrorService.log('userService.resetPassword', error);
             throw error;
         }
     },
@@ -487,7 +487,7 @@ module.exports = {
             if (!user) {
                 let error = new Error('Invalid Refresh Token');
                 error.code = 400;
-                ErrorService.log('UserService.getNewToken', error);
+                ErrorService.log('userService.getNewToken', error);
                 throw error;
             } else {
                 var userObj = { id: user._id };
@@ -504,7 +504,7 @@ module.exports = {
                 return token;
             }
         } catch (error) {
-            ErrorService.log('UserService.getNewToken', error);
+            ErrorService.log('userService.getNewToken', error);
             throw error;
         }
         
@@ -529,11 +529,11 @@ module.exports = {
             } else {
                 let error = new Error('Current Password is incorrect.');
                 error.code = 400;
-                ErrorService.log('UserService.changePassword', error);
+                ErrorService.log('userService.changePassword', error);
                 throw error;
             }
         } catch (error) {
-            ErrorService.log('UserService.changePassword', error);
+            ErrorService.log('userService.changePassword', error);
             throw error;
         }
         
@@ -625,7 +625,7 @@ module.exports = {
             await UserModel.deleteMany(query);
             return 'User(s) Removed Successfully!';
         } catch (error) {
-            ErrorService.log('UserModel.deleteMany', error);
+            ErrorService.log('userService.hardDeleteBy', error);
             throw error;
         }
     },

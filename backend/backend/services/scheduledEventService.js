@@ -34,7 +34,7 @@ module.exports = {
             scheduledEvent = await _this.findOneBy({ _id: scheduledEvent._id });
             return scheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.create', error);
+            ErrorService.log('scheduledEventService.create', error);
             throw error;
         }
     },
@@ -66,7 +66,7 @@ module.exports = {
             }, { new: true });
             return updatedScheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.update', error);
+            ErrorService.log('scheduledEventService.update', error);
             throw error;
         }
     },
@@ -82,7 +82,7 @@ module.exports = {
             }, { new: true });
             return scheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.deleteBy', error);
+            ErrorService.log('scheduledEventService.deleteBy', error);
             throw error;
         }
     },
@@ -135,7 +135,7 @@ module.exports = {
 
             return scheduledEvents;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.findBy', error);
+            ErrorService.log('scheduledEventService.findBy', error);
             throw error;
         }
     },
@@ -167,7 +167,7 @@ module.exports = {
             return scheduledEvent;
         }
         catch (error) {
-            ErrorService.log('ScheduledEventService.findOneBy', error);
+            ErrorService.log('scheduledEventService.findOneBy', error);
             throw error;
         }
     },
@@ -181,7 +181,7 @@ module.exports = {
             var count = await ScheduledEventModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.countBy', error);
+            ErrorService.log('scheduledEventService.countBy', error);
             throw error;
         }
     },
@@ -191,7 +191,7 @@ module.exports = {
             await ScheduledEventModel.deleteMany(query);
             return 'Event(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('ScheduledEventService.deleteMany', error);
+            ErrorService.log('scheduledEventService.hardDeleteBy', error);
             throw error;
         }
     },

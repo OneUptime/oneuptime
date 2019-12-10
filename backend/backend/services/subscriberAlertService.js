@@ -10,7 +10,7 @@ module.exports = {
             var subscriberAlert = await subscriberAlertModel.save();
             return subscriberAlert;
         } catch (error) {
-            ErrorService.log('SubscriberAlertService.save', error);
+            ErrorService.log('SubscriberAlertService.create', error);
             throw error;
         }
     },

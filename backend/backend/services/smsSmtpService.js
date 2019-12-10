@@ -14,7 +14,7 @@ module.exports = {
             }
             return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.save', error);
+            ErrorService.log('smsSmtpService.create', error);
             throw error;
         }
     },
@@ -56,7 +56,7 @@ module.exports = {
                 return updatedSmsSmtp;
             }
         } catch (error) {
-            ErrorService.log('SmsSmtpService.update', error);
+            ErrorService.log('smsSmtpService.update', error);
             throw error;
         }
     },
@@ -74,7 +74,7 @@ module.exports = {
             });
             return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.deleteBy', error);
+            ErrorService.log('smsSmtpService.deleteBy', error);
             throw error;
         }
     },
@@ -110,7 +110,7 @@ module.exports = {
         
             return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.findBy', error);
+            ErrorService.log('smsSmtpService.findBy', error);
             throw error;
         }
     },
@@ -135,7 +135,7 @@ module.exports = {
     
             return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.findOneBy', error);
+            ErrorService.log('smsSmtpService.findOneBy', error);
             throw error;
         }
     },
@@ -150,7 +150,7 @@ module.exports = {
             var count = await SmsSmtpModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.countBy', error);
+            ErrorService.log('smsSmtpService.countBy', error);
             throw error;
         }
     },
@@ -160,7 +160,7 @@ module.exports = {
             await SmsSmtpModel.deleteMany(query);
             return 'Sms Smtp(s) removed successfully';
         } catch (error) {
-            ErrorService.log('SmsSmtpService.hardDeleteBy', error);
+            ErrorService.log('smsSmtpService.hardDeleteBy', error);
             throw error;
         }
     },

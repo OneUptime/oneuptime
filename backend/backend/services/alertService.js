@@ -70,7 +70,7 @@ module.exports = {
             var savedAlert = await alert.save();
             return savedAlert;
         } catch (error) {
-            ErrorService.log('alert.save', error);
+            ErrorService.log('alertService.create', error);
             throw error;
         }
     },
@@ -85,7 +85,7 @@ module.exports = {
             var count = await AlertModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('AlertModel.count', error);
+            ErrorService.log('alertService.countBy', error);
             throw error;
         }
 
@@ -134,7 +134,7 @@ module.exports = {
                 return updatedAlert;
             }
         } catch (error) {
-            ErrorService.log('alertService.findByIdAndUpdate', error);
+            ErrorService.log('alertService.update', error);
             throw error;
         }
     },
@@ -157,7 +157,7 @@ module.exports = {
             });
             return alerts;
         } catch (error) {
-            ErrorService.log('AlertModel.findOneAndUpdate', error);
+            ErrorService.log('alertService.deleteBy', error);
             throw error;
         }
     },
@@ -399,7 +399,7 @@ module.exports = {
             await AlertModel.deleteMany(query);
             return 'Alert(s) removed successfully';
         } catch (error) {
-            ErrorService.log('AlertModel.deleteMany', error);
+            ErrorService.log('alertService.hardDeleteBy', error);
             throw error;
         }
     },

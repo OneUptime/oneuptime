@@ -28,7 +28,7 @@ module.exports = {
                 .lean();
             return statusPages;
         } catch (error) {
-            ErrorService.log('StatusPageService.findBy', error);
+            ErrorService.log('statusPageService.findBy', error);
             throw error;
         }
     },
@@ -66,7 +66,7 @@ module.exports = {
             var statusPage = await statusPageModel.save();
             return statusPage;
         } catch (error) {
-            ErrorService.log('StatusPageService.create', error);
+            ErrorService.log('statusPageService.create', error);
             throw error;
         }
     },
@@ -81,7 +81,7 @@ module.exports = {
             var count = await StatusPageModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('StatusPageService.count', error);
+            ErrorService.log('statusPageService.countBy', error);
             throw error;
         }
     },
@@ -112,7 +112,7 @@ module.exports = {
             }
             return statusPage;
         } catch (error) {
-            ErrorService.log('StatusPageService.deleteBy', error);
+            ErrorService.log('statusPageService.deleteBy', error);
             throw error;
         }
     },
@@ -124,7 +124,7 @@ module.exports = {
             });
             return statusPage;
         } catch(error) {
-            ErrorService.log('StatusPageService.findOneAndUpdate', error);
+            ErrorService.log('statusPageService.removeMonitor', error);
             throw error;
         }
     },
@@ -142,7 +142,7 @@ module.exports = {
                 .populate('monitorIds', 'name');
             return statusPage;
         } catch(error) {
-            ErrorService.log('StatusPageService.findOne', error);
+            ErrorService.log('statusPageService.findOneBy', error);
             throw error;
         }
     },
@@ -209,7 +209,7 @@ module.exports = {
                 return updatedStatusPage;
             }
         } catch (error) {
-            ErrorService.log('StatusPageService.update', error);
+            ErrorService.log('statusPageService.update', error);
             throw error;
         }
     },
@@ -241,11 +241,11 @@ module.exports = {
             else {
                 let error = new Error('no monitor to check');
                 error.code = 400;
-                ErrorService.log('StatusPage.getNotes', error);
+                ErrorService.log('statusPage.getNotes', error);
                 throw error;
             }
         } catch (error) {
-            ErrorService.log('StatusPageService.getNotes', error);
+            ErrorService.log('statusPageService.getNotes', error);
             throw error;
         }
     },
@@ -266,7 +266,7 @@ module.exports = {
             var count = await IncidentService.countBy(query);
             return { investigationNotes, count };
         } catch (error) {
-            ErrorService.log('StatusPageService.getNotesByDate', error);
+            ErrorService.log('statusPageService.getNotesByDate', error);
             throw error;
         }
     },
@@ -300,36 +300,36 @@ module.exports = {
                 if (!permitted) {
                     let error = new Error('You are unauthorized to access the page please login to continue.');
                     error.code = 401;
-                    ErrorService.log('StatusPageService.getStatus', error);
+                    ErrorService.log('statusPageService.getStatus', error);
                     throw error;
                 }
             }
             else {
                 let error = new Error('StatusPage Not present');
                 error.code = 400;
-                ErrorService.log('StatusPageService.getStatus', error);
+                ErrorService.log('statusPageService.getStatus', error);
                 throw error;
             }
             return statusPage;
         } catch (error) {
-            ErrorService.log('StatusPageService.getStatus', error);
+            ErrorService.log('statusPageService.getStatus', error);
             throw error;
         }
     },
 
     isPermitted: async function (user, statusPage) {
-        return new Promise(async (resolve) => {
-            if (statusPage.isPrivate) {
-                if (user) {
-                    try{
+        try {
+            return new Promise(async (resolve) => {
+                if (statusPage.isPrivate) {
+                    if (user) {
                         var project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
-                    }catch(error){
-                        ErrorService.log('ProjectService.findOneBy', error);
-                        throw error;
-                    }
-                    if (project && project._id) {
-                        if (project.users.some(({ userId }) => userId === user.id)) {
-                            resolve(true);
+                        if (project && project._id) {
+                            if (project.users.some(({ userId }) => userId === user.id)) {
+                                resolve(true);
+                            }
+                            else {
+                                resolve(false);
+                            }
                         }
                         else {
                             resolve(false);
@@ -340,13 +340,13 @@ module.exports = {
                     }
                 }
                 else {
-                    resolve(false);
+                    resolve(true);
                 }
-            }
-            else {
-                resolve(true);
-            }
-        });
+            });
+        } catch (error) {
+            ErrorService.log('statusPageService.isPermitted', error);
+            throw error;
+        }
     },
 
     getSubProjectStatusPages: async function(subProjectIds){
@@ -364,7 +364,7 @@ module.exports = {
             await StatusPageModel.deleteMany(query);
             return 'Status Page(s) Removed Successfully!';
         } catch (error) {
-            ErrorService.log('StatusPageService.deleteMany', error);
+            ErrorService.log('statusPageService.hardDeleteBy', error);
             throw error;
         }
     },

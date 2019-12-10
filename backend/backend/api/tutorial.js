@@ -15,9 +15,8 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.get('/', getUser, async function (req, res) {
-    const userId = req.user ? req.user.id : null;
-
     try {
+        const userId = req.user ? req.user.id : null;
         const user = await UserService.findOneBy({ _id: userId });
         const tutorialObj = {
             _id: user._id,
@@ -31,9 +30,8 @@ router.get('/', getUser, async function (req, res) {
 });
 
 router.put('/', getUser, async function (req, res) {
-    const userId = req.user ? req.user.id : null;
-
     try {
+        const userId = req.user ? req.user.id : null;
         let user = await UserService.findOneBy({ _id: userId });
         user = await UserService.closeTutorialBy({ _id: userId }, req.body.type, user.tutorial);
         

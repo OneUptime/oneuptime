@@ -18,7 +18,7 @@ module.exports = {
                 }});
             return token.id;
         } catch (error) {
-            ErrorService.log('PaymentService.create', error);
+            ErrorService.log('paymentService.createToken', error);
             throw error;
         }
     },
@@ -32,7 +32,7 @@ module.exports = {
             var processedPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
             return processedPaymentIntent;
         } catch (error) {
-            ErrorService.log('PaymentService.retrieve', error);
+            ErrorService.log('paymentService.checkPaymentIntent', error);
             throw error;
         }
     },
@@ -51,7 +51,7 @@ module.exports = {
             });
             return customer.id;
         } catch (error) {
-            ErrorService.log('PaymentService.create', error);
+            ErrorService.log('paymentService.createCustomer', error);
             throw error;
         }
     },
@@ -64,7 +64,7 @@ module.exports = {
             );
             return card;
         } catch (error) {
-            ErrorService.log('PaymentService.addPayment', error);
+            ErrorService.log('paymentService.addPayment', error);
             throw error;
         }
     },
@@ -96,7 +96,7 @@ module.exports = {
                 stripeSubscriptionId: subscription.id,
             });
         } catch (error) {
-            ErrorService.log('PaymentService.subscribePlan', error);
+            ErrorService.log('paymentService.subscribePlan', error);
             throw error;
         }
     },
@@ -115,7 +115,7 @@ module.exports = {
             if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
                 let error = new Error('Your subscription cannot be retrieved.');
                 error.code = 400;
-                ErrorService.log('PaymentService.changeSeats', error);
+                ErrorService.log('paymentService.changeSeats', error);
                 throw error;
             } else {
                 for (var i = 0; i < subscription.items.data.length; i++) {
@@ -136,7 +136,7 @@ module.exports = {
                 return(subscription.id);
             }
         } catch (error) {
-            ErrorService.log('PaymentService.changeSeats', error);
+            ErrorService.log('paymentService.changeSeats', error);
             throw error;
         }
     },
@@ -147,7 +147,7 @@ module.exports = {
             confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
             return confirmations;
         } catch (error) {
-            ErrorService.log('stripe.subscriptions.del', error);
+            ErrorService.log('paymentService.removeSubscription', error);
             throw error;
         }
     },
@@ -174,7 +174,7 @@ module.exports = {
             var subscriptions = await stripe.subscriptions.create(subscriptionObj);
             return subscriptions.id;
         } catch (error) {
-            ErrorService.log('PaymentService.changePlan', error);
+            ErrorService.log('paymentService.changePlan', error);
             throw error;
         }
     },
@@ -206,7 +206,7 @@ module.exports = {
                 }, { new: true });
             return updatedProject;
         } catch (error) {
-            ErrorService.log('PaymentService.chargeAlert', error);
+            ErrorService.log('paymentService.chargeAlert', error);
             throw error;
         }
     },
@@ -252,7 +252,7 @@ module.exports = {
             if (!charge || !charge.paid) {
                 let error = new Error('Card is not billable. Account will be disabled in 15 days.');
                 error.code;
-                ErrorService.log('paymentService.create', error);
+                ErrorService.log('paymentService.testCardCharge', error);
                 throw error;
             }
             return charge;

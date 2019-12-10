@@ -38,7 +38,7 @@ module.exports = {
             }
             return lead;
         } catch (error) {
-            ErrorService.log('LeadService.create', error);
+            ErrorService.log('leadService.create', error);
             throw error;
         }
     },
@@ -48,7 +48,7 @@ module.exports = {
             await LeadsModel.deleteMany(query);
             return 'Lead(s) Removed Successfully!';
         }catch(error){
-            ErrorService.log('LeadService.hardDeleteBy', error);
+            ErrorService.log('leadService.hardDeleteBy', error);
             throw error;
         }
     }
