@@ -143,12 +143,12 @@ router.post('/sms/incoming', async (req, res) => {
         switch (actionType) {
         case 1:
             await IncidentService.acknowledge(action[0], action[0].userId, action[0].name);
-            await incidentSMSActionService.update(action[0]._id, { acknowledged: true });
+            await incidentSMSActionService.updateBy({_id:action[0]._id}, { acknowledged: true });
             sendResponseMessage(From, `Incident status acknowledged. Send 2 to ${To} to resolve incident`);
             return sendItemResponse(req, res, { status: 'acknowledged' });
         case 2:
             await IncidentService.resolve(action[0], action[0].userId);
-            await incidentSMSActionService.update(action[0]._id, { acknowledged: true, resolved: true });
+            await incidentSMSActionService.updateBy({_id:action[0]._id}, { acknowledged: true, resolved: true });
             sendResponseMessage(From, 'Incient status resolved. Thank you.');
             return sendItemResponse(req, res, { status: 'resolved' });
         default:

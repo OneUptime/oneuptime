@@ -149,81 +149,30 @@ module.exports = {
         return project;
     },
 
-    update: async function (data) {
+    updateBy: async function (query, data) {
         var _this = this;
-        if (!data._id) {
-            try {
-                var project = await _this.create(data);
-            } catch (error) {
-                ErrorService.log('ProjectService.create', error);
-                throw error;
-            }
-            return project;
-        } else {
-            try {
-                var oldProject = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
-            } catch (error) {
-                ErrorService.log('ProjectService.findOneBy', error);
-                throw error;
-            }
-            var name = data.name || oldProject.name;
-            var slug = data.slug || oldProject.slug;
-            var apiKey = data.apiKey || oldProject.apiKey || uuidv1();
-            var stripePlanId = data.stripePlanId || oldProject.stripePlanId;
-            var stripeSubscriptionId = data.stripeSubscriptionId || oldProject.stripeSubscriptionId;
-            var parentProjectId = data.parentProjectId || oldProject.parentProjectId;
-            var users = oldProject.users;
-            var seats = data.seats || oldProject.seats;
-            var alertEnable = data.alertEnable !== undefined ? data.alertEnable : oldProject.alertEnable;
-            var alertOptions = data.alertOptions || oldProject.alertOptions;
-            var adminNotes = data.adminNotes || oldProject.adminNotes;
-
-            if (data.users) {
-                users = data.users;
-            }
-
-            var isBlocked = oldProject.isBlocked;
-            if (typeof data.isBlocked === 'boolean') {
-                isBlocked = data.isBlocked;
-            }
-
-            var deleted = oldProject.deleted;
-            var deletedById = oldProject.deletedById;
-            var deletedAt = oldProject.deletedAt;
-            if (data.deleted === false) {
-                deleted = false;
-                deletedById = null;
-                deletedAt = null;
-            }
-
-            try {
-                var updatedProject = await ProjectModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        name: name,
-                        slug: slug,
-                        users: users,
-                        apiKey: apiKey,
-                        stripePlanId: stripePlanId,
-                        stripeSubscriptionId: stripeSubscriptionId,
-                        parentProjectId: parentProjectId,
-                        seats: seats,
-                        alertEnable,
-                        alertOptions,
-                        isBlocked,
-                        deleted,
-                        deletedById,
-                        deletedAt,
-                        adminNotes
-                    }
-                }, {
-                    new: true
-                });
-            } catch (error) {
-                ErrorService.log('ProjectModel.findByIdAndUpdate', error);
-                throw error;
-            }
-            return updatedProject;
+        if (!query) {
+            query = {};
         }
+        try {
+            var oldProject = await _this.findOneBy(Object.assign({}, query, { deleted: { $ne: null } }));
+            if (!data.apiKey && !oldProject.apiKey) {
+                data.apiKey = uuidv1();
+            }
+            var updatedProject = await ProjectModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data
+                },
+                {
+                    new: true
+                }
+            );
+        } catch (error) {
+            ErrorService.log('ProjectModel.findOneAndUpdate', error);
+            throw error;
+        }
+        return updatedProject;
     },
 
     updateAlertOptions: async function (data) {
@@ -315,7 +264,7 @@ module.exports = {
         var _this = this;
         var apiKey = uuidv1();
         try {
-            var project = await _this.update({ _id: projectId, apiKey: apiKey });
+            var project = await _this.updateBy({ _id: projectId }, { apiKey: apiKey });
         } catch (error) {
             ErrorService.log('ProjectService.resetApiKey', error);
             throw error;
@@ -326,9 +275,9 @@ module.exports = {
     changePlan: async function (projectId, planId) {
         var _this = this;
         try {
-            var project = await _this.update({ _id: projectId, stripePlanId: planId });
+            var project = await _this.updateBy({ _id: projectId }, { stripePlanId: planId });
         } catch (error) {
-            ErrorService.log('ProjectService.update', error);
+            ErrorService.log('ProjectService.updateBy', error);
             throw error;
         }
         if (!project.stripeSubscriptionId) {
@@ -345,9 +294,9 @@ module.exports = {
             throw error;
         }
         try {
-            project = await _this.update({ _id: project._id, stripeSubscriptionId: stripeSubscriptionId });
+            project = await _this.updateBy({ _id: project._id }, { stripeSubscriptionId: stripeSubscriptionId });
         } catch (error) {
-            ErrorService.log('ProjectService.update', error);
+            ErrorService.log('ProjectService.updateBy', error);
             throw error;
         }
         return project;
@@ -376,9 +325,9 @@ module.exports = {
                 }
             }
             try {
-                await _this.update({ _id: projectId, users: remainingUsers });
+                await _this.updateBy({ _id: projectId }, { users: remainingUsers });
             } catch (error) {
-                ErrorService.log('ProjectService.update', error);
+                ErrorService.log('ProjectService.updateBy', error);
                 throw error;
             }
             try {
@@ -433,9 +382,9 @@ module.exports = {
                         }
                     }
                     try {
-                        await _this.update({ _id: project._id, seats: projectSeats.toString() });
+                        await _this.updateBy({ _id: project._id }, { seats: projectSeats.toString() });
                     } catch (error) {
-                        ErrorService.log('ProjectService.update', error);
+                        ErrorService.log('ProjectService.updateBy', error);
                         throw error;
                     }
                 }
@@ -517,8 +466,7 @@ module.exports = {
                 let projectOwner = project.users.find(user => user.role === 'Owner');
                 projectOwner = await UserService.findOneBy({ _id: projectOwner.userId });
                 const subscription = await PaymentService.subscribePlan(project.stripePlanId, projectOwner.stripeCustomerId);
-                project = await _this.update({
-                    _id: projectId,
+                project = await _this.updateBy({ _id: projectId }, {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
@@ -540,8 +488,7 @@ module.exports = {
                 let projectOwner = project.users.find(user => user.role === 'Owner');
                 projectOwner = await UserService.findOneBy({ _id: projectOwner.userId });
                 const subscription = await PaymentService.subscribePlan(project.stripePlanId, projectOwner.stripeCustomerId);
-                project = await _this.update({
-                    _id: projectId,
+                project = await _this.updateBy({ _id: projectId }, {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
@@ -560,8 +507,7 @@ module.exports = {
 
     addNotes: async function (projectId, notes) {
         const _this = this;
-        let adminNotes = (await _this.update({
-            _id: projectId,
+        let adminNotes = (await _this.updateBy({ _id: projectId }, {
             adminNotes: notes
         })).adminNotes;
         return adminNotes;

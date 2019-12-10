@@ -40,33 +40,18 @@ module.exports = {
         return scheduledEvent;
     },
 
-    update: async function (data) {
-        try {
-            var oldScheduledEvent = await ScheduledEventModel.findOne({ _id: data._id });
+    updateBy: async function (query,data) {
+        if (!query) {
+            query = {};
+        }
 
-            var name = data.name || oldScheduledEvent.name;
-            var startDate = data.startDate || oldScheduledEvent.startDate;
-            var endDate = data.endDate || oldScheduledEvent.endDate;
-            var description = data.description || oldScheduledEvent.description;
-            var showEventOnStatusPage = data.showEventOnStatusPage !== undefined ? data.showEventOnStatusPage : oldScheduledEvent.showEventOnStatusPage;
-            var callScheduleOnEvent = data.callScheduleOnEvent !== undefined ? data.callScheduleOnEvent : oldScheduledEvent.callScheduleOnEvent;
-            var monitorDuringEvent = data.monitorDuringEvent !== undefined ? data.monitorDuringEvent : oldScheduledEvent.monitorDuringEvent;
-            var alertSubscriber = data.alertSubscriber !== undefined ? data.alertSubscriber : oldScheduledEvent.alertSubscriber;
-    
-            var updatedScheduledEvent = await ScheduledEventModel.findByIdAndUpdate(data._id, {
-                $set: {
-                    name,
-                    startDate,
-                    endDate,
-                    description,
-                    showEventOnStatusPage,
-                    callScheduleOnEvent,
-                    monitorDuringEvent,
-                    alertSubscriber
-                }
+        if (!query.deleted) query.deleted = false;
+        try {
+            var updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
+                $set: data
             }, { new: true });
-        } catch (error) {
-            ErrorService.log('ScheduledEventModel.update', error);
+        } catch (error){
+            ErrorService.log('ScheduledEventModel.findOneAndUpdate', error);
             throw error;
         }
 
@@ -74,7 +59,7 @@ module.exports = {
     },
 
     deleteBy: async function (query, userId) {
-        
+
         try {
             var scheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
                 $set: {

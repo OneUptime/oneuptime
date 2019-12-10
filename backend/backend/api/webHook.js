@@ -56,7 +56,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (r
     let data = req.body;
     data.projectId = req.params.projectId;
     data.userId = req.user ? req.user.id : null;
-    data._id = req.params.integrationId;
+    var integrationId = req.params.integrationId;
 
     if(!data.projectId) {
         return sendErrorResponse( req, res, {
@@ -79,7 +79,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (r
         });
     }
     try{
-        var webhook = await IntegrationService.update(data);
+        var webhook = await IntegrationService.updateBy({_id:integrationId},data);
         return sendItemResponse(req, res, webhook);
     }catch(error){
         return sendErrorResponse(req, res, error);

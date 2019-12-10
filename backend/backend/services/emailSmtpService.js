@@ -9,7 +9,7 @@ module.exports = {
         emailSmtpModel.port = data.port;
         emailSmtpModel.from = data.from;
         emailSmtpModel.secure = false;
-        if(data.secure){
+        if (data.secure) {
             emailSmtpModel.secure = data.secure;
         }
         emailSmtpModel.enabled = true;
@@ -25,60 +25,31 @@ module.exports = {
         return emailSmtp;
     },
 
-    update: async function (data) {
-        let _this = this;
-        if (!data._id) {
-            try {
-                let emailSmtp = await _this.create(data);
-                return emailSmtp;
-            } catch (error) {
-                ErrorService.log('EmailSmtpService.create', error);
-                throw error;
-            }
-        } else {
-            try {
-                var emailSmtp = await _this.findOneBy({ _id: data._id });
-                if (emailSmtp && emailSmtp.pass) {
-                    emailSmtp.pass = await EncryptDecrypt.encrypt(emailSmtp.pass);
-                }
-            } catch (error) {
-                ErrorService.log('EmailSmtpService.findOneBy', error);
-                throw error;
-            }
-            if (data.pass) {
-                data.pass = await EncryptDecrypt.encrypt(data.pass);
-            }
-            let user = data.user || emailSmtp.user;
-            let pass = data.pass || emailSmtp.pass;
-            let host = data.host || emailSmtp.host;
-            let port = data.port || emailSmtp.port;
-            let from = data.from || emailSmtp.from;
-            let secure = data.secure !== undefined ? data.secure : emailSmtp.secure;
-            let enabled = data.smtpswitch !== undefined ? data.smtpswitch : emailSmtp.enabled;
-            try {
-                var updatedEmailSmtp = await EmailSmtpModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        user: user,
-                        pass: pass,
-                        host: host,
-                        port: port,
-                        from: from,
-                        secure:secure,
-                        enabled: enabled
-                    }
-                }, {
-                    new: true
-                }).lean();
-                if (updatedEmailSmtp && updatedEmailSmtp.pass) {
-                    updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(updatedEmailSmtp.pass);
-                }
-            } catch (error) {
-                ErrorService.log('EmailSmtpModel.findByIdAndUpdate', error);
-                throw error;
-            }
-
-            return updatedEmailSmtp;
+    updateBy: async function (query, data) {
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted) query.deleted = false;
+
+        if (data.pass) {
+            data.pass = await EncryptDecrypt.encrypt(data.pass);
+        }
+        try {
+            var updatedEmailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            }).lean();
+            if (updatedEmailSmtp && updatedEmailSmtp.pass) {
+                updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(updatedEmailSmtp.pass);
+            }
+        } catch (error) {
+            ErrorService.log('EmailSmtpModel.findByIdAndUpdate', error);
+            throw error;
+        }
+
+        return updatedEmailSmtp;
     },
 
     deleteBy: async function (query, userId) {

@@ -22,9 +22,9 @@ const Services = {
         }
         if (chargeAttemptCount === 3) {
             try {
-                await UserService.update({ _id: user._id, paymentFailedDate: new Date });
+                await UserService.updateBy({ _id: user._id},{ paymentFailedDate: new Date });
             } catch (error) {
-                ErrorService.log('UserService.update', error);
+                ErrorService.log('UserService.updateBy', error);
                 throw error;
             }
         }
@@ -64,7 +64,7 @@ const Services = {
                     var card = await stripe.customers.createSource(stripeCustomerId, { source: tok });
                     var metadata = {
                         description
-                    };          
+                    };
                     var source = card.id;
                     var paymentIntent = await Services.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
                     return paymentIntent;
@@ -140,7 +140,7 @@ const Services = {
         }
     },
     chargeCustomerForBalance: async function (userId, chargeAmount, projectId, alertOptions) {
-        
+
         var description = 'Recharge balance';
         var stripechargeAmount = chargeAmount * 100;
         var user = await UserService.findOneBy({ _id: userId });
@@ -171,7 +171,7 @@ const Services = {
                         billingUS = paymentIntent.metadata.billingUS && JSON.parse(paymentIntent.metadata.billingUS),
                         billingNonUSCountries = paymentIntent.metadata.billingNonUSCountries && JSON.parse(paymentIntent.metadata.billingNonUSCountries),
                         billingRiskCountries = paymentIntent.metadata.billingRiskCountries && JSON.parse(paymentIntent.metadata.billingRiskCountries);
-    
+
                     var alertOptions = {
                         minimumBalance,
                         rechargeToBalance,
@@ -207,8 +207,8 @@ const Services = {
         } catch (error) {
             ErrorService.log('StripeService.updateBalance', error);
             throw error;
-        } 
-        
+        }
+
     },
     addBalance: async function (userId, chargeAmount, projectId) {
         try {
@@ -225,7 +225,7 @@ const Services = {
             ErrorService.log('StripeService.addBalance', error);
             throw error;
         }
- 
+
     },
     createInvoice: async function (amount, stripeCustomerId, description, metadata, source) {
         try {

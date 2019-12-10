@@ -80,47 +80,34 @@ module.exports = {
         return notifications;
     },
 
-    updateBy: async function (data) {
+    updateBy: async function (query, data) {
         let _this = this;
-        try {
-            if (!data._id) {
-                let notification = await _this.create(data.projectId, data.message, data.userId, data.icon);
-                return notification;
-            } else {
-                var notification = await _this.findOneBy({ _id: data._id });
+        if (!query) {
+            query = {};
+        }
 
-                let projectId = data.projectId || notification.projectId;
-                let createdAt = data.createdAt || notification.createdAt;
-                let createdBy = data.createdBy || notification.createdBy;
-                let message = data.message || notification.message;
-                let read = notification.read;
-                let meta = data.meta || notification.meta;
-                if (data.read) {
-                    for (let userId of data.read) {
-                        read.push(userId);
-                    }
+        if (!query.deleted) query.deleted = false;
+        try {
+            var notification = await _this.findOneBy(query);
+
+            let read = notification.read;
+            if (data.read) {
+                for (let userId of data.read) {
+                    read.push(userId);
                 }
-                let icon = data.icon || notification.icon;
-                notification = await NotificationModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        projectId: projectId,
-                        createdAt: createdAt,
-                        createdBy: createdBy,
-                        message: message,
-                        icon: icon,
-                        read: read,
-                        meta: meta
-                    }
-                }, {
-                    new: true
-                });
-    
-                return notification;
             }
+            data.read = read;
+            notification = await NotificationModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            });
         } catch (error) {
-            ErrorService.log('NotificationModel.findByIdAndUpdate', error);
+            ErrorService.log('NotificationModel.findOneAndUpdate', error);
             throw error;
         }
+
+        return notification;
     },
 
     delete: async function (notificationId) {

@@ -51,9 +51,7 @@ const initialState = {
 	},
 	teamMembers: [],
 	subProjectTeamMembers: [],
-	pages: {
-		counter: 1
-	}
+	pages: {}
 };
 
 export default (state = initialState, action) => {
@@ -252,7 +250,8 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				pages: {
-					counter: state.pages.counter + 1
+					...state.pages,
+					[action.payload] : state.pages[action.payload] ? state.pages[action.payload] + 1 : 2
 				}
 			}
 
@@ -260,16 +259,15 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				pages: {
-					counter: state.pages.counter - 1
+					...state.pages,
+					[action.payload] : state.pages[action.payload] ? state.pages[action.payload] - 1 : 1
 				}
 			}
 
 		case PAGINATE_RESET:
 			return {
 				...state,
-				pages: {
-					counter: 1
-				}
+				pages: {}
 			}
 
 		default: return state;

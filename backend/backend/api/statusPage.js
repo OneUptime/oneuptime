@@ -194,7 +194,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(req
 
         try{
             // Call the StatusPageService.
-            var statusPage = await StatusPageService.update(data);
+            var statusPage = await StatusPageService.updateBy({_id:data._id},data);
             return sendItemResponse(req, res, statusPage);
         }catch(error){
             return sendErrorResponse(req, res, error);

@@ -19,46 +19,31 @@ module.exports = {
         return smsSmtp;
     },
 
-    update: async function (data) {
-        let _this = this;
+    updateBy: async function (query, data) {
+        if (!query) {
+            query = {};
+        }
+
+        if (!query.deleted) query.deleted = false;
+
+        if (data.authToken) {
+            data.authToken = await EncryptDecrypt.encrypt(data.authToken);
+        }
         try {
-            if (!data._id) {
-                let smsSmtp = await _this.create(data);
-                return smsSmtp;
-            } else {
-                var smsSmtp = await _this.findOneBy({ _id: data._id });
-                if (smsSmtp && smsSmtp.authToken) {
-                    smsSmtp.authToken = await EncryptDecrypt.encrypt(smsSmtp.authToken);
-                }
-                    
-                if (data.authToken) {
-                    data.authToken = await EncryptDecrypt.encrypt(data.authToken);
-                }
-                let accountSid = data.accountSid || smsSmtp.accountSid;
-                let authToken = data.authToken || smsSmtp.authToken;
-                let phoneNumber = data.phoneNumber || smsSmtp.phoneNumber;
-                let enabled = data.smssmtpswitch !== undefined ? data.smssmtpswitch : smsSmtp.enabled;
-                
-                var updatedSmsSmtp = await SmsSmtpModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        accountSid: accountSid,
-                        authToken: authToken,
-                        phoneNumber: phoneNumber,
-                        enabled: enabled
-                    }
-                }, {
-                    new: true
-                }).lean();
-                if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
-                    updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
-                }
-    
-                return updatedSmsSmtp;
+            var updatedSmsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            }).lean();
+            if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
+                updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
             }
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.findByIdAndUpdate', error);
+            ErrorService.log('SmsSmtpModel.findOneAndUpdate', error);
             throw error;
         }
+
+        return updatedSmsSmtp;
     },
 
     deleteBy: async function (query, userId) {

@@ -94,7 +94,7 @@ module.exports = {
         }
     },
 
-    update: async function (query, data) {
+    updateBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -199,7 +199,7 @@ module.exports = {
         query.deleted = false;
         try {
             var monitor = await MonitorModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } }, { new: true }).populate('deletedById', 'name');
-			
+
             if (monitor) {
                 var subProject = null;
                 var project = await ProjectService.findOneBy({ _id: monitor.projectId });
@@ -225,10 +225,10 @@ module.exports = {
                 if (projectSeats && projectSeats > seats && monitorsCount > 0 && monitorsCount <= ((projectSeats - 1) * 5)) {
                     projectSeats = projectSeats - 1;
                     await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
-                    await ProjectService.update({ _id: project._id, seats: projectSeats.toString() });
+                    await ProjectService.updateBy({ _id: project._id},{ seats: projectSeats.toString() });
                 }
                 var incidents = await IncidentService.findBy({ monitorId: monitor._id });
-				
+
                 await Promise.all(incidents.map(async (incident) => {
                     await IncidentService.deleteBy({ _id: incident._id }, userId);
                 }));
@@ -242,7 +242,7 @@ module.exports = {
                 await IntegrationService.removeMonitor(monitor._id);
                 await NotificationService.create(monitor.projectId, `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`, monitor.deletedById._id, 'monitoraddremove');
                 await RealTimeService.sendMonitorDelete(monitor);
-				
+
                 return monitor;
             } else {
                 return null;
@@ -294,7 +294,7 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('MonitorModel.getProbeMonitors', error);
-            throw error;  
+            throw error;
         }
     },
 
@@ -302,11 +302,11 @@ module.exports = {
         var newdate = new Date();
         var thisObj = this;
         try {
-            var monitors = await thisObj.update({
+            var monitors = await thisObj.updateBy({
                 _id: id, deleted: false
             }, { $set: { 'lastPingTime': newdate } }, { multi: false });
         } catch (error) {
-            ErrorService.log('MonitorService.update', error);
+            ErrorService.log('MonitorService.updateBy', error);
             throw error;
         }
         if (monitors.length > 0) {
@@ -331,7 +331,7 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('MonitoService.updateDeviceMonitorPingTime', error);
-            throw error;  
+            throw error;
         }
     },
 
@@ -474,7 +474,7 @@ module.exports = {
         if (monitor && monitor.length > 1) {
             const monitors = await Promise.all(monitor.map(async (monitor) => {
                 const monitorId = monitor._id;
-                monitor = await _this.update({ _id: monitorId, deleted: true }, {
+                monitor = await _this.updateBy({ _id: monitorId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -488,7 +488,7 @@ module.exports = {
             monitor = monitor[0];
             if (monitor) {
                 const monitorId = monitor._id;
-                monitor = await _this.update({ _id: monitorId, deleted: true }, {
+                monitor = await _this.updateBy({ _id: monitorId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null

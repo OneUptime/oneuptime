@@ -28,7 +28,7 @@ module.exports = {
         }
     },
 
-    update: async function (query, data) {
+    updateBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -254,8 +254,8 @@ module.exports = {
             if (data.status === 'online' && monitor && monitor.criteria && monitor.criteria.up && monitor.criteria.up.createAlert) {
                 if (incidents && incidents.length) {
                     incidents.map(async (incident) => {
-                        await IncidentService.update({
-                            _id: incident._id,
+                        await IncidentService.updateBy({
+                            _id: incident._id},{
                             probes: incident.probes.concat({
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
@@ -277,8 +277,8 @@ module.exports = {
             else if (data.status === 'degraded' && monitor && monitor.criteria && monitor.criteria.degraded && monitor.criteria.degraded.createAlert) {
                 if (incidents && incidents.length) {
                     incidents.map(async (incident) => {
-                        await IncidentService.update({
-                            _id: incident._id,
+                        await IncidentService.updateBy({
+                            _id: incident._id},{
                             probes: incident.probes.concat({
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
@@ -300,8 +300,8 @@ module.exports = {
             else if (data.status === 'offline' && monitor && monitor.criteria && monitor.criteria.down && monitor.criteria.down.createAlert) {
                 if (incidents && incidents.length) {
                     incidents.map(async (incident) => {
-                        await IncidentService.update({
-                            _id: incident._id,
+                        await IncidentService.updateBy({
+                            _id: incident._id},{
                             probes: incident.probes.concat({
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
@@ -347,8 +347,8 @@ module.exports = {
                 }
             }
             await Promise.all(incidentsV1.map(async (v1) => {
-                let newIncident = await IncidentService.update({
-                    _id: v1._id,
+                let newIncident = await IncidentService.updateBy({
+                    _id: v1._id},{
                     probes: v1.probes.concat([{
                         probeId: data.probeId,
                         updatedAt: Date.now(),

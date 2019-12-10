@@ -49,7 +49,7 @@
     "pretest": "eslint --fix --ignore-path .gitignore .",
     "start": "node server.js",
     "dev": "NODE_ENV=development nodemon server.js",
-    "test": "NODE_ENV=development mocha --exit",
+    "test": "set NODE_ENV=development && mocha --exit",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "lint": "eslint ."
   },

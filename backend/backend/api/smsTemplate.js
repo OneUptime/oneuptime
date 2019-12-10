@@ -1,7 +1,7 @@
 /**
- * 
- * Copyright HackerBay, Inc. 
- * 
+ *
+ * Copyright HackerBay, Inc.
+ *
  */
 
 var express = require('express');
@@ -13,7 +13,7 @@ const createDOMPurify = require('dompurify');
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
- 
+
 const {
     isAuthorized
 } = require('../middlewares/authorization');
@@ -78,12 +78,12 @@ router.get('/:projectId/smsTemplate/:smsTemplateId', getUser, isAuthorized, asyn
 
 router.put('/:projectId/smsTemplate/:smsTemplateId', getUser, isAuthorized, async function (req, res) {
     var data = req.body;
-    data._id = req.params.smsTemplateId;
+    var smsTemplateId = req.params.smsTemplateId;
 
     try{
         // Call the SMSTemplateService
         data.body = await DOMPurify.sanitize(data.body);
-        var smsTemplate = await SmsTemplateService.update(data);
+        var smsTemplate = await SmsTemplateService.updateBy({_id : smsTemplateId},data);
         return sendItemResponse(req, res, smsTemplate);
     }catch(error) {
         return sendErrorResponse(req, res, error);
@@ -94,7 +94,7 @@ router.put('/:projectId/smsTemplate/:smsTemplateId', getUser, isAuthorized, asyn
 router.put('/:projectId', getUser, isAuthorized, async function (req, res){
     var data = [];
     for(let value of req.body){
-    
+
         if(!value.body){
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -108,7 +108,7 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res){
     }
     try{
         for(let value of data){
-            await SmsTemplateService.update(value);
+            await SmsTemplateService.updateBy({_id : value._id},value);
         }
         var smsTemplates = await SmsTemplateService.getTemplates(req.params.projectId);
         return sendItemResponse(req, res, smsTemplates);

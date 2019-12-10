@@ -75,10 +75,9 @@ router.get('/:projectId/schedule', getUser, isAuthorized, async function(req, re
 router.put('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     let scheduleId = req.params.scheduleId;
     let data = req.body;
-    data._id = scheduleId;
 
     try{
-        let schedule = await ScheduleService.update(data);
+        let schedule = await ScheduleService.updateBy({_id : scheduleId},data);
         return sendItemResponse(req, res, schedule);
     }catch(error){
         return sendErrorResponse(req, res, error);
@@ -148,7 +147,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
         if(value._id) storagevalue._id = value._id;
 
         for(let escalation of value.teamMember){
-            let data = {};  
+            let data = {};
 
             if(!escalation.member){
                 return sendErrorResponse(req, res, {

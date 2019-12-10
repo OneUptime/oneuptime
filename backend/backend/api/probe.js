@@ -40,7 +40,7 @@ router.put('/:id', isAuthorizedAdmin, async function (req, res) {
     let data = req.body;
     data._id = req.params.id;
     try {
-        let probe = await ProbeService.update({ _id: req.params.id }, data);
+        let probe = await ProbeService.updateBy({ _id: req.params.id }, data);
         return sendItemResponse(req, res, probe);
     } catch (error) {
         return sendErrorResponse(req, res, error);

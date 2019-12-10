@@ -6,95 +6,80 @@ module.exports = {
         subscriberAlertModel.incidentId = data.incidentId || null;
         subscriberAlertModel.alertVia = data.alertVia || null;
         subscriberAlertModel.alertStatus = data.alertStatus || null;
-        try{
+        try {
             var subscriberAlert = await subscriberAlertModel.save();
-        }catch(error){
+        } catch (error) {
             ErrorService.log('subscriberAlertModel.save', error);
             throw error;
         }
         return subscriberAlert;
     },
 
-    update: async function(subscriberAlertId, projectId, data){
-        let _this = this;
-        try {
-            if(!data._id){
-                let subscriberAlert = await _this.create(data);
-                return subscriberAlert;
-            }else{
-                var subscriberAlert = await _this.findByOne({_id: data._id});
-                
-                let incidentId = data.incidentId || subscriberAlert.incidentId;
-                let subscriberId = data.subscriberId || subscriberAlert.subscriberId;
-                let alertVia = data.alertVia || subscriberAlert.alertVia;
-                let alertStatus = data.alertStatus || subscriberAlert.alertStatus;
-                
-                //find and update
-                subscriberAlert = await SubscriberAlertModel.findByIdAndUpdate(data._id,{
-                    $set:{
-                        projectId: projectId,
-                        subscriberId: subscriberId,
-                        alertVia: alertVia,
-                        alertStatus: alertStatus,
-                        incidentId: incidentId
-                    }
-                }, {
-                    new: true
-                });
-                
-                return subscriberAlert;
-            }
-        } catch (error) {
-            ErrorService.log('SubscriberAlertService.update', error);
-            throw error;
+    updateBy: async function (query, data) {
+        if (!query) {
+            query = {};
         }
-    },
 
-    deleteBy: async function(query, userId){
-        try{
+        if (!query.deleted) query.deleted = false;
+        try {
+            //find and update
             var subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {
-                $set:{
-                    deleted:true,
-                    deletedById:userId,
-                    deletedAt:Date.now()
-                }
-            },{
+                $set: data
+            }, {
                 new: true
             });
-        }catch(error){
+        } catch (error) {
             ErrorService.log('SubscriberAlertModel.findOneAndUpdate', error);
             throw error;
         }
         return subscriberAlert;
     },
 
-    findBy: async function(query, skip, limit){
-        if(!skip) skip=0;
+    deleteBy: async function (query, userId) {
+        try {
+            var subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now()
+                }
+            }, {
+                new: true
+            });
+        } catch (error) {
+            ErrorService.log('SubscriberAlertModel.findOneAndUpdate', error);
+            throw error;
+        }
+        return subscriberAlert;
+    },
 
-        if(!limit) limit=10;
+    findBy: async function (query, skip, limit) {
+        if (!skip) skip = 0;
 
-        if(typeof(skip) === 'string'){
+        if (!limit) limit = 10;
+
+        if (typeof (skip) === 'string') {
             skip = parseInt(skip);
         }
 
-        if(typeof(limit) === 'string'){
+        if (typeof (limit) === 'string') {
             limit = parseInt(limit);
         }
 
-        if(!query){
+        if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        try{
+        try {
             var subscriberAlerts = await SubscriberAlertModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
-                .populate('subscriberId','name contactEmail contactPhone contactWebhook')
+                .populate('subscriberId', 'name contactEmail contactPhone contactWebhook')
                 .populate('incidentId', 'name');
-        }catch(error){
+        } catch (error) {
             ErrorService.log('SubscriberAlertModel.find', error);
             throw error;
         }
@@ -102,19 +87,19 @@ module.exports = {
         return subscriberAlerts;
     },
 
-    findByOne: async function(query){
-        if(!query){
+    findByOne: async function (query) {
+        if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        try{
+        try {
             var subscriberAlert = await SubscriberAlertModel.find(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
-                .populate('subscriberId','name')
+                .populate('subscriberId', 'name')
                 .populate('incidentId', 'name');
-        }catch(error){
+        } catch (error) {
             ErrorService.log('SubscriberAlertModel.find', error);
             throw error;
         }
@@ -123,14 +108,14 @@ module.exports = {
 
     countBy: async function (query) {
 
-        if(!query){
+        if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        try{
+        try {
             var count = await SubscriberAlertModel.count(query);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('SubscriberAlertModel.count', error);
             throw error;
         }
@@ -138,10 +123,10 @@ module.exports = {
 
     },
 
-    hardDeleteBy: async function(query){
-        try{
+    hardDeleteBy: async function (query) {
+        try {
             await SubscriberAlertModel.deleteMany(query);
-        }catch(error){
+        } catch (error) {
             ErrorService.log('SubscriberAlertModel.deleteMany', error);
             throw error;
         }

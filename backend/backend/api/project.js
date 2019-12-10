@@ -126,7 +126,7 @@ router.post('/create', getUser, async function (req, res) {
             try {
                 var stripeToken = await PaymentService.createToken(data.cardNumber, data.cvc, data.expiry.split('/')[0], data.expiry.split('/')[1], data.zipCode);
                 var customerId = await PaymentService.createCustomer(stripeToken, user.email, user.companyName);
-                user = await UserService.update({ _id: userId, stripeCustomerId: customerId });
+                user = await UserService.updateBy({ _id: userId},{ stripeCustomerId: customerId });
                 var subscriptionnew = await PaymentService.subscribePlan(stripePlanId, customerId);
                 if (!data.stripeSubscriptionId) {
                     data.stripeSubscriptionId = subscriptionnew.stripeSubscriptionId;
@@ -239,7 +239,7 @@ router.put('/:projectId/renameProject', getUser, isAuthorized, isUserOwner, asyn
     }
 
     try {
-        var project = await ProjectService.update({ _id: projectId, name: projectName });
+        var project = await ProjectService.updateBy({_id: projectId},{ name: projectName });
         return sendItemResponse(req, res, project);
     } catch (error) {
         sendErrorResponse(req, res, error);
@@ -527,6 +527,7 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function (req
 
 // Description: Rename subproject.
 router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (req, res) {
+    const parentProjectId = req.params.projectId;
     const subProjectId = req.params.subProjectId;
     const subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
     if (!subProjectId) {
@@ -544,7 +545,17 @@ router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (r
     }
 
     try {
-        const subProject = await ProjectService.update({_id:subProjectId,name:subProjectName});
+        let countSubProject = await ProjectService.countBy({
+            name: subProjectName,
+            parentProjectId: parentProjectId
+        });
+        if (countSubProject > 0) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You already have a sub-project with same name.'
+            });
+        }
+        const subProject = await ProjectService.updateBy({_id:subProjectId},{name:subProjectName});
         return sendItemResponse(req, res, subProject);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -633,7 +644,7 @@ router.get('/projects/:projectId', getUser, isUserMasterAdmin, async function(re
 router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async function (req, res) {
     const projectId = req.params.projectId;
     try {
-        const project = await ProjectService.update({ _id: projectId, isBlocked: true });
+        const project = await ProjectService.updateBy({ _id: projectId},{isBlocked: true });
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -643,7 +654,7 @@ router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async functio
 router.put('/:projectId/unblockProject', getUser, isUserMasterAdmin, async function (req, res) {
     const projectId = req.params.projectId;
     try {
-        const project = await ProjectService.update({ _id: projectId, isBlocked: false });
+        const project = await ProjectService.updateBy({ _id: projectId},{isBlocked: false });
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);

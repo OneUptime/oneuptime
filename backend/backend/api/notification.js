@@ -33,7 +33,7 @@ router.put('/:projectId/:notificationId/read', getUser, isAuthorized, async func
     var notificationId = req.params.notificationId;
     let userId = req.user ? req.user.id : null;
     try {
-        let notification = await NotificationService.updateBy({ _id: notificationId, read: [userId] });
+        let notification = await NotificationService.updateBy({ _id: notificationId},{ read: [userId] });
         if (notification) {
             return sendItemResponse(req, res, notification);
         } else {
@@ -67,9 +67,8 @@ router.put('/:projectId/readAll', getUser, isAuthorized, getSubProjects, async f
 router.put('/:projectId/:notificationId', getUser, isAuthorized, async function (req, res) {
     var notificationId = req.params.notificationId;
     var updateObject = req.body;
-    updateObject._id = notificationId;
     try {
-        let notification = await NotificationService.updateBy(updateObject);
+        let notification = await NotificationService.updateBy({_id:notificationId},updateObject);
         if (notification) {
             return sendItemResponse(req, res, notification);
         } else {

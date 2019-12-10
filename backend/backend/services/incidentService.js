@@ -14,8 +14,8 @@ module.exports = {
             query = {};
         }
 
-        if(!query.deleted) query.deleted = false;
-        try{
+        if (!query.deleted) query.deleted = false;
+        try {
             var incidents = await IncidentModel.find(query)
                 .limit(limit)
                 .skip(skip)
@@ -96,8 +96,8 @@ module.exports = {
             query = {};
         }
 
-        if(!query.deleted) query.deleted = false;
-        try{
+        if (!query.deleted) query.deleted = false;
+        try {
             var count = await IncidentModel.count(query);
         } catch (error) {
             ErrorService.log('IncidentModel.count', error);
@@ -149,78 +149,30 @@ module.exports = {
         return incident;
     },
 
-    update: async function (data) {
+    updateBy: async function (query, data) {
+        if (!query) {
+            query = {};
+        }
+
+        if (!query.deleted) query.deleted = false;
         var _this = this;
         try {
-            if (!data._id) {
-                var incident = await _this.create(data);
+            var oldIncident = await _this.findOneBy({ _id: query._id, deleted: { $ne: null } });
 
-                return incident;
-            } else {
-                var oldIncident = await _this.findOneBy({_id: data._id, deleted: { $ne: null }});
-
-                var projectId = data.projectId || oldIncident.projectId;
-                var monitorId = data.monitorId || oldIncident.monitorId;
-                var acknowledge = data.acknowledged || oldIncident.acknowledged;
-                var acknowledgedBy = data.acknowledgedBy || oldIncident.acknowledgedBy;
-                var acknowledgedAt = data.acknowledgedAt || oldIncident.acknowledgedAt;
-                var resolved = data.resolved || oldIncident.resolved;
-                var resolvedBy = data.resolvedBy || oldIncident.resolvedBy;
-                var resolvedAt = data.resolvedAt || oldIncident.resolvedAt;
-                var internalNote = data.internalNote || oldIncident.internalNote;
-                var investigationNote = data.investigationNote || oldIncident.investigationNote;
-                var createdById = data.createdById || oldIncident.createdById;
-                var notClosedBy = oldIncident.notClosedBy;
-                var acknowledgedByZapier = data.acknowledgedByZapier || oldIncident.acknowledgedByZapier;
-                var resolvedByZapier = data.resolvedByZapier || oldIncident.resolvedByZapier;
-                var createdByZapier = data.createdByZapier || oldIncident.createdByZapier;
-                var incidentType = data.incidentType || oldIncident.incidentType;
-                var probes = data.probes || oldIncident.probes;
-                if (data.notClosedBy) {
-                    notClosedBy = notClosedBy.concat(data.notClosedBy);
-                }
-                var manuallyCreated = data.manuallyCreated || oldIncident.manuallyCreated || false;
-                var deleted = oldIncident.deleted || false;
-                var deletedById = oldIncident.deletedById;
-                var deletedAt = oldIncident.deletedAt;
-    
-                if(data.deleted === false){
-                    deleted = false;
-                    deletedById = null;
-                    deletedAt = null;
-                }
-                var updatedIncident = await IncidentModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        projectId: projectId,
-                        monitorId: monitorId,
-                        acknowledged: acknowledge,
-                        acknowledgedBy: acknowledgedBy,
-                        acknowledgedAt: acknowledgedAt,
-                        resolved: resolved,
-                        resolvedBy: resolvedBy,
-                        resolvedAt: resolvedAt,
-                        internalNote: internalNote,
-                        investigationNote: investigationNote,
-                        createdById: createdById,
-                        notClosedBy: notClosedBy,
-                        manuallyCreated: manuallyCreated,
-                        acknowledgedByZapier: acknowledgedByZapier,
-                        resolvedByZapier: resolvedByZapier,
-                        createdByZapier: createdByZapier,
-                        incidentType,
-                        probes,
-                        deleted,
-                        deletedById,
-                        deletedAt
-                    }
-                }, { new: true });
-
-                return updatedIncident;
+            var notClosedBy = oldIncident.notClosedBy;
+            if (data.notClosedBy) {
+                data.notClosedBy = notClosedBy.concat(data.notClosedBy);
             }
+            data.manuallyCreated = data.manuallyCreated || oldIncident.manuallyCreated || false;
+
+            var updatedIncident = await IncidentModel.findOneAndUpdate(query, {
+                $set: data
+            }, { new: true });
         } catch (error) {
-            ErrorService.log('IncidentService.update', error);
-            throw error;  
+            ErrorService.log('IncidentModel.findOneAndUpdate', error);
+            throw error;
         }
+        return updatedIncident;
     },
 
     async _sendIncidentCreatedAlert(incident) {
@@ -259,7 +211,7 @@ module.exports = {
             } else {
                 ErrorService.log('IncidentService._sendIncidentCreatedAlert', error);
             }
-            throw error; 
+            throw error;
         }
     },
 
@@ -274,8 +226,9 @@ module.exports = {
         try {
             var incident = await _this.findOneBy({ _id: incidentId, acknowledged: false });
             if (incident) {
-                incident = await _this.update({
-                    _id: incident._id,
+                incident = await _this.updateBy({
+                    _id: incident._id
+                }, {
                     acknowledged: true,
                     acknowledgedBy: userId,
                     acknowledgedAt: Date.now(),
@@ -289,10 +242,10 @@ module.exports = {
                 if (downtime > 60) {
                     downtimestring = `${Math.floor(downtime / 60)} hours ${Math.floor(downtime % 60)} minutes`;
                 }
-    
+
                 var msg = `${incident.monitorId.name} monitor was acknowledged by ${name}`;
                 var slackMsg = `*${incident.monitorId.name}* monitor was acknowledged by *${name}* after being down for _${downtimestring}_`;
-    
+
                 // send slack notification
                 await NotificationService.create(incident.projectId, `An Incident was acknowledged by ${name}`, userId, 'acknowledge');
                 await SlackService.sendNotification(incident.projectId, incident._id, userId, slackMsg, incident);
@@ -318,7 +271,7 @@ module.exports = {
             } else {
                 ErrorService.log('IncidentService.acknowledge', error);
             }
-            throw error;    
+            throw error;
         }
 
         return incident;
@@ -345,9 +298,8 @@ module.exports = {
             data.resolvedBy = userId;
             data.resolvedAt = Date.now();
             data.resolvedByZapier = zapier;
-            data._id = incidentId;
 
-            incident = await _this.update(data);
+            incident = await _this.updateBy({ _id: incidentId }, data);
             incident = await _this.findOneBy({ _id: incident._id });
 
             await _this.sendIncidentResolvedNotification(incident, name);
@@ -373,7 +325,7 @@ module.exports = {
         var incidentsUnresolved = await _this.findBy({ projectId: { $in: subProjectIds }, resolved: false });
         incidentsUnresolved = incidentsUnresolved.map(incident => {
             if (incident.notClosedBy.indexOf(userId) < 0) {
-                return _this.update({ _id: incident._id, notClosedBy: [userId] });
+                return _this.updateBy({ _id: incident._id }, { notClosedBy: [userId] });
             }
             else {
                 return incident;
@@ -422,7 +374,7 @@ module.exports = {
             else {
                 msg = `${resolvedincident.monitorId.name} monitor was down for ${downtimestring} and is now resolved by ${name || 'fyipe'}`;
                 slackMsg = `*${resolvedincident.monitorId.name}* monitor was down for _${downtimestring}_ and is now resolved by *${name || 'fyipe'}*`;
-                
+
                 await NotificationService.create(incident.projectId, msg, 'fyipe', 'success');
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
@@ -444,7 +396,7 @@ module.exports = {
             throw error;
         }
     },
-    
+
     getMonitorsWithIncidentsBy: async function (query) {
         var thisObj = this;
         var newmonitors = [];
@@ -474,7 +426,7 @@ module.exports = {
                     newmonitors.push(element);
                 }));
                 return newmonitors;
-    
+
             } else {
                 return [];
             }
@@ -484,7 +436,7 @@ module.exports = {
             } else {
                 ErrorService.log('IncidentService.getMonitorsWithIncidentsBy', error);
             }
-            throw error; 
+            throw error;
         }
     },
 
@@ -498,15 +450,16 @@ module.exports = {
         return 'Incident(s) removed successfully!';
     },
 
-    restoreBy: async function(query){
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         let incident = await _this.findBy(query);
-        if(incident && incident.length > 1){
+        if (incident && incident.length > 1) {
             const incidents = await Promise.all(incident.map(async (incident) => {
                 const incidentId = incident._id;
-                incident = await _this.update({
-                    _id: incidentId,
+                incident = await _this.updateBy({
+                    _id: incidentId
+                }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -514,12 +467,13 @@ module.exports = {
                 return incident;
             }));
             return incidents;
-        }else{
+        } else {
             incident = incident[0];
-            if(incident){
+            if (incident) {
                 const incidentId = incident._id;
-                incident = await _this.update({
-                    _id: incidentId,
+                incident = await _this.updateBy({
+                    _id: incidentId
+                }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null

@@ -57,11 +57,11 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (req, res) {
     var data = req.body;
-    data._id = req.params.smsSmtpId;
+    var smsSmtpId = req.params.smsSmtpId;
     try {
         let testResult = await TwilioService.test(data);
         if (testResult && !testResult.errorCode) {
-            var smsSmtp = await SmsSmtpService.update(data);
+            var smsSmtp = await SmsSmtpService.updateBy({_id : smsSmtpId},data);
             return sendItemResponse(req, res, smsSmtp);
         }
     } catch (error) {
@@ -72,9 +72,9 @@ router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (req,
 
 router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function (req, res) {
     var data = req.body;
-    data._id = req.params.smsSmtpId;
+    var smsSmtpId = req.params.smsSmtpId;
     try {
-        var smsSmtp = await SmsSmtpService.update(data);
+        var smsSmtp = await SmsSmtpService.updateBy({_id : smsSmtpId},data);
         return sendItemResponse(req, res, smsSmtp);
     } catch (error) {
         return sendErrorResponse(req, res, error);

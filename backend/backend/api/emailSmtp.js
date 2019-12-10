@@ -78,13 +78,13 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function (req, res) {
     var data = req.body;
-    data._id = req.params.emailSmtpId;
+    var emailSmtpId = req.params.emailSmtpId;
     data.email = req.user.email;
     try {
         let testResult = await MailService.testSmtpConfig(data);
         if (!testResult.failed) {
         // Call the EmailTemplateService
-            var emailSmtp = await EmailSmtpService.update(data);
+            var emailSmtp = await EmailSmtpService.updateBy({_id : emailSmtpId},data);
             return sendItemResponse(req, res, emailSmtp);
         }
     } catch (error) {
@@ -95,9 +95,9 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function (re
 
 router.delete('/:projectId/:emailSmtpId', getUser, isUserOwner, async function (req, res) {
     var data = req.body;
-    data._id = req.params.emailSmtpId;
+    var emailSmtpId = req.params.emailSmtpId;
     try {
-        var emailSmtp = await EmailSmtpService.update(data);
+        var emailSmtp = await EmailSmtpService.updateBy({_id : emailSmtpId},data);
         return sendItemResponse(req, res, emailSmtp);
     } catch (error) {
         return sendErrorResponse(req, res, error);

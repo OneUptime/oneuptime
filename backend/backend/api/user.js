@@ -102,7 +102,7 @@ router.post('/signup', async function (req, res) {
                 var hash = await bcrypt.hash(data.password, constants.saltRounds);
                 // creating jwt refresh token
                 var jwtRefreshToken = randToken.uid(256);
-                user = await UserService.update({ _id: user._id, name: data.name, password: hash, jwtRefreshToken: jwtRefreshToken });
+                user = await UserService.updateBy({ _id: user._id},{ name: data.name, password: hash, jwtRefreshToken: jwtRefreshToken });
 
                 // Call the MailService.
                 MailService.sendSignupMail(user.email, user.name);
@@ -391,7 +391,6 @@ router.put('/profile', getUser, async function (req, res) {
     upload(req, res, async function (error) {
         var userId = req.user ? req.user.id : null;
         var data = req.body;
-        data._id = userId;
 
         if (error) {
             return sendErrorResponse(req, res, error);
@@ -402,7 +401,7 @@ router.put('/profile', getUser, async function (req, res) {
 
         try {
             // Call the UserService
-            var user = await UserService.update(data);
+            var user = await UserService.updateBy({_id : userId},data);
             return sendItemResponse(req, res, user);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -422,7 +421,6 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, 
     upload(req, res, async function (error) {
         var userId = req.params.userId;
         var data = req.body;
-        data._id = userId;
 
         if (error) {
             return sendErrorResponse(req, res, error);
@@ -434,7 +432,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, 
 
         try {
             // Call the UserService
-            var user = await UserService.update(data);
+            var user = await UserService.updateBy({_id : userId},data);
             return sendItemResponse(req, res, user);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -707,7 +705,7 @@ router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function (r
 router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (req, res) {
     const userId = req.params.userId;
     try {
-        const user = await UserService.update({ _id: userId, isBlocked: true });
+        const user = await UserService.updateBy({ _id: userId},{ isBlocked: true });
         return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -717,7 +715,7 @@ router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (req
 router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function (req, res) {
     const userId = req.params.userId;
     try {
-        const user = await UserService.update({ _id: userId, isBlocked: false });
+        const user = await UserService.updateBy({ _id: userId},{ isBlocked: false });
         return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);

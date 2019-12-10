@@ -58,9 +58,9 @@ module.exports = {
                         req.authorizationType = 'USER';
                     }
                     try{
-                        UserService.update({ _id: req.user.id, lastActive: Date.now() });
+                        UserService.updateBy({ _id: req.user.id},{ lastActive: Date.now() });
                     }catch(error){
-                        ErrorService.log('UserService.update', error);
+                        ErrorService.log('UserService.updateBy', error);
                         throw error;
                     }
                     next();
@@ -97,9 +97,9 @@ module.exports = {
                     req.authorizationType = 'USER';
                     req.user = decoded;
                     try{
-                        UserService.update({ _id: req.user.id, lastActive: Date.now() });
+                        UserService.updateBy({ _id: req.user.id},{ lastActive: Date.now() });
                     }catch(error){
-                        ErrorService.log('UserService.update', error);
+                        ErrorService.log('UserService.updateBy', error);
                         throw error;
                     }
                     next();
@@ -131,9 +131,9 @@ module.exports = {
                     req.authorizationType = 'USER';
                     req.user = decoded;
                     try{
-                        UserService.update({ _id: req.user.id, lastActive: Date.now() });
+                        UserService.updateBy({ _id: req.user.id},{ lastActive: Date.now() });
                     }catch(error){
-                        ErrorService.log('UserService.update', error);
+                        ErrorService.log('UserService.updateBy', error);
                         throw error;
                     }
                     var userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
@@ -146,7 +146,7 @@ module.exports = {
                     }catch(error){
                         ErrorService.log('ProjectService.findOneBy', error);
                         return sendErrorResponse(req, res, error);
-                    }  
+                    }
                     var isUserPresentInProject = false;
                     if (project) {
                         for (var i = 0; i < project.users.length; i++) {

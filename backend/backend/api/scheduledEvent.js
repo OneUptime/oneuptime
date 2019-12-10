@@ -14,7 +14,7 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 
 router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    
+
     var projectId = req.params.projectId;
     var monitorId = req.params.monitorId;
 
@@ -109,10 +109,10 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async 
 router.put('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
 
     var data = req.body;
-    data._id = req.params.eventId;
+    var eventId = req.params.eventId;
 
     try {
-        var scheduledEvent = await ScheduledEventService.update(data);
+        var scheduledEvent = await ScheduledEventService.updateBy({_id:eventId},data);
         if (scheduledEvent) {
             return sendItemResponse(req, res, scheduledEvent);
         } else {
@@ -128,7 +128,7 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async fun
 
 
 router.delete('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    
+
     var userId = req.user ? req.user.id : null;
 
     try {
@@ -149,7 +149,7 @@ router.delete('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async 
 
 
 router.get('/:projectId/:monitorId', getUser, isAuthorized, async function (req, res) {
-    
+
     var projectId = req.params.projectId;
     var monitorId = req.params.monitorId;
 
@@ -193,7 +193,7 @@ router.get('/:projectId/:monitorId', getUser, isAuthorized, async function (req,
 });
 
 router.get('/:projectId/:monitorId/statusPage', checkUserBelongToProject,  async function (req, res) {
-    
+
     var projectId = req.params.projectId;
     var monitorId = req.params.monitorId;
 

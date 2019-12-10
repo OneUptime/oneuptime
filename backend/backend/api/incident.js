@@ -196,7 +196,7 @@ router.post('/:projectId/close/:incidentId', getUser, isAuthorized, async functi
 // Returns: 200: incident, 400: Error; 500: Server Error.
 router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async function (req, res) {
     var data = req.body;
-    data._id = req.params.incidentId;
+    var incidentId = req.params.incidentId;
 
 
     if (data.internalNote && typeof data.internalNote !== 'string') {
@@ -215,7 +215,7 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
 
     try {
         // Call the IncidentService
-        var incident = await IncidentService.update(data);
+        var incident = await IncidentService.updateBy({_id:incidentId},data);
         if (incident && incident._id) {
             incident = await IncidentService.findOneBy({ _id: incident._id, projectId: incident.projectId });
         }

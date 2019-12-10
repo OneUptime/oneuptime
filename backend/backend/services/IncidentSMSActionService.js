@@ -9,15 +9,21 @@ module.exports = {
         return alerts;
     },
 
-    update: async (incidentSMSActionId, update)=>{
+    updateBy: async (query,data)=>{
+        if (!query) {
+            query = {};
+        }
+
+        if (!query.deleted) query.deleted = false;
         try {
-            var incidentSMSAction = incidentSMSActionModel.findById(incidentSMSActionId);
-            incidentSMSAction.acknowledged = !!update.acknowledged;
-            incidentSMSAction.resolved = !!update.resolved;
-            var incidentafter = await incidentSMSAction.save();
+            var incidentafter = await incidentSMSActionModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            });
         } catch (error) {
-            ErrorService.log('incidentSMSAction.update', error);
-            throw error;  
+            ErrorService.log('incidentSMSActionModel.findOneAndUpdate', error);
+            throw error;
         }
         return incidentafter;
     }
