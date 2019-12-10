@@ -14,20 +14,16 @@ module.exports = {
             }
             // query.deleted = false;
             var file = await gfs.files.findOne(query);
-        } catch (error) {
-            if (error.message.indexOf('connection') !== -1) {
-                ErrorService.log('Grid(mongoose.connection.db, mongoose.mongo)', error);
-            } else {
-                ErrorService.log('gfs.files.findOne', error);
+            if (!file) {
+                let error = new Error('File is not found.');
+                error.code = 400;
+                throw error;
             }
+            return file;
+        } catch (error) {
+            ErrorService.log('fileService.findOneBy', error);
             throw error;
         }
-        if (!file) {
-            let error = new Error('File is not found.');
-            error.code = 400;
-            throw error;
-        }
-        return file;
     }
 };
 

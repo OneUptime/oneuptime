@@ -16,32 +16,31 @@ module.exports = {
 
         try {
             var user = await UserService.findOneBy({ _id: userId });
-        } catch (error) {
-            ErrorService.log('UserService.findOneBy', error);
-            throw error;
-        }
-
-        if (!user) {
-            let error = new Error('User not found.');
-            error.code = 400;
-            ErrorService.log('InvoiceService.get', error);
-            throw error;
-        } else {
-            var invoices = await stripe.invoices.list(
-                {
-                    customer: user.stripeCustomerId,
-                    limit: 10,
-                    starting_after: startingAfter,
-                    ending_before: endingBefore,
-                    'include[]': 'total_count'
-                });
-            if (!invoices || !invoices.data) {
-                let error = new Error('Your invoice cannot be retrieved.');
+            if (!user) {
+                let error = new Error('User not found.');
                 error.code = 400;
                 ErrorService.log('InvoiceService.get', error);
                 throw error;
+            } else {
+                var invoices = await stripe.invoices.list(
+                    {
+                        customer: user.stripeCustomerId,
+                        limit: 10,
+                        starting_after: startingAfter,
+                        ending_before: endingBefore,
+                        'include[]': 'total_count'
+                    });
+                if (!invoices || !invoices.data) {
+                    let error = new Error('Your invoice cannot be retrieved.');
+                    error.code = 400;
+                    ErrorService.log('InvoiceService.get', error);
+                    throw error;
+                }
+                return invoices;
             }
-            return invoices;
+        } catch (error) {
+            ErrorService.log('InvoiceService.get', error);
+            throw error;
         }
     }
 };

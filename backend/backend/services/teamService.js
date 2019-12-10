@@ -48,29 +48,29 @@ module.exports = {
     },
 
     getSeats: async function (members) {
-        var seats = members.filter(async user => {
-            var count = 0;
-            try{
+        try {
+            var seats = members.filter(async user => {
+                var count = 0;
                 var user_member = await UserService.findOneBy({ _id: user.userId });
-            }catch(error){
-                ErrorService.log('UserService.findOneBy', error);
-                throw error;
-            }
-            domains.domains.forEach(domain => {    
-                if (user_member.email.indexOf(domain) > -1) {
-                    count++;
+                domains.domains.forEach(domain => {    
+                    if (user_member.email.indexOf(domain) > -1) {
+                        count++;
+                    }
+                });
+                if (count > 0) {
+                    return false;
+                }
+                else {
+                    return true;
                 }
             });
-            if (count > 0) {
-                return false;
-            }
-            else {
-                return true;
-            }
-        });
-        await Promise.all(seats);
-        seats = seats.length;
-        return seats;
+            await Promise.all(seats);
+            seats = seats.length;
+            return seats;
+        } catch (error) {
+            ErrorService.log('TeamService.findOneBy', error);
+            throw error;
+        }
     },
 
     //Description: Invite new team members by Admin.
@@ -164,18 +164,18 @@ module.exports = {
     //Param 5: project: Project.
     //Returns: promise
     inviteTeamMembersMethod: async function (projectId, emails, role, addedBy, extraUsersToAdd) {
-        var invitedTeamMembers = [];
-        var projectUsers = [];
-        var _this = this;
-        var subProject = null;
-        var project = await ProjectService.findOneBy({_id: projectId});
-        var registerUrl = ACCOUNTS_HOST ? `${ACCOUNTS_HOST}/register` : 'https://accounts.fyipe.com/register';
-        if(project.parentProjectId){
-            subProject = project;
-            project = await ProjectService.findOneBy({_id: subProject.parentProjectId});
-        }
-
         try {
+            var invitedTeamMembers = [];
+            var projectUsers = [];
+            var _this = this;
+            var subProject = null;
+            var project = await ProjectService.findOneBy({_id: projectId});
+            var registerUrl = ACCOUNTS_HOST ? `${ACCOUNTS_HOST}/register` : 'https://accounts.fyipe.com/register';
+            if (project.parentProjectId) {
+                subProject = project;
+                project = await ProjectService.findOneBy({_id: subProject.parentProjectId});
+            }
+
             for (var i = 0; i < emails.length; i++) {
                 // Finds registered users and new users that will be added as team members.
                 var user = await UserService.findOneBy({ email: emails[i] });
@@ -271,17 +271,11 @@ module.exports = {
                 }));
                 response = response.concat(subProjectTeamsUsers);
             }
+            return response;
         } catch (error) {
-            if (error.message.indexOf('at path "email" for model "User"') !== -1) {
-                ErrorService.log('UserService.findOneBy', error);
-            } else if (error.message === 'Your subscription cannot be retrieved.') {
-                ErrorService.log('PaymentService.changeSeats', error);
-            } else {
-                ErrorService.log('TeamService.inviteTeamMembersMethod', error);
-            }
+            ErrorService.log('TeamService.inviteTeamMembersMethod', error);
             throw error;
         }
-        return response;
     },
 
 
@@ -397,96 +391,97 @@ module.exports = {
     //Param 4: nextRole: Role of user to updated by Admin.
     //Returns: promise
     updateTeamMemberRole: async function (projectId, userId, teamMemberUserId, role) {
-        let _this = this;
-        var previousRole = '';
-        var nextRole = role;
-        var index;
-        var subProject = null;
         try{
+            let _this = this;
+            var previousRole = '';
+            var nextRole = role;
+            var index;
+            var subProject = null;
             var project = await ProjectService.findOneBy({ _id: projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        if(project.parentProjectId){
-            subProject = project;
-            project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
-        }
-        if(subProject){
-            index = subProject.users.findIndex(user => user.userId === teamMemberUserId);
-        }else{
-            index = project.users.findIndex(user => user.userId === teamMemberUserId);
-        }
 
-        // Checks if user to be updated is present in the project.
-        if (index === -1) {
-            let error = new Error('User whose role is to be changed is not present in the project.');
-            error.code = 400;
-            ErrorService.log('TeamService.updateTeamMemberRole', error);
-            throw error;
-        } else {
-            if(subProject){
-                previousRole = subProject.users[index].role;
-            }else{
-                previousRole = project.users[index].role;
+            if (project.parentProjectId) {
+                subProject = project;
+                project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
             }
-            // Checks if next project role is different from previous role.
-            if (nextRole === previousRole) {
-                let error = new Error('Please provide role different from current role and try again.');
+            if (subProject) {
+                index = subProject.users.findIndex(user => user.userId === teamMemberUserId);
+            } else {
+                index = project.users.findIndex(user => user.userId === teamMemberUserId);
+            }
+    
+            // Checks if user to be updated is present in the project.
+            if (index === -1) {
+                let error = new Error('User whose role is to be changed is not present in the project.');
                 error.code = 400;
                 ErrorService.log('TeamService.updateTeamMemberRole', error);
                 throw error;
             } else {
                 if(subProject){
-                    subProject.users[index].role = nextRole;
-                    // save project
-                    subProject = await ProjectService.saveProject(subProject);
+                    previousRole = subProject.users[index].role;
                 }else{
-                    project.users[index].role = nextRole;
-                    // save project
-                    project = await ProjectService.saveProject(project);
-                    // update user role for all subProjects.
-                    var subProjects = await ProjectService.findBy({parentProjectId: project._id});
-                    await Promise.all(subProjects.map(async(subProject)=>{
-                        index = subProject.users.findIndex(user => user.userId === teamMemberUserId);
-                        if(index !== -1){
-                            subProject.users[index].role = nextRole;
-                            subProject = await ProjectService.saveProject(subProject);
-                        }
-                    }));
+                    previousRole = project.users[index].role;
                 }
-                let user = await UserService.findOneBy({ _id: userId });
-                let member = await UserService.findOneBy({ _id: teamMemberUserId });
-                if(subProject){
-                    await MailService.sendChangeRoleEmailToUser(subProject, user, member.email, role);
-                }else{
-                    await MailService.sendChangeRoleEmailToUser(project, user, member.email, role);
+                // Checks if next project role is different from previous role.
+                if (nextRole === previousRole) {
+                    let error = new Error('Please provide role different from current role and try again.');
+                    error.code = 400;
+                    ErrorService.log('TeamService.updateTeamMemberRole', error);
+                    throw error;
+                } else {
+                    if(subProject){
+                        subProject.users[index].role = nextRole;
+                        // save project
+                        subProject = await ProjectService.saveProject(subProject);
+                    }else{
+                        project.users[index].role = nextRole;
+                        // save project
+                        project = await ProjectService.saveProject(project);
+                        // update user role for all subProjects.
+                        var subProjects = await ProjectService.findBy({parentProjectId: project._id});
+                        await Promise.all(subProjects.map(async(subProject)=>{
+                            index = subProject.users.findIndex(user => user.userId === teamMemberUserId);
+                            if(index !== -1){
+                                subProject.users[index].role = nextRole;
+                                subProject = await ProjectService.saveProject(subProject);
+                            }
+                        }));
+                    }
+                    let user = await UserService.findOneBy({ _id: userId });
+                    let member = await UserService.findOneBy({ _id: teamMemberUserId });
+                    if(subProject){
+                        await MailService.sendChangeRoleEmailToUser(subProject, user, member.email, role);
+                    }else{
+                        await MailService.sendChangeRoleEmailToUser(project, user, member.email, role);
+                    }
+                    
+                    // send response
+                    var response = [];
+                    var team = await _this.getTeamMembersBy({ _id: project._id });
+                    var teamusers = {
+                        projectId: project._id,
+                        team: team
+                    };
+                    response.push(teamusers);
+                    var subProjectTeams = await ProjectService.findBy({parentProjectId: project._id});
+                    if(subProjectTeams.length > 0){
+                        var subProjectTeamsUsers = await Promise.all(subProjectTeams.map(async(subProject)=>{
+                            team = await _this.getTeamMembersBy({ _id: subProject._id });
+                            teamusers = {
+                                projectId: subProject._id,
+                                team: team
+                            };
+                            return teamusers;
+                        }));
+                        response = response.concat(subProjectTeamsUsers);
+                    }
+                    team = await _this.getTeamMembersBy({ _id: projectId });
+                    await RealTimeService.updateTeamMemberRole(project._id, { response, teamMembers: team, projectId });
+                    return response;
                 }
-                
-                // send response
-                var response = [];
-                var team = await _this.getTeamMembersBy({ _id: project._id });
-                var teamusers = {
-                    projectId: project._id,
-                    team: team
-                };
-                response.push(teamusers);
-                var subProjectTeams = await ProjectService.findBy({parentProjectId: project._id});
-                if(subProjectTeams.length > 0){
-                    var subProjectTeamsUsers = await Promise.all(subProjectTeams.map(async(subProject)=>{
-                        team = await _this.getTeamMembersBy({ _id: subProject._id });
-                        teamusers = {
-                            projectId: subProject._id,
-                            team: team
-                        };
-                        return teamusers;
-                    }));
-                    response = response.concat(subProjectTeamsUsers);
-                }
-                team = await _this.getTeamMembersBy({ _id: projectId });
-                await RealTimeService.updateTeamMemberRole(project._id, { response, teamMembers: team, projectId });
-                return response;
             }
+        } catch (error) {
+            ErrorService.log('TeamService.updateTeamMemberRole', error);
+            throw error;
         }
     }
 };

@@ -1,27 +1,27 @@
 module.exports = {
     create: async function (data) {
-        data.authToken = await EncryptDecrypt.encrypt(data.authToken);
-        var smsSmtpModel = new SmsSmtpModel();
-        smsSmtpModel.projectId = data.projectId;
-        smsSmtpModel.accountSid = data.accountSid;
-        smsSmtpModel.authToken = data.authToken;
-        smsSmtpModel.phoneNumber = data.phoneNumber;
-        smsSmtpModel.enabled = true;
         try {
+            data.authToken = await EncryptDecrypt.encrypt(data.authToken);
+            var smsSmtpModel = new SmsSmtpModel();
+            smsSmtpModel.projectId = data.projectId;
+            smsSmtpModel.accountSid = data.accountSid;
+            smsSmtpModel.authToken = data.authToken;
+            smsSmtpModel.phoneNumber = data.phoneNumber;
+            smsSmtpModel.enabled = true;
             var smsSmtp = await smsSmtpModel.save();
             if (smsSmtp && smsSmtp.authToken) {
                 smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
             }
+            return smsSmtp;
         } catch (error) {
-            ErrorService.log('smsSmtpModel.save', error);
+            ErrorService.log('SmsSmtpService.save', error);
             throw error;
         }
-        return smsSmtp;
     },
 
     update: async function (data) {
-        let _this = this;
         try {
+            let _this = this;
             if (!data._id) {
                 let smsSmtp = await _this.create(data);
                 return smsSmtp;
@@ -56,7 +56,7 @@ module.exports = {
                 return updatedSmsSmtp;
             }
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.findByIdAndUpdate', error);
+            ErrorService.log('SmsSmtpService.update', error);
             throw error;
         }
     },
@@ -72,33 +72,32 @@ module.exports = {
             }, {
                 new: true
             });
+            return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.findOneAndUpdate', error);
+            ErrorService.log('SmsSmtpService.deleteBy', error);
             throw error;
         }
-        return smsSmtp;
     },
 
     findBy: async function (query, skip, limit) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
+            if (!skip) skip = 0;
+    
+            if (!limit) limit = 10;
+    
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+    
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+    
+            if (!query) {
+                query = {};
+            }
+    
+            query.deleted = false;
             var smsSmtp = await SmsSmtpModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
@@ -108,22 +107,21 @@ module.exports = {
             if (smsSmtp && smsSmtp.authToken) {
                 smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
             }
-
+        
+            return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.find', error);
+            ErrorService.log('SmsSmtpService.findBy', error);
             throw error;
         }
-
-        return smsSmtp;
     },
 
     findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+    
+            query.deleted = false;
             var smsSmtp = await SmsSmtpModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
@@ -131,41 +129,40 @@ module.exports = {
             if (smsSmtp && smsSmtp.authToken) {
                 smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
             }
+            if (!smsSmtp) {
+                smsSmtp = {};
+            }
+    
+            return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.findOne', error);
+            ErrorService.log('SmsSmtpService.findOneBy', error);
             throw error;
         }
-        if (!smsSmtp) {
-            smsSmtp = {};
-        }
-
-        return smsSmtp;
     },
 
     countBy: async function (query) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+    
+            query.deleted = false;
             var count = await SmsSmtpModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.count', error);
+            ErrorService.log('SmsSmtpService.countBy', error);
             throw error;
         }
-        return count;
     },
 
     hardDeleteBy: async function (query) {
         try {
             await SmsSmtpModel.deleteMany(query);
+            return 'Sms Smtp(s) removed successfully';
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.deleteMany', error);
+            ErrorService.log('SmsSmtpService.hardDeleteBy', error);
             throw error;
         }
-        return 'Sms Smtp(s) removed successfully';
     },
 };
 

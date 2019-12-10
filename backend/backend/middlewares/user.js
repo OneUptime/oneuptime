@@ -57,9 +57,9 @@ module.exports = {
                     }else{
                         req.authorizationType = 'USER';
                     }
-                    try{
+                    try {
                         UserService.update({ _id: req.user.id, lastActive: Date.now() });
-                    }catch(error){
+                    } catch (error) {
                         ErrorService.log('UserService.update', error);
                         throw error;
                     }
@@ -96,9 +96,9 @@ module.exports = {
                 } else {
                     req.authorizationType = 'USER';
                     req.user = decoded;
-                    try{
+                    try {
                         UserService.update({ _id: req.user.id, lastActive: Date.now() });
-                    }catch(error){
+                    } catch(error) {
                         ErrorService.log('UserService.update', error);
                         throw error;
                     }
@@ -130,44 +130,39 @@ module.exports = {
                 } else {
                     req.authorizationType = 'USER';
                     req.user = decoded;
-                    try{
+                    try {
                         UserService.update({ _id: req.user.id, lastActive: Date.now() });
-                    }catch(error){
-                        ErrorService.log('UserService.update', error);
-                        throw error;
-                    }
-                    var userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
-                    var projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
-                    if (!projectId) {
-                        return res.status(400).send({code: 400, message:'Project id is not present.'});
-                    }
-                    try{
-                        var project = await ProjectService.findOneBy({_id: projectId});
-                    }catch(error){
-                        ErrorService.log('ProjectService.findOneBy', error);
-                        return sendErrorResponse(req, res, error);
-                    }  
-                    var isUserPresentInProject = false;
-                    if (project) {
-                        for (var i = 0; i < project.users.length; i++) {
-                            if (project.users[i].userId === userId) {
-                                isUserPresentInProject = true;
-                                break;
-                            }
+                        var userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
+                        var projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
+                        if (!projectId) {
+                            return res.status(400).send({code: 400, message:'Project id is not present.'});
                         }
-                    } else {
-                        return sendErrorResponse(req, res, {
-                            code:400,
-                            message:'Project does not exist.'
-                        });
-                    }
-                    if (isUserPresentInProject) {
-                        next();
-                    } else {
-                        return sendErrorResponse(req, res, {
-                            code:400,
-                            message:'You are not present in this project.'
-                        });
+                        var project = await ProjectService.findOneBy({_id: projectId});
+                        var isUserPresentInProject = false;
+                        if (project) {
+                            for (var i = 0; i < project.users.length; i++) {
+                                if (project.users[i].userId === userId) {
+                                    isUserPresentInProject = true;
+                                    break;
+                                }
+                            }
+                        } else {
+                            return sendErrorResponse(req, res, {
+                                code:400,
+                                message:'Project does not exist.'
+                            });
+                        }
+                        if (isUserPresentInProject) {
+                            next();
+                        } else {
+                            return sendErrorResponse(req, res, {
+                                code:400,
+                                message:'You are not present in this project.'
+                            });
+                        }
+                    } catch (error) {
+                        ErrorService.log('middlewares.checkUserBelongToProject', error);
+                        throw error;
                     }
                 }
             });

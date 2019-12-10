@@ -15,18 +15,18 @@ module.exports = {
    * @returns {Promise} rejected if their is an error resolves if all is good
    */
     async getMostActiveMembers(subProjectIds, startDate, endDate, skip, limit) {
-        let start = moment(startDate).toDate();
-        let end = moment(endDate).toDate();
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-        // Use aggregate to proccess data
         try {
+            let start = moment(startDate).toDate();
+            let end = moment(endDate).toDate();
+            
+            if (typeof skip === 'string') {
+                skip = parseInt(skip);
+            }
+            
+            if (typeof limit === 'string') {
+                limit = parseInt(limit);
+            }
+            // Use aggregate to proccess data
             var result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, acknowledgeTime: { $subtract: ['$acknowledgedAt', '$createdAt'] }, createdAt: 1, resolvedBy: 1 } },
@@ -51,17 +51,13 @@ module.exports = {
                 let result = { memberId: member._id, memberName: response.name, incidents: member.incidents, averageAcknowledgeTime: member.averageAcknowledge, averageResolved: member.averageResolved };
                 arr.push(result);
             }
+            wrapper['members'] = arr;
+            wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
+            return wrapper;
         } catch (error) {
-            if (error.message.indexOf('for model "Incident"') !== -1) {
-                ErrorService.log('IncidentModel.aggregate', error);
-            } else {
-                ErrorService.log('IncidentModel.getMostActiveMembers', error);
-            }
+            ErrorService.log('reportService.getMostActiveMembers', error);
             throw error;
         }
-        wrapper['members'] = arr;
-        wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
-        return wrapper;
     },
     /**
    * @method getMostActiveMonitor
@@ -71,18 +67,18 @@ module.exports = {
    * @returns {Promise} rejected if their is an error resolves if all is good
    */
     async getMostActiveMonitors(subProjectIds, startDate, endDate, skip, limit) {
-        let start = moment(startDate).toDate();
-        let end = moment(endDate).toDate();
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-        // Use aggregate to proccess data
         try {
+            let start = moment(startDate).toDate();
+            let end = moment(endDate).toDate();
+    
+            if (typeof skip === 'string') {
+                skip = parseInt(skip);
+            }
+    
+            if (typeof limit === 'string') {
+                limit = parseInt(limit);
+            }
+            // Use aggregate to proccess data
             var result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, acknowledgeTime: { $subtract: ['$acknowledgedAt', '$createdAt'] }, createdAt: 1, monitorId: 1 } },
@@ -107,18 +103,13 @@ module.exports = {
                 let monitorObj = { monitorId: monitor._id, monitorName: response.name, incidents: monitor.incidents, averageAcknowledgeTime: monitor.averageAcknowledge, averageResolved: monitor.averageResolved };
                 arr.push(monitorObj);
             }
+            wrapper['monitors'] = arr;
+            wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
+            return wrapper;
         } catch (error) {
-            if (error.message.indexOf('for model "Incident"') !== -1) {
-                ErrorService.log('IncidentModel.aggregate', error);
-            } else {
-                ErrorService.log('IncidentModel.getMostActiveMonitors', error);
-            }
+            ErrorService.log('reportService.getMostActiveMonitors', error);
             throw error;
         }
-
-        wrapper['monitors'] = arr;
-        wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
-        return wrapper;
     },
     /**
    * @param { String } subProjectIds id of current project
@@ -129,63 +120,62 @@ module.exports = {
    * @returns { Promise } array if resolved || error if rejected
    */
     async getAverageTimeBy(subProjectIds, startDate, endDate, filter) {
-        let start = moment(startDate).toDate();
-        let end = moment(endDate).toDate();
-        let group, sort, inputFormat, outputFormat;
-
-        if (filter === 'day') {
-            group = { _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
-            sort = { '_id.day': 1 };
-
-            inputFormat = 'YYYY-MM-DD';
-            outputFormat = 'MMM Do YYYY';
-        }
-        if (filter === 'week') {
-            group = { _id: { week: { $dateToString: { format: "%Y-%U", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
-            sort = { '_id.week': 1 };
-
-            inputFormat = 'YYYY-ww';
-            outputFormat = 'wo [week of] YYYY';
-        }
-        if (filter === 'month') {
-            group = { _id: { month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
-            sort = { '_id.month': 1 };
-
-            inputFormat = 'YYYY-MM';
-            outputFormat = 'MMM YYYY';
-        }
-        if (filter === 'year') {
-            group = { _id: { year: { $year: '$createdAt' } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
-            sort = { '_id.year': 1 };
-
-            inputFormat = 'YYYY';
-            outputFormat = 'YYYY';
-        }
-
         try {
+            let start = moment(startDate).toDate();
+            let end = moment(endDate).toDate();
+            let group, sort, inputFormat, outputFormat;
+    
+            if (filter === 'day') {
+                group = { _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+                sort = { '_id.day': 1 };
+    
+                inputFormat = 'YYYY-MM-DD';
+                outputFormat = 'MMM Do YYYY';
+            }
+            if (filter === 'week') {
+                group = { _id: { week: { $dateToString: { format: "%Y-%U", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+                sort = { '_id.week': 1 };
+    
+                inputFormat = 'YYYY-ww';
+                outputFormat = 'wo [week of] YYYY';
+            }
+            if (filter === 'month') {
+                group = { _id: { month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+                sort = { '_id.month': 1 };
+    
+                inputFormat = 'YYYY-MM';
+                outputFormat = 'MMM YYYY';
+            }
+            if (filter === 'year') {
+                group = { _id: { year: { $year: '$createdAt' } }, count: { $sum: 1 }, averageResolveTime: { $avg: '$resolveTime' } };
+                sort = { '_id.year': 1 };
+    
+                inputFormat = 'YYYY';
+                outputFormat = 'YYYY';
+            }
             var result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, createdAt: 1 } },
                 { $group: group },
                 { $sort: sort }
             ]);
+
+            const formarted = [];
+    
+            for (const period of result) {
+                const data = {
+                    incidents: period.count,
+                    averageResolved: parseInt(moment.duration(period.averageResolveTime).asSeconds().toFixed(0), 10)
+                };
+                data[filter] = moment(period._id[filter], inputFormat).format(outputFormat);
+    
+                formarted.push(data);
+            }
+            return formarted;
         } catch (error) {
-            ErrorService.log('IncidentModel.aggregate', error);
+            ErrorService.log('reportService.getAverageTimeBy', error);
             throw error;
         }
-
-        const formarted = [];
-
-        for (const period of result) {
-            const data = {
-                incidents: period.count,
-                averageResolved: parseInt(moment.duration(period.averageResolveTime).asSeconds().toFixed(0), 10)
-            };
-            data[filter] = moment(period._id[filter], inputFormat).format(outputFormat);
-
-            formarted.push(data);
-        }
-        return formarted;
     },
     /**
       * @param { String } subProjectIds id of current project
@@ -196,61 +186,59 @@ module.exports = {
       * @returns { Promise } array if resolved || error if rejected
       */
     async getIncidentCountBy(subProjectIds, startDate, endDate, filter) {
-        let start = moment(startDate).toDate();
-        let end = moment(endDate).toDate();
-        let group, sort, inputFormat, outputFormat;
-
-        if (filter === 'day') {
-            group = { _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }, count: { $sum: 1 } };
-            sort = { '_id.day': 1 };
-
-            inputFormat = 'YYYY-MM-DD';
-            outputFormat = 'MMM Do YYYY';
-        }
-        if (filter === 'week') {
-            group = { _id: { week: { $dateToString: { format: "%Y-%U", date: "$createdAt" } } }, count: { $sum: 1 } };
-            sort = { '_id.week': 1 };
-
-            inputFormat = 'YYYY-ww';
-            outputFormat = 'wo [week of] YYYY';
-        }
-        if (filter === 'month') {
-            group = { _id: { month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } } }, count: { $sum: 1 } };
-            sort = { '_id.month': 1 };
-
-            inputFormat = 'YYYY-MM';
-            outputFormat = 'MMM YYYY';
-        }
-        if (filter === 'year') {
-            group = { _id: { year: { $year: '$createdAt' } }, count: { $sum: 1 } };
-            sort = { '_id.year': 1 };
-
-            inputFormat = 'YYYY';
-            outputFormat = 'YYYY';
-        }
-
         try {
+            let start = moment(startDate).toDate();
+            let end = moment(endDate).toDate();
+            let group, sort, inputFormat, outputFormat;
+    
+            if (filter === 'day') {
+                group = { _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }, count: { $sum: 1 } };
+                sort = { '_id.day': 1 };
+    
+                inputFormat = 'YYYY-MM-DD';
+                outputFormat = 'MMM Do YYYY';
+            }
+            if (filter === 'week') {
+                group = { _id: { week: { $dateToString: { format: "%Y-%U", date: "$createdAt" } } }, count: { $sum: 1 } };
+                sort = { '_id.week': 1 };
+    
+                inputFormat = 'YYYY-ww';
+                outputFormat = 'wo [week of] YYYY';
+            }
+            if (filter === 'month') {
+                group = { _id: { month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } } }, count: { $sum: 1 } };
+                sort = { '_id.month': 1 };
+    
+                inputFormat = 'YYYY-MM';
+                outputFormat = 'MMM YYYY';
+            }
+            if (filter === 'year') {
+                group = { _id: { year: { $year: '$createdAt' } }, count: { $sum: 1 } };
+                sort = { '_id.year': 1 };
+    
+                inputFormat = 'YYYY';
+                outputFormat = 'YYYY';
+            }
             var result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $group: group },
                 { $sort: sort }
             ]);
+            const formarted = [];
+    
+            for (const period of result) {
+                const data = {
+                    incidents: period.count
+                };
+                data[filter] = moment(period._id[filter], inputFormat).format(outputFormat);
+    
+                formarted.push(data);
+            }
+            return formarted;
         } catch (error) {
-            ErrorService.log('IncidentModel.aggregate', error);
+            ErrorService.log('reportService.getIncidentCountBy', error);
             throw error;
         }
-
-        const formarted = [];
-
-        for (const period of result) {
-            const data = {
-                incidents: period.count
-            };
-            data[filter] = moment(period._id[filter], inputFormat).format(outputFormat);
-
-            formarted.push(data);
-        }
-        return formarted;
     },
 };
 

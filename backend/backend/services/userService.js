@@ -1,84 +1,83 @@
 module.exports = {
 
     findBy: async function (query, skip, limit) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof (skip) === 'string') skip = parseInt(skip);
-
-        if (typeof (limit) === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        if (!query.deleted) query.deleted = false;
         try {
+            if (!skip) skip = 0;
+    
+            if (!limit) limit = 0;
+    
+            if (typeof (skip) === 'string') skip = parseInt(skip);
+    
+            if (typeof (limit) === 'string') limit = parseInt(limit);
+    
+            if (!query) query = {};
+    
+            if (!query.deleted) query.deleted = false;
             var users = await UserModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
+            return users;
         } catch (error) {
-            ErrorService.log('UserModel.find', error);
+            ErrorService.log('userService.find', error);
             throw error;
         }
-        return users;
     },
 
     create: async function (data) {
-        var userModel = new UserModel();
-        userModel.name = data.name || null;
-        userModel.email = data.email || null;
-        userModel.password = data.password || null;
-        userModel.companyName = data.companyName || null;
-        userModel.companyRole = data.companyRole || null;
-        userModel.companySize = data.companySize || null;
-        userModel.referral = data.referral || null;
-        userModel.companyPhoneNumber = data.companyPhoneNumber || null;
-        userModel.onCallAlert = data.onCallAlert || null;
-        userModel.profilePic = data.profilePic || null;
-        userModel.jwtRefreshToken = data.jwtRefreshToken || null;
-        userModel.stripeCustomerId = data.stripeCustomerId || null;
-        userModel.resetPasswordToken = data.resetPasswordToken || null;
-        userModel.resetPasswordExpires = data.resetPasswordExpires || null;
-        userModel.createdAt = data.createdAt || Date.now();
-        userModel.timezone = data.timezone || null;
-        userModel.lastActive = data.lastActive || Date.now();
-        userModel.coupon = data.coupon || null;
-        userModel.adminNotes = data.adminNotes || null;
-        userModel.tempEmail = data.tempEmail || null;
         try {
+            var userModel = new UserModel();
+            userModel.name = data.name || null;
+            userModel.email = data.email || null;
+            userModel.password = data.password || null;
+            userModel.companyName = data.companyName || null;
+            userModel.companyRole = data.companyRole || null;
+            userModel.companySize = data.companySize || null;
+            userModel.referral = data.referral || null;
+            userModel.companyPhoneNumber = data.companyPhoneNumber || null;
+            userModel.onCallAlert = data.onCallAlert || null;
+            userModel.profilePic = data.profilePic || null;
+            userModel.jwtRefreshToken = data.jwtRefreshToken || null;
+            userModel.stripeCustomerId = data.stripeCustomerId || null;
+            userModel.resetPasswordToken = data.resetPasswordToken || null;
+            userModel.resetPasswordExpires = data.resetPasswordExpires || null;
+            userModel.createdAt = data.createdAt || Date.now();
+            userModel.timezone = data.timezone || null;
+            userModel.lastActive = data.lastActive || Date.now();
+            userModel.coupon = data.coupon || null;
+            userModel.adminNotes = data.adminNotes || null;
+            userModel.tempEmail = data.tempEmail || null;
+
             var user = await userModel.save();
+            return user;
         } catch (error) {
-            ErrorService.log('userModel.save', error);
+            ErrorService.log('userService.save', error);
             throw error;
         }
-        return user;
     },
 
     countBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+    
+            if (!query.deleted) query.deleted = false;
             var count = await UserModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('UserModel.count', error);
+            ErrorService.log('UserService.count', error);
             throw error;
         }
-        return count;
     },
 
     deleteBy: async function (query, userId) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
+            if (!query) {
+                query = {};
+            }
+    
+            query.deleted = false;
             var user = await UserModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
@@ -88,31 +87,31 @@ module.exports = {
             }, {
                 new: true
             });
+            return user;
         } catch (error) {
-            ErrorService.log('UserModel.updateMany', error);
+            ErrorService.log('UserService.updateMany', error);
             throw error;
         }
-        return user;
     },
 
     findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-        if (!query.deleted) query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+            if (!query.deleted) query.deleted = false;
             var user = await UserModel.findOne(query)
                 .sort([['createdAt', -1]]);
+            return user;
         } catch (error) {
             ErrorService.log('UserModel.findOne', error);
             throw error;
         }
-        return user;
     },
 
     update: async function (data) {
-        var _this = this;
         try {
+            var _this = this;
             if (!data._id) {
                 let user = await _this.create(data);
                 return user;
@@ -191,65 +190,60 @@ module.exports = {
                 return updatedUser;
             }
         } catch (error) {
-            if (error.message.indexOf('at path "_id" for model "User"') !== -1) {
-                ErrorService.log('UserService.findOneBy', error);
-            } else {
-                ErrorService.log('UserService.create', error);
-            }
+            ErrorService.log('UserService.update', error);
             throw error;
         }
     },
 
     closeTutorialBy: async function (query, type, data) {
-        if (!query) query = {};
-        if (!data) data = {};
-
-        type = type.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
-        data[type] = { show: false };
-
         try {
+            if (!query) query = {};
+            if (!data) data = {};
+    
+            type = type.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
+            data[type] = { show: false };
+
             var tutorial = await UserModel.findOneAndUpdate(query, { $set: { tutorial: data } }, { new: true });
+            return tutorial || null;
         } catch (error) {
-            ErrorService.log('UserModel.findOneAndUpdate', error);
+            ErrorService.log('userService.closeTutorialBy', error);
             throw error;
         }
-
-        return tutorial || null;
     },
 
     sendToken: async function (user, email) {
-        const _this = this;
-        var verificationTokenModel = new VerificationTokenModel({
-            userId: user._id,
-            token: crypto.randomBytes(16).toString('hex')
-        });
         try {
+            const _this = this;
+            var verificationTokenModel = new VerificationTokenModel({
+                userId: user._id,
+                token: crypto.randomBytes(16).toString('hex')
+            });
             var verificationToken = await verificationTokenModel.save();
+            if (verificationToken) {
+                var verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
+                MailService.sendVerifyEmail(verificationTokenURL, user.name, email);
+                if (email !== user.email) {
+                    _this.update({ _id: user._id, tempEmail: email });
+                }
+            }
+            return verificationToken.token;
         } catch (error) {
-            ErrorService.log('UserVerificationService.createVerificationToken', error);
+            ErrorService.log('userService.sendToken', error);
             throw error;
         }
-        if (verificationToken) {
-            var verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
-            MailService.sendVerifyEmail(verificationTokenURL, user.name, email);
-            if (email !== user.email) {
-                _this.update({ _id: user._id, tempEmail: email });
-            }
-        }
-        return verificationToken.token;
     },
     //Description: signup function for new user.
     //Params:
     //Param 1: data: User details.
     //Returns: promise.
     signup: async function (data) {
-        var _this = this;
-        var email = data.email;
-        var stripePlanId = data.planId;
-        var paymentIntent = data.paymentIntent;
+        try {
+            var _this = this;
+            var email = data.email;
+            var stripePlanId = data.planId;
+            var paymentIntent = data.paymentIntent;
 
-        if (util.isEmailValid(email)) {
-            try {
+            if (util.isEmailValid(email)) {
                 var user = await _this.findOneBy({ email: email });
     
                 if (user) {
@@ -305,35 +299,25 @@ module.exports = {
     
                     return user;
                 }
-            } catch (error) {
-                if (error.message.indexOf('for model "ProjectModel"') !== -1) {
-                    ErrorService.log('ProjectService.create', error);
-                } else if (error.message.indexOf('for model "Subscriptions"') !== -1) {
-                    ErrorService.log('PaymentService.subscribePlan', error);
-                } else if (error.message.indexOf('for model "VerificationTokenModel"') !== -1) {
-                    ErrorService.log('UserVerificationService.sendToken', error);
-                } else if (error.message.indexOf('Airtable') !== -1) {
-                    ErrorService.log('AirtableService.logUser', error);
-                } else {
-                    ErrorService.log('UserService.signup', error);
-                }
+            } else {
+                let error = new Error('Email is not in valid format.');
+                error.code = 400;
+                ErrorService.log('UserService.signup', error);
                 throw error;
             }
-        } else {
-            let error = new Error('Email is not in valid format.');
-            error.code = 400;
+        } catch (error) {
             ErrorService.log('UserService.signup', error);
             throw error;
         }
     },
     getUserIpLocation: async function (clientIP) {
-        var ipLocation;
         try {
+            var ipLocation;
             ipLocation = await iplocation(clientIP);
+            return ipLocation;
         } catch (error) {
             ipLocation = {};
         }
-        return ipLocation;
     },
 
     //Description: login function to authenticate user.
@@ -342,10 +326,10 @@ module.exports = {
     //Param 2: password: User password.
     //Returns: promise.
     login: async function (email, password, clientIP) {
-        var _this = this;
-        if (util.isEmailValid(email)) {
+        try {
+            var _this = this;
+            if (util.isEmailValid(email)) {
             // find user if present in db.
-            try {
                 var user = await _this.findOneBy({ email: email });
                 
                 if (!user) {
@@ -403,19 +387,13 @@ module.exports = {
                         }
                     }
                 }
-            } catch (error) {
-                if (error.message === 'User does not exist.') {
-                    ErrorService.log('UserService.findOneBy', error);
-                } else if (error.message === 'Password is incorrect.') {
-                    ErrorService.log('bcrypt.compare', error);
-                } else {
-                    ErrorService.log('UserService.login', error);
-                }
+            } else {
+                let error = new Error('Email is not in valid format.');
+                error.code = 400;
+                ErrorService.log('UserService.login', error);
                 throw error;
             }
-        } else {
-            let error = new Error('Email is not in valid format.');
-            error.code = 400;
+        } catch (error) {
             ErrorService.log('UserService.login', error);
             throw error;
         }
@@ -426,8 +404,8 @@ module.exports = {
     //Param 1: email: User email.
     //Returns: promise.
     forgotPassword: async function (email) {
-        var _this = this;
         try {
+            var _this = this;
             if (util.isEmailValid(email)) {
                 var user = await this.findOneBy({ email: email });
                 
@@ -456,14 +434,9 @@ module.exports = {
                 throw error;
             }
         } catch (error) {
-            if (error.message.indexOf('at path "email" for model "User"') !== -1 || error.message === 'User does not exist.') {
-                ErrorService.log('UserService.findOneBy', error);
-            } else {
-                ErrorService.log('UserService.forgotPassword', error);
-            }
+            ErrorService.log('UserService.forgotPassword', error);
             throw error;
         }
-
     },
 
     // Description: forgot password function.
@@ -472,8 +445,8 @@ module.exports = {
     //Param 2:  token: token generated in forgot password function.
     //Returns: promise.
     resetPassword: async function (password, token) {
-        var _this = this;
         try {
+            var _this = this;
             var user = await _this.findOneBy({
                 resetPasswordToken: token,
                 resetPasswordExpires: {
@@ -497,11 +470,7 @@ module.exports = {
                 return user;
             }
         } catch (error) {
-            if (error.message.indexOf('at path "resetPasswordToken" for model "User"') !== -1) {
-                ErrorService.log('UserService.update', error);
-            } else {
-                ErrorService.log('UserService.resetPassword', error);
-            }
+            ErrorService.log('UserService.resetPassword', error);
             throw error;
         }
     },
@@ -511,8 +480,8 @@ module.exports = {
     //Param 1:  refreshToken: Refresh token.
     //Returns: promise.
     getNewToken: async function (refreshToken) {
-        var _this = this;
         try {
+            var _this = this;
             var user = await _this.findOneBy({ jwtRefreshToken: refreshToken });
             
             if (!user) {
@@ -535,20 +504,16 @@ module.exports = {
                 return token;
             }
         } catch (error) {
-            if (error.message.indexOf('at path "_id" for model "User"') !== -1) {
-                ErrorService.log('UserService.update', error);
-            } else {
-                ErrorService.log('UserService.getNewToken', error);
-            }
+            ErrorService.log('UserService.getNewToken', error);
             throw error;
         }
         
     },
 
     changePassword: async function (data) {
-        var _this = this;
-        var currentPassword = data.currentPassword;
         try {
+            var _this = this;
+            var currentPassword = data.currentPassword;
             var user = await _this.findOneBy({ _id: data._id });
             var encryptedPassword = user.password;
 
@@ -568,11 +533,7 @@ module.exports = {
                 throw error;
             }
         } catch (error) {
-            if (error.message.indexOf('at path "_id" for model "User"') !== -1) {
-                ErrorService.log('UserService.findOneBy', error);
-            } else {
-                ErrorService.log('UserService.changePassword', error);
-            }
+            ErrorService.log('UserService.changePassword', error);
             throw error;
         }
         
@@ -662,11 +623,11 @@ module.exports = {
     hardDeleteBy: async function (query) {
         try {
             await UserModel.deleteMany(query);
+            return 'User(s) Removed Successfully!';
         } catch (error) {
             ErrorService.log('UserModel.deleteMany', error);
             throw error;
         }
-        return 'User(s) Removed Successfully!';
     },
 
 };

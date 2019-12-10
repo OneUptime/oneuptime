@@ -1,12 +1,12 @@
 module.exports = {
     get: async function (query) {
-        try{
+        try {
             var alerts = await incidentSMSActionModel.find(query).sort([['createdAt', -1]]);
-        }catch(error){
+            return alerts;
+        } catch (error) {
             ErrorService.log('incidentSMSActionModel.find', error);
             throw error;
         }
-        return alerts;
     },
 
     update: async (incidentSMSActionId, update)=>{
@@ -15,11 +15,11 @@ module.exports = {
             incidentSMSAction.acknowledged = !!update.acknowledged;
             incidentSMSAction.resolved = !!update.resolved;
             var incidentafter = await incidentSMSAction.save();
+            return incidentafter;
         } catch (error) {
             ErrorService.log('incidentSMSAction.update', error);
             throw error;  
         }
-        return incidentafter;
     }
 
 };

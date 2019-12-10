@@ -1,34 +1,21 @@
 
 const Services = {
     events: async function (customerId, subscriptionId, chargeAttemptCount) {
-        let chargeAttemptStage = chargeAttemptCount === 1 ? 'first' : (chargeAttemptCount === 2 ? 'second' : 'third');
         try {
+            let chargeAttemptStage = chargeAttemptCount === 1 ? 'first' : (chargeAttemptCount === 2 ? 'second' : 'third');
             var user = await UserService.findOneBy({ stripeCustomerId: customerId });
-        } catch (error) {
-            ErrorService.log('UserService.findOneBy', error);
-            throw error;
-        }
-        try {
             var project = await ProjectService.findOneBy({ stripeSubscriptionId: subscriptionId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        try {
+
             await MailService.sendPaymentFailedEmail(project.name, user.email, user.name, chargeAttemptStage);
-        } catch (error) {
-            ErrorService.log('MailService.sendPaymentFailedEmail', error);
-            throw error;
-        }
-        if (chargeAttemptCount === 3) {
-            try {
+            
+            if (chargeAttemptCount === 3) {
                 await UserService.update({ _id: user._id, paymentFailedDate: new Date });
-            } catch (error) {
-                ErrorService.log('UserService.update', error);
-                throw error;
             }
+            return { paymentStatus: 'failed' };
+        } catch (error) {
+            ErrorService.log('StripeService.events', error);
+            throw error; 
         }
-        return { paymentStatus: 'failed' };
     },
 
     charges: async function (userId) {
@@ -74,7 +61,7 @@ const Services = {
                     throw error;
                 }
             } catch (error) {
-                ErrorService.log('StripeService.creditCard.createPaymentIntent', error);
+                ErrorService.log('StripeService.creditCard.create', error);
                 throw error;
             }
         },

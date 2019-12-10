@@ -9,80 +9,50 @@ var MonitorService = require('../services/monitorService'),
 // creates incident if a website is down and resolves it when they come back up
 module.exports = {
     checkAllDeviceMonitor: async () => {
-        var newDate = new moment();
-        var resDate = new Date();
-        try{
+        try {
+            var newDate = new moment();
+            var resDate = new Date();
             var monitors = await MonitorService.getDeviceMonitorsPing();
-        }catch(error){
-            ErrorService.log('MonitorService.getDeviceMonitorsPing', error);
-            throw error;
-        }
-        if(monitors){
-            monitors.forEach(async (monitor) => {
-                var d = new moment(monitor.lastPingTime);
-
-                if(newDate.diff(d, 'minutes') > 3) {
-                    try{
+            if (monitors) {
+                monitors.forEach(async (monitor) => {
+                    var d = new moment(monitor.lastPingTime);
+    
+                    if (newDate.diff(d, 'minutes') > 3) {
                         await job(monitor);
-                    }catch(error){
-                        ErrorService.log('iotCron.job', error);
-                        throw error;
-                    }        
-                } else {
-                    var res = (new Date()).getTime() - resDate.getTime();
-                    try{
+                    } else {
+                        var res = (new Date()).getTime() - resDate.getTime();
                         await job(monitor, res);
-                    }catch(error){
-                        ErrorService.log('iotCron.job', error);
-                        throw error;
-                    }        
-                }
-            });
-        } else {
-            return;
+                    }
+                });
+            } else {
+                return;
+            }
+        } catch (error) {
+            ErrorService.log('iotCron.checkAllDeviceMonitor', error);
+            throw error;
         }
     }
 };
 
 var job = async (monitor, res) => {
-    if (res) {
-        try{
+    try {
+        if (res) {
             await MonitorService.setMonitorTime(monitor._id, res, 'online');
-        }catch(error){
-            ErrorService.log('MonitorService.setMonitorTime', error);
-            throw error;
-        }
-        try{
             var incident = await IncidentService.findBy({ monitorId: monitor._id, createdById: null, resolved: false,manuallyCreated:false });
-        }catch(error){
-            ErrorService.log('IncidentService.findBy', error);
-            throw error;
-        }
-        if (incident.length) {
-            try{
+            if (incident.length) {
                 incident = await IncidentService.resolve({ incidentId: incident[0]._id }, null);
-            }catch(error){
-                ErrorService.log('IncidentService.resolve', error);
-                throw error;
-            }
-            try{
                 await ZapierService.pushToZapier('incident_resolve', incident);
-            }catch(error){
-                ErrorService.log('ZapierService.pushToZapier', error);
-                throw error;
+            }
+        } else {
+            await MonitorService.setMonitorTime(monitor._id, 0, 'offline');
+            var incident1 = await IncidentService.findBy({ monitorId: monitor._id, createdById: null, resolved: false,manuallyCreated:false });
+            if (!incident1.length) {
+                incident1 = await IncidentService.createIncident({ monitorId: monitor._id, projectId: monitor.projectId }, null);
+                await ZapierService.pushToZapier('incident_created', incident1);
             }
         }
-    } else {
-        try{
-            await MonitorService.setMonitorTime(monitor._id, 0, 'offline');
-        }catch(error){
-            ErrorService.log('MonitorService.setMonitorTime', error);
-            throw error;
-        }
-        var incident1 = await IncidentService.findBy({ monitorId: monitor._id, createdById: null, resolved: false,manuallyCreated:false });
-        if (!incident1.length) {
-            incident1 = await IncidentService.createIncident({ monitorId: monitor._id, projectId: monitor.projectId }, null);
-            await ZapierService.pushToZapier('incident_created', incident1);
-        }
+    } catch (error) {
+        ErrorService.log('iotCron.job', error);
+        throw error;
     }
 };

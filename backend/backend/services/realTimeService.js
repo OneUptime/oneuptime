@@ -10,7 +10,7 @@ module.exports = {
             
             CB.CloudNotification.publish(`incidentCreated-${projectId}`, incident);
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`incidentCreated`)', error);
+            ErrorService.log('realTimeService.sendIncidentCreated', error);
             throw error;
         }
     },
@@ -22,7 +22,7 @@ module.exports = {
             
             CB.CloudNotification.publish(`createMonitor-${projectId}`, monitor);
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`createMonitor`)', error);
+            ErrorService.log('realTimeService.sendMonitorCreated', error);
             throw error;
         }
     },
@@ -34,7 +34,7 @@ module.exports = {
 
             CB.CloudNotification.publish(`deleteMonitor-${projectId}`, monitor);
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`deleteMonitor`)', error);
+            ErrorService.log('realTimeService.sendMonitorDelete', error);
             throw error;
         }
     },
@@ -46,7 +46,7 @@ module.exports = {
 
             CB.CloudNotification.publish(`incidentResolved-${projectId}`, incident);
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`incidentResolved`)', error);
+            ErrorService.log('realTimeService.incidentResolved', error);
             throw error; 
         }
     },
@@ -58,7 +58,7 @@ module.exports = {
 
             CB.CloudNotification.publish(`incidentAcknowledged-${projectId}`, incident);
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`incidentAcknowledged`)', error);
+            ErrorService.log('realTimeService.incidentAcknowledged', error);
             throw error;
         }
     },
@@ -70,7 +70,7 @@ module.exports = {
             
             CB.CloudNotification.publish(`updateMonitor-${projectId}`, monitor);
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`updateMonitor`)', error);
+            ErrorService.log('realTimeService.monitorEdit', error);
             throw error;
         }
     },
@@ -82,11 +82,7 @@ module.exports = {
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             CB.CloudNotification.publish(`updateResponseTime-${projectId}`, data);          
         } catch (error) {
-            if (error.message.indexOf('at path "_id"') !== -1) {
-                ErrorService.log('ProjectService.findOneBy', error);
-            } else {
-                ErrorService.log('CB.CloudNotification.publish(`updateResponseTime`)', error);
-            }
+            ErrorService.log('realTimeService.updateResponseTime', error);
             throw error;
         }
     },
@@ -98,7 +94,7 @@ module.exports = {
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             CB.CloudNotification.publish(`updateMonitorLog-${projectId}`, { projectId, monitorId, data });
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`updateMonitorLog`)', error);
+            ErrorService.log('realTimeService.updateMonitorLog', error);
             throw error;
         }
     },
@@ -111,7 +107,7 @@ module.exports = {
             
             CB.CloudNotification.publish(`updateProbe-${projectId}`, data);
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`updateProbe`)', error);
+            ErrorService.log('realTimeService.updateProbe', error);
             throw error;
         }
     },
@@ -123,11 +119,7 @@ module.exports = {
             
             CB.CloudNotification.publish(`NewNotification-${projectId}`, data);          
         } catch (error) {
-            if (error.message.indexOf('at path "_id"') !== -1) {
-                ErrorService.log('ProjectService.findOneBy', error);
-            } else {
-                ErrorService.log('CB.CloudNotification.publish(`NewNotification`)', error);
-            }
+            ErrorService.log('realTimeService.sendNotification', error);
             throw error;
         }
     },
@@ -139,7 +131,7 @@ module.exports = {
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             CB.CloudNotification.publish(`TeamMemberRoleUpdate-${projectId}`, data);
         } catch (error) {
-            ErrorService.log('CB.CloudNotification.publish(`TeamMemberRoleUpdate`)', error);
+            ErrorService.log('realTimeService.updateTeamMemberRole', error);
             throw error;
         }
     },
@@ -151,11 +143,7 @@ module.exports = {
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             CB.CloudNotification.publish(`TeamMemberCreate-${projectId}`, data);
         } catch (error) {
-            if (error.message.indexOf('at path "_id"') !== -1) {
-                ErrorService.log('ProjectService.findOneBy', error);
-            } else {
-                ErrorService.log('CB.CloudNotification.publish(`TeamMemberCreate`)', error);
-            }
+            ErrorService.log('realTimeService.createTeamMember', error);
             throw error;
         }
     },
@@ -167,11 +155,7 @@ module.exports = {
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             CB.CloudNotification.publish(`TeamMemberDelete-${projectId}`, data);        
         } catch (error) {
-            if (error.message.indexOf('at path "_id"') !== -1) {
-                ErrorService.log('ProjectService.findOneBy', error);
-            } else {
-                ErrorService.log('CB.CloudNotification.publish(`TeamMemberDelete`)', error);
-            }
+            ErrorService.log('realTimeService.deleteTeamMember', error);
             throw error;
         }
     },
