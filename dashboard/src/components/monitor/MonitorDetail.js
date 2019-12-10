@@ -103,8 +103,16 @@ export class MonitorDetail extends Component {
         const data = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(probeLogs => {
             return probeLogs._id === null || probeLogs._id === probe._id
         }) : [];
+        const probeData = data && data.length > 0 ? data[0].logs : [];
 
-        return data && data.length > 0 ? data[0].logs : [];
+        return probeData && probeData.length > 0 ? probeData.filter(
+            log => moment(new Date(log.createdAt)).isBetween(
+                new Date(this.state.startDate),
+                new Date(this.state.endDate),
+                'day',
+                '[]'
+            )
+        ) : [];
     }
 
     render() {

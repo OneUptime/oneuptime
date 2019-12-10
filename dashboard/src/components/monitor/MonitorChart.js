@@ -17,7 +17,7 @@ const calculateTime = (incidents, activeProbe) => {
         let dayStartIn = dayStart;
         let dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
         let timeObj = {
-            date: dayStart,
+            date: dayStart.toString(),
             downTime: 0,
             upTime: 0,
             degradedTime: 0
