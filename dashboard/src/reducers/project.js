@@ -24,8 +24,14 @@ const initialState = {
         success: false,
         requesting: false,
         error: null
-    },
+    },  
     addBalance: {
+        success: false,
+        requesting: false,
+        error: null,
+        pi: {}
+    },
+    checkCard: {
         success: false,
         requesting: false,
         error: null,
@@ -515,6 +521,35 @@ export default function project(state = initialState, action) {
                     pi: {},
                     success: false,
                     requesting: false,
+                    error: action.payload
+                }
+            });
+        case types.CHECK_CARD_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+                checkCard: {
+                    ...state.checkCard,
+                    requesting: true
+                }
+            });
+
+        case types.CHECK_CARD_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+                checkCard: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    pi: action.payload
+                }
+            });
+
+        case types.CHECK_CARD_FAILED:
+            return Object.assign({}, state, {
+                ...state,
+                checkCard: {
+                    requesting: false,
+                    success: false,
                     error: action.payload
                 }
             });

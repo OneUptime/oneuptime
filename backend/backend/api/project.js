@@ -74,60 +74,33 @@ router.post('/create', getUser, async function (req, res) {
 
         if (!user.stripeCustomerId) {
 
-            if (!data.cardNumber) {
+            if (!data.paymentIntent) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Card number must be present.'
+                    message: 'Payment intent is not present.'
                 });
             }
 
-            if (typeof data.cardNumber !== 'string') {
+            if (typeof data.paymentIntent !== 'string') {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Card number is not in string format.'
-                });
-            }
-
-            if (!data.cvv) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Card cvv must be present.'
-                });
-            }
-
-            if (typeof data.cvv !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Card cvv is not in string format.'
-                });
-            }
-
-            if (!data.expiry) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Card expiry must be present.'
-                });
-            }
-
-            if (typeof data.expiry !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Card expiry is not in string format.'
-                });
-            }
-
-            if (data.expiry.length == 6) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Card expiry is not in proper format.'
+                    message: 'Payment intent is not in string format.'
                 });
             }
 
             try {
-                var stripeToken = await PaymentService.createToken(data.cardNumber, data.cvc, data.expiry.split('/')[0], data.expiry.split('/')[1], data.zipCode);
-                var customerId = await PaymentService.createCustomer(stripeToken, user.email, user.companyName);
-                user = await UserService.update({ _id: userId, stripeCustomerId: customerId });
-                var subscriptionnew = await PaymentService.subscribePlan(stripePlanId, customerId);
+                var paymentIntent = {
+                    id: data.paymentIntent
+                };
+                var checkedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
+                if (checkedPaymentIntent.status !== 'succeeded') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Unsuccessful attempt to charge card'
+                    });
+                }
+                user = await UserService.update({ _id: userId, stripeCustomerId: checkedPaymentIntent.customer });
+                var subscriptionnew = await PaymentService.subscribePlan(stripePlanId, checkedPaymentIntent.customer);
                 if (!data.stripeSubscriptionId) {
                     data.stripeSubscriptionId = subscriptionnew.stripeSubscriptionId;
                 }
