@@ -337,7 +337,8 @@ module.exports = {
                     incidents.map(async (incident) => {
                         incident = incident.toObject();
                         incident.probes.some(probe => {
-                            if (probe.probeId === data.probeId.toString()) {
+                            const probeId = data.probeId ? data.probeId.toString() : null;
+                            if (probe.probeId === probeId) {
                                 incidentsV1.push(incident);
                                 return true;
                             }

@@ -55,7 +55,7 @@ function ProbeBar({ index, name, status, selectbutton, activeProbe, lastAlive })
             disabled={false}
             onClick={() => selectbutton(index)}
             className={activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-            <span style={lastAlive && moment(now).diff(moment(lastAlive), 'minutes') > 1 ?
+            <span style={(lastAlive && moment(now).diff(moment(lastAlive), 'minutes') > 1) || !lastAlive ?
                 greyBackground
                 :
                 (status === 'offline' ? redBackground : (status === 'degraded' ? yellowBackground : greenBackground))

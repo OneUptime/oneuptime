@@ -353,9 +353,9 @@ export function fetchMonitorsSubscribersFailure(error) {
 }
 
 // Fetch Monitor Logs list
-export function fetchMonitorLogs(projectId, monitorId) {
+export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
-        var promise = getApi(`monitor/${projectId}/log/${monitorId}`);
+        var promise = getApi(`monitor/${projectId}/log/${monitorId}?startDate=${startDate}&endDate=${endDate}`);
         dispatch(fetchMonitorLogsRequest());
 
         promise.then(function (monitorLogs) {
