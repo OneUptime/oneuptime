@@ -16,14 +16,16 @@ const initialState = {
         success: false,
         notifications: []
     },
-    notificationsVisible: false
+    notificationsVisible: false,
+    notificationsPosition: 0
 };
 
 export default (state = initialState, action) => {
     switch (action.type) {
         case OPEN_NOTIFICATION_MENU:
             return Object.assign({}, state, {
-                notificationsVisible: true
+                notificationsVisible: true,
+                notificationsPosition: action.payload
             });
 
         case CLOSE_NOTIFICATION_MENU:
