@@ -317,6 +317,31 @@ module.exports = {
         }
     },
 
+    getIncidents: async function (query) {
+        try {
+            var _this = this;
+
+            if (!query) query = {};
+            var statuspages = await _this.findBy(query);
+
+            const withMonitors = statuspages.filter((statusPage) => statusPage.monitorIds.length);
+            let statuspage = withMonitors[0];
+            var monitorIds = statuspage.monitorIds.map(m => m._id);
+            if (monitorIds && monitorIds.length) {
+                var incidents = await IncidentService.findBy({ monitorId: { $in: monitorIds } });
+                var count = await IncidentService.countBy({ monitorId: { $in: monitorIds } });
+                return { incidents, count };
+            }
+            else {
+                let error = new Error('No monitor to check');
+                error.code = 400;
+                throw error;
+            }
+        } catch (error) {
+            ErrorService.log('StatusPageService.getIncidents', error);
+            throw error;
+        }
+    },
     isPermitted: async function (user, statusPage) {
         return new Promise(async (resolve) => {
             if (statusPage.isPrivate) {

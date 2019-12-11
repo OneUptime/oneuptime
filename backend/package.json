@@ -21,6 +21,7 @@
     "imap": "^0.8.19",
     "iplocation": "^6.1.0",
     "jsonwebtoken": "^8.5.1",
+    "jstoxml": "^1.6.0",
     "lodash": "^4.17.15",
     "mailparser": "^2.7.1",
     "moment": "^2.24.0",
