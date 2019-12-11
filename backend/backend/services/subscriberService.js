@@ -19,7 +19,7 @@ module.exports = {
         return await _this.findByOne({ _id: subscriber._id });
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -32,7 +32,7 @@ module.exports = {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('subscriberService.updateBy', error);
+            ErrorService.log('subscriberService.updateOneBy', error);
             throw error;
         }
 
@@ -184,7 +184,7 @@ module.exports = {
         if (subscriber && subscriber.length > 1) {
             const subscribers = await Promise.all(subscriber.map(async (subscriber) => {
                 const subscriberId = subscriber._id;
-                subscriber = await _this.updateBy({ _id: subscriberId, deleted: true }, {
+                subscriber = await _this.updateOneBy({ _id: subscriberId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -196,7 +196,7 @@ module.exports = {
             subscriber = subscriber[0];
             if (subscriber) {
                 const subscriberId = subscriber._id;
-                subscriber = await _this.updateBy({ _id: subscriberId, deleted: true }, {
+                subscriber = await _this.updateOneBy({ _id: subscriberId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null

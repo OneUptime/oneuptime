@@ -109,7 +109,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -133,7 +133,7 @@ module.exports = {
             });
             return updatedUser;
         } catch (error) {
-            ErrorService.log('userService.updateBy', error);
+            ErrorService.log('userService.updateOneBy', error);
             throw error;
         }
     },
@@ -166,7 +166,7 @@ module.exports = {
                 var verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
                 MailService.sendVerifyEmail(verificationTokenURL, user.name, email);
                 if (email !== user.email) {
-                    _this.updateBy({ _id: user._id }, { tempEmail: email });
+                    _this.updateOneBy({ _id: user._id }, { tempEmail: email });
                 }
             }
             return verificationToken.token;
@@ -226,7 +226,7 @@ module.exports = {
                     await _this.sendToken(user, user.email);
 
                     //update customer Id
-                    user = await _this.updateBy({ _id: user._id }, { stripeCustomerId: customerId });
+                    user = await _this.updateOneBy({ _id: user._id }, { stripeCustomerId: customerId });
                     var subscription = await PaymentService.subscribePlan(stripePlanId, customerId, data.coupon);
 
                     var projectName = 'Unnamed Project';
@@ -290,7 +290,7 @@ module.exports = {
                         var daysAfterPaymentFailed = Math.round((new Date - user.paymentFailedDate) / oneDayInMilliSeconds);
 
                         if (daysAfterPaymentFailed >= 15) {
-                            user = await _this.updateBy({ _id: user._id }, { disabled: true });
+                            user = await _this.updateOneBy({ _id: user._id }, { disabled: true });
 
                             let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
                             error.code = 400;
@@ -362,7 +362,7 @@ module.exports = {
                     var token = buf.toString('hex');
 
                     //update a user.
-                    user = await _this.updateBy({
+                    user = await _this.updateOneBy({
                         _id: user._id
                     }, {
                         resetPasswordToken: token,
@@ -404,7 +404,7 @@ module.exports = {
                 var hash = await bcrypt.hash(password, constants.saltRounds);
 
                 //update a user.
-                user = await _this.updateBy({
+                user = await _this.updateOneBy({
                     _id: user._id
                 }, {
                     password: hash,
@@ -440,7 +440,7 @@ module.exports = {
                 var accessToken = `${jwt.sign(userObj, jwtKey.jwtSecretKey, { expiresIn: 86400 })}`;
                 var jwtRefreshToken = randToken.uid(256);
 
-                user = await _this.updateBy({ _id: user._id }, { jwtRefreshToken: jwtRefreshToken });
+                user = await _this.updateOneBy({ _id: user._id }, { jwtRefreshToken: jwtRefreshToken });
 
                 var token = {
                     accessToken: accessToken,
@@ -468,7 +468,7 @@ module.exports = {
                 var hash = await bcrypt.hash(newPassword, constants.saltRounds);
 
                 data.password = hash;
-                user = await _this.updateBy({ _id: data._id }, data);
+                user = await _this.updateOneBy({ _id: data._id }, data);
 
                 return user;
             } else {
@@ -512,7 +512,7 @@ module.exports = {
         if (user && user.length > 1) {
             const users = await Promise.all(user.map(async (user) => {
                 const userId = user._id;
-                user = await _this.updateBy({
+                user = await _this.updateOneBy({
                     _id: userId
                 }, {
                     deleted: false,
@@ -526,7 +526,7 @@ module.exports = {
             user = user[0];
             if (user) {
                 const userId = user._id;
-                user = await _this.updateBy({
+                user = await _this.updateOneBy({
                     _id: userId
                 }, {
                     deleted: false,
@@ -540,7 +540,7 @@ module.exports = {
 
     addNotes: async function (userId, notes) {
         const _this = this;
-        let adminNotes = (await _this.updateBy({
+        let adminNotes = (await _this.updateOneBy({
             _id: userId
         }, {
             adminNotes: notes

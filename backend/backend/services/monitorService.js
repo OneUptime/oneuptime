@@ -86,7 +86,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -107,7 +107,7 @@ module.exports = {
             await RealTimeService.monitorEdit(monitor);
             return monitor;
         } catch (error) {
-            ErrorService.log('monitorService.updateBy', error);
+            ErrorService.log('monitorService.updateOneBy', error);
             throw error;
         }
     },
@@ -213,7 +213,7 @@ module.exports = {
                 if (projectSeats && projectSeats > seats && monitorsCount > 0 && monitorsCount <= ((projectSeats - 1) * 5)) {
                     projectSeats = projectSeats - 1;
                     await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
-                    await ProjectService.updateBy({ _id: project._id},{ seats: projectSeats.toString() });
+                    await ProjectService.updateOneBy({ _id: project._id},{ seats: projectSeats.toString() });
                 }
                 var incidents = await IncidentService.findBy({ monitorId: monitor._id });
 
@@ -282,7 +282,7 @@ module.exports = {
         try {
             var newdate = new Date();
             var thisObj = this;
-            var monitors = await thisObj.updateBy({
+            var monitors = await thisObj.updateOneBy({
                 _id: id, deleted: false
             }, { $set: { 'lastPingTime': newdate } }, { multi: false });
             if (monitors.length > 0) {
@@ -451,7 +451,7 @@ module.exports = {
         if (monitor && monitor.length > 1) {
             const monitors = await Promise.all(monitor.map(async (monitor) => {
                 const monitorId = monitor._id;
-                monitor = await _this.updateBy({ _id: monitorId, deleted: true }, {
+                monitor = await _this.updateOneBy({ _id: monitorId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -465,7 +465,7 @@ module.exports = {
             monitor = monitor[0];
             if (monitor) {
                 const monitorId = monitor._id;
-                monitor = await _this.updateBy({ _id: monitorId, deleted: true }, {
+                monitor = await _this.updateOneBy({ _id: monitorId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null

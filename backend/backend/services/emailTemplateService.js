@@ -15,7 +15,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -32,7 +32,7 @@ module.exports = {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('EmailTemplateService.updateBy', error);
+            ErrorService.log('EmailTemplateService.updateOneBy', error);
             throw error;
         }
 
@@ -133,7 +133,7 @@ module.exports = {
         let _this = this;
         var oldTemplate = await _this.findOneBy({ _id: templateId });
         var newTemplate = defaultTemplate.filter(template => template.emailType === oldTemplate.emailType)[0];
-        var resetTemplate = await _this.updateBy({
+        var resetTemplate = await _this.updateOneBy({
             _id: oldTemplate._id},{
             emailType: newTemplate.emailType,
             subject: newTemplate.subject,

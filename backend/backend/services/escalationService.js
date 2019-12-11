@@ -99,7 +99,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -112,7 +112,7 @@ module.exports = {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('escalationService.updateBy', error);
+            ErrorService.log('escalationService.updateOneBy', error);
             throw error;
         }
         return escalation;
@@ -126,7 +126,7 @@ module.exports = {
             if (escalations && escalations.length > 0) {
                 await Promise.all(escalations.map(async(escalation)=>{
                     var teamMembers = escalation.teamMember.filter(member => member.member.toString() !== memberId.toString());
-                    await _this.updateBy({ _id: escalation._id }, { teamMember: teamMembers });
+                    await _this.updateOneBy({ _id: escalation._id }, { teamMember: teamMembers });
                 }));
             }
         } catch (error) {
@@ -152,7 +152,7 @@ module.exports = {
         if (escalation && escalation.length > 1) {
             const escalations = await Promise.all(escalation.map(async (escalation) => {
                 const escalationId = escalation._id;
-                escalation = await _this.updateBy({ _id: escalationId, deleted: true }, {
+                escalation = await _this.updateOneBy({ _id: escalationId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -164,7 +164,7 @@ module.exports = {
             escalation = escalation[0];
             if (escalation) {
                 const escalationId = escalation._id;
-                escalation = await _this.updateBy({ _id: escalationId, deleted: true }, {
+                escalation = await _this.updateOneBy({ _id: escalationId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null

@@ -12,14 +12,14 @@ module.exports = {
             monitorStatus.status = data.status;
             monitorStatus = monitorStatus.save();
             if (previousMonitorStatus) {
-                this.updateBy({
+                this.updateOneBy({
                     _id: previousMonitorStatus._id},{
                     endTime: Date.now()
                 });
             }
         }
     },
-    updateBy: async function (query,data) {
+    updateOneBy: async function (query,data) {
         if (!query) {
             query = {};
         }
@@ -31,7 +31,7 @@ module.exports = {
             });
             return updatedMonitorStatus;
         } catch (error) {
-            ErrorService.log('MonitorStatusService.updateBy', error);
+            ErrorService.log('MonitorStatusService.updateOneBy', error);
             throw error;
         }
     },

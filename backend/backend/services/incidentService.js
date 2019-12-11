@@ -138,7 +138,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -158,7 +158,7 @@ module.exports = {
                 $set: data
             }, { new: true });
         } catch (error) {
-            ErrorService.log('incidentService.updateBy', error);
+            ErrorService.log('incidentService.updateOneBy', error);
             throw error;
         }
         return updatedIncident;
@@ -205,7 +205,7 @@ module.exports = {
             var _this = this;
             var incident = await _this.findOneBy({ _id: incidentId, acknowledged: false });
             if (incident) {
-                incident = await _this.updateBy({
+                incident = await _this.updateOneBy({
                     _id: incident._id
                 }, {
                     acknowledged: true,
@@ -266,7 +266,7 @@ module.exports = {
             data.resolvedAt = Date.now();
             data.resolvedByZapier = zapier;
 
-            incident = await _this.updateBy({ _id: incidentId }, data);
+            incident = await _this.updateOneBy({ _id: incidentId }, data);
             incident = await _this.findOneBy({ _id: incident._id });
 
             await _this.sendIncidentResolvedNotification(incident, name);
@@ -292,7 +292,7 @@ module.exports = {
         var incidentsUnresolved = await _this.findBy({ projectId: { $in: subProjectIds }, resolved: false });
         incidentsUnresolved = incidentsUnresolved.map(incident => {
             if (incident.notClosedBy.indexOf(userId) < 0) {
-                return _this.updateBy({ _id: incident._id }, { notClosedBy: [userId] });
+                return _this.updateOneBy({ _id: incident._id }, { notClosedBy: [userId] });
             }
             else {
                 return incident;
@@ -410,7 +410,7 @@ module.exports = {
         if (incident && incident.length > 1) {
             const incidents = await Promise.all(incident.map(async (incident) => {
                 const incidentId = incident._id;
-                incident = await _this.updateBy({
+                incident = await _this.updateOneBy({
                     _id: incidentId
                 }, {
                     deleted: false,
@@ -424,7 +424,7 @@ module.exports = {
             incident = incident[0];
             if (incident) {
                 const incidentId = incident._id;
-                incident = await _this.updateBy({
+                incident = await _this.updateOneBy({
                     _id: incidentId
                 }, {
                     deleted: false,

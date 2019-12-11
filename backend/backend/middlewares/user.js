@@ -57,7 +57,7 @@ module.exports = {
                         }else{
                             req.authorizationType = 'USER';
                         }
-                        UserService.updateBy({ _id: req.user.id},{ lastActive: Date.now() });
+                        UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
                         next();
                     });
                 }
@@ -96,7 +96,7 @@ module.exports = {
                     } else {
                         req.authorizationType = 'USER';
                         req.user = decoded;
-                        UserService.updateBy({ _id: req.user.id},{ lastActive: Date.now() });
+                        UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
                         next();
                     }
                 });
@@ -130,7 +130,7 @@ module.exports = {
                     } else {
                         req.authorizationType = 'USER';
                         req.user = decoded;
-                        UserService.updateBy({ _id: req.user.id},{ lastActive: Date.now() });
+                        UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
                         var userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
                         var projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
                         if (!projectId) {

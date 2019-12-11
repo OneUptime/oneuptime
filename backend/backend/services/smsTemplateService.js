@@ -15,7 +15,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -28,7 +28,7 @@ module.exports = {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('smsTemplateService.updateBy', error);
+            ErrorService.log('smsTemplateService.updateOneBy', error);
             throw error;
         }
 
@@ -134,7 +134,7 @@ module.exports = {
         let _this = this;
         var oldTemplate = await _this.findOneBy({ _id: templateId });
         var newTemplate = defaultSmsTemplate.filter(template => template.smsType === oldTemplate.smsType)[0];
-        var resetTemplate = await _this.updateBy({
+        var resetTemplate = await _this.updateOneBy({
             _id: oldTemplate._id},{
             smsType: newTemplate.smsType,
             body: newTemplate.body,

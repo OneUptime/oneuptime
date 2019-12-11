@@ -127,7 +127,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             var _this = this;
             if (!query) {
@@ -148,7 +148,7 @@ module.exports = {
             );
             return updatedProject;
         } catch (error) {
-            ErrorService.log('projectService.updateBy', error);
+            ErrorService.log('projectService.updateOneBy', error);
             throw error;
         }
     },
@@ -242,7 +242,7 @@ module.exports = {
         try {
             var _this = this;
             var apiKey = uuidv1();
-            var project = await _this.updateBy({ _id: projectId }, { apiKey: apiKey });
+            var project = await _this.updateOneBy({ _id: projectId }, { apiKey: apiKey });
             return project;
         } catch (error) {
             ErrorService.log('projectService.resetApiKey', error);
@@ -253,7 +253,7 @@ module.exports = {
     changePlan: async function (projectId, planId) {
         try {
             var _this = this;
-            var project = await _this.updateBy({ _id: projectId }, { stripePlanId: planId });
+            var project = await _this.updateOneBy({ _id: projectId }, { stripePlanId: planId });
 
             if (!project.stripeSubscriptionId) {
                 let error = new Error('You have not subscribed to a plan.');
@@ -264,7 +264,7 @@ module.exports = {
             var trialLeft = moment(new Date()).diff(moment(project.createdAt), 'days');
             var stripeSubscriptionId = await PaymentService.changePlan(project.stripeSubscriptionId, planId, project.users.length, trialLeft);
 
-            project = await _this.updateBy({ _id: project._id }, { stripeSubscriptionId: stripeSubscriptionId });
+            project = await _this.updateOneBy({ _id: project._id }, { stripeSubscriptionId: stripeSubscriptionId });
             return project;
         } catch (error) {
             ErrorService.log('projectService.changePlan', error);
@@ -291,7 +291,7 @@ module.exports = {
                     }
                 }
 
-                await _this.updateBy({ _id: projectId }, { users: remainingUsers });
+                await _this.updateOneBy({ _id: projectId }, { users: remainingUsers });
                 await EscalationService.removeEscalationMember(projectId, userId);
                 var countUserInSubProjects = await _this.findBy({ parentProjectId: project._id, 'users.userId': userId });
 
@@ -322,7 +322,7 @@ module.exports = {
                             projectSeats = projectSeats - 1;
                             await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
                         }
-                        await _this.updateBy({ _id: project._id }, { seats: projectSeats.toString() });
+                        await _this.updateOneBy({ _id: project._id }, { seats: projectSeats.toString() });
                     }
                 }
             }
@@ -406,7 +406,7 @@ module.exports = {
                 let projectOwner = project.users.find(user => user.role === 'Owner');
                 projectOwner = await UserService.findOneBy({ _id: projectOwner.userId });
                 const subscription = await PaymentService.subscribePlan(project.stripePlanId, projectOwner.stripeCustomerId);
-                project = await _this.updateBy({ _id: projectId }, {
+                project = await _this.updateOneBy({ _id: projectId }, {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
@@ -428,7 +428,7 @@ module.exports = {
                 let projectOwner = project.users.find(user => user.role === 'Owner');
                 projectOwner = await UserService.findOneBy({ _id: projectOwner.userId });
                 const subscription = await PaymentService.subscribePlan(project.stripePlanId, projectOwner.stripeCustomerId);
-                project = await _this.updateBy({ _id: projectId }, {
+                project = await _this.updateOneBy({ _id: projectId }, {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
@@ -447,7 +447,7 @@ module.exports = {
 
     addNotes: async function (projectId, notes) {
         const _this = this;
-        let adminNotes = (await _this.updateBy({ _id: projectId }, {
+        let adminNotes = (await _this.updateOneBy({ _id: projectId }, {
             adminNotes: notes
         })).adminNotes;
         return adminNotes;

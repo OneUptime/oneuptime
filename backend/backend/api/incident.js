@@ -209,7 +209,7 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
             });
         }
         // Call the IncidentService
-        var incident = await IncidentService.updateBy({_id:incidentId},data);
+        var incident = await IncidentService.updateOneBy({_id:incidentId},data);
         if (incident && incident._id) {
             incident = await IncidentService.findOneBy({ _id: incident._id, projectId: incident.projectId });
         }

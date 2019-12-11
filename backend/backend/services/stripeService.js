@@ -9,7 +9,7 @@ const Services = {
             await MailService.sendPaymentFailedEmail(project.name, user.email, user.name, chargeAttemptStage);
 
             if (chargeAttemptCount === 3) {
-                await UserService.updateBy({ _id: user._id},{ paymentFailedDate: new Date });
+                await UserService.updateOneBy({ _id: user._id},{ paymentFailedDate: new Date });
             }
             return { paymentStatus: 'failed' };
         } catch (error) {

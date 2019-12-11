@@ -101,7 +101,7 @@ router.post('/signup', async function (req, res) {
                 var hash = await bcrypt.hash(data.password, constants.saltRounds);
                 // creating jwt refresh token
                 var jwtRefreshToken = randToken.uid(256);
-                user = await UserService.updateBy({ _id: user._id},{ name: data.name, password: hash, jwtRefreshToken: jwtRefreshToken });
+                user = await UserService.updateOneBy({ _id: user._id},{ name: data.name, password: hash, jwtRefreshToken: jwtRefreshToken });
 
                 // Call the MailService.
                 MailService.sendSignupMail(user.email, user.name);
@@ -397,7 +397,7 @@ router.put('/profile', getUser, async function (req, res) {
             }
 
             // Call the UserService
-            var user = await UserService.updateBy({_id : userId},data);
+            var user = await UserService.updateOneBy({_id : userId},data);
             return sendItemResponse(req, res, user);
         });
     } catch (error) {
@@ -427,7 +427,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, 
             }
 
             // Call the UserService
-            var user = await UserService.updateBy({_id : userId},data);
+            var user = await UserService.updateOneBy({_id : userId},data);
             return sendItemResponse(req, res, user);
         });
     } catch (error) {
@@ -697,7 +697,7 @@ router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function (r
 router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const userId = req.params.userId;
-        const user = await UserService.updateBy({ _id: userId},{ isBlocked: true });
+        const user = await UserService.updateOneBy({ _id: userId},{ isBlocked: true });
         return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -707,7 +707,7 @@ router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (req
 router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const userId = req.params.userId;
-        const user = await UserService.updateBy({ _id: userId},{ isBlocked: false });
+        const user = await UserService.updateOneBy({ _id: userId},{ isBlocked: false });
         return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);

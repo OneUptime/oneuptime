@@ -19,7 +19,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -39,7 +39,7 @@ module.exports = {
                 updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
             }
         } catch (error) {
-            ErrorService.log('smsSmtpService.updateBy', error);
+            ErrorService.log('smsSmtpService.updateOneBy', error);
             throw error;
         }
 

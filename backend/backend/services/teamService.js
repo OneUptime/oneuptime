@@ -229,15 +229,15 @@ module.exports = {
 
             if(subProject){
                 members = members.concat(subProject.users);
-                await ProjectService.updateBy({_id: subProject._id},{ users: members});
+                await ProjectService.updateOneBy({_id: subProject._id},{ users: members});
             }else{
                 let allProjectMembers = members.concat(project.users);
-                await ProjectService.updateBy({_id: projectId},{ users: allProjectMembers});
+                await ProjectService.updateOneBy({_id: projectId},{ users: allProjectMembers});
                 var subProjects = await ProjectService.findBy({parentProjectId: project._id});
                 // add user to all subProjects
                 await Promise.all(subProjects.map(async(subProject)=>{
                     let subProjectMembers = members.concat(subProject.users);
-                    await ProjectService.updateBy({_id: subProject._id},{ users: subProjectMembers});
+                    await ProjectService.updateOneBy({_id: subProject._id},{ users: subProjectMembers});
                 }));
             }
             projectUsers = await _this.getTeamMembersBy({ parentProjectId: project._id });
@@ -250,7 +250,7 @@ module.exports = {
 
             await PaymentService.changeSeats(project.stripeSubscriptionId, newProjectSeats);
 
-            await ProjectService.updateBy({ _id: project._id},{ seats: newProjectSeats.toString() });
+            await ProjectService.updateOneBy({ _id: project._id},{ seats: newProjectSeats.toString() });
 
             var response = [];
             var team = await _this.getTeamMembersBy({ _id: project._id });

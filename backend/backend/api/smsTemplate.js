@@ -81,7 +81,7 @@ router.put('/:projectId/smsTemplate/:smsTemplateId', getUser, isAuthorized, asyn
         var smsTemplateId = req.params.smsTemplateId;
         // Call the SMSTemplateService
         data.body = await DOMPurify.sanitize(data.body);
-        var smsTemplate = await SmsTemplateService.updateBy({_id : smsTemplateId},data);
+        var smsTemplate = await SmsTemplateService.updateOneBy({_id : smsTemplateId},data);
         return sendItemResponse(req, res, smsTemplate);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -106,7 +106,7 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res){
             data.push(value);
         }
         for(let value of data){
-            await SmsTemplateService.updateBy({_id : value._id},value);
+            await SmsTemplateService.updateOneBy({_id : value._id},value);
         }
         var smsTemplates = await SmsTemplateService.getTemplates(req.params.projectId);
         return sendItemResponse(req, res, smsTemplates);

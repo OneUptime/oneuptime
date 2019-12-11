@@ -75,7 +75,7 @@ router.put('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async 
     try {
         let scheduleId = req.params.scheduleId;
         let data = req.body;
-        let schedule = await ScheduleService.updateBy({_id : scheduleId},data);
+        let schedule = await ScheduleService.updateOneBy({_id : scheduleId},data);
         return sendItemResponse(req, res, schedule);
     } catch (error) {
         return sendErrorResponse(req, res, error);

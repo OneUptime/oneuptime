@@ -9,7 +9,7 @@ module.exports = {
         }
     },
 
-    updateBy: async (query, data) => {
+    updateOneBy: async (query, data) => {
         try {
             if (!query) {
                 query = {};
@@ -23,7 +23,7 @@ module.exports = {
             });
             return incidentafter;
         } catch (error) {
-            ErrorService.log('incidentSMSActionService.updateBy', error);
+            ErrorService.log('incidentSMSActionService.updateOneBy', error);
             throw error;
         }
     }

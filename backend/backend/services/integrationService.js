@@ -101,7 +101,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             var _this = this;
             if (!query) {
@@ -120,7 +120,7 @@ module.exports = {
             updatedIntegration = await _this.findOneBy({ _id: updatedIntegration._id });
             return updatedIntegration;
         } catch (error) {
-            ErrorService.log('IntegrationService.updateBy', error);
+            ErrorService.log('IntegrationService.updateOneBy', error);
             throw error;
         }
     },
@@ -149,7 +149,7 @@ module.exports = {
         if (integration && integration.length > 1) {
             const integrations = await Promise.all(integration.map(async (integration) => {
                 const integrationId = integration._id;
-                integration = await _this.updateBy({
+                integration = await _this.updateOneBy({
                     _id: integrationId
                 }, {
                     deleted: false,
@@ -163,7 +163,7 @@ module.exports = {
             integration = integration[0];
             if (integration) {
                 const integrationId = integration._id;
-                integration = await _this.updateBy({
+                integration = await _this.updateOneBy({
                     _id: integrationId
                 }, {
                     deleted: false,

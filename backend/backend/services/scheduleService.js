@@ -138,7 +138,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -175,7 +175,7 @@ module.exports = {
             schedule = await _this.findBy({ _id: query._id }, 10, 0);
             return schedule;
         } catch (error) {
-            ErrorService.log('scheduleService.updateBy', error);
+            ErrorService.log('scheduleService.updateOneBy', error);
             throw error;
         }
     },
@@ -208,7 +208,7 @@ module.exports = {
                 if (!data._id) {
                     escalation = await EscalationService.create(data);
                 } else {
-                    escalation = await EscalationService.updateBy({ _id: data._id }, data);
+                    escalation = await EscalationService.updateOneBy({ _id: data._id }, data);
                 }
                 escalationIds.push(escalation._id);
             }
@@ -216,7 +216,7 @@ module.exports = {
             if (escalationIds && escalationIds.length) {
                 await _this.escalationCheck(escalationIds, scheduleId, userId);
             }
-            await _this.updateBy({ _id: scheduleId }, { escalationIds: escalationIds });
+            await _this.updateOneBy({ _id: scheduleId }, { escalationIds: escalationIds });
 
             var escalations = await _this.getEscalation(scheduleId);
 
@@ -298,7 +298,7 @@ module.exports = {
         if (schedule && schedule.length > 1) {
             const schedules = await Promise.all(schedule.map(async (schedule) => {
                 const scheduleId = schedule._id;
-                schedule = await _this.updateBy({ _id: scheduleId, deleted: true }, {
+                schedule = await _this.updateOneBy({ _id: scheduleId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -311,7 +311,7 @@ module.exports = {
             schedule = schedule[0];
             if (schedule) {
                 const scheduleId = schedule._id;
-                schedule = await _this.updateBy({ _id: scheduleId, deleted: true }, {
+                schedule = await _this.updateOneBy({ _id: scheduleId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null

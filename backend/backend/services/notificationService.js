@@ -76,7 +76,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             let _this = this;
             if (!query) {
@@ -99,7 +99,7 @@ module.exports = {
             });
             return notification;
         } catch (error) {
-            ErrorService.log('notificationService.updateBy', error);
+            ErrorService.log('notificationService.updateOneBy', error);
             throw error;
         }
     },

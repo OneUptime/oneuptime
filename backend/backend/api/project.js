@@ -94,7 +94,7 @@ router.post('/create', getUser, async function (req, res) {
                         message: 'Unsuccessful attempt to charge card'
                     });
                 }
-                user = await UserService.updateBy({ _id: userId},{ stripeCustomerId: checkedPaymentIntent.customer });
+                user = await UserService.updateOneBy({ _id: userId},{ stripeCustomerId: checkedPaymentIntent.customer });
                 var subscriptionnew = await PaymentService.subscribePlan(stripePlanId, checkedPaymentIntent.customer);
                 if (!data.stripeSubscriptionId) {
                     data.stripeSubscriptionId = subscriptionnew.stripeSubscriptionId;
@@ -200,7 +200,7 @@ router.put('/:projectId/renameProject', getUser, isAuthorized, isUserOwner, asyn
                 message: 'New project name must be present.'
             });
         }
-        var project = await ProjectService.updateBy({_id: projectId},{ name: projectName });
+        var project = await ProjectService.updateOneBy({_id: projectId},{ name: projectName });
         return sendItemResponse(req, res, project);
     } catch (error) {
         sendErrorResponse(req, res, error);
@@ -495,7 +495,7 @@ router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (r
                 message: 'SubProject Name must be present.'
             });
         }
-        const subProject = await ProjectService.updateBy({_id:subProjectId},{name:subProjectName});
+        const subProject = await ProjectService.updateOneBy({_id:subProjectId},{name:subProjectName});
         return sendItemResponse(req, res, subProject);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -582,7 +582,7 @@ router.get('/projects/:projectId', getUser, isUserMasterAdmin, async function(re
 router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const projectId = req.params.projectId;
-        const project = await ProjectService.updateBy({ _id: projectId},{isBlocked: true });
+        const project = await ProjectService.updateOneBy({ _id: projectId},{isBlocked: true });
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -592,7 +592,7 @@ router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async functio
 router.put('/:projectId/unblockProject', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const projectId = req.params.projectId;
-        const project = await ProjectService.updateBy({ _id: projectId},{isBlocked: false });
+        const project = await ProjectService.updateOneBy({ _id: projectId},{isBlocked: false });
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);

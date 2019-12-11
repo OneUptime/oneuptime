@@ -60,7 +60,7 @@ router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (req,
         var smsSmtpId = req.params.smsSmtpId;
         let testResult = await TwilioService.test(data);
         if (testResult && !testResult.errorCode) {
-            var smsSmtp = await SmsSmtpService.updateBy({_id : smsSmtpId},data);
+            var smsSmtp = await SmsSmtpService.updateOneBy({_id : smsSmtpId},data);
             return sendItemResponse(req, res, smsSmtp);
         }
     } catch (error) {
@@ -73,7 +73,7 @@ router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function (re
     try {
         var data = req.body;
         var smsSmtpId = req.params.smsSmtpId;
-        var smsSmtp = await SmsSmtpService.updateBy({_id : smsSmtpId},data);
+        var smsSmtp = await SmsSmtpService.updateOneBy({_id : smsSmtpId},data);
         return sendItemResponse(req, res, smsSmtp);
     } catch (error) {
         return sendErrorResponse(req, res, error);

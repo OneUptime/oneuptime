@@ -39,7 +39,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query,data) {
+    updateOneBy: async function (query,data) {
         if (!query) {
             query = {};
         }
@@ -51,7 +51,7 @@ module.exports = {
             }, { new: true });
             return updatedScheduledEvent;
         } catch (error) {
-            ErrorService.log('scheduledEventService.updateBy', error);
+            ErrorService.log('scheduledEventService.updateOneBy', error);
             throw error;
         }
     },

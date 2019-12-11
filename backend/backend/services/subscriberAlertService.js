@@ -15,7 +15,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -29,7 +29,7 @@ module.exports = {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('SubscriberAlertService.updateBy', error);
+            ErrorService.log('SubscriberAlertService.updateOneBy', error);
             throw error;
         }
         return subscriberAlert;

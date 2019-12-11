@@ -91,7 +91,7 @@ module.exports = {
 
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -106,7 +106,7 @@ module.exports = {
                     new: true
                 });
         } catch (error) {
-            ErrorService.log('AlertService.updateBy', error);
+            ErrorService.log('AlertService.updateOneBy', error);
             throw error;
         }
         return updatedAlert;
@@ -384,7 +384,7 @@ module.exports = {
         if (alert && alert.length > 1) {
             const alerts = await Promise.all(alert.map(async (alert) => {
                 const alertId = alert._id;
-                alert = await _this.updateBy({
+                alert = await _this.updateOneBy({
                     _id: alertId
                 }, {
                     deleted: false,
@@ -398,7 +398,7 @@ module.exports = {
             alert = alert[0];
             if (alert) {
                 const alertId = alert._id;
-                alert = await _this.updateBy({
+                alert = await _this.updateOneBy({
                     _id: alertId
                 }, {
                     deleted: false,

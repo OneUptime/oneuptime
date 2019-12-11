@@ -147,7 +147,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -160,7 +160,7 @@ module.exports = {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('statusPageService.updateBy', error);
+            ErrorService.log('statusPageService.updateOneBy', error);
             throw error;
         }
         return updatedStatusPage;
@@ -328,7 +328,7 @@ module.exports = {
         if (statusPage && statusPage.length > 1) {
             const statusPages = await Promise.all(statusPage.map(async (statusPage) => {
                 const statusPageId = statusPage._id;
-                statusPage = await _this.updateBy({ _id: statusPageId, deleted: true }, {
+                statusPage = await _this.updateOneBy({ _id: statusPageId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -341,7 +341,7 @@ module.exports = {
             statusPage = statusPage[0];
             if (statusPage) {
                 const statusPageId = statusPage._id;
-                statusPage = await _this.updateBy({ _id: statusPage, deleted: true }, {
+                statusPage = await _this.updateOneBy({ _id: statusPage, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null

@@ -149,7 +149,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
                 projectId: projectId,
                 monitorIds: monitors
             };
-            await ScheduleService.updateBy({_id: data.callScheduleId},scheduleData);
+            await ScheduleService.updateOneBy({_id: data.callScheduleId},scheduleData);
         }
         await NotificationService.create(monitor.projectId, `A New Monitor was Created with name ${monitor.name} by ${req.user.name}`, req.user.id, 'monitoraddremove');
         await RealTimeService.sendMonitorCreated(monitor);
@@ -162,7 +162,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 router.put('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
         var data = req.body;
-        var monitor = await MonitorService.updateBy({ _id: req.params.monitorId }, data);
+        var monitor = await MonitorService.updateOneBy({ _id: req.params.monitorId }, data);
         if (monitor) {
             return sendItemResponse(req, res, monitor);
         } else {

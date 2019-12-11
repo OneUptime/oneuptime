@@ -108,7 +108,7 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async fun
     try {
         var data = req.body;
         var eventId = req.params.eventId;
-        var scheduledEvent = await ScheduledEventService.updateBy({_id:eventId},data);
+        var scheduledEvent = await ScheduledEventService.updateOneBy({_id:eventId},data);
         if (scheduledEvent) {
             return sendItemResponse(req, res, scheduledEvent);
         } else {

@@ -76,7 +76,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (r
                 message: 'monitorIds missing in body, must be present'
             });
         }
-        var webhook = await IntegrationService.updateBy({_id:integrationId},data);
+        var webhook = await IntegrationService.updateOneBy({_id:integrationId},data);
         return sendItemResponse(req, res, webhook);
     } catch(error) {
         return sendErrorResponse(req, res, error);
