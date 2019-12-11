@@ -272,15 +272,17 @@ export function teamUpdateRole(projectId, values) {
 }
 
 // Implements pagination for Team Members table
-export function paginateNext() {
+export function paginateNext(Id) {
 	return {
-		type: types.PAGINATE_NEXT
+		type: types.PAGINATE_NEXT,
+		payload: Id
 	};
 }
 
-export function paginatePrev() {
+export function paginatePrev(Id) {
 	return {
-		type: types.PAGINATE_PREV
+		type: types.PAGINATE_PREV,
+		payload: Id
 	};
 }
 
@@ -290,10 +292,10 @@ export function paginateReset(){
 	};
 }
 
-export function paginate(type){
+export function paginate(type,Id){
 	return function(dispatch){
-		type === 'next' && dispatch(paginateNext());
-		type === 'prev' && dispatch(paginatePrev());
+		type === 'next' && dispatch(paginateNext(Id));
+		type === 'prev' && dispatch(paginatePrev(Id));
 		type === 'reset' && dispatch(paginateReset());
 	}
 }

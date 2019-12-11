@@ -17,39 +17,39 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async 
     try {
         var projectId = req.params.projectId;
         var monitorId = req.params.monitorId;
-    
+
         var data = req.body;
         data.createdById = req.user ? req.user.id : null;
-    
-    
+
+
         if (!data) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Values can\'t be null'
             });
         }
-    
+
         if (!data.name) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Event name is required.'
             });
         }
-    
+
         if (typeof data.name !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Event name is not of string type.'
             });
         }
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project ID is required.'
             });
         }
-    
+
         if (typeof projectId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -62,35 +62,35 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async 
                 message: 'Monitor ID is required.'
             });
         }
-    
+
         if (typeof monitorId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Monitor ID  is not of string type.'
             });
         }
-    
+
         if(!data.startDate){
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Start timestamp is required.'
             });
         }
-    
+
         if(!data.endDate){
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'End timestamp is required.'
             });
         }
-    
+
         if (!data.description) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Event description is required.'
             });
         }
-    
+
         if (typeof data.description !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -107,8 +107,8 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async 
 router.put('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
         var data = req.body;
-        data._id = req.params.eventId;
-        var scheduledEvent = await ScheduledEventService.update(data);
+        var eventId = req.params.eventId;
+        var scheduledEvent = await ScheduledEventService.updateOneBy({_id:eventId},data);
         if (scheduledEvent) {
             return sendItemResponse(req, res, scheduledEvent);
         } else {
@@ -146,30 +146,30 @@ router.get('/:projectId/:monitorId', getUser, isAuthorized, async function (req,
     try {
         var projectId = req.params.projectId;
         var monitorId = req.params.monitorId;
-    
+
         var query = req.query;
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project ID is required.'
             });
         }
-    
+
         if (typeof projectId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project ID is not of string type.'
             });
         }
-    
+
         if (!monitorId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Monitor ID is required.'
             });
         }
-    
+
         if (typeof monitorId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -188,30 +188,30 @@ router.get('/:projectId/:monitorId/statusPage', checkUserBelongToProject,  async
     try {
         var projectId = req.params.projectId;
         var monitorId = req.params.monitorId;
-    
+
         var query = req.query;
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project ID is required.'
             });
         }
-    
+
         if (typeof projectId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project ID is not of string type.'
             });
         }
-    
+
         if (!monitorId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Monitor ID is required.'
             });
         }
-    
+
         if (typeof monitorId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,

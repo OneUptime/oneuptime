@@ -27,28 +27,28 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
                 message: 'User Name is required.'
             });
         }
-    
+
         if (!data.pass) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Password is required.'
             });
         }
-    
+
         if (!data.host) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'host is required.'
             });
         }
-    
+
         if (!data.port) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'port is required.'
             });
         }
-    
+
         if (!data.from) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -79,12 +79,12 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
 router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function (req, res) {
     try {
         var data = req.body;
-        data._id = req.params.emailSmtpId;
+        var emailSmtpId = req.params.emailSmtpId;
         data.email = req.user.email;
         let testResult = await MailService.testSmtpConfig(data);
         if (!testResult.failed) {
-        // Call the EmailTemplateService
-            var emailSmtp = await EmailSmtpService.update(data);
+            // Call the EmailTemplateService
+            var emailSmtp = await EmailSmtpService.updateOneBy({ _id: emailSmtpId }, data);
             return sendItemResponse(req, res, emailSmtp);
         }
     } catch (error) {
@@ -96,8 +96,8 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function (re
 router.delete('/:projectId/:emailSmtpId', getUser, isUserOwner, async function (req, res) {
     try {
         var data = req.body;
-        data._id = req.params.emailSmtpId;
-        var emailSmtp = await EmailSmtpService.update(data);
+        var emailSmtpId = req.params.emailSmtpId;
+        var emailSmtp = await EmailSmtpService.updateOneBy({ _id: emailSmtpId }, data);
         return sendItemResponse(req, res, emailSmtp);
     } catch (error) {
         return sendErrorResponse(req, res, error);

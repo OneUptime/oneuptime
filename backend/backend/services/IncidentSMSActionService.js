@@ -9,16 +9,22 @@ module.exports = {
         }
     },
 
-    update: async (incidentSMSActionId, update)=>{
+    updateOneBy: async (query, data) => {
         try {
-            var incidentSMSAction = incidentSMSActionModel.findById(incidentSMSActionId);
-            incidentSMSAction.acknowledged = !!update.acknowledged;
-            incidentSMSAction.resolved = !!update.resolved;
-            var incidentafter = await incidentSMSAction.save();
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var incidentafter = await incidentSMSActionModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            });
             return incidentafter;
         } catch (error) {
-            ErrorService.log('incidentSMSActionService.update', error);
-            throw error;  
+            ErrorService.log('incidentSMSActionService.updateOneBy', error);
+            throw error;
         }
     }
 

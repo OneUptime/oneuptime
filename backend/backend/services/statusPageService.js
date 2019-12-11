@@ -9,15 +9,15 @@ module.exports = {
     findBy: async function (query, skip, limit) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 10;
-    
+
             if (typeof (skip) === 'string') skip = parseInt(skip);
-    
+
             if (typeof (limit) === 'string') limit = parseInt(limit);
-    
+
             if (!query) query = {};
-    
+
             query.deleted = false;
             var statusPages = await StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
@@ -48,7 +48,7 @@ module.exports = {
             statusPageModel.logoPath = data.logoPath || null;
             statusPageModel.deleted = data.deleted || false;
             statusPageModel.isSubscriberEnabled = data.isSubscriberEnabled || false;
-    
+
             if (!data.monitorIds) {
                 statusPageModel.monitorIds = null;
             }
@@ -91,7 +91,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var statusPage = await StatusPageModel.findOneAndUpdate(query, {
                 $set: {
@@ -99,15 +99,15 @@ module.exports = {
                     deletedById: userId,
                     deletedAt: Date.now()
                 }
-            },{
+            }, {
                 new: true
             });
 
             if (statusPage) {
-                var subscribers = await SubscriberService.findBy({statusPageId: statusPage._id});
-  
+                var subscribers = await SubscriberService.findBy({ statusPageId: statusPage._id });
+
                 await Promise.all(subscribers.map(async (subscriber) => {
-                    await SubscriberService.deleteBy({_id: subscriber}, userId);
+                    await SubscriberService.deleteBy({ _id: subscriber }, userId);
                 }));
             }
             return statusPage;
@@ -119,11 +119,11 @@ module.exports = {
 
     removeMonitor: async function (monitorId) {
         try {
-            var statusPage = await StatusPageModel.findOneAndUpdate({monitorIds:monitorId}, {
-                $pull: {monitorIds: monitorId}
+            var statusPage = await StatusPageModel.findOneAndUpdate({ monitorIds: monitorId }, {
+                $pull: { monitorIds: monitorId }
             });
             return statusPage;
-        } catch(error) {
+        } catch (error) {
             ErrorService.log('statusPageService.removeMonitor', error);
             throw error;
         }
@@ -134,108 +134,60 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name');
             return statusPage;
-        } catch(error) {
+        } catch (error) {
             ErrorService.log('statusPageService.findOneBy', error);
             throw error;
         }
     },
 
-    update: async function (data) {
+    updateOneBy: async function (query, data) {
         try {
-            var _this = this;
-            if (!data._id) {
-                let statusPage = await _this.create(data);
-                return statusPage;
-            } else {
-                var oldStatusPage = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
-  
-                var projectId = data.projectId || oldStatusPage.projectId;
-                var domain = data.domain || oldStatusPage.domain;
-                var links = data.links || oldStatusPage.links;
-                var title = data.title || oldStatusPage.title;
-                var name = data.name || oldStatusPage.name;
-                var isPrivate = data.isPrivate !== undefined ? data.isPrivate : oldStatusPage.isPrivate;
-                var isGroupedByMonitorCategory = data.isGroupedByMonitorCategory !== undefined ? data.isGroupedByMonitorCategory : oldStatusPage.isGroupedByMonitorCategory;
-                var showScheduledEvents = data.showScheduledEvents !== undefined ? data.showScheduledEvents : oldStatusPage.showScheduledEvents;
-                var description = data.description || oldStatusPage.description;
-                var copyright = data.copyright || oldStatusPage.copyright;
-                var faviconPath = data.faviconPath || oldStatusPage.faviconPath;
-                var logoPath = data.logoPath || oldStatusPage.logoPath;
-                var isSubscriberEnabled = data.isSubscriberEnabled !== undefined ? data.isSubscriberEnabled : oldStatusPage.isSubscriberEnabled;
-                var monitorIds = [];
-                if (!data.monitorIds) {
-                    monitorIds = oldStatusPage.monitorIds;
-                }
-                else {
-                    // if monitorIds is array
-                    if (data.monitorIds.length !== undefined) {
-                        monitorIds = [];
-                        for (let monitorId of data.monitorIds) {
-                            monitorIds.push(monitorId);
-                        }
-                    } else {
-                        monitorIds = data.monitorIds;
-                    }
-                }
-
-                var updatedStatusPage = await StatusPageModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        projectId: projectId,
-                        monitorIds: monitorIds,
-                        domain: domain,
-                        links: links,
-                        title: title,
-                        name: name,
-                        isPrivate: isPrivate,
-                        isGroupedByMonitorCategory: isGroupedByMonitorCategory,
-                        showScheduledEvents : showScheduledEvents,
-                        description: description,
-                        copyright: copyright,
-                        faviconPath: faviconPath,
-                        logoPath: logoPath,
-                        isSubscriberEnabled: isSubscriberEnabled,
-                    }
-                }, {
-                    new: true
-                });
-
-                return updatedStatusPage;
+            if (!query) {
+                query = {};
             }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedStatusPage = await StatusPageModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            });
         } catch (error) {
-            ErrorService.log('statusPageService.update', error);
+            ErrorService.log('statusPageService.updateOneBy', error);
             throw error;
         }
+        return updatedStatusPage;
     },
 
     getNotes: async function (query, skip, limit) {
         try {
             var _this = this;
-    
+
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 5;
-    
+
             if (typeof (skip) === 'string') skip = parseInt(skip);
-    
+
             if (typeof (limit) === 'string') limit = parseInt(limit);
-    
+
             if (!query) query = {};
             var statuspages = await _this.findBy(query, 0, limit);
-            
+
             const withMonitors = statuspages.filter((statusPage) => statusPage.monitorIds.length);
             let statuspage = withMonitors[0];
             var monitorIds = statuspage.monitorIds.map(m => m._id);
             if (monitorIds && monitorIds.length) {
                 var notes = await IncidentService.findBy({ monitorId: { $in: monitorIds } }, limit, skip);
                 var count = await IncidentService.countBy({ monitorId: { $in: monitorIds } });
-  
+
                 return { notes, count };
             }
             else {
@@ -253,7 +205,7 @@ module.exports = {
     getNotesByDate: async function (query, skip, limit) {
         try {
             var incidents = await IncidentService.findBy(query, limit, skip);
-  
+
             var investigationNotes = incidents.map(incident => {
                 return {
                     investigationNote: incident.investigationNote ? incident.investigationNote : '',
@@ -277,7 +229,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
@@ -296,7 +248,7 @@ module.exports = {
 
             if (statusPage && (statusPage._id || statusPage.id)) {
                 var permitted = await thisObj.isPermitted(user, statusPage);
-  
+
                 if (!permitted) {
                     let error = new Error('You are unauthorized to access the page please login to continue.');
                     error.code = 401;
@@ -349,12 +301,12 @@ module.exports = {
         }
     },
 
-    getSubProjectStatusPages: async function(subProjectIds){
+    getSubProjectStatusPages: async function (subProjectIds) {
         var _this = this;
-        let subProjectStatusPages = await Promise.all(subProjectIds.map(async (id)=>{
-            let statusPages = await _this.findBy({projectId: id}, 0, 10);
-            let count = await _this.countBy({projectId: id});
-            return {statusPages, count, _id: id, skip: 0, limit: 10};
+        let subProjectStatusPages = await Promise.all(subProjectIds.map(async (id) => {
+            let statusPages = await _this.findBy({ projectId: id }, 0, 10);
+            let count = await _this.countBy({ projectId: id });
+            return { statusPages, count, _id: id, skip: 0, limit: 10 };
         }));
         return subProjectStatusPages;
     },
@@ -369,32 +321,32 @@ module.exports = {
         }
     },
 
-    restoreBy: async function (query){
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         let statusPage = await _this.findBy(query);
-        if(statusPage && statusPage.length > 1){
+        if (statusPage && statusPage.length > 1) {
             const statusPages = await Promise.all(statusPage.map(async (statusPage) => {
                 const statusPageId = statusPage._id;
-                statusPage = await _this.update({_id: statusPageId, deleted: true}, {
+                statusPage = await _this.updateOneBy({ _id: statusPageId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
                 });
-                await SubscriberService.restoreBy({statusPageId, deleted: true});
+                await SubscriberService.restoreBy({ statusPageId, deleted: true });
                 return statusPage;
             }));
             return statusPages;
-        }else{
+        } else {
             statusPage = statusPage[0];
-            if(statusPage){
+            if (statusPage) {
                 const statusPageId = statusPage._id;
-                statusPage = await _this.update({_id: statusPage, deleted: true}, {
+                statusPage = await _this.updateOneBy({ _id: statusPage, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
                 });
-                await SubscriberService.restoreBy({statusPageId, deleted: true});
+                await SubscriberService.restoreBy({ statusPageId, deleted: true });
             }
             return statusPage;
         }

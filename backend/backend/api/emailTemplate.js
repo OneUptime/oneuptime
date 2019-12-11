@@ -24,7 +24,7 @@ var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 var sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
-    
+
     try{
         var data = req.body;
         data.projectId = req.params.projectId;
@@ -34,14 +34,14 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
                 message: 'Email subject is required.'
             });
         }
-    
+
         if(!data.body){
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Email body is required.'
             });
         }
-    
+
         // sanitize template markup
         data.subject = await DOMPurify.sanitize(data.subject);
         data.body = await DOMPurify.sanitize(data.body, {WHOLE_DOCUMENT: true});
@@ -87,9 +87,9 @@ router.get('/:projectId/emailTemplate/:emailTemplateId', getUser, isAuthorized, 
 router.put('/:projectId/emailTemplate/:emailTemplateId', getUser, isAuthorized, async function (req, res) {
     try {
         var data = req.body;
-        data._id = req.params.emailTemplateId;
+        var Id = req.params.emailTemplateId;
         // Call the EmailTemplateService
-        var emailTemplate = await EmailTemplateService.update(data);
+        var emailTemplate = await EmailTemplateService.updateOneBy({_id:Id},data);
         return sendItemResponse(req, res, emailTemplate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           );
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -107,7 +107,7 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res){
                     message: 'Email subject is required.'
                 });
             }
-    
+
             if(!value.body){
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -121,7 +121,7 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res){
             data.push(value);
         }
         for(let value of data){
-            await EmailTemplateService.update(value);
+            await EmailTemplateService.updateOneBy({_id:value._id},value);
         }
         var emailTemplates = await EmailTemplateService.getTemplates(req.params.projectId);
         return sendItemResponse(req, res, emailTemplates);

@@ -30,8 +30,8 @@ import { UploadFile } from '../basic/UploadFile';
 import TimezoneSelector from '../basic/TimezoneSelector';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import ReactPhoneInput from 'react-phone-input-2'
-import 'react-phone-input-2/dist/style.css'
+import ReactPhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 import { User } from '../../config';
 
 const selector = formValueSelector('Profile');

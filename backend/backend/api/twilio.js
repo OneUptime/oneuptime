@@ -76,18 +76,18 @@ router.get('/voice/status', async (req, res) => {
 router.post('/voice/incident/action', getUser, isAuthorized, async function (req, res) {
     try {
         const { accessToken, projectId, incidentId } = req.query;
-    
+
         let actionPath = `${baseApiUrl}/twilio/voice/incident/action?projectId=${projectId}&amp;incidentId=${incidentId}&amp;accessToken=${accessToken}`;
         var userId = req.user ? req.user.id : null;
-    
+
         var data = { decoded: userId, incidentId: incidentId, projectId: req.query.projectId };
-    
+
         res.set('Content-Type', 'text/xml');
-    
+
         if (!data.incidentId) {
             return sendItemResponse(res, res, errorResponse);
         }
-    
+
         if (typeof data.incidentId !== 'string') {
             return sendItemResponse(req, res, errorResponse);
         }
@@ -142,12 +142,12 @@ router.post('/sms/incoming', async (req, res) => {
         switch (actionType) {
         case 1:
             await IncidentService.acknowledge(action[0], action[0].userId, action[0].name);
-            await incidentSMSActionService.update(action[0]._id, { acknowledged: true });
+            await incidentSMSActionService.updateOneBy({_id:action[0]._id}, { acknowledged: true });
             sendResponseMessage(From, `Incident status acknowledged. Send 2 to ${To} to resolve incident`);
             return sendItemResponse(req, res, { status: 'acknowledged' });
         case 2:
             await IncidentService.resolve(action[0], action[0].userId);
-            await incidentSMSActionService.update(action[0]._id, { acknowledged: true, resolved: true });
+            await incidentSMSActionService.updateOneBy({_id:action[0]._id}, { acknowledged: true, resolved: true });
             sendResponseMessage(From, 'Incient status resolved. Thank you.');
             return sendItemResponse(req, res, { status: 'resolved' });
         default:

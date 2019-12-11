@@ -15,46 +15,35 @@ module.exports = {
         }
     },
 
-    update: async function(data){
+    updateOneBy: async function (query, data) {
+        if (!query) {
+            query = {};
+        }
+
+        if (!query.deleted) query.deleted = false;
         try {
-            let _this = this;
-            if (!data._id) {
-                let smsTemplate = await _this.create(data);
-                return smsTemplate;  
-            } else {
-                var smsTemplate = await _this.findOneBy({_id: data._id});
-
-                let body = data.body || smsTemplate.body;
-                let smsType = data.smsType || smsTemplate.smsType;
-                let allowedVariables = smsTemplateVariables[[data.smsType || smsTemplate.smsType || []]];
-
-                var updatedSmsTemplate = await SmsTemplateModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        body: body,
-                        allowedVariables: allowedVariables,
-                        smsType: smsType
-                    }
-                }, {
-                    new: true
-                });
-
-                return updatedSmsTemplate;
-            }
+            var updatedSmsTemplate = await SmsTemplateModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            });
         } catch (error) {
-            ErrorService.log('smsTemplateService.update', error);
+            ErrorService.log('smsTemplateService.updateOneBy', error);
             throw error;
         }
+
+        return updatedSmsTemplate;
     },
 
     deleteBy: async function(query, userId){
         try {
             var smsTemplate = await SmsTemplateModel.findOneAndUpdate(query, {
-                $set:{
-                    deleted:true,
-                    deletedById:userId,
-                    deletedAt:Date.now()
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now()
                 }
-            },{
+            }, {
                 new: true
             });
             return smsTemplate;
@@ -67,21 +56,21 @@ module.exports = {
     findBy: async function(query, skip, limit){
         try {
             if(!skip) skip=0;
-    
+
             if(!limit) limit=10;
-    
+
             if(typeof(skip) === 'string'){
                 skip = parseInt(skip);
             }
-    
+
             if(typeof(limit) === 'string'){
                 limit = parseInt(limit);
             }
-    
+
             if(!query){
                 query = {};
             }
-    
+
             query.deleted = false;
             var smsTemplates = await SmsTemplateModel.find(query)
                 .sort([['createdAt', -1]])
@@ -100,7 +89,7 @@ module.exports = {
             if(!query){
                 query = {};
             }
-    
+
             query.deleted = false;
             var smsTemplate = await SmsTemplateModel.findOne(query)
                 .sort([['createdAt', -1]])
@@ -117,7 +106,7 @@ module.exports = {
             if(!query){
                 query = {};
             }
-    
+
             query.deleted = false;
             var count = await SmsTemplateModel.count(query);
             return count;
@@ -141,12 +130,12 @@ module.exports = {
         }
     },
 
-    resetTemplate: async function(projectId, templateId){
+    resetTemplate: async function (projectId, templateId) {
         let _this = this;
-        var oldTemplate = await _this.findOneBy({_id: templateId});
+        var oldTemplate = await _this.findOneBy({ _id: templateId });
         var newTemplate = defaultSmsTemplate.filter(template => template.smsType === oldTemplate.smsType)[0];
-        var resetTemplate = await _this.update({
-            _id: oldTemplate._id, 
+        var resetTemplate = await _this.updateOneBy({
+            _id: oldTemplate._id},{
             smsType: newTemplate.smsType,
             body: newTemplate.body,
             allowedVariables: newTemplate.allowedVariables
