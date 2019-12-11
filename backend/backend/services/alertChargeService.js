@@ -12,7 +12,7 @@ module.exports = {
             alertCharge.save();
             return alertCharge;
         } catch (error) {
-            ErrorService.log('AlertService.createAlertCharge', error);
+            ErrorService.log('alertChargeService.create', error);
             throw error;
         }
     },
@@ -52,7 +52,7 @@ module.exports = {
             return alertCharges;
 
         } catch (error) {
-            ErrorService.log('AlertChargeModel.find', error);
+            ErrorService.log('alertChargeService.findBy', error);
             throw error;
         }
     },
@@ -64,7 +64,7 @@ module.exports = {
             var count = await AlertChargeModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('MonitorModel.count', error);
+            ErrorService.log('alertChargeService.countBy', error);
             throw error;
         }
     },

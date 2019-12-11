@@ -28,7 +28,7 @@ module.exports = {
             if (!plan) {
                 let error = new Error('Invalid project plan.');
                 error.code = 400;
-                ErrorService.log('MonitorService.create', error);
+                ErrorService.log('monitorService.create', error);
                 throw error;
             }
             else {
@@ -76,12 +76,12 @@ module.exports = {
                 else {
                     let error = new Error('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
                     error.code = 400;
-                    ErrorService.log('MonitorService.create', error);
+                    ErrorService.log('monitorService.create', error);
                     throw error;
                 }
             }
         } catch (error) {
-            ErrorService.log('MonitorService.create', error);
+            ErrorService.log('monitorService.create', error);
             throw error;
         }
     },
@@ -107,7 +107,7 @@ module.exports = {
             await RealTimeService.monitorEdit(monitor);
             return monitor;
         } catch (error) {
-            ErrorService.log('MonitorService.update', error);
+            ErrorService.log('monitorService.update', error);
             throw error;
         }
     },
@@ -142,7 +142,7 @@ module.exports = {
                 .populate('projectId', 'name');
             return monitors;
         } catch (error) {
-            ErrorService.log('MonitorService.findBy', error);
+            ErrorService.log('monitorService.findBy', error);
             throw error;
         }
     },
@@ -158,7 +158,7 @@ module.exports = {
                 .populate('projectId', 'name');
             return monitor;
         } catch (error) {
-            ErrorService.log('MonitorService.findOneBy', error);
+            ErrorService.log('monitorService.findOneBy', error);
             throw error;
         }
     },
@@ -174,7 +174,7 @@ module.exports = {
                 .populate('project', 'name');
             return count;
         } catch (error) {
-            ErrorService.log('MonitorService.countBy', error);
+            ErrorService.log('monitorService.countBy', error);
             throw error;
         }
     },
@@ -236,7 +236,7 @@ module.exports = {
                 return null;
             }
         } catch (error) {
-            ErrorService.log('MonitorService.deleteBy', error);
+            ErrorService.log('monitorService.deleteBy', error);
             throw error;
         }
     },
@@ -273,8 +273,8 @@ module.exports = {
                 return [];
             }
         } catch (error) {
-            ErrorService.log('MonitorService.getProbeMonitors', error);
-            throw error;
+            ErrorService.log('monitorService.getProbeMonitors', error);
+            throw error;  
         }
     },
 
@@ -291,7 +291,7 @@ module.exports = {
                 return (null);
             }
         } catch (error) {
-            ErrorService.log('MonitorService.updateMonitorPingTime', error);
+            ErrorService.log('monitorService.updateMonitorPingTime', error);
             throw error;
         }
     },
@@ -303,15 +303,15 @@ module.exports = {
             if (!monitor) {
                 let error = new Error('Monitor with this Device ID not found in this Project.');
                 error.code = 400;
-                ErrorService.log('MonitorService.updateDeviceMonitorPingTime', error);
+                ErrorService.log('monitorService.updateDeviceMonitorPingTime', error);
                 throw error;
             } else {
                 monitor = await thisObj.updateMonitorPingTime(monitor._id);
                 return monitor;
             }
         } catch (error) {
-            ErrorService.log('MonitorService.updateDeviceMonitorPingTime', error);
-            throw error;
+            ErrorService.log('monitorService.updateDeviceMonitorPingTime', error);
+            throw error;  
         }
     },
 
@@ -326,7 +326,7 @@ module.exports = {
             ]);
             return monitorData;
         } catch (error) {
-            ErrorService.log('MonitorService.find', error);
+            ErrorService.log('monitorService.getMonitorLogs', error);
             throw error;
         }
     },
@@ -338,7 +338,7 @@ module.exports = {
                 await RealTimeService.updateResponseTime(monitorsData, monitor.projectId);
             }
         } catch (error) {
-            ErrorService.log('MonitorService.sendResponseTime', error);
+            ErrorService.log('monitorService.sendResponseTime', error);
             throw error;
         }
     },
@@ -350,7 +350,7 @@ module.exports = {
                 await RealTimeService.updateMonitorLog(data, monitor._id, monitor.projectId);
             }
         } catch (error) {
-            ErrorService.log('MonitorService.updateMonitorLog', error);
+            ErrorService.log('monitorService.sendMonitorLog', error);
             throw error;
         }
     },
@@ -368,7 +368,7 @@ module.exports = {
             await ProjectService.saveProject(project);
             return 'A new seat added. Now you can add a monitor';
         } catch (error) {
-            ErrorService.log('MonitorService.addSeat', error);
+            ErrorService.log('monitorService.addSeat', error);
             throw error;
         }
     },
@@ -378,7 +378,7 @@ module.exports = {
             await MonitorModel.deleteMany(query);
             return 'Monitor(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('MonitorService.deleteMany', error);
+            ErrorService.log('monitorService.hardDeleteBy', error);
             throw error;
         }
     },
@@ -439,7 +439,7 @@ module.exports = {
             }
             return times;
         } catch (error) {
-            ErrorService.log('MonitorService.getManualMonitorTime', error);
+            ErrorService.log('monitorService.getManualMonitorTime', error);
             throw error;
         }
     },

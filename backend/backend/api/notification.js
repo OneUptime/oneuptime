@@ -19,8 +19,8 @@ var sendListResponse = require('../middlewares/response').sendListResponse;
 var sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (req, res) {
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
     try {
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         var notifications = await NotificationService.findBy({ projectId: { $in: subProjectIds } }, req.query.skip || 0, req.query.limit || 20);
         var count = await NotificationService.countBy({ projectId: { $in: subProjectIds } });
         return sendListResponse(req, res, notifications, count);
@@ -30,9 +30,9 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
 });
 
 router.put('/:projectId/:notificationId/read', getUser, isAuthorized, async function (req, res) {
-    var notificationId = req.params.notificationId;
-    let userId = req.user ? req.user.id : null;
     try {
+        var notificationId = req.params.notificationId;
+        let userId = req.user ? req.user.id : null;
         let notification = await NotificationService.updateBy({ _id: notificationId, read: [userId] });
         if (notification) {
             return sendItemResponse(req, res, notification);
@@ -47,9 +47,9 @@ router.put('/:projectId/:notificationId/read', getUser, isAuthorized, async func
 });
 
 router.put('/:projectId/readAll', getUser, isAuthorized, getSubProjects, async function (req, res) {
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-    let userId = req.user ? req.user.id : null;
     try {
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        let userId = req.user ? req.user.id : null;
         let notifications = await NotificationService.updateManyBy({ projectId: { $in: subProjectIds } }, { read: userId });
 
         if (notifications.ok === 1 && notifications.n > 0) {
@@ -65,10 +65,10 @@ router.put('/:projectId/readAll', getUser, isAuthorized, getSubProjects, async f
 });
 
 router.put('/:projectId/:notificationId', getUser, isAuthorized, async function (req, res) {
-    var notificationId = req.params.notificationId;
-    var updateObject = req.body;
-    updateObject._id = notificationId;
     try {
+        var notificationId = req.params.notificationId;
+        var updateObject = req.body;
+        updateObject._id = notificationId;
         let notification = await NotificationService.updateBy(updateObject);
         if (notification) {
             return sendItemResponse(req, res, notification);
@@ -83,10 +83,10 @@ router.put('/:projectId/:notificationId', getUser, isAuthorized, async function 
 });
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
-    var projectId = req.params.projectId;
-    let userId = req.user ? req.user.id : null;
-    var data = req.body;
     try {
+        var projectId = req.params.projectId;
+        let userId = req.user ? req.user.id : null;
+        var data = req.body;
         var notification = await NotificationService.create(projectId, data.message, userId, data.icon);
         return sendItemResponse(req, res, notification);
     } catch (error) {

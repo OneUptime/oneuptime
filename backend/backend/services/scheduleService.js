@@ -27,7 +27,7 @@ module.exports = {
                 });
             return schedules;
         } catch (error) {
-            ErrorService.log('ScheduleModel.find', error);
+            ErrorService.log('scheduleService.findBy', error);
             throw error;
         }
     },
@@ -52,7 +52,7 @@ module.exports = {
                 });
             return schedule;
         } catch (error) {
-            ErrorService.log('ScheduleService.findOne', error);
+            ErrorService.log('scheduleService.findOneBy', error);
             throw error;
         }
     },
@@ -82,7 +82,7 @@ module.exports = {
             var schedule = await scheduleModel.save();
             return schedule;
         } catch (error) {
-            ErrorService.log('ScheduleService.create', error);
+            ErrorService.log('scheduleService.create', error);
             throw error;
         }
     },
@@ -97,7 +97,7 @@ module.exports = {
             var count = await ScheduleModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('ScheduleService.countBy', error);
+            ErrorService.log('scheduleService.countBy', error);
             throw error;
         }
     },
@@ -121,7 +121,7 @@ module.exports = {
   
             return schedule;
         } catch (error) {
-            ErrorService.log('ScheduleService.deleteBy', error);
+            ErrorService.log('scheduleService.deleteBy', error);
             throw error;
         }
     },
@@ -133,7 +133,7 @@ module.exports = {
             });
             return schedule;
         } catch (error) {
-            ErrorService.log('ScheduleService.removeMonitor', error);
+            ErrorService.log('scheduleService.removeMonitor', error);
             throw error;
         }
     },
@@ -189,7 +189,7 @@ module.exports = {
                 return schedule;
             }
         } catch (error) {
-            ErrorService.log('ScheduleService.update', error);
+            ErrorService.log('scheduleService.update', error);
             throw error;
         }
     },
@@ -199,7 +199,7 @@ module.exports = {
             schedule = await schedule.save();
             return schedule;
         } catch (error) {
-            ErrorService.log('schedule.save', error);
+            ErrorService.log('scheduleService.saveSchedule', error);
             throw error;
         }
     },
@@ -208,7 +208,7 @@ module.exports = {
         try{
             await ScheduleModel.update({ deleted: false }, { $pull: { monitorIds: monitorId } });
         }catch(error){
-            ErrorService.log('ScheduleModel.update', error);
+            ErrorService.log('scheduleService.deleteMonitor', error);
             throw error;
         }
     },
@@ -231,7 +231,7 @@ module.exports = {
 
             return escalations.escalations;
         } catch (error) {
-            ErrorService.log('ScheduleService.addEscalation', error);
+            ErrorService.log('scheduleService.addEscalation', error);
             throw error;
         }
     },
@@ -247,7 +247,7 @@ module.exports = {
             }));
             return { escalations, count: escalationIds.length };
         } catch (error) {
-            ErrorService.log('ScheduleService.getEscalation', error);
+            ErrorService.log('scheduleService.getEscalation', error);
             throw error;
         }
     },
@@ -266,7 +266,7 @@ module.exports = {
                 }
             });
         } catch (error) {
-            ErrorService.log('ScheduleService.escalationCheck', error);
+            ErrorService.log('scheduleService.escalationCheck', error);
             throw error;
         }
     },
@@ -275,7 +275,7 @@ module.exports = {
         try{
             await ScheduleModel.update({ deleted: false }, { $pull: { escalationIds: escalationId } });
         }catch(error){
-            ErrorService.log('ScheduleService.update', error);
+            ErrorService.log('scheduleService.deleteEscalation', error);
             throw error;
         }
     },
@@ -295,7 +295,7 @@ module.exports = {
             await ScheduleModel.deleteMany(query);
             return 'Schedule(s) removed successfully';
         } catch(error) {
-            ErrorService.log('ScheduleService.hardDeleteBy', error);
+            ErrorService.log('scheduleService.hardDeleteBy', error);
             throw error;
         }
     },

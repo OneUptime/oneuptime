@@ -27,10 +27,9 @@ module.exports = {
                 .sort({ createdAt: 'desc' });
             return incidents;
         } catch (error) {
-            ErrorService.log('IncidentService.findBy', error);
+            ErrorService.log('incidentService.findBy', error);
             throw error;
         }
-
     },
 
     create: async function (data) {
@@ -74,13 +73,13 @@ module.exports = {
                 return incident;
             } else {
                 let error = new Error('Monitor is not present.');
-                ErrorService.log('IncidentService.create', error);
+                ErrorService.log('incidentService.create', error);
                 error.code = 400;
 
                 throw error;
             }
         } catch (error) {
-            ErrorService.log('IncidentService.create', error);
+            ErrorService.log('incidentService.create', error);
             throw error;
         }
     },
@@ -95,7 +94,7 @@ module.exports = {
             var count = await IncidentModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('IncidentService.countBy', error);
+            ErrorService.log('incidentService.countBy', error);
             throw error;
         }
     },
@@ -110,7 +109,7 @@ module.exports = {
             var incidents = await IncidentModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } });
             return incidents;
         } catch (error) {
-            ErrorService.log('IncidentModel.findOneAndUpdate', error);
+            ErrorService.log('incidentService.findOneAndUpdate', error);
             throw error;
         }
     },
@@ -134,7 +133,7 @@ module.exports = {
                 .populate('probes.probeId', 'probeName');
             return incident;
         } catch (error) {
-            ErrorService.log('IncidentModel.findOne', error);
+            ErrorService.log('incidentService.findOne', error);
             throw error;
         }
     },
@@ -208,7 +207,7 @@ module.exports = {
                 return updatedIncident;
             }
         } catch (error) {
-            ErrorService.log('IncidentService.update', error);
+            ErrorService.log('incidentService.update', error);
             throw error;  
         }
     },
@@ -238,7 +237,7 @@ module.exports = {
                 await WebHookService.sendNotification(incident.projectId, msg, incident.monitorId);
             }
         } catch (error) {
-            ErrorService.log('IncidentService._sendIncidentCreatedAlert', error);
+            ErrorService.log('incidentService._sendIncidentCreatedAlert', error);
             throw error; 
         }
     },
@@ -288,7 +287,7 @@ module.exports = {
             }
             return incident;
         } catch (error) {
-            ErrorService.log('IncidentService.acknowledge', error);
+            ErrorService.log('incidentService.acknowledge', error);
             throw error;    
         }
     },
@@ -323,7 +322,7 @@ module.exports = {
             await ZapierService.pushToZapier('incident_resolve', incident);
             return incident;
         } catch (error) {
-            ErrorService.log('IncidentService.resolve', error);
+            ErrorService.log('incidentService.resolve', error);
             throw error;
         }
     },
@@ -398,7 +397,7 @@ module.exports = {
                 await WebHookService.sendNotification(incident.projectId, msg, resolvedincident.monitorId);
             }
         } catch (error) {
-            ErrorService.log('IncidentService.sendIncidentResolvedNotification', error);
+            ErrorService.log('incidentService.sendIncidentResolvedNotification', error);
             throw error;
         }
     },
@@ -437,7 +436,7 @@ module.exports = {
                 return [];
             }
         } catch (error) {
-            ErrorService.log('IncidentService.getMonitorsWithIncidentsBy', error);
+            ErrorService.log('incidentService.getMonitorsWithIncidentsBy', error);
             throw error; 
         }
     },
@@ -447,7 +446,7 @@ module.exports = {
             await IncidentModel.deleteMany(query);
             return 'Incident(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('IncidentModel.deleteMany', error);
+            ErrorService.log('incidentService.deleteMany', error);
             throw error;
         }
     },

@@ -20,7 +20,7 @@ module.exports = {
             }
             return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpService.create', error);
+            ErrorService.log('emailSmtpService.create', error);
             throw error;
         }
     },
@@ -67,7 +67,7 @@ module.exports = {
                 return updatedEmailSmtp;
             }
         } catch (error) {
-            ErrorService.log('EmailSmtpService.update', error);
+            ErrorService.log('emailSmtpService.update', error);
             throw error;
         }
     },
@@ -85,7 +85,7 @@ module.exports = {
             });
             return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpService.deleteBy', error);
+            ErrorService.log('emailSmtpService.deleteBy', error);
             throw error;
         }
     },
@@ -121,7 +121,7 @@ module.exports = {
 
             return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.find', error);
+            ErrorService.log('emailSmtpService.findBy', error);
             throw error;
         }
     },
@@ -146,7 +146,7 @@ module.exports = {
     
             return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpService.findOneBy', error);
+            ErrorService.log('emailSmtpService.findOneBy', error);
             throw error;
         }
     },
@@ -161,7 +161,7 @@ module.exports = {
             var count = await EmailSmtpModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.count', error);
+            ErrorService.log('emailSmtpService.countBy', error);
             throw error;
         }
     },
@@ -171,7 +171,7 @@ module.exports = {
             await EmailSmtpModel.deleteMany(query);
             return 'Email Smtp(s) removed successfully';
         } catch (error) {
-            ErrorService.log('EmailSmtpService.hardDeleteBy', error);
+            ErrorService.log('emailSmtpService.hardDeleteBy', error);
             throw error;
         }
     },

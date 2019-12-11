@@ -21,74 +21,69 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 // Param 1: req.body-> {project_name}; req.headers-> {token}
 // Returns: 200: Project Details; 400: Error.
 router.post('/create', getUser, async function (req, res) {
-    var data = req.body;
-    data.name = data.projectName;
-
-    // Sanitize
-    if (!data.projectName) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project name must be present.'
-        });
-    }
-
-    if (typeof data.projectName !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project name is not in string format.'
-        });
-    }
-
-    if (!data.planId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Stripe Plan Id must be present.'
-        });
-    }
-
-    if (typeof data.planId !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Stripe Plan Id is not in string format.'
-        });
-    }
-
-    var stripePlanId = data.planId;
-    var projectName = data.projectName;
-    var userId = req.user ? req.user.id : null;
-    data.userId = userId;
-
-    if (!data.stripePlanId) {
-        data.stripePlanId = stripePlanId;
-    }
-
-    // check if user has a project with provided name already
-    var countProject = await ProjectService.countBy({ name: projectName, 'users.userId': userId });
-
-    if (countProject < 1) {
-        try {
-            var user = await UserService.findOneBy({ _id: userId });
-        } catch (error) {
-            sendErrorResponse(req, res, error);
+    try {
+        var data = req.body;
+        data.name = data.projectName;
+    
+        // Sanitize
+        if (!data.projectName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project name must be present.'
+            });
         }
-
-        if (!user.stripeCustomerId) {
-
-            if (!data.paymentIntent) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Payment intent is not present.'
-                });
-            }
-
-            if (typeof data.paymentIntent !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Payment intent is not in string format.'
-                });
-            }
-
-            try {
+    
+        if (typeof data.projectName !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project name is not in string format.'
+            });
+        }
+    
+        if (!data.planId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Stripe Plan Id must be present.'
+            });
+        }
+    
+        if (typeof data.planId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Stripe Plan Id is not in string format.'
+            });
+        }
+    
+        var stripePlanId = data.planId;
+        var projectName = data.projectName;
+        var userId = req.user ? req.user.id : null;
+        data.userId = userId;
+    
+        if (!data.stripePlanId) {
+            data.stripePlanId = stripePlanId;
+        }
+    
+        // check if user has a project with provided name already
+        var countProject = await ProjectService.countBy({ name: projectName, 'users.userId': userId });
+    
+        if (countProject < 1) {
+            var user = await UserService.findOneBy({ _id: userId });
+            if (!user.stripeCustomerId) {
+    
+                if (!data.paymentIntent) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Payment intent is not present.'
+                    });
+                }
+    
+                if (typeof data.paymentIntent !== 'string') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Payment intent is not in string format.'
+                    });
+                }
+    
                 var paymentIntent = {
                     id: data.paymentIntent
                 };
@@ -107,12 +102,8 @@ router.post('/create', getUser, async function (req, res) {
                 var project = await ProjectService.create(data);
                 await MailService.sendCreateProjectMail(projectName, user.email);
                 return sendItemResponse(req, res, project);
-            } catch (error) {
-                return sendErrorResponse(req, res, error);
-            }
-
-        } else {
-            try {
+    
+            } else {
                 var subscription = await PaymentService.subscribePlan(stripePlanId, user.stripeCustomerId);
                 if (subscription.subscriptionPaymentStatus === 'canceled' || subscription.subscriptionPaymentStatus === 'unpaid') {
                     user = await UserService.findOneBy({ _id: userId });
@@ -125,15 +116,15 @@ router.post('/create', getUser, async function (req, res) {
                 user = await UserService.findOneBy({ _id: userId });
                 await MailService.sendCreateProjectMail(projectName, user.email);
                 return sendItemResponse(req, res, project);
-            } catch (error) {
-                return sendErrorResponse(req, res, error);
             }
+        } else {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You already have project with same name.'
+            });
         }
-    } else {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'You already have project with same name.'
-        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
 });
 
@@ -142,9 +133,8 @@ router.post('/create', getUser, async function (req, res) {
 // Param 1: req.headers-> {token};
 // Returns: 200: [{project}]; 400: Error.
 router.get('/projects', getUser, async function (req, res) {
-    let userId = req.user ? req.user.id : null;
-
     try {
+        let userId = req.user ? req.user.id : null;
         // find user subprojects and parent projects
         var userProjects = await ProjectService.findBy({ 'users.userId': userId });
         userProjects = userProjects.filter(project => project.users.find(user => user.userId === userId && user.role !== 'Viewer'));
@@ -172,16 +162,15 @@ router.get('/projects', getUser, async function (req, res) {
 // Param 1: req.headers-> {token}; req.params-> {projectId};
 // Returns: 200: {project}; 400: Error.
 router.get('/:projectId/resetToken', getUser, isAuthorized, async function (req, res) {
-    var projectId = req.params.projectId;
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'ProjectId must be present.'
-        });
-    }
-
     try {
+        var projectId = req.params.projectId;
+    
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectId must be present.'
+            });
+        }
         var project = await ProjectService.resetApiKey(projectId);
         return sendItemResponse(req, res, project);
     } catch (error) {
@@ -194,24 +183,23 @@ router.get('/:projectId/resetToken', getUser, isAuthorized, async function (req,
 // Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName}
 // Returns: 200: {project}; 400: Error.
 router.put('/:projectId/renameProject', getUser, isAuthorized, isUserOwner, async function (req, res) {
-    var projectId = req.params.projectId;
-    var projectName = req.body.projectName;
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'ProjectId must be present.'
-        });
-    }
-
-    if (!projectName) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'New project name must be present.'
-        });
-    }
-
     try {
+        var projectId = req.params.projectId;
+        var projectName = req.body.projectName;
+    
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectId must be present.'
+            });
+        }
+    
+        if (!projectName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'New project name must be present.'
+            });
+        }
         var project = await ProjectService.update({ _id: projectId, name: projectName });
         return sendItemResponse(req, res, project);
     } catch (error) {
@@ -220,84 +208,83 @@ router.put('/:projectId/renameProject', getUser, isAuthorized, isUserOwner, asyn
 });
 
 router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async function (req, res) {
-    let projectId = req.params.projectId;
-    var userId = req.user ? req.user.id : null;
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'ProjectId must be present.'
-        });
-    }
-
-    let data = req.body;
-
-    let minimumBalance = Number(data.minimumBalance);
-    let rechargeToBalance = Number(data.rechargeToBalance);
-
-    if (!minimumBalance) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Minimum balance must be present and valid.'
-        });
-    }
-    if (!rechargeToBalance) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Recharge balance must be present and valid.'
-        });
-    }
-    if (data.billingUS && minimumBalance < 20) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Price-plan mismatch'
-        });
-    }
-    if (data.billingNonUSCountries && minimumBalance < 50) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Price-plan mismatch'
-        });
-    }
-    if (data.billingRiskCountries && minimumBalance < 100) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Price-plan mismatch'
-        });
-    }
-    if (data.billingUS && rechargeToBalance < 40) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Price-plan mismatch'
-        });
-    }
-    if (data.billingNonUSCountries && rechargeToBalance < 100) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Price-plan mismatch'
-        });
-    }
-    if (data.billingRiskCountries && rechargeToBalance < 200) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Price-plan mismatch'
-        });
-    }
-
-    data = {
-        _id: data._id,
-        alertEnable: data.alertEnable,
-        alertOptions: {
-            rechargeToBalance,
-            minimumBalance,
-            billingNonUSCountries: data.billingNonUSCountries,
-            billingRiskCountries: data.billingRiskCountries,
-            billingUS: data.billingUS
-        },
-        userId
-    };
-
     try {
+        let projectId = req.params.projectId;
+        var userId = req.user ? req.user.id : null;
+    
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectId must be present.'
+            });
+        }
+    
+        let data = req.body;
+    
+        let minimumBalance = Number(data.minimumBalance);
+        let rechargeToBalance = Number(data.rechargeToBalance);
+    
+        if (!minimumBalance) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Minimum balance must be present and valid.'
+            });
+        }
+        if (!rechargeToBalance) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Recharge balance must be present and valid.'
+            });
+        }
+        if (data.billingUS && minimumBalance < 20) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Price-plan mismatch'
+            });
+        }
+        if (data.billingNonUSCountries && minimumBalance < 50) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Price-plan mismatch'
+            });
+        }
+        if (data.billingRiskCountries && minimumBalance < 100) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Price-plan mismatch'
+            });
+        }
+        if (data.billingUS && rechargeToBalance < 40) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Price-plan mismatch'
+            });
+        }
+        if (data.billingNonUSCountries && rechargeToBalance < 100) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Price-plan mismatch'
+            });
+        }
+        if (data.billingRiskCountries && rechargeToBalance < 200) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Price-plan mismatch'
+            });
+        }
+    
+        data = {
+            _id: data._id,
+            alertEnable: data.alertEnable,
+            alertOptions: {
+                rechargeToBalance,
+                minimumBalance,
+                billingNonUSCountries: data.billingNonUSCountries,
+                billingRiskCountries: data.billingRiskCountries,
+                billingUS: data.billingUS
+            },
+            userId
+        };
         var project = await ProjectService.updateAlertOptions(data);
         return sendItemResponse(req, res, project);
     } catch (error) {
@@ -310,17 +297,16 @@ router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async
 // Param 1: req.headers-> {token}; req.params-> {projectId};
 // Returns: 200; 400: Error.
 router.delete('/:projectId/deleteProject', getUser, isAuthorized, isUserOwner, async function (req, res) {
-    let projectId = req.params.projectId;
-    let userId = req.user.id;
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'ProjectId must be present.'
-        });
-    }
-
     try {
+        let projectId = req.params.projectId;
+        let userId = req.user.id;
+    
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectId must be present.'
+            });
+        }
         var project = await ProjectService.deleteBy({ _id: projectId }, userId);
         return sendItemResponse(req, res, project);
     } catch (error) {
@@ -335,49 +321,48 @@ router.delete('/:projectId/deleteProject', getUser, isAuthorized, isUserOwner, a
 // Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName, planId, oldPlan, newPlan}
 // Returns: 200: {project}; 400: Error.
 router.post('/:projectId/changePlan', getUser, isAuthorized, isUserOwner, async function (req, res) {
-    var projectId = req.params.projectId;
-    var projectName = req.body.projectName;
-    var planId = req.body.planId;
-    var userId = req.user ? req.user.id : null;
-    var oldPlan = req.body.oldPlan;
-    var newPlan = req.body.newPlan;
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'ProjectId must be present.'
-        });
-    }
-
-    if (!projectName) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'ProjectName must be present.'
-        });
-    }
-
-    if (!planId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'PlanID must be present.'
-        });
-    }
-
-    if (!oldPlan) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Old Plan must be present.'
-        });
-    }
-
-    if (!newPlan) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'New Plan must be present.'
-        });
-    }
-
     try {
+        var projectId = req.params.projectId;
+        var projectName = req.body.projectName;
+        var planId = req.body.planId;
+        var userId = req.user ? req.user.id : null;
+        var oldPlan = req.body.oldPlan;
+        var newPlan = req.body.newPlan;
+    
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectId must be present.'
+            });
+        }
+    
+        if (!projectName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectName must be present.'
+            });
+        }
+    
+        if (!planId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'PlanID must be present.'
+            });
+        }
+    
+        if (!oldPlan) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Old Plan must be present.'
+            });
+        }
+    
+        if (!newPlan) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'New Plan must be present.'
+            });
+        }
         var project = await ProjectService.changePlan(projectId, planId);
         var user = await UserService.findOneBy({ _id: userId });
         var email = user.email;
@@ -394,33 +379,32 @@ router.post('/:projectId/changePlan', getUser, isAuthorized, isUserOwner, async 
 // Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName, planId, oldPlan}
 // Returns: 200: {project}; 400: Error.
 router.post('/:projectId/upgradeToEnterprise', getUser, isAuthorized, isUserOwner, async function (req, res) {
-    var projectId = req.params.projectId;
-    var projectName = req.body.projectName;
-    var userId = req.user ? req.user.id : null;
-    var oldPlan = req.body.oldPlan;
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'ProjectId must be present.'
-        });
-    }
-
-    if (!projectName) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'ProjectName must be present.'
-        });
-    }
-
-    if (!oldPlan) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Old Plan must be present.'
-        });
-    }
-
     try {
+        var projectId = req.params.projectId;
+        var projectName = req.body.projectName;
+        var userId = req.user ? req.user.id : null;
+        var oldPlan = req.body.oldPlan;
+    
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectId must be present.'
+            });
+        }
+    
+        if (!projectName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectName must be present.'
+            });
+        }
+    
+        if (!oldPlan) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Old Plan must be present.'
+            });
+        }
         var user = await UserService.findOneBy({ _id: userId });
         var email = user.email;
         await MailService.sendUpgradeToEnterpriseMail(projectName, projectId, oldPlan, email);
@@ -436,11 +420,10 @@ router.post('/:projectId/upgradeToEnterprise', getUser, isAuthorized, isUserOwne
 // Param 1: req.headers-> {token}; req.params-> {projectId, userId}
 // Returns: 200: "User successfully removed"; 400: Error.
 router.delete('/:projectId/user/:userId/exitProject', getUser, isAuthorized, async function (req, res) {
-    var userId = req.user ? req.user.id : null;
-    var projectId = req.params.projectId;
-
     // Call the ProjectService
     try {
+        var userId = req.user ? req.user.id : null;
+        var projectId = req.params.projectId;
         var teamMember = await ProjectService.exitProject(projectId, userId);
         return sendItemResponse(req, res, teamMember);
     } catch (error) {
@@ -454,22 +437,22 @@ router.delete('/:projectId/user/:userId/exitProject', getUser, isAuthorized, asy
 // Param 1: req.headers-> {token}; req.params-> {projectId, userId}
 // Returns: 200: subproject;
 router.post('/:projectId/subProject', getUser, isAuthorized, async function (req, res) {
-    var userId = req.user ? req.user.id : null;
-    var parentProjectId = req.params.projectId;
-    var subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
-    if (!subProjectName) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Subproject name must be present.'
-        });
-    }
-    if (typeof subProjectName !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Subproject name is not in string format.'
-        });
-    }
     try {
+        var userId = req.user ? req.user.id : null;
+        var parentProjectId = req.params.projectId;
+        var subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
+        if (!subProjectName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Subproject name must be present.'
+            });
+        }
+        if (typeof subProjectName !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Subproject name is not in string format.'
+            });
+        }
         // check if project has a sub-project with provided name
         let countSubProject = await ProjectService.countBy({
             name: subProjectName,
@@ -481,16 +464,12 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function (req
                 message: 'You already have a sub-project with same name.'
             });
         }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-    let data = {
-        name : subProjectName,
-        userId,
-        parentProjectId
-    };
-
-    try {
+        let data = {
+            name : subProjectName,
+            userId,
+            parentProjectId
+        };
+    
         let subProjects = await ProjectService.create(data);
         return sendItemResponse(req, res, subProjects);
     } catch (error) {
@@ -500,23 +479,22 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function (req
 
 // Description: Rename subproject.
 router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (req, res) {
-    const subProjectId = req.params.subProjectId;
-    const subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
-    if (!subProjectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'SubProjectId must be present.'
-        });
-    }
-
-    if (!subProjectName) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'SubProject Name must be present.'
-        });
-    }
-
     try {
+        const subProjectId = req.params.subProjectId;
+        const subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
+        if (!subProjectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SubProjectId must be present.'
+            });
+        }
+    
+        if (!subProjectName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SubProject Name must be present.'
+            });
+        }
         const subProject = await ProjectService.update({_id:subProjectId,name:subProjectName});
         return sendItemResponse(req, res, subProject);
     } catch (error) {
@@ -526,18 +504,17 @@ router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (r
 
 // Description: Delete subproject.
 router.delete('/:projectId/:subProjectId', getUser, isAuthorized, async function (req, res) {
-    const parentProjectId = req.params.projectId;
-    const subProjectId = req.params.subProjectId;
-    const userId = req.user.id;
-
-    if (!subProjectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'SubProjectId must be present.'
-        });
-    }
-
     try {
+        const parentProjectId = req.params.projectId;
+        const subProjectId = req.params.subProjectId;
+        const userId = req.user.id;
+    
+        if (!subProjectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SubProjectId must be present.'
+            });
+        }
         var subProject = await ProjectService.deleteBy({ _id: subProjectId,parentProjectId }, userId);
         return sendItemResponse(req, res, subProject);
     } catch (error) {
@@ -550,13 +527,12 @@ router.delete('/:projectId/:subProjectId', getUser, isAuthorized, async function
 // Param 1: req.headers-> {token}; req.params-> {projectId, userId}
 // Returns: 200: [...subprojects];
 router.get('/:projectId/subProjects', getUser, isAuthorized, async function (req, res) {
-    var parentProjectId = req.params.projectId;
-    var userId = req.user ? req.user.id : null;
-    var skip = req.query.skip || 0;
-    var limit = req.query.limit || 10;
-
     // Call the ProjectService
     try {
+        var parentProjectId = req.params.projectId;
+        var userId = req.user ? req.user.id : null;
+        var skip = req.query.skip || 0;
+        var limit = req.query.limit || 10;
         var subProjects = await ProjectService.findBy({ parentProjectId, 'users.userId': userId },limit,skip);
         var count = await ProjectService.countBy({ parentProjectId, 'users.userId': userId });
         return sendListResponse(req, res, subProjects, count);
@@ -567,10 +543,10 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function (req
 });
 
 router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function (req, res) {
-    let userId = req.params.userId;
-    let skip = req.query.skip || 0;
-    let limit = req.query.limit || 10;
     try {
+        let userId = req.params.userId;
+        let skip = req.query.skip || 0;
+        let limit = req.query.limit || 10;
         const { projects, count } = await ProjectService.getUserProjects(userId, skip, limit);
         return sendListResponse(req, res, projects, count);
     } catch (error) {
@@ -579,9 +555,9 @@ router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function 
 });
 
 router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (req, res) {
-    const skip = req.query.skip || 0;
-    const limit = req.query.limit || 10;
     try {
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
         const projects = await ProjectService.getAllProjects(skip, limit);
         const count = await ProjectService.countBy({ parentProjectId: null, deleted: { $ne: null } });
         return sendListResponse(req, res, projects, count);
@@ -591,21 +567,21 @@ router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (
 });
 
 router.get('/projects/:projectId', getUser, isUserMasterAdmin, async function(req, res) {
-    const projectId = req.params.projectId;
-
-    try{
+    
+    try {
+        const projectId = req.params.projectId;
         const project = await ProjectService.findOneBy({ _id: projectId, deleted: { $ne: null } });
 
         return sendItemResponse(req, res, project);
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 
 router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async function (req, res) {
-    const projectId = req.params.projectId;
     try {
+        const projectId = req.params.projectId;
         const project = await ProjectService.update({ _id: projectId, isBlocked: true });
         return sendItemResponse(req, res, project);
     } catch (error) {
@@ -614,8 +590,8 @@ router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async functio
 });
 
 router.put('/:projectId/unblockProject', getUser, isUserMasterAdmin, async function (req, res) {
-    const projectId = req.params.projectId;
     try {
+        const projectId = req.params.projectId;
         const project = await ProjectService.update({ _id: projectId, isBlocked: false });
         return sendItemResponse(req, res, project);
     } catch (error) {
@@ -624,8 +600,8 @@ router.put('/:projectId/unblockProject', getUser, isUserMasterAdmin, async funct
 });
 
 router.put('/:projectId/restoreProject', getUser, isUserMasterAdmin, async function (req, res) {
-    const projectId = req.params.projectId;
     try {
+        const projectId = req.params.projectId;
         const project = await ProjectService.restoreBy({ _id: projectId, deleted: true });
         return sendItemResponse(req, res, project);
     } catch (error) {
@@ -634,59 +610,53 @@ router.put('/:projectId/restoreProject', getUser, isUserMasterAdmin, async funct
 });
 
 router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (req, res) {
-    const projectId = req.params.projectId;
-    if (Array.isArray(req.body)) {
-        let data = [];
-        if (req.body.length > 0) {
-            for (let val of req.body) {
-                if (!val._id) {
-                    // Sanitize
-                    if (!val.note) {
-                        return sendErrorResponse(req, res, {
-                            code: 400,
-                            message: 'Admin note must be present.'
-                        });
+    try {
+        const projectId = req.params.projectId;
+        if (Array.isArray(req.body)) {
+            let data = [];
+            if (req.body.length > 0) {
+                for (let val of req.body) {
+                    if (!val._id) {
+                        // Sanitize
+                        if (!val.note) {
+                            return sendErrorResponse(req, res, {
+                                code: 400,
+                                message: 'Admin note must be present.'
+                            });
+                        }
+    
+                        if (typeof val.note !== 'string') {
+                            return sendErrorResponse(req, res, {
+                                code: 400,
+                                message: 'Admin note is not in string format.'
+                            });
+                        }
                     }
-
-                    if (typeof val.note !== 'string') {
-                        return sendErrorResponse(req, res, {
-                            code: 400,
-                            message: 'Admin note is not in string format.'
-                        });
-                    }
+                    data.push(val);
                 }
-                data.push(val);
-            }
-
-            try {
+    
                 let adminNotes = await ProjectService.addNotes(projectId, data);
                 return sendItemResponse(req, res, adminNotes);
-            } catch (error) {
-                return sendErrorResponse(req, res, error);
+            } else {
+                let adminNotes = await ProjectService.addNotes(projectId, data);
+                return sendItemResponse(req, res, adminNotes);
             }
         } else {
-            try {
-                let adminNotes = await ProjectService.addNotes(projectId, data);
-                return sendItemResponse(req, res, adminNotes);
-            } catch (error) {
-                return sendErrorResponse(req, res, error);
-            }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Admin notes are expected in array format.'
+            });
         }
-    } else {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Admin notes are expected in array format.'
-        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-
 });
 
 router.post('/projects/search', getUser, isUserMasterAdmin, async function (req, res) {
-    const filter = req.body.filter;
-    const skip = req.query.skip || 0;
-    const limit = req.query.limit || 10;
-
     try {
+        const filter = req.body.filter;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
         const users = await ProjectService.searchProjects({ parentProjectId: null, deleted: { $ne: null }, name: { $regex: new RegExp(filter), $options: 'i' } }, skip, limit);
         const count = await ProjectService.countBy({ parentProjectId: null, deleted: { $ne: null }, name: { $regex: new RegExp(filter), $options: 'i' } });
 

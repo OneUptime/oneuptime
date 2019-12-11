@@ -10,7 +10,7 @@ module.exports = {
             monitorCategory = await monitorCategory.save();
             return monitorCategory;
         } catch (error) {
-            ErrorService.log('monitorCategory.save', error);
+            ErrorService.log('monitorCategoryService.create', error);
             throw error;
         }
     },
@@ -34,7 +34,7 @@ module.exports = {
             
             return monitorCategory;
         } catch (error) {
-            ErrorService.log('monitorCategory.delete', error);
+            ErrorService.log('monitorCategoryService.deleteBy', error);
             throw error;
         }
     },
@@ -70,7 +70,7 @@ module.exports = {
             return monitorCategories;
         }
         catch (error) {
-            ErrorService.log('MonitorCategoryService.findBy', error);
+            ErrorService.log('monitorCategoryService.findBy', error);
             throw error;
         }
     },
@@ -87,7 +87,7 @@ module.exports = {
             });
             return monitorCategory;
         } catch (error) {
-            ErrorService.log('MonitorCategoryService.updateBy', error);
+            ErrorService.log('monitorCategoryService.updateBy', error);
             throw error;
         }
     },
@@ -101,7 +101,7 @@ module.exports = {
             var count = await MonitorCategoryModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('MonitorCategoryService.count', error);
+            ErrorService.log('monitorCategoryService.countBy', error);
             throw error;
         }
     },
@@ -110,7 +110,7 @@ module.exports = {
             await MonitorCategoryModel.deleteMany(query);
             return 'Monitor Categories(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('MonitorCategoryService.deleteMany', error);
+            ErrorService.log('monitorCategoryService.hardDeleteBy', error);
             throw error;
         }
     },

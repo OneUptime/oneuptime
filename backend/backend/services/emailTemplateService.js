@@ -1,19 +1,18 @@
 module.exports = {
     create: async function (data) {
-
-        var emailTemplateModel = new EmailTemplateModel();
-        emailTemplateModel.projectId = data.projectId || null;
-        emailTemplateModel.subject = data.subject || null;
-        emailTemplateModel.body = data.body || null;
-        emailTemplateModel.emailType = data.emailType || null;
-        emailTemplateModel.allowedVariables = emailTemplateVariables[[data.emailType]];
         try {
+            var emailTemplateModel = new EmailTemplateModel();
+            emailTemplateModel.projectId = data.projectId || null;
+            emailTemplateModel.subject = data.subject || null;
+            emailTemplateModel.body = data.body || null;
+            emailTemplateModel.emailType = data.emailType || null;
+            emailTemplateModel.allowedVariables = emailTemplateVariables[[data.emailType]];
             var emailTemplate = await emailTemplateModel.save();
+            return emailTemplate;
         } catch (error) {
-            ErrorService.log('emailTemplateModel.save', error);
+            ErrorService.log('emailTemplateService.create', error);
             throw error;
         }
-        return emailTemplate;
     },
 
     update: async function(data){
@@ -43,7 +42,7 @@ module.exports = {
                 return updatedEmailTemplate;
             }
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.findByIdAndUpdate', error);
+            ErrorService.log('emailTemplateService.update', error);
             throw error;
         }
     },
@@ -59,11 +58,11 @@ module.exports = {
             },{
                 new: true
             });
+            return emailTemplate;
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.findOneAndUpdate', error);
+            ErrorService.log('emailTemplateService.deleteBy', error);
             throw error;
         }
-        return emailTemplate;
     },
 
     findBy: async function(query, skip, limit){
@@ -92,7 +91,7 @@ module.exports = {
                 .populate('projectId', 'name');
             return emailTemplates;
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.find', error);
+            ErrorService.log('emailTemplateService.findBy', error);
             throw error;
         }
     },
@@ -109,7 +108,7 @@ module.exports = {
                 .populate('projectId', 'name');
             return emailTemplate;
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.findOne', error);
+            ErrorService.log('emailTemplateService.findOneBy', error);
             throw error;
         }
     },
@@ -124,7 +123,7 @@ module.exports = {
             var count = await EmailTemplateModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.count', error);
+            ErrorService.log('emailTemplateService.countBy', error);
             throw error;
         }
     },
@@ -157,7 +156,7 @@ module.exports = {
             await EmailTemplateModel.deleteMany(query);
             return 'Email Template(s) removed successfully';
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.deleteMany', error);
+            ErrorService.log('emailTemplateService.hardDeleteBy', error);
             throw error;
         }
     },

@@ -19,7 +19,7 @@ module.exports = {
             if (!user) {
                 let error = new Error('User not found.');
                 error.code = 400;
-                ErrorService.log('InvoiceService.get', error);
+                ErrorService.log('invoiceService.get', error);
                 throw error;
             } else {
                 var invoices = await stripe.invoices.list(
@@ -33,13 +33,13 @@ module.exports = {
                 if (!invoices || !invoices.data) {
                     let error = new Error('Your invoice cannot be retrieved.');
                     error.code = 400;
-                    ErrorService.log('InvoiceService.get', error);
+                    ErrorService.log('invoiceService.get', error);
                     throw error;
                 }
                 return invoices;
             }
         } catch (error) {
-            ErrorService.log('InvoiceService.get', error);
+            ErrorService.log('invoiceService.get', error);
             throw error;
         }
     }
