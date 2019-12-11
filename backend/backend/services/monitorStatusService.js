@@ -12,23 +12,26 @@ module.exports = {
             monitorStatus.status = data.status;
             monitorStatus = monitorStatus.save();
             if (previousMonitorStatus) {
-                this.update({
-                    _id: previousMonitorStatus._id,
+                this.updateOneBy({
+                    _id: previousMonitorStatus._id},{
                     endTime: Date.now()
                 });
             }
         }
     },
-    update: async function (data) {
+    updateOneBy: async function (query,data) {
+        if (!query) {
+            query = {};
+        }
+
+        if (!query.deleted) query.deleted = false;
         try {
-            var updatedMonitorStatus = await MonitorStatusModel.findByIdAndUpdate(data._id, {
-                $set: {
-                    endTime: data.endTime
-                }
+            var updatedMonitorStatus = await MonitorStatusModel.findOneAndUpdate(query, {
+                $set: data
             });
             return updatedMonitorStatus;
         } catch (error) {
-            ErrorService.log('MonitorStatusService.update', error);
+            ErrorService.log('MonitorStatusService.updateOneBy', error);
             throw error;
         }
     },

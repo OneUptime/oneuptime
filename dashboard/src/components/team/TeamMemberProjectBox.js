@@ -66,7 +66,7 @@ const TeamMemberProjectBox = (props) => (
 
                     {
                         props.teamMembers.teamMembers.map((i, o) => {
-                            if (o >= (props.pages.counter * props.membersPerPage) - props.membersPerPage && o < props.pages.counter * props.membersPerPage) {
+                            if (o >= ((props.pages[props.teamMembers._id] || 1) * props.membersPerPage) - props.membersPerPage && o < (props.pages[props.teamMembers._id] || 1) * props.membersPerPage) {
                                 return (
                                         <TeamMember
                                             inviteModalId
@@ -138,7 +138,7 @@ const TeamMemberProjectBox = (props) => (
                             className={`Button bs-ButtonLegacy ${!props.canPaginateBackward ? 'Is--disabled' : ''}`}
                             disabled={!props.canPaginateBackward}
                             type="button"
-                            onClick={() => props.paginate('prev')}
+                            onClick={() => props.paginate('prev',props.teamMembers._id)}
                         >
                             <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                 <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -153,7 +153,7 @@ const TeamMemberProjectBox = (props) => (
                             className={`Button bs-ButtonLegacy ${!props.canPaginateForward ? 'Is--disabled' : ''}`}
                             disabled={!props.canPaginateForward}
                             type="button"
-                            onClick={() => props.paginate('next')}
+                            onClick={() => props.paginate('next',props.teamMembers._id)}
                         >
                             <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                 <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">

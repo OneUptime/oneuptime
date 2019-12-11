@@ -21,27 +21,27 @@ module.exports = {
     findBy: async function (query, skip, limit, sort) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 10;
-    
+
             if (!sort) sort = -1;
-    
+
             if (typeof (skip) === 'string') {
                 skip = parseInt(skip);
             }
-    
+
             if (typeof (limit) === 'string') {
                 limit = parseInt(limit);
             }
-    
+
             if (typeof (sort) === 'string') {
                 sort = parseInt(sort);
             }
-    
+
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var alerts = await AlertModel.find(query)
                 .sort([['createdAt', sort]])
@@ -80,7 +80,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var count = await AlertModel.count(query);
             return count;
@@ -91,52 +91,25 @@ module.exports = {
 
     },
 
-    update: async function (data) {
+    updateOneBy: async function (query, data) {
         try {
-            var _this = this;
-            if (!data._id) {
-                var alert = await _this.create(data);
-                return alert;
-            } else {
-                var oldAlert = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
+            if (!query) {
+                query = {};
+            }
 
-                var projectId = data.projectId || oldAlert.projectId;
-                var monitorId = data.monitorId || oldAlert.monitorId;
-                var userId = data.userId || oldAlert.userId;
-                var incidentId = data.incidentId || oldAlert.incidentId;
-                var alertVia = data.alertVia || oldAlert.alertVia;
-                var alertStatus = data.alertStatus || oldAlert.alertStatus;
-                var deleted = oldAlert.deleted;
-                var deletedById = oldAlert.deletedById;
-                var deletedAt = oldAlert.deletedAt;
-    
-                if (data.deleted === false) {
-                    deleted = false;
-                    deletedById = null;
-                    deletedAt = null;
-                }
-
-                var updatedAlert = await AlertModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        projectId,
-                        monitorId,
-                        userId,
-                        incidentId,
-                        alertVia,
-                        alertStatus,
-                        deleted,
-                        deletedById,
-                        deletedAt
-                    }
-                }, {
+            if (!query.deleted) query.deleted = false;
+            var updatedAlert = await AlertModel.findOneAndUpdate(query,
+                {
+                    $set: data
+                },
+                {
                     new: true
                 });
-                return updatedAlert;
-            }
         } catch (error) {
-            ErrorService.log('alertService.update', error);
+            ErrorService.log('AlertService.updateOneBy', error);
             throw error;
         }
+        return updatedAlert;
     },
 
     deleteBy: async function (query, userId) {
@@ -144,7 +117,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var alerts = await AlertModel.findOneAndUpdate(query, {
                 $set: {
@@ -172,7 +145,7 @@ module.exports = {
                 var monitor = await MonitorService.findOneBy({ _id: monitorId });
                 var schedules = await ScheduleService.findBy({ monitorIds: monitorId });
                 var project = await ProjectService.findOneBy({ _id: projectId });
-    
+
                 if (schedules.length > 0 && project.alertEnable) {
                     schedules.forEach(async schedule => {
                         let monitorName = monitor.name;
@@ -187,7 +160,7 @@ module.exports = {
                                         const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
                                         if (currentTime >= startTime && currentTime <= endTime) {
                                             var user = await UserService.findOneBy({ _id: teamMember.member });
-    
+
                                             if (user) {
                                                 let accessToken = jwt.sign({
                                                     id: user._id
@@ -221,7 +194,7 @@ module.exports = {
                                                     let alertStatus, alert, balanceStatus;
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
                                                     if (balanceCheckStatus) {
-                                                        
+
                                                         let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, accessToken, incident._id, incident.projectId);
                                                         if (alertSuccess) {
                                                             alertStatus = 'success';
@@ -313,7 +286,7 @@ module.exports = {
                         let timeDiff = endTime - startTime;
                         // convert to minutes
                         timeDiff *= 60;
-    
+
                         let interval = timeDiff / callFrequency; // minutes
                         return interval;
                     }
@@ -411,8 +384,9 @@ module.exports = {
         if (alert && alert.length > 1) {
             const alerts = await Promise.all(alert.map(async (alert) => {
                 const alertId = alert._id;
-                alert = await _this.update({
-                    _id: alertId,
+                alert = await _this.updateOneBy({
+                    _id: alertId
+                }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -424,8 +398,9 @@ module.exports = {
             alert = alert[0];
             if (alert) {
                 const alertId = alert._id;
-                alert = await _this.update({
-                    _id: alertId,
+                alert = await _this.updateOneBy({
+                    _id: alertId
+                }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -434,8 +409,8 @@ module.exports = {
             return alert;
         }
     },
-    getBalanceStatus: async function (projectId, alertPhoneNumber, alertType) { 
-        var project = await ProjectService.findOneBy({_id: projectId});
+    getBalanceStatus: async function (projectId, alertPhoneNumber, alertType) {
+        var project = await ProjectService.findOneBy({ _id: projectId });
         var balance = project.balance;
         var countryCode = alertPhoneNumber.split(' ')[0];
         var countryType = getCountryType(countryCode);

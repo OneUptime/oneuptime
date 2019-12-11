@@ -24,7 +24,7 @@ router.post('/create', getUser, async function (req, res) {
     try {
         var data = req.body;
         data.name = data.projectName;
-    
+
         // Sanitize
         if (!data.projectName) {
             return sendErrorResponse(req, res, {
@@ -32,58 +32,58 @@ router.post('/create', getUser, async function (req, res) {
                 message: 'Project name must be present.'
             });
         }
-    
+
         if (typeof data.projectName !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project name is not in string format.'
             });
         }
-    
+
         if (!data.planId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Stripe Plan Id must be present.'
             });
         }
-    
+
         if (typeof data.planId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Stripe Plan Id is not in string format.'
             });
         }
-    
+
         var stripePlanId = data.planId;
         var projectName = data.projectName;
         var userId = req.user ? req.user.id : null;
         data.userId = userId;
-    
+
         if (!data.stripePlanId) {
             data.stripePlanId = stripePlanId;
         }
-    
+
         // check if user has a project with provided name already
         var countProject = await ProjectService.countBy({ name: projectName, 'users.userId': userId });
-    
+
         if (countProject < 1) {
             var user = await UserService.findOneBy({ _id: userId });
             if (!user.stripeCustomerId) {
-    
+
                 if (!data.paymentIntent) {
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message: 'Payment intent is not present.'
                     });
                 }
-    
+
                 if (typeof data.paymentIntent !== 'string') {
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message: 'Payment intent is not in string format.'
                     });
                 }
-    
+
                 var paymentIntent = {
                     id: data.paymentIntent
                 };
@@ -94,7 +94,7 @@ router.post('/create', getUser, async function (req, res) {
                         message: 'Unsuccessful attempt to charge card'
                     });
                 }
-                user = await UserService.update({ _id: userId, stripeCustomerId: checkedPaymentIntent.customer });
+                user = await UserService.updateOneBy({ _id: userId},{ stripeCustomerId: checkedPaymentIntent.customer });
                 var subscriptionnew = await PaymentService.subscribePlan(stripePlanId, checkedPaymentIntent.customer);
                 if (!data.stripeSubscriptionId) {
                     data.stripeSubscriptionId = subscriptionnew.stripeSubscriptionId;
@@ -102,7 +102,7 @@ router.post('/create', getUser, async function (req, res) {
                 var project = await ProjectService.create(data);
                 await MailService.sendCreateProjectMail(projectName, user.email);
                 return sendItemResponse(req, res, project);
-    
+
             } else {
                 var subscription = await PaymentService.subscribePlan(stripePlanId, user.stripeCustomerId);
                 if (subscription.subscriptionPaymentStatus === 'canceled' || subscription.subscriptionPaymentStatus === 'unpaid') {
@@ -164,7 +164,7 @@ router.get('/projects', getUser, async function (req, res) {
 router.get('/:projectId/resetToken', getUser, isAuthorized, async function (req, res) {
     try {
         var projectId = req.params.projectId;
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -186,21 +186,21 @@ router.put('/:projectId/renameProject', getUser, isAuthorized, isUserOwner, asyn
     try {
         var projectId = req.params.projectId;
         var projectName = req.body.projectName;
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'ProjectId must be present.'
             });
         }
-    
+
         if (!projectName) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'New project name must be present.'
             });
         }
-        var project = await ProjectService.update({ _id: projectId, name: projectName });
+        var project = await ProjectService.updateOneBy({_id: projectId},{ name: projectName });
         return sendItemResponse(req, res, project);
     } catch (error) {
         sendErrorResponse(req, res, error);
@@ -211,19 +211,19 @@ router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async
     try {
         let projectId = req.params.projectId;
         var userId = req.user ? req.user.id : null;
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'ProjectId must be present.'
             });
         }
-    
+
         let data = req.body;
-    
+
         let minimumBalance = Number(data.minimumBalance);
         let rechargeToBalance = Number(data.rechargeToBalance);
-    
+
         if (!minimumBalance) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -272,7 +272,7 @@ router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async
                 message: 'Price-plan mismatch'
             });
         }
-    
+
         data = {
             _id: data._id,
             alertEnable: data.alertEnable,
@@ -300,7 +300,7 @@ router.delete('/:projectId/deleteProject', getUser, isAuthorized, isUserOwner, a
     try {
         let projectId = req.params.projectId;
         let userId = req.user.id;
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -328,35 +328,35 @@ router.post('/:projectId/changePlan', getUser, isAuthorized, isUserOwner, async 
         var userId = req.user ? req.user.id : null;
         var oldPlan = req.body.oldPlan;
         var newPlan = req.body.newPlan;
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'ProjectId must be present.'
             });
         }
-    
+
         if (!projectName) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'ProjectName must be present.'
             });
         }
-    
+
         if (!planId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'PlanID must be present.'
             });
         }
-    
+
         if (!oldPlan) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Old Plan must be present.'
             });
         }
-    
+
         if (!newPlan) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -384,21 +384,21 @@ router.post('/:projectId/upgradeToEnterprise', getUser, isAuthorized, isUserOwne
         var projectName = req.body.projectName;
         var userId = req.user ? req.user.id : null;
         var oldPlan = req.body.oldPlan;
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'ProjectId must be present.'
             });
         }
-    
+
         if (!projectName) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'ProjectName must be present.'
             });
         }
-    
+
         if (!oldPlan) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -469,7 +469,7 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function (req
             userId,
             parentProjectId
         };
-    
+
         let subProjects = await ProjectService.create(data);
         return sendItemResponse(req, res, subProjects);
     } catch (error) {
@@ -488,14 +488,14 @@ router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (r
                 message: 'SubProjectId must be present.'
             });
         }
-    
+
         if (!subProjectName) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'SubProject Name must be present.'
             });
         }
-        const subProject = await ProjectService.update({_id:subProjectId,name:subProjectName});
+        const subProject = await ProjectService.updateOneBy({_id:subProjectId},{name:subProjectName});
         return sendItemResponse(req, res, subProject);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -508,7 +508,7 @@ router.delete('/:projectId/:subProjectId', getUser, isAuthorized, async function
         const parentProjectId = req.params.projectId;
         const subProjectId = req.params.subProjectId;
         const userId = req.user.id;
-    
+
         if (!subProjectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -567,7 +567,7 @@ router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (
 });
 
 router.get('/projects/:projectId', getUser, isUserMasterAdmin, async function(req, res) {
-    
+
     try {
         const projectId = req.params.projectId;
         const project = await ProjectService.findOneBy({ _id: projectId, deleted: { $ne: null } });
@@ -582,7 +582,7 @@ router.get('/projects/:projectId', getUser, isUserMasterAdmin, async function(re
 router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const projectId = req.params.projectId;
-        const project = await ProjectService.update({ _id: projectId, isBlocked: true });
+        const project = await ProjectService.updateOneBy({ _id: projectId},{isBlocked: true });
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -592,7 +592,7 @@ router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async functio
 router.put('/:projectId/unblockProject', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const projectId = req.params.projectId;
-        const project = await ProjectService.update({ _id: projectId, isBlocked: false });
+        const project = await ProjectService.updateOneBy({ _id: projectId},{isBlocked: false });
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -624,7 +624,7 @@ router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (r
                                 message: 'Admin note must be present.'
                             });
                         }
-    
+
                         if (typeof val.note !== 'string') {
                             return sendErrorResponse(req, res, {
                                 code: 400,
@@ -634,7 +634,7 @@ router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (r
                     }
                     data.push(val);
                 }
-    
+
                 let adminNotes = await ProjectService.addNotes(projectId, data);
                 return sendItemResponse(req, res, adminNotes);
             } else {

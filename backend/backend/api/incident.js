@@ -33,35 +33,35 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
         var projectId = req.params.projectId;
         var incidentType = req.body.incidentType;
         var userId = req.user ? req.user.id : null;
-    
+
         if (!monitorId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Monitor ID must be present.'
             });
         }
-    
+
         if (typeof monitorId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Monitor ID  is not in string type.'
             });
         }
-    
+
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project ID must be present.'
             });
         }
-    
+
         if (typeof monitorId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project ID  is not in string type.'
             });
         }
-    
+
         if (incidentType) {
             if (!(['offline', 'online', 'degraded'].includes(incidentType))) {
                 return sendErrorResponse(req, res, {
@@ -192,16 +192,16 @@ router.post('/:projectId/close/:incidentId', getUser, isAuthorized, async functi
 router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async function (req, res) {
     try {
         var data = req.body;
-        data._id = req.params.incidentId;
-    
-    
+        var incidentId = req.params.incidentId;
+
+
         if (data.internalNote && typeof data.internalNote !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Internal Note  is not in string type.'
             });
         }
-    
+
         if (data.investigationNote && typeof data.investigationNote !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -209,7 +209,7 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
             });
         }
         // Call the IncidentService
-        var incident = await IncidentService.update(data);
+        var incident = await IncidentService.updateOneBy({_id:incidentId},data);
         if (incident && incident._id) {
             incident = await IncidentService.findOneBy({ _id: incident._id, projectId: incident.projectId });
         }

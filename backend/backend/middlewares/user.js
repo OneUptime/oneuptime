@@ -23,25 +23,25 @@ module.exports = {
             if( apiMiddleware.hasProjectIdAndApiKey(req)){
                 return apiMiddleware.isValidProjectIdAndApiKey(req, res, next);
             }
-    
+
             const accessToken = req.headers['authorization'] || url.parse(req.url, true).query.accessToken;
-    
+
             if (!accessToken) {
                 return sendErrorResponse(req, res, {
                     code: 401,
                     message: 'Session Token must be present.'
                 });
             }
-    
+
             if (typeof accessToken !== 'string') {
                 return sendErrorResponse(req, res, {
                     code: 401,
                     message: 'Token is not of type string.'
                 });
             }
-    
+
             let token = accessToken.split(' ')[1] || accessToken;
-    
+
             //Decode the token
             jwt.verify(token, jwtKey.jwtSecretKey, (err, decoded) => {
                 if (err) {
@@ -57,7 +57,7 @@ module.exports = {
                         }else{
                             req.authorizationType = 'USER';
                         }
-                        UserService.update({ _id: req.user.id, lastActive: Date.now() });
+                        UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
                         next();
                     });
                 }
@@ -83,9 +83,9 @@ module.exports = {
                         message:'Token is not of type string'
                     });
                 }
-    
+
                 let token = accessToken.split(' ')[1] || accessToken;
-    
+
                 //Decode the token
                 jwt.verify(token, jwtKey.jwtSecretKey, (err, decoded) => {
                     if (err) {
@@ -96,7 +96,7 @@ module.exports = {
                     } else {
                         req.authorizationType = 'USER';
                         req.user = decoded;
-                        UserService.update({ _id: req.user.id, lastActive: Date.now() });
+                        UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
                         next();
                     }
                 });
@@ -130,7 +130,7 @@ module.exports = {
                     } else {
                         req.authorizationType = 'USER';
                         req.user = decoded;
-                        UserService.update({ _id: req.user.id, lastActive: Date.now() });
+                        UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
                         var userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
                         var projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
                         if (!projectId) {
