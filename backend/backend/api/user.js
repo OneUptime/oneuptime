@@ -31,63 +31,63 @@ router.post('/signup', async function (req, res) {
                 message: 'Email must be present.'
             });
         }
-    
+
         if (typeof data.email !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Email is not in string format.'
             });
         }
-    
+
         if (!emaildomains.test(data.email)) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Business email address is required.'
             });
         }
-    
+
         if (!data.password) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Password must be present.'
             });
         }
-    
+
         if (typeof data.password !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Password is not in string format.'
             });
         }
-    
+
         if (!data.confirmPassword) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Confirm password must be present.'
             });
         }
-    
+
         if (typeof data.confirmPassword !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Confirm password is not in string format.'
             });
         }
-    
+
         if (data.confirmPassword !== data.confirmPassword) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Password and Confirm password are not same.'
             });
         }
-    
+
         if (!data.name) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Name must be present.'
             });
         }
-    
+
         if (typeof data.name !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -101,7 +101,7 @@ router.post('/signup', async function (req, res) {
                 var hash = await bcrypt.hash(data.password, constants.saltRounds);
                 // creating jwt refresh token
                 var jwtRefreshToken = randToken.uid(256);
-                user = await UserService.update({ _id: user._id, name: data.name, password: hash, jwtRefreshToken: jwtRefreshToken });
+                user = await UserService.updateOneBy({ _id: user._id},{ name: data.name, password: hash, jwtRefreshToken: jwtRefreshToken });
 
                 // Call the MailService.
                 MailService.sendSignupMail(user.email, user.name);
@@ -192,28 +192,28 @@ router.post('/login', async function (req, res) {
     try {
         var data = req.body;
         var clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    
+
         if (!data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Email must be present.'
             });
         }
-    
+
         if (typeof data.email !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Email is not in string format.'
             });
         }
-    
+
         if (!data.password) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Password must be present.'
             });
         }
-    
+
         if (typeof data.password !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -254,14 +254,14 @@ router.post('/login', async function (req, res) {
 router.post('/forgot-password', async function (req, res) {
     try {
         var data = req.body;
-    
+
         if (!data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Email must be present.'
             });
         }
-    
+
         if (typeof data.email !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -290,28 +290,28 @@ router.post('/forgot-password', async function (req, res) {
 router.post('/reset-password', async function (req, res) {
     try {
         var data = req.body;
-    
+
         if (!data.password) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Password must be present.'
             });
         }
-    
+
         if (typeof data.password !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Password is not in string format.'
             });
         }
-    
+
         if (!data.token) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Token must be present.'
             });
         }
-    
+
         if (typeof data.token !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -346,7 +346,7 @@ router.post('/reset-password', async function (req, res) {
 router.post('/isInvited', async function (req, res) {
     try {
         var data = req.body;
-    
+
         if (!data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -388,17 +388,16 @@ router.put('/profile', getUser, async function (req, res) {
         upload(req, res, async function (error) {
             var userId = req.user ? req.user.id : null;
             var data = req.body;
-            data._id = userId;
-    
+
             if (error) {
                 return sendErrorResponse(req, res, error);
             }
             if (req.files && req.files.profilePic && req.files.profilePic[0].filename) {
                 data.profilePic = req.files.profilePic[0].filename;
             }
-    
+
             // Call the UserService
-            var user = await UserService.update(data);
+            var user = await UserService.updateOneBy({_id : userId},data);
             return sendItemResponse(req, res, user);
         });
     } catch (error) {
@@ -414,22 +413,21 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, 
             name: 'profilePic',
             maxCount: 1
         }]);
-    
+
         upload(req, res, async function (error) {
             var userId = req.params.userId;
             var data = req.body;
-            data._id = userId;
-    
+
             if (error) {
                 return sendErrorResponse(req, res, error);
             }
-    
+
             if (req.files && req.files.profilePic && req.files.profilePic[0].filename) {
                 data.profilePic = req.files.profilePic[0].filename;
             }
-    
+
             // Call the UserService
-            var user = await UserService.update(data);
+            var user = await UserService.updateOneBy({_id : userId},data);
             return sendItemResponse(req, res, user);
         });
     } catch (error) {
@@ -447,56 +445,56 @@ router.put('/changePassword', getUser, async function (req, res) {
         var data = req.body;
         var userId = req.user ? req.user.id : null;
         data._id = userId;
-    
+
         if (!data.currentPassword) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Current Password must be present.'
             });
         }
-    
+
         if (typeof data.currentPassword !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Current Password  is not in string type.'
             });
         }
-    
+
         if (!data.newPassword) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'New Password  must be present.'
             });
         }
-    
+
         if (typeof data.newPassword !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'New Password is not in string type.'
             });
         }
-    
+
         if (!data.confirmPassword) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Confirm Password must be present.'
             });
         }
-    
+
         if (typeof data.confirmPassword !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Confirm Password  is not in string type.'
             });
         }
-    
+
         if (data.confirmPassword !== data.newPassword) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'New Password does not match confirm password.'
             });
         }
-    
+
         if (data.currentPassword === data.newPassword) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -531,7 +529,7 @@ router.put('/changePassword', getUser, async function (req, res) {
 router.get('/profile', getUser, async function (req, res) {
     try {
         var userId = req.user ? req.user.id : null;
-    
+
         if (!userId) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -699,7 +697,7 @@ router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function (r
 router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const userId = req.params.userId;
-        const user = await UserService.update({ _id: userId, isBlocked: true });
+        const user = await UserService.updateOneBy({ _id: userId},{ isBlocked: true });
         return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -709,7 +707,7 @@ router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (req
 router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const userId = req.params.userId;
-        const user = await UserService.update({ _id: userId, isBlocked: false });
+        const user = await UserService.updateOneBy({ _id: userId},{ isBlocked: false });
         return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -731,7 +729,7 @@ router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function (req,
                                 message: 'User note must be present.'
                             });
                         }
-    
+
                         if (typeof val.note !== 'string') {
                             return sendErrorResponse(req, res, {
                                 code: 400,
@@ -741,7 +739,7 @@ router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function (req,
                     }
                     data.push(val);
                 }
-    
+
                 let adminNotes = await UserService.addNotes(userId, data);
                 return sendItemResponse(req, res, adminNotes);
             } else {

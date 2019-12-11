@@ -14,25 +14,25 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
         let projectId = req.params.projectId;
         let body = req.body;
         let userId = req.user ? req.user.id : null;
-    
+
         let monitorIds = body.monitorIds;
         let endpoint = body.endpoint;
         let endpointType = body.endpointType;
-    
+
         if(!projectId) {
             return sendErrorResponse( req, res, {
                 code: 400,
                 message: 'projectId missing in body, must be present'
             });
         }
-    
+
         if(!endpoint) {
             return sendErrorResponse( req, res, {
                 code: 400,
                 message: 'endpoint missing in body, must be present'
             });
         }
-    
+
         if(!monitorIds) {
             return sendErrorResponse( req, res, {
                 code: 400,
@@ -54,29 +54,29 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (r
         let data = req.body;
         data.projectId = req.params.projectId;
         data.userId = req.user ? req.user.id : null;
-        data._id = req.params.integrationId;
-    
+        var integrationId = req.params.integrationId;
+
         if(!data.projectId) {
             return sendErrorResponse( req, res, {
                 code: 400,
                 message: 'projectId missing in body, must be present'
             });
         }
-    
+
         if(!data.endpoint) {
             return sendErrorResponse( req, res, {
                 code: 400,
                 message: 'endpoint missing in body, must be present'
             });
         }
-    
+
         if(!data.monitorIds) {
             return sendErrorResponse( req, res, {
                 code: 400,
                 message: 'monitorIds missing in body, must be present'
             });
         }
-        var webhook = await IntegrationService.update(data);
+        var webhook = await IntegrationService.updateOneBy({_id:integrationId},data);
         return sendItemResponse(req, res, webhook);
     } catch(error) {
         return sendErrorResponse(req, res, error);
@@ -97,7 +97,7 @@ router.delete('/:projectId/delete/:integrationId', getUser, isUserAdmin, async f
 });
 
 // req => params => {projectId}
-router.get('/:projectId/hooks', getUser, async function (req, res) { 
+router.get('/:projectId/hooks', getUser, async function (req, res) {
     try {
         var projectId = req.params.projectId;
         var integrationType = 'webhook';

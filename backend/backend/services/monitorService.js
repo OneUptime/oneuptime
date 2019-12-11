@@ -86,12 +86,12 @@ module.exports = {
         }
     },
 
-    update: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var monitor = await MonitorModel.findOneAndUpdate(query,
                 { $set: data },
@@ -107,7 +107,7 @@ module.exports = {
             await RealTimeService.monitorEdit(monitor);
             return monitor;
         } catch (error) {
-            ErrorService.log('monitorService.update', error);
+            ErrorService.log('monitorService.updateOneBy', error);
             throw error;
         }
     },
@@ -119,21 +119,21 @@ module.exports = {
     async findBy(query, limit, skip) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 0;
-    
+
             if (typeof (skip) === 'string') {
                 skip = parseInt(skip);
             }
-    
+
             if (typeof (limit) === 'string') {
                 limit = parseInt(limit);
             }
-    
+
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var monitors = await MonitorModel.find(query)
                 .sort([['createdAt', -1]])
@@ -152,7 +152,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name');
@@ -168,7 +168,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var count = await MonitorModel.count(query)
                 .populate('project', 'name');
@@ -184,7 +184,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var monitor = await MonitorModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } }, { new: true }).populate('deletedById', 'name');
 
@@ -213,7 +213,7 @@ module.exports = {
                 if (projectSeats && projectSeats > seats && monitorsCount > 0 && monitorsCount <= ((projectSeats - 1) * 5)) {
                     projectSeats = projectSeats - 1;
                     await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
-                    await ProjectService.update({ _id: project._id, seats: projectSeats.toString() });
+                    await ProjectService.updateOneBy({ _id: project._id},{ seats: projectSeats.toString() });
                 }
                 var incidents = await IncidentService.findBy({ monitorId: monitor._id });
 
@@ -274,7 +274,7 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('monitorService.getProbeMonitors', error);
-            throw error;  
+            throw error;
         }
     },
 
@@ -282,7 +282,7 @@ module.exports = {
         try {
             var newdate = new Date();
             var thisObj = this;
-            var monitors = await thisObj.update({
+            var monitors = await thisObj.updateOneBy({
                 _id: id, deleted: false
             }, { $set: { 'lastPingTime': newdate } }, { multi: false });
             if (monitors.length > 0) {
@@ -311,7 +311,7 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('monitorService.updateDeviceMonitorPingTime', error);
-            throw error;  
+            throw error;
         }
     },
 
@@ -390,7 +390,7 @@ module.exports = {
             var monitorIncidents = await IncidentService.findBy({ monitorId });
             var dateNow = moment().utc();
             var days = moment(dateNow).utc().startOf('day').diff(moment(monitorTime.createdAt).utc().startOf('day'), 'days');
-            
+
             if (days > 89) days = 89;
             var times = [];
             for (var i = days; i >= 0; i--) {
@@ -407,7 +407,7 @@ module.exports = {
                         else return false;
                     });
                     status = incidents.some(inc => inc.resolvedAt ? moment(inc.resolvedAt).utc().startOf('day').diff(moment(temp.date).utc().startOf('day'), 'days') > 0 : true) ? 'offline' : 'online';
-    
+
                     incidents = incidents.map(inc => {
                         let creatediff = moment(temp.date).utc().startOf('day').diff(moment(inc.createdAt).utc().startOf('day'), 'days');
                         let resolveddiff = inc.resolvedAt ? moment(temp.date).utc().startOf('day').diff(moment(inc.resolvedAt).utc().startOf('day'), 'days') : moment(temp.date).utc().startOf('day').diff(moment().utc().startOf('day'), 'days');
@@ -451,7 +451,7 @@ module.exports = {
         if (monitor && monitor.length > 1) {
             const monitors = await Promise.all(monitor.map(async (monitor) => {
                 const monitorId = monitor._id;
-                monitor = await _this.update({ _id: monitorId, deleted: true }, {
+                monitor = await _this.updateOneBy({ _id: monitorId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
@@ -465,7 +465,7 @@ module.exports = {
             monitor = monitor[0];
             if (monitor) {
                 const monitorId = monitor._id;
-                monitor = await _this.update({ _id: monitorId, deleted: true }, {
+                monitor = await _this.updateOneBy({ _id: monitorId, deleted: true }, {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null

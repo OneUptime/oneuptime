@@ -39,8 +39,7 @@ router.get('/', isAuthorizedAdmin, async function (req, res) {
 router.put('/:id', isAuthorizedAdmin, async function (req, res) {
     try {
         let data = req.body;
-        data._id = req.params.id;
-        let probe = await ProbeService.update({ _id: req.params.id }, data);
+        let probe = await ProbeService.updateOneBy({ _id: req.params.id }, data);
         return sendItemResponse(req, res, probe);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -69,12 +68,12 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response
     try {
         const { monitor, res, resp, type } = req.body;
         let status;
-    
+
         if (type === 'api' || type === 'url') {
             let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(res, resp, monitor.criteria.up) : false);
             let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(res, resp, monitor.criteria.degraded) : false);
             let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(res, resp, monitor.criteria.down) : false);
-    
+
             if (validDown) {
                 status = 'offline';
             } else if (validDegraded) {
@@ -85,7 +84,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response
                 status = 'unknown';
             }
         }
-    
+
         if (type === 'device') {
             if (res) {
                 status = 'online';
@@ -93,7 +92,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response
                 status = 'offline';
             }
         }
-    
+
         let data = req.body;
         data.responseTime = res || 0;
         data.responseStatus = resp && resp.status ? resp.status : null;

@@ -2,21 +2,21 @@ module.exports = {
     async findBy(query, skip, limit) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 20;
-    
+
             if (typeof (skip) === 'string') {
                 skip = parseInt(skip);
             }
-    
+
             if (typeof (limit) === 'string') {
                 limit = parseInt(limit);
             }
-    
+
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var notifications = await NotificationModel.find(query)
                 .limit(limit)
@@ -34,7 +34,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var count = await NotificationModel.count(query);
             return count;
@@ -76,45 +76,30 @@ module.exports = {
         }
     },
 
-    updateBy: async function (data) {
+    updateOneBy: async function (query, data) {
         try {
             let _this = this;
-            if (!data._id) {
-                let notification = await _this.create(data.projectId, data.message, data.userId, data.icon);
-                return notification;
-            } else {
-                var notification = await _this.findOneBy({ _id: data._id });
-
-                let projectId = data.projectId || notification.projectId;
-                let createdAt = data.createdAt || notification.createdAt;
-                let createdBy = data.createdBy || notification.createdBy;
-                let message = data.message || notification.message;
-                let read = notification.read;
-                let meta = data.meta || notification.meta;
-                if (data.read) {
-                    for (let userId of data.read) {
-                        read.push(userId);
-                    }
-                }
-                let icon = data.icon || notification.icon;
-                notification = await NotificationModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        projectId: projectId,
-                        createdAt: createdAt,
-                        createdBy: createdBy,
-                        message: message,
-                        icon: icon,
-                        read: read,
-                        meta: meta
-                    }
-                }, {
-                    new: true
-                });
-    
-                return notification;
+            if (!query) {
+                query = {};
             }
+
+            if (!query.deleted) query.deleted = false;
+            var notification = await _this.findOneBy(query);
+            let read = notification.read;
+            if (data.read) {
+                for (let userId of data.read) {
+                    read.push(userId);
+                }
+            }
+            data.read = read;
+            notification = await NotificationModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            });
+            return notification;
         } catch (error) {
-            ErrorService.log('notificationService.updateBy', error);
+            ErrorService.log('notificationService.updateOneBy', error);
             throw error;
         }
     },
@@ -145,7 +130,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var notification = await NotificationModel.findOne(query)
                 .populate('projectId', 'name');

@@ -27,13 +27,13 @@ module.exports = {
             }
             var usersId = projectMembers.map(user => user.userId.toString() );
             usersId = [...new Set(usersId)];
-    
+
             let users = [];
             for (let id of usersId){
                 var user = await UserService.findOneBy({ _id: id });
                 users.push(user);
             }
-    
+
             var response = [];
             for (let i = 0; i < users.length; i++) {
                 if(users[i]){
@@ -43,7 +43,7 @@ module.exports = {
             return response;
         } catch (error) {
             ErrorService.log('teamService.getTeamMembersBy', error);
-            throw error; 
+            throw error;
         }
     },
 
@@ -52,7 +52,7 @@ module.exports = {
             var seats = members.filter(async user => {
                 var count = 0;
                 var user_member = await UserService.findOneBy({ _id: user.userId });
-                domains.domains.forEach(domain => {    
+                domains.domains.forEach(domain => {
                     if (user_member.email.indexOf(domain) > -1) {
                         count++;
                     }
@@ -179,7 +179,7 @@ module.exports = {
             for (var i = 0; i < emails.length; i++) {
                 // Finds registered users and new users that will be added as team members.
                 var user = await UserService.findOneBy({ email: emails[i] });
-                
+
                 if (user) {
                     invitedTeamMembers.push(user);
                 } else {
@@ -187,27 +187,27 @@ module.exports = {
                         email: emails[i],
                         createdAt: Date.now()
                     });
-                    
+
                     invitedTeamMembers.push(newUser);
                 }
             }
             await Promise.all(invitedTeamMembers);
             let members = [];
-    
+
             for (let member of invitedTeamMembers){
                 if (member.name) {
                     projectUsers = await _this.getTeamMembersBy({ parentProjectId: project._id });
                     let userInProject = projectUsers.find(user => user.userId === member._id);
                     if(userInProject){
                         if(role === 'Viewer'){
-                            await MailService.sendExistingStatusPageViewerMail(subProject, addedBy, member.email);    
+                            await MailService.sendExistingStatusPageViewerMail(subProject, addedBy, member.email);
                         }else{
                             await MailService.sendExistingUserAddedToSubProjectMail(subProject, addedBy, member.email);
                         }
                         await NotificationService.create(project._id, `New user added to ${subProject.name} subproject by ${addedBy.name}`,addedBy.id,'information');
                     }else{
                         if(role === 'Viewer'){
-                            await MailService.sendNewStatusPageViewerMail(project, addedBy, member.email);    
+                            await MailService.sendNewStatusPageViewerMail(project, addedBy, member.email);
                         }else{
                             await MailService.sendExistingUserAddedToProjectMail(project, addedBy, member.email);
                         }
@@ -226,22 +226,22 @@ module.exports = {
                     role: role
                 });
             }
-    
+
             if(subProject){
                 members = members.concat(subProject.users);
-                await ProjectService.update({_id: subProject._id, users: members});
+                await ProjectService.updateOneBy({_id: subProject._id},{ users: members});
             }else{
                 let allProjectMembers = members.concat(project.users);
-                await ProjectService.update({_id: projectId, users: allProjectMembers});
+                await ProjectService.updateOneBy({_id: projectId},{ users: allProjectMembers});
                 var subProjects = await ProjectService.findBy({parentProjectId: project._id});
                 // add user to all subProjects
                 await Promise.all(subProjects.map(async(subProject)=>{
                     let subProjectMembers = members.concat(subProject.users);
-                    await ProjectService.update({_id: subProject._id, users: subProjectMembers});
+                    await ProjectService.updateOneBy({_id: subProject._id},{ users: subProjectMembers});
                 }));
             }
             projectUsers = await _this.getTeamMembersBy({ parentProjectId: project._id });
-            
+
             var projectSeats = project.seats;
             if (typeof (projectSeats) === 'string') {
                 projectSeats = parseInt(projectSeats);
@@ -250,7 +250,7 @@ module.exports = {
 
             await PaymentService.changeSeats(project.stripeSubscriptionId, newProjectSeats);
 
-            await ProjectService.update({ _id: project._id, seats: newProjectSeats.toString() });
+            await ProjectService.updateOneBy({ _id: project._id},{ seats: newProjectSeats.toString() });
 
             var response = [];
             var team = await _this.getTeamMembersBy({ _id: project._id });
@@ -341,7 +341,7 @@ module.exports = {
                     if(subProjects.length > 0){
                         await Promise.all(subProjects.map(async (subProject)=>{
                             await ProjectService.exitProject(subProject._id, teamMemberUserId);
-                        })); 
+                        }));
                     }
                 }
 
@@ -377,7 +377,7 @@ module.exports = {
                     response = response.concat(subProjectTeamsUsers);
                 }
                 team = await _this.getTeamMembersBy({ _id: projectId });
-                await RealTimeService.deleteTeamMember(project._id, { response, teamMembers: team, projectId }); 
+                await RealTimeService.deleteTeamMember(project._id, { response, teamMembers: team, projectId });
                 return response;
             }
         }
@@ -408,7 +408,7 @@ module.exports = {
             } else {
                 index = project.users.findIndex(user => user.userId === teamMemberUserId);
             }
-    
+
             // Checks if user to be updated is present in the project.
             if (index === -1) {
                 let error = new Error('User whose role is to be changed is not present in the project.');
@@ -453,7 +453,7 @@ module.exports = {
                     }else{
                         await MailService.sendChangeRoleEmailToUser(project, user, member.email, role);
                     }
-                    
+
                     // send response
                     var response = [];
                     var team = await _this.getTeamMembersBy({ _id: project._id });

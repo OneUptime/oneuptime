@@ -3,15 +3,15 @@ module.exports = {
     findBy: async function (query, skip, limit) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 0;
-    
+
             if (typeof (skip) === 'string') skip = parseInt(skip);
-    
+
             if (typeof (limit) === 'string') limit = parseInt(limit);
-    
+
             if (!query) query = {};
-    
+
             if (!query.deleted) query.deleted = false;
             var users = await UserModel.find(query)
                 .sort([['createdAt', -1]])
@@ -61,7 +61,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var count = await UserModel.count(query);
             return count;
@@ -76,7 +76,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var user = await UserModel.findOneAndUpdate(query, {
                 $set: {
@@ -109,88 +109,31 @@ module.exports = {
         }
     },
 
-    update: async function (data) {
-        try {
-            var _this = this;
-            if (!data._id) {
-                let user = await _this.create(data);
-                return user;
-            } else {
-                var user = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
+    updateOneBy: async function (query, data) {
+        if (!query) {
+            query = {};
+        }
 
-                var name = data.name || user.name;
-                var email = data.email || user.email;
-                var password = data.password || user.password;
-                var companyName = data.companyName || user.companyName;
-                var companyRole = data.companyRole || user.companyRole;
-                var companySize = data.companySize || user.companySize;
-                var referral = data.referral || user.referral;
-                var companyPhoneNumber = data.companyPhoneNumber || user.companyPhoneNumber;
-                var onCallAlert = data.onCallAlert || user.onCallAlert;
-                var profilePic = data.profilePic || user.profilePic;
-                var jwtRefreshToken = data.jwtRefreshToken || user.jwtRefreshToken;
-                var stripeCustomerId = data.stripeCustomerId || user.stripeCustomerId;
-                var resetPasswordToken = data.resetPasswordToken;
-                var resetPasswordExpires = data.resetPasswordExpires;
-                var createdAt = data.createdAt || user.createdAt;
-                var timezone = data.timezone || user.timezone;
-                var lastActive = data.lastActive || user.lastActive;
-                var coupon = data.coupon || user.coupon;
-                var disabled = data.disabled || false;
-                var adminNotes = data.adminNotes || user.adminNotes;
-                var isVerified = data.email ? data.email === user.email && user.isVerified : user.isVerified;
-                var tempEmail = data.tempEmail || user.tempEmail || null;
-    
-                var isBlocked = user.isBlocked;
-                if (typeof data.isBlocked === 'boolean') {
-                    isBlocked = data.isBlocked;
-                }
-    
-                var deleted = user.deleted;
-                var deletedById = user.deletedById;
-                var deletedAt = user.deletedAt;
-                if (data.deleted === false) {
-                    deleted = false;
-                    deletedById = null;
-                    deletedAt = null;
-                }
-    
-                var updatedUser = await UserModel.findOneAndUpdate({ _id: data._id }, {
-                    $set: {
-                        name: name,
-                        email: email,
-                        isVerified: isVerified,
-                        password: password,
-                        companyName: companyName,
-                        companyRole: companyRole,
-                        companySize: companySize,
-                        referral: referral,
-                        companyPhoneNumber: companyPhoneNumber,
-                        onCallAlert: onCallAlert,
-                        profilePic: profilePic,
-                        jwtRefreshToken: jwtRefreshToken,
-                        stripeCustomerId: stripeCustomerId,
-                        resetPasswordToken: resetPasswordToken,
-                        resetPasswordExpires: resetPasswordExpires,
-                        createdAt: createdAt,
-                        timezone: timezone,
-                        lastActive: lastActive,
-                        coupon: coupon,
-                        disabled: disabled,
-                        deleted,
-                        deletedById,
-                        deletedAt,
-                        isBlocked,
-                        adminNotes,
-                        tempEmail
-                    }
-                }, {
-                    new: true
-                });
-                return updatedUser;
-            }
+        if (!query.deleted) query.deleted = false;
+
+        if(data.role) delete data.role;
+        if(data.airtableId) delete data.airtableId;
+        if(data.tutorial) delete data.tutorial;
+        if(data.paymentFailedDate) delete data.paymentFailedDate;
+        if(data.alertPhoneNumber) delete data.alertPhoneNumber;
+        if (typeof data.isBlocked !== 'boolean') {
+            delete data.isBlocked;
+        }
+
+        try {
+            var updatedUser = await UserModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            });
+            return updatedUser;
         } catch (error) {
-            ErrorService.log('userService.update', error);
+            ErrorService.log('userService.updateOneBy', error);
             throw error;
         }
     },
@@ -199,7 +142,7 @@ module.exports = {
         try {
             if (!query) query = {};
             if (!data) data = {};
-    
+
             type = type.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
             data[type] = { show: false };
 
@@ -223,7 +166,7 @@ module.exports = {
                 var verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
                 MailService.sendVerifyEmail(verificationTokenURL, user.name, email);
                 if (email !== user.email) {
-                    _this.update({ _id: user._id, tempEmail: email });
+                    _this.updateOneBy({ _id: user._id }, { tempEmail: email });
                 }
             }
             return verificationToken.token;
@@ -245,7 +188,7 @@ module.exports = {
 
             if (util.isEmailValid(email)) {
                 var user = await _this.findOneBy({ email: email });
-    
+
                 if (user) {
                     let error = new Error('User already exists.');
                     error.code = 400;
@@ -261,15 +204,15 @@ module.exports = {
                         throw error;
                     }
                     var customerId = processedPaymentIntent.customer;
-    
+
                     var hash = await bcrypt.hash(data.password, constants.saltRounds);
-    
+
                     data.password = hash;
                     // creating jwt refresh token
                     data.jwtRefreshToken = randToken.uid(256);
                     //save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
-    
+
                     let createdAt = new Date(user.createdAt).toISOString().split('T', 1);
                     var record = await AirtableService.logUser({
                         name: data.name,
@@ -279,13 +222,13 @@ module.exports = {
                         jobRole: data.companyRole,
                         createdAt
                     });
-    
+
                     await _this.sendToken(user, user.email);
-    
+
                     //update customer Id
-                    user = await _this.update({ _id: user._id, stripeCustomerId: customerId });
+                    user = await _this.updateOneBy({ _id: user._id }, { stripeCustomerId: customerId });
                     var subscription = await PaymentService.subscribePlan(stripePlanId, customerId, data.coupon);
-    
+
                     var projectName = 'Unnamed Project';
                     var projectData = {
                         name: projectName,
@@ -296,7 +239,7 @@ module.exports = {
                     await ProjectService.create(projectData);
 
                     user.airtableId = record.id || null;
-    
+
                     return user;
                 }
             } else {
@@ -331,7 +274,7 @@ module.exports = {
             if (util.isEmailValid(email)) {
             // find user if present in db.
                 var user = await _this.findOneBy({ email: email });
-                
+
                 if (!user) {
                     let error = new Error('User does not exist.');
                     error.code = 400;
@@ -345,10 +288,10 @@ module.exports = {
                         // calculate number of days the subscription renewal has failed.
                         var oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
                         var daysAfterPaymentFailed = Math.round((new Date - user.paymentFailedDate) / oneDayInMilliSeconds);
-    
+
                         if (daysAfterPaymentFailed >= 15) {
-                            user = await _this.update({ _id: user._id, disabled: true });
-                            
+                            user = await _this.updateOneBy({ _id: user._id }, { disabled: true });
+
                             let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
                             error.code = 400;
                             ErrorService.log('userService.login', error);
@@ -356,7 +299,7 @@ module.exports = {
                         }
                     }
                     var encryptedPassword = user.password;
-    
+
                     if (user.disabled) {
                         let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
                         error.code = 400;
@@ -376,7 +319,7 @@ module.exports = {
                         throw error;
                     } else {
                         var res = await bcrypt.compare(password, encryptedPassword);
-                        
+
                         if (res) {
                             return user;
                         } else {
@@ -408,7 +351,7 @@ module.exports = {
             var _this = this;
             if (util.isEmailValid(email)) {
                 var user = await this.findOneBy({ email: email });
-                
+
                 if (!user) {
                     let error = new Error('User does not exist.');
                     error.code = 400;
@@ -419,12 +362,13 @@ module.exports = {
                     var token = buf.toString('hex');
 
                     //update a user.
-                    user = await _this.update({
-                        _id: user._id,
+                    user = await _this.updateOneBy({
+                        _id: user._id
+                    }, {
                         resetPasswordToken: token,
                         resetPasswordExpires: Date.now() + 3600000 // 1 hour
                     });
-                    
+
                     return user;
                 }
             } else {
@@ -453,20 +397,21 @@ module.exports = {
                     $gt: Date.now()
                 }
             });
-    
+
             if (!user) {
                 return null;
             } else {
                 var hash = await bcrypt.hash(password, constants.saltRounds);
-    
+
                 //update a user.
-                user = await _this.update({
-                    _id: user._id,
+                user = await _this.updateOneBy({
+                    _id: user._id
+                }, {
                     password: hash,
                     resetPasswordToken: '',
                     resetPasswordExpires: ''
                 });
-    
+
                 return user;
             }
         } catch (error) {
@@ -483,7 +428,7 @@ module.exports = {
         try {
             var _this = this;
             var user = await _this.findOneBy({ jwtRefreshToken: refreshToken });
-            
+
             if (!user) {
                 let error = new Error('Invalid Refresh Token');
                 error.code = 400;
@@ -495,8 +440,8 @@ module.exports = {
                 var accessToken = `${jwt.sign(userObj, jwtKey.jwtSecretKey, { expiresIn: 86400 })}`;
                 var jwtRefreshToken = randToken.uid(256);
 
-                user = await _this.update({ _id: user._id, jwtRefreshToken: jwtRefreshToken });
-    
+                user = await _this.updateOneBy({ _id: user._id }, { jwtRefreshToken: jwtRefreshToken });
+
                 var token = {
                     accessToken: accessToken,
                     refreshToken: refreshToken
@@ -507,7 +452,7 @@ module.exports = {
             ErrorService.log('userService.getNewToken', error);
             throw error;
         }
-        
+
     },
 
     changePassword: async function (data) {
@@ -521,10 +466,10 @@ module.exports = {
             if (check) {
                 var newPassword = data.newPassword;
                 var hash = await bcrypt.hash(newPassword, constants.saltRounds);
-                
+
                 data.password = hash;
-                user = await _this.update(data);
-                
+                user = await _this.updateOneBy({ _id: data._id }, data);
+
                 return user;
             } else {
                 let error = new Error('Current Password is incorrect.');
@@ -536,7 +481,7 @@ module.exports = {
             ErrorService.log('userService.changePassword', error);
             throw error;
         }
-        
+
     },
 
     getAllUsers: async function (skip, limit) {
@@ -567,8 +512,9 @@ module.exports = {
         if (user && user.length > 1) {
             const users = await Promise.all(user.map(async (user) => {
                 const userId = user._id;
-                user = await _this.update({
-                    _id: userId,
+                user = await _this.updateOneBy({
+                    _id: userId
+                }, {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
@@ -580,8 +526,9 @@ module.exports = {
             user = user[0];
             if (user) {
                 const userId = user._id;
-                user = await _this.update({
-                    _id: userId,
+                user = await _this.updateOneBy({
+                    _id: userId
+                }, {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
@@ -593,8 +540,9 @@ module.exports = {
 
     addNotes: async function (userId, notes) {
         const _this = this;
-        let adminNotes = (await _this.update({
-            _id: userId,
+        let adminNotes = (await _this.updateOneBy({
+            _id: userId
+        }, {
             adminNotes: notes
         })).adminNotes;
         return adminNotes;

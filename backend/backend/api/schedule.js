@@ -25,7 +25,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
         let userId = req.user ? req.user.id : null;
         data.createdById = userId;
         data.projectId = req.params.projectId;
-    
+
         if(!data.name){
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -75,8 +75,7 @@ router.put('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async 
     try {
         let scheduleId = req.params.scheduleId;
         let data = req.body;
-        data._id = scheduleId;
-        let schedule = await ScheduleService.update(data);
+        let schedule = await ScheduleService.updateOneBy({_id : scheduleId},data);
         return sendItemResponse(req, res, schedule);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -84,11 +83,11 @@ router.put('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async 
 });
 
 router.delete('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    
+
     try {
         var scheduleId = req.params.scheduleId;
         var userId = req.user ? req.user.id : null;
-    
+
         if (!scheduleId) {
             return sendErrorResponse( req, res, {
                 code: 400,
@@ -117,7 +116,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
         let userId = req.user ? req.user.id : null;
         let scheduleId = req.params.scheduleId;
         let escalationData = [];
-    
+
         for(let value of req.body){
             let storagevalue = {};
             let teamMember = [];
@@ -127,7 +126,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                     message: 'Call Frequency is required'
                 });
             }
-    
+
             if(!value.email && !value.call && !value.sms){
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -143,24 +142,24 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             storagevalue.projectId = req.params.projectId;
             storagevalue.scheduleId = scheduleId;
             storagevalue.createdById = userId;
-    
+
             if(value._id) storagevalue._id = value._id;
-    
+
             for(let escalation of value.teamMember){
-                let data = {};  
-    
+                let data = {};
+
                 if(!escalation.member){
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message: 'Team Members is required'
                     });
                 }
-    
+
                 data.member = escalation.member;
                 data.startTime = escalation.startTime;
                 data.endTime = escalation.endTime;
                 data.timezone = escalation.timezone;
-    
+
                 teamMember.push(data);
             }
             storagevalue.teamMember = teamMember;
