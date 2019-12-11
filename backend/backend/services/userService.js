@@ -133,7 +133,7 @@ module.exports = {
             });
             return updatedUser;
         } catch (error) {
-            ErrorService.log('userService.update', error);
+            ErrorService.log('userService.updateBy', error);
             throw error;
         }
     },
