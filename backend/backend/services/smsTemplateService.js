@@ -10,7 +10,7 @@ module.exports = {
 
             return smsTemplate;
         } catch (error) {
-            ErrorService.log('SmsTemplateService.save', error);
+            ErrorService.log('smsTemplateService.create', error);
             throw error;
         }
     },
@@ -41,7 +41,7 @@ module.exports = {
                 return updatedSmsTemplate;
             }
         } catch (error) {
-            ErrorService.log('SmsTemplateService.findByIdAndUpdate', error);
+            ErrorService.log('smsTemplateService.update', error);
             throw error;
         }
     },
@@ -59,7 +59,7 @@ module.exports = {
             });
             return smsTemplate;
         } catch (error) {
-            ErrorService.log('SmsTemplateService.findOneAndUpdate', error);
+            ErrorService.log('smsTemplateService.deleteBy', error);
             throw error;
         }
     },
@@ -90,7 +90,7 @@ module.exports = {
                 .populate('projectId', 'name');
             return smsTemplates;
         } catch(error) {
-            ErrorService.log('SmsTemplateService.find', error);
+            ErrorService.log('smsTemplateService.findBy', error);
             throw error;
         }
     },
@@ -107,7 +107,7 @@ module.exports = {
                 .populate('projectId', 'name');
             return smsTemplate;
         } catch (error) {
-            ErrorService.log('SmsTemplateService.findOne', error);
+            ErrorService.log('smsTemplateService.findOneBy', error);
             throw error;
         }
     },
@@ -122,7 +122,7 @@ module.exports = {
             var count = await SmsTemplateModel.count(query);
             return count;
         }catch(error){
-            ErrorService.log('SmsTemplateService.count', error);
+            ErrorService.log('smsTemplateService.countBy', error);
             throw error;
         }
     },
@@ -136,7 +136,7 @@ module.exports = {
             }));
             return templates;
         } catch (error) {
-            ErrorService.log('SmsTemplateService.findOneBy', error);
+            ErrorService.log('smsTemplateService.getTemplates', error);
             throw error;
         }
     },
@@ -159,7 +159,7 @@ module.exports = {
             await SmsTemplateModel.deleteMany(query);
             return 'SMS Template(s) removed successfully';
         } catch (error) {
-            ErrorService.log('SmsTemplateService.hardDeleteBy', error);
+            ErrorService.log('smsTemplateService.hardDeleteBy', error);
             throw error;
         }
     },

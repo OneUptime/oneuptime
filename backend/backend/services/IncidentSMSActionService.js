@@ -4,7 +4,7 @@ module.exports = {
             var alerts = await incidentSMSActionModel.find(query).sort([['createdAt', -1]]);
             return alerts;
         } catch (error) {
-            ErrorService.log('incidentSMSActionModel.find', error);
+            ErrorService.log('incidentSMSActionService.get', error);
             throw error;
         }
     },
@@ -17,7 +17,7 @@ module.exports = {
             var incidentafter = await incidentSMSAction.save();
             return incidentafter;
         } catch (error) {
-            ErrorService.log('incidentSMSAction.update', error);
+            ErrorService.log('incidentSMSActionService.update', error);
             throw error;  
         }
     }

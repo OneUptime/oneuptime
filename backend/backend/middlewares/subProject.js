@@ -33,7 +33,7 @@ module.exports = {
                 });
             }
         } catch (error) {
-            ErrorService.log('ProjectService.findBy', error);
+            ErrorService.log('subProject.getSubProjects', error);
             return sendErrorResponse(req, res, {
                 code:400,
                 message:'Bad request to server'

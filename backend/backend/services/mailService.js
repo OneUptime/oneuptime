@@ -162,74 +162,72 @@ module.exports = {
     },
 
     sendRequestDemoEmail: async function (to) {
-
-        if (!to) {
-            let error = new Error('Email not found');
-            error.code = 400;
-            throw error;
-        }
-        else {
-
-            var mailOptions = {
-                from: '"Fyipe " <' + accountMail.from + '>',
-                cc: 'noreply@fyipe.com',
-                to: to,
-                subject: 'Thank you for your demo request.',
-                template: 'request_demo_body',
-            };
-            try {
-                var info = await mailer.sendMail(mailOptions);
-            } catch (error) {
-                ErrorService.log('mailer.sendMail', error);
+        try {
+            if (!to) {
+                let error = new Error('Email not found');
+                error.code = 400;
                 throw error;
             }
-            return info;
+            else {
+    
+                var mailOptions = {
+                    from: '"Fyipe " <' + accountMail.from + '>',
+                    cc: 'noreply@fyipe.com',
+                    to: to,
+                    subject: 'Thank you for your demo request.',
+                    template: 'request_demo_body',
+                };
+                var info = await mailer.sendMail(mailOptions);
+                return info;
+            }
+        } catch (error) {
+            ErrorService.log('mailService.sendRequestDemoEmail', error);
+            throw error;
         }
     },
 
     sendWhitepaperEmail: async function (to, whitepaperName) {
-
-        if (!to || whitepaperName) {
-            let error = new Error('Email or Whitepaper found');
-            error.code = 400;
-            ErrorService.log('mailService.sendWhitepaperEmail', error);
-            throw error;
-        }
-        else {
-            let link = null;
-
-            for (var i = 0; i < Whitepapers.length; i++) {
-                if (Whitepapers[i].name === whitepaperName) {
-                    link = Whitepapers[i].link;
-                }
-            }
-
-
-            if (!link) {
-                let error = new Error('Whitepaper not found');
+        try {
+            if (!to || whitepaperName) {
+                let error = new Error('Email or Whitepaper found');
                 error.code = 400;
                 ErrorService.log('mailService.sendWhitepaperEmail', error);
                 throw error;
             }
             else {
-                var mailOptions = {
-                    from: '"Fyipe " <' + accountMail.from + '>',
-                    cc: 'noreply@fyipe.com',
-                    to: to,
-                    subject: 'Here\'s your Whitepaper',
-                    template: 'whitepaper_body',
-                    context: {
-                        link: link
+                let link = null;
+    
+                for (var i = 0; i < Whitepapers.length; i++) {
+                    if (Whitepapers[i].name === whitepaperName) {
+                        link = Whitepapers[i].link;
                     }
-                };
-                try {
-                    var info = await mailer.sendMail(mailOptions);
-                } catch (error) {
-                    ErrorService.log('mailer.sendMail', error);
+                }
+    
+
+                if (!link) {
+                    let error = new Error('Whitepaper not found');
+                    error.code = 400;
+                    ErrorService.log('mailService.sendWhitepaperEmail', error);
                     throw error;
                 }
-                return info;
+                else {
+                    var mailOptions = {
+                        from: '"Fyipe " <' + accountMail.from + '>',
+                        cc: 'noreply@fyipe.com',
+                        to: to,
+                        subject: 'Here\'s your Whitepaper',
+                        template: 'whitepaper_body',
+                        context: {
+                            link: link
+                        }
+                    };
+                    var info = await mailer.sendMail(mailOptions);
+                    return info;
+                }
             }
+        } catch (error) {
+            ErrorService.log('mailService.sendWhitepaperEmail', error);
+            throw error;
         }
     },
 
@@ -253,7 +251,7 @@ module.exports = {
             var info = await mailer.sendMail(mailOptions);
             return info;
         } catch (error) {
-            ErrorService.log('mailer.sendMail', error);
+            ErrorService.log('mailService.sendForgotPasswordMail', error);
             throw error;
         }
     },

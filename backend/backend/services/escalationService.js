@@ -20,7 +20,7 @@ module.exports = {
                 .populate('scheduleId', 'name');
             return escalations;
         } catch (error) {
-            ErrorService.log('EscalationModel.find', error);
+            ErrorService.log('escalationService.findBy', error);
             throw error;
         }
     },
@@ -38,7 +38,7 @@ module.exports = {
                 .populate('scheduleId', 'name');
             return escalation;
         } catch (error) {
-            ErrorService.log('EscalationService.findOneBy', error);
+            ErrorService.log('escalationService.findOneBy', error);
             throw error;
         }
 
@@ -60,7 +60,7 @@ module.exports = {
             var escalation = await escalationModel.save();
             return escalation;
         } catch (error) {
-            ErrorService.log('EscalationService.create', error);
+            ErrorService.log('escalationService.create', error);
             throw error;
         }
     },
@@ -76,7 +76,7 @@ module.exports = {
             var count = await EscalationModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('EscalationService.count', error);
+            ErrorService.log('escalationService.countBy', error);
             throw error;
         }
     },
@@ -94,7 +94,7 @@ module.exports = {
             });
             return escalation;
         } catch (error) {
-            ErrorService.log('EscalationService.findOneAndUpdate', error);
+            ErrorService.log('escalationService.deleteBy', error);
             throw error;
         }
     },
@@ -138,7 +138,7 @@ module.exports = {
                 return escalation;
             }
         } catch (error) {
-            ErrorService.log('EscalationService.findByIdAndUpdate', error);
+            ErrorService.log('escalationService.update', error);
             throw error;
         }
     },
@@ -155,7 +155,7 @@ module.exports = {
                 }));
             }
         } catch (error) {
-            ErrorService.log('EscalationService.removeEscalationMember', error);
+            ErrorService.log('escalationService.removeEscalationMember', error);
             throw error;
         }
     },
@@ -165,7 +165,7 @@ module.exports = {
             await EscalationModel.deleteMany(query);
             return 'Escalation(s) removed successfully';
         } catch (error) {
-            ErrorService.log('EscalationService.deleteMany', error);
+            ErrorService.log('escalationService.hardDeleteBy', error);
             throw error;
         }
     },

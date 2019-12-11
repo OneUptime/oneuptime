@@ -11,40 +11,40 @@ module.exports = {
     //Param 2: subProjectId: SubProject id
     //Returns: list of team members
     getTeamMembersBy: async function (query) {
-        var projectMembers = [];
-        var projects = await ProjectService.findBy(query);
-        if(projects && projects.length > 0){
-            // check for parentProject and add parent project users
-            if(query.parentProjectId && projects[0]){
-                var parentProject = await ProjectService.findOneBy({ _id: projects[0].parentProjectId, deleted: { $ne: null } });
-                projectMembers = projectMembers.concat(parentProject.users);
+        try {
+            var projectMembers = [];
+            var projects = await ProjectService.findBy(query);
+            if(projects && projects.length > 0){
+                // check for parentProject and add parent project users
+                if(query.parentProjectId && projects[0]){
+                    var parentProject = await ProjectService.findOneBy({ _id: projects[0].parentProjectId, deleted: { $ne: null } });
+                    projectMembers = projectMembers.concat(parentProject.users);
+                }
+                var projectUsers = projects.map(project => project.users);
+                projectUsers.map((users)=>{
+                    projectMembers = projectMembers.concat(users);
+                });
             }
-            var projectUsers = projects.map(project => project.users);
-            projectUsers.map((users)=>{
-                projectMembers = projectMembers.concat(users);
-            });
-        }
-        var usersId = projectMembers.map(user => user.userId.toString() );
-        usersId = [...new Set(usersId)];
-
-        let users = [];
-        for (let id of usersId){
-            try{
+            var usersId = projectMembers.map(user => user.userId.toString() );
+            usersId = [...new Set(usersId)];
+    
+            let users = [];
+            for (let id of usersId){
                 var user = await UserService.findOneBy({ _id: id });
-            }catch(error){
-                ErrorService.log('', error);
-                throw error;
+                users.push(user);
             }
-            users.push(user);
-        }
-
-        var response = [];
-        for (let i = 0; i < users.length; i++) {
-            if(users[i]){
-                response.push({ userId: users[i]._id, email: users[i].email, name: users[i].name, role: projectMembers[i].role, lastActive: users[i].lastActive });
+    
+            var response = [];
+            for (let i = 0; i < users.length; i++) {
+                if(users[i]){
+                    response.push({ userId: users[i]._id, email: users[i].email, name: users[i].name, role: projectMembers[i].role, lastActive: users[i].lastActive });
+                }
             }
+            return response;
+        } catch (error) {
+            ErrorService.log('teamService.getTeamMembersBy', error);
+            throw error; 
         }
-        return response;
     },
 
     getSeats: async function (members) {
@@ -68,7 +68,7 @@ module.exports = {
             seats = seats.length;
             return seats;
         } catch (error) {
-            ErrorService.log('TeamService.findOneBy', error);
+            ErrorService.log('teamService.getSeats', error);
             throw error;
         }
     },
@@ -273,7 +273,7 @@ module.exports = {
             }
             return response;
         } catch (error) {
-            ErrorService.log('TeamService.inviteTeamMembersMethod', error);
+            ErrorService.log('teamService.inviteTeamMembersMethod', error);
             throw error;
         }
     },
@@ -293,7 +293,7 @@ module.exports = {
         if (userId === teamMemberUserId) {
             let error = new Error('Admin User cannot delete himself');
             error.code = 400;
-            ErrorService.log('TeamService.inviteTeamMembers', error);
+            ErrorService.log('teamService.inviteTeamMembers', error);
             throw error;
 
         } else {
@@ -325,7 +325,7 @@ module.exports = {
             if (index === -1) {
                 let error = new Error('Member to be deleted from the project does not exist.');
                 error.code = 400;
-                ErrorService.log('TeamService.removeTeamMember', error);
+                ErrorService.log('teamService.removeTeamMember', error);
                 throw error;
 
             } else {
@@ -413,7 +413,7 @@ module.exports = {
             if (index === -1) {
                 let error = new Error('User whose role is to be changed is not present in the project.');
                 error.code = 400;
-                ErrorService.log('TeamService.updateTeamMemberRole', error);
+                ErrorService.log('teamService.updateTeamMemberRole', error);
                 throw error;
             } else {
                 if(subProject){
@@ -425,7 +425,7 @@ module.exports = {
                 if (nextRole === previousRole) {
                     let error = new Error('Please provide role different from current role and try again.');
                     error.code = 400;
-                    ErrorService.log('TeamService.updateTeamMemberRole', error);
+                    ErrorService.log('teamService.updateTeamMemberRole', error);
                     throw error;
                 } else {
                     if(subProject){
@@ -480,7 +480,7 @@ module.exports = {
                 }
             }
         } catch (error) {
-            ErrorService.log('TeamService.updateTeamMemberRole', error);
+            ErrorService.log('teamService.updateTeamMemberRole', error);
             throw error;
         }
     }

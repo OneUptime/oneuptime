@@ -24,7 +24,7 @@ module.exports = {
                 .sort({ createdAt: -1 });
             return notifications;
         } catch (error) {
-            ErrorService.log('NotificationService.find', error);
+            ErrorService.log('notificationService.findBy', error);
             throw error;
         }
     },
@@ -39,7 +39,7 @@ module.exports = {
             var count = await NotificationModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('NotificationService.count', error);
+            ErrorService.log('notificationService.countBy', error);
             throw error;
         }
     },
@@ -59,7 +59,7 @@ module.exports = {
             await RealTimeService.sendNotification(notification);
             return notification;
         } catch (error) {
-            ErrorService.log('NotificationService.create', error);
+            ErrorService.log('notificationService.create', error);
             throw error;
         }
     },
@@ -71,7 +71,7 @@ module.exports = {
             });
             return notifications;
         } catch (error) {
-            ErrorService.log('NotificationService.updateManyBy', error);
+            ErrorService.log('notificationService.updateManyBy', error);
             throw error;
         }
     },
@@ -114,7 +114,7 @@ module.exports = {
                 return notification;
             }
         } catch (error) {
-            ErrorService.log('NotificationService.updateBy', error);
+            ErrorService.log('notificationService.updateBy', error);
             throw error;
         }
     },
@@ -124,7 +124,7 @@ module.exports = {
             var result = await NotificationModel.findById(notificationId).remove();
             return result;
         } catch (error) {
-            ErrorService.log('NotificationService.delete', error);
+            ErrorService.log('notificationService.delete', error);
             throw error;
         }
 
@@ -135,7 +135,7 @@ module.exports = {
             await NotificationModel.deleteMany(query);
             return 'Notification(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('NotificationService.hardDeleteBy', error);
+            ErrorService.log('notificationService.hardDeleteBy', error);
             throw error;
         }
     },
@@ -151,7 +151,7 @@ module.exports = {
                 .populate('projectId', 'name');
             return notification;
         } catch (error) {
-            ErrorService.log('NotificationService.findOneBy', error);
+            ErrorService.log('notificationService.findOneBy', error);
             throw error;
         }
     },
