@@ -17,14 +17,13 @@ const {
 } = require('../middlewares/authorization');
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
-    if (!req.body.feedback && !req.body.page) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Cannot submit a feedback with an empty message or page'
-        });
-    }
-
     try {
+        if (!req.body.feedback && !req.body.page) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Cannot submit a feedback with an empty message or page'
+            });
+        }
         var feedback = await FeedbackService.create(req.params.projectId, req.body.feedback, req.body.page, req.user.id);
         return sendItemResponse(req, res, feedback);
     } catch (error) {

@@ -7,18 +7,18 @@
 module.exports = {
 
     findBy: async function (query, skip, limit) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof (skip) === 'string') skip = parseInt(skip);
-
-        if (typeof (limit) === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        query.deleted = false;
         try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 10;
+
+            if (typeof (skip) === 'string') skip = parseInt(skip);
+
+            if (typeof (limit) === 'string') limit = parseInt(limit);
+
+            if (!query) query = {};
+
+            query.deleted = false;
             var statusPages = await StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
@@ -26,73 +26,73 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name')
                 .lean();
+            return statusPages;
         } catch (error) {
-            ErrorService.log('StatusPageModel.find', error);
+            ErrorService.log('statusPageService.findBy', error);
             throw error;
         }
-        return statusPages;
     },
 
     create: async function (data) {
-        var statusPageModel = new StatusPageModel();
-        statusPageModel.projectId = data.projectId || null;
-        statusPageModel.domain = data.domain || null;
-        statusPageModel.links = data.links || null;
-        statusPageModel.title = data.title || null;
-        statusPageModel.name = data.name || null;
-        statusPageModel.isPrivate = data.isPrivate || null;
-        statusPageModel.description = data.description || null;
-        statusPageModel.copyright = data.copyright || null;
-        statusPageModel.faviconPath = data.faviconPath || null;
-        statusPageModel.logoPath = data.logoPath || null;
-        statusPageModel.deleted = data.deleted || false;
-        statusPageModel.isSubscriberEnabled = data.isSubscriberEnabled || false;
-
-        if (!data.monitorIds) {
-            statusPageModel.monitorIds = null;
-        }
-        else {
-            // if monitorIds is array
-            if (data.monitorIds.length !== undefined) {
-                statusPageModel.monitorId = [];
-                for (let monitorId of data.monitorIds) {
-                    statusPageModel.monitorId.push(monitorId);
-                }
-            } else {
-                statusPageModel.monitorId = data.monitorIds;
-            }
-        }
         try {
+            var statusPageModel = new StatusPageModel();
+            statusPageModel.projectId = data.projectId || null;
+            statusPageModel.domain = data.domain || null;
+            statusPageModel.links = data.links || null;
+            statusPageModel.title = data.title || null;
+            statusPageModel.name = data.name || null;
+            statusPageModel.isPrivate = data.isPrivate || null;
+            statusPageModel.description = data.description || null;
+            statusPageModel.copyright = data.copyright || null;
+            statusPageModel.faviconPath = data.faviconPath || null;
+            statusPageModel.logoPath = data.logoPath || null;
+            statusPageModel.deleted = data.deleted || false;
+            statusPageModel.isSubscriberEnabled = data.isSubscriberEnabled || false;
+
+            if (!data.monitorIds) {
+                statusPageModel.monitorIds = null;
+            }
+            else {
+                // if monitorIds is array
+                if (data.monitorIds.length !== undefined) {
+                    statusPageModel.monitorId = [];
+                    for (let monitorId of data.monitorIds) {
+                        statusPageModel.monitorId.push(monitorId);
+                    }
+                } else {
+                    statusPageModel.monitorId = data.monitorIds;
+                }
+            }
             var statusPage = await statusPageModel.save();
+            return statusPage;
         } catch (error) {
-            ErrorService.log('statusPageModel.save', error);
+            ErrorService.log('statusPageService.create', error);
             throw error;
         }
-        return statusPage;
     },
 
 
     countBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
             var count = await StatusPageModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('StatusPageModel.count', error);
+            ErrorService.log('statusPageService.countBy', error);
             throw error;
         }
-        return count;
     },
 
     deleteBy: async function (query, userId) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var statusPage = await StatusPageModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
@@ -110,12 +110,11 @@ module.exports = {
                     await SubscriberService.deleteBy({ _id: subscriber }, userId);
                 }));
             }
+            return statusPage;
         } catch (error) {
-            ErrorService.log('StatusPageModel.deleteBy', error);
+            ErrorService.log('statusPageService.deleteBy', error);
             throw error;
         }
-
-        return statusPage;
     },
 
     removeMonitor: async function (monitorId) {
@@ -123,64 +122,63 @@ module.exports = {
             var statusPage = await StatusPageModel.findOneAndUpdate({ monitorIds: monitorId }, {
                 $pull: { monitorIds: monitorId }
             });
+            return statusPage;
         } catch (error) {
-            ErrorService.log('StatusPageModel.findOneAndUpdate', error);
+            ErrorService.log('statusPageService.removeMonitor', error);
             throw error;
         }
-        return statusPage;
     },
 
     findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name');
+            return statusPage;
         } catch (error) {
-            ErrorService.log('StatusPageModel.findOne', error);
+            ErrorService.log('statusPageService.findOneBy', error);
             throw error;
         }
-
-        return statusPage;
     },
 
     updateBy: async function (query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
             var updatedStatusPage = await StatusPageModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('StatusPageModel.findOneAndUpdate', error);
+            ErrorService.log('statusPageService.updateBy', error);
             throw error;
         }
         return updatedStatusPage;
     },
 
     getNotes: async function (query, skip, limit) {
-        var _this = this;
-
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 5;
-
-        if (typeof (skip) === 'string') skip = parseInt(skip);
-
-        if (typeof (limit) === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
         try {
+            var _this = this;
+
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof (skip) === 'string') skip = parseInt(skip);
+
+            if (typeof (limit) === 'string') limit = parseInt(limit);
+
+            if (!query) query = {};
             var statuspages = await _this.findBy(query, 0, limit);
 
             const withMonitors = statuspages.filter((statusPage) => statusPage.monitorIds.length);
@@ -195,15 +193,11 @@ module.exports = {
             else {
                 let error = new Error('no monitor to check');
                 error.code = 400;
-                ErrorService.log('StatusPage.getNotes', error);
+                ErrorService.log('statusPage.getNotes', error);
                 throw error;
             }
         } catch (error) {
-            if (error.message.indexOf('at path "monitorId"') !== -1) {
-                ErrorService.log('IncidentService.findBy', error);
-            } else {
-                ErrorService.log('StatusPage.getNotes', error);
-            }
+            ErrorService.log('statusPageService.getNotes', error);
             throw error;
         }
     },
@@ -222,22 +216,21 @@ module.exports = {
                 };
             });
             var count = await IncidentService.countBy(query);
+            return { investigationNotes, count };
         } catch (error) {
-            ErrorService.log('IncidentService.getNotesByDate', error);
+            ErrorService.log('statusPageService.getNotesByDate', error);
             throw error;
         }
-
-        return { investigationNotes, count };
     },
 
     getStatus: async function (query, user) {
-        var thisObj = this;
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            var thisObj = this;
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
@@ -259,37 +252,36 @@ module.exports = {
                 if (!permitted) {
                     let error = new Error('You are unauthorized to access the page please login to continue.');
                     error.code = 401;
-                    ErrorService.log('StatusPageService.getStatus', error);
+                    ErrorService.log('statusPageService.getStatus', error);
                     throw error;
                 }
             }
             else {
                 let error = new Error('StatusPage Not present');
                 error.code = 400;
-                ErrorService.log('StatusPageService.getStatus', error);
+                ErrorService.log('statusPageService.getStatus', error);
                 throw error;
             }
+            return statusPage;
         } catch (error) {
-            ErrorService.log('StatusPageService.getStatus', error);
+            ErrorService.log('statusPageService.getStatus', error);
             throw error;
         }
-
-        return statusPage;
     },
 
     isPermitted: async function (user, statusPage) {
-        return new Promise(async (resolve) => {
-            if (statusPage.isPrivate) {
-                if (user) {
-                    try {
+        try {
+            return new Promise(async (resolve) => {
+                if (statusPage.isPrivate) {
+                    if (user) {
                         var project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
-                    } catch (error) {
-                        ErrorService.log('ProjectService.findOneBy', error);
-                        throw error;
-                    }
-                    if (project && project._id) {
-                        if (project.users.some(({ userId }) => userId === user.id)) {
-                            resolve(true);
+                        if (project && project._id) {
+                            if (project.users.some(({ userId }) => userId === user.id)) {
+                                resolve(true);
+                            }
+                            else {
+                                resolve(false);
+                            }
                         }
                         else {
                             resolve(false);
@@ -300,13 +292,13 @@ module.exports = {
                     }
                 }
                 else {
-                    resolve(false);
+                    resolve(true);
                 }
-            }
-            else {
-                resolve(true);
-            }
-        });
+            });
+        } catch (error) {
+            ErrorService.log('statusPageService.isPermitted', error);
+            throw error;
+        }
     },
 
     getSubProjectStatusPages: async function (subProjectIds) {
@@ -322,11 +314,11 @@ module.exports = {
     hardDeleteBy: async function (query) {
         try {
             await StatusPageModel.deleteMany(query);
+            return 'Status Page(s) Removed Successfully!';
         } catch (error) {
-            ErrorService.log('StatusPageModel.deleteMany', error);
+            ErrorService.log('statusPageService.hardDeleteBy', error);
             throw error;
         }
-        return 'Status Page(s) Removed Successfully!';
     },
 
     restoreBy: async function (query) {

@@ -1,59 +1,59 @@
 module.exports = {
 
     findBy: async function (query, limit, skip) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof (skip) === 'string') skip = parseInt(skip);
-
-        if (typeof (limit) === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        if (!query.deleted) query.deleted = false;
         try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof (skip) === 'string') skip = parseInt(skip);
+
+            if (typeof (limit) === 'string') limit = parseInt(limit);
+
+            if (!query) query = {};
+
+            if (!query.deleted) query.deleted = false;
             var projects = await ProjectModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('userId', 'name')
                 .populate('parentProjectId', 'name');
+            return projects;
         } catch (error) {
-            ErrorService.log('ProjectModel.find', error);
+            ErrorService.log('projectService.findBy', error);
             throw error;
         }
-        return projects;
     },
 
     create: async function (data) {
-        var _this = this;
-        var projectModel = new ProjectModel();
-        if (data.parentProjectId) {
-            var parentProject = await _this.findOneBy({ _id: data.parentProjectId });
-            projectModel.users = parentProject.users;
-        } else {
-            projectModel.users = [{
-                userId: data.userId,
-                role: 'Owner'
-            }];
-        }
-        projectModel.name = data.name || null;
-        projectModel.slug = data.slug || null;
-        projectModel.apiKey = uuidv1();
-        projectModel.stripePlanId = data.stripePlanId || null;
-        projectModel.stripeSubscriptionId = data.stripeSubscriptionId || null;
-        projectModel.parentProjectId = data.parentProjectId || null;
-        projectModel.seats = '1';
-        projectModel.isBlocked = data.isBlocked || false;
-        projectModel.adminNotes = data.adminNotes || null;
         try {
+            var _this = this;
+            var projectModel = new ProjectModel();
+            if (data.parentProjectId) {
+                var parentProject = await _this.findOneBy({ _id: data.parentProjectId });
+                projectModel.users = parentProject.users;
+            } else {
+                projectModel.users = [{
+                    userId: data.userId,
+                    role: 'Owner'
+                }];
+            }
+            projectModel.name = data.name || null;
+            projectModel.slug = data.slug || null;
+            projectModel.apiKey = uuidv1();
+            projectModel.stripePlanId = data.stripePlanId || null;
+            projectModel.stripeSubscriptionId = data.stripeSubscriptionId || null;
+            projectModel.parentProjectId = data.parentProjectId || null;
+            projectModel.seats = '1';
+            projectModel.isBlocked = data.isBlocked || false;
+            projectModel.adminNotes = data.adminNotes || null;
             var project = await projectModel.save();
+            return project;
         } catch (error) {
-            ErrorService.log('projectModel.save', error);
+            ErrorService.log('projectService.create', error);
             throw error;
         }
-        return project;
     },
 
     countBy: async function (query) {
@@ -67,11 +67,11 @@ module.exports = {
     },
 
     deleteBy: async function (query, userId) {
-        if (!query) {
-            query = {};
-        }
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
             var project = await ProjectModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
@@ -81,80 +81,58 @@ module.exports = {
             }, {
                 new: true
             });
+            if (project) {
+                if (project.stripeSubscriptionId) {
+                    await PaymentService.removeSubscription(project.stripeSubscriptionId);
+                }
+
+                var monitors = await MonitorService.findBy({ projectId: project._id });
+                await Promise.all(monitors.map(async (monitor) => {
+                    await MonitorService.deleteBy({ _id: monitor._id });
+                }));
+
+                var schedules = await ScheduleService.findBy({ projectId: project._id });
+                await Promise.all(schedules.map(async (schedule) => {
+                    await ScheduleService.deleteBy({ _id: schedule._id });
+                }));
+
+                var statusPages = await StatusPageService.findBy({ projectId: project._id });
+                await Promise.all(statusPages.map(async (statusPage) => {
+                    await StatusPageService.deleteBy({ _id: statusPage._id });
+                }));
+
+                await integrationService.deleteBy({ projectId: project._id }, userId);
+            }
+            return project;
         } catch (error) {
-            ErrorService.log('ProjectModel.findOneAndUpdate', error);
+            ErrorService.log('projectService.deleteBy', error);
             throw error;
         }
-        if (project) {
-            if (project.stripeSubscriptionId) {
-                try {
-                    await PaymentService.removeSubscription(project.stripeSubscriptionId);
-                } catch (error) {
-                    ErrorService.log('PaymentService.removeSubscription', error);
-                    throw error;
-                }
-            }
-            try {
-                var monitors = await MonitorService.findBy({ projectId: project._id });
-            } catch (error) {
-                ErrorService.log('MonitorService.findBy');
-                throw error;
-            }
-            await Promise.all(monitors.map(async (monitor) => {
-                await MonitorService.deleteBy({ _id: monitor._id });
-            }));
-            try {
-                var schedules = await ScheduleService.findBy({ projectId: project._id });
-            } catch (error) {
-                ErrorService.log('ScheduleService.findBy', error);
-                throw error;
-            }
-            await Promise.all(schedules.map(async (schedule) => {
-                await ScheduleService.deleteBy({ _id: schedule._id });
-            }));
-            try {
-                var statusPages = await StatusPageService.findBy({ projectId: project._id });
-            } catch (error) {
-                ErrorService.log('StatusPageService.findBy', error);
-                throw error;
-            }
-            await Promise.all(statusPages.map(async (statusPage) => {
-                await StatusPageService.deleteBy({ _id: statusPage._id });
-            }));
-            try {
-                await integrationService.deleteBy({ projectId: project._id }, userId);
-            } catch (error) {
-                ErrorService.log('integrationService.deleteBy', error);
-                throw error;
-            }
-        }
-        return project;
     },
 
     findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-        if (!query.deleted) query.deleted = false;
-
         try {
+            if (!query) {
+                query = {};
+            }
+            if (!query.deleted) query.deleted = false;
             var project = await ProjectModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('userId', 'name')
                 .populate('parentProjectId', 'name');
+            return project;
         } catch (error) {
-            ErrorService.log('ProjectModel.findOne', error);
+            ErrorService.log('projectService.findOneBy', error);
             throw error;
         }
-        return project;
     },
 
     updateBy: async function (query, data) {
-        var _this = this;
-        if (!query) {
-            query = {};
-        }
         try {
+            var _this = this;
+            if (!query) {
+                query = {};
+            }
             var oldProject = await _this.findOneBy(Object.assign({}, query, { deleted: { $ne: null } }));
             if (!data.apiKey && !oldProject.apiKey) {
                 data.apiKey = uuidv1();
@@ -168,11 +146,11 @@ module.exports = {
                     new: true
                 }
             );
+            return updatedProject;
         } catch (error) {
-            ErrorService.log('ProjectModel.findOneAndUpdate', error);
+            ErrorService.log('projectService.updateBy', error);
             throw error;
         }
-        return updatedProject;
     },
 
     updateAlertOptions: async function (data) {
@@ -230,177 +208,139 @@ module.exports = {
         else {
             var error = new Error('Cannot save project settings');
             error.code = 403;
-            ErrorService.log('ProjectService.updateAlertOptions', error);
+            ErrorService.log('projectService.updateAlertOptions', error);
             throw error;
         }
     },
     saveProject: async function (project) {
         try {
             project = await project.save();
+            return project;
         } catch (error) {
-            ErrorService.log('project.save', error);
+            ErrorService.log('projectService.saveProject', error);
             throw error;
         }
-        return project;
     },
 
     getProjectIdsBy: async function (query) {
-        var _this = this;
         try {
+            var _this = this;
             var projects = await _this.findBy(query);
+            var projectsId = [];
+
+            for (var i = 0; i < projects.length; i++) {
+                projectsId.push(projects[i]._id);
+            }
+            return projectsId;
         } catch (error) {
-            ErrorService.log('ProjectService.getProjectIdsBy', error);
+            ErrorService.log('projectService.getProjectIdsBy', error);
             throw error;
         }
-        var projectsId = [];
-
-        for (var i = 0; i < projects.length; i++) {
-            projectsId.push(projects[i]._id);
-        }
-        return projectsId;
     },
 
     resetApiKey: async function (projectId) {
-        var _this = this;
-        var apiKey = uuidv1();
         try {
+            var _this = this;
+            var apiKey = uuidv1();
             var project = await _this.updateBy({ _id: projectId }, { apiKey: apiKey });
+            return project;
         } catch (error) {
-            ErrorService.log('ProjectService.resetApiKey', error);
+            ErrorService.log('projectService.resetApiKey', error);
             throw error;
         }
-        return project;
     },
 
     changePlan: async function (projectId, planId) {
-        var _this = this;
         try {
+            var _this = this;
             var project = await _this.updateBy({ _id: projectId }, { stripePlanId: planId });
-        } catch (error) {
-            ErrorService.log('ProjectService.updateBy', error);
-            throw error;
-        }
-        if (!project.stripeSubscriptionId) {
-            let error = new Error('You have not subscribed to a plan.');
-            error.code = 400;
-            ErrorService.log('ProjectService.changePlan', error);
-            throw error;
-        }
-        var trialLeft = moment(new Date()).diff(moment(project.createdAt), 'days');
-        try {
+
+            if (!project.stripeSubscriptionId) {
+                let error = new Error('You have not subscribed to a plan.');
+                error.code = 400;
+                ErrorService.log('projectService.changePlan', error);
+                throw error;
+            }
+            var trialLeft = moment(new Date()).diff(moment(project.createdAt), 'days');
             var stripeSubscriptionId = await PaymentService.changePlan(project.stripeSubscriptionId, planId, project.users.length, trialLeft);
-        } catch (error) {
-            ErrorService.log('PaymentService.changePlan', error);
-            throw error;
-        }
-        try {
+
             project = await _this.updateBy({ _id: project._id }, { stripeSubscriptionId: stripeSubscriptionId });
+            return project;
         } catch (error) {
-            ErrorService.log('ProjectService.updateBy', error);
+            ErrorService.log('projectService.changePlan', error);
             throw error;
         }
-        return project;
     },
 
     exitProject: async function (projectId, userId, saveUserSeat) {
-        var _this = this;
-        var subProject = null;
         try {
+            var _this = this;
+            var subProject = null;
             var project = await _this.findOneBy({ _id: projectId, 'users.userId': userId });
+            if (project.parentProjectId) {
+                subProject = project;
+                project = await _this.findOneBy({ _id: subProject.parentProjectId });
+            }
+            if (project) {
+                var users = subProject ? subProject.users : project.users;
+                projectId = subProject ? subProject._id : project._id;
+                var remainingUsers = [];
+                for (let user of users) {
+                    if (user.userId != userId) {
+                        remainingUsers.push(user);
+                    }
+                }
+
+                await _this.updateBy({ _id: projectId }, { users: remainingUsers });
+                await EscalationService.removeEscalationMember(projectId, userId);
+                var countUserInSubProjects = await _this.findBy({ parentProjectId: project._id, 'users.userId': userId });
+
+                if (!saveUserSeat) {
+                    if (countUserInSubProjects && countUserInSubProjects.length < 1) {
+                        let count = 0;
+                        var user_member = await UserService.findOneBy({ _id: userId });
+                        domains.domains.forEach(async domain => {
+                            if (user_member.email.indexOf(domain) > -1) {
+                                count++;
+                            }
+                        });
+
+                        var subProjectIds = [];
+                        var subProjects = await _this.findBy({ parentProjectId: project._id });
+                        if (subProjects && subProjects.length > 0) {
+                            subProjectIds = subProjects.map(project => project._id);
+                        }
+                        subProjectIds.push(project._id);
+                        var countMonitor = await MonitorService.countBy({ projectId: { $in: subProjectIds } });
+                        var projectSeats = project.seats;
+
+                        if (typeof (projectSeats) === 'string') {
+                            projectSeats = parseInt(projectSeats);
+                        }
+                        // check if project seat after reduction still caters for monitors.
+                        if (count < 1 && countMonitor <= ((projectSeats - 1) * 5)) {
+                            projectSeats = projectSeats - 1;
+                            await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
+                        }
+                        await _this.updateBy({ _id: project._id }, { seats: projectSeats.toString() });
+                    }
+                }
+            }
+            return 'User successfully exited the project';
         } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
+            ErrorService.log('projectService.exitProject', error);
             throw error;
         }
-        if (project.parentProjectId) {
-            subProject = project;
-            project = await _this.findOneBy({ _id: subProject.parentProjectId });
-        }
-        if (project) {
-            var users = subProject ? subProject.users : project.users;
-            projectId = subProject ? subProject._id : project._id;
-            var remainingUsers = [];
-            for (let user of users) {
-                if (user.userId != userId) {
-                    remainingUsers.push(user);
-                }
-            }
-            try {
-                await _this.updateBy({ _id: projectId }, { users: remainingUsers });
-            } catch (error) {
-                ErrorService.log('ProjectService.updateBy', error);
-                throw error;
-            }
-            try {
-                await EscalationService.removeEscalationMember(projectId, userId);
-            } catch (error) {
-                ErrorService.log('EscalationService.removeEscalationMember', error);
-                throw error;
-            }
-
-            var countUserInSubProjects = await _this.findBy({ parentProjectId: project._id, 'users.userId': userId });
-
-            if (!saveUserSeat) {
-                if (countUserInSubProjects && countUserInSubProjects.length < 1) {
-                    let count = 0;
-                    try {
-                        var user_member = await UserService.findOneBy({ _id: userId });
-                    } catch (error) {
-                        ErrorService.log('UserService.findOneBy', error);
-                        throw error;
-                    }
-                    domains.domains.forEach(async domain => {
-                        if (user_member.email.indexOf(domain) > -1) {
-                            count++;
-                        }
-                    });
-
-                    var subProjectIds = [];
-                    var subProjects = await _this.findBy({ parentProjectId: project._id });
-                    if (subProjects && subProjects.length > 0) {
-                        subProjectIds = subProjects.map(project => project._id);
-                    }
-                    subProjectIds.push(project._id);
-                    try {
-                        var countMonitor = await MonitorService.countBy({ projectId: { $in: subProjectIds } });
-                    } catch (error) {
-                        ErrorService.log('MonitorService.countBy', error);
-                        throw error;
-                    }
-                    var projectSeats = project.seats;
-
-                    if (typeof (projectSeats) === 'string') {
-                        projectSeats = parseInt(projectSeats);
-                    }
-                    // check if project seat after reduction still caters for monitors.
-                    if (count < 1 && countMonitor <= ((projectSeats - 1) * 5)) {
-                        projectSeats = projectSeats - 1;
-                        try {
-                            await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
-                        } catch (error) {
-                            ErrorService.log('PaymentService.changeSeats', error);
-                            throw error;
-                        }
-                    }
-                    try {
-                        await _this.updateBy({ _id: project._id }, { seats: projectSeats.toString() });
-                    } catch (error) {
-                        ErrorService.log('ProjectService.updateBy', error);
-                        throw error;
-                    }
-                }
-            }
-        }
-        return 'User successfully exited the project';
     },
 
     hardDeleteBy: async function (query) {
         try {
             await ProjectModel.deleteMany(query);
+            return 'Project(s) Removed Successfully!';
         } catch (error) {
-            ErrorService.log('ProjectModel.deleteMany', error);
+            ErrorService.log('projectService.hardDeleteBy', error);
             throw error;
         }
-        return 'Project(s) Removed Successfully!';
     },
 
     getAllProjects: async function (skip, limit) {

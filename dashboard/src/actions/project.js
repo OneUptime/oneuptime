@@ -720,3 +720,50 @@ export function addBalance(projectId, data) {
 		return promise;
 	}
 }
+export function checkCardRequest(promise) {
+	return {
+		type: types.CHECK_CARD_REQUEST,
+		payload: promise
+	};
+}
+
+export function checkCardFailed(error) {
+	return {
+		type: types.CHECK_CARD_FAILED,
+		payload: error
+	};
+}
+
+export function checkCardSuccess(card) {
+	return {
+		type: types.CHECK_CARD_SUCCESS,
+		payload: card
+	};
+}
+
+export function checkCard(data) {
+
+	return function (dispatch) {
+		var promise = postApi('stripe/checkCard', data)
+
+		dispatch(checkCardRequest(promise));
+
+		promise.then(function (card) {
+			dispatch(checkCardSuccess(card.data))
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else {
+				error = 'Network Error';
+			}
+			dispatch(checkCardFailed(error));
+		});
+		return promise;
+	}
+}

@@ -63,6 +63,7 @@ export class CreateProjectModal extends Component {
 const mapStateToProps = state => ({
 	visible: state.project.showForm,
 	errorStack: state.project.newProject.error,
+	requesting: state.project.newProject.requesting,
 	projects :state.project
 });
 

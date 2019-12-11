@@ -20,157 +20,154 @@ let sendListResponse = require('../middlewares/response').sendListResponse;
 let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    let data = req.body;
-    let userId = req.user ? req.user.id : null;
-    data.createdById = userId;
-    data.projectId = req.params.projectId;
+    try {
+        let data = req.body;
+        let userId = req.user ? req.user.id : null;
+        data.createdById = userId;
+        data.projectId = req.params.projectId;
 
-    if(!data.name){
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Name is required'
-        });
-    }
-
-    try{
+        if(!data.name){
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Name is required'
+            });
+        }
         let schedule = await ScheduleService.create(data);
         return sendItemResponse(req, res, schedule);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
-    let projectId = req.params.projectId;
-    try{
+    try {
+        let projectId = req.params.projectId;
         let schedules = await ScheduleService.findBy({projectId: projectId}, req.query.limit || 10, req.query.skip || 0);
         let count = await ScheduleService.countBy({projectId});
         return sendListResponse(req, res, schedules, count);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.get('/:projectId/schedules', getUser, isAuthorized, getSubProjects, async function (req, res) {
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-    try{
+    try {
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         var schedules = await ScheduleService.getSubProjectSchedules(subProjectIds);
         return sendItemResponse(req, res, schedules); // frontend expects sendItemResponse
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.get('/:projectId/schedule', getUser, isAuthorized, async function(req, res){
-    var projectId = req.params.projectId;
-    try{
+    try {
+        var projectId = req.params.projectId;
         var schedule = await ScheduleService.findBy({projectId}, req.query.limit || 10, req.query.skip || 0);
         var count = await ScheduleService.countBy({projectId});
         return sendListResponse(req, res, schedule, count); // frontend expects sendListResponse
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.put('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    let scheduleId = req.params.scheduleId;
-    let data = req.body;
-
-    try{
+    try {
+        let scheduleId = req.params.scheduleId;
+        let data = req.body;
         let schedule = await ScheduleService.updateBy({_id : scheduleId},data);
         return sendItemResponse(req, res, schedule);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.delete('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    var scheduleId = req.params.scheduleId;
-    var userId = req.user ? req.user.id : null;
 
-    if (!scheduleId) {
-        return sendErrorResponse( req, res, {
-            code: 400,
-            message: 'ScheduleId must be present.'
-        });
-    }
+    try {
+        var scheduleId = req.params.scheduleId;
+        var userId = req.user ? req.user.id : null;
 
-    try{
+        if (!scheduleId) {
+            return sendErrorResponse( req, res, {
+                code: 400,
+                message: 'ScheduleId must be present.'
+            });
+        }
         let schedule = await ScheduleService.deleteBy({_id: scheduleId}, userId);
         return sendItemResponse(req, res, schedule);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.get('/:projectId/:scheduleId/getescalation', getUser, isAuthorized, async (req, res)=>{
-    let scheduleId = req.params.scheduleId;
-    try{
+    try {
+        let scheduleId = req.params.scheduleId;
         let response = await ScheduleService.getEscalation(scheduleId);
         return sendListResponse(req, res, response.escalations, response.count);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUserAdmin, async(req, res)=>{
-    let userId = req.user ? req.user.id : null;
-    let scheduleId = req.params.scheduleId;
-    let escalationData = [];
+    try {
+        let userId = req.user ? req.user.id : null;
+        let scheduleId = req.params.scheduleId;
+        let escalationData = [];
 
-    for(let value of req.body){
-        let storagevalue = {};
-        let teamMember = [];
-        if(!value.callFrequency){
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Call Frequency is required'
-            });
-        }
-
-        if(!value.email && !value.call && !value.sms){
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'At least one type of alert is required'
-            });
-        }
-        storagevalue.callFrequency = value.callFrequency;
-        storagevalue.smsFrequency = value.smsFrequency;
-        storagevalue.emailFrequency = value.emailFrequency;
-        storagevalue.email = value.email;
-        storagevalue.call = value.call;
-        storagevalue.sms = value.sms;
-        storagevalue.projectId = req.params.projectId;
-        storagevalue.scheduleId = scheduleId;
-        storagevalue.createdById = userId;
-
-        if(value._id) storagevalue._id = value._id;
-
-        for(let escalation of value.teamMember){
-            let data = {};
-
-            if(!escalation.member){
+        for(let value of req.body){
+            let storagevalue = {};
+            let teamMember = [];
+            if(!value.callFrequency){
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Team Members is required'
+                    message: 'Call Frequency is required'
                 });
             }
 
-            data.member = escalation.member;
-            data.startTime = escalation.startTime;
-            data.endTime = escalation.endTime;
-            data.timezone = escalation.timezone;
+            if(!value.email && !value.call && !value.sms){
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'At least one type of alert is required'
+                });
+            }
+            storagevalue.callFrequency = value.callFrequency;
+            storagevalue.smsFrequency = value.smsFrequency;
+            storagevalue.emailFrequency = value.emailFrequency;
+            storagevalue.email = value.email;
+            storagevalue.call = value.call;
+            storagevalue.sms = value.sms;
+            storagevalue.projectId = req.params.projectId;
+            storagevalue.scheduleId = scheduleId;
+            storagevalue.createdById = userId;
 
-            teamMember.push(data);
+            if(value._id) storagevalue._id = value._id;
+
+            for(let escalation of value.teamMember){
+                let data = {};
+
+                if(!escalation.member){
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Team Members is required'
+                    });
+                }
+
+                data.member = escalation.member;
+                data.startTime = escalation.startTime;
+                data.endTime = escalation.endTime;
+                data.timezone = escalation.timezone;
+
+                teamMember.push(data);
+            }
+            storagevalue.teamMember = teamMember;
+            escalationData.push(storagevalue);
         }
-        storagevalue.teamMember = teamMember;
-        escalationData.push(storagevalue);
-    }
-
-    try{
         let escalation = await ScheduleService.addEscalation(scheduleId, escalationData,userId);
         return sendItemResponse(req, res, escalation);
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });

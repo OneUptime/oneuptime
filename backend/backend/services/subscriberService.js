@@ -13,26 +13,26 @@ module.exports = {
         try {
             var subscriber = await subscriberModel.save();
         } catch (error) {
-            ErrorService.log('subscriberModel.save', error);
+            ErrorService.log('subscriberService.create', error);
             throw error;
         }
         return await _this.findByOne({ _id: subscriber._id });
     },
 
     updateBy: async function (query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
             var updatedSubscriber = await SubscriberModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('SubscriberModel.findOneAndUpdate', error);
+            ErrorService.log('subscriberService.updateBy', error);
             throw error;
         }
 
@@ -50,33 +50,30 @@ module.exports = {
             }, {
                 new: true
             });
+            return subscriber;
         } catch (error) {
-            ErrorService.log('SubscriberModel.findOneAndUpdate', error);
+            ErrorService.log('subscriberService.deleteBy', error);
             throw error;
         }
-        return subscriber;
     },
 
     findBy: async function (query, skip, limit) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
+            if (!skip) skip = 0;
+            if (!limit) limit = 10;
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var subscribers = await SubscriberModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
@@ -84,18 +81,17 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('monitorId', 'name')
                 .populate('statusPageId', 'title');
+            return subscribers;
         } catch (error) {
-            ErrorService.log('SubscriberModel.find', error);
+            ErrorService.log('subscriberService.find', error);
             throw error;
         }
-
-        return subscribers;
     },
 
     subscribe: async function (data, monitors) {
-        var _this = this;
-        var success = monitors.map(async monitor => {
-            try {
+        try {
+            var _this = this;
+            var success = monitors.map(async monitor => {
                 let newSubscriber = Object.assign({}, data, { monitorId: monitor });
                 let hasSubscribed = await _this.subscriberCheck(newSubscriber);
                 if (hasSubscribed) {
@@ -106,13 +102,13 @@ module.exports = {
                 } else {
                     return await _this.create(newSubscriber);
                 }
-            } catch (error) {
-                ErrorService.log('SubscriberService.create', error);
-                throw error;
-            }
-        });
-        var subscriber = await Promise.all(success);
-        return subscriber;
+            });
+            var subscriber = await Promise.all(success);
+            return subscriber;
+        } catch (error) {
+            ErrorService.log('SubscriberService.subscribe', error);
+            throw error;
+        }
     },
 
     subscriberCheck: async function (subscriber) {
@@ -129,59 +125,58 @@ module.exports = {
     },
 
     findByOne: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
             var subscriber = await SubscriberModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorId', 'name');
+
+            return subscriber;
         } catch (error) {
-            ErrorService.log('SubscriberModel.findOne', error);
+            ErrorService.log('SubscriberService.findByOne', error);
             throw error;
         }
-
-        return subscriber;
     },
 
     countBy: async function (query) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var count = await SubscriberModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('SubscriberModel.count', error);
+            ErrorService.log('SubscriberService.countBy', error);
             throw error;
         }
-        return count;
     },
 
     removeBy: async function (query) {
         try {
             await SubscriberModel.deleteMany(query);
+            return 'Subscriber(s) removed successfully';
         } catch (error) {
-            ErrorService.log('SubscriberModel.deleteMany', error);
+            ErrorService.log('SubscriberService.removeBy', error);
             throw error;
         }
-        return 'Subscriber(s) removed successfully';
     },
 
     hardDeleteBy: async function (query) {
         try {
             await SubscriberModel.deleteMany(query);
+            return 'Subscriber(s) removed successfully';
         } catch (error) {
-            ErrorService.log('SubscriberModel.deleteMany', error);
+            ErrorService.log('SubscriberService.hardDeleteBy', error);
             throw error;
         }
-        return 'Subscriber(s) removed successfully';
     },
+
     restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;

@@ -1,87 +1,87 @@
 module.exports = {
-    findBy: async function (query, limit, skip) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof (skip) === 'string') skip = parseInt(skip);
-
-        if (typeof (limit) === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        if (!query.deleted) query.deleted = false;
+    findBy: async function(query, limit, skip){
         try {
+            if(!skip) skip=0;
+
+            if(!limit) limit=0;
+
+            if(typeof(skip) === 'string') skip = parseInt(skip);
+
+            if(typeof(limit) === 'string') limit = parseInt(limit);
+
+            if(!query) query = {};
+
+            if(!query.deleted) query.deleted = false;
             var escalations = await EscalationModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
                 .populate('scheduleId', 'name');
+            return escalations;
         } catch (error) {
-            ErrorService.log('EscalationModel.find', error);
+            ErrorService.log('escalationService.findBy', error);
             throw error;
         }
-        return escalations;
     },
 
     findOneBy: async function (query) {
 
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            if(!query.deleted) query.deleted = false;
             var escalation = await EscalationModel.findOne(query)
                 .populate('projectId', 'name')
                 .populate('scheduleId', 'name');
+            return escalation;
         } catch (error) {
-            ErrorService.log('EscalationModel.findOne', error);
+            ErrorService.log('escalationService.findOneBy', error);
             throw error;
         }
 
-        return escalation;
     },
 
     create: async function (data) {
-        let escalationModel = new EscalationModel();
-        escalationModel.call = data.call || null;
-        escalationModel.email = data.email || null;
-        escalationModel.sms = data.sms || null;
-        escalationModel.callFrequency = data.callFrequency || null;
-        escalationModel.smsFrequency = data.smsFrequency || null;
-        escalationModel.emailFrequency = data.emailFrequency || null;
-        escalationModel.projectId = data.projectId || null;
-        escalationModel.scheduleId = data.scheduleId || null;
-        escalationModel.createdById = data.createdById || null;
-        escalationModel.teamMember = data.teamMember || null;
         try {
+            let escalationModel = new EscalationModel();
+            escalationModel.call = data.call || null;
+            escalationModel.email = data.email || null;
+            escalationModel.sms = data.sms || null;
+            escalationModel.callFrequency = data.callFrequency || null;
+            escalationModel.smsFrequency = data.smsFrequency || null;
+            escalationModel.emailFrequency = data.emailFrequency || null;
+            escalationModel.projectId = data.projectId || null;
+            escalationModel.scheduleId = data.scheduleId || null;
+            escalationModel.createdById = data.createdById || null;
+            escalationModel.teamMember = data.teamMember || null;
             var escalation = await escalationModel.save();
+            return escalation;
         } catch (error) {
-            ErrorService.log('escalationModel.save', error);
+            ErrorService.log('escalationService.create', error);
             throw error;
         }
-        return escalation;
     },
 
     countBy: async function (query) {
 
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if(!query){
+                query = {};
+            }
+
+            query.deleted = false;
             var count = await EscalationModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('EscalationModel.count', error);
+            ErrorService.log('escalationService.countBy', error);
             throw error;
         }
-        return count;
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function(query, userId){
         try {
             var escalation = await EscalationModel.findOneAndUpdate(query, {
                 $set: {
@@ -92,61 +92,57 @@ module.exports = {
             }, {
                 new: true
             });
+            return escalation;
         } catch (error) {
-            ErrorService.log('EscalationModel.findOneAndUpdate', error);
+            ErrorService.log('escalationService.deleteBy', error);
             throw error;
         }
-        return escalation;
     },
 
     updateBy: async function (query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
             var escalation = await EscalationModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('EscalationModel.findOneAndUpdate', error);
+            ErrorService.log('escalationService.updateBy', error);
             throw error;
         }
         return escalation;
     },
 
-    removeEscalationMember: async function (projectId, memberId) {
-        var _this = this;
+    removeEscalationMember: async function(projectId, memberId){
         try {
-            var escalations = await _this.findBy({ projectId });
-        } catch (error) {
-            ErrorService.log('ProjectService.findBy', error);
-            throw error;
-        }
-        if (escalations && escalations.length > 0) {
-            await Promise.all(escalations.map(async (escalation) => {
-                var teamMembers = escalation.teamMember.filter(member => member.member.toString() !== memberId.toString());
-                try {
+            var _this = this;
+            var escalations = await _this.findBy({projectId});
+
+            if (escalations && escalations.length > 0) {
+                await Promise.all(escalations.map(async(escalation)=>{
+                    var teamMembers = escalation.teamMember.filter(member => member.member.toString() !== memberId.toString());
                     await _this.updateBy({ _id: escalation._id }, { teamMember: teamMembers });
-                } catch (error) {
-                    ErrorService.log('EscalationService.updateBy', error);
-                    throw error;
-                }
-            }));
+                }));
+            }
+        } catch (error) {
+            ErrorService.log('escalationService.removeEscalationMember', error);
+            throw error;
         }
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query){
         try {
             await EscalationModel.deleteMany(query);
+            return 'Escalation(s) removed successfully';
         } catch (error) {
-            ErrorService.log('EscalationModel.deleteMany', error);
+            ErrorService.log('escalationService.hardDeleteBy', error);
             throw error;
         }
-        return 'Escalation(s) removed successfully';
     },
 
     restoreBy: async function (query) {

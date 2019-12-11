@@ -1,31 +1,31 @@
 module.exports = {
     get: async function (query) {
-        try{
+        try {
             var alerts = await incidentSMSActionModel.find(query).sort([['createdAt', -1]]);
-        }catch(error){
-            ErrorService.log('incidentSMSActionModel.find', error);
+            return alerts;
+        } catch (error) {
+            ErrorService.log('incidentSMSActionService.get', error);
             throw error;
         }
-        return alerts;
     },
 
-    updateBy: async (query,data)=>{
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
+    updateBy: async (query, data) => {
         try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
             var incidentafter = await incidentSMSActionModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
+            return incidentafter;
         } catch (error) {
-            ErrorService.log('incidentSMSActionModel.findOneAndUpdate', error);
+            ErrorService.log('incidentSMSActionService.updateBy', error);
             throw error;
         }
-        return incidentafter;
     }
 
 };

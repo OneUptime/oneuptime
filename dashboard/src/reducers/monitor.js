@@ -411,7 +411,15 @@ export default function monitor(state = INITIAL_STATE, action) {
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
                             if (monitor._id === action.payload.monitorId) {
-                                monitor.logs = [action.payload.data, ...(monitor.logs && monitor.logs.length > 0 ? monitor.logs : [])];
+                                monitor.logs = monitor.logs && monitor.logs.length > 0 ? monitor.logs.map(probeLogs => {
+                                    return probeLogs._id === action.payload.data.probeId
+                                        || (probeLogs._id === null && !action.payload.data.probeId) ?
+                                        { _id: probeLogs._id, logs: [action.payload.data, ...probeLogs.logs] } : probeLogs;
+                                }) :
+                                    (action.payload.data.probeId ?
+                                        [{ _id: action.payload.data.probeId, logs: [action.payload.data] }]
+                                        : [{ _id: null, logs: [action.payload.data] }]
+                                    );
                                 return monitor
                             } else {
                                 return monitor

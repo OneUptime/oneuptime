@@ -21,14 +21,13 @@ var sendListResponse = require('../middlewares/response').sendListResponse;
 // Param 1: req.headers-> {token}; req.params-> {projectId}
 // Returns: 200: "Invoice received"; 400: "Error"
 router.post('/:projectId', getUser, isAuthorized, isUserOwner, async function (req, res) {
-    var userId = req.user ? req.user.id : null;
-    var startingAfter = req.query.startingAfter;
-    var endingBefore = req.query.endingBefore;
-
-    if (startingAfter === 'undefined') startingAfter = {};
-    if (endingBefore === 'undefined') endingBefore = {};
-
     try {
+        var userId = req.user ? req.user.id : null;
+        var startingAfter = req.query.startingAfter;
+        var endingBefore = req.query.endingBefore;
+    
+        if (startingAfter === 'undefined') startingAfter = {};
+        if (endingBefore === 'undefined') endingBefore = {};
         var invoices = await InvoiceService.get(userId, startingAfter, endingBefore);
 
         return sendListResponse(req, res, invoices, invoices.data.length);

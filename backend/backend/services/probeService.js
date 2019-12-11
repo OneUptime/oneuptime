@@ -1,7 +1,7 @@
 module.exports = {
     create: async function (data) {
-        var _this = this;
         try {
+            var _this = this;
             let probeKey;
             if (data.probeKey) {
                 probeKey = data.probeKey;
@@ -23,115 +23,112 @@ module.exports = {
                 return savedProbe;
             }
         } catch (error) {
-            ErrorService.log('probe.save', error);
+            ErrorService.log('ProbeService.create', error);
             throw error;
         }
     },
 
     updateBy: async function (query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var probe = await ProbeModel.findOneAndUpdate(query,
                 { $set: data },
                 {
                     new: true
                 });
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.findOneAndUpdate', error);
+            ErrorService.log('ProbeService.updateBy', error);
             throw error;
         }
-        return probe;
     },
 
     findBy: async function (query, limit, skip) {
-
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var probe = await ProbeModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.find', error);
+            ErrorService.log('ProbeService.findBy', error);
             throw error;
         }
-        return probe;
     },
 
     findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var probe = await ProbeModel.findOne(query);
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.findOne', error);
+            ErrorService.log('ProbeService.findOneBy', error);
             throw error;
         }
-        return probe;
     },
 
     countBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var count = await ProbeModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('ProbeModel.count', error);
+            ErrorService.log('ProbeService.countBy', error);
             throw error;
         }
-
-        return count;
     },
 
     deleteBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
             var probe = await ProbeModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now() } }, { new: true });
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.findOneAndUpdate', error);
+            ErrorService.log('ProbeService.deleteBy', error);
             throw error;
         }
-        return probe;
     },
 
     hardDeleteBy: async function (query) {
         try {
             await ProbeModel.deleteMany(query);
+            return 'Probe(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('ProbeModel.deleteMany', error);
+            ErrorService.log('ProbeService.hardDeleteBy', error);
             throw error;
         }
-        return 'Probe(s) removed successfully!';
     },
 
     createMonitorLog: async function (data) {
@@ -144,16 +141,16 @@ module.exports = {
             Log.data = data.data;
             Log.status = data.status;
             var savedLog = await Log.save();
+            await MonitorService.sendResponseTime(savedLog);
+            await MonitorService.sendMonitorLog(savedLog);
+
+            if (data.probeId && data.monitorId) await this.sendProbe(data.probeId, data.monitorId);
+
+            return savedLog;
         } catch (error) {
-            ErrorService.log('Log.save', error);
+            ErrorService.log('ProbeService.createMonitorLog', error);
             throw error;
         }
-        await MonitorService.sendResponseTime(savedLog);
-        await MonitorService.sendMonitorLog(savedLog);
-
-        if (data.probeId && data.monitorId) await this.sendProbe(data.probeId, data.monitorId);
-
-        return savedLog;
     },
 
     createMonitorStatus: async function (data) {
@@ -173,11 +170,11 @@ module.exports = {
                 MonitorStatus.createdAt = data.createdAt;
             }
             var savedMonitorStatus = await MonitorStatus.save();
+            return savedMonitorStatus;
         } catch (error) {
-            ErrorService.log('MonitorStatus.save', error);
+            ErrorService.log('ProbeService.createMonitorStatus', error);
             throw error;
         }
-        return savedMonitorStatus;
     },
 
     updateMonitorStatus: async function (monitorStatusId) {
@@ -187,35 +184,30 @@ module.exports = {
                 {
                     new: true
                 });
+            return MonitorStatus;
         } catch (error) {
-            ErrorService.log('MonitorStatusModel.findOneAndUpdate', error);
+            ErrorService.log('ProbeService.updateMonitorStatus', error);
             throw error;
         }
-        return MonitorStatus;
     },
 
     sendProbe: async function (probeId, monitorId) {
         try {
             var probe = await this.findOneBy({ _id: probeId });
-        } catch (error) {
-            ErrorService.log('ProbeService.findOneBy', error);
-            throw error;
-        }
-        if (probe) {
-            try {
+            if (probe) {
                 delete probe._doc.deleted;
                 await RealTimeService.updateProbe(probe, monitorId);
-            } catch (error) {
-                ErrorService.log('RealTimeService.updateProbe', error);
-                throw error;
             }
+        } catch (error) {
+            ErrorService.log('ProbeService.sendProbe', error);
+            throw error;
         }
     },
 
     setTime: async function (data) {
-        var _this = this;
-        var mon, autoAcknowledge, autoResolve;
         try {
+            var _this = this;
+            var mon, autoAcknowledge, autoResolve;
             var statuses = await MonitorStatusModel.find({ monitorId: data.monitorId, probeId: data.probeId })
                 .sort([['createdAt', -1]])
                 .limit(1);
@@ -239,11 +231,11 @@ module.exports = {
                 autoResolve = lastStatus === 'degraded' ? mon.criteria.degraded.autoResolve : lastStatus === 'offline' ? mon.criteria.down.autoResolve : false;
                 await _this.incidentResolveOrAcknowledge(data, lastStatus, autoAcknowledge, autoResolve);
             }
+            return log;
         } catch (error) {
-            ErrorService.log('setTime.findOne', error);
+            ErrorService.log('ProbeService.setTime', error);
             throw error;
         }
-        return log;
     },
 
     incidentCreateOrUpdate: async function (data) {
@@ -320,11 +312,11 @@ module.exports = {
                     });
                 }
             }
+            return monitor;
         } catch (error) {
             ErrorService.log('ProbeService.incidentCreateOrUpdate', error);
             throw error;
         }
-        return monitor;
     },
 
     incidentResolveOrAcknowledge: async function (data, lastStatus, autoAcknowledge, autoResolve) {
@@ -337,7 +329,8 @@ module.exports = {
                     incidents.map(async (incident) => {
                         incident = incident.toObject();
                         incident.probes.some(probe => {
-                            if (probe.probeId === data.probeId.toString()) {
+                            const probeId = data.probeId ? data.probeId.toString() : null;
+                            if (probe.probeId === probeId) {
                                 incidentsV1.push(incident);
                                 return true;
                             }
@@ -381,48 +374,43 @@ module.exports = {
                     }
                 }
             });
+            return {};
         } catch (error) {
-            ErrorService.log('ProbeService.resolveOrAcknowledge', error);
+            ErrorService.log('ProbeService.incidentResolveOrAcknowledge', error);
             throw error;
         }
-        return {};
     },
 
     getTime: async function (data) {
         try {
             var date = new Date();
             var log = await MonitorLogModel.findOne({ monitorId: data.monitorId, probeId: data.probeId, createdAt: { $lt: date } });
+            return log;
         } catch (error) {
-            ErrorService.log('MonitorLogModel.findOne', error);
+            ErrorService.log('probeService.getTime', error);
             throw error;
         }
-        return log;
     },
 
     getLogs: async function (query) {
-        if (!query) {
-            query = {};
-        }
         try {
+            if (!query) {
+                query = {};
+            }
             var log = await MonitorStatusModel.find(query).sort({ createdAt: -1 });
+            return log;
         } catch (error) {
-            ErrorService.log('MonitorLogModel.find', error);
+            ErrorService.log('probeService.getLogs', error);
             throw error;
         }
-        return log;
     },
 
     getMonitorData: async function (monitorId) {
-        var _this = this;
         try {
+            var _this = this;
             var probes = await _this.findBy({});
-        } catch (error) {
-            ErrorService.log('probeService.find', error);
-            throw error;
-        }
-        var targetDate = moment(Date.now()).subtract(90, 'days').startOf('day');
-        var newProbes = Promise.all(probes.map(async (probe) => {
-            try {
+            var targetDate = moment(Date.now()).subtract(90, 'days').startOf('day');
+            var newProbes = Promise.all(probes.map(async (probe) => {
                 probe = probe.toObject();
                 var probeStatus = await _this.getLogs({
                     probeId: probe._id, monitorId: monitorId,
@@ -438,22 +426,22 @@ module.exports = {
                 probe.status = latestLog && latestLog[0] && latestLog[0].status ? latestLog[0].status : '';
                 probe.responseTime = latestLog && latestLog[0] && latestLog[0].responseTime ? latestLog[0].responseTime : '';
                 return probe;
-            } catch (error) {
-                ErrorService.log('probeService.find', error);
-                throw error;
-            }
-        }));
-        return newProbes;
+            }));
+            return newProbes;
+        } catch (error) {
+            ErrorService.log('probeService.getMonitorData', error);
+            throw error;
+        }
     },
 
     updateProbeStatus: async function (probeId) {
         try {
             var probe = await ProbeModel.findOneAndUpdate({ _id: probeId }, { $set: { lastAlive: Date.now() } }, { new: true });
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.findOneAndUpdate', error);
+            ErrorService.log('probeService.updateProbeStatus', error);
             throw error;
         }
-        return probe;
     },
 
     conditions: async (payload, resp, con) => {

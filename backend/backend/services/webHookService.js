@@ -3,9 +3,9 @@ module.exports = {
 
     // process messages to be sent to slack workspace channels
     sendNotification: async function (projectId, text, monitor) {
-        var self = this;
-        var response;
         try {
+            var self = this;
+            var response;
             var project = await ProjectService.findOneBy({_id: projectId});
             var integrations = await IntegrationService.findBy({
                 projectId: projectId,
@@ -16,17 +16,11 @@ module.exports = {
             for (const integration of integrations) {
                 response = await self.notify(project, monitor, text, integration);
             }
+            return response;
         } catch (error) {
-            if (error.message.indexOf('"_id"') !== -1) {
-                ErrorService.log('ProjectService.findOneBy', error);
-            } else if (error.message.indexOf('"projectId"') !== -1) {
-                ErrorService.log('IntegrationService.findBy', error);
-            } else {
-                ErrorService.log('WebHookService.notify', error);
-            }
+            ErrorService.log('WebHookService.sendNotification', error);
             throw error;
         }
-        return response;
     },
 
     // send notification to slack workspace channels
@@ -67,13 +61,7 @@ module.exports = {
                 throw error;
             }
         } catch (error) {
-            if (error.message.indexOf('post') !== -1) {
-                ErrorService.log('axios.post', error);
-            } else if (error.message.indexOf('get') !== -1) {
-                ErrorService.log('axios.get', error);
-            } else {
-                ErrorService.log('WebHookService.notify', error);
-            }
+            ErrorService.log('WebHookService.notify', error);
             throw error;
         }
     }

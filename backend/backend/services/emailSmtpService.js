@@ -1,41 +1,42 @@
 module.exports = {
     create: async function (data) {
-        data.pass = await EncryptDecrypt.encrypt(data.pass);
-        var emailSmtpModel = new EmailSmtpModel();
-        emailSmtpModel.projectId = data.projectId;
-        emailSmtpModel.user = data.user;
-        emailSmtpModel.pass = data.pass;
-        emailSmtpModel.host = data.host;
-        emailSmtpModel.port = data.port;
-        emailSmtpModel.from = data.from;
-        emailSmtpModel.secure = false;
-        if (data.secure) {
-            emailSmtpModel.secure = data.secure;
-        }
-        emailSmtpModel.enabled = true;
         try {
+            data.pass = await EncryptDecrypt.encrypt(data.pass);
+            var emailSmtpModel = new EmailSmtpModel();
+            emailSmtpModel.projectId = data.projectId;
+            emailSmtpModel.user = data.user;
+            emailSmtpModel.pass = data.pass;
+            emailSmtpModel.host = data.host;
+            emailSmtpModel.port = data.port;
+            emailSmtpModel.from = data.from;
+            emailSmtpModel.secure = false;
+            if (data.secure) {
+                emailSmtpModel.secure = data.secure;
+            }
+            emailSmtpModel.enabled = true;
             var emailSmtp = await emailSmtpModel.save();
             if (emailSmtp && emailSmtp.pass) {
                 emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
             }
+            return emailSmtp;
         } catch (error) {
-            ErrorService.log('emailSmtpModel.save', error);
+            ErrorService.log('emailSmtpService.create', error);
             throw error;
         }
-        return emailSmtp;
     },
 
     updateBy: async function (query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
-
-        if (data.pass) {
-            data.pass = await EncryptDecrypt.encrypt(data.pass);
-        }
         try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+
+            if (data.pass) {
+                data.pass = await EncryptDecrypt.encrypt(data.pass);
+            }
+
             var updatedEmailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
                 $set: data
             }, {
@@ -63,33 +64,32 @@ module.exports = {
             }, {
                 new: true
             });
+            return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.findOneAndUpdate', error);
+            ErrorService.log('emailSmtpService.deleteBy', error);
             throw error;
         }
-        return emailSmtp;
     },
 
     findBy: async function (query, skip, limit) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 10;
+
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var emailSmtp = await EmailSmtpModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
@@ -100,21 +100,20 @@ module.exports = {
                 emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
             }
 
+            return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.find', error);
+            ErrorService.log('emailSmtpService.findBy', error);
             throw error;
         }
-
-        return emailSmtp;
     },
 
     findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var emailSmtp = await EmailSmtpModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
@@ -122,41 +121,40 @@ module.exports = {
             if (emailSmtp && emailSmtp.pass) {
                 emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
             }
+            if (!emailSmtp) {
+                emailSmtp = {};
+            }
+
+            return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.findOne', error);
+            ErrorService.log('emailSmtpService.findOneBy', error);
             throw error;
         }
-        if (!emailSmtp) {
-            emailSmtp = {};
-        }
-
-        return emailSmtp;
     },
 
     countBy: async function (query) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
             var count = await EmailSmtpModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.count', error);
+            ErrorService.log('emailSmtpService.countBy', error);
             throw error;
         }
-        return count;
     },
 
     hardDeleteBy: async function (query) {
         try {
             await EmailSmtpModel.deleteMany(query);
+            return 'Email Smtp(s) removed successfully';
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.deleteMany', error);
+            ErrorService.log('emailSmtpService.hardDeleteBy', error);
             throw error;
         }
-        return 'Email Smtp(s) removed successfully';
     },
 };
 

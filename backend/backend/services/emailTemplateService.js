@@ -1,39 +1,38 @@
 module.exports = {
     create: async function (data) {
-
-        var emailTemplateModel = new EmailTemplateModel();
-        emailTemplateModel.projectId = data.projectId || null;
-        emailTemplateModel.subject = data.subject || null;
-        emailTemplateModel.body = data.body || null;
-        emailTemplateModel.emailType = data.emailType || null;
-        emailTemplateModel.allowedVariables = emailTemplateVariables[[data.emailType]];
         try {
+            var emailTemplateModel = new EmailTemplateModel();
+            emailTemplateModel.projectId = data.projectId || null;
+            emailTemplateModel.subject = data.subject || null;
+            emailTemplateModel.body = data.body || null;
+            emailTemplateModel.emailType = data.emailType || null;
+            emailTemplateModel.allowedVariables = emailTemplateVariables[[data.emailType]];
             var emailTemplate = await emailTemplateModel.save();
+            return emailTemplate;
         } catch (error) {
-            ErrorService.log('emailTemplateModel.save', error);
+            ErrorService.log('emailTemplateService.create', error);
             throw error;
         }
-        return emailTemplate;
     },
 
     updateBy: async function (query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
-
-        if (data.emailType && !data.allowedVariables) {
-            data.allowedVariables = emailTemplateVariables[[data.emailType]];
-        }
         try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+
+            if (data.emailType && !data.allowedVariables) {
+                data.allowedVariables = emailTemplateVariables[[data.emailType]];
+            }
             var updatedEmailTemplate = await EmailTemplateModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.findOneAndUpdate', error);
+            ErrorService.log('EmailTemplateService.updateBy', error);
             throw error;
         }
 
@@ -51,78 +50,74 @@ module.exports = {
             }, {
                 new: true
             });
+            return emailTemplate;
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.findOneAndUpdate', error);
+            ErrorService.log('emailTemplateService.deleteBy', error);
             throw error;
         }
-        return emailTemplate;
     },
 
-    findBy: async function (query, skip, limit) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
+    findBy: async function(query, skip, limit){
         try {
+            if(!skip) skip=0;
+
+            if(!limit) limit=10;
+
+            if(typeof(skip) === 'string'){
+                skip = parseInt(skip);
+            }
+
+            if(typeof(limit) === 'string'){
+                limit = parseInt(limit);
+            }
+
+            if(!query){
+                query = {};
+            }
+
+            query.deleted = false;
             var emailTemplates = await EmailTemplateModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name');
+            return emailTemplates;
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.find', error);
+            ErrorService.log('emailTemplateService.findBy', error);
             throw error;
         }
-
-        return emailTemplates;
     },
 
-    findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
+    findOneBy: async function(query){
         try {
+            if(!query){
+                query = {};
+            }
+
+            query.deleted = false;
             var emailTemplate = await EmailTemplateModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name');
+            return emailTemplate;
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.findOne', error);
+            ErrorService.log('emailTemplateService.findOneBy', error);
             throw error;
         }
-
-        return emailTemplate;
     },
 
     countBy: async function (query) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
+            if(!query){
+                query = {};
+            }
+
+            query.deleted = false;
             var count = await EmailTemplateModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.count', error);
+            ErrorService.log('emailTemplateService.countBy', error);
             throw error;
         }
-        return count;
     },
 
     getTemplates: async function (projectId) {
@@ -148,14 +143,14 @@ module.exports = {
         return resetTemplate;
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query){
         try {
             await EmailTemplateModel.deleteMany(query);
+            return 'Email Template(s) removed successfully';
         } catch (error) {
-            ErrorService.log('EmailTemplateModel.deleteMany', error);
+            ErrorService.log('emailTemplateService.hardDeleteBy', error);
             throw error;
         }
-        return 'Email Template(s) removed successfully';
     },
 };
 

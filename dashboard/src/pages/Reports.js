@@ -53,8 +53,8 @@ const styles = {
     }
 };
 
-const endDate = moment().format('YYYY-MM-DD');
-const startDate = moment().subtract(30, 'd').format('YYYY-MM-DD');
+const endDate = moment();
+const startDate = moment().subtract(30, 'd');
 
 export class Reports extends Component {
     constructor(props) {

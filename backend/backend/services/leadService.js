@@ -12,20 +12,20 @@ module.exports = {
     //Param 3: userId: User Id.
     //Returns: promise
     create: async function (data) {
-        var lead = new LeadsModel();
-        lead.type = data.type;
-        lead.name = data.name;
-        lead.email = data.email;
-        lead.phone = data.phone;
-        lead.website = data.website;
-        lead.companySize = data.companySize;
-        lead.country = data.country;
-        lead.message = data.message;
-        lead.whitepaperName = data.whitepaperName;
-
-
-        lead = await lead.save();
         try {
+            var lead = new LeadsModel();
+            lead.type = data.type;
+            lead.name = data.name;
+            lead.email = data.email;
+            lead.phone = data.phone;
+            lead.website = data.website;
+            lead.companySize = data.companySize;
+            lead.country = data.country;
+            lead.message = data.message;
+            lead.whitepaperName = data.whitepaperName;
+    
+    
+            lead = await lead.save();
             MailService.sendLeadEmailToFyipeTeam(lead);
             if (data.type) {
                 if (data.type === 'demo') {
@@ -36,22 +36,21 @@ module.exports = {
                     await MailService.sendWhitepaperEmail(data.email, data.whitepaperName); //whitepaper name should be stored in moreInfo.
                 }
             }
+            return lead;
         } catch (error) {
-            ErrorService.log('MailService.create', error);
+            ErrorService.log('leadService.create', error);
             throw error;
         }
-
-        return lead;
     },
 
     hardDeleteBy: async function (query){
         try{
             await LeadsModel.deleteMany(query);
+            return 'Lead(s) Removed Successfully!';
         }catch(error){
-            ErrorService.log('LeadsModel.deleteMany', error);
+            ErrorService.log('leadService.hardDeleteBy', error);
             throw error;
         }
-        return 'Lead(s) Removed Successfully!';
     }
 };
 

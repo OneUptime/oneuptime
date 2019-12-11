@@ -11,30 +11,29 @@ var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 var sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
-    var data = req.body;
-    data.projectId = req.params.projectId;
-    if (!data.accountSid) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Account Sid is required.'
-        });
-    }
-
-    if (!data.authToken) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Auth Token is required.'
-        });
-    }
-
-    if (!data.phoneNumber) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Phone Number is required.'
-        });
-    }
-
     try {
+        var data = req.body;
+        data.projectId = req.params.projectId;
+        if (!data.accountSid) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Account Sid is required.'
+            });
+        }
+
+        if (!data.authToken) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Auth Token is required.'
+            });
+        }
+
+        if (!data.phoneNumber) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Phone Number is required.'
+            });
+        }
         let testResult = await TwilioService.test(data);
         if (testResult && !testResult.errorCode) {
             var smsSmtp = await SmsSmtpService.create(data);
@@ -46,8 +45,8 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
 });
 
 router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
-    var projectId = req.params.projectId;
     try {
+        var projectId = req.params.projectId;
         var smsSmtp = await SmsSmtpService.findOneBy({ projectId });
         return sendItemResponse(req, res, smsSmtp);
     } catch (error) {
@@ -56,9 +55,9 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
 });
 
 router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (req, res) {
-    var data = req.body;
-    var smsSmtpId = req.params.smsSmtpId;
     try {
+        var data = req.body;
+        var smsSmtpId = req.params.smsSmtpId;
         let testResult = await TwilioService.test(data);
         if (testResult && !testResult.errorCode) {
             var smsSmtp = await SmsSmtpService.updateBy({_id : smsSmtpId},data);
@@ -71,9 +70,9 @@ router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (req,
 });
 
 router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function (req, res) {
-    var data = req.body;
-    var smsSmtpId = req.params.smsSmtpId;
     try {
+        var data = req.body;
+        var smsSmtpId = req.params.smsSmtpId;
         var smsSmtp = await SmsSmtpService.updateBy({_id : smsSmtpId},data);
         return sendItemResponse(req, res, smsSmtp);
     } catch (error) {

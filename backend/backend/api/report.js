@@ -23,9 +23,9 @@ const router = express.Router();
  * @returns { Array } an array of members ordered by number of incidents resolved
  */
 router.get('/:projectId/active-members', getUser, isAuthorized, getSubProjects, async (req, res) => {
-    const { startDate, endDate, skip, limit } = req.query;
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
     try {
+        const { startDate, endDate, skip, limit } = req.query;
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Call ReportService
         var members = await ReportService.getMostActiveMembers(subProjectIds, startDate, endDate, skip, limit);
         var count = members.count;
@@ -42,9 +42,9 @@ router.get('/:projectId/active-members', getUser, isAuthorized, getSubProjects, 
 * @returns { Array } an array of monitors orderedby number of incidents
 */
 router.get('/:projectId/active-monitors', getUser, isAuthorized, getSubProjects, async (req, res) => {
-    const { startDate, endDate, skip, limit } = req.query;
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
     try {
+        const { startDate, endDate, skip, limit } = req.query;
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Call Reports Service
         let monitors = await ReportService.getMostActiveMonitors(subProjectIds, startDate, endDate, skip, limit);
         let count = monitors.count;
@@ -61,9 +61,9 @@ router.get('/:projectId/active-monitors', getUser, isAuthorized, getSubProjects,
 * @returns { Array } an array of monitors orderedby number of incidents
 */
 router.get('/:projectId/average-resolved', getUser, isAuthorized, getSubProjects, async (req, res) => {
-    const { startDate, endDate, filter } = req.query;
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
     try {
+        const { startDate, endDate, filter } = req.query;
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Reports Service
         var resolveTime = await ReportService.getAverageTimeBy(subProjectIds, startDate, endDate, filter);
         return sendListResponse(req, res, resolveTime);
@@ -79,9 +79,9 @@ router.get('/:projectId/average-resolved', getUser, isAuthorized, getSubProjects
 * @returns { Array } an array of incidents count
 */
 router.get('/:projectId/incidents', getUser, isAuthorized, getSubProjects, async (req, res) => {
-    const { startDate, endDate, filter } = req.query;
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
     try {
+        const { startDate, endDate, filter } = req.query;
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Reports Service
         var incidents = await ReportService.getIncidentCountBy(subProjectIds, startDate, endDate, filter);
         return sendListResponse(req, res, incidents);
