@@ -10,7 +10,6 @@ var NotificationService = require('../services/notificationService');
 var RealTimeService = require('../services/realTimeService');
 var ScheduleService = require('../services/scheduleService');
 var ProbeService = require('../services/probeService');
-var ProjectService = require('../services/projectService');
 
 var router = express.Router();
 var isUserAdmin = require('../middlewares/project').isUserAdmin;
