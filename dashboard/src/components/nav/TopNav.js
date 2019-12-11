@@ -33,15 +33,15 @@ class TopContent extends Component {
 		}
 	}
 
-	showProfileMenu = () => {
-		this.props.showProfileMenu();
+	showProfileMenu = (e) => {
+		this.props.showProfileMenu(e.clientX);
 		if (window.location.href.indexOf('localhost') <= -1) {
 			this.context.mixpanel.track('Profile Menu Opened', {});
 		}
 	}
 
-	showNotificationsMenu = () => {
-		this.props.openNotificationMenu();
+	showNotificationsMenu = (e) => {
+		this.props.openNotificationMenu(e.clientX);
 		if (window.location.href.indexOf('localhost') <= -1) {
 			this.context.mixpanel.track('Notification Menu Opened', {});
 		}
