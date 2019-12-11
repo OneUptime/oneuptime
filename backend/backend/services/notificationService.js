@@ -85,7 +85,6 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             var notification = await _this.findOneBy(query);
-
             let read = notification.read;
             if (data.read) {
                 for (let userId of data.read) {
