@@ -11,7 +11,7 @@ var integrationSchema = new Schema({
         required: true
     },
     data: {},
-    monitors: [{ type: Schema.Types.ObjectId, ref: 'Monitor', alias: 'monitor' }],
+    monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor', alias: 'monitor' },
     createdAt: {
         type: Date,
         default: Date.now,

@@ -21,8 +21,8 @@ import { ListLoader } from '../basic/Loader';
 class WebHookList extends React.Component {
 
     ready(){
-        const { webHook: { webHooks }, getWebHook, projectId } = this.props;
-        if (webHooks.length === 0 && projectId) {
+        const { getWebHook, projectId } = this.props;
+        if (projectId) {
             getWebHook(projectId);
         }
         if(window.location.href.indexOf('localhost') <= -1){
@@ -71,10 +71,13 @@ class WebHookList extends React.Component {
 
     render() {
 
-        const { webHook, isRequesting } =  this.props;
+        const { webHook, isRequesting, monitorId } =  this.props;
         let { webHooks, count,skip,limit } = webHook;
         let canPaginateForward = (webHook && count) && (count > (skip + limit)) ? true : false;
         let canPaginateBackward = (webHook && skip && skip > 0) ? true : false;
+        if (monitorId && webHooks) {
+            webHooks = webHooks.filter(hook => hook.monitorId._id === monitorId);
+        }
         const numberOfWebHooks = webHooks ? webHooks.length : 0;
 
         if (webHook && (webHook.requesting || !webHook.webHooks)) {
@@ -88,7 +91,7 @@ class WebHookList extends React.Component {
                     <thead className="Table-body">
                         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                             <WebHookTableHeader text="Endpoint" />
-                            <WebHookTableHeader text="Monitors" />
+                            {!monitorId && <WebHookTableHeader text="Monitors" />}
                             <WebHookTableHeader text="Type" />
                             <WebHookTableHeader text="Action" />
                         </tr>
@@ -96,7 +99,7 @@ class WebHookList extends React.Component {
                     <tbody className="Table-body">
                         <ShouldRender if={numberOfWebHooks > 0}>
                             {(webHooks ? webHooks : []).map(hook =>
-                                <WebHookItem key={`${hook._id}`} data={hook} />
+                                <WebHookItem key={`${hook._id}`} data={hook} monitorId={monitorId}/>
                             )}
                         </ShouldRender>
                     </tbody>
@@ -122,7 +125,7 @@ class WebHookList extends React.Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    { count } Webhook{numberOfWebHooks === 1 ? '' : 's'}
+                                    { webHooks.length } Webhook{numberOfWebHooks === 1 ? '' : 's'}
                                 </span>
                             </span>
                         </span>
@@ -195,6 +198,7 @@ const mapDispatchToProps = dispatch => (
 WebHookList.propTypes = {
     getWebHook: PropTypes.func,
     projectId: PropTypes.string,
+    monitorId: PropTypes.string,
     isRequesting: PropTypes.bool,
     webHook: PropTypes.any,
     paginate: PropTypes.func.isRequired,

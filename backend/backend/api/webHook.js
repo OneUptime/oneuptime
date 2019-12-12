@@ -14,8 +14,8 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
         let projectId = req.params.projectId;
         let body = req.body;
         let userId = req.user ? req.user.id : null;
-
-        let monitorIds = body.monitorIds;
+    
+        let monitorId = body.monitorId;
         let endpoint = body.endpoint;
         let endpointType = body.endpointType;
 
@@ -32,14 +32,14 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
                 message: 'endpoint missing in body, must be present'
             });
         }
-
-        if(!monitorIds) {
+    
+        if(!monitorId) {
             return sendErrorResponse( req, res, {
                 code: 400,
-                message: 'monitorIds missing in body, must be present'
+                message: 'monitorId is missing in body, it must be present'
             });
         }
-        var data = {userId: userId, endpoint, endpointType, monitorIds};
+        var data = {userId: userId, endpoint, endpointType, monitorId};
         var integrationType = 'webhook';
         var slack = await IntegrationService.create(projectId, userId, data, integrationType);
         return sendItemResponse(req, res, slack);
@@ -52,9 +52,11 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
 router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (req, res) {
     try {
         let data = req.body;
+        var integrationId = req.params.integrationId;
         data.projectId = req.params.projectId;
         data.userId = req.user ? req.user.id : null;
-        var integrationId = req.params.integrationId;
+        data._id = integrationId;
+        data.integrationType = 'webhook';
 
         if(!data.projectId) {
             return sendErrorResponse( req, res, {
@@ -69,11 +71,11 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (r
                 message: 'endpoint missing in body, must be present'
             });
         }
-
-        if(!data.monitorIds) {
+    
+        if(!data.monitorId) {
             return sendErrorResponse( req, res, {
                 code: 400,
-                message: 'monitorIds missing in body, must be present'
+                message: 'monitorId missing in body, must be present'
             });
         }
         var webhook = await IntegrationService.updateOneBy({_id:integrationId},data);
