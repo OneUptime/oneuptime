@@ -29,7 +29,7 @@ class WebHookInput extends React.Component {
 	}
 
 	render() {
-		const { data } = this.props;
+		const { data, monitorId } = this.props;
 		const { endpoint, endpointType } = data.data;
 
 		return (
@@ -37,12 +37,12 @@ class WebHookInput extends React.Component {
 
 				<WebHookTableBody text={endpoint} />
 
-				<WebHookTableBody text={this.getMonitors(data.monitors)} />
+				{!monitorId && <WebHookTableBody text={data.monitorId.name} />}
 
 				<WebHookBadgeTableBody text={endpointType} primary={endpointType === 'post'} />
 
 				<td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
-					<div className="db-ListViewItem-cellContent Box-root Padding-all--12 Flex-alignContent--flexEnd" style={{ position: 'absolute', right: 29 }}>
+					<div className="db-ListViewItem-cellContent Box-root Padding-all--12 Flex-alignContent--flexEnd" style={{ marginLeft: '-5px' }}>
 						<span
 							className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
 						>
@@ -55,7 +55,7 @@ class WebHookInput extends React.Component {
 											this.props.openModal({
 												id: data._id,
 												onClose: () => '',
-												content: DataPathHoC(EditWebhook, data)
+												content: DataPathHoC(EditWebhook, {...data, currentMonitorId: monitorId})
 											})
 										}
 									>
@@ -112,6 +112,7 @@ WebHookInput.propTypes = {
 	deleteWebHook: PropTypes.func.isRequired,
 	openModal: PropTypes.func.isRequired,
 	data: PropTypes.object.isRequired,
+	monitorId: PropTypes.string,
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookInput);

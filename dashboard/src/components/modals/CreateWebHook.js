@@ -5,11 +5,12 @@ import { bindActionCreators } from 'redux';
 import { Validate } from '../../config';
 import { reduxForm, Field } from 'redux-form';
 import { createWebHookRequest, createWebHook, createWebHookSuccess, createWebHookError } from '../../actions/webHook';
-import MultiSelectMonitor from '../multiSelect/MultiSelectMonitor';
+import { ValidateField } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RadioInput } from '../webHooks/RadioInput';
 import { RenderField } from '../basic/RenderField';
+import { RenderSelect } from '../basic/RenderSelect';
 
 function validate(values) {
 
@@ -31,14 +32,13 @@ function validate(values) {
 class CreateWebHook extends React.Component {
 
 	submitForm = (values) => {
-		const { createWebHook, closeThisDialog } = this.props;
+		const { createWebHook, closeThisDialog, data: { monitorId } } = this.props;
 		const postObj = {};
 		postObj.endpoint = values.endpoint;
-		postObj.monitorIds = values.monitorIds;
 		postObj.endpointType = values.endpointType;
+		postObj.monitorId = monitorId ? monitorId : values.monitorId;
 		postObj.type = 'webhook';
 
-		postObj.monitorIds = postObj.monitorIds.map(({ value }) => value);
 		createWebHook(this.props.currentProject._id, postObj)
 			.then(() => {
 				closeThisDialog();
@@ -55,7 +55,7 @@ class CreateWebHook extends React.Component {
 	}
 
 	render() {
-		const { handleSubmit, closeThisDialog } = this.props;
+		const { handleSubmit, closeThisDialog, data: { monitorId } } = this.props;
 		const monitorList = [];
 		const allMonitors = this.props.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
 		if (allMonitors && allMonitors.length > 0) {
@@ -109,29 +109,34 @@ class CreateWebHook extends React.Component {
 												</div>
 											</fieldset>
 
-											<fieldset className="Margin-bottom--16">
-												<div className="bs-Fieldset-rows">
-													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorIds">
-															<span>Monitors</span>
-														</label>
-														<div className="bs-Fieldset-fields">
-															<div className="bs-Fieldset-field" style={{ width: '300px' }}>
-																<Field
-																	component={MultiSelectMonitor}
-																	name="monitorIds"
-																	id="monitorIds"
-																	placeholder="Select monitors"
-																	data={monitorList}
-																	valueField="value"
-																	textField="label"
-																	className="bs-TextInput bs-Button db-MultiSelect-input"
-																/>
+											<ShouldRender if={!monitorId}>
+												<fieldset className="Margin-bottom--16">
+													<div className="bs-Fieldset-rows">
+														<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+															<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId">
+																<span>Monitor</span>
+															</label>
+															<div className="bs-Fieldset-fields">
+																<div className="bs-Fieldset-field" style={{ width: '300px' }}>
+																	<Field
+																		component={RenderSelect}
+																		name="monitorId"
+																		id="monitorId"
+																		placeholder="Select monitor"
+																		disabled={this.props.newWebHook.requesting}
+																		validate={ValidateField.select}
+																		options={[
+																			{ value: '', label: 'Select monitor' },
+																			...(monitorList && monitorList.length > 0 ? monitorList.map(monitor => ({ value: monitor.value, label: monitor.label })) : [])
+																		]}
+																		className="db-select-nw db-MultiSelect-input"
+																	/>
+																</div>
 															</div>
 														</div>
 													</div>
-												</div>
-											</fieldset>
+												</fieldset>
+											</ShouldRender>
 
 											<fieldset className="Margin-bottom--8">
 												<div className="bs-Fieldset-rows">
@@ -210,7 +215,8 @@ CreateWebHook.propTypes = {
 	closeThisDialog: PropTypes.func.isRequired,
 	handleSubmit: PropTypes.func.isRequired,
 	monitor: PropTypes.object,
-	newWebHook: PropTypes.object
+	newWebHook: PropTypes.object,
+	data: PropTypes.object,
 };
 
 let NewCreateWebHook = reduxForm({
@@ -235,7 +241,7 @@ const mapStateToProps = state => (
 		monitor: state.monitor,
 		currentProject: state.project.currentProject,
 		newWebHook: state.webHooks.createWebHook,
-		initialValues: { endpoint: '', endpointType: 'get', monitorIds: [] }
+		initialValues: { endpoint: '', endpointType: 'get', monitorId: '' }
 	}
 );
 

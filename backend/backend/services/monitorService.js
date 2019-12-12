@@ -227,7 +227,7 @@ module.exports = {
                 }));
                 await StatusPageService.removeMonitor(monitor._id);
                 await ScheduleService.removeMonitor(monitor._id);
-                await IntegrationService.removeMonitor(monitor._id);
+                await IntegrationService.removeMonitor(monitor._id, userId);
                 await NotificationService.create(monitor.projectId, `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`, monitor.deletedById._id, 'monitoraddremove');
                 await RealTimeService.sendMonitorDelete(monitor);
 

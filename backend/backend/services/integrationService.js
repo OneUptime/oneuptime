@@ -16,9 +16,9 @@ module.exports = {
                 .sort([['createdAt, -1']])
                 .limit(limit)
                 .skip(skip)
-                .populate('createdById', 'name')
-                .populate('projectId', 'name')
-                .populate('monitors', 'name');
+                .populate('createdById','name')
+                .populate('projectId','name')
+                .populate('monitorId','name');
             return integrations;
         } catch (error) {
             ErrorService.log('IntegrationService.findBy', error);
@@ -35,12 +35,8 @@ module.exports = {
             integrationModel.createdById = userId;
             integrationModel.data = data;
             integrationModel.integrationType = integrationType;
-            integrationModel.monitors = [];
-            if (data.monitorIds) {
-                for (let monitor of data.monitorIds) {
-                    integrationModel.monitors.push(monitor);
-                }
-            }
+            integrationModel.monitorId = data.monitorId;
+
             var integration = await integrationModel.save();
             integration = await _this.findOneBy({ _id: integration._id });
             return integration;
@@ -55,7 +51,8 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            if (query.deleted) query.deleted = false;
+
+            query.deleted = false;
             var count = await IntegrationModel.count(query);
             return count;
         } catch (error) {
@@ -91,9 +88,9 @@ module.exports = {
             if (query.deleted) query.deleted = false;
             var integration = await IntegrationModel.findOne(query)
                 .sort([['createdAt, -1']])
-                .populate('createdById', 'name')
-                .populate('projectId', 'name')
-                .populate('monitors', 'name');
+                .populate('createdById','name')
+                .populate('projectId','name')
+                .populate('monitorId','name');
             return integration;
         } catch (error) {
             ErrorService.log('IntegrationService.findOneBy', error);
@@ -108,36 +105,41 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
-            var updatedIntegration = await IntegrationModel.findOneAndUpdate(query, {
-                $set: {
-                    monitors: data.monitorIds,
-                    'data.endpoint': data.endpoint,
-                    'data.monitorIds': data.monitorIds,
-                    'data.endpointType': data.endpointType
-                }
-            }, { new: true });
-            updatedIntegration = await _this.findOneBy({ _id: updatedIntegration._id });
-            return updatedIntegration;
+            if (!data._id) {
+                let integration = await _this.create(data.projectId, data.userId, data, data.integrationType);
+                return integration;
+            } else {
+                query.deleted = false;
+                var updatedIntegration = await IntegrationModel.findOneAndUpdate(query, {
+                    $set: {
+                        monitorId: data.monitorId,
+                        'data.endpoint': data.endpoint,
+                        'data.monitorId':data.monitorId,
+                        'data.endpointType': data.endpointType
+                    }
+                }, { new: true });
+                updatedIntegration = await _this.findOneBy({_id: updatedIntegration._id});
+                return updatedIntegration;
+            }
         } catch (error) {
-            ErrorService.log('IntegrationService.updateOneBy', error);
-            throw error;
+            ErrorService.log('IntegrationService.update', error);
+            throw error; 
         }
     },
 
-    removeMonitor: async function (monitorId) {
-        try {
+    removeMonitor: async function(monitorId, userId){
+        try{
             let query = {};
-            if (monitorId) {
-                query = { monitors: monitorId };
+            if(monitorId){
+                query = {monitorId:monitorId};
             }
             query.deleted = false;
-            var integration = await IntegrationModel.findOneAndUpdate(query, {
-                $pull: { monitors: monitorId, 'data.monitorIds': monitorId.toString() }
+            var integrations = await IntegrationModel.updateMany(query, {
+                $set: { deleted: true, deletedAt: Date.now(), deletedById: userId }
             });
-            return integration;
-        } catch (error) {
-            ErrorService.log('IntegrationService.findOneAndUpdate', error);
+            return integrations;
+        }catch(error){
+            ErrorService.log('IntegrationService.removeMonitor', error);
             throw error;
         }
     },

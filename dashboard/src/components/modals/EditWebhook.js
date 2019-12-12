@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators, compose } from 'redux';
-import MultiSelectMonitor from '../multiSelect/MultiSelectMonitor';
 import { Validate } from '../../config';
 import { reduxForm, Field } from 'redux-form';
 import { updateWebHook } from '../../actions/webHook';
@@ -10,6 +9,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RadioInput } from '../webHooks/RadioInput';
 import { RenderField } from '../basic/RenderField';
+import { RenderSelect } from '../basic/RenderSelect';
+import { ValidateField } from '../../config';
 
 function validate(values) {
 
@@ -35,10 +36,10 @@ class EditWebHook extends React.Component {
 
 		const postObj = {};
         postObj.endpoint = values.endpoint;
-        postObj.monitorIds = values.monitorIds;
+        postObj.monitorId = values.monitorId;
         postObj.endpointType = values.endpointType;
-        postObj.type = 'webhook';
-		postObj.monitorIds = postObj.monitorIds.map(({value}) => value);
+		postObj.type = 'webhook';
+		postObj.monitorId = data.currentMonitorId ? data.currentMonitorId : values.monitorId;
 
         updateWebHook(
                 currentProject._id,
@@ -59,7 +60,7 @@ class EditWebHook extends React.Component {
 	}
 
     render(){
-        const { handleSubmit, closeThisDialog } = this.props;
+		const { handleSubmit, closeThisDialog, data } = this.props;
 
         const monitorList = [];
 
@@ -115,29 +116,35 @@ class EditWebHook extends React.Component {
 												</div>
 											</fieldset>
 
-											<fieldset className="Margin-bottom--16">
-												<div className="bs-Fieldset-rows">
-													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorIds">
-															<span>Monitors</span>
-														</label>
-														<div className="bs-Fieldset-fields">
-															<div className="bs-Fieldset-field" style={{ width: '70%' }}>
-															<Field
-																	component={MultiSelectMonitor}
-																	name="monitorIds"
-																	id="monitorIds"
-																	placeholder="Select monitors"
-																	data={monitorList}
-																	valueField="value"
-																	textField="label"
-																	className="bs-TextInput bs-Button db-MultiSelect-input"
-																/>
+											<ShouldRender if={!data.currentMonitorId}>
+												<fieldset className="Margin-bottom--16">
+													<div className="bs-Fieldset-rows">
+														<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+															<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId">
+																<span>Monitor</span>
+															</label>
+															<div className="bs-Fieldset-fields">
+																<div className="bs-Fieldset-field" style={{ width: '300px' }}>
+																	<Field
+																		className="db-select-nw db-MultiSelect-input"
+																		component={RenderSelect}
+																		name="monitorId"
+																		id="monitorId"
+																		placeholder="Select monitor"
+																		disabled={this.props.newWebHook.requesting}
+																		validate={ValidateField.select}
+																		options={[
+																			{ value: '', label: 'Select amount' },
+																			...(monitorList && monitorList.length > 0 ? monitorList.map(monitor => ({ value: monitor.value, label: monitor.label })) : [])
+																		]}
+																		style={{ width: '300px' }}
+																	/>
+																</div>
 															</div>
 														</div>
 													</div>
-												</div>
-											</fieldset>
+												</fieldset>
+											</ShouldRender>
 
 											<fieldset className="Margin-bottom--8">
 												<div className="bs-Fieldset-rows">
@@ -224,7 +231,9 @@ const NewEditWebHook = compose(
     form: 'NewEditWebHook',
     validate,
     enableReinitialize: true,
-    destroyOnUnmount: true
+	destroyOnUnmount: true,
+	keepDirtyOnReinitialize: true,
+	updateUnregisteredFields: true
   })
 )(EditWebHook);
 
@@ -235,15 +244,11 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     , dispatch);
 
 const mapStateToProps = (state, props) => {
-	let currentMonitorValue = [];
+	let currentMonitorValue = { value: '', label: 'Select monitor' };
 
-	if(props.data && props.data.monitors && props.data.monitors.length > 0) {
-		props.data.monitors.map(monitor =>
-			currentMonitorValue.push({
-				label: monitor.name,
-				value: monitor._id
-			})
-		)
+	if (props.data && props.data.monitorId) {
+		currentMonitorValue.label = props.data.monitorId.name
+		currentMonitorValue.value = props.data.monitorId._id
 	}
 	return(
     {
@@ -254,7 +259,7 @@ const mapStateToProps = (state, props) => {
 		initialValues: {
 			endpoint: props.data.data.endpoint,
 			endpointType: props.data.data.endpointType,
-			monitorIds: currentMonitorValue
+			monitorId: currentMonitorValue.value,
 		}
 	}
 )};

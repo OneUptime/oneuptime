@@ -29,13 +29,13 @@ class WebHookBox extends React.Component {
                                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                             <div className="Box-root">
                                                 <RenderIfAdmin>
-                                                    <WebHookButton />
+                                                    <WebHookButton monitorId={this.props.monitorId}/>
                                                 </RenderIfAdmin>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <WebHookList />
+                                <WebHookList monitorId={this.props.monitorId}/>
                             </div>
                         </div>
                     </div>
@@ -46,6 +46,10 @@ class WebHookBox extends React.Component {
 }
 
 WebHookBox.displayName = 'WebHookBox';
+
+WebHookBox.propTypes = {
+	monitorId: PropTypes.string,
+};
 
 WebHookBox.contextTypes = {
     mixpanel: PropTypes.object.isRequired
