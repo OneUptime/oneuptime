@@ -8,7 +8,7 @@ import DateRangeWrapper from './DateRangeWrapper';
 import MonitorTitle from './MonitorTitle';
 import ProbeBar from './ProbeBar';
 import moment from 'moment';
-import { editMonitorSwitch, fetchMonitorLogs, deleteMonitor } from '../../actions/monitor';
+import { editMonitorSwitch, fetchMonitorLogs, fetchMonitorsIncidentsRange, deleteMonitor } from '../../actions/monitor';
 import DeleteMonitor from '../modals/DeleteMonitor';
 import { FormLoader } from '../basic/Loader';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
@@ -33,18 +33,20 @@ export class MonitorViewHeader extends Component {
     }
 
     componentDidMount() {
-        const { fetchMonitorLogs, monitor } = this.props;
+        const { fetchMonitorLogs, fetchMonitorsIncidentsRange, monitor } = this.props;
         const { startDate, endDate } = this.state;
 
         fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+        fetchMonitorsIncidentsRange(monitor.projectId._id || monitor.projectId, monitor._id, 100, startDate, endDate);
     }
 
     handleDateChange = (startDate, endDate) => {
         this.setState({ startDate, endDate });
 
-        const { fetchMonitorLogs, monitor } = this.props;
+        const { fetchMonitorLogs, fetchMonitorsIncidentsRange, monitor } = this.props;
 
         fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+        fetchMonitorsIncidentsRange(monitor.projectId._id || monitor.projectId, monitor._id, 100, startDate, endDate);
     }
 
     editMonitor = () => {
@@ -96,7 +98,7 @@ export class MonitorViewHeader extends Component {
     }
 
     render() {
-        const { deleteModalId, startDate } = this.state;
+        const { deleteModalId, startDate, endDate } = this.state;
         const { monitor, subProjects, monitorState, activeProbe, currentProject, probes } = this.props;
 
         const subProjectId = monitor.projectId._id || monitor.projectId;
@@ -105,7 +107,7 @@ export class MonitorViewHeader extends Component {
         const probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
         const probeData = this.filterProbeData(monitor, probe);
 
-        const status = getMonitorStatus(monitor.incidents, probeData);
+        const status = getMonitorStatus(monitor.incidentsRange, probeData);
 
         let deleting = false;
         if (monitorState && monitorState.deleteMonitor && monitorState.deleteMonitor === monitor._id) {
@@ -164,7 +166,7 @@ export class MonitorViewHeader extends Component {
                             <div className="btn-group">
                                 {monitor && monitor.probes.map((location, index) => {
                                     let probeData = this.filterProbeData(monitor, location);
-                                    let status = getMonitorStatus(monitor.incidents, probeData);
+                                    let status = getMonitorStatus(monitor.incidentsRange, probeData);
                                     let probe = probes.filter(probe => probe._id === location._id);
                                     let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
 
@@ -182,10 +184,10 @@ export class MonitorViewHeader extends Component {
                                 })}
                             </div>
                         </ShouldRender>
-                        <MonitorChart key={uuid.v4()} monitor={monitor} data={probeData} status={status} showAll={true} />
+                        <MonitorChart start={startDate} end={endDate} key={uuid.v4()} monitor={monitor} data={probeData} status={status} showAll={true} />
                     </ShouldRender>
                     {monitor && monitor.probes && monitor.probes.length < 2 ?
-                        <MonitorChart key={uuid.v4()} monitor={monitor} data={probeData} status={status} showAll={true} />
+                        <MonitorChart start={startDate} end={endDate} key={uuid.v4()} monitor={monitor} data={probeData} status={status} showAll={true} />
                         : ''
                     }<br />
                 </div>
@@ -200,6 +202,7 @@ MonitorViewHeader.propTypes = {
     monitor: PropTypes.object.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,
+    fetchMonitorsIncidentsRange: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
     deleteMonitor: PropTypes.func.isRequired,
     openModal: PropTypes.func,
@@ -215,6 +218,7 @@ MonitorViewHeader.propTypes = {
 const mapDispatchToProps = dispatch => bindActionCreators({
     editMonitorSwitch,
     fetchMonitorLogs,
+    fetchMonitorsIncidentsRange,
     deleteMonitor,
     selectedProbe,
     openModal,

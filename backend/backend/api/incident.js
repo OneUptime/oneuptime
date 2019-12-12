@@ -5,6 +5,7 @@
  */
 
 var express = require('express');
+var moment = require('moment');
 var IncidentService = require('../services/incidentService');
 
 var router = express.Router();
@@ -85,10 +86,19 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {monitorId}
 // Returns: 200: incidents, 400: Error; 500: Server Error.
 router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, async function (req, res) {
-    try{
-        // Call the IncidentService.
-        var incidents = await IncidentService.findBy({ monitorId: req.params.monitorId, projectId: req.params.projectId }, req.query.limit || 3, req.query.skip || 0);
-        var count = await IncidentService.countBy({ monitorId: req.params.monitorId, projectId: req.params.projectId });
+    // include date range
+    try {
+        const { startDate, endDate } = req.query;
+        var query = { monitorId: req.params.monitorId, projectId: req.params.projectId };
+
+        if (startDate && endDate) {
+            let start = moment(startDate).toDate();
+            let end = moment(endDate).toDate();
+            query = { monitorId: req.params.monitorId, projectId: req.params.projectId, createdAt: { $gte: start, $lte: end } };
+        }
+
+        var incidents = await IncidentService.findBy(query, req.query.limit || 3, req.query.skip || 0);
+        var count = await IncidentService.countBy(query);
         return sendListResponse(req, res, incidents, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -97,22 +107,22 @@ router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, async functi
 
 // Fetch incidents by projectId
 router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (req, res) {
-    try{
+    try {
         var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         var incidents = await IncidentService.getSubProjectIncidents(subProjectIds);
         return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.get('/:projectId/incident', getUser, isAuthorized, async function(req, res){
-    try{
+router.get('/:projectId/incident', getUser, isAuthorized, async function (req, res) {
+    try {
         var projectId = req.params.projectId;
-        var incident = await IncidentService.findBy({projectId}, req.query.limit || 10, req.query.skip || 0);
-        var count = await IncidentService.countBy({projectId});
+        var incident = await IncidentService.findBy({ projectId }, req.query.limit || 10, req.query.skip || 0);
+        var count = await IncidentService.countBy({ projectId });
         return sendListResponse(req, res, incident, count); // frontend expects sendListResponse
-    }catch(error){
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
@@ -139,7 +149,7 @@ router.get('/:projectId/unresolvedincidents', getUser, isAuthorized, getSubProje
         var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Call the IncidentService.
         var userId = req.user ? req.user.id : null;
-        var incident = await IncidentService.getUnresolvedIncidents(subProjectIds,userId);
+        var incident = await IncidentService.getUnresolvedIncidents(subProjectIds, userId);
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -209,7 +219,7 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
             });
         }
         // Call the IncidentService
-        var incident = await IncidentService.updateOneBy({_id:incidentId},data);
+        var incident = await IncidentService.updateOneBy({ _id: incidentId }, data);
         if (incident && incident._id) {
             incident = await IncidentService.findOneBy({ _id: incident._id, projectId: incident.projectId });
         }
@@ -220,7 +230,7 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
 
 });
 
-router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(req, res){
+router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function (req, res) {
     try {
         const { projectId, incidentId } = req.params;
         var incident = await IncidentService.deleteBy({ _id: incidentId, projectId }, req.user.id);
