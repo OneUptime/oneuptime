@@ -331,7 +331,7 @@ router.get('/:statusPageId/rss', checkUser, async function (req, res) {
             ]
         };
         var finalFeed = toXML(feedObj, xmlOptions);
-        res.contentType('application/rss')
+        res.contentType('application/rss');
         return sendItemResponse(req, res, finalFeed);
     } catch (error) {
         return sendErrorResponse(req, res, error);
