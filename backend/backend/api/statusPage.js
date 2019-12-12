@@ -300,31 +300,38 @@ router.get('/:statusPageId/rss', checkUser, async function (req, res) {
             });
         }
         const xmlOptions = {
-            header: true,
-            indent: '  '
+            indent: '  ',
+            header: true
         };
 
-        var feedObj = [
-            {
-                Title: `Incidents for status page ${statusPage.title}`
+        var feedObj = {
+            _name: 'rss',
+            _attrs: {
+                version: '2.0'
             },
-            {
-                Description: 'RSS feed for all incidents related to monitors attached to status page'
-            },
-            {
-                Link: `${BACKEND_HOST}/statusPage/rss`
-            },
-            {
-                LastBuildDate: () => new Date()
-            },
-            {
-                Language: 'en'
-            },
-            {
-                Incidents: refinedIncidents
-            }
-        ];
+            _content: [
+                {
+                    Title: `Incidents for status page ${statusPage.title}`
+                },
+                {
+                    Description: 'RSS feed for all incidents related to monitors attached to status page'
+                },
+                {
+                    Link: `${BACKEND_HOST}/statusPage/rss`
+                },
+                {
+                    LastBuildDate: () => new Date()
+                },
+                {
+                    Language: 'en'
+                },
+                {
+                    Incidents: refinedIncidents
+                }
+            ]
+        };
         var finalFeed = toXML(feedObj, xmlOptions);
+        res.contentType('application/rss')
         return sendItemResponse(req, res, finalFeed);
     } catch (error) {
         return sendErrorResponse(req, res, error);

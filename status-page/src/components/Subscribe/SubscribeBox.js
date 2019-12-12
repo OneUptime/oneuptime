@@ -23,6 +23,7 @@ class SubscribeBox extends Component {
         this.props.selectedMenu(data);
     }
     render() {
+        var { statusPage } = this.props;
 
         return (
             <div className="subscribe-overlay">
@@ -61,7 +62,9 @@ class SubscribeBox extends Component {
                             id="updates-dropdown-close-btn"
                             onClick={() => this.subscribebutton()}
                             disabled={this.props.subscribed.requesting}
-                            className="icon-container"><span className='close-button'>X</span></button>
+                            className="icon-container">
+                            <span className='close-button'>X</span>
+                        </button>
                     </div>
 
                     <div className="subscribe-box-inner">
@@ -75,9 +78,14 @@ class SubscribeBox extends Component {
                             <Webhook />
                         </ShouldRender>
                         <ShouldRender if={!this.props.openSelectedBox && this.props.select === 4}>
-                            <div className="directions">
-                                Get the <a href="https://status.atlassian.com/history.atom" target="_blank" rel="noopener noreferrer">Atom Feed</a> or <a href="https://status.atlassian.com/history.rss" target="_blank" rel="noopener noreferrer">RSS Feed</a>.
-                    </div>
+                                <div className="directions">
+                                    Get the <a href={`http://localhost:3002/statusPage/${statusPage._id}/rss`}
+                                        target="_blank"
+                                        download="incidents-rss.xml"
+                                        rel="noopener noreferrer">  
+                                        RSS feed
+                                    </a>
+                                </div>
                         </ShouldRender>
                         <ShouldRender if={this.props.openSelectedBox}>
                             <Monitors />
@@ -96,6 +104,7 @@ const mapStateToProps = (state) => ({
     select: state.subscribe.selectedMenu,
     subscribed: state.subscribe.subscribed,
     openSelectedBox:state.subscribe.openSelectedBox,
+    statusPage: state.status.statusPage
 });
 
 const mapDispatchToProps = (dispatch) => bindActionCreators({ openSubscribeMenu, selectedMenu }, dispatch)
