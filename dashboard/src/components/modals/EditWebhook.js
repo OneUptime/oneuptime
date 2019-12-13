@@ -7,7 +7,6 @@ import { reduxForm, Field } from 'redux-form';
 import { updateWebHook } from '../../actions/webHook';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import { RadioInput } from '../webHooks/RadioInput';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
 import { ValidateField } from '../../config';
@@ -18,12 +17,6 @@ function validate(values) {
 
 	if (!Validate.url(values.endpoint)) {
 		errors.endpoint = 'Webhook url is required!'
-	}
-	if (!values.monitorIds) {
-			errors.monitorIds = 'Atleast one monitor is required!'
-	}
-	else if(!values.monitorIds.length){
-		errors.monitorIds = 'Atleast one monitor is required!'
 	}
 
 	return errors;
@@ -46,7 +39,9 @@ class EditWebHook extends React.Component {
                 data._id,
                 postObj
             ).then(() => {
-				closeThisDialog();
+				if (this.props.newWebHook && !this.props.newWebHook.error) {
+					closeThisDialog();
+				}
             });
 	}
 
@@ -107,7 +102,7 @@ class EditWebHook extends React.Component {
 																	placeholder="Enter webhook url"
 																	id="endpoint"
 																	type="url"
-																	className="bs-TextInput bs-Button"
+																	className="db-BusinessSettings-input TextInput bs-TextInput"
 																	style={{ width: 300, padding: '3px 5px' }}
 																/>
 															</div>
@@ -146,33 +141,34 @@ class EditWebHook extends React.Component {
 												</fieldset>
 											</ShouldRender>
 
-											<fieldset className="Margin-bottom--8">
+											<fieldset className="Margin-bottom--16">
 												<div className="bs-Fieldset-rows">
 													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="endpointType">
+														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId">
 															<span>Endpoint Type</span>
 														</label>
 														<div className="bs-Fieldset-fields">
-															<div className="bs-Fieldset-field" style={{ width: '70%' }}>
-															<div className="Flex-flex ">
-																<RadioInput
-																	value="get"
-																	details="GET"
-																	id="get"
+															<div className="bs-Fieldset-field" style={{ width: '300px' }}>
+																<Field
+																	component={RenderSelect}
+																	name="endpointType"
+																	id="endpointType"
+																	placeholder="Select endpoint type"
+																	disabled={this.props.newWebHook.requesting}
+																	validate={ValidateField.select}
+																	options={[
+																		{ value: '', label: 'Select endpoint type' },
+																		{ value: 'get', label: 'GET' },
+																		{ value: 'post', label: 'POST' },
+																	]}
+																	className="db-select-nw db-MultiSelect-input"
 																/>
-																<div style={{ paddingTop: 5, marginLeft: 40 }}>
-																	<RadioInput
-																		value="post"
-																		details="POST"
-																		id="post"
-																	/>
-																</div>
-															</div>
 															</div>
 														</div>
 													</div>
 												</div>
 											</fieldset>
+
 										</div>
 									</div>
 								</div>

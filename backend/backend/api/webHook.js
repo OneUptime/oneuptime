@@ -39,6 +39,20 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
                 message: 'monitorId is missing in body, it must be present'
             });
         }
+
+        var existingWebhook = await IntegrationService.findOneBy({
+            monitorId,
+            'data.endpoint' : endpoint,
+            'data.endpointType' : endpointType,
+            deleted: { $ne: null },
+        });
+        if (existingWebhook) {
+            return sendErrorResponse( req, res, {
+                code: 400,
+                message: 'webhook with url and endpoint type exist.'
+            });
+        }
+
         var data = {userId: userId, endpoint, endpointType, monitorId};
         var integrationType = 'webhook';
         var slack = await IntegrationService.create(projectId, userId, data, integrationType);
@@ -78,6 +92,20 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (r
                 message: 'monitorId missing in body, must be present'
             });
         }
+
+        var existingWebhook = await IntegrationService.findOneBy({
+            monitorId: data.monitorId,
+            'data.endpoint' : data.endpoint,
+            'data.endpointType' : data.endpointType,
+            deleted: { $ne: null },
+        });
+        if (existingWebhook && existingWebhook._id.toString() !== integrationId) {
+            return sendErrorResponse( req, res, {
+                code: 400,
+                message: 'webhook with url and endpoint type exist.'
+            });
+        }
+
         var webhook = await IntegrationService.updateOneBy({_id:integrationId},data);
         return sendItemResponse(req, res, webhook);
     } catch(error) {
