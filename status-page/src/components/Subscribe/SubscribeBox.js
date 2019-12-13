@@ -116,6 +116,7 @@ SubscribeBox.propTypes = {
     select: PropTypes.number,
     subscribed: PropTypes.object,
     requesting: PropTypes.bool,
+    statusPage: PropTypes.object
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubscribeBox);
