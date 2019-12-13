@@ -13,6 +13,8 @@ var UtilService = require('../services/utilService');
 var validUrl = require('valid-url');
 var multer = require('multer');
 var ErrorService = require('../services/errorService');
+const { toXML } = require('jstoxml');
+const { BACKEND_HOST } = process.env;
 
 const { getUser,checkUser } = require('../middlewares/user');
 const { getSubProjects } = require('../middlewares/subProject');
@@ -265,6 +267,76 @@ router.get('/:statusPageId', checkUser, async function (req, res) {
     }
 });
 
+router.get('/:statusPageId/rss', checkUser, async function (req, res) {
+    var statusPageId = req.params.statusPageId;
+    var url = req.query.url;
+    var user = req.user;
+    var statusPage = {};
+    try {
+        // Call the StatusPageService.
+        if (url && url !== 'null') {
+            statusPage = await StatusPageService.getStatus({ domain: url }, user);
+        } else if ((!url || url === 'null') && statusPageId) {
+            statusPage = await StatusPageService.getStatus({ _id: statusPageId }, user);
+        }
+        else {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'StatusPage Id or Url required'
+            });
+        }
+        var { incidents } = await StatusPageService.getIncidents({_id: statusPageId});
+        var refinedIncidents = [];
+        for (var incident of incidents) {
+            refinedIncidents.push({
+                Incident: {
+                    IncidentType: incident.incidentType,
+                    IncidentId: incident._id.toString(),
+                    MonitorName: incident.monitorId.name,
+                    MonitorId: incident.monitorId._id.toString(),
+                    ManuallyCreated: incident.manuallyCreated,
+                    InvestigationNote: incident.investigationNote,
+                }
+            });
+        }
+        const xmlOptions = {
+            indent: '  ',
+            header: true
+        };
+
+        var feedObj = {
+            _name: 'rss',
+            _attrs: {
+                version: '2.0'
+            },
+            _content: [
+                {
+                    Title: `Incidents for status page ${statusPage.title}`
+                },
+                {
+                    Description: 'RSS feed for all incidents related to monitors attached to status page'
+                },
+                {
+                    Link: `${BACKEND_HOST}/statusPage/rss`
+                },
+                {
+                    LastBuildDate: () => new Date()
+                },
+                {
+                    Language: 'en'
+                },
+                {
+                    Incidents: refinedIncidents
+                }
+            ]
+        };
+        var finalFeed = toXML(feedObj, xmlOptions);
+        res.contentType('application/rss');
+        return sendItemResponse(req, res, finalFeed);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 router.get('/:projectId/:statusPageId/notes',checkUser, async function (req, res) {
     var statusPageId = req.params.statusPageId;
     var skip = req.query.skip || 0;
