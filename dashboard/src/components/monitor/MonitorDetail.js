@@ -213,7 +213,7 @@ export class MonitorDetail extends Component {
                                     <span>Show URL</span>
                                 </button>
                             }
-                            <button className={creating && activeIncident == monitor._id ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
+                            <button className={creating && activeIncident === monitor._id ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
                                 id={`create_incident_${monitor.name}`}
                                 onClick={() =>
                                     this.props.openModal({
@@ -225,7 +225,7 @@ export class MonitorDetail extends Component {
                                         <span>Create New Incident</span>
                                     </span>
                                 </ShouldRender>
-                                <ShouldRender if={creating && activeIncident == monitor._id}>
+                                <ShouldRender if={creating && activeIncident === monitor._id}>
                                     <FormLoader />
                                 </ShouldRender>
                             </button>
