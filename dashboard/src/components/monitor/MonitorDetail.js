@@ -119,7 +119,7 @@ export class MonitorDetail extends Component {
 
     render() {
         const { createIncidentModalId, startDate, endDate } = this.state;
-        const { monitor, create, monitorState, activeProbe, currentProject, probes } = this.props;
+        const { monitor, create, monitorState, activeProbe, currentProject, probes, activeIncident } = this.props;
 
         const probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
         const probeData = this.filterProbeData(monitor, probe);
@@ -213,19 +213,19 @@ export class MonitorDetail extends Component {
                                     <span>Show URL</span>
                                 </button>
                             }
-                            <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
+                            <button className={creating && activeIncident == monitor._id ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
                                 id={`create_incident_${monitor.name}`}
                                 onClick={() =>
                                     this.props.openModal({
                                         id: createIncidentModalId,
                                         content: DataPathHoC(CreateManualIncident, { monitorId: monitor._id, projectId: monitor.projectId._id })
                                     })}>
-                                <ShouldRender if={!creating}>
+                                <ShouldRender if={!(creating && activeIncident === monitor._id)}>
                                     <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
                                         <span>Create New Incident</span>
                                     </span>
                                 </ShouldRender>
-                                <ShouldRender if={creating}>
+                                <ShouldRender if={creating && activeIncident == monitor._id}>
                                     <FormLoader />
                                 </ShouldRender>
                             </button>
@@ -346,6 +346,7 @@ function mapStateToProps(state) {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,
+        activeIncident: state.incident.newIncident.monitorId,
         subProject: state.subProject,
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data
@@ -365,7 +366,8 @@ MonitorDetail.propTypes = {
     create: PropTypes.bool,
     selectedProbe: PropTypes.func.isRequired,
     activeProbe: PropTypes.number,
-    probes: PropTypes.array
+    probes: PropTypes.array,
+    activeIncident: PropTypes.string
 };
 
 MonitorDetail.contextTypes = {
