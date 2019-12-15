@@ -253,10 +253,8 @@ router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, as
             data.status = 'offline';
         } else if (validDegraded) {
             data.status = 'degraded';
-        } else if (validUp) {
-            data.status = 'online';
         } else {
-            data.status = 'unknown';
+            data.status = 'online';
         }
 
         let log = await ProbeService.setTime(data);
