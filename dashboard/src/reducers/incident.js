@@ -14,7 +14,8 @@ const initialState = {
     newIncident: {
         requesting: false,
         error: null,
-        success: false
+        success: false,
+        monitorId: null
     },
     incident: {
         requesting: false,
@@ -116,6 +117,7 @@ export default function incident(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: false,
+                    monitorId: null
                 },
                 incidents: {
                     incidents: isExistingIncident ? state.incidents.incidents.length > 0 ? state.incidents.incidents.map((incident) => {
@@ -141,7 +143,8 @@ export default function incident(state = initialState, action) {
                 newIncident: {
                     requesting: true,
                     success: false,
-                    error: null
+                    error: null,
+                    monitorId: action.payload
                 }
             });
 
@@ -151,6 +154,7 @@ export default function incident(state = initialState, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
+                    monitorId: null
                 },
             });
 
@@ -626,7 +630,7 @@ export default function incident(state = initialState, action) {
             return Object.assign({}, state, {
                 incident: {
                     ...state.incident,
-                    deleteIncident:{
+                    deleteIncident: {
                         requesting: false,
                         success: true,
                         error: null
@@ -642,7 +646,7 @@ export default function incident(state = initialState, action) {
             return Object.assign({}, state, {
                 incident: {
                     ...state.incident,
-                    deleteIncident:{
+                    deleteIncident: {
                         requesting: false,
                         success: false,
                         error: action.payload
@@ -654,7 +658,7 @@ export default function incident(state = initialState, action) {
             return Object.assign({}, state, {
                 incident: {
                     ...state.incident,
-                    deleteIncident:{
+                    deleteIncident: {
                         requesting: true,
                         success: false,
                         error: null
@@ -666,7 +670,7 @@ export default function incident(state = initialState, action) {
             return Object.assign({}, state, {
                 incident: {
                     ...state.incident,
-                    deleteIncident:{
+                    deleteIncident: {
                         requesting: false,
                         success: false,
                         error: null
