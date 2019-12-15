@@ -253,6 +253,8 @@ router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, as
             data.status = 'offline';
         } else if (validDegraded) {
             data.status = 'degraded';
+        } else if (validUp) {
+            data.status = 'online';
         } else {
             data.status = 'online';
         }

@@ -78,6 +78,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response
                 status = 'offline';
             } else if (validDegraded) {
                 status = 'degraded';
+            } else if (validUp) {
+                status = 'online';
             } else {
                 status = 'online';
             }
