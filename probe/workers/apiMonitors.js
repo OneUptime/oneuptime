@@ -39,12 +39,14 @@ var pingfetch = async (url, method, body, headers) => {
     var resp = null;
     var res = null;
     try {
-        resp = await fetch(url, {
+        var response = await fetch(url, {
             method: method,
             body: body,
             headers: headers,
             timeout: 10000
         });
+        var data = await response.json();
+        resp = { status: response.status, body: data };
         res = (new Date()).getTime() - now;
     } catch (error) {
         resp = error;
