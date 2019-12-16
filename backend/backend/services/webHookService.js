@@ -2,7 +2,7 @@
 module.exports = {
 
     // process messages to be sent to slack workspace channels
-    sendNotification: async function (projectId, text, monitor) {
+    sendNotification: async function (projectId, text, monitor, incidentStatus) {
         try {
             var self = this;
             var response;
@@ -10,11 +10,15 @@ module.exports = {
             if (project && project.parentProjectId) {
                 projectId = project.parentProjectId._id;
             }
-            var integrations = await IntegrationService.findBy({
-                projectId: projectId,
-                integrationType: 'webhook',
-                monitorId: monitor._id,
-            });
+            var query = { projectId: projectId, integrationType: 'webhook', monitorId: monitor._id };
+            if (incidentStatus === 'resolved') {
+                query = {...query, 'notificationOptions.incidentResolved' : true};
+            } else if (incidentStatus === 'created') {
+                query = {...query, 'notificationOptions.incidentCreated' : true};
+            } else if (incidentStatus === 'acknowledged') {
+                query = {...query, 'notificationOptions.incidentAcknowledged' : true};
+            } else { return; }
+            var integrations = await IntegrationService.findBy(query);
             // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
             for (const integration of integrations) {
                 response = await self.notify(project, monitor, text, integration);
