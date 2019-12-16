@@ -15,6 +15,7 @@ import PropTypes from 'prop-types';
 import { fetchMonitorsIncidents, fetchMonitors } from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
+import { getProbes } from '../actions/probe';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import Badge from '../components/common/Badge';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
@@ -44,6 +45,7 @@ class DashboardView extends Component {
             });
         });
         this.props.fetchTutorial();
+        this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
     }
 
     render() {
@@ -190,7 +192,14 @@ class DashboardView extends Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ destroy, fetchMonitorsIncidents, fetchMonitors, loadPage, fetchTutorial }, dispatch);
+    return bindActionCreators({
+        destroy,
+        fetchMonitorsIncidents,
+        fetchMonitors,
+        loadPage,
+        fetchTutorial,
+        getProbes
+    }, dispatch);
 };
 
 const mapStateToProps = state => {
@@ -260,7 +269,8 @@ DashboardView.propTypes = {
     fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     monitorTutorial: PropTypes.object,
-    fetchTutorial: PropTypes.func
+    fetchTutorial: PropTypes.func,
+    getProbes: PropTypes.func,
 };
 
 DashboardView.displayName = 'DashboardView';
