@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
 import {
   deleteSubProject,
@@ -91,9 +92,11 @@ class RemoveSubProject extends Component {
                     id='removeSubProject'
                     className='bs-Button bs-DeprecatedButton bs-Button--red'
                     type='button'
-                    onClick={() => this.deleteSubProject()}
+										onClick={() => this.deleteSubProject()}
+										disabled={subProjectDelete.requesting}
                   >
-                    <span>Remove</span>
+										{!subProjectDelete.requesting && <span>Remove</span>}
+										{subProjectDelete.requesting && <FormLoader />}
                   </button>
                 </div>
               </div>

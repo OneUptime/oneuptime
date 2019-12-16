@@ -10,6 +10,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import DeleteMonitor from '../modals/DeleteMonitor';
 import { deleteMonitor } from '../../actions/monitor';
 import { history } from '../../store';
+import DataPathHoC from '../DataPathHoC';
 
 export class MonitorViewDeleteBox extends Component {
 
@@ -72,7 +73,7 @@ export class MonitorViewDeleteBox extends Component {
                                                 id: deleteModalId,
                                                 onClose: () => '',
                                                 onConfirm: () => this.deleteMonitor(),
-                                                content: DeleteMonitor
+                                                content: DataPathHoC(DeleteMonitor, { monitor: this.props.monitor })
                                             })}>
                                         <ShouldRender if={!deleting}>
                                             <span>Delete</span>
