@@ -43,7 +43,7 @@ class AreaChart extends Component {
     }
 
     parseDate(a) {
-        return new Date(a).toDateString();
+        return new Date(a).toLocaleString();
     }
 
     render() {
