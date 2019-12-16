@@ -27,7 +27,7 @@ module.exports = {
     },
 
     // create a new integration
-    create: async function (projectId, userId, data, integrationType) {
+    create: async function (projectId, userId, data, integrationType, notificationOptions) {
         try {
             let _this = this;
             var integrationModel = new IntegrationModel(data);
@@ -36,6 +36,9 @@ module.exports = {
             integrationModel.data = data;
             integrationModel.integrationType = integrationType;
             integrationModel.monitorId = data.monitorId;
+            if (notificationOptions) {
+                integrationModel.notificationOptions = notificationOptions;
+            }
 
             var integration = await integrationModel.save();
             integration = await _this.findOneBy({ _id: integration._id });
@@ -115,7 +118,10 @@ module.exports = {
                         monitorId: data.monitorId,
                         'data.endpoint': data.endpoint,
                         'data.monitorId':data.monitorId,
-                        'data.endpointType': data.endpointType
+                        'data.endpointType': data.endpointType,
+                        'notificationOptions.incidentCreated': data.incidentCreated,
+                        'notificationOptions.incidentResolved': data.incidentResolved,
+                        'notificationOptions.incidentAcknowledged': data.incidentAcknowledged,
                     }
                 }, { new: true });
                 updatedIntegration = await _this.findOneBy({_id: updatedIntegration._id});

@@ -33,6 +33,9 @@ class EditWebHook extends React.Component {
         postObj.endpointType = values.endpointType;
 		postObj.type = 'webhook';
 		postObj.monitorId = data.currentMonitorId ? data.currentMonitorId : values.monitorId;
+		postObj.incidentCreated = values.incidentCreated ? values.incidentCreated: false;
+		postObj.incidentResolved = values.incidentResolved ? values.incidentResolved: false;
+		postObj.incidentAcknowledged = values.incidentAcknowledged ? values.incidentAcknowledged: false;
 
         updateWebHook(
                 currentProject._id,
@@ -169,6 +172,93 @@ class EditWebHook extends React.Component {
 												</div>
 											</fieldset>
 
+											<fieldset className="Margin-bottom--16">
+												<div className="bs-Fieldset-rows">
+													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
+														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
+															<div className="bs-Fieldset-field">
+																<label className="Checkbox" style={{ marginRight: '12px' }}>
+																	<Field
+																		component="input"
+																		type="checkbox"
+																		name='incidentCreated'
+																		className="Checkbox-source"
+																		id='incidentCreated'
+																	/>
+																	<div className="Checkbox-box Box-root Margin-right--2">
+																		<div className="Checkbox-target Box-root">
+																			<div className="Checkbox-color Box-root"></div>
+																		</div>
+																	</div>
+																	<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+																		<label><span>Ping when incident is Created</span></label>
+																	</div>
+																</label>
+															</div>
+														</div>
+													</div>
+												</div>
+											</fieldset>
+
+											<fieldset className="Margin-bottom--16">
+												<div className="bs-Fieldset-rows">
+													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
+														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
+															<div className="bs-Fieldset-field">
+																<label className="Checkbox" style={{ marginRight: '12px' }}>
+																	<Field
+																		component="input"
+																		type="checkbox"
+																		name='incidentAcknowledged'
+																		className="Checkbox-source"
+																		id='incidentAcknowledged'
+																	/>
+																	<div className="Checkbox-box Box-root Margin-right--2">
+																		<div className="Checkbox-target Box-root">
+																			<div className="Checkbox-color Box-root"></div>
+																		</div>
+																	</div>
+																	<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+																		<label><span>Ping when incident is Acknowledged</span></label>
+																	</div>
+																</label>
+															</div>
+														</div>
+													</div>
+												</div>
+											</fieldset>
+
+											<fieldset className="Margin-bottom--16">
+												<div className="bs-Fieldset-rows">
+													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
+														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
+															<div className="bs-Fieldset-field">
+																<label className="Checkbox"  style={{ marginRight: '12px' }}>
+																	<Field
+																		component="input"
+																		type="checkbox"
+																		name='incidentResolved'
+																		className="Checkbox-source"
+																		id='incidentResolved'
+																	/>
+																	<div className="Checkbox-box Box-root Margin-right--2">
+																		<div className="Checkbox-target Box-root">
+																			<div className="Checkbox-color Box-root"></div>
+																		</div>
+																	</div>
+																	<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+																		<label><span>Ping when incident is Resolved</span></label>
+																	</div>
+																</label>
+															</div>
+														</div>
+													</div>
+												</div>
+											</fieldset>
+
 										</div>
 									</div>
 								</div>
@@ -256,6 +346,9 @@ const mapStateToProps = (state, props) => {
 			endpoint: props.data.data.endpoint,
 			endpointType: props.data.data.endpointType,
 			monitorId: currentMonitorValue.value,
+			incidentCreated: props.data.notificationOptions.incidentCreated,
+			incidentResolved: props.data.notificationOptions.incidentResolved,
+			incidentAcknowledged: props.data.notificationOptions.incidentAcknowledged,
 		}
 	}
 )};
