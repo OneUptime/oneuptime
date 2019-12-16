@@ -9,6 +9,7 @@ import Monitors from './Monitors';
 import { openSubscribeMenu, selectedMenu } from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
 import ClickOutHandler from 'react-onclickout';
+import { API_URL } from '../../config'; 
 
 class SubscribeBox extends Component {
     constructor(props) {
@@ -79,7 +80,7 @@ class SubscribeBox extends Component {
                         </ShouldRender>
                         <ShouldRender if={!this.props.openSelectedBox && this.props.select === 4}>
                                 <div className="directions">
-                                    Get the <a href={`http://localhost:3002/statusPage/${statusPage._id}/rss`}
+                                    Get the <a href={`${API_URL}/statusPage/${statusPage._id}/rss`}
                                         target="_blank"
                                         download="incidents-rss.xml"
                                         rel="noopener noreferrer">  
