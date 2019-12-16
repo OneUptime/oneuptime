@@ -110,7 +110,7 @@ router.post('/:projectId/link', getUser, isUserAdmin, async function (req, res) 
 
             var integrationType = 'slack';
             try{
-                var slack = await IntegrationService.create(projectId,userId,data,integrationType);
+                var slack = await IntegrationService.create(projectId,userId,data,integrationType, null);
                 return sendItemResponse(req, res, slack);
             }catch(error){
                 return sendErrorResponse(req, res, error);
