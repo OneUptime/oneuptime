@@ -256,7 +256,7 @@ router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, as
         } else if (validUp) {
             data.status = 'online';
         } else {
-            data.status = 'online';
+            data.status = 'unknown';
         }
 
         let log = await ProbeService.setTime(data);

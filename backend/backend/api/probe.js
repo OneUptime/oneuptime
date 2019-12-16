@@ -81,7 +81,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response
             } else if (validUp) {
                 status = 'online';
             } else {
-                status = 'online';
+                status = 'unknown';
             }
         }
 
