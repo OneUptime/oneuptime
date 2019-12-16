@@ -897,7 +897,7 @@ smoke_test_staging:
     - export DASHBOARD_URL=https://staging-dashboard.fyipe.com
     - export BACKEND_URL=https://staging-api.fyipe.com
     - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
-    - export APIDOCS_URL=https://staging-api-docs.fyipe.com
+    - export APIDOCS_URL=https://staging-docs.fyipe.com
     - cd smoke-test
     - npm ci
     - npm run test
