@@ -7,14 +7,14 @@ const Services = {
             var project = await ProjectService.findOneBy({ stripeSubscriptionId: subscriptionId });
 
             await MailService.sendPaymentFailedEmail(project.name, user.email, user.name, chargeAttemptStage);
-            
+
             if (chargeAttemptCount === 3) {
-                await UserService.update({ _id: user._id, paymentFailedDate: new Date });
+                await UserService.updateOneBy({ _id: user._id},{ paymentFailedDate: new Date });
             }
             return { paymentStatus: 'failed' };
         } catch (error) {
-            ErrorService.log('StripeService.events', error);
-            throw error; 
+            ErrorService.log('stripeService.events', error);
+            throw error;
         }
     },
 
@@ -25,7 +25,7 @@ const Services = {
             var charges = await stripe.charges.list({ customer: stripeCustomerId });
             return charges.data;
         } catch (error) {
-            ErrorService.log('StripeService.charges', error);
+            ErrorService.log('stripeService.charges', error);
             throw error;
         }
     },
@@ -51,7 +51,7 @@ const Services = {
                     var card = await stripe.customers.createSource(stripeCustomerId, { source: tok });
                     var metadata = {
                         description
-                    };          
+                    };
                     var source = card.id;
                     var paymentIntent = await Services.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
                     return paymentIntent;
@@ -61,7 +61,7 @@ const Services = {
                     throw error;
                 }
             } catch (error) {
-                ErrorService.log('StripeService.creditCard.create', error);
+                ErrorService.log('stripeService.creditCard.create', error);
                 throw error;
             }
         },
@@ -75,7 +75,7 @@ const Services = {
                 });
                 return card;
             } catch (error) {
-                ErrorService.log('StripeService.creditCard.update', error);
+                ErrorService.log('stripeService.creditCard.update', error);
                 throw error;
             }
         },
@@ -93,7 +93,7 @@ const Services = {
                 var card = await stripe.customers.deleteSource(stripeCustomerId, cardId);
                 return card;
             } catch (error) {
-                ErrorService.log('StripeService.creditCard.delete', error);
+                ErrorService.log('stripeService.creditCard.delete', error);
                 throw error;
             }
         },
@@ -121,13 +121,13 @@ const Services = {
                     return cards;
                 }
             } catch (error) {
-                ErrorService.log('StripeService.creditCard.delete', error);
+                ErrorService.log('stripeService.creditCard.delete', error);
                 throw error;
             }
         }
     },
     chargeCustomerForBalance: async function (userId, chargeAmount, projectId, alertOptions) {
-        
+
         var description = 'Recharge balance';
         var stripechargeAmount = chargeAmount * 100;
         var user = await UserService.findOneBy({ _id: userId });
@@ -158,7 +158,7 @@ const Services = {
                         billingUS = paymentIntent.metadata.billingUS && JSON.parse(paymentIntent.metadata.billingUS),
                         billingNonUSCountries = paymentIntent.metadata.billingNonUSCountries && JSON.parse(paymentIntent.metadata.billingNonUSCountries),
                         billingRiskCountries = paymentIntent.metadata.billingRiskCountries && JSON.parse(paymentIntent.metadata.billingRiskCountries);
-    
+
                     var alertOptions = {
                         minimumBalance,
                         rechargeToBalance,
@@ -192,10 +192,10 @@ const Services = {
             }
             return false;
         } catch (error) {
-            ErrorService.log('StripeService.updateBalance', error);
+            ErrorService.log('stripeService.updateBalance', error);
             throw error;
-        } 
-        
+        }
+
     },
     addBalance: async function (userId, chargeAmount, projectId) {
         try {
@@ -209,10 +209,10 @@ const Services = {
             var paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata );
             return paymentIntent;
         } catch (error) {
-            ErrorService.log('StripeService.addBalance', error);
+            ErrorService.log('stripeService.addBalance', error);
             throw error;
         }
- 
+
     },
     createInvoice: async function (amount, stripeCustomerId, description, metadata, source) {
         try {
@@ -244,7 +244,7 @@ const Services = {
             }
             return updatedPaymentIntent;
         } catch(error) {
-            ErrorService.log('StripeService.createInvoice', error);
+            ErrorService.log('stripeService.createInvoice', error);
             throw error;
         }
 
@@ -262,7 +262,7 @@ const Services = {
             var paymentIntent = await this.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
             return paymentIntent;
         } catch (error) {
-            ErrorService.log('StripeService.makeTestCharge', error);
+            ErrorService.log('stripeService.makeTestCharge', error);
             throw error;
         }
     }

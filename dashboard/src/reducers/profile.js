@@ -2,6 +2,7 @@ import * as types from '../constants/profile';
 
 const INITIAL_STATE = {
     menuVisible: false,
+    menuPosition: 0,
     profileSetting: {
         error: null,
         requesting: false,
@@ -43,7 +44,7 @@ const INITIAL_STATE = {
         initialAlertPhoneNumber: '',
         userEmail: '',
         initPhoneVerificationNumber: '',
-        initAlertEmail : '',
+        initAlertEmail: '',
     },
     resendTimer: null
 };
@@ -131,7 +132,8 @@ export default function profileSettings(state = INITIAL_STATE, action) {
         case types.SHOW_PROFILE_MENU:
 
             return Object.assign({}, state, {
-                menuVisible: true
+                menuVisible: true,
+                menuPosition: action.payload
             });
 
         case types.HIDE_PROFILE_MENU:
@@ -304,12 +306,12 @@ export default function profileSettings(state = INITIAL_STATE, action) {
             });
 
         case types.SET_INIT_ALERT_EMAIL:
-                return Object.assign({}, state, {
-                    profileSettingState: {
-                        ...state.profileSettingState,
-                        initAlertEmail: action.payload,
-                    }
-                });
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    initAlertEmail: action.payload,
+                }
+            });
 
         case types.SET_INIT_PHONE_VERIFICATION:
             return Object.assign({}, state, {

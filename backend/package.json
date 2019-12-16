@@ -1,6 +1,6 @@
 {
   "name": "fyipe-backend",
-  "version": "3.0.898",
+  "version": "3.0.940",
   "private": true,
   "dependencies": {
     "@slack/client": "^4.12.0",
@@ -50,7 +50,7 @@
     "pretest": "eslint --fix --ignore-path .gitignore .",
     "start": "node server.js",
     "dev": "NODE_ENV=development nodemon server.js",
-    "test": "NODE_ENV=development mocha --exit",
+    "test": "set NODE_ENV=development && mocha --exit",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "lint": "eslint ."
   },

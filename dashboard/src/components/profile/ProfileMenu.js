@@ -46,7 +46,7 @@ export class ProfileMenu extends Component {
     }
 
     render() {
-        const { profileSettings } = this.props;
+        const { profileSettings, position } = this.props;
 
         var name = User.getName();
         var email = User.getEmail();
@@ -59,7 +59,7 @@ export class ProfileMenu extends Component {
         return this.props.visible ?
             (
                 <div onKeyDown={this.handleKeyBoard} className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                    style={{ top: '49px', width: '232px', right: '40px' }}>
+                    style={{ top: '49px', width: '232px', left: position ? `${position - 214.25}px` : 'unset', right: '40px' }}>
                     <span>
                         <div className="ContextualPopover" style={{ transformOrigin: '100% 0px 0px' }}>
                             <div className="ContextualPopover-arrowContainer">
@@ -125,7 +125,8 @@ ProfileMenu.displayName = 'ProfileMenu'
 
 const mapStateToProps = state => {
     return {
-        profileSettings: state.profileSettings && state.profileSettings.profileSetting
+        profileSettings: state.profileSettings && state.profileSettings.profileSetting,
+        position: state.profileSettings.menuPosition
     }
 };
 
@@ -139,15 +140,16 @@ ProfileMenu.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     logoutUser: PropTypes.func.isRequired,
-    profileSettings:PropTypes.object,
-    data:PropTypes.oneOfType([
+    profileSettings: PropTypes.object,
+    data: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined])
     ]),
-    email:PropTypes.oneOfType([
+    email: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
-    ])
+    ]),
+    position: PropTypes.number
 }
 
 ProfileMenu.contextTypes = {

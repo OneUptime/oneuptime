@@ -20,6 +20,9 @@ import {
     FETCH_MONITORS_INCIDENT_REQUEST,
     FETCH_MONITORS_INCIDENT_SUCCESS,
     FETCH_MONITORS_INCIDENT_FAILURE,
+    FETCH_MONITORS_INCIDENTS_RANGE_REQUEST,
+    FETCH_MONITORS_INCIDENTS_RANGE_SUCCESS,
+    FETCH_MONITORS_INCIDENTS_RANGE_FAILURE,
     FETCH_MONITORS_SUBSCRIBER_REQUEST,
     FETCH_MONITORS_SUBSCRIBER_SUCCESS,
     FETCH_MONITORS_SUBSCRIBER_FAILURE,
@@ -69,6 +72,7 @@ const INITIAL_STATE = {
         success: false
     },
     fetchMonitorsIncidentRequest: false,
+    fetchMonitorsIncidentsRangeRequest: false,
     activeProbe: 0,
     fetchMonitorLogsRequest: true,
     fetchMonitorCriteriaRequest: false,
@@ -187,11 +191,12 @@ export default function monitor(state = INITIAL_STATE, action) {
                     monitors: state.monitorsList.monitors.map((monitor) => {
                         monitor.monitors = monitor.monitors.map((monitor) => {
                             if (monitor._id === action.payload._id) {
-                                if (!action.payload.incidents) action.payload.incidents = monitor.incidents
-                                if (!action.payload.subscribers) action.payload.subscribers = monitor.subscribers
-                                if (!action.payload.skip) action.payload.skip = monitor.skip
-                                if (!action.payload.limit) action.payload.limit = monitor.limit
-                                if (!action.payload.count) action.payload.count = monitor.count
+                                if (!action.payload.incidents) action.payload.incidents = monitor.incidents;
+                                if (!action.payload.incidentsRange) action.payload.incidentsRange = monitor.incidentsRange;
+                                if (!action.payload.subscribers) action.payload.subscribers = monitor.subscribers;
+                                if (!action.payload.skip) action.payload.skip = monitor.skip;
+                                if (!action.payload.limit) action.payload.limit = monitor.limit;
+                                if (!action.payload.count) action.payload.count = monitor.count;
                                 return action.payload;
                             } else {
                                 return monitor;
@@ -307,6 +312,49 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 fetchMonitorsIncidentRequest: action.payload
+            });
+
+        case FETCH_MONITORS_INCIDENTS_RANGE_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+
+                monitorsList: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.monitorsList.monitors.map(monitor => {
+                        monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
+                            if (monitor._id === action.payload.monitorId) {
+                                monitor.incidentsRange = action.payload.incidents.data;
+                                return monitor
+                            } else {
+                                return monitor
+                            }
+                        }) : monitor.monitors
+                        return monitor;
+                    })
+                },
+                fetchMonitorsIncidentsRangeRequest: false
+            });
+
+        case FETCH_MONITORS_INCIDENTS_RANGE_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+
+                monitorsList: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    monitors: state.monitorsList.monitors
+                },
+                fetchMonitorsIncidentsRangeRequest: false
+            });
+
+        case FETCH_MONITORS_INCIDENTS_RANGE_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+
+                fetchMonitorsIncidentsRangeRequest: action.payload
             });
 
         case FETCH_MONITORS_SUBSCRIBER_SUCCESS:
@@ -585,8 +633,16 @@ export default function monitor(state = INITIAL_STATE, action) {
                                     return incident;
                                 }
                             }) : [action.payload];
-                            return monitor
-                        }) : monitor.monitors
+                            monitor.incidentsRange = monitor.incidentsRange ? monitor.incidentsRange.map(incident => {
+                                if (incident._id === action.payload._id) {
+                                    return action.payload;
+                                }
+                                else {
+                                    return incident;
+                                }
+                            }) : [action.payload];
+                            return monitor;
+                        }) : monitor.monitors;
                         return monitor;
                     })
                 }
@@ -609,9 +665,17 @@ export default function monitor(state = INITIAL_STATE, action) {
                                 else {
                                     return incident;
                                 }
-                            }) : [action.payload]
-                            return monitor
-                        }) : monitor.monitors
+                            }) : [action.payload];
+                            monitor.incidentsRange = monitor.incidentsRange ? monitor.incidentsRange.map(incident => {
+                                if (incident._id === action.payload._id) {
+                                    return action.payload;
+                                }
+                                else {
+                                    return incident;
+                                }
+                            }) : [action.payload];
+                            return monitor;
+                        }) : monitor.monitors;
                         return monitor;
                     })
                 }
@@ -635,8 +699,16 @@ export default function monitor(state = INITIAL_STATE, action) {
                                     return incident;
                                 }
                             }) : [action.payload.data];
-                            return monitor
-                        }) : monitor.monitors
+                            monitor.incidentsRange = monitor.incidentsRange ? monitor.incidentsRange.map(incident => {
+                                if (incident._id === action.payload.data._id) {
+                                    return action.payload.data;
+                                }
+                                else {
+                                    return incident;
+                                }
+                            }) : [action.payload.data];
+                            return monitor;
+                        }) : monitor.monitors;
                         return monitor;
                     })
                 }
@@ -659,8 +731,16 @@ export default function monitor(state = INITIAL_STATE, action) {
                                 else {
                                     return incident;
                                 }
-                            }) : [action.payload.data]
-                            return monitor
+                            }) : [action.payload.data];
+                            monitor.incidentsRange = monitor.incidentsRange ? monitor.incidentsRange.map(incident => {
+                                if (incident._id === action.payload.data._id) {
+                                    return action.payload.data;
+                                }
+                                else {
+                                    return incident;
+                                }
+                            }) : [action.payload.data];
+                            return monitor;
                         }) : monitor.monitors
                         return monitor;
                     }),
@@ -703,6 +783,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                                 return {
                                     ...monitor,
                                     incidents: incidents,
+                                    incidentsRange: [action.payload, ...monitor.incidentsRange],
                                     count: monitor.count + 1
                                 };
                             } else {

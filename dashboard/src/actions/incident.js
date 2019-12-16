@@ -124,10 +124,10 @@ export function getIncidents(projectId) {
 
 // Create a new incident
 
-export function createIncidentRequest(promise) {
+export function createIncidentRequest(monitorId) {
     return {
         type: types.CREATE_INCIDENT_REQUEST,
-        payload: promise
+        payload: monitorId
     };
 }
 
@@ -156,7 +156,7 @@ export function createNewIncident(projectId, monitorId, incidentType) {
     return function (dispatch) {
         var promise = postApi(`incident/${projectId}/${monitorId}`, { monitorId, projectId, incidentType });
 
-        dispatch(createIncidentRequest(promise));
+        dispatch(createIncidentRequest(monitorId));
 
         promise.then(function (createIncident) {
             dispatch(createIncidentSuccess(createIncident.data));

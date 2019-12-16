@@ -29,40 +29,39 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {name} req.params -> {projectId}
 // Returns: 200: MonitorCategory, 400: Error; 500: Server Error.
 router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    var monitorCategoryName = req.body.monitorCategoryName;
-    var projectId = req.params.projectId;
-
-    var userId = req.user ? req.user.id : null;
-
-    if (!monitorCategoryName) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor category name is required.'
-        });
-    }
-
-    if (typeof monitorCategoryName !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor category name is not of string type.'
-        });
-    }
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project ID is required.'
-        });
-    }
-
-    if (typeof projectId !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project ID  is not of string type.'
-        });
-    }
-
     try {
+        var monitorCategoryName = req.body.monitorCategoryName;
+        var projectId = req.params.projectId;
+
+        var userId = req.user ? req.user.id : null;
+
+        if (!monitorCategoryName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor category name is required.'
+            });
+        }
+
+        if (typeof monitorCategoryName !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor category name is not of string type.'
+            });
+        }
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is required.'
+            });
+        }
+
+        if (typeof projectId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID  is not of string type.'
+            });
+        }
         // Find existing category with the name a user provided.
         var existingMonitorCategory = await MonitorCategoryService.findBy({ name: monitorCategoryName });
         if (existingMonitorCategory.length > 0) {
@@ -82,41 +81,40 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 });
 
 router.delete('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    var monitorCategoryId = req.params.monitorCategoryId;
-    var projectId = req.params.projectId;
-
-    var userId = req.user ? req.user.id : null;
-
-
-    if (!monitorCategoryId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor category ID is required.'
-        });
-    }
-
-    if (typeof monitorCategoryId !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor category ID is not of string type.'
-        });
-    }
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project ID is required.'
-        });
-    }
-
-    if (typeof projectId !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project ID is not of string type.'
-        });
-    }
-
     try {
+        var monitorCategoryId = req.params.monitorCategoryId;
+        var projectId = req.params.projectId;
+
+        var userId = req.user ? req.user.id : null;
+
+
+        if (!monitorCategoryId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor category ID is required.'
+            });
+        }
+
+        if (typeof monitorCategoryId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor category ID is not of string type.'
+            });
+        }
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is required.'
+            });
+        }
+
+        if (typeof projectId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is not of string type.'
+            });
+        }
         // Call the MonitorCategoryService
         var deletedMonitorCategory = await MonitorCategoryService.deleteBy(
             {
@@ -133,39 +131,38 @@ router.delete('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdm
 
 // Route to update a monitor category's name
 router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    var monitorCategoryId = req.params.monitorCategoryId;
-    var projectId = req.params.projectId;
-    var { name } = req.body;
-
-    if (!monitorCategoryId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor category ID is required.'
-        });
-    }
-
-    if (typeof monitorCategoryId !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor category ID is not of string type.'
-        });
-    }
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project ID is required.'
-        });
-    }
-
-    if (typeof projectId !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project ID is not of string type.'
-        });
-    }
-
     try {
+        var monitorCategoryId = req.params.monitorCategoryId;
+        var projectId = req.params.projectId;
+        var { name } = req.body;
+
+        if (!monitorCategoryId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor category ID is required.'
+            });
+        }
+
+        if (typeof monitorCategoryId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor category ID is not of string type.'
+            });
+        }
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is required.'
+            });
+        }
+
+        if (typeof projectId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is not of string type.'
+            });
+        }
         // Find existing category with the name a user provided.
         var existingMonitorCategory = await MonitorCategoryService.findBy({ name });
         if (existingMonitorCategory.length > 0) {
@@ -176,7 +173,7 @@ router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin,
         }
 
         // Call the MonitorCategoryService
-        var updatedMonitorCategory = await MonitorCategoryService.updateBy(
+        var updatedMonitorCategory = await MonitorCategoryService.updateOneBy(
             { projectId, _id: monitorCategoryId },
             { name },
         );
@@ -187,24 +184,23 @@ router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin,
 });
 
 router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
-    var projectId = req.params.projectId;
-    var query = req.query;
-
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project ID is required.'
-        });
-    }
-
-    if (typeof projectId !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project ID is not of string type.'
-        });
-    }
-
     try {
+        var projectId = req.params.projectId;
+        var query = req.query;
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is required.'
+            });
+        }
+
+        if (typeof projectId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is not of string type.'
+            });
+        }
         // Call the MonitorCategoryService
         var monitorCategories = await MonitorCategoryService.findBy({ projectId }, query.limit, query.skip);
         var count = await MonitorCategoryService.countBy({ projectId });

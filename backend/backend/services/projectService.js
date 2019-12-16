@@ -3,15 +3,15 @@ module.exports = {
     findBy: async function (query, limit, skip) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 0;
-    
+
             if (typeof (skip) === 'string') skip = parseInt(skip);
-    
+
             if (typeof (limit) === 'string') limit = parseInt(limit);
-    
+
             if (!query) query = {};
-    
+
             if (!query.deleted) query.deleted = false;
             var projects = await ProjectModel.find(query)
                 .sort([['createdAt', -1]])
@@ -21,7 +21,7 @@ module.exports = {
                 .populate('parentProjectId', 'name');
             return projects;
         } catch (error) {
-            ErrorService.log('ProjectService.findBy', error);
+            ErrorService.log('projectService.findBy', error);
             throw error;
         }
     },
@@ -51,7 +51,7 @@ module.exports = {
             var project = await projectModel.save();
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.create', error);
+            ErrorService.log('projectService.create', error);
             throw error;
         }
     },
@@ -105,8 +105,8 @@ module.exports = {
             }
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.deleteBy', error);
-            throw error;  
+            ErrorService.log('projectService.deleteBy', error);
+            throw error;
         }
     },
 
@@ -122,76 +122,34 @@ module.exports = {
                 .populate('parentProjectId', 'name');
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.findOneBy', error);
+            ErrorService.log('projectService.findOneBy', error);
             throw error;
         }
     },
 
-    update: async function (data) {
+    updateOneBy: async function (query, data) {
         try {
             var _this = this;
-            if (!data._id) {
-                var project = await _this.create(data);
-                return project;
-            } else {
-                var oldProject = await _this.findOneBy({ _id: data._id, deleted: { $ne: null } });
-
-                var name = data.name || oldProject.name;
-                var slug = data.slug || oldProject.slug;
-                var apiKey = data.apiKey || oldProject.apiKey || uuidv1();
-                var stripePlanId = data.stripePlanId || oldProject.stripePlanId;
-                var stripeSubscriptionId = data.stripeSubscriptionId || oldProject.stripeSubscriptionId;
-                var parentProjectId = data.parentProjectId || oldProject.parentProjectId;
-                var users = oldProject.users;
-                var seats = data.seats || oldProject.seats;
-                var alertEnable = data.alertEnable !== undefined ? data.alertEnable : oldProject.alertEnable;
-                var alertOptions = data.alertOptions || oldProject.alertOptions;
-                var adminNotes = data.adminNotes || oldProject.adminNotes;
-    
-                if (data.users) {
-                    users = data.users;
-                }
-    
-                var isBlocked = oldProject.isBlocked;
-                if (typeof data.isBlocked === 'boolean') {
-                    isBlocked = data.isBlocked;
-                }
-    
-                var deleted = oldProject.deleted;
-                var deletedById = oldProject.deletedById;
-                var deletedAt = oldProject.deletedAt;
-                if (data.deleted === false) {
-                    deleted = false;
-                    deletedById = null;
-                    deletedAt = null;
-                }
-
-                var updatedProject = await ProjectModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        name: name,
-                        slug: slug,
-                        users: users,
-                        apiKey: apiKey,
-                        stripePlanId: stripePlanId,
-                        stripeSubscriptionId: stripeSubscriptionId,
-                        parentProjectId: parentProjectId,
-                        seats: seats,
-                        alertEnable,
-                        alertOptions,
-                        isBlocked,
-                        deleted,
-                        deletedById,
-                        deletedAt,
-                        adminNotes
-                    }
-                }, {
-                    new: true
-                });
-                return updatedProject;
+            if (!query) {
+                query = {};
             }
+            var oldProject = await _this.findOneBy(Object.assign({}, query, { deleted: { $ne: null } }));
+            if (!data.apiKey && !oldProject.apiKey) {
+                data.apiKey = uuidv1();
+            }
+            var updatedProject = await ProjectModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data
+                },
+                {
+                    new: true
+                }
+            );
+            return updatedProject;
         } catch (error) {
-            ErrorService.log('ProjectService.update', error);
-            throw error;  
+            ErrorService.log('projectService.updateOneBy', error);
+            throw error;
         }
     },
 
@@ -250,7 +208,7 @@ module.exports = {
         else {
             var error = new Error('Cannot save project settings');
             error.code = 403;
-            ErrorService.log('ProjectService.updateAlertOptions', error);
+            ErrorService.log('projectService.updateAlertOptions', error);
             throw error;
         }
     },
@@ -259,7 +217,7 @@ module.exports = {
             project = await project.save();
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.saveProject', error);
+            ErrorService.log('projectService.saveProject', error);
             throw error;
         }
     },
@@ -269,13 +227,13 @@ module.exports = {
             var _this = this;
             var projects = await _this.findBy(query);
             var projectsId = [];
-    
+
             for (var i = 0; i < projects.length; i++) {
                 projectsId.push(projects[i]._id);
             }
             return projectsId;
         } catch (error) {
-            ErrorService.log('ProjectService.getProjectIdsBy', error);
+            ErrorService.log('projectService.getProjectIdsBy', error);
             throw error;
         }
     },
@@ -284,10 +242,10 @@ module.exports = {
         try {
             var _this = this;
             var apiKey = uuidv1();
-            var project = await _this.update({ _id: projectId, apiKey: apiKey });
+            var project = await _this.updateOneBy({ _id: projectId }, { apiKey: apiKey });
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.resetApiKey', error);
+            ErrorService.log('projectService.resetApiKey', error);
             throw error;
         }
     },
@@ -295,22 +253,22 @@ module.exports = {
     changePlan: async function (projectId, planId) {
         try {
             var _this = this;
-            var project = await _this.update({ _id: projectId, stripePlanId: planId });
+            var project = await _this.updateOneBy({ _id: projectId }, { stripePlanId: planId });
 
             if (!project.stripeSubscriptionId) {
                 let error = new Error('You have not subscribed to a plan.');
                 error.code = 400;
-                ErrorService.log('ProjectService.changePlan', error);
+                ErrorService.log('projectService.changePlan', error);
                 throw error;
             }
             var trialLeft = moment(new Date()).diff(moment(project.createdAt), 'days');
             var stripeSubscriptionId = await PaymentService.changePlan(project.stripeSubscriptionId, planId, project.users.length, trialLeft);
-            
-            project = await _this.update({ _id: project._id, stripeSubscriptionId: stripeSubscriptionId });
+
+            project = await _this.updateOneBy({ _id: project._id }, { stripeSubscriptionId: stripeSubscriptionId });
             return project;
         } catch (error) {
-            ErrorService.log('ProjectService.changePlan', error);
-            throw error;  
+            ErrorService.log('projectService.changePlan', error);
+            throw error;
         }
     },
 
@@ -333,7 +291,7 @@ module.exports = {
                     }
                 }
 
-                await _this.update({ _id: projectId, users: remainingUsers });
+                await _this.updateOneBy({ _id: projectId }, { users: remainingUsers });
                 await EscalationService.removeEscalationMember(projectId, userId);
                 var countUserInSubProjects = await _this.findBy({ parentProjectId: project._id, 'users.userId': userId });
 
@@ -346,7 +304,7 @@ module.exports = {
                                 count++;
                             }
                         });
-    
+
                         var subProjectIds = [];
                         var subProjects = await _this.findBy({ parentProjectId: project._id });
                         if (subProjects && subProjects.length > 0) {
@@ -355,7 +313,7 @@ module.exports = {
                         subProjectIds.push(project._id);
                         var countMonitor = await MonitorService.countBy({ projectId: { $in: subProjectIds } });
                         var projectSeats = project.seats;
-    
+
                         if (typeof (projectSeats) === 'string') {
                             projectSeats = parseInt(projectSeats);
                         }
@@ -364,13 +322,13 @@ module.exports = {
                             projectSeats = projectSeats - 1;
                             await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
                         }
-                        await _this.update({ _id: project._id, seats: projectSeats.toString() });
+                        await _this.updateOneBy({ _id: project._id }, { seats: projectSeats.toString() });
                     }
                 }
             }
             return 'User successfully exited the project';
         } catch (error) {
-            ErrorService.log('ProjectService.exitProject', error);
+            ErrorService.log('projectService.exitProject', error);
             throw error;
         }
     },
@@ -380,7 +338,7 @@ module.exports = {
             await ProjectModel.deleteMany(query);
             return 'Project(s) Removed Successfully!';
         } catch (error) {
-            ErrorService.log('ProjectService.deleteMany', error);
+            ErrorService.log('projectService.hardDeleteBy', error);
             throw error;
         }
     },
@@ -448,8 +406,7 @@ module.exports = {
                 let projectOwner = project.users.find(user => user.role === 'Owner');
                 projectOwner = await UserService.findOneBy({ _id: projectOwner.userId });
                 const subscription = await PaymentService.subscribePlan(project.stripePlanId, projectOwner.stripeCustomerId);
-                project = await _this.update({
-                    _id: projectId,
+                project = await _this.updateOneBy({ _id: projectId }, {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
@@ -471,8 +428,7 @@ module.exports = {
                 let projectOwner = project.users.find(user => user.role === 'Owner');
                 projectOwner = await UserService.findOneBy({ _id: projectOwner.userId });
                 const subscription = await PaymentService.subscribePlan(project.stripePlanId, projectOwner.stripeCustomerId);
-                project = await _this.update({
-                    _id: projectId,
+                project = await _this.updateOneBy({ _id: projectId }, {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
@@ -491,8 +447,7 @@ module.exports = {
 
     addNotes: async function (projectId, notes) {
         const _this = this;
-        let adminNotes = (await _this.update({
-            _id: projectId,
+        let adminNotes = (await _this.updateOneBy({ _id: projectId }, {
             adminNotes: notes
         })).adminNotes;
         return adminNotes;

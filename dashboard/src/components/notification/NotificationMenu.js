@@ -81,7 +81,7 @@ class NotificationMenu extends Component {
         return this.props.notificationsVisible ?
             (
                 <div className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                    style={{ top: '49px', width: '450px', right: '40px' }}>
+                    style={{ top: '49px', width: '450px', left: this.props.position ? `${this.props.position - 391.5}px` : 'unset', right: '40px' }}>
                     <div className="ContextualPopover-animate ContextualPopover-animate-entered">
                         <div className="ContextualPopover" style={{ transformOrigin: '100% 0px 0px' }}>
                             <div className="ContextualPopover-arrowContainer" style={{ position: 'relative', right: '40px' }}>
@@ -149,7 +149,8 @@ const mapStateToProps = (state) => {
         notifications: state.notifications.notifications,
         notificationsVisible: state.notifications.notificationsVisible,
         balance: state.project.currentProject && state.project.currentProject.balance,
-        projectId: state.project.currentProject && state.project.currentProject._id
+        projectId: state.project.currentProject && state.project.currentProject._id,
+        position: state.notifications.notificationsPosition
     }
 }
 
@@ -171,7 +172,8 @@ NotificationMenu.propTypes = {
     notificationsVisible: PropTypes.bool,
     openModal: PropTypes.func,
     balance: PropTypes.number,
-    projectId: PropTypes.string
+    projectId: PropTypes.string,
+    position: PropTypes.number
 }
 
 NotificationMenu.contextTypes = {

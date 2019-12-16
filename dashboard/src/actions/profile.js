@@ -34,7 +34,7 @@ export function updateProfileSetting(values) {
 		let data = new FormData();
 		if (values.profilePic && values.profilePic !== 'null') {
 			if (!values.removedPic) {
-				if(values.profilePic && typeof values.profilePic !== 'object'){
+				if (values.profilePic && typeof values.profilePic !== 'object') {
 					data.append('profilePic', values.profilePic);
 				}
 				else {
@@ -132,10 +132,11 @@ export function updateChangePasswordSetting(data) {
 
 
 
-export function showProfileMenu() {
+export function showProfileMenu(position) {
 
 	return {
 		type: types.SHOW_PROFILE_MENU,
+		payload: position
 	};
 }
 
@@ -266,8 +267,8 @@ export function sendEmailVerificationLink(values) {
 		promise.then(function (data) {
 			dispatch(sendEmailVerificationSuccess(data));
 			return data;
-		}, function(error){
-			if(error && error.response && error.response.data)
+		}, function (error) {
+			if (error && error.response && error.response.data)
 				error = error.response.data;
 			if (error && error.data) {
 				error = error.data;

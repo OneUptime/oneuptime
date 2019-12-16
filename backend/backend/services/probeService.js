@@ -28,12 +28,12 @@ module.exports = {
         }
     },
 
-    update: async function (query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var probe = await ProbeModel.findOneAndUpdate(query,
                 { $set: data },
@@ -42,7 +42,7 @@ module.exports = {
                 });
             return probe;
         } catch (error) {
-            ErrorService.log('ProbeService.update', error);
+            ErrorService.log('ProbeService.updateOneBy', error);
             throw error;
         }
     },
@@ -50,21 +50,21 @@ module.exports = {
     findBy: async function (query, limit, skip) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 0;
-    
+
             if (typeof (skip) === 'string') {
                 skip = parseInt(skip);
             }
-    
+
             if (typeof (limit) === 'string') {
                 limit = parseInt(limit);
             }
-    
+
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var probe = await ProbeModel.find(query)
                 .sort([['createdAt', -1]])
@@ -82,7 +82,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var probe = await ProbeModel.findOne(query);
             return probe;
@@ -97,7 +97,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var count = await ProbeModel.count(query);
             return count;
@@ -143,9 +143,9 @@ module.exports = {
             var savedLog = await Log.save();
             await MonitorService.sendResponseTime(savedLog);
             await MonitorService.sendMonitorLog(savedLog);
-    
+
             if (data.probeId && data.monitorId) await this.sendProbe(data.probeId, data.monitorId);
-    
+
             return savedLog;
         } catch (error) {
             ErrorService.log('ProbeService.createMonitorLog', error);
@@ -246,8 +246,8 @@ module.exports = {
             if (data.status === 'online' && monitor && monitor.criteria && monitor.criteria.up && monitor.criteria.up.createAlert) {
                 if (incidents && incidents.length) {
                     incidents.map(async (incident) => {
-                        await IncidentService.update({
-                            _id: incident._id,
+                        await IncidentService.updateOneBy({
+                            _id: incident._id},{
                             probes: incident.probes.concat({
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
@@ -269,8 +269,8 @@ module.exports = {
             else if (data.status === 'degraded' && monitor && monitor.criteria && monitor.criteria.degraded && monitor.criteria.degraded.createAlert) {
                 if (incidents && incidents.length) {
                     incidents.map(async (incident) => {
-                        await IncidentService.update({
-                            _id: incident._id,
+                        await IncidentService.updateOneBy({
+                            _id: incident._id},{
                             probes: incident.probes.concat({
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
@@ -292,8 +292,8 @@ module.exports = {
             else if (data.status === 'offline' && monitor && monitor.criteria && monitor.criteria.down && monitor.criteria.down.createAlert) {
                 if (incidents && incidents.length) {
                     incidents.map(async (incident) => {
-                        await IncidentService.update({
-                            _id: incident._id,
+                        await IncidentService.updateOneBy({
+                            _id: incident._id},{
                             probes: incident.probes.concat({
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
@@ -340,8 +340,8 @@ module.exports = {
                 }
             }
             await Promise.all(incidentsV1.map(async (v1) => {
-                let newIncident = await IncidentService.update({
-                    _id: v1._id,
+                let newIncident = await IncidentService.updateOneBy({
+                    _id: v1._id},{
                     probes: v1.probes.concat([{
                         probeId: data.probeId,
                         updatedAt: Date.now(),

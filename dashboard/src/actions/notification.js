@@ -6,9 +6,10 @@ import errors from '../errors'
 
 import { User } from '../config';
 
-export const openNotificationMenu = function () {
+export const openNotificationMenu = function (position) {
 	return {
-		type: types.OPEN_NOTIFICATION_MENU
+		type: types.OPEN_NOTIFICATION_MENU,
+		payload: position
 	};
 }
 export const closeNotificationMenu = function (error) {

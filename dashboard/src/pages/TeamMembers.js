@@ -55,10 +55,8 @@ const LoadingState = () => (
 LoadingState.displayName = 'LoadingState'
 
 const LoadedTeam = props => {
-    const { rowData, pages, inviteModalId, team, subProjects, currentProjectId } = props;
+    const {pages, inviteModalId, team, subProjects, currentProjectId } = props;
     const membersPerPage = 20;
-    const canPaginateForward = rowData.length >= (pages.counter + 1) * membersPerPage;
-    const canPaginateBackward = pages.counter > 1;
 
     // SubProject TeamMembers List
     const allTeamMembers = subProjects && subProjects.map((subProject, i) => {
@@ -75,8 +73,8 @@ const LoadedTeam = props => {
                             </ShouldRender>
                             <TeamMemberProjectBox
                                 paginate={props.paginate}
-                                canPaginateBackward={canPaginateBackward}
-                                canPaginateForward={canPaginateForward}
+                                canPaginateBackward={pages[teamMembers._id] && pages[teamMembers._id] > 1 ? true : false}
+                                canPaginateForward={teamMembers.count && teamMembers.count > (pages[teamMembers._id] || 1) * membersPerPage ? true : false}
                                 teamMembers={teamMembers}
                                 team={props.team}
                                 subProjectName={subProject.name}
@@ -93,8 +91,9 @@ const LoadedTeam = props => {
         ) : false;
     });
 
-    // Add Project TeamMembers to All TeamMembers List	
+    // Add Project TeamMembers to All TeamMembers List
     var projectTeamMembers = team.subProjectTeamMembers.find(subProjectTeamMember => subProjectTeamMember._id === currentProjectId)
+    const projectMembers = Object.assign({},projectTeamMembers);
     projectTeamMembers = projectTeamMembers && projectTeamMembers.teamMembers ? (
         <RenderIfUserInSubProject subProjectId={currentProjectId} key={() => uuid.v4()}>
             <div className="bs-BIM">
@@ -107,8 +106,8 @@ const LoadedTeam = props => {
                         </ShouldRender>
                         <TeamMemberProjectBox
                             paginate={props.paginate}
-                            canPaginateBackward={canPaginateBackward}
-                            canPaginateForward={canPaginateForward}
+                            canPaginateBackward={pages[currentProjectId] && pages[currentProjectId] > 1 ? true : false}
+                            canPaginateForward={projectMembers.count && projectMembers.count > (pages[currentProjectId] || 1) * membersPerPage ? true : false}
                             teamMembers={projectTeamMembers}
                             team={props.team}
                             subProjectName={props.currentProject ? props.currentProject.name : null}

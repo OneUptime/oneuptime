@@ -14,51 +14,36 @@ module.exports = {
             }
             return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.save', error);
+            ErrorService.log('smsSmtpService.create', error);
             throw error;
         }
     },
 
-    update: async function (data) {
+    updateOneBy: async function (query, data) {
+        if (!query) {
+            query = {};
+        }
+
+        if (!query.deleted) query.deleted = false;
+
+        if (data.authToken) {
+            data.authToken = await EncryptDecrypt.encrypt(data.authToken);
+        }
         try {
-            let _this = this;
-            if (!data._id) {
-                let smsSmtp = await _this.create(data);
-                return smsSmtp;
-            } else {
-                var smsSmtp = await _this.findOneBy({ _id: data._id });
-                if (smsSmtp && smsSmtp.authToken) {
-                    smsSmtp.authToken = await EncryptDecrypt.encrypt(smsSmtp.authToken);
-                }
-                    
-                if (data.authToken) {
-                    data.authToken = await EncryptDecrypt.encrypt(data.authToken);
-                }
-                let accountSid = data.accountSid || smsSmtp.accountSid;
-                let authToken = data.authToken || smsSmtp.authToken;
-                let phoneNumber = data.phoneNumber || smsSmtp.phoneNumber;
-                let enabled = data.smssmtpswitch !== undefined ? data.smssmtpswitch : smsSmtp.enabled;
-                
-                var updatedSmsSmtp = await SmsSmtpModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        accountSid: accountSid,
-                        authToken: authToken,
-                        phoneNumber: phoneNumber,
-                        enabled: enabled
-                    }
-                }, {
-                    new: true
-                }).lean();
-                if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
-                    updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
-                }
-    
-                return updatedSmsSmtp;
+            var updatedSmsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            }).lean();
+            if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
+                updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
             }
         } catch (error) {
-            ErrorService.log('SmsSmtpService.update', error);
+            ErrorService.log('smsSmtpService.updateOneBy', error);
             throw error;
         }
+
+        return updatedSmsSmtp;
     },
 
     deleteBy: async function (query, userId) {
@@ -74,7 +59,7 @@ module.exports = {
             });
             return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.deleteBy', error);
+            ErrorService.log('smsSmtpService.deleteBy', error);
             throw error;
         }
     },
@@ -82,21 +67,21 @@ module.exports = {
     findBy: async function (query, skip, limit) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 10;
-    
+
             if (typeof (skip) === 'string') {
                 skip = parseInt(skip);
             }
-    
+
             if (typeof (limit) === 'string') {
                 limit = parseInt(limit);
             }
-    
+
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var smsSmtp = await SmsSmtpModel.find(query)
                 .sort([['createdAt', -1]])
@@ -107,10 +92,10 @@ module.exports = {
             if (smsSmtp && smsSmtp.authToken) {
                 smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
             }
-        
+
             return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.findBy', error);
+            ErrorService.log('smsSmtpService.findBy', error);
             throw error;
         }
     },
@@ -120,7 +105,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var smsSmtp = await SmsSmtpModel.findOne(query)
                 .sort([['createdAt', -1]])
@@ -132,10 +117,10 @@ module.exports = {
             if (!smsSmtp) {
                 smsSmtp = {};
             }
-    
+
             return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.findOneBy', error);
+            ErrorService.log('smsSmtpService.findOneBy', error);
             throw error;
         }
     },
@@ -145,12 +130,12 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var count = await SmsSmtpModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('SmsSmtpService.countBy', error);
+            ErrorService.log('smsSmtpService.countBy', error);
             throw error;
         }
     },
@@ -160,7 +145,7 @@ module.exports = {
             await SmsSmtpModel.deleteMany(query);
             return 'Sms Smtp(s) removed successfully';
         } catch (error) {
-            ErrorService.log('SmsSmtpService.hardDeleteBy', error);
+            ErrorService.log('smsSmtpService.hardDeleteBy', error);
             throw error;
         }
     },

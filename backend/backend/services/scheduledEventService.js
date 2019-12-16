@@ -9,7 +9,7 @@ module.exports = {
         try {
             var _this = this;
             var scheduledEvent = new ScheduledEventModel();
-    
+
             scheduledEvent.projectId = projectId;
             scheduledEvent.monitorId = monitorId;
             scheduledEvent.name = data.name;
@@ -17,7 +17,7 @@ module.exports = {
             scheduledEvent.startDate = data.startDate;
             scheduledEvent.endDate = data.endDate;
             scheduledEvent.description = data.description;
-    
+
             if (data.showEventOnStatusPage) {
                 scheduledEvent.showEventOnStatusPage = data.showEventOnStatusPage;
             }
@@ -34,39 +34,24 @@ module.exports = {
             scheduledEvent = await _this.findOneBy({ _id: scheduledEvent._id });
             return scheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.create', error);
+            ErrorService.log('scheduledEventService.create', error);
             throw error;
         }
     },
 
-    update: async function (data) {
-        try {
-            var oldScheduledEvent = await ScheduledEventModel.findOne({ _id: data._id });
+    updateOneBy: async function (query,data) {
+        if (!query) {
+            query = {};
+        }
 
-            var name = data.name || oldScheduledEvent.name;
-            var startDate = data.startDate || oldScheduledEvent.startDate;
-            var endDate = data.endDate || oldScheduledEvent.endDate;
-            var description = data.description || oldScheduledEvent.description;
-            var showEventOnStatusPage = data.showEventOnStatusPage !== undefined ? data.showEventOnStatusPage : oldScheduledEvent.showEventOnStatusPage;
-            var callScheduleOnEvent = data.callScheduleOnEvent !== undefined ? data.callScheduleOnEvent : oldScheduledEvent.callScheduleOnEvent;
-            var monitorDuringEvent = data.monitorDuringEvent !== undefined ? data.monitorDuringEvent : oldScheduledEvent.monitorDuringEvent;
-            var alertSubscriber = data.alertSubscriber !== undefined ? data.alertSubscriber : oldScheduledEvent.alertSubscriber;
-    
-            var updatedScheduledEvent = await ScheduledEventModel.findByIdAndUpdate(data._id, {
-                $set: {
-                    name,
-                    startDate,
-                    endDate,
-                    description,
-                    showEventOnStatusPage,
-                    callScheduleOnEvent,
-                    monitorDuringEvent,
-                    alertSubscriber
-                }
+        if (!query.deleted) query.deleted = false;
+        try {
+            var updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
+                $set: data
             }, { new: true });
             return updatedScheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.update', error);
+            ErrorService.log('scheduledEventService.updateOneBy', error);
             throw error;
         }
     },
@@ -82,7 +67,7 @@ module.exports = {
             }, { new: true });
             return scheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.deleteBy', error);
+            ErrorService.log('scheduledEventService.deleteBy', error);
             throw error;
         }
     },
@@ -90,21 +75,21 @@ module.exports = {
     findBy: async function (query, limit, skip) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 0;
-    
+
             if (typeof (skip) === 'string') {
                 skip = parseInt(skip);
             }
-    
+
             if (typeof (limit) === 'string') {
                 limit = parseInt(limit);
             }
-    
+
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var scheduledEvents = await ScheduledEventModel.find(query)
                 .limit(limit)
@@ -135,7 +120,7 @@ module.exports = {
 
             return scheduledEvents;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.findBy', error);
+            ErrorService.log('scheduledEventService.findBy', error);
             throw error;
         }
     },
@@ -145,7 +130,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             query.deleted = false;
             var scheduledEvent = await ScheduledEventModel.findOne(query).lean();
 
@@ -167,7 +152,7 @@ module.exports = {
             return scheduledEvent;
         }
         catch (error) {
-            ErrorService.log('ScheduledEventService.findOneBy', error);
+            ErrorService.log('scheduledEventService.findOneBy', error);
             throw error;
         }
     },
@@ -181,7 +166,7 @@ module.exports = {
             var count = await ScheduledEventModel.count(query);
             return count;
         } catch (error) {
-            ErrorService.log('ScheduledEventService.countBy', error);
+            ErrorService.log('scheduledEventService.countBy', error);
             throw error;
         }
     },
@@ -191,7 +176,7 @@ module.exports = {
             await ScheduledEventModel.deleteMany(query);
             return 'Event(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('ScheduledEventService.deleteMany', error);
+            ErrorService.log('scheduledEventService.hardDeleteBy', error);
             throw error;
         }
     },

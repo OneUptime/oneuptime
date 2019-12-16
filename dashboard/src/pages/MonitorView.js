@@ -13,6 +13,7 @@ import NewMonitor from '../components/monitor/NewMonitor';
 import ShouldRender from '../components/basic/ShouldRender';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { mapCriteria } from '../config';
+import WebHookBox from '../components/webHooks/WebHookBox';
 
 class MonitorView extends React.Component {
   // eslint-disable-next-line
@@ -65,6 +66,9 @@ class MonitorView extends React.Component {
                           </div>
                           <div className="Box-root Margin-bottom--12">
                             <MonitorViewSubscriberBox monitorId={this.props.monitor._id} />
+                          </div>
+                          <div className="Box-root Margin-bottom--12">
+                            <WebHookBox monitorId={this.props.monitor._id} />
                           </div>
                           <RenderIfSubProjectAdmin subProjectId={subProjectId}>
                             <div className="Box-root Margin-bottom--12">

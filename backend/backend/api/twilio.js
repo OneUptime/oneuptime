@@ -40,8 +40,8 @@ router.get('/voice/incident', async function (req, res) {
 });
 
 router.get('/voice/status', async (req, res) => {
-    const { accessToken, monitorName, projectId, incidentId, CallStatus, To, redialCount } = req.query;
     try {
+        const { accessToken, monitorName, projectId, incidentId, CallStatus, To, redialCount } = req.query;
         const incident = await IncidentService.findOneBy({ _id: incidentId });
         const newRedialCount = parseInt(redialCount) + 1;
 
@@ -74,24 +74,23 @@ router.get('/voice/status', async (req, res) => {
  * @returns Twiml with with action status.
  */
 router.post('/voice/incident/action', getUser, isAuthorized, async function (req, res) {
-    const { accessToken, projectId, incidentId } = req.query;
-
-    let actionPath = `${baseApiUrl}/twilio/voice/incident/action?projectId=${projectId}&amp;incidentId=${incidentId}&amp;accessToken=${accessToken}`;
-    var userId = req.user ? req.user.id : null;
-
-    var data = { decoded: userId, incidentId: incidentId, projectId: req.query.projectId };
-
-    res.set('Content-Type', 'text/xml');
-
-    if (!data.incidentId) {
-        return sendItemResponse(res, res, errorResponse);
-    }
-
-    if (typeof data.incidentId !== 'string') {
-        return sendItemResponse(req, res, errorResponse);
-    }
-
     try {
+        const { accessToken, projectId, incidentId } = req.query;
+
+        let actionPath = `${baseApiUrl}/twilio/voice/incident/action?projectId=${projectId}&amp;incidentId=${incidentId}&amp;accessToken=${accessToken}`;
+        var userId = req.user ? req.user.id : null;
+
+        var data = { decoded: userId, incidentId: incidentId, projectId: req.query.projectId };
+
+        res.set('Content-Type', 'text/xml');
+
+        if (!data.incidentId) {
+            return sendItemResponse(res, res, errorResponse);
+        }
+
+        if (typeof data.incidentId !== 'string') {
+            return sendItemResponse(req, res, errorResponse);
+        }
 
         switch (req.body.Digits) {
         // eslint-disable-next-line no-case-declarations
@@ -130,10 +129,10 @@ router.post('/voice/incident/action', getUser, isAuthorized, async function (req
 });
 
 router.post('/sms/incoming', async (req, res) => {
-    const { Body, From, To } = req.body;
-    const actionType = parseInt(Body);
-    // Fetch the incident action record created when sms is dispatched.
     try {
+        var { Body, From, To } = req.body;
+        const actionType = parseInt(Body);
+        // Fetch the incident action record created when sms is dispatched.
         const action = await incidentSMSActionService.get({ number: From, resolved: false });
         // There should only be one pending incident to act upon. If not then this can not be done over sms.
         if (action[1] || !action[0]) {
@@ -143,12 +142,12 @@ router.post('/sms/incoming', async (req, res) => {
         switch (actionType) {
         case 1:
             await IncidentService.acknowledge(action[0], action[0].userId, action[0].name);
-            await incidentSMSActionService.update(action[0]._id, { acknowledged: true });
+            await incidentSMSActionService.updateOneBy({_id:action[0]._id}, { acknowledged: true });
             sendResponseMessage(From, `Incident status acknowledged. Send 2 to ${To} to resolve incident`);
             return sendItemResponse(req, res, { status: 'acknowledged' });
         case 2:
             await IncidentService.resolve(action[0], action[0].userId);
-            await incidentSMSActionService.update(action[0]._id, { acknowledged: true, resolved: true });
+            await incidentSMSActionService.updateOneBy({_id:action[0]._id}, { acknowledged: true, resolved: true });
             sendResponseMessage(From, 'Incient status resolved. Thank you.');
             return sendItemResponse(req, res, { status: 'resolved' });
         default:
@@ -162,9 +161,9 @@ router.post('/sms/incoming', async (req, res) => {
 });
 
 router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (req, res) {
-    var { to } = req.body;
-    var userId = req.user ? req.user.id : null;
     try {
+        var { to } = req.body;
+        var userId = req.user ? req.user.id : null;
         var {validateResend,problem} = await SmsCountService.validateResend(userId);
         if (validateResend) {
             var sendVerifyToken = await sendVerificationSMS(to, userId);
@@ -180,10 +179,9 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function 
 
 
 router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
-    var { to, code } = req.body;
-    var userId = req.user ? req.user.id : null;
-
     try {
+        var { to, code } = req.body;
+        var userId = req.user ? req.user.id : null;
         var sendVerifyToken = await verifySMSCode(to, code, userId);
         return sendItemResponse(req, res, sendVerifyToken);
     } catch (error) {

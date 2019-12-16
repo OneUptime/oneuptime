@@ -7,10 +7,13 @@ module.exports = {
             var self = this;
             var response;
             var project = await ProjectService.findOneBy({_id: projectId});
+            if (project && project.parentProjectId) {
+                projectId = project.parentProjectId._id;
+            }
             var integrations = await IntegrationService.findBy({
                 projectId: projectId,
                 integrationType: 'webhook',
-                monitors: { $in: [monitor._id] }
+                monitorId: monitor._id,
             });
             // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
             for (const integration of integrations) {

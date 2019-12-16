@@ -30,113 +30,112 @@ var sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 // Param 1: req.params-> {projectId}; req.body -> {[_id], name, type, data, visibleOnStatusPage} <- Check MonitorMoal for description.
 // Returns: response status, error message
 router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-
-    var data = req.body;
-    var projectId = req.params.projectId;
-    if (!data) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'values can\'t be null'
-        });
-    }
-    data.createdById = req.user ? req.user.id : null;
-
-    if (data.monitorCategoryId && typeof data.monitorCategoryId !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor Category ID is not of string type.'
-        });
-    }
-    if (!data.name) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor Name is required.'
-        });
-    }
-
-    if (typeof data.name !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor Name is not of type string.'
-        });
-    }
-
-    if (!data.type) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor Type is required.'
-        });
-    }
-
-    if (typeof data.type !== 'string') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor type should be of type string.'
-        });
-    }
-
-    if (data.type !== 'url' && data.type !== 'device' && data.type !== 'manual' && data.type !== 'api' && data.type !== 'server-monitor' && data.type !== 'script') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor type should be url, manual, device or script.'
-        });
-    }
-    if (!data.data) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor data is required.'
-        });
-    }
-
-    if (typeof data.data !== 'object') {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor Data should be of type object.'
-        });
-    }
-
-    if (data.type === 'url') {
-        if (!data.data.url) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor data should have a `url` property of type string.'
-            });
-        }
-
-        if ((data.type === 'url' || data.type === 'manual') && typeof data.data.url !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor data should have a `url` property of type string.'
-            });
-        }
-    }
-
-    if (data.type === 'device') {
-        if (data.type === 'deviceId' && !data.data.deviceId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor data should have a `url` property of type string.'
-            });
-        }
-
-        if (data.type === 'deviceId' && typeof data.data.deviceId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor data should have a `Device ID` property of type string.'
-            });
-        }
-    }
-
-    if (data.type === 'script') {
-        if (!data.data.script) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor data should have a `script` property of type string.'
-            });
-        }
-    }
-    data.projectId = projectId;
     try {
+        var data = req.body;
+        var projectId = req.params.projectId;
+        if (!data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'values can\'t be null'
+            });
+        }
+        data.createdById = req.user ? req.user.id : null;
+
+        if (data.monitorCategoryId && typeof data.monitorCategoryId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor Category ID is not of string type.'
+            });
+        }
+        if (!data.name) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor Name is required.'
+            });
+        }
+
+        if (typeof data.name !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor Name is not of type string.'
+            });
+        }
+
+        if (!data.type) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor Type is required.'
+            });
+        }
+
+        if (typeof data.type !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor type should be of type string.'
+            });
+        }
+
+        if (data.type !== 'url' && data.type !== 'device' && data.type !== 'manual' && data.type !== 'api' && data.type !== 'server-monitor' && data.type !== 'script') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor type should be url, manual, device or script.'
+            });
+        }
+        if (!data.data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor data is required.'
+            });
+        }
+
+        if (typeof data.data !== 'object') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor Data should be of type object.'
+            });
+        }
+
+        if (data.type === 'url') {
+            if (!data.data.url) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor data should have a `url` property of type string.'
+                });
+            }
+
+            if ((data.type === 'url' || data.type === 'manual') && typeof data.data.url !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor data should have a `url` property of type string.'
+                });
+            }
+        }
+
+        if (data.type === 'device') {
+            if (data.type === 'deviceId' && !data.data.deviceId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor data should have a `url` property of type string.'
+                });
+            }
+
+            if (data.type === 'deviceId' && typeof data.data.deviceId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor data should have a `Device ID` property of type string.'
+                });
+            }
+        }
+
+        if (data.type === 'script') {
+            if (!data.data.script) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor data should have a `script` property of type string.'
+                });
+            }
+        }
+        data.projectId = projectId;
         var monitor = await MonitorService.create(data);
         if (data.callScheduleId) {
             var schedule = await ScheduleService.findOneBy({ _id: data.callScheduleId });
@@ -147,11 +146,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
                 monitors = Array(monitor[0]._id);
             }
             var scheduleData = {
-                _id: data.callScheduleId,
                 projectId: projectId,
                 monitorIds: monitors
             };
-            await ScheduleService.update(scheduleData);
+            await ScheduleService.updateOneBy({ _id: data.callScheduleId }, scheduleData);
         }
         await NotificationService.create(monitor.projectId, `A New Monitor was Created with name ${monitor.name} by ${req.user.name}`, req.user.id, 'monitoraddremove');
         await RealTimeService.sendMonitorCreated(monitor);
@@ -162,9 +160,9 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 });
 
 router.put('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    var data = req.body;
     try {
-        var monitor = await MonitorService.update({ _id: req.params.monitorId }, data);
+        var data = req.body;
+        var monitor = await MonitorService.updateOneBy({ _id: req.params.monitorId }, data);
         if (monitor) {
             return sendItemResponse(req, res, monitor);
         } else {
@@ -181,8 +179,8 @@ router.put('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async f
 // Route
 // Description: Get all Monitors by projectId.
 router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (req, res) {
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
     try {
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Call the MonitorService.
         var monitors = await MonitorService.getMonitors(subProjectIds, req.query.skip || 0, req.query.limit || 0);
         return sendItemResponse(req, res, monitors);
@@ -191,28 +189,27 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
     }
 });
 
-router.get('/:projectId/monitor', getUser, isAuthorized, async function (req, res) {
-    var projectId = req.params.projectId;
-    var type = req.query.type;
-    var query = type ? { projectId, type } : { projectId };
-
+router.get('/:projectId/monitor', getUser, isAuthorized, getSubProjects, async function (req, res) {
     try {
+        var type = req.query.type;
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        var query = type ? { projectId: { $in: subProjectIds }, type } : { projectId: { $in: subProjectIds } };
+
         var monitors = await MonitorService.findBy(query, req.query.limit || 10, req.query.skip || 0);
-        var count = await MonitorService.countBy({ projectId });
-        return sendListResponse(req, res, monitors, count); // frontend expects sendListResponse
+        var count = await MonitorService.countBy({ projectId: { $in: subProjectIds } });
+        return sendListResponse(req, res, monitors, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, async function (req, res) {
-    var _id = req.params.monitorId;
-    var projectId = req.params.projectId;
-    var type = req.query.type;
-    var query = type ? { _id, projectId, type } : { _id, projectId };
-
+router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, getSubProjects, async function (req, res) {
     try {
-        // Call the MonitorService.
+        var monitorId = req.params.monitorId;
+        var type = req.query.type;
+        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        var query = type ? { _id: monitorId, projectId: { $in: subProjectIds }, type } : { _id: monitorId, projectId: { $in: subProjectIds } };
+
         var monitor = await MonitorService.findOneBy(query);
         return sendItemResponse(req, res, monitor);
     } catch (error) {
@@ -221,7 +218,6 @@ router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, async functi
 });
 
 router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-
     try {
         var monitor = await MonitorService.deleteBy({ _id: req.params.monitorId, projectId: req.params.projectId }, req.user.id);
         if (monitor) {
@@ -241,13 +237,12 @@ router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, asyn
 // Param 1: req.params-> {projectId, monitorId}; req.body -> {[_id], data} <- Check MonitorLogModel for description.
 // Returns: response status, error message
 router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    var monitorId = req.params.monitorId || req.body._id;
-    var data = {
-        monitorId,
-        data: req.body.data
-    };
-
     try {
+        var monitorId = req.params.monitorId || req.body._id;
+        var data = {
+            monitorId,
+            data: req.body.data
+        };
         var monitor = await MonitorService.findOneBy({ _id: monitorId });
 
         let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(data.data, null, monitor.criteria.up) : false);
@@ -263,11 +258,7 @@ router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, as
         } else {
             data.status = 'unknown';
         }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
 
-    try {
         let log = await ProbeService.setTime(data);
         return sendItemResponse(req, res, log);
     } catch (error) {
@@ -278,10 +269,9 @@ router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, as
 // Route
 // Description: Get all Monitor Logs by monitorId
 router.get('/:projectId/log/:monitorId', getUser, isAuthorized, async function (req, res) {
-    const { startDate, endDate } = req.query;
-    var monitorId = req.params.monitorId;
-
     try {
+        const { startDate, endDate } = req.query;
+        var monitorId = req.params.monitorId;
         var monitorLogs = await MonitorService.getMonitorLogs(monitorId, startDate, endDate);
         return sendListResponse(req, res, monitorLogs);
     } catch (error) {

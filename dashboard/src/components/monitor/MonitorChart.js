@@ -8,12 +8,12 @@ import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
 
-const calculateTime = (incidents, activeProbe) => {
+const calculateTime = (incidents, start, range, activeProbe) => {
     let timeBlock = [];
-    let dayStart = moment(Date.now()).startOf('day');
+    let dayStart = moment(start).startOf('day');
     let totalUptime = 0;
     let totalTime = 0;
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < range; i++) {
         let dayStartIn = dayStart;
         let dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
         let timeObj = {
@@ -59,15 +59,15 @@ const calculateTime = (incidents, activeProbe) => {
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
 };
 
-export function MonitorChart({ monitor, data, status, showAll, activeProbe, probes }) {
+export function MonitorChart({ start, end, monitor, data, status, showAll, activeProbe, probes }) {
     const [now, setNow] = useState(Date.now());
 
     const activeProbeObj = (probes && probes.length > 0 && probes[activeProbe || 0] ? probes[activeProbe || 0] : null);
     const lastAlive = activeProbeObj && activeProbeObj.lastAlive ? activeProbeObj.lastAlive : null;
 
-    const { timeBlock, uptimePercent } = monitor.incidents && monitor.incidents.length > 0 ? calculateTime(monitor.incidents.length > 3 ?
-        monitor.incidents.splice(0, 3) : monitor.incidents, activeProbeObj)
-        : calculateTime([], activeProbeObj);
+    const range = moment(end).diff(moment(start), 'days');
+    const { timeBlock, uptimePercent } = monitor.incidentsRange && monitor.incidentsRange.length > 0 ? calculateTime(monitor.incidentsRange, end, range, activeProbeObj)
+        : calculateTime([], end, range, activeProbeObj);
 
     const type = monitor.type;
     const checkLogs = data && data.length > 0;
@@ -87,7 +87,7 @@ export function MonitorChart({ monitor, data, status, showAll, activeProbe, prob
     });
 
     let block = [];
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < range; i++) {
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
 
@@ -357,6 +357,8 @@ export function MonitorChart({ monitor, data, status, showAll, activeProbe, prob
 MonitorChart.displayName = 'MonitorChart';
 
 MonitorChart.propTypes = {
+    start: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    end: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     monitor: PropTypes.object,
     data: PropTypes.array,
     status: PropTypes.string,

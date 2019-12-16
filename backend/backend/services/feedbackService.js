@@ -40,7 +40,7 @@ module.exports = {
             await MailService.sendUserFeedbackResponse(user.email, user.name);
             return feedback;
         } catch (error) {
-            ErrorService.log('FeedbackService.create', error);
+            ErrorService.log('feedbackService.create', error);
             throw error;
         }
     },
@@ -50,7 +50,7 @@ module.exports = {
             await FeedbackModel.deleteMany(query);
             return 'Feedback(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('FeedbackService.deleteMany', error);
+            ErrorService.log('feedbackService.hardDeleteBy', error);
             throw error;
         }
     }
