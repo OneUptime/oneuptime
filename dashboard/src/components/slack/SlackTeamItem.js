@@ -6,6 +6,7 @@ import { bindActionCreators } from 'redux';
 import { deleteSlackLink } from '../../actions/slack';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteSlackTeam from '../modals/deleteSlackTeam';
+import DataPathHoC from '../DataPathHoC';
 
 class SlackTeamItem extends React.Component {
 
@@ -62,7 +63,7 @@ class SlackTeamItem extends React.Component {
                                         id: deleteModalId,
                                         onClose: () => '',
                                         onConfirm: () => this.unLink(),
-                                        content: DeleteSlackTeam
+                                        content: DataPathHoC(DeleteSlackTeam, { deleting: requesting }),
                                     })
                                 }
                             >

@@ -18,6 +18,7 @@ import { selectedProbe } from '../../actions/monitor';
 import { openModal, closeModal } from '../../actions/modal';
 import { history } from '../../store';
 import { getMonitorStatus } from '../../config';
+import DataPathHoC from '../DataPathHoC';
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -148,7 +149,7 @@ export class MonitorViewHeader extends Component {
                                                 id: deleteModalId,
                                                 onClose: () => '',
                                                 onConfirm: () => this.deleteMonitor(),
-                                                content: DeleteMonitor
+                                                content: DataPathHoC(DeleteMonitor, { monitor })
                                             })}>
                                         <ShouldRender if={!deleting}>
                                             <span>Delete</span>
