@@ -338,22 +338,12 @@ module.exports = {
             currentTime = parseInt(currentTime);
         }
 
-        if (startHr === 'AM') {
-            startTime = parseInt(startTime) === 12 ? 0 : parseInt(startTime);
-        } else if (startHr === 'PM') {
-            startTime = parseInt(startTime) === 12 ? parseInt(startTime) : parseInt(startTime) + 12;
-        } else {
-            startTime = parseInt(startTime);
-        }
+        var startTimeDate = new Date(escalationStartTime);
+        var endTimeDate = new Date(escalationEndTime);
 
-        if (endHr === 'AM') {
-            endTime = parseInt(endTime) === 12 ? 0 : parseInt(endTime);
-        } else if (endHr === 'PM') {
-            endTime = parseInt(endTime) === 12 ? parseInt(endTime) : parseInt(endTime) + 12;
-        } else {
-            endTime = parseInt(endTime);
-        }
-
+        startTime = moment(startTimeDate).toObject().hours;
+        endTime = moment(endTimeDate).toObject().hours;
+        
         return { currentTime, startTime, endTime };
     },
 
@@ -444,3 +434,4 @@ let countryCode = require('../config/countryCode');
 let jwt = require('jsonwebtoken');
 const baseApiUrl = require('../config/baseApiUrl');
 let { getAlertChargeAmount, getCountryType } = require('../config/alertType');
+var moment = require('moment');

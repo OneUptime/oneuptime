@@ -181,8 +181,8 @@ describe('Incident API', function () {
                     email: false,
                     teamMember: [{
                         member: userId,
-                        startTime: '12:01 AM',
-                        endTime: '11:59 PM',
+                        startTime: 'Tue Dec 17 2019 01:00:26 GMT+0530 (India Standard Time)',
+                        endTime: 'Tue Dec 17 2019 23:55:26 GMT+0530 (India Standard Time)',
                         timezone: 'American Samoa (GMT -11:00)',
                     }]
                 }]);
