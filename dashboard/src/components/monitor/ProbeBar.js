@@ -39,14 +39,16 @@ function ProbeBar({ index, name, status, selectbutton, activeProbe, lastAlive })
     const [now, setNow] = useState(Date.now());
 
     useEffect(() => {
+        setNow(Date.now());
+
         let nowHandler = setTimeout(() => {
             setNow(Date.now());
-        }, 65000);
+        }, 300000);
 
         return () => {
             clearTimeout(nowHandler);
         };
-    });
+    }, [lastAlive]);
 
     return (
         <button
@@ -55,7 +57,7 @@ function ProbeBar({ index, name, status, selectbutton, activeProbe, lastAlive })
             disabled={false}
             onClick={() => selectbutton(index)}
             className={activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-            <span style={(lastAlive && moment(now).diff(moment(lastAlive), 'minutes') > 1) || !lastAlive ?
+            <span style={(lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) || !lastAlive ?
                 greyBackground
                 :
                 (status === 'offline' ? redBackground : (status === 'degraded' ? yellowBackground : greenBackground))
