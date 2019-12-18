@@ -91,6 +91,25 @@ module.exports = {
             throw error;
         }
     },
+
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await MonitorCategoryModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('monitorCategoryService.updateMany', error);
+            throw error;
+        }
+    },
+
     countBy: async function (query) {
         try {
             if (!query) {

@@ -53,6 +53,24 @@ module.exports = {
         return updatedEmailSmtp;
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await EmailSmtpModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('emailSmtpService.updateMany', error);
+            throw error;
+        }
+    },
+
     deleteBy: async function (query, userId) {
         try {
             var emailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
@@ -96,10 +114,11 @@ module.exports = {
                 .skip(skip)
                 .populate('projectId', 'name')
                 .lean();
-            if (emailSmtp && emailSmtp.pass) {
-                emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
-            }
-
+            emailSmtp.map(async es => {
+                if (es && es.pass) {
+                    es.pass = await EncryptDecrypt.decrypt(es.pass);
+                }
+            });
             return emailSmtp;
         } catch (error) {
             ErrorService.log('emailSmtpService.findBy', error);

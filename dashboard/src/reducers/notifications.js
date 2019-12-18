@@ -36,10 +36,10 @@ export default (state = initialState, action) => {
         case FETCH_NOTIFICATIONS_FAILED:
             return Object.assign({}, state, {
                 notifications: {
+                    ...state.notifications,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    notifications: []
                 },
             });
 
@@ -56,10 +56,10 @@ export default (state = initialState, action) => {
         case FETCH_NOTIFICATIONS_REQUEST:
             return Object.assign({}, state, {
                 notifications: {
+                    ...state.notifications,
                     requesting: true,
                     error: null,
                     success: false,
-                    notifications: []
                 },
             });
 

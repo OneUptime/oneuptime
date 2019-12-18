@@ -51,20 +51,20 @@ export default function incident(state = initialState, action) {
         case types.SMS_TEMPLATES_REQUEST:
             return Object.assign({}, state, {
                 smsTemplates: {
+                    ...state.smsTemplates,
                     requesting: true,
                     error: null,
                     success: false,
-                    templates: [],
                 },
             });
 
         case types.SMS_TEMPLATES_FAILED:
             return Object.assign({}, state, {
                 smsTemplates: {
+                    ...state.smsTemplates,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    templates: [],
                 },
             });
 

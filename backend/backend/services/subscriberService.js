@@ -39,6 +39,24 @@ module.exports = {
         return updatedSubscriber;
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await SubscriberModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('subscriberService.updateMany', error);
+            throw error;
+        }
+    },
+
     deleteBy: async function (query, userId) {
         try {
             var subscriber = await SubscriberModel.findOneAndUpdate(query, {

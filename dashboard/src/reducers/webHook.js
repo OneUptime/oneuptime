@@ -57,13 +57,10 @@ export default (state = initialState, action) => {
         case GET_WEB_HOOK_FAILED:
             return Object.assign({}, state, {
                 webHook: {
+                    ...state.webHook,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    webHooks : [],
-                    count: null,
-                    limit: null,
-                    skip: null
                 },
             });
 
@@ -83,13 +80,10 @@ export default (state = initialState, action) => {
         case GET_WEB_HOOK_REQUEST:
             return Object.assign({}, state, {
                 webHook: {
+                    ...state.webHook,
                     requesting: true,
                     error: null,
                     success: false,
-                    webHooks:[],
-                    count: null,
-                    limit: null,
-                    skip: null
                 },
             });
 

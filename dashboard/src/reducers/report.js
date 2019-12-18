@@ -34,11 +34,10 @@ export default function incidents(state = initialState, action) {
         case types.GET_ACTIVE_MEMBERS_REQUEST:
             return Object.assign({}, state, {
                 activeMembers: {
+                    ...state.activeMembers,
                     requesting: true,
                     error: null,
                     success: false,
-                    members: [],
-                    count: null
                 },
             });
 
@@ -56,22 +55,20 @@ export default function incidents(state = initialState, action) {
         case types.GET_ACTIVE_MEMBERS_FAILED:
             return Object.assign({}, state, {
                 activeMembers: {
+                    ...state.activeMembers,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    members: [],
-                    count: null
                 },
             });
 
         case types.GET_ACTIVE_MONITORS_REQUEST:
             return Object.assign({}, state, {
                 activeMonitors: {
+                    ...state.activeMonitors,
                     requesting: true,
                     error: null,
                     success: false,
-                    monitors: [],
-                    count: null
                 },
             });
 
@@ -89,21 +86,20 @@ export default function incidents(state = initialState, action) {
         case types.GET_ACTIVE_MONITORS_FAILED:
             return Object.assign({}, state, {
                 activeMonitors: {
+                    ...state.activeMonitors,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitors: [],
-                    count: null
                 },
             });
 
         case types.GET_INCIDENTS_REQUEST:
             return Object.assign({}, state, {
                 incidents: {
+                    ...state.incidents,
                     requesting: true,
                     error: null,
                     success: false,
-                    reports: []
                 },
             });
 
@@ -120,20 +116,20 @@ export default function incidents(state = initialState, action) {
         case types.GET_INCIDENTS_FAILED:
             return Object.assign({}, state, {
                 incidents: {
+                    ...state.incidents,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    reports: []
                 },
             });
 
         case types.GET_RESOLVE_TIME_REQUEST:
             return Object.assign({}, state, {
                 averageTime: {
+                    ...state.averageTime,
                     requesting: true,
                     error: null,
                     success: false,
-                    reports: []
                 },
             });
 
@@ -150,10 +146,10 @@ export default function incidents(state = initialState, action) {
         case types.GET_RESOLVE_TIME_FAILED:
             return Object.assign({}, state, {
                 averageTime: {
+                    ...state.averageTime,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    reports: []
                 },
             });
 

@@ -146,10 +146,10 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 profileSetting: {
+                    ...state.profileSetting,
                     error: null,
                     requesting: true,
                     success: false,
-                    data: {}
                 }
             });
 
@@ -168,10 +168,10 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 profileSetting: {
+                    ...state.profileSetting,
                     error: action.payload,
                     requesting: false,
                     success: false,
-                    data: {}
                 }
             });
 
@@ -202,10 +202,10 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 smsVerification: {
+                    ...state.smsVerification,
                     error: null,
                     requesting: true,
                     success: false,
-                    data: {}
                 }
             });
 
@@ -224,10 +224,10 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 smsVerification: {
+                    ...state.smsVerification,
                     error: action.payload,
                     requesting: false,
                     success: false,
-                    data: {}
                 }
             });
 
@@ -235,10 +235,10 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 emailVerificationResult: {
+                    ...state.emailVerificationResult,
                     error: null,
                     requesting: true,
                     success: false,
-                    data: {}
                 }
             });
 
@@ -257,10 +257,10 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 emailVerificationResult: {
+                    ...state.emailVerificationResult,
                     error: action.payload,
                     requesting: false,
                     success: false,
-                    data: {}
                 }
             });
 
@@ -268,10 +268,10 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 smsVerificationResult: {
+                    ...state.smsVerificationResult,
                     error: null,
                     requesting: true,
                     success: false,
-                    data: {}
                 }
             });
 
@@ -290,10 +290,10 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 smsVerificationResult: {
+                    ...state.smsVerificationResult,
                     error: action.payload,
                     requesting: false,
                     success: false,
-                    data: {}
                 }
             });
 

@@ -164,6 +164,24 @@ module.exports = {
         return updatedIncident;
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await IncidentModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('incidentService.updateMany', error);
+            throw error;
+        }
+    },
+
     async _sendIncidentCreatedAlert(incident) {
         try {
             await AlertService.sendIncidentCreated(incident);

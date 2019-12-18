@@ -58,26 +58,20 @@ export default function subProject(state = initialState, action) {
     case types.SUBPROJECTS_REQUEST:
       return Object.assign({}, state, {
         subProjects: {
+          ...state.subProjects,
           requesting: true,
           success: false,
           error: null,
-          subProjects: state.subProjects.subProjects,
-          count: state.subProjects.count,
-          skip: state.subProjects.skip,
-          limit: state.subProjects.limit
         }
       });
 
     case types.SUBPROJECTS_FAILED:
       return Object.assign({}, state, {
         subProjects: {
+          ...state.subProjects,
           requesting: false,
           error: action.payload,
           success: false,
-          subProjects: [],
-          count: null,
-          skip: null,
-          limit: null
         }
       });
 
