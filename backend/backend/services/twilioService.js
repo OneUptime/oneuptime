@@ -13,6 +13,7 @@ var Handlebars = require('handlebars');
 var defaultSmsTemplates = require('../config/smsTemplate');
 var SmsSmtpService = require('./smsSmtpService');
 var UserModel = require('../models/user');
+var UserService = require('./userService');
 var SmsCountService = require('./smsCountService');
 
 var getTwilioSettings = async (projectId) => {
@@ -53,7 +54,7 @@ module.exports = {
                 from: twilioCredentials.phoneNumber,
                 to: number
             };
-    
+
             // create incidentSMSAction entry for matching sms from twilio.
             const incidentSMSAction = new incidentSMSActionModel();
             incidentSMSAction.incidentId = incidentId;
@@ -61,7 +62,7 @@ module.exports = {
             incidentSMSAction.number = number;
             incidentSMSAction.name = name;
             await incidentSMSAction.save();
-            
+
             var message = await client.messages.create(options);
             return message;
         } catch (error) {
@@ -154,6 +155,7 @@ module.exports = {
                 .verifications
                 .create({ to, channel });
             await SmsCountService.create(userId, to);
+            await UserService.updateOneBy({_id:userId},{tempAlertPhoneNumber:to});
             return verificationRequest;
         } catch (error) {
             ErrorService.log('twillioService.sendVerificationSMS', error);
@@ -176,7 +178,8 @@ module.exports = {
             if (verificationResult.status === 'approved') {
                 await UserModel.findByIdAndUpdate(userId, {
                     $set: {
-                        alertPhoneNumber: to
+                        alertPhoneNumber: to,
+                        tempAlertPhoneNumber: null
                     }
                 });
             }

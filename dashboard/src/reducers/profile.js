@@ -231,6 +231,17 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 }
             });
 
+        case types.SEND_VERIFICATION_SMS_RESET:
+
+            return Object.assign({}, state, {
+                smsVerification: {
+                    ...state.smsVerification,
+                    error: null,
+                    requesting: false,
+                    success: false,
+                }
+            });
+
         case types.SEND_EMAIL_VERIFICATION_REQUEST:
 
             return Object.assign({}, state, {
@@ -292,6 +303,17 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 smsVerificationResult: {
                     ...state.smsVerificationResult,
                     error: action.payload,
+                    requesting: false,
+                    success: false,
+                }
+            });
+
+        case types.VERIFY_SMS_CODE_RESET:
+
+            return Object.assign({}, state, {
+                smsVerificationResult: {
+                    ...state.smsVerificationResult,
+                    error: null,
                     requesting: false,
                     success: false,
                 }
