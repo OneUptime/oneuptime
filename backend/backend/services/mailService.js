@@ -6,6 +6,7 @@ var Whitepapers = require('../config/whitepaper');
 var ErrorService = require('./errorService');
 var defaultEmailTemplates = require('../config/emailTemplate');
 var EmailSmtpService = require('./emailSmtpService');
+var { ACCOUNTS_HOST, DASHBOARD_HOST } = process.env;
 
 var options = {
     viewEngine: {
@@ -92,7 +93,8 @@ module.exports = {
                 subject: 'Welcome to Fyipe.',
                 template: 'sign_up_body',
                 context: {
-                    name: name.split(' ')[0].toString()
+                    name: name.split(' ')[0].toString(),
+                    dashboardURL: DASHBOARD_HOST
                 }
             };
             var info = await mailer.sendMail(mailOptions);
@@ -268,7 +270,9 @@ module.exports = {
                 to: email,
                 subject: 'Your password has been changed.',
                 template: 'reset_password_body',
-    
+                context: {
+                    accountsURL: ACCOUNTS_HOST
+                }
             };
             var info = await mailer.sendMail(mailOptions);
             return info;
@@ -312,7 +316,8 @@ module.exports = {
                 template: 'existing_user_added_to_project_body',
                 context: {
                     projectName: project.name,
-                    userName: addedByUser.name
+                    userName: addedByUser.name,
+                    dashboardURL: DASHBOARD_HOST
                 }
             };
             var info = await mailer.sendMail(mailOptions);
@@ -349,7 +354,8 @@ module.exports = {
             template: 'existing_user_added_to_subproject_body',
             context: {
                 projectName: project.name,
-                userName: addedByUser.name
+                userName: addedByUser.name,
+                dashboardURL: DASHBOARD_HOST
             }
         };
 
@@ -366,7 +372,8 @@ module.exports = {
             template: 'new_viewer_added_to_project',
             context: {
                 projectName: project.name,
-                userName: addedByUser.name
+                userName: addedByUser.name,
+                accountsURL: ACCOUNTS_HOST
             }
         };
 
@@ -384,7 +391,8 @@ module.exports = {
                 context: {
                     projectName: project.name,
                     userName: addedByUser.name,
-                    role: role
+                    role: role,
+                    dashboardURL: DASHBOARD_HOST
                 }
             };
             var info = await mailer.sendMail(mailOptions);
@@ -405,6 +413,7 @@ module.exports = {
                 context: {
                     projectName: project.name,
                     userName: removedByUser.name,
+                    dashboardURL: DASHBOARD_HOST
                 }
             };
             var info = await mailer.sendMail(mailOptions);
@@ -425,6 +434,7 @@ module.exports = {
                 context: {
                     subProjectName: subProject.name,
                     userName: removedByUser.name,
+                    dashboardURL: DASHBOARD_HOST
                 }
             };
             var info = await mailer.sendMail(mailOptions);
@@ -460,7 +470,8 @@ module.exports = {
                 userId,
                 projectId,
                 ack_url,
-                resolve_url
+                resolve_url,
+                dashboardURL: DASHBOARD_HOST
             }
         };
 
@@ -549,7 +560,8 @@ module.exports = {
                 context: {
                     projectName: projectName,
                     oldPlan: oldPlan,
-                    newPlan: newPlan
+                    newPlan: newPlan,
+                    dashboardURL: DASHBOARD_HOST
                 }
             };
             var info = await mailer.sendMail(mailOptions);
@@ -568,7 +580,8 @@ module.exports = {
                 subject: 'New Project',
                 template: 'create_project',
                 context: {
-                    projectName: projectName
+                    projectName: projectName,
+                    dashboardURL: DASHBOARD_HOST
                 }
             };
             var info = await mailer.sendMail(mailOptions);
@@ -587,7 +600,8 @@ module.exports = {
             subject: 'New Sub-Project',
             template: 'create_subproject',
             context: {
-                subProjectName: subProjectName
+                subProjectName: subProjectName,
+                dashboardURL: DASHBOARD_HOST
             }
         };
 
@@ -627,7 +641,8 @@ module.exports = {
                 context: {
                     projectName,
                     name,
-                    chargeAttemptStage
+                    chargeAttemptStage,
+                    dashboardURL: DASHBOARD_HOST
                 }
             };
             var info = await mailer.sendMail(mailOptions);
