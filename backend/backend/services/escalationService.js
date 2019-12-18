@@ -118,6 +118,24 @@ module.exports = {
         return escalation;
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await EscalationModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('escalationService.updateMany', error);
+            throw error;
+        }
+    },
+
     removeEscalationMember: async function(projectId, memberId){
         try {
             var _this = this;

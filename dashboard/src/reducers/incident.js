@@ -69,6 +69,7 @@ export default function incident(state = initialState, action) {
         case types.INCIDENTS_REQUEST:
             return Object.assign({}, state, {
                 incidents: {
+                    ...state.incidents,
                     requesting: true,
                     success: false,
                     error: null,
@@ -82,10 +83,10 @@ export default function incident(state = initialState, action) {
         case types.INCIDENTS_FAILED:
             return Object.assign({}, state, {
                 incidents: {
+                    ...state.incidents,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    incidents: [],
                     count: null,
                     limit: null,
                     skip: null
@@ -171,10 +172,10 @@ export default function incident(state = initialState, action) {
         case types.INCIDENT_REQUEST:
             return Object.assign({}, state, {
                 incident: {
+                    ...state.incident,
                     requesting: true,
                     success: false,
                     error: null,
-                    incident: null
                 }
             });
 
@@ -192,10 +193,10 @@ export default function incident(state = initialState, action) {
             else
                 return Object.assign({}, state, {
                     incident: {
+                        ...state.incident,
                         requesting: false,
                         error: action.payload.error,
                         success: false,
-                        incident: []
                     },
                 })
 
@@ -258,7 +259,7 @@ export default function incident(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: false,
-                    incidents: state.incidents.incidents
+                    incidents: []
                 },
             });
 
@@ -395,20 +396,20 @@ export default function incident(state = initialState, action) {
         case types.UNRESOLVED_INCIDENTS_REQUEST:
             return Object.assign({}, state, {
                 unresolvedincidents: {
+                    ...state.unresolvedincidents,
                     requesting: true,
                     success: false,
                     error: null,
-                    incidents: null
                 }
             });
 
         case types.UNRESOLVED_INCIDENTS_FAILED:
             return Object.assign({}, state, {
                 unresolvedincidents: {
+                    ...state.unresolvedincidents,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    incidents: []
                 },
             });
 

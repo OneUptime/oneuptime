@@ -13,6 +13,7 @@ var Handlebars = require('handlebars');
 var defaultSmsTemplates = require('../config/smsTemplate');
 var SmsSmtpService = require('./smsSmtpService');
 var UserModel = require('../models/user');
+var UserService = require('./userService');
 var SmsCountService = require('./smsCountService');
 
 var getTwilioSettings = async (projectId) => {
@@ -46,14 +47,14 @@ module.exports = {
             throw error;
         }
     },
-    sendIncidentCreatedMessage: async function (incidentTime, monitorName, number, incidentId, userId, name) {
+    sendIncidentCreatedMessage: async function (incidentTime, monitorName, number, incidentId, userId, name, incidentType) {
         try {
             var options = {
-                body: `Your monitor ${monitorName} is down. Acknowledge this incident by sending 1 or Resolve by sending 2 to ${twilioCredentials.phoneNumber}. You can also log into Fyipe dashboard to acknowledge or reoslve it.`,
+                body: `Your monitor ${monitorName} is ${incidentType}. Acknowledge this incident by sending 1 or Resolve by sending 2 to ${twilioCredentials.phoneNumber}. You can also log into Fyipe dashboard to acknowledge or reoslve it.`,
                 from: twilioCredentials.phoneNumber,
                 to: number
             };
-    
+
             // create incidentSMSAction entry for matching sms from twilio.
             const incidentSMSAction = new incidentSMSActionModel();
             incidentSMSAction.incidentId = incidentId;
@@ -61,7 +62,7 @@ module.exports = {
             incidentSMSAction.number = number;
             incidentSMSAction.name = name;
             await incidentSMSAction.save();
-            
+
             var message = await client.messages.create(options);
             return message;
         } catch (error) {
@@ -115,10 +116,10 @@ module.exports = {
         }
     },
 
-    sendIncidentCreatedCall: async function (incidentTime, monitorName, number, accessToken, incidentId, projectId, redialCount) {
+    sendIncidentCreatedCall: async function (incidentTime, monitorName, number, accessToken, incidentId, projectId, redialCount, incidentType) {
         try {
             var options = {
-                url: `${baseApiUrl}/twilio/voice/incident?redialCount=${redialCount || 0}&accessToken=${accessToken}&incidentId=${incidentId}&projectId=${projectId}&monitorName=${monitorName.split(' ').join('%20')}`,
+                url: `${baseApiUrl}/twilio/voice/incident?redialCount=${redialCount || 0}&accessToken=${accessToken}&incidentId=${incidentId}&projectId=${projectId}&monitorName=${monitorName.split(' ').join('%20')}&incidentType=${incidentType}`,
                 from: twilioCredentials.phoneNumber,
                 to: number,
                 timeout: 60,
@@ -154,6 +155,7 @@ module.exports = {
                 .verifications
                 .create({ to, channel });
             await SmsCountService.create(userId, to);
+            await UserService.updateOneBy({_id:userId},{tempAlertPhoneNumber:to});
             return verificationRequest;
         } catch (error) {
             ErrorService.log('twillioService.sendVerificationSMS', error);
@@ -176,7 +178,8 @@ module.exports = {
             if (verificationResult.status === 'approved') {
                 await UserModel.findByIdAndUpdate(userId, {
                     $set: {
-                        alertPhoneNumber: to
+                        alertPhoneNumber: to,
+                        tempAlertPhoneNumber: null
                     }
                 });
             }

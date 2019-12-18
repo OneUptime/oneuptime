@@ -395,7 +395,15 @@ router.put('/profile', getUser, async function (req, res) {
             if (req.files && req.files.profilePic && req.files.profilePic[0].filename) {
                 data.profilePic = req.files.profilePic[0].filename;
             }
-
+            var userData = await UserService.findOneBy({_id:userId});
+            if(data.email !== userData.email){
+                if(data.email === userData.tempEmail) delete data.email;
+                else {
+                    await UserService.sendToken(userData, data.email);
+                    delete data.email;
+                }
+            }
+            if(data.alertPhoneNumber !== userData.alertPhoneNumber) delete data.alertPhoneNumber;
             // Call the UserService
             var user = await UserService.updateOneBy({_id : userId},data);
             return sendItemResponse(req, res, user);
@@ -558,6 +566,8 @@ router.get('/profile', getUser, async function (req, res) {
                 }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
+            tempEmail:user.tempEmail || null,
+            tempAlertPhoneNumber : user.tempAlertPhoneNumber || null,
         };
         return sendItemResponse(req, res, userObj);
     } catch (error) {

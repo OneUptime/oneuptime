@@ -23,11 +23,10 @@ export default (state = initialState, action) => {
         case GET_VERSION_FAILED:
             return Object.assign({}, state, {
                 versions: {
+                    ...state.versions,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    server: '',
-                    client: ''
                 },
             });
 
@@ -45,11 +44,10 @@ export default (state = initialState, action) => {
         case GET_VERSION_REQUEST:
             return Object.assign({}, state, {
                 versions: {
+                    ...state.versions,
                     requesting: true,
                     error: null,
                     success: false,
-                    server: '',
-                    client: ''
                 },
             });
 
