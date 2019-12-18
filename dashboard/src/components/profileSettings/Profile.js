@@ -21,7 +21,7 @@ import {
     setInitialAlertPhoneNumber,
     setUserEmail,
     setResendTimer,
-    setInitAlertEmail
+    setInitAlertEmail,
 } from '../../actions/profile';
 import { RenderField } from '../basic/RenderField';
 import { Validate, API_URL } from '../../config';
@@ -224,7 +224,7 @@ export class ProfileSetting extends Component {
     }
 
     render() {
-        var { profileSettingState, resendTimer, emailValue } = this.props;
+        var { profileSettingState, resendTimer, emailValue} = this.props;
         if (isNaN(resendTimer)) {
             resendTimer = parseInt(resendTimer, 10);
         }
@@ -247,11 +247,9 @@ export class ProfileSetting extends Component {
 
         var profilePic = profileSettingState.profilePic;
         var isVerified = profileSettingState.isVerified;
-        var initialUserEmail;
 
         if (initialValues) {
             isVerified = this.props.initialValues.isVerified;
-            initialUserEmail = this.props.initialValues.email;
         }
 
         profilePic = profilePic === 'null' ? null : profilePic;
@@ -262,13 +260,11 @@ export class ProfileSetting extends Component {
         if (profilePic || this.props.fileUrl) {
             profileImage = <img src={fileData} alt="" className="image-small-circle" style={{ marginTop: '10px' }} />;
         }
-        var verifiedEmail = (emailValue !== profileSettingState.userEmail) || !isVerified;
-        var renderSendEmailVerification = !profileSettings.requesting && ((emailValue !== profileSettingState.userEmail) || !isVerified);
-        var verifiedPhone = profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber && !verified;
-        var renderSmsButtons = !profileSettings.requesting && (!sendVerificationSMSError || (sendVerificationSMSError && (!initPhoneVerification || (profileSettingState.alertPhoneNumber !== profileSettingState.initPhoneVerificationNumber))));
-        var renderSendSmsButton = !verified && (profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber) && !initPhoneVerification;
-        var renderVerifySmsTools = initPhoneVerification && !verified && profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber;
-
+        var verifiedEmail = isVerified && (emailValue === profileSettingState.userEmail) && (profileSettings.data && emailValue !== profileSettings.data.tempEmail);
+        var verifiedPhone = (verified && profileSettingState.alertPhoneNumber === profileSettingState.initPhoneVerificationNumber) || (profileSettingState.alertPhoneNumber === initialAlertPhoneNumber && (profileSettings.data && profileSettingState.alertPhoneNumber !== profileSettings.data.tempAlertPhoneNumber));
+        var showPhoneVerifyTools = !verifiedPhone
+        var showSendVerification = showPhoneVerifyTools && !initPhoneVerification;
+        var showError = !verified && ((verifySMSCodeError || sendVerificationSMSError) && profileSettingState.alertPhoneNumber === profileSettingState.initPhoneVerificationNumber);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -313,9 +309,10 @@ export class ProfileSetting extends Component {
                                                         disabled={profileSettings && profileSettings.requesting}
                                                     />
                                                 </div>
+                                                <ShouldRender if={emailValue}>
                                                 <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5 }}>
                                                     {
-                                                        verifiedEmail ?
+                                                        !verifiedEmail ?
                                                             <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                     Not verified
@@ -328,21 +325,22 @@ export class ProfileSetting extends Component {
                                                             </div>
                                                     }
                                                 </div>
+                                                </ShouldRender>
                                             </div>
-                                            <ShouldRender if={renderSendEmailVerification}>
+                                            <ShouldRender if={!verifiedEmail}>
                                                 <div className="bs-Fieldset-row" style={{ marginBottom: -5, marginTop: -5 }}>
                                                     <label className="bs-Fieldset-label"></label>
                                                     <div className="bs-Fieldset-fields">
-                                                        {((!emailVerificationError && !emailVerificationSuccess) || initialUserEmail !== emailValue) && <button
+                                                        <button
                                                             className="bs-Button"
                                                             disabled={profileSettings && profileSettings.requesting}
                                                             type="button"
                                                             onClick={this.handleSendEmailVerification}>
                                                             {!emailVerificationRequesting && <span>Resend email verification.</span>}
                                                             {emailVerificationRequesting && <div style={{ marginTop: -20 }}> <ListLoader /> </div>}
-                                                        </button>}
+                                                        </button>
                                                         {emailVerificationError && emailValue === profileSettingState.initAlertEmail && <span><br />{emailVerificationError}</span>}
-                                                        {(emailVerificationSuccess && initialUserEmail !== profileSettingState.initAlertEmail) && <span><br />Please check your email to verify your email address</span>}
+                                                        {emailVerificationSuccess && <span><br />Please check your email to verify your email address</span>}
                                                     </div>
                                                 </div>
                                             </ShouldRender>
@@ -357,25 +355,27 @@ export class ProfileSetting extends Component {
                                                         inputStyle={{ width: 250, height: 28, fontSize: 14, color: '#525f7f', fontFamily: 'camphor' }}
                                                     />
                                                 </div>
+                                                <ShouldRender if={profileSettingState.alertPhoneNumber}>
                                                 <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5 }}>
                                                     {
-                                                        verifiedPhone ?
+                                                        !verifiedPhone ?
                                                             <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                     Not verified
                                                                 </span>
                                                             </div>
-                                                            : profileSettingState.alertPhoneNumber ?
+                                                            :
                                                                 <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                     <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                         Verified
                                                                 </span>
-                                                                </div> : ''
+                                                                </div>
                                                     }
                                                 </div>
+                                                </ShouldRender>
                                             </div>
-                                            <ShouldRender if={renderSmsButtons}>
-                                                <ShouldRender if={renderSendSmsButton}>
+                                            <ShouldRender if={showPhoneVerifyTools}>
+                                                <ShouldRender if={showSendVerification || sendVerificationSMSRequesting}>
                                                     <div className="bs-Fieldset-row" style={{ marginBottom: -5, marginTop: -5 }}>
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
@@ -385,12 +385,12 @@ export class ProfileSetting extends Component {
                                                                 type="button"
                                                                 onClick={() => this.handleSendVerificationSMS()}>
                                                                 {!sendVerificationSMSRequesting && <span>Send verification SMS.</span>}
-                                                                {sendVerificationSMSRequesting && <div style={{ marginTop: -20 }}> <ListLoader /> </div>}
+                                                                {sendVerificationSMSRequesting && <div style={{ marginTop: '-20px' ,padding:'0px 52px'}}> <ListLoader /> </div>}
                                                             </button>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                                <ShouldRender if={renderVerifySmsTools}>
+                                                <ShouldRender if={!showSendVerification && !showError && !sendVerificationSMSRequesting}>
                                                     {(!verifySMSCodeError && !sendVerificationSMSError && !sendVerificationSMSRequesting) &&
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
@@ -448,7 +448,7 @@ export class ProfileSetting extends Component {
                                                     </div>
                                                 </ShouldRender>
                                             </ShouldRender>
-                                            <ShouldRender if={!verified && (verifySMSCodeError || sendVerificationSMSError)}>
+                                            <ShouldRender if={showError}>
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
                                                     <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
@@ -623,7 +623,7 @@ const mapDispatchToProps = (dispatch) => {
         setInitialAlertPhoneNumber,
         setUserEmail,
         setResendTimer,
-        setInitAlertEmail
+        setInitAlertEmail,
     }, dispatch)
 }
 
@@ -632,7 +632,13 @@ function mapStateToProps(state) {
     if (isNaN(resendTimer)) {
         resendTimer = parseInt(resendTimer, 10);
     }
-    var initValues = state.profileSettings.profileSetting ? state.profileSettings.profileSetting.data : {};
+    var initValues = state.profileSettings.profileSetting ? Object.assign({},state.profileSettings.profileSetting.data) : {};
+    if(initValues && initValues.tempAlertPhoneNumber){
+        initValues.alertPhoneNumber = initValues.tempAlertPhoneNumber;
+    }
+    if(initValues && initValues.tempEmail){
+        initValues.email = initValues.tempEmail;
+    }
     return {
         fileUrl: state.profileSettings.file,
         profileSettings: state.profileSettings.profileSetting,
@@ -648,80 +654,56 @@ function mapStateToProps(state) {
         emailVerificationSuccess: state.profileSettings.emailVerificationResult.success,
         profileSettingState: state.profileSettings.profileSettingState,
         resendTimer: resendTimer,
-        emailValue: selector(state, 'email')
+        emailValue: selector(state, 'email'),
     };
 }
 
 ProfileSetting.propTypes = {
-    handleSubmit: PropTypes.func.isRequired,
-    profileSettings: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined])
-    ]),
-    updateProfileSetting: PropTypes.func.isRequired,
-    userSettings: PropTypes.func.isRequired,
-    logFile: PropTypes.func.isRequired,
-    resetFile: PropTypes.func.isRequired,
-    fileUrl: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined])
-    ]),
-    otp: PropTypes.string,
-    sendVerificationSMSError: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-        PropTypes.string,
-    ]),
-    sendVerificationSMSRequesting: PropTypes.bool,
-    emailVerificationRequesting: PropTypes.bool,
-    verifySMSCodeError: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined])
-    ]),
-    emailVerificationError: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined])
-    ]),
-    verifySMSCodeRequesting: PropTypes.bool,
-    initialValues: PropTypes.object,
-    projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
-    verifySMSCode: PropTypes.func.isRequired,
-    sendEmailVerificationLink: PropTypes.func.isRequired,
-    sendVerificationSMS: PropTypes.func.isRequired,
-    profileSettingState: PropTypes.object,
-    resendTimer: PropTypes.oneOfType([
-        PropTypes.number,
-        PropTypes.oneOf([null, undefined])
-    ]),
-    alertPhoneNumber: PropTypes.string,
-    verified: PropTypes.bool,
-    removedPic: PropTypes.bool,
-    emailValue: PropTypes.string,
-    setInitAlertEmail: PropTypes.string,
-    initPhoneVerification: PropTypes.bool,
-    initialAlertPhoneNumber: PropTypes.string,
-    initPhoneVerificationNumber: PropTypes.string,
-    profilePic: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined])
-    ]),
-    isVerified: PropTypes.bool,
-    userEmail: PropTypes.string,
-    emailVerificationSuccess: PropTypes.bool,
-    initAlertEmail: PropTypes.string,
-    setAlertPhoneNumber: PropTypes.func.isRequired,
-    setResendTimer: PropTypes.func.isRequired,
-    setVerified: PropTypes.func.isRequired,
-    setInitPhoneVerificationNumber: PropTypes.func.isRequired,
-    setInitPhoneVerification: PropTypes.func.isRequired,
-    setProfilePic: PropTypes.func.isRequired,
-    setIsVerified: PropTypes.func.isRequired,
-    setFileInputKey: PropTypes.func.isRequired,
-    setInitialAlertPhoneNumber: PropTypes.func.isRequired,
-    setUserEmail: PropTypes.func.isRequired,
-    setRemovedPic: PropTypes.func.isRequired
+  alertPhoneNumber: PropTypes.string,
+  emailValue: PropTypes.string,
+  emailVerificationError: PropTypes.oneOfType([PropTypes.object, PropTypes.string, PropTypes.oneOf([null, undefined])]),
+  emailVerificationRequesting: PropTypes.bool,
+  emailVerificationSuccess: PropTypes.bool,
+  fileUrl: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null, undefined])]),
+  handleSubmit: PropTypes.func.isRequired,
+  initAlertEmail: PropTypes.string,
+  initPhoneVerification: PropTypes.bool,
+  initPhoneVerificationNumber: PropTypes.string,
+  initialAlertPhoneNumber: PropTypes.string,
+  initialValues: PropTypes.object,
+  isVerified: PropTypes.bool,
+  logFile: PropTypes.func.isRequired,
+  otp: PropTypes.string,
+  profilePic: PropTypes.oneOfType([PropTypes.object, PropTypes.oneOf([null, undefined])]),
+  profileSettingState: PropTypes.object,
+  profileSettings: PropTypes.oneOfType([PropTypes.object, PropTypes.oneOf([null, undefined])]),
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
+  removedPic: PropTypes.bool,
+  resendTimer: PropTypes.oneOfType([PropTypes.number, PropTypes.oneOf([null, undefined])]),
+  resetFile: PropTypes.func.isRequired,
+  sendEmailVerificationLink: PropTypes.func.isRequired,
+  sendVerificationSMS: PropTypes.func.isRequired,
+  sendVerificationSMSError: PropTypes.oneOfType([PropTypes.object, PropTypes.oneOf([null, undefined]), PropTypes.string]),
+  sendVerificationSMSRequesting: PropTypes.bool,
+  setAlertPhoneNumber: PropTypes.func.isRequired,
+  setFileInputKey: PropTypes.func.isRequired,
+  setInitAlertEmail: PropTypes.string,
+  setInitPhoneVerification: PropTypes.func.isRequired,
+  setInitPhoneVerificationNumber: PropTypes.func.isRequired,
+  setInitialAlertPhoneNumber: PropTypes.func.isRequired,
+  setIsVerified: PropTypes.func.isRequired,
+  setProfilePic: PropTypes.func.isRequired,
+  setRemovedPic: PropTypes.func.isRequired,
+  setResendTimer: PropTypes.func.isRequired,
+  setUserEmail: PropTypes.func.isRequired,
+  setVerified: PropTypes.func.isRequired,
+  updateProfileSetting: PropTypes.func.isRequired,
+  userEmail: PropTypes.string,
+  userSettings: PropTypes.func.isRequired,
+  verified: PropTypes.bool,
+  verifySMSCode: PropTypes.func.isRequired,
+  verifySMSCodeError: PropTypes.oneOfType([PropTypes.object, PropTypes.string, PropTypes.oneOf([null, undefined])]),
+  verifySMSCodeRequesting: PropTypes.bool,
 }
 
 ProfileSetting.contextTypes = {
