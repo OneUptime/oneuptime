@@ -6,7 +6,9 @@ var Whitepapers = require('../config/whitepaper');
 var ErrorService = require('./errorService');
 var defaultEmailTemplates = require('../config/emailTemplate');
 var EmailSmtpService = require('./emailSmtpService');
-var { ACCOUNTS_HOST, DASHBOARD_HOST } = process.env;
+var { ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST } = process.env;
+
+console.log({ ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST });
 
 var options = {
     viewEngine: {
@@ -93,6 +95,7 @@ module.exports = {
                 subject: 'Welcome to Fyipe.',
                 template: 'sign_up_body',
                 context: {
+                    homeURL: HOME_HOST,
                     name: name.split(' ')[0].toString(),
                     dashboardURL: DASHBOARD_HOST
                 }
@@ -113,6 +116,7 @@ module.exports = {
                 subject: 'Activate your Fyipe account',
                 template: 'send_verification_email',
                 context: {
+                    homeURL: HOME_HOST,
                     tokenVerifyURL,
                     name: name.split(' ')[0].toString()
                 }
@@ -132,6 +136,7 @@ module.exports = {
                 subject: 'New Lead Added',
                 template: 'lead_to_fyipe_team',
                 context: {
+                    homeURL: HOME_HOST,
                     text: JSON.stringify(lead, null, 2)
                 }
             };
@@ -152,6 +157,7 @@ module.exports = {
                 subject: 'Thank you for your feedback!',
                 template: 'feedback_response',
                 context: {
+                    homeURL: HOME_HOST,
                     name: name.split(' ')[0].toString()
                 }
             };
@@ -171,7 +177,7 @@ module.exports = {
                 throw error;
             }
             else {
-    
+
                 var mailOptions = {
                     from: '"Fyipe " <' + accountMail.from + '>',
                     cc: 'noreply@fyipe.com',
@@ -198,13 +204,13 @@ module.exports = {
             }
             else {
                 let link = null;
-    
+
                 for (var i = 0; i < Whitepapers.length; i++) {
                     if (Whitepapers[i].name === whitepaperName) {
                         link = Whitepapers[i].link;
                     }
                 }
-    
+
 
                 if (!link) {
                     let error = new Error('Whitepaper not found');
@@ -220,6 +226,7 @@ module.exports = {
                         subject: 'Here\'s your Whitepaper',
                         template: 'whitepaper_body',
                         context: {
+                            homeURL: HOME_HOST,
                             link: link
                         }
                     };
@@ -247,6 +254,7 @@ module.exports = {
                 subject: 'Password Reset for Fyipe',
                 template: 'forgot_password_body',
                 context: {
+                    homeURL: HOME_HOST,
                     forgotPasswordURL
                 }
             };
@@ -271,6 +279,7 @@ module.exports = {
                 subject: 'Your password has been changed.',
                 template: 'reset_password_body',
                 context: {
+                    homeURL: HOME_HOST,
                     accountsURL: ACCOUNTS_HOST
                 }
             };
@@ -294,6 +303,7 @@ module.exports = {
                 subject: 'You\'ve been added to a project on Fyipe',
                 template: 'new_user_added_to_project_body',
                 context: {
+                    homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: addedByUser.name,
                     registerUrl
@@ -315,6 +325,7 @@ module.exports = {
                 subject: 'You\'ve been added to a project on Fyipe',
                 template: 'existing_user_added_to_project_body',
                 context: {
+                    homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: addedByUser.name,
                     dashboardURL: DASHBOARD_HOST
@@ -336,6 +347,7 @@ module.exports = {
             subject: 'You\'ve been added to a sub-project on Fyipe',
             template: 'existing_viewer_added_to_project_body',
             context: {
+                homeURL: HOME_HOST,
                 subProjectName: subProject.name,
                 userName: addedByUser.name
             }
@@ -353,6 +365,7 @@ module.exports = {
             subject: 'You\'ve been added to a subproject on Fyipe',
             template: 'existing_user_added_to_subproject_body',
             context: {
+                homeURL: HOME_HOST,
                 projectName: project.name,
                 userName: addedByUser.name,
                 dashboardURL: DASHBOARD_HOST
@@ -371,6 +384,7 @@ module.exports = {
             subject: 'You\'ve been added to a project on Fyipe',
             template: 'new_viewer_added_to_project',
             context: {
+                homeURL: HOME_HOST,
                 projectName: project.name,
                 userName: addedByUser.name,
                 accountsURL: ACCOUNTS_HOST
@@ -389,6 +403,7 @@ module.exports = {
                 subject: 'You\'ve been assigned a new role',
                 template: 'change_role',
                 context: {
+                    homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: addedByUser.name,
                     role: role,
@@ -411,6 +426,7 @@ module.exports = {
                 subject: 'You\'ve been removed from a project on Fyipe',
                 template: 'removed_from_project',
                 context: {
+                    homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: removedByUser.name,
                     dashboardURL: DASHBOARD_HOST
@@ -424,7 +440,7 @@ module.exports = {
         }
     },
 
-    sendRemoveFromSubProjectEmailToUser: async function (subProject, removedByUser, email) {        
+    sendRemoveFromSubProjectEmailToUser: async function (subProject, removedByUser, email) {
         try {
             var mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
@@ -432,6 +448,7 @@ module.exports = {
                 subject: 'You\'ve been removed from a subproject on Fyipe',
                 template: 'removed_from_subproject',
                 context: {
+                    homeURL: HOME_HOST,
                     subProjectName: subProject.name,
                     userName: removedByUser.name,
                     dashboardURL: DASHBOARD_HOST
@@ -463,6 +480,7 @@ module.exports = {
             subject: 'A new incident created',
             template: 'new_incident_created',
             context: {
+                homeURL: HOME_HOST,
                 incidentTime: incidentTime,
                 monitorName: monitorName,
                 accessToken,
@@ -507,6 +525,7 @@ module.exports = {
                 subject: subject,
                 template: 'template',
                 context: {
+                    homeURL: HOME_HOST,
                     body: template
                 }
             };
@@ -527,6 +546,7 @@ module.exports = {
                 subject: 'Email Smtp Settings Test',
                 template: 'smtp_test',
                 context: {
+                    homeURL: HOME_HOST,
                 }
             };
             var info = await privateMailer.sendMail(mailOptions);
@@ -558,6 +578,7 @@ module.exports = {
                 subject: 'Change of Subscription Plan',
                 template: 'changed_subscription_plan',
                 context: {
+                    homeURL: HOME_HOST,
                     projectName: projectName,
                     oldPlan: oldPlan,
                     newPlan: newPlan,
@@ -572,7 +593,7 @@ module.exports = {
         return info;
     },
 
-    sendCreateProjectMail: async function (projectName, email) {        
+    sendCreateProjectMail: async function (projectName, email) {
         try {
             var mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
@@ -580,6 +601,7 @@ module.exports = {
                 subject: 'New Project',
                 template: 'create_project',
                 context: {
+                    homeURL: HOME_HOST,
                     projectName: projectName,
                     dashboardURL: DASHBOARD_HOST
                 }
@@ -600,6 +622,7 @@ module.exports = {
             subject: 'New Sub-Project',
             template: 'create_subproject',
             context: {
+                homeURL: HOME_HOST,
                 subProjectName: subProjectName,
                 dashboardURL: DASHBOARD_HOST
             }
@@ -617,6 +640,7 @@ module.exports = {
                 subject: 'Upgrade to enterprise plan request from ' + email,
                 template: 'enterprise_upgrade',
                 context: {
+                    homeURL: HOME_HOST,
                     projectName: projectName,
                     projectId: projectId,
                     oldPlan: oldPlan,
@@ -639,6 +663,7 @@ module.exports = {
                 subject: 'Subscription Payment Failed',
                 template: 'subscription_payment_failed',
                 context: {
+                    homeURL: HOME_HOST,
                     projectName,
                     name,
                     chargeAttemptStage,
