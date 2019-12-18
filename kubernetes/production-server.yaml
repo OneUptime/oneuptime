@@ -3,7 +3,6 @@
 # IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO test-server.yaml
 #
 
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,19 +20,19 @@ spec:
         app: dashboard
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/dashboard:master
-        name: dashboard
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        ports:
-        - containerPort: 3000
-          hostPort: 3000
+        - image: registry.gitlab.com/fyipe-project/dashboard:master
           name: dashboard
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+          ports:
+            - containerPort: 3000
+              hostPort: 3000
+              name: dashboard
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 # Fyipe Dashoard Service
 apiVersion: v1
@@ -44,14 +43,13 @@ metadata:
   name: dashboard
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 3000
+    - port: 80
+      protocol: TCP
+      targetPort: 3000
   selector:
     app: dashboard
   type: LoadBalancer
 ---
-
 # Fyipe App Accounts Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -70,19 +68,19 @@ spec:
         app: accounts
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/accounts:latest
-        name: accounts
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        ports:
-        - containerPort: 3003
-          hostPort: 3003
+        - image: registry.gitlab.com/fyipe-project/accounts:latest
           name: accounts
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+          ports:
+            - containerPort: 3003
+              hostPort: 3003
+              name: accounts
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 # Fyipe Accounts Service
 apiVersion: v1
@@ -93,14 +91,13 @@ metadata:
   name: accounts
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 3003
+    - port: 80
+      protocol: TCP
+      targetPort: 3003
   selector:
     app: accounts
   type: LoadBalancer
 ---
-
 # Fyipe Backend Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -119,35 +116,35 @@ spec:
         app: backend
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/backend:master
-        name: backend
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        - name: JWT_SECRET
-          value: "idfn3873458973457453"
-        - name: MONGO_URL
-          value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
-        - name: REDIS_HOST
-          value: redis-cluster
-        - name: REDIS_PORT
-          value: "6379"
-        - name: STRIPE_PUBLIC_KEY
-          value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
-        - name: STRIPE_PRIVATE_KEY
-          value: "sk_live_ADLzzMrOCz0kyYTsxWatAqxh"
-        - name: PORT
-          value: "3002"
-        - name: CLUSTER_KEY
-          value: "asjldjsa-30as-nm32-q2as-lkj09asdjn0a"
-        ports:
-        - containerPort: 3002
-          hostPort: 3002
+        - image: registry.gitlab.com/fyipe-project/backend:master
           name: backend
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+            - name: JWT_SECRET
+              value: "idfn3873458973457453"
+            - name: MONGO_URL
+              value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
+            - name: REDIS_HOST
+              value: redis-cluster
+            - name: REDIS_PORT
+              value: "6379"
+            - name: STRIPE_PUBLIC_KEY
+              value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
+            - name: STRIPE_PRIVATE_KEY
+              value: "sk_live_ADLzzMrOCz0kyYTsxWatAqxh"
+            - name: PORT
+              value: "3002"
+            - name: CLUSTER_KEY
+              value: "asjldjsa-30as-nm32-q2as-lkj09asdjn0a"
+          ports:
+            - containerPort: 3002
+              hostPort: 3002
+              name: backend
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 # Fyipe Backend Deployment
 apiVersion: v1
@@ -158,9 +155,9 @@ metadata:
   name: backend
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 3002
+    - port: 80
+      protocol: TCP
+      targetPort: 3002
   selector:
     app: backend
   type: LoadBalancer
@@ -183,19 +180,19 @@ spec:
         app: home
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/home:master
-        name: home
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        ports:
-        - containerPort: 1444
-          hostPort: 1444
+        - image: registry.gitlab.com/fyipe-project/home:master
           name: home
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+          ports:
+            - containerPort: 1444
+              hostPort: 1444
+              name: home
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 apiVersion: v1
 kind: Service
@@ -205,9 +202,9 @@ metadata:
   name: home
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 1444
+    - port: 80
+      protocol: TCP
+      targetPort: 1444
   selector:
     app: home
   type: LoadBalancer
@@ -229,19 +226,19 @@ spec:
         app: status-page
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/status-page:master
-        name: status-page
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        ports:
-        - containerPort: 3006
-          hostPort: 3006
+        - image: registry.gitlab.com/fyipe-project/status-page:master
           name: status-page
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+          ports:
+            - containerPort: 3006
+              hostPort: 3006
+              name: status-page
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 apiVersion: v1
 kind: Service
@@ -251,9 +248,9 @@ metadata:
   name: status-page
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 3006
+    - port: 80
+      protocol: TCP
+      targetPort: 3006
   selector:
     app: status-page
   type: LoadBalancer
@@ -276,27 +273,27 @@ spec:
         app: probe
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/probe:master
-        name: probe
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        - name: SERVER_URL
-          value: "https://api.fyipe.com"
-        - name: PORT
-          value: "3008"
-        - name: PROBE_NAME
-          value: "EU"
-        - name: PROBE_KEY
-          value: "asjldjsa-30as-nm32-q2as-lkj09asdjn0a"
-        ports:
-        - containerPort: 3008
-          hostPort: 3008
+        - image: registry.gitlab.com/fyipe-project/probe:master
           name: probe
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+            - name: SERVER_URL
+              value: "https://api.fyipe.com"
+            - name: PORT
+              value: "3008"
+            - name: PROBE_NAME
+              value: "EU"
+            - name: PROBE_KEY
+              value: "asjldjsa-30as-nm32-q2as-lkj09asdjn0a"
+          ports:
+            - containerPort: 3008
+              hostPort: 3008
+              name: probe
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 apiVersion: v1
 kind: Service
@@ -306,9 +303,9 @@ metadata:
   name: probe
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 3008
+    - port: 80
+      protocol: TCP
+      targetPort: 3008
   selector:
     app: probe
   type: LoadBalancer
@@ -332,19 +329,19 @@ spec:
         app: api-docs
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/api-docs:master
-        name: api-docs
-        imagePullPolicy: Always
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        ports:
-        - containerPort: 1445
-          hostPort: 1445
+        - image: registry.gitlab.com/fyipe-project/api-docs:master
           name: api-docs
+          imagePullPolicy: Always
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+          ports:
+            - containerPort: 1445
+              hostPort: 1445
+              name: api-docs
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 apiVersion: v1
 kind: Service
@@ -354,9 +351,9 @@ metadata:
   name: api-docs
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 1445
+    - port: 80
+      protocol: TCP
+      targetPort: 1445
   selector:
     app: api-docs
   type: LoadBalancer
@@ -378,19 +375,19 @@ spec:
         app: admin-dashboard
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/admin-dashboard:master
-        name: admin-dashboard
-        imagePullPolicy: Always
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        ports:
-        - containerPort: 3100
-          hostPort: 3100
+        - image: registry.gitlab.com/fyipe-project/admin-dashboard:master
           name: admin-dashboard
+          imagePullPolicy: Always
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+          ports:
+            - containerPort: 3100
+              hostPort: 3100
+              name: admin-dashboard
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 apiVersion: v1
 kind: Service
@@ -400,9 +397,9 @@ metadata:
   name: admin-dashboard
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 3100
+    - port: 80
+      protocol: TCP
+      targetPort: 3100
   selector:
     app: admin-dashboard
   type: LoadBalancer
@@ -415,8 +412,8 @@ metadata:
     name: mongo-headless
 spec:
   ports:
-  - port: 27017
-    targetPort: 27017
+    - port: 27017
+      targetPort: 27017
   clusterIP: None
   selector:
     role: mongo
@@ -429,17 +426,16 @@ metadata:
   name: redis-cluster
 spec:
   ports:
-  - port: 6379
-    targetPort: 6379
-    name: client
-  - port: 16379
-    targetPort: 16379
-    name: gossip
+    - port: 6379
+      targetPort: 6379
+      name: client
+    - port: 16379
+      targetPort: 16379
+      name: gossip
   selector:
     app: redis-cluster
   type: ClusterIP
 ---
-
 # stateful set config for mongo
 apiVersion: apps/v1beta1
 kind: StatefulSet
@@ -458,23 +454,26 @@ spec:
       containers:
         - name: mongo
           image: mongo:4.0
-          command: ["/bin/sh","-c"]
-          args: ["echo 2J2W5Jm7G38y169r8s5T1dW > mongo.key; chmod 600 mongo.key; mongod --replSet fyipe --keyFile mongo.key --smallfiles --noprealloc --bind_ip_all"]
+          command: ["/bin/sh", "-c"]
+          args:
+            [
+              "echo 2J2W5Jm7G38y169r8s5T1dW > mongo.key; chmod 600 mongo.key; mongod --replSet fyipe --keyFile mongo.key --smallfiles --noprealloc --bind_ip_all",
+            ]
           ports:
             - containerPort: 27017
           volumeMounts:
             - name: persistent-storage
               mountPath: /data/db
   volumeClaimTemplates:
-  - metadata:
-      name: persistent-storage
-      annotations:
-        volume.beta.kubernetes.io/storage-class: productiondata
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 900Gi
+    - metadata:
+        name: persistent-storage
+        annotations:
+          volume.beta.kubernetes.io/storage-class: productiondata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 900Gi
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -516,10 +515,10 @@ spec:
           image: redis:5.0.1-alpine
           command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
           env:
-          - name: POD_IP
-            valueFrom:
-              fieldRef:
-                fieldPath: status.podIP
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           ports:
             - containerPort: 6379
               name: client
@@ -538,16 +537,14 @@ spec:
                 name: redis-cluster
                 defaultMode: 0755
   volumeClaimTemplate:
-  - metadata:
-      name: data
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 1Gi
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
 ---
-
-
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -560,7 +557,6 @@ spec:
       storage: 900Gi
   storageClassName: primarybackup
 ---
-
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -573,8 +569,6 @@ spec:
       storage: 900Gi
   storageClassName: secondbackup
 ---
-
-
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -589,24 +583,24 @@ spec:
         name: mongo-backup-primary
     spec:
       containers:
-      - image: tutum/mongodb-backup
-        name: mongodb-backup
-        ports:
-        - name: mongo
-          containerPort: 27017
-          hostPort: 27017
-        env:
-        - name: MAX_BACKUPS
-          value: "15"
-        - name: MONGODB_USER
-          value: "admin"
-        - name: MONGODB_PASS
-          value: "372b60f4-704c-4205-8e5c-45cdbf44b1fc"
-        - name: MONGODB_HOST
-          value: "mongo-0.mongo-headless.default.svc.cluster.local"
-        - name: MONGODB_PORT
-          value: "27017"
-        volumeMounts:
+        - image: tutum/mongodb-backup
+          name: mongodb-backup
+          ports:
+            - name: mongo
+              containerPort: 27017
+              hostPort: 27017
+          env:
+            - name: MAX_BACKUPS
+              value: "15"
+            - name: MONGODB_USER
+              value: "admin"
+            - name: MONGODB_PASS
+              value: "372b60f4-704c-4205-8e5c-45cdbf44b1fc"
+            - name: MONGODB_HOST
+              value: "mongo-0.mongo-headless.default.svc.cluster.local"
+            - name: MONGODB_PORT
+              value: "27017"
+          volumeMounts:
             - name: mongo-backup
               mountPath: /backup
       volumes:
@@ -614,7 +608,6 @@ spec:
           persistentVolumeClaim:
             claimName: mongo-backup-pvc
 ---
-
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -629,24 +622,24 @@ spec:
         name: mongo-backup-secondary
     spec:
       containers:
-      - image: tutum/mongodb-backup
-        name: mongodb-backup
-        ports:
-        - name: mongo
-          containerPort: 27017
-          hostPort: 27017
-        env:
-        - name: MAX_BACKUPS
-          value: "15"
-        - name: MONGODB_USER
-          value: "admin"
-        - name: MONGODB_PASS
-          value: "372b60f4-704c-4205-8e5c-45cdbf44b1fc"
-        - name: MONGODB_HOST
-          value: "mongo-0.mongo-headless.default.svc.cluster.local"
-        - name: MONGODB_PORT
-          value: "27017"
-        volumeMounts:
+        - image: tutum/mongodb-backup
+          name: mongodb-backup
+          ports:
+            - name: mongo
+              containerPort: 27017
+              hostPort: 27017
+          env:
+            - name: MAX_BACKUPS
+              value: "15"
+            - name: MONGODB_USER
+              value: "admin"
+            - name: MONGODB_PASS
+              value: "372b60f4-704c-4205-8e5c-45cdbf44b1fc"
+            - name: MONGODB_HOST
+              value: "mongo-0.mongo-headless.default.svc.cluster.local"
+            - name: MONGODB_PORT
+              value: "27017"
+          volumeMounts:
             - name: mongo-backup
               mountPath: /backup
       volumes:
@@ -654,8 +647,6 @@ spec:
           persistentVolumeClaim:
             claimName: mongo-secondary-backup-pvc
 ---
-
-
 kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
@@ -665,8 +656,6 @@ parameters:
   type: pd-ssd
 reclaimPolicy: Retain
 ---
-
-
 kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
@@ -676,7 +665,6 @@ parameters:
   type: pd-standard
 reclaimPolicy: Retain
 ---
-
 kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
