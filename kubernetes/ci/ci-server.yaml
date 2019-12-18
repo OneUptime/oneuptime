@@ -199,6 +199,10 @@ spec:
           value: "idfn3873458973457453"
         - name: MONGO_URL
           value: "mongodb://mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
+        - name: REDIS_HOST
+          value: redis-cluster
+        - name: REDIS_PORT
+          value: "6379"
         - name: STRIPE_PUBLIC_KEY
           value: "pk_test_4I2S0sD0TYJxEWQTYlC2Rk6E"
         - name: STRIPE_PRIVATE_KEY
@@ -426,7 +430,24 @@ spec:
   clusterIP: None
   selector:
     role: mongo
-
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: redis-cluster
+  name: redis-cluster
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: client
+  - port: 16379
+    targetPort: 16379
+    name: gossip
+  selector:
+    app: redis-cluster
+  type: ClusterIP
 ---
 
 # stateful set config for mongo
@@ -468,7 +489,76 @@ spec:
         requests:
           storage: 900Gi
 ---
-
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-cluster
+data:
+  update-node.sh: |
+    #!/bin/sh
+    REDIS_NODES="/data/nodes.conf"
+    sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
+    exec "$@"
+  redis.conf: |+
+    cluster-enabled yes
+    cluster-require-full-coverage no
+    cluster-node-timeout 15000
+    cluster-config-file /data/nodes.conf
+    cluster-migration-barrier 1
+    appendonly yes
+    protected-mode no
+---
+# stateful set config for redis
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-cluster
+spec:
+  serviceName: redis-cluster
+  replicas: 6
+  selector:
+    matchLabels:
+      app: redis-cluster
+  template:
+    metadata:
+      labels:
+        app: redis-cluster
+    spec:
+      containers:
+        - name: redis
+          image: redis:5.0.1-alpine
+          command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
+          env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          ports:
+            - containerPort: 6379
+              name: client
+            - containerPort: 16379
+              name: gossip
+          volumeMounts:
+            - name: conf
+              mountPath: /conf
+              readOnly: false
+            - name: data
+              mountPath: /data
+              readOnly: false
+          volumes:
+            - name: conf
+              configMap:
+                name: redis-cluster
+                defaultMode: 0755
+  volumeClaimTemplate:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+---
 
 apiVersion: v1
 kind: PersistentVolumeClaim
