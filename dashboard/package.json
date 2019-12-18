@@ -71,6 +71,7 @@
     "redux-thunk": "^2.2.0",
     "sane-email-validation": "^1.1.0",
     "should": "^13.2.3",
+    "socket.io-client": "^2.3.0",
     "to-pascal-case": "^1.0.0",
     "universal-cookie": "^4.0.0",
     "valid-url": "^1.0.9"
