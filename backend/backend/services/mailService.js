@@ -8,8 +8,6 @@ var defaultEmailTemplates = require('../config/emailTemplate');
 var EmailSmtpService = require('./emailSmtpService');
 var { ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST } = process.env;
 
-console.log({ ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST });
-
 var options = {
     viewEngine: {
         extname: '.hbs',
