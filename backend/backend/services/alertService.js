@@ -158,7 +158,7 @@ module.exports = {
                                 if (escalation) {
                                     escalation.teamMember.forEach(async (teamMember) => {
                                         const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
-                                        if (currentTime >= startTime && currentTime <= endTime) {
+                                        if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) { 
                                             var user = await UserService.findOneBy({ _id: teamMember.member });
 
                                             if (user) {
@@ -171,14 +171,14 @@ module.exports = {
                                                     let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
                                                     let firstName = user.name;
                                                     var emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType: 'Team Member Incident' });
-                                                    await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, emailTemplate);
+                                                    await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType);
                                                     await _this.create(incident.projectId, monitorId, AlertType.Email, user._id, incident._id);
                                                 }
                                                 if (escalation.sms) {
                                                     let alertStatus, alert, balanceStatus;
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
                                                     if (balanceCheckStatus) {
-                                                        let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name);
+                                                        let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name, incident.incidentType);
                                                         if (alertSuccess) {
                                                             alertStatus = 'success';
                                                             alert = await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
@@ -195,7 +195,7 @@ module.exports = {
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
                                                     if (balanceCheckStatus) {
 
-                                                        let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, accessToken, incident._id, incident.projectId);
+                                                        let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
                                                         if (alertSuccess) {
                                                             alertStatus = 'success';
                                                             alert = await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
