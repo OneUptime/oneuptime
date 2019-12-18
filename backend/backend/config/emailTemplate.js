@@ -246,7 +246,8 @@ span.st-Delink.st-Delink--footer a {
       </td>
       <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
         <div>
-          <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
+          <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href={{homeURL}}>
+
             <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #0080a8; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
           </a>
         </div>
