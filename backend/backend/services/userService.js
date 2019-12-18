@@ -116,11 +116,11 @@ module.exports = {
 
         if (!query.deleted) query.deleted = false;
 
-        if(data.role) delete data.role;
-        if(data.airtableId) delete data.airtableId;
-        if(data.tutorial) delete data.tutorial;
-        if(data.paymentFailedDate) delete data.paymentFailedDate;
-        if(data.alertPhoneNumber) delete data.alertPhoneNumber;
+        if (data.role) delete data.role;
+        if (data.airtableId) delete data.airtableId;
+        if (data.tutorial) delete data.tutorial;
+        if (data.paymentFailedDate) delete data.paymentFailedDate;
+        if (data.alertPhoneNumber) delete data.alertPhoneNumber;
         if (typeof data.isBlocked !== 'boolean') {
             delete data.isBlocked;
         }
@@ -134,6 +134,24 @@ module.exports = {
             return updatedUser;
         } catch (error) {
             ErrorService.log('userService.updateOneBy', error);
+            throw error;
+        }
+    },
+
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await UserModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('userService.updateMany', error);
             throw error;
         }
     },
@@ -272,7 +290,7 @@ module.exports = {
         try {
             var _this = this;
             if (util.isEmailValid(email)) {
-            // find user if present in db.
+                // find user if present in db.
                 var user = await _this.findOneBy({ email: email });
 
                 if (!user) {

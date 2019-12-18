@@ -156,10 +156,10 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitors: []
                 }
             });
 
@@ -174,10 +174,10 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
                     requesting: true,
                     error: null,
                     success: false,
-                    monitors: []
                 }
             });
 
@@ -390,10 +390,10 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitors: []
                 },
                 fetchMonitorsSubscriberRequest: false
             });
@@ -582,10 +582,10 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitors: [...state.monitorsList.monitors],
                 },
                 deleteMonitor: false,
             });
@@ -595,10 +595,10 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
                     requesting: false,
                     error: null,
                     success: false,
-                    monitors: [...state.monitorsList.monitors]
                 },
                 deleteMonitor: action.payload,
             });

@@ -180,6 +180,24 @@ module.exports = {
         }
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await ScheduleModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('scheduleService.updateMany', error);
+            throw error;
+        }
+    },
+
     saveSchedule: async function (schedule) {
         try {
             schedule = await schedule.save();

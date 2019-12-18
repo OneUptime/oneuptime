@@ -47,6 +47,24 @@ module.exports = {
         }
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await ProbeModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('ProbeService.updateMany', error);
+            throw error;
+        }
+    },
+
     findBy: async function (query, limit, skip) {
         try {
             if (!skip) skip = 0;

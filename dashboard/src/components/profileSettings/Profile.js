@@ -262,6 +262,13 @@ export class ProfileSetting extends Component {
         if (profilePic || this.props.fileUrl) {
             profileImage = <img src={fileData} alt="" className="image-small-circle" style={{ marginTop: '10px' }} />;
         }
+        var verifiedEmail = (emailValue !== profileSettingState.userEmail) || !isVerified;
+        var renderSendEmailVerification = !profileSettings.requesting && ((emailValue !== profileSettingState.userEmail) || !isVerified);
+        var verifiedPhone = profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber && !verified;
+        var renderSmsButtons = !profileSettings.requesting && (!sendVerificationSMSError || (sendVerificationSMSError && (!initPhoneVerification || (profileSettingState.alertPhoneNumber !== profileSettingState.initPhoneVerificationNumber))));
+        var renderSendSmsButton = !verified && (profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber) && !initPhoneVerification;
+        var renderVerifySmsTools = initPhoneVerification && !verified && profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber;
+
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -308,7 +315,7 @@ export class ProfileSetting extends Component {
                                                 </div>
                                                 <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5 }}>
                                                     {
-                                                        (emailValue !== profileSettingState.userEmail) || !isVerified ?
+                                                        verifiedEmail ?
                                                             <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                     Not verified
@@ -322,7 +329,7 @@ export class ProfileSetting extends Component {
                                                     }
                                                 </div>
                                             </div>
-                                            <ShouldRender if={!profileSettings.requesting && ((emailValue !== profileSettingState.userEmail) || !isVerified)}>
+                                            <ShouldRender if={renderSendEmailVerification}>
                                                 <div className="bs-Fieldset-row" style={{ marginBottom: -5, marginTop: -5 }}>
                                                     <label className="bs-Fieldset-label"></label>
                                                     <div className="bs-Fieldset-fields">
@@ -352,7 +359,7 @@ export class ProfileSetting extends Component {
                                                 </div>
                                                 <div className="bs-Fieldset-fields" style={{ marginLeft: -80, marginTop: 5 }}>
                                                     {
-                                                        profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber && !verified ?
+                                                        verifiedPhone ?
                                                             <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                     Not verified
@@ -367,8 +374,8 @@ export class ProfileSetting extends Component {
                                                     }
                                                 </div>
                                             </div>
-                                            <ShouldRender if={!profileSettings.requesting && (!sendVerificationSMSError || (sendVerificationSMSError && (!initPhoneVerification || (profileSettingState.alertPhoneNumber !== profileSettingState.initPhoneVerificationNumber))))}>
-                                                <ShouldRender if={!verified && (profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber) && !initPhoneVerification}>
+                                            <ShouldRender if={renderSmsButtons}>
+                                                <ShouldRender if={renderSendSmsButton}>
                                                     <div className="bs-Fieldset-row" style={{ marginBottom: -5, marginTop: -5 }}>
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
@@ -383,7 +390,7 @@ export class ProfileSetting extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                                <ShouldRender if={initPhoneVerification && !verified && profileSettingState.alertPhoneNumber !== initialAlertPhoneNumber}>
+                                                <ShouldRender if={renderVerifySmsTools}>
                                                     {(!verifySMSCodeError && !sendVerificationSMSError && !sendVerificationSMSRequesting) &&
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label" style={{ flex: '30% 0 0' }}><span></span></label>
@@ -625,10 +632,11 @@ function mapStateToProps(state) {
     if (isNaN(resendTimer)) {
         resendTimer = parseInt(resendTimer, 10);
     }
+    var initValues = state.profileSettings.profileSetting ? state.profileSettings.profileSetting.data : {};
     return {
         fileUrl: state.profileSettings.file,
         profileSettings: state.profileSettings.profileSetting,
-        initialValues: state.profileSettings.profileSetting ? state.profileSettings.profileSetting.data : {},
+        initialValues: initValues,
         projectId: state.project.currentProject !== null && state.project.currentProject._id,
         otp: state.form.Profile && state.form.Profile.values && state.form.Profile.values.otp,
         sendVerificationSMSError: state.profileSettings.smsVerification.error,

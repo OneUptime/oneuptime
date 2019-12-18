@@ -35,6 +35,24 @@ module.exports = {
         return subscriberAlert;
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await SubscriberAlertModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.updateMany', error);
+            throw error;
+        }
+    },
+
     deleteBy: async function (query, userId) {
         try {
             var subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {

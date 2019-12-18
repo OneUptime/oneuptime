@@ -35,6 +35,24 @@ module.exports = {
         return updatedSmsTemplate;
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await SmsTemplateModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('smsTemplateService.updateMany', error);
+            throw error;
+        }
+    },
+
     deleteBy: async function(query, userId){
         try {
             var smsTemplate = await SmsTemplateModel.findOneAndUpdate(query, {
