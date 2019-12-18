@@ -177,6 +177,8 @@ spec:
           value: "https://staging-accounts.fyipe.com"
         - name: CLUSTER_KEY
           value: "lkjdfsas-89ul-et5r-jmkf-u98pura8r89e"
+        - name: HOME_HOST
+          value: "https://staging.fyipe.com"
         ports:
         - containerPort: 3002
           hostPort: 3002
