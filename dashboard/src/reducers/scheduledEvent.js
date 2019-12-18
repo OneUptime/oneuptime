@@ -29,7 +29,7 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false
-    }, 
+    },
     deletedScheduledEvent: {
         error: null,
         requesting: false,
@@ -111,7 +111,6 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 scheduledEventList: {
                     ...state.scheduledEventList,
                     requesting: true,
-                    scheduledEvents: []
                 }
             });
 
@@ -176,20 +175,20 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...state,
                 updatedScheduledEvent: {
+                    ...state.updatedScheduledEvent,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    scheduledEvent: null
                 }
             });
         case UPDATE_SCHEDULED_EVENT_REQUEST:
             return Object.assign({}, state, {
                 ...state,
                 updatedScheduledEvent: {
+                    ...state.updatedScheduledEvent,
                     requesting: true,
                     error: null,
                     success: false,
-                    scheduledEvent: null
                 }
             });
 

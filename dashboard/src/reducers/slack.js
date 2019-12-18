@@ -11,8 +11,8 @@ import {
 
 const initialState = {
     teams:{
-        error:null, 
-        requesting: false, 
+        error:null,
+        requesting: false,
         success:false,
         teams:[],
         count: null,
@@ -20,8 +20,8 @@ const initialState = {
         skip: null
     },
     deleteTeam: {
-        error:null, 
-        requesting: false, 
+        error:null,
+        requesting: false,
         success:false,
     },
     pages: {
@@ -36,13 +36,10 @@ export default (state = initialState, action) => {
         case GET_SLACK_TEAM_FAILED:
             return Object.assign({}, state, {
                 teams: {
+                    ...state.teams,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    teams : [],
-                    count: null,
-                    limit: null,
-                    skip: null
                 },
             });
 
@@ -62,21 +59,18 @@ export default (state = initialState, action) => {
         case GET_SLACK_TEAM_REQUEST:
             return Object.assign({}, state, {
                 teams: {
+                    ...state.teams,
                     requesting: true,
                     error: null,
                     success: false,
-                    teams:[],
-                    count: null,
-                    limit: null,
-                    skip: null
                 },
             });
 
         case GET_SLACK_TEAM_RESET:
             return Object.assign({}, state, {
                 teams:{
-                    error:null, 
-                    requesting: false, 
+                    error:null,
+                    requesting: false,
                     success:false,
                     teams:[],
                     count: null,
@@ -130,8 +124,8 @@ export default (state = initialState, action) => {
         case DELETE_SLACK_LINK_RESET:
             return Object.assign({}, state, {
                 deleteTeam:{
-                    error:null, 
-                    requesting: false, 
+                    error:null,
+                    requesting: false,
                     success:false
                 }
             });

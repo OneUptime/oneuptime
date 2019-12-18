@@ -61,6 +61,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamLoading: {
+					...state.teamLoading,
 					error: null,
 					requesting: true,
 					success: false,
@@ -83,6 +84,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamLoading: {
+					...state.teamLoading,
 					error: action.payload,
 					requesting: false,
 					success: false,
@@ -93,6 +95,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamLoading: {
+					...state.teamLoading,
 					error: null,
 					requesting: true,
 					success: false,
@@ -104,6 +107,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamLoading: {
+					...state.teamLoading,
 					error: null,
 					requesting: false,
 					success: true,
@@ -115,6 +119,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamLoading: {
+					...state.teamLoading,
 					error: action.payload,
 					requesting: false,
 					success: false,
@@ -125,6 +130,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamCreate: {
+					...state.teamCreate,
 					error: action.payload,
 					requesting: false,
 					success: false,
@@ -135,6 +141,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamCreate: {
+					...state.teamCreate,
 					error: null,
 					requesting: false,
 					success: true,
@@ -151,6 +158,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamCreate: {
+					...state.teamCreate,
 					error: null,
 					requesting: true,
 					success: false,
@@ -161,6 +169,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamdelete: {
+					...state.teamdelete,
 					error: null,
 					requesting: true,
 					success: false,
@@ -172,6 +181,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamdelete: {
+					...state.teamdelete,
 					error: null,
 					requesting: false,
 					success: true,
@@ -189,6 +199,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamdelete: {
+					...state.teamdelete,
 					error: action.payload,
 					requesting: false,
 					success: false,
@@ -200,6 +211,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamdelete: {
+					...state.teamdelete,
 					error: null,
 					requesting: false,
 					success: false,
@@ -211,6 +223,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamUpdateRole: {
+					...state.teamUpdateRole,
 					error: null,
 					requesting: true,
 					success: false,
@@ -222,6 +235,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamUpdateRole: {
+					...state.teamUpdateRole,
 					error: null,
 					requesting: false,
 					success: true,
@@ -239,6 +253,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamUpdateRole: {
+					...state.teamUpdateRole,
 					error: action.payload,
 					requesting: false,
 					success: false,

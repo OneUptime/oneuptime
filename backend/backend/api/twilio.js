@@ -25,11 +25,11 @@ const SmsCountService = require('../services/smsCountService');
  * @returns Twiml with 'Content-Type', 'text/xml' in headers for twilio to understand.
  */
 router.get('/voice/incident', async function (req, res) {
-    const { accessToken, projectId, incidentId } = req.query;
+    const { accessToken, projectId, incidentId, monitorName, incidentType } = req.query;
     let actionPath = `${baseApiUrl}/twilio/voice/incident/action?projectId=${projectId}&amp;incidentId=${incidentId}&amp;accessToken=${accessToken}`;
 
     // Twilio says this message first. The gather listens for keyboard clicks
-    const message = '<Say voice="alice">This is an alert from Fyipe. Your monitor ' + req.query.monitorName + ' is down. Press one to acknowledge or two to resolve.</Say>';
+    const message = '<Say voice="alice">This is an alert from Fyipe. Your monitor ' + monitorName + ' is ' + incidentType + '. Press one to acknowledge or two to resolve.</Say>';
     const gather = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" timeout="15"> ` + message + '</Gather>';
 
     // This is said when user hits no key.

@@ -153,6 +153,24 @@ module.exports = {
         }
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await ProjectModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('projectService.updateMany', error);
+            throw error;
+        }
+    },
+
     updateAlertOptions: async function (data) {
         var projectId = data._id;
         var userId = data.userId;

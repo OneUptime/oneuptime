@@ -104,6 +104,25 @@ module.exports = {
         }
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await NotificationModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await NotificationModel.find(query)
+                .sort({ createdAt: -1 });
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('notificationService.updateMany', error);
+            throw error;
+        }
+    },
+
     delete: async function (notificationId) {
         try {
             var result = await NotificationModel.findById(notificationId).remove();
