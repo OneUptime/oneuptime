@@ -197,7 +197,7 @@ spec:
             - name: MONGO_URL
               value: "mongodb://mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
             - name: REDIS_HOST
-              value: "redis-0.redis-cluster.default.svc.cluster.local"
+              value: redis-cluster
             - name: REDIS_PORT
               value: "6379"
             - name: STRIPE_PUBLIC_KEY
