@@ -126,6 +126,10 @@ spec:
               value: "idfn3873458973457453"
             - name: MONGO_URL
               value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
+            - name: REDIS_HOST
+              value: "redis-0.redis-cluster.default.svc.cluster.local"
+            - name: REDIS_PORT
+              value: "6379"
             - name: STRIPE_PUBLIC_KEY
               value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
             - name: STRIPE_PRIVATE_KEY
@@ -417,16 +421,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: redis-cluster
   name: redis-cluster
+  labels:
+    name: redis-cluster
 spec:
   ports:
     - port: 6379
       targetPort: 6379
+  clusterIP: None
   selector:
-    app: redis-cluster
-  type: ClusterIP
+    role: redis
 ---
 # stateful set config for mongo
 apiVersion: apps/v1beta1
@@ -467,64 +471,32 @@ spec:
           requests:
             storage: 900Gi
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: redis-cluster
-data:
-  update-node.sh: |
-    #!/bin/sh
-    REDIS_NODES="/data/nodes.conf"
-    sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
-    exec "$@"
-  redis.conf: |+
-    cluster-enabled yes
-    cluster-require-full-coverage no
-    cluster-node-timeout 15000
-    cluster-config-file /data/nodes.conf
-    cluster-migration-barrier 1
-    appendonly yes
-    protected-mode no
----
 # stateful set config for redis
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: redis-cluster
+  name: redis
 spec:
   serviceName: redis-cluster
   replicas: 6
   selector:
     matchLabels:
-      app: redis-cluster
+      role: redis
   template:
     metadata:
       labels:
-        app: redis-cluster
+        role: redis
+        environment: production
     spec:
+      terminationGracePeriodSeconds: 10
       containers:
         - name: redis
           image: redis:5.0.7
-          command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
           ports:
             - containerPort: 6379
           volumeMounts:
-            - name: conf
-              mountPath: /conf
-              readOnly: false
             - name: data
               mountPath: /data
-              readOnly: false
-          volumes:
-            - name: conf
-              configMap:
-                name: redis-cluster
-                defaultMode: 0755
   volumeClaimTemplate:
     - metadata:
         name: data
