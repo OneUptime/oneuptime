@@ -21,7 +21,7 @@ io.adapter(redisAdapter({
 }));
 
 global.io = io;
-
+console.log(process.env.REDIS_HOST, process.env.REDIS_PORT, global.io);
 app.use(cors());
 
 app.use(function (req, res, next) {
