@@ -84,6 +84,12 @@ app.get('/legal/subprocessors', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'subprocessors',requestDemoCta:false});
 });
 
+
+app.get('/legal/ccpa', function(req, res) {
+    res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'ccpa',requestDemoCta:false});
+});
+
+
 app.get('/legal/hipaa', function(req, res) {
     res.render('legal.ejs', {footerCards: true, cta:true, blackLogo:false,  section: 'hipaa',requestDemoCta:false});
 });
