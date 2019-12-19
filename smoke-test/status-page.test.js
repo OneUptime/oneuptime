@@ -18,9 +18,9 @@ describe('Check status-page up', () => {
             waitUntil: 'domcontentloaded'
         });
         await page.waitFor(2000);
-        const response = await page.$eval('#login-button > span', (e) => {
+        const response = await page.$eval('#app-loading > div', (e) => {
             return e.innerHTML;
         });
-        expect(response).toBe('Sign in to your account');
+        expect(response).toBe( 'Status page does not exist.');
     })
 })

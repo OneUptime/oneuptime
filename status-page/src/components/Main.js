@@ -95,6 +95,14 @@ class Main extends Component {
 	selectbutton = (data) => {
 		this.props.selectedProbe(data);
 	}
+	renderError = () => {
+		let { error } = this.props.status;
+		if( error === 'Input data schema mismatch.') {
+			return 'Status page does not exist.'
+		} else if (error === 'Project Not present') {
+			return 'Invalid Project.';
+		} else return error;
+	}
 	render() {
 		const probes  = this.props.monitorState && this.props.monitorState[0].monitors[0].probes;
 		const date = new Date();
@@ -103,6 +111,7 @@ class Main extends Component {
 		let statusMessage = '';
 		let faviconurl = '';
 		let isGroupedByMonitorCategory = false;
+		let error = this.renderError();
 
 		if (this.props.statusData && this.props.statusData.monitorIds) {
 
@@ -251,31 +260,9 @@ class Main extends Component {
 						</div>
 					</div>
 				</ShouldRender>
-
-				<ShouldRender if={this.props.login.error}>
-					<div>error</div>
+				<ShouldRender if={error}>
 					<div id="app-loading">
-						<div>{this.props.login.error}</div>
-					</div>
-				</ShouldRender>
-
-				<ShouldRender if={this.props.status.error}>
-					<div>error</div>
-					<div id="app-loading">
-						<div>{this.props.status.error}</div>
-					</div>
-				</ShouldRender>
-
-				<ShouldRender if={this.props.status && this.props.status.error && this.props.status.error !== 'Project Not present' && this.props.status.error !== 'No Monitors Added yet'}>
-					<div>error</div>
-					<div id="app-loading">
-						<div>Cannot connect to server.</div>
-					</div>
-				</ShouldRender>
-				<ShouldRender if={this.props.status && this.props.status.error && this.props.status.error === 'Project Not present'}>
-					<div> error</div>
-					<div id="app-loading">
-						<div>Invalid Project.</div>
+						<div>{error}</div>
 					</div>
 				</ShouldRender>
 			</div>
