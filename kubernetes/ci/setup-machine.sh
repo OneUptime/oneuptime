@@ -96,8 +96,8 @@ echo "RUNNING COMMAND: sudo apt-get update"
 sudo apt-get update
 echo "RUNNING COMMAND: sudo apt-get install -y mongodb-org"
 sudo apt-get install -y mongodb-org
-echo "RUNNING COMMAND: sudo apt-get install -y redis redis-server"
-sudo apt-get install -y redis redis-server
+echo "RUNNING COMMAND: sudo apt-get install -y redis"
+sudo apt-get install -y redis
 # Install JQ, a way for bash to interact with JSON
 echo "RUNNING COMMAND: sudo apt-get install -y jq"
 sudo apt-get install -y jq
