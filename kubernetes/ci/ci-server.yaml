@@ -432,15 +432,17 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis-cluster
-  labels:
-    name: redis-cluster
 spec:
   ports:
     - port: 6379
       targetPort: 6379
-  clusterIP: None
+      name: client
+    - port: 16379
+      targetPort: 16379
+      name: gossip
   selector:
-    role: redis
+    app: redis-cluster
+  type: ClusterIP
 ---
 # stateful set config for mongo
 apiVersion: apps/v1
@@ -488,31 +490,38 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: redis
+  name: redis-cluster
+  labels:
+    app: redis-cluster
 spec:
   serviceName: redis-cluster
   replicas: 6
-  selector:
-    matchLabels:
-      role: redis
   template:
     metadata:
       labels:
-        role: redis
-        environment: production
+        app: redis-cluster
     spec:
-      terminationGracePeriodSeconds: 10
       containers:
-        - name: redis
+        - name: redis-cluster
           image: redis:5.0.7
+          command: ["/usr/local/bin/redis-server"]
+          args: ["/redis-conf/redis.conf"]
           ports:
             - containerPort: 6379
+              name: client
+            - containerPort: 16379
+              name: gossip
           volumeMounts:
             - name: data
               mountPath: /data
-  volumeClaimTemplate:
+              readOnly: false
+  volumeClaimTemplates:
     - metadata:
         name: data
+        labels:
+          name: redis-cluster
+        annotations:
+          volume.alpha.kubernetes.io/storage-class: productiondata
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:

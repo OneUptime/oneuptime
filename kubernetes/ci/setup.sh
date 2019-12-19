@@ -8,6 +8,11 @@ echo "RUNNING COMMAND: chmod +x ./ci/mongo-setup/setup.sh"
 chmod +x ./kubernetes/ci/mongo-setup/setup.sh
 echo "RUNNING COMMAND: ./ci/mongo-setup/setup.sh"
 ./kubernetes/ci/mongo-setup/setup.sh
+# Setup Redis
+echo "RUNNING COMMAND: chmod +x ./ci/redis-setup/setup.sh"
+chmod +x ./kubernetes/ci/redis-setup/setup.sh
+echo "RUNNING COMMAND: ./ci/redis-setup/setup.sh"
+./kubernetes/ci/redis-setup/setup.sh
 # Setup Kubernetes Cluster
 chmod +x ./kubernetes/ci/setup-cluster.sh
 echo "RUNNING COMMAND: ./ci/setup-cluster.sh"
