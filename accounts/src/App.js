@@ -11,6 +11,8 @@ import ReactGA from 'react-ga';
 import Cookies from 'universal-cookie';
 import { saveStatusPage } from './actions/login';
 import { bindActionCreators } from 'redux';
+import PropTypes from 'prop-types'
+
 
 var cookies = new Cookies();
 var logoutData = cookies.get('logoutData');
@@ -68,6 +70,11 @@ const App = (props) => {
 }
 
 App.displayName = 'App';
+
+
+App.propTypes = {
+	saveStatusPage: PropTypes.func.isRequired,
+}
 
 function mapStateToProps(state) {
 	return state.login;
