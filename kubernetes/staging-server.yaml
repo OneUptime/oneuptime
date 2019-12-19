@@ -250,6 +250,53 @@ spec:
     app: home
   type: LoadBalancer
 ---
+# Slack
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slack
+  labels:
+    app: slack
+spec:
+  selector:
+    matchLabels:
+      app: slack
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: slack
+    spec:
+      containers:
+      - image: registry.gitlab.com/fyipe-project/slack:master
+        name: slack
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: FYIPE_HOSTED
+          value: "true"
+        ports:
+        - containerPort: 1267
+          hostPort: 1267
+          name: slack
+      restartPolicy: Always
+      imagePullSecrets:
+      - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: slack
+  name: slack
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 1267
+  selector:
+    app: slack
+  type: LoadBalancer
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
