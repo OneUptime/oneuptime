@@ -1,4 +1,4 @@
-import {LOGIN_REQUEST,LOGIN_SUCCESS, LOGIN_FAILED, RESET_LOGIN } from '../constants/login';
+import {LOGIN_REQUEST,LOGIN_SUCCESS, LOGIN_FAILED, RESET_LOGIN, SAVE_STATUS_PAGE } from '../constants/login';
 
 
 // The auth reducer. The starting state sets authentication
@@ -9,7 +9,9 @@ const initialState = {
 	requesting: false,
 	user: {},
 	error: null,
-	success: false
+	success: false,
+	statusPageLogin: false,
+	statusPageURL: null
 };
 
 
@@ -37,6 +39,12 @@ export default function register(state = initialState, action) {
 
 		case RESET_LOGIN:
 			return Object.assign({}, state, initialState);
+
+		case SAVE_STATUS_PAGE:
+			return Object.assign({}, state, {
+				statusPageLogin: action.payload.statusPageLogin,
+				statusPageURL: action.payload.statusPageURL
+			})
 
 		default:
 			return state;

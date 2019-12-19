@@ -3,6 +3,16 @@ import './App.css';
 import Main from './components/Main';
 import Login from './components/Login';
 import { BrowserRouter as Router, Route, Switch,Redirect } from 'react-router-dom';
+import { User } from './config';
+import queryString from 'query-string';
+
+const userId = queryString.parse(window.location.search).userId;
+const accessToken = queryString.parse(window.location.search).accessToken;
+
+if (userId && accessToken){
+	User.setUserId(userId);
+	User.setAccessToken(accessToken);
+}
 
 const App = () => (
     <Router>

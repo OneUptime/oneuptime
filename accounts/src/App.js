@@ -6,9 +6,11 @@ import { allRoutes } from './routes';
 import NotFound from './components/404';
 import BackboneModals from './containers/BackboneModals';
 import { User, DASHBOARD_URL, DOMAIN_URL } from './config';
-
+import queryString from 'query-string';
 import ReactGA from 'react-ga';
 import Cookies from 'universal-cookie';
+import { saveStatusPage } from './actions/login';
+import { bindActionCreators } from 'redux';
 
 var cookies = new Cookies();
 var logoutData = cookies.get('logoutData');
@@ -20,20 +22,30 @@ if (!isServer) {
 	});
 }
 
+const statusPageLogin = queryString.parse(window.location.search).statusPage;
+const statusPageURL = queryString.parse(window.location.search).statusPageURL;
+
 if (logoutData && User.isLoggedIn()) {
 	cookies.remove('logoutData', { domain: DOMAIN_URL });
 	localStorage.clear();
-} else if (!logoutData && User.isLoggedIn()) {
+} else if (!statusPageLogin && !logoutData && User.isLoggedIn()) {
 	window.location = DASHBOARD_URL;
 }
 
-const App = () => (
-	<div style={{ height: '100%' }}>
-		
+const App = (props) => {
+	if (statusPageLogin && statusPageURL) {
+		props.saveStatusPage({
+			statusPageLogin,
+			statusPageURL
+		})
+	}
+
+	return (<div style={{ height: '100%' }}>
+
 		<Router history={history}>
 			<Switch>
 				{allRoutes.filter(route => route.visible).map((route, index) => {
-					return  (
+					return (
 						<Route
 							exact={route.exact}
 							path={route.path}
@@ -52,12 +64,16 @@ const App = () => (
 		</Router>
 		<BackboneModals />
 	</div>
-);
+	);
+}
 
 App.displayName = 'App';
 
 function mapStateToProps(state) {
 	return state.login;
 }
+function mapDispatchToProps(dispatch) {
+	return bindActionCreators({ saveStatusPage }, dispatch)
+}
 
-export default connect(mapStateToProps)(App);
+export default connect(mapStateToProps, mapDispatchToProps)(App);

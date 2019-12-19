@@ -6,13 +6,12 @@ import UptimeGraphs from './UptimeGraphs';
 import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
-import { API_URL } from '../config';
+import { API_URL, ACCOUNTS_URL } from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { getStatusPage, getStatusPageIndividualNote, selectedProbe } from '../actions/status';
-import { Redirect } from 'react-router-dom';
 
 class Main extends Component {
 
@@ -35,6 +34,14 @@ class Main extends Component {
 		this.props.getStatusPage(projectId, url).then(() => {
 			const probes  = this.props.monitorState && this.props.monitorState[0].monitors[0].probes;
 			this.selectbutton(probes[0]._id)
+		})
+		.catch(err => {
+			if (err.message === 'Request failed with status code 401') {
+				const { loginRequired } = this.props.login;
+				if (loginRequired) {
+					window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+				}
+			}
 		})
 	}
 
@@ -89,7 +96,6 @@ class Main extends Component {
 		this.props.selectedProbe(data);
 	}
 	render() {
-		const { loginRequired } = this.props.login;
 		const probes  = this.props.monitorState && this.props.monitorState[0].monitors[0].probes;
 		const date = new Date();
 		let view = false;
@@ -264,12 +270,6 @@ class Main extends Component {
 					<div>error</div>
 					<div id="app-loading">
 						<div>Cannot connect to server.</div>
-					</div>
-				</ShouldRender>
-				<ShouldRender if={loginRequired}>
-					<div>error</div>
-					<div id="app-loading">
-						<div>The status page you are trying to access is private, taking you to login,<Redirect to="/login" /></div>
 					</div>
 				</ShouldRender>
 				<ShouldRender if={this.props.status && this.props.status.error && this.props.status.error === 'Project Not present'}>
