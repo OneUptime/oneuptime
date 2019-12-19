@@ -21,6 +21,7 @@ io.adapter(redisAdapter({
 }));
 
 global.io = io;
+// eslint-disable-next-line
 console.log(process.env.REDIS_HOST, process.env.REDIS_PORT, global.io);
 app.use(cors());
 
