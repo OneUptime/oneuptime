@@ -25,7 +25,12 @@ export class EditMonitorCategoryForm extends React.Component {
     }
 
     submitForm = (values) => {
-		const { _id } = this.props.initialValues;
+        const { _id } = this.props.initialValues;
+        if (this.props.initialValues.name === values.name) {
+            return this.props.closeModal({
+                id: this.props.EditMonitorCategoryModalId
+            });
+        }
         this.props.updateMonitorCategory(this.props.projectId, _id, values).then(() => {
             return this.props.closeModal({
                 id: this.props.EditMonitorCategoryModalId
