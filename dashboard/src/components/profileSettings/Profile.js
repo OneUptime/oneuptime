@@ -350,7 +350,7 @@ export class ProfileSetting extends Component {
                           <div className='bs-Fieldset-fields'>
                             {profileSettingState.initAlertEmail || (profileSettings.data && profileSettings.data.tempEmail) ? (
                               <span style={{ marginBottom: '10px', marginTop: '-5px' }}>
-                                your email
+                                Your email
                                 <span style={{ fontWeight: 'bold' }}>
                                   {' '}
                                   {profileSettings.data && profileSettings.data.email ? profileSettings.data.email : ''}{' '}
@@ -364,7 +364,7 @@ export class ProfileSetting extends Component {
                                     ? profileSettings.data.tempEmail
                                     : ''}{' '}
                                 </span>{' '}
-                                is verified{' '}
+                                is verified.{' '}
                               </span>
                             ) : (
                               ''
@@ -391,7 +391,7 @@ export class ProfileSetting extends Component {
                             {emailVerificationSuccess && (
                               <span>
                                 <br />
-                                Please check your email to verify your email address
+                                Please check your email to verify your email address.
                               </span>
                             )}
                           </div>
@@ -432,7 +432,7 @@ export class ProfileSetting extends Component {
                             <label className='bs-Fieldset-label'></label>
                             <div className='bs-Fieldset-fields'>
                               <span>
-                                your number
+                                Your number
                                 <span style={{ fontWeight: 'bold' }}>
                                   {' '}
                                   {profileSettings.data && profileSettings.data.alertPhoneNumber ? profileSettings.data.alertPhoneNumber : ''}{' '}
@@ -446,7 +446,7 @@ export class ProfileSetting extends Component {
                                     ? profileSettings.data.tempAlertPhoneNumber
                                     : ''}{' '}
                                 </span>{' '}
-                                is verified{' '}
+                                is verified.{' '}
                               </span>
                             </div>
                           </div>
@@ -554,7 +554,7 @@ export class ProfileSetting extends Component {
                                   <label>
                                     {verifySMSCodeError}
                                     {sendVerificationSMSError === 'Server Error.' ? (
-                                      <span>Please provide a valid phone number</span>
+                                      <span>Please provide a valid phone number.</span>
                                     ) : (
                                       <span>{sendVerificationSMSError}</span>
                                     )}

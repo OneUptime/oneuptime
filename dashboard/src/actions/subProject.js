@@ -162,11 +162,11 @@ export function resetSubProjectKeyReset() {
 }
 }
 
-export function resetSubProjectToken(projectId, subProjectId) {
+export function resetSubProjectToken(subProjectId) {
 
 	return function (dispatch) {
 
-		var promise = getApi(`project/${projectId}/${subProjectId}/resetToken`);
+		var promise = getApi(`project/${subProjectId}/resetToken`);
 
 		dispatch(resetSubProjectTokenRequest());
 

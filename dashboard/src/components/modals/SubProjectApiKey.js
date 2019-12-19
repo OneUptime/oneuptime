@@ -18,8 +18,8 @@ class SubProjectApiKey extends Component {
     }
 
     resetSubProjectToken = () => {
-        const { resetSubProjectToken, currentProject, data } = this.props
-        resetSubProjectToken(currentProject._id, data.subProjectId);
+        const { resetSubProjectToken, data } = this.props
+        resetSubProjectToken(data.subProjectId);
     }
 
     render() {
@@ -87,7 +87,6 @@ const mapStateToProps = (state, props) => {
     }
     console.log(subproject);
     return {
-        currentProject: state.project.currentProject,
         subproject: subproject && subproject._id ? subproject : {},
         subProjectResetToken: state.subProject.resetToken
     }
@@ -100,7 +99,6 @@ const mapDispatchToProps = dispatch => {
 SubProjectApiKey.propTypes = {
   closeModal: PropTypes.func,
   closeThisDialog: PropTypes.func.isRequired,
-  currentProject: PropTypes.object,
   data: PropTypes.object,
   resetSubProjectKeyReset: PropTypes.func,
   resetSubProjectToken: PropTypes.func,
