@@ -127,7 +127,7 @@ spec:
             - name: MONGO_URL
               value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
             - name: REDIS_HOST
-              value: redis-cluster
+              value: "redis.default.svc.cluster.local"
             - name: REDIS_PORT
               value: "6379"
             - name: STRIPE_PUBLIC_KEY
@@ -421,18 +421,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: redis-cluster
+  name: redis
 spec:
   ports:
     - port: 6379
-      targetPort: 6379
-      name: client
-    - port: 16379
-      targetPort: 16379
-      name: gossip
+      name: redis
+  clusterIP: None
   selector:
-    app: redis-cluster
-  type: ClusterIP
+    app: redis
 ---
 # stateful set config for mongo
 apiVersion: apps/v1beta1
@@ -474,30 +470,35 @@ spec:
             storage: 900Gi
 ---
 # stateful set config for redis
-apiVersion: apps/v1
+apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
-  name: redis-cluster
-  labels:
-    app: redis-cluster
+  name: redis
 spec:
-  serviceName: redis-cluster
-  replicas: 6
+  selector:
+    matchLabels:
+      app: redis
+  serviceName: redis
+  replicas: 1
   template:
     metadata:
       labels:
-        app: redis-cluster
+        app: redis
     spec:
       containers:
-        - name: redis-cluster
-          image: redis:5.0.7
-          command: ["/usr/local/bin/redis-server"]
-          args: ["/redis-conf/redis.conf"]
+        - name: redis
+          image: redis:3.2-alpine
+          imagePullPolicy: Always
+          args: ["--requirepass", "$(REDIS_PASS)"]
           ports:
             - containerPort: 6379
-              name: client
-            - containerPort: 16379
-              name: gossip
+              name: redis
+          env:
+            - name: REDIS_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: REDIS_PASS
           volumeMounts:
             - name: data
               mountPath: /data
@@ -505,8 +506,6 @@ spec:
   volumeClaimTemplates:
     - metadata:
         name: data
-        labels:
-          name: redis-cluster
         annotations:
           volume.alpha.kubernetes.io/storage-class: productiondata
       spec:

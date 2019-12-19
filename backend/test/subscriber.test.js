@@ -1,6 +1,6 @@
 
 process.env.PORT = 3020;
-process.env.REDIS_HOST = 'redis-0.redis-cluster.default.svc.cluster.local';
+process.env.REDIS_HOST = 'redis.default.svc.cluster.local';
 process.env.REDIS_PORT = 6379;
 let expect = require('chai').expect;
 let userData = require('./data/user');

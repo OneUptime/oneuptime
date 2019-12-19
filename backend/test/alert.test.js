@@ -2,7 +2,7 @@
 /* eslint-disable */
 process.env.PORT = 3020;
 process.env.NODE_ENV = "development";
-process.env.REDIS_HOST = 'redis-0.redis-cluster.default.svc.cluster.local';
+process.env.REDIS_HOST = 'redis.default.svc.cluster.local';
 process.env.REDIS_PORT = 6379;
 var expect = require('chai').expect;
 var userData = require('./data/user');
