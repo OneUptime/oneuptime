@@ -3,10 +3,16 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import { createLogger } from 'redux-logger';
 import { routerMiddleware } from 'react-router-redux';
 import thunk from 'redux-thunk';
-import createHistory from 'history/createBrowserHistory';
+import { createBrowserHistory } from 'history';
 import rootReducer from '../reducer/index';
 
-export const history = createHistory();
+export const history = createBrowserHistory();
+
+export const removeQuery = () => {
+  const location = Object.assign({}, history.location);
+  delete location.search;
+  history.push(location);
+};
 
 const initialState = {};
 const enhancers = [];

@@ -8,6 +8,7 @@ import errors from '../errors'
 import { getQueryVar } from '../config';
 import { resendToken } from './resendToken';
 import Cookies from 'universal-cookie';
+import store from '../store';
 
 // There are three possible states for our login
 // process and we need actions for each of them
@@ -28,6 +29,12 @@ export function loginError(error) {
 
 export function loginSuccess(user) {
 	//save user session details.
+	var state = store.getState();
+	var { statusPageLogin, statusPageURL } = state.login;
+	if (statusPageLogin) {
+		var newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
+		return window.location = newURL;
+	}
 	User.setUserId(user.id);
 	User.setAccessToken(user.tokens.jwtAccessToken);
 	User.setEmail(user.email);
@@ -96,5 +103,12 @@ export function loginUser(values) {
 			dispatch(loginError(errors(error)));
 		});
 		return promise;
+	};
+}
+
+export function saveStatusPage(data) {
+	return {
+		type: types.SAVE_STATUS_PAGE,
+		payload: data
 	};
 }
