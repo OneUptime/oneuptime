@@ -542,6 +542,23 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function (req
 
 });
 
+router.get('/:projectId/:subProjectId/resetToken', getUser, isAuthorized, async function (req, res) {
+    try {
+        var subProjectId = req.params.subProjectId;
+        if (!subProjectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'subProjectId must be present.'
+            });
+        }
+        var subProject = await ProjectService.resetApiKey(subProjectId);
+        subProject = await ProjectService.findOneBy({ _id: subProjectId });
+        return sendItemResponse(req, res, subProject);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         let userId = req.params.userId;
