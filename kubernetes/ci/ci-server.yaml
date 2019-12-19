@@ -196,10 +196,6 @@ spec:
               value: "idfn3873458973457453"
             - name: MONGO_URL
               value: "mongodb://mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
-            - name: REDIS_HOST
-              value: redis-cluster
-            - name: REDIS_PORT
-              value: "6379"
             - name: STRIPE_PUBLIC_KEY
               value: "pk_test_4I2S0sD0TYJxEWQTYlC2Rk6E"
             - name: STRIPE_PRIVATE_KEY
@@ -438,10 +434,6 @@ spec:
   ports:
     - port: 6379
       targetPort: 6379
-      name: client
-    - port: 16379
-      targetPort: 16379
-      name: gossip
   selector:
     app: redis-cluster
   type: ClusterIP
@@ -525,7 +517,7 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:5.0.1-alpine
+          image: redis:5.0.7
           command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
           env:
             - name: POD_IP
@@ -534,9 +526,6 @@ spec:
                   fieldPath: status.podIP
           ports:
             - containerPort: 6379
-              name: client
-            - containerPort: 16379
-              name: gossip
           volumeMounts:
             - name: conf
               mountPath: /conf
