@@ -10,7 +10,7 @@
     padding: 18px 16px;
     width: 100%; 
     text-align: center;
-    font-weight: 600;
+    ;
     font-size: 22px;
     line-height: 33px;
     text-transform: capitalize;
@@ -30,7 +30,7 @@
 
 /* Style the buttons that are used to open the tab content */
 .tab button {
-    color: #6b7c93;
+    color: #797979;
     padding: 8px 8px;
     margin-top: 7px;
     width: 100%;
@@ -226,7 +226,7 @@
     padding-top: 20px;
 }
 .mobile-content h4{
-    color: #6b7c93;
+    color: #797979;
     font-weight: 400;
     font-size: 17px;
     line-height: 26px;

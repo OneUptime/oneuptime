@@ -780,7 +780,7 @@ main header .stripes :nth-child(5){
     padding-left:14px;
     font-size:15px;
     line-height:22px;
-    color:#6b7c93;
+    color:#797979;
     will-change:opacity;
     margin-top:calc(var(--diagram-height) + 20px)
 }
@@ -1904,7 +1904,7 @@ main header .stripes :nth-child(5){
 }
 #international-support aside{
     font-size:15px;
-    color:#6b7c93;
+    color:#797979;
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
     border-radius:4px;
     margin-top:1.5em

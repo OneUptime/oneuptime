@@ -3,7 +3,7 @@ main{
     display:block
 }
 .globalNav .colorize{
-    color:#6b7c93
+    color:#797979
 }
 .globalNav .colorize.active,.globalNav .colorize:hover{
     color:#8898aa
@@ -12,7 +12,7 @@ main{
     color:#525f7f
 }
 .productNav .colorize.active,.productNav .colorize:hover{
-    color:#6b7c93
+    color:#797979
 }
 .common-Button{
     cursor:pointer
@@ -663,7 +663,7 @@ ol li:before{
 .guide-sidebar .byline p{
     font-size:15px;
     line-height:24px;
-    color:#6b7c93;
+    color:#797979;
     max-width:400px;
     margin:0 auto
 }
@@ -771,7 +771,7 @@ ol li:before{
     will-change:height
 }
 .guide-sidebar .toc .sub ul{
-    color:#6b7c93;
+    color:#797979;
     margin-top:5px
 }
 .guide-sidebar .toc .sub ul li a{
@@ -786,7 +786,7 @@ ol li:before{
     position:relative;
     width:100%;
     font-size:17px;
-    color:#6b7c93;
+    color:#797979;
     padding-top:25px;
     border-top:1px solid #e6ebf1;
     margin-top:20px

@@ -16,7 +16,7 @@
 .comparision-heading>h4{
     font-size: 1.8em;
     font-weight: 300;
-    color:#6b7c93;
+    color:#797979;
 }
 @media only screen and (max-width: 1090px) {
 .comparision-heading{
@@ -71,7 +71,7 @@
 .fyipe-list-head>h4{
     font-size: 1.8em;
     font-weight: 500;
-    color:#6b7c93;
+    color:#797979;
 }
 .comparision-others{
     height:450px;
@@ -205,7 +205,7 @@
     font-size: 2em;
 }
 .list-text>h4{
-   color:#6b7c93;
+   color:#797979;
     font-size: 1.6em;
 }
 @media only screen and (max-width: 892px) {

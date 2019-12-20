@@ -597,7 +597,7 @@
 .PricingDetailsList{
     font-size:1.6em;
     line-height:1.6em;
-    color:#6b7c93;
+    color:#797979;
     list-style:none;
     padding:0;
     margin:0
@@ -646,7 +646,7 @@ strong.PricingDetails-Currency-header{
     padding:7px 0
 }
 .PricingTable th{
-    color:#6b7c93;
+    color:#797979;
     text-align:left;
     font-weight:500
 }

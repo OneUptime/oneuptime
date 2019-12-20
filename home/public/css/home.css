@@ -11,6 +11,10 @@ main a{
     color:#797979
 }
 
+.grey{
+    color:#797979
+}
+
 main h2[class^=common-Uppercase]{
     color:#24b47e
 }
