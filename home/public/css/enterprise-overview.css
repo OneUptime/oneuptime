@@ -1,9 +1,4 @@
-.globalNav .colorize{
-    color:#b1b6eb
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:#fff
-}
+
 body,h1,h2,h3,p,ul{
     list-style:none;
     margin:0;

@@ -8,15 +8,15 @@
 
 .question{
     padding: 18px 16px;
-    width: 100%; 
+    width: 100%;
     text-align: center;
-    ;
-    font-size: 22px;
+    font-size: 32px;
     line-height: 33px;
     text-transform: capitalize;
     letter-spacing: 0.025em;
-    color: #24b47e;
+    color: black;
     margin: 10px 0 0 0;
+    font-weight: 400;
 }
 
 .tab {
@@ -104,7 +104,7 @@
     font-size: 1em;
     color:white;
     font-weight: bold;
-    background-color: rgb(20, 170, 217);
+    background-color: black;
     border-radius: 50%;
     width: 25px;
     height: 25px;
@@ -219,7 +219,7 @@
     padding-left: 10px;
 }
 .mobile-content h2{
-    color: #24b47e;
+    color: black;
     font-weight: 400;
     font-size: 22px;
     line-height: 26px;

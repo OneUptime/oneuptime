@@ -175,7 +175,7 @@ section.form-section .customers{
     }
 }
 section.form-section .customers .copy-1{
-    color:#32325d;
+    color:black;
     font-size:24px;
     font-weight:500;
     line-height:36px
@@ -464,7 +464,7 @@ section.form-section .form-row input,section.form-section .form-row select,secti
     outline:none;
     width:100%;
     border-radius:4px;
-    color:#32325d;
+    color:black;
     font-family:Open Sans,Segoe UI,sans-serif;
     font-weight:400;
     font-size:17px;
@@ -502,7 +502,7 @@ section.form-section .form-row .select-wrapper select{
     }
 }
 section.form-section .form-row .select-wrapper select.has-value{
-    color:#32325d
+    color:black
 }
 section.form-section .form-row input:focus,section.form-section .form-row select:focus,section.form-section .form-row textarea:focus{
     box-shadow:0 0 0 1px #fff
@@ -801,12 +801,6 @@ body footer .globalFooterNav .metaNav{
 }
 .globalNav .navSection.primary{
     display:none
-}
-.globalNav .colorize{
-    color:#32325d
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:#555abf
 }
 .globalNav .navSection.mobile .rootLink{
     padding:0 25px;
@@ -1174,7 +1168,7 @@ html[lang=it] section.contact-sales-header .headline{
 section.contact-sales-header .headline-text{
     font-size:40px;
     line-height:50px;
-    color:#32325d;
+    color:black;
     font-weight:400;
     margin-bottom:20px;
     margin-left:auto;
@@ -1217,7 +1211,7 @@ section.success .phone-number-container .copy-container{
     padding:20px
 }
 section.success .phone-number-container .phone-number-headline{
-    color:#32325d;
+    color:black;
     font-size:40px;
     font-weight:400;
     line-height:50px;
@@ -1264,7 +1258,7 @@ section.success .phone-number-form-container label{
 section.success .phone-number-form-container .phone-country-code-placeholder{
     max-width:20px;
     background:#fff;
-    color:#32325d;
+    color:black;
     font-weight:400;
     font-size:17px;
     line-height:26px;
@@ -1283,7 +1277,7 @@ section.success .phone-number-form-container input#phone{
     outline:none;
     background:#fff;
     border-radius:4px;
-    color:#32325d;
+    color:black;
     font-weight:400;
     font-size:17px;
     line-height:26px;
@@ -1448,7 +1442,7 @@ section.form-section .searchable-select-container input.searchable-select-input{
 }
 .searchable-select-container .searchable-select-result.highlighted{
     background:#f2f7fc;
-    color:#32325d;
+    color:black;
     font-weight:400
 }
 .searchable-select-container .searchable-select-result.selected{
@@ -1552,7 +1546,7 @@ section.success .thank-you .copy-container{
     margin:0 auto
 }
 section.success .thank-you .success-headline{
-    color:#32325d;
+    color:black;
     font-size:40px;
     font-weight:400;
     line-height:50px;

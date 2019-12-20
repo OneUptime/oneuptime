@@ -61,14 +61,14 @@
                           col-lg-4 extra-margin">
 
             <div class="Plan Plan--standard">
-              <h2 class="Plan-title common-Uppercase">STANDARD
+              <h2 class="Plan-title common-Uppercase">STARTUPS
               </h2>
 
               <div class="Plan-cardPricing">
                 <div class="Plan-cardRate">
 
                   <div id="pro-plus-rate" class="Plan-cardRate-percent">
-                    $6.70
+                    $22
                   </div>
 
 
@@ -79,7 +79,7 @@
                 </div>
 
                 <div id="pro-plus-description" class="Plan-cardRate-description">
-                  Per member billed anually or $6.70 month-to-month
+                  Per member billed anually or $25 month-to-month
                 </div>
 
               </div>
@@ -191,10 +191,7 @@
 
     </header>
 
-    <div class="comparision-heading">
-      <h3>Save hundreds today, thousands as you grow.</h3>
-      <h4>Fyipe replaces 4-5 apps that cumulatively cost a lot, see our comparision below and decide for yourself.</h4>
-    </div>
+    
     <% include ./comparision-chart %>
 
     </article>
@@ -321,13 +318,13 @@
       annualSelected = !annualSelected;
 
       if (annualSelected) {
-        $("#pro-plus-rate").text("$6.70");
+        $("#pro-plus-rate").text("$22");
         $("#pro-plus-description").text("Per user billed anually.");
 
         $("#annual-text").css("font-weight", 600);
         $("#monthly-text").css("font-weight", 500);
       } else {
-        $("#pro-plus-rate").text("$8");
+        $("#pro-plus-rate").text("$25");
 
         $("#pro-plus-description").text("Per user billed monthly.");
         $("#monthly-text").css("font-weight", 600);

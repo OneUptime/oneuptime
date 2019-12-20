@@ -151,7 +151,7 @@ code,pre{
     font-weight:300;
     font-size:45px;
     line-height:60px;
-    color:#32325d;
+    color:black;
     letter-spacing:-.01em
 }
 @media (min-width:670px){
@@ -164,7 +164,7 @@ code,pre{
     font-weight:400;
     font-size:34px;
     line-height:43px;
-    color:#32325d
+    color:black
 }
 @media (min-width:670px){
     .common-PageTitle{
@@ -176,7 +176,7 @@ code,pre{
     font-weight:300;
     font-size:34px;
     line-height:43px;
-    color:#14aad9
+    color:black
 }
 @media (min-width:670px){
     .common-PageSubtitle{
@@ -200,7 +200,7 @@ code,pre{
     font-weight:500;
     font-size:19px;
     line-height:28px;
-    color:#32325d
+    color:black
 }
 .common-BodyText{
     font-weight:400;
@@ -295,22 +295,22 @@ code,pre{
     fill:#8898aa
 }
 .common-ProductLockupBack:hover .hover-fillDark{
-    fill:#32325d
+    fill:black
 }
 .common-ProductLockupBack:hover .hover-strokeLight{
     stroke:#8898aa
 }
 .common-ProductLockupBack:hover .hover-strokeDark{
-    stroke:#32325d
+    stroke:black
 }
 .common-Link{
-    color:#14aad9;
+    color:black;
     font-weight:500;
     transition:color .1s ease;
     cursor:pointer
 }
 .common-Link:hover{
-    color:#32325d
+    color:black
 }
 .common-Link:active{
     color:#000
@@ -379,7 +379,7 @@ code,pre{
 }
 .common-Button--default{
     color:#fff;
-    background:#14aad9
+    background:black
 }
 .common-Button--default:hover{
     color:#fff;
@@ -391,7 +391,7 @@ code,pre{
 }
 .common-Button--dark{
     color:#fff;
-    background:#32325d
+    background:black
 }
 .common-Button--dark:hover{
     color:#fff;
@@ -399,7 +399,7 @@ code,pre{
 }
 .common-Button--dark:active{
     color:#e6ebf1;
-    background-color:#32325d
+    background-color:black
 }
 .common-Button--disabled{
     color:#fff;
@@ -1022,11 +1022,11 @@ code,pre{
 .globalNav a{
     text-decoration:none;
     -webkit-tap-highlight-color:transparent;
-    color:#14aad9;
+    color:black;
     transition:color .1s
 }
 .globalNav a:hover{
-    color:#32325d
+    color:black
 }
 .globalNav>.container-lg{
     padding:0
@@ -1114,11 +1114,11 @@ code,pre{
     font-weight:500
 }
 .globalNav .colorize{
-    color:#14aad9;
+    color:#797979;
     transition:color .1s ease
 }
 .globalNav .colorize.active,.globalNav .colorize:hover{
-    color:#32325d
+    color:black
 }
 .globalNav .hasDropdown{
     cursor:default
@@ -1252,7 +1252,7 @@ code,pre{
 }
 .globalNav .linkTitle{
     margin:0;
-    color:#14aad9;
+    color:black;
     font-size:16px;
     line-height:22px;
     text-transform:uppercase;
@@ -1270,7 +1270,7 @@ code,pre{
     transition:color .1s
 }
 .globalNav .linkContainer:hover .linkTitle,.globalNav .linkTitle:hover{
-    color:#32325d
+    color:black
 }
 .globalNav .linkContainer:hover .linkSub{
     color:#424770
@@ -1285,13 +1285,13 @@ code,pre{
     fill:#8898aa
 }
 .globalNav .linkContainer:hover .hover-fillDark{
-    fill:#32325d
+    fill:black
 }
 .globalNav .linkContainer:hover .hover-strokeLight{
     stroke:#8898aa
 }
 .globalNav .linkContainer:hover .hover-strokeDark{
-    stroke:#32325d
+    stroke:black
 }
 .globalNav .linkIcon{
     white-space:nowrap
@@ -1314,7 +1314,7 @@ code,pre{
     font-size:10px;
     line-height:14px;
     font-weight:700;
-    background:#14aad9;
+    background:black;
     transition:background .15s;
     border-radius:10px;
     padding:0 5px;
@@ -1323,7 +1323,7 @@ code,pre{
     box-shadow:none
 }
 .globalNav .linkContainer:hover .new-badge{
-    background:#32325d
+    background:black
 }
 .globalNav .productsGroupPrimary,.globalNav .productsGroupSecondary{
     margin:-5px -10px;
@@ -1401,16 +1401,16 @@ code,pre{
     margin:0 0 0 10px
 }
 .globalNav .item-subscriptions .linkTitle{
-    color:#24b47e
+    color:black
 }
 .globalNav .item-connect .linkTitle{
-    color:#3297d3
+    color:black
 }
 .globalNav .item-sigma .linkTitle{
     color:#8f6ed5
 }
 .globalNav .item-connect .new-badge{
-    background:#3297d3
+    background:black
 }
 .globalNav .item-relay .linkTitle{
     color:#e25950
@@ -1482,7 +1482,7 @@ code,pre{
     vertical-align:-1px
 }
 .globalNav .blogPosts a:hover .new-badge{
-    background:#32325d
+    background:black
 }
 .globalNav .navSection.mobile .rootLink{
     cursor:pointer;
@@ -1566,7 +1566,7 @@ code,pre{
 .globalNav .popupCloseButton:after,.globalNav .popupCloseButton:before{
     content:'';
     position:absolute;
-    background:#14aad9;
+    background:black;
     border-radius:1px;
     left:14px;
     right:14px;
@@ -1579,7 +1579,7 @@ code,pre{
     transform:rotate(-45deg)
 }
 .globalNav .popupCloseButton:hover:after,.globalNav .popupCloseButton:hover:before{
-    background:#32325d
+    background:black
 }
 .globalNav .mobileSignIn{
     background:#f6f9fc;
@@ -1624,7 +1624,7 @@ code,pre{
     line-height:50px
 }
 .globalNav .mobileProductsList a:hover{
-    color:#32325d
+    color:black
 }
 .globalNav .mobileProductsList a svg{
     display:inline-block;
@@ -1634,10 +1634,10 @@ code,pre{
     vertical-align:-5px
 }
 .globalNav .mobileProductsList .item-subscriptions{
-    color:#24b47e
+    color:black
 }
 .globalNav .mobileProductsList .item-connect{
-    color:#3297d3
+    color:black
 }
 .globalNav .mobileProductsList .item-relay{
     color:#e25950
@@ -1766,12 +1766,12 @@ code,pre{
 .productNav a{
     text-decoration:none;
     -webkit-tap-highlight-color:transparent;
-    color:#14aad9;
+    color:black;
     transition:color .1s;
     white-space:nowrap
 }
 .productNav a:hover{
-    color:#32325d
+    color:black
 }
 .productNav a.external:after{
     font:normal 16px fyipeIcons;
@@ -1779,11 +1779,11 @@ code,pre{
     padding-left:5px
 }
 .productNav .colorize{
-    color:#14aad9;
+    color:black;
     transition:color .1s ease
 }
 .productNav .colorize.active,.productNav .colorize:hover{
-    color:#32325d
+    color:black
 }
 html[lang=ja] .productNav ul{
     white-space:nowrap
@@ -1869,7 +1869,7 @@ a.globalFooterCard:after,div.globalFooterCard:after{
     }
 }
 a.globalFooterCard:hover,div.globalFooterCard:hover{
-    color:#32325d!important;
+    color:black!important;
     transform:translateY(-2px);
     box-shadow:0 18px 35px rgba(50,50,93,.1),0 8px 15px rgba(0,0,0,.07)
 }
@@ -1904,13 +1904,13 @@ a.globalFooterCard svg .hover-strokeDark,a.globalFooterCard svg .hover-strokeLig
     transition:stroke .15s
 }
 a.globalFooterCard:hover svg .hover-fillDark,div.globalFooterCard:hover svg .hover-fillDark{
-    fill:#32325d
+    fill:black
 }
 a.globalFooterCard:hover svg .hover-fillLight,div.globalFooterCard:hover svg .hover-fillLight{
     fill:#8898aa
 }
 a.globalFooterCard:hover svg .hover-strokeDark,div.globalFooterCard:hover svg .hover-strokeDark{
-    stroke:#32325d
+    stroke:black
 }
 a.globalFooterCard:hover svg .hover-strokeLight,div.globalFooterCard:hover svg .hover-strokeLight{
     stroke:#8898aa
@@ -1923,16 +1923,16 @@ a.globalFooterCard p,div.globalFooterCard p{
     margin:5px 0 0
 }
 a.globalFooterCard.card-pricing,div.globalFooterCard.card-pricing{
-    color:#24b47e
+    color:black
 }
 a.globalFooterCard.card-documentation,div.globalFooterCard.card-documentation{
     color:#b76ac4
 }
 a.globalFooterCard.card-subscriptions,div.globalFooterCard.card-subscriptions{
-    color:#24b47e
+    color:black
 }
 a.globalFooterCard.card-connect,div.globalFooterCard.card-connect{
-    color:#3297d3
+    color:black
 }
 a.globalFooterCard.card-relay,div.globalFooterCard.card-relay{
     color:#e25950
@@ -1966,12 +1966,12 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     font-weight:400;
     font-size:30px;
     line-height:45px;
-    color:#32325d;
+    color:black;
     margin:.75em 0
 }
 .globalFooterCTA .subtitle{
     font-weight:300;
-    color:#14aad9;
+    color:black;
     display:block
 }
 @media (min-width:670px){
@@ -2012,7 +2012,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     transition:color .1s
 }
 .globalFooterNav a:hover{
-    color:#32325d
+    color:black
 }
 .globalFooterNav .metaNav{
     display:-ms-flexbox;
@@ -2043,12 +2043,12 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     z-index:499
 }
 .globalFooterNav .metaNav .rootLink{
-    color:#14aad9;
+    color:black;
     font-weight:600;
     cursor:pointer
 }
 .globalFooterNav .metaNav .rootLink:hover{
-    color:#32325d
+    color:black
 }
 .globalFooterNav .metaNav .rootLink svg{
     display:inline-block;
@@ -2059,7 +2059,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     fill:currentColor
 }
 .globalFooterNav .metaNav .select.globalPopupActive .rootLink{
-    color:#32325d
+    color:black
 }
 @media (min-width:880px){
     .globalFooterNav .metaNav .country{
@@ -2216,14 +2216,14 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
 }
 .globalFooterNav .optionList a:hover{
     background-color:#f6f9fc;
-    color:#32325d
+    color:black
 }
 .globalFooterNav .optionList a:active{
     background-color:#e6ebf1
 }
 .globalFooterNav .optionList .selected{
     font-weight:600;
-    color:#32325d
+    color:black
 }
 .globalFooterNav .optionList .selected>span:before{
     content:'';
@@ -2311,13 +2311,13 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     line-height:36px;
     padding:0 15px;
     text-transform:uppercase;
-    color:#14aad9;
+    color:black;
     font-size:14px;
     font-weight:600;
     letter-spacing:.025em
 }
 .globalFooterNav .countryList h4 a:hover{
-    color:#32325d
+    color:black
 }
 .globalFooterNav .countryList h4 a:after{
     font:normal 16px fyipeIcons;
@@ -2332,11 +2332,11 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     color:#424770
 }
 .globalFooterNav .globalLink:hover strong{
-    color:#32325d
+    color:black
 }
 .globalFooterNav .globalLink strong{
     display:block;
-    color:#14aad9;
+    color:black;
     font-weight:500;
     transition:color .1s
 }
@@ -2426,7 +2426,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     transform:translate(-50%,-50%) rotate(-45deg)
 }
 .cookie-notification .dismiss-button:hover{
-    color:#32325d
+    color:black
 }
  
 

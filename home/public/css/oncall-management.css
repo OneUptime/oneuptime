@@ -16,7 +16,7 @@ main .stripes{
 }
 main .common-UppercaseTitle{
     margin-bottom:20px;
-    color:#32325d
+    color:black
 }
 main .common-UppercaseTitle img{
     display:block;
@@ -44,12 +44,6 @@ main .overlay.active{
 }
 body{
     overflow-x:hidden
-}
-.globalNav .colorize,.productNav a.home,.productNav a.home:hover{
-    color:#fff
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:hsla(0,0%,100%,.75)
 }
 .productNav .colorize{
     color:#3d7bb7
@@ -343,7 +337,7 @@ main header .stripes :nth-child(5){
     background-color:black
 }
 #intro li:first-child .common-Button:active{
-    background-color:#24b47e
+    background-color:black
 }
 #intro li:last-child .common-Button{
     color:black
@@ -522,7 +516,7 @@ main header .stripes :nth-child(5){
     background:#f4f8fb
 }
 #comparison section:last-child .common-Uppercase{
-    color:#24b47e;
+    color:black;
     background:#f2feef
 }
 #comparison .common-BodyText{
@@ -691,10 +685,10 @@ main header .stripes :nth-child(5){
     display:flex;
     -ms-flex-align:center;
     align-items:center;
-    color:#24b47e
+    color:black
 }
 #routing-diagram-legend li:nth-child(2){
-    color:#3297d3
+    color:black
 }
 #routing-diagram-legend li:last-child{
     color:#d782d9
@@ -951,7 +945,7 @@ main header .stripes :nth-child(5){
 }
 @media (min-width:880px){
     #onboarding-verification .stripes :last-child{
-        background:linear-gradient(100grad,#74e4a2,#24b47e)
+        background:linear-gradient(100grad,#74e4a2,black)
     }
 }
 #onboarding-verification .phone{
@@ -1204,7 +1198,7 @@ main header .stripes :nth-child(5){
 }
 #hestia-flow>section h1{
     text-transform:uppercase;
-    color:#32325d;
+    color:black;
     font-size:15px;
     font-weight:600;
     margin-bottom:19px
@@ -1304,7 +1298,7 @@ main header .stripes :nth-child(5){
 #hestia-card-selection .group-row:first-child{
     border:none;
     background:#f9fff7;
-    color:#24b47e;
+    color:black;
     font-size:17px;
     font-weight:500;
     line-height:50px;
@@ -1316,7 +1310,7 @@ main header .stripes :nth-child(5){
     display:flex;
     -ms-flex-align:center;
     align-items:center;
-    color:#32325d;
+    color:black;
     font-weight:600;
     font-size:15px;
     text-transform:uppercase
@@ -1435,7 +1429,7 @@ main header .stripes :nth-child(5){
 #onboarding-verification .content button{
     padding-left:42px;
     margin-top:2em;
-    color:#24b47e;
+    color:black;
     background:#fff url(/img/v3/connect/features/view-onboarding-demo.svg) no-repeat 9px 50%;
     background-size:24px 24px
 }
@@ -1547,7 +1541,7 @@ main header .stripes :nth-child(5){
 }
 #compliance .eu-guide .common-Button--default:active{
     color:#fff;
-    background-color:#24b47e
+    background-color:black
 }
 @media (min-width:670px){
     #compliance .eu-guide{
@@ -2272,7 +2266,7 @@ main footer.container-lg{
 }
 main footer.container-lg .common-Uppercase{
     margin:2.2em 0 1em;
-    color:#24b47e
+    color:black
 }
 main footer.container-lg .common-Link{
     margin-top:1em
@@ -2323,7 +2317,7 @@ code .token.comment{
 }
 code.language-url,code .token.function,code .token.url{
     font-weight:600;
-    color:#3297d3
+    color:black
 }
 .language-ruby .token.constant+.token.punctuation,.language-ruby .token.constant+.token.punctuation+.token.symbol,code .token.boolean,code .token.builtin,code .token.class-name,code .token.constant,code .token.namespace{
     font-weight:600;

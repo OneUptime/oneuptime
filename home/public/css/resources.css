@@ -2,12 +2,6 @@ main{
     position:relative;
     display:block
 }
-.globalNav .colorize{
-    color:#797979
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:#8898aa
-}
 .productNav .colorize{
     color:#525f7f
 }
@@ -140,7 +134,7 @@ main{
 }
 .guide-header h1{
     margin-top:20px;
-    color:#32325d
+    color:black
 }
 .guide-header p{
     margin-top:10px;
@@ -156,7 +150,7 @@ main{
     box-shadow:none
 }
 .common-ProductLockupBack:hover{
-    color:#32325d
+    color:black
 }
 .common-ProductLockupBack:hover:before{
     color:#8898aa
@@ -284,11 +278,11 @@ article.guide-content h1{
     font-size:28px;
     line-height:34px;
     position:relative;
-    color:#32325d;
+    color:black;
     margin-top:160px
 }
 article.guide-content h1 a{
-    color:#32325d
+    color:black
 }
 article.guide-content h1:after{
     content:"";
@@ -300,7 +294,7 @@ article.guide-content h1:after{
     margin-left:auto;
     margin-right:auto;
     left:48%;
-    background:linear-gradient(#32325d 50%,#fff 0);
+    background:linear-gradient(black 50%,#fff 0);
     background-size:100% 4px
 }
 article.guide-content h1:first-of-type{
@@ -314,13 +308,13 @@ article.guide-content h2{
     font-weight:500;
     font-size:22px;
     line-height:30px;
-    color:#32325d;
+    color:black;
     margin-top:30px;
     margin-bottom:10px;
     position:relative
 }
 article.guide-content h2 a{
-    color:#32325d
+    color:black
 }
 article.guide-content .guide-MainContent .common-IntroText{
     font-weight:400;
@@ -334,7 +328,7 @@ article.guide-content h3{
     line-height:28px;
     margin-top:20px;
     margin-bottom:10px;
-    color:#32325d
+    color:black
 }
 article.guide-content h4{
     display:block;
@@ -349,7 +343,7 @@ article.guide-content h4{
 }
 article.guide-content p a{
     position:relative;
-    color:#32325d;
+    color:black;
     text-decoration:underline
 }
 article.guide-content a:hover{
@@ -373,7 +367,7 @@ article.guide-content .collect-email-guide h3{
 }
 article.guide-content strong{
     font-weight:500;
-    color:#32325d
+    color:black
 }
 article.guide-content ul{
     position:relative;
@@ -395,7 +389,7 @@ article.guide-content ul li:before{
 }
 article.guide-content ul li a{
     position:relative;
-    color:#32325d;
+    color:black;
     text-decoration:underline
 }
 article.guide-content ul li a:hover{
@@ -415,7 +409,7 @@ article.guide-content blockquote{
     }
 }
 article.guide-content blockquote p{
-    color:#32325d;
+    color:black;
     margin-bottom:20px;
     font-weight:500;
     background:#f6f9fc;
@@ -462,7 +456,7 @@ article.guide-content aside.footer:before{
     margin-right:auto;
     z-index:1;
     left:49%;
-    background:linear-gradient(180deg,#32325d,#32325d 50%,#fff 0,#fff);
+    background:linear-gradient(180deg,black,black 50%,#fff 0,#fff);
     background-size:100% 4px
 }
 article.guide-content aside.footer img{
@@ -536,7 +530,7 @@ ol li:before{
     width:20px;
     height:20px;
     background-color:rgba(82,95,127,.14);
-    color:#32325d;
+    color:black;
     text-align:center;
     font-size:12px;
     line-height:20px;
@@ -547,7 +541,7 @@ ol li:before{
     text-decoration:none
 }
 .guide-content h1 a:hover,h2 a:hover{
-    color:#32325d
+    color:black
 }
 .guide-content h1 a:before{
     font-size:27px;
@@ -657,7 +651,7 @@ ol li:before{
 .guide-sidebar .byline h4{
     font-weight:500;
     font-size:16px;
-    color:#32325d;
+    color:black;
     margin:10px 0 5px
 }
 .guide-sidebar .byline p{
@@ -678,7 +672,7 @@ ol li:before{
     font-family:Camphor,Open Sans,Segoe UI,sans-serif;
     font-size:15px;
     line-height:24px;
-    color:#32325d;
+    color:black;
     margin-bottom:0;
     position:relative;
     display:inline-block;
@@ -713,7 +707,7 @@ ol li:before{
 .guide-sidebar .share a{
     font-size:15px;
     line-height:24px;
-    color:#32325d;
+    color:black;
     margin-bottom:0;
     position:relative;
     display:inline-block;
@@ -753,7 +747,7 @@ ol li:before{
     font-size:16px;
     line-height:22px;
     font-weight:500;
-    color:#32325d
+    color:black
 }
 .guide-sidebar .toc>ul .current{
     color:#14aad9
@@ -794,7 +788,7 @@ ol li:before{
 .guide-sidebar .toc>.cta h3{
     font-size:16px;
     font-weight:500;
-    color:#32325d;
+    color:black;
     margin-bottom:5px;
     text-transform:uppercase;
     letter-spacing:.025em;
@@ -1073,7 +1067,7 @@ html.guides .atlas-header{
     }
 }
 html.guides .atlas-header .icon-title{
-    color:#32325d
+    color:black
 }
 @media (min-width:880px){
     html.guides .atlas-header .icon-title{

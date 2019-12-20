@@ -3,14 +3,8 @@ main{
     display:block
 }
 main h2[class^=common-Uppercase]{
-    color:#32325d;
+    color:black;
     margin-bottom:20px
-}
-.globalNav .colorize{
-    color:#fff
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:hsla(0,0%,100%,.5)
 }
 .columns{
     display:-ms-flexbox;
@@ -323,7 +317,7 @@ main header .intro .common-ButtonGroup .primary:hover{
     background-color:#555abf
 }
 main header .intro .common-ButtonGroup .primary:active{
-    background-color:#32325d
+    background-color:black
 }
 main header .icosahedron{
     position:relative;
@@ -483,7 +477,7 @@ section.techguide .chart .effectiveness .label{
     flex-shrink:0;
     font-size:15px;
     font-weight:500;
-    color:#32325d;
+    color:black;
     text-align:center
 }
 section.techguide .chart .effectiveness .label.min{
@@ -610,7 +604,7 @@ section.simplify .rules .rule-builder .header{
 section.simplify .rules .rule-builder .header h3{
     font-size:17px;
     font-weight:500;
-    color:#32325d;
+    color:black;
     margin-bottom:3px
 }
 section.simplify .rules .rule-builder .header h3 span{
@@ -672,7 +666,7 @@ section.simplify .rules .rule-builder .stats .numbers .stat{
 section.simplify .rules .rule-builder .stats .numbers .stat h1{
     font-size:20px;
     font-weight:400;
-    color:#32325d
+    color:black
 }
 section.simplify .rules .rule-builder .stats .numbers .stat p{
     font-size:14px;
@@ -906,7 +900,7 @@ section.simplify .manual-review .review-queue .charge .detail h3{
     max-width:100%;
     font-size:15px;
     font-weight:500;
-    color:#32325d;
+    color:black;
     margin-bottom:3px;
     white-space:nowrap;
     overflow:hidden;
@@ -1127,7 +1121,7 @@ section.take-action .video-container .video:active .play{
     transform:none
 }
 section.take-action .video-container .video video{
-    background-color:#32325d;
+    background-color:black;
     display:block;
     position:relative;
     border-radius:6px;

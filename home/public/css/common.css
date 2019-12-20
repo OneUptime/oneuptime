@@ -13,7 +13,7 @@
     font-weight:300;
     font-size:45px;
     line-height:60px;
-    color:#32325d;
+    color:black;
     letter-spacing:-.01em
 }
 @media (min-width:670px){
@@ -26,7 +26,7 @@
     font-weight:400;
     font-size:34px;
     line-height:43px;
-    color:#32325d
+    color:black
 }
 @media (min-width:670px){
     .common-PageTitle{
@@ -62,7 +62,7 @@
     font-weight:500;
     font-size:19px;
     line-height:28px;
-    color:#32325d
+    color:black
 }
 .common-BodyText{
     font-weight:400;
@@ -157,13 +157,13 @@
     fill:#8898aa
 }
 .common-ProductLockupBack:hover .hover-fillDark{
-    fill:#32325d
+    fill:black
 }
 .common-ProductLockupBack:hover .hover-strokeLight{
     stroke:#8898aa
 }
 .common-ProductLockupBack:hover .hover-strokeDark{
-    stroke:#32325d
+    stroke:black
 }
 .common-Link{
     color:#14aad9;
@@ -172,7 +172,7 @@
     cursor:pointer
 }
 .common-Link:hover{
-    color:#32325d
+    color:black
 }
 .common-Link:active{
     color:#000
@@ -253,7 +253,7 @@
 }
 .common-Button--dark{
     color:#fff;
-    background:#32325d
+    background:black
 }
 .common-Button--dark:hover{
     color:#fff;
@@ -261,7 +261,7 @@
 }
 .common-Button--dark:active{
     color:#e6ebf1;
-    background-color:#32325d
+    background-color:black
 }
 .common-Button--disabled{
     color:#fff;

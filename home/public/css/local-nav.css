@@ -57,7 +57,7 @@
     transition:color .1s ease
 }
 .LocalNavigation-list a:hover{
-    color:#32325d
+    color:black
 }
 @media (min-width:670px){
     .LocalNavigation-list a{
@@ -66,5 +66,5 @@
     }
 }
 .LocalNavigation-list a.active{
-    color:#24b47e
+    color:black
 }
