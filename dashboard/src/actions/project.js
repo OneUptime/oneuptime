@@ -339,7 +339,7 @@ export function renameProject(projectId, projectName) {
 
 		promise.then(function (project) {
 			dispatch(renameProjectSuccess(project));
-
+			return project;
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
