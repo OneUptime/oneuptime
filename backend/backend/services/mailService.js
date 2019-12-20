@@ -32,8 +32,8 @@ var mailer = nodemailer.createTransport({
 
 mailer.use('compile', hbs(options));
 
-var getTemplates = async (emailTemplate) => {
-    var defaultTemplate = defaultEmailTemplates.filter(template => template.emailType === 'Subscriber Incident');
+var getTemplates = async (emailTemplate, emailType) => {
+    var defaultTemplate = defaultEmailTemplates.filter(template => template.emailType === emailType);
     var emailContent = defaultTemplate[0].body;
     var emailSubject = defaultTemplate[0].subject;
 
@@ -504,19 +504,104 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentCreatedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, projectId, emailTemplate) {
+    sendIncidentCreatedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, statusPageLink) {
         try {
-            var { template, subject } = await getTemplates(emailTemplate);
+            var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Created');
             let data = {
                 incidentTime,
                 monitorName,
                 userName,
                 userId,
-                projectId,
+                projectName,
+                statusPageLink,
+                projectId: incident.projectId,
+                incidentType: incident.incidentType,
             };
             template = template(data);
             subject = subject(data);
-            var smtpSettings = await getSmtpSettings(projectId);
+            var smtpSettings = await getSmtpSettings(incident.projectId);
+            let privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
+            var mailOptions = {
+                from: '"Fyipe " <' + smtpSettings.from + '>',
+                to: email,
+                subject: subject,
+                template: 'template',
+                context: {
+                    body: template
+                }
+            };
+            var info = await privateMailer.sendMail(mailOptions);
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendIncidentCreatedMailToSubscriber', error);
+            throw error;
+        }
+    },
+
+    /**
+     * @param {js date object} incidentTime JS date of the incident used as timestamp.
+     * @param {string} monitorName Name of monitor with incident.
+     * @param {string} email Email of user being alerted.
+     * @param {string} userId Id of the user.
+     * @param {string} projectId Id of the project whose monitor has incident.
+     */
+    sendIncidentAcknowledgedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, statusPageLink) {
+        try {
+            var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Acknowldeged');
+            let data = {
+                incidentTime,
+                monitorName,
+                userName,
+                userId,
+                projectName,
+                statusPageLink,
+                projectId: incident.projectId,
+                incidentType: incident.incidentType,
+            };
+            template = template(data);
+            subject = subject(data);
+            var smtpSettings = await getSmtpSettings(incident.projectId);
+            let privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
+            var mailOptions = {
+                from: '"Fyipe " <' + smtpSettings.from + '>',
+                to: email,
+                subject: subject,
+                template: 'template',
+                context: {
+                    body: template
+                }
+            };
+            var info = await privateMailer.sendMail(mailOptions);
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendIncidentCreatedMailToSubscriber', error);
+            throw error;
+        }
+    },
+
+    /**
+     * @param {js date object} incidentTime JS date of the incident used as timestamp.
+     * @param {string} monitorName Name of monitor with incident.
+     * @param {string} email Email of user being alerted.
+     * @param {string} userId Id of the user.
+     * @param {string} projectId Id of the project whose monitor has incident.
+     */
+    sendIncidentResolvedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, statusPageLink) {
+        try {
+            var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Resolved');
+            let data = {
+                incidentTime,
+                monitorName,
+                userName,
+                userId,
+                projectName,
+                statusPageLink,
+                projectId: incident.projectId,
+                incidentType: incident.incidentType,
+            };
+            template = template(data);
+            subject = subject(data);
+            var smtpSettings = await getSmtpSettings(incident.projectId);
             let privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
             var mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
