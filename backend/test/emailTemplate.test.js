@@ -58,7 +58,7 @@ describe('Email Template API', function () {
         request.post(`/emailTemplate/${projectId}`).set('Authorization', authorization).send({
             subject: 'Mail Subject',
             body: 'Mail Body',
-            emailType: 'Subscriber Incident'
+            emailType: 'Subscriber Incident Created'
         }).end(function (err, res) {
             emailTemplateId = res.body._id;
             expect(res).to.have.status(200);
@@ -73,7 +73,7 @@ describe('Email Template API', function () {
         request.post(`/emailTemplate/${projectId}`).set('Authorization', authorization).send({
             subject: 'Mail Subject',
             body: '<p>{{abc<iframe/\/src=jAva&Tab;script:alert(3)>def}}',
-            emailType: 'Subscriber Incident'
+            emailType: 'Subscriber Incident Created'
         }).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body.body).to.be.equal('<html><head></head><body><p>{{abcdef}}</p></body></html>');

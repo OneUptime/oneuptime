@@ -343,149 +343,149 @@ class NewMonitor extends Component {
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <ShouldRender if={subProjects && subProjects.length > 0}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">Sub Project</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    name={`subProject_${this.props.index}`}
-                                                                    id="subProjectId"
-                                                                    required="required"
-                                                                    disabled={requesting}
-                                                                    component={SubProjectSelector}
-                                                                    subProjects={subProjects}
-                                                                    onChange={(e, v) => this.scheduleChange(e, v)}
-                                                                    className="db-select-nw"
-                                                                />
-                                                            </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={subProjects && subProjects.length > 0}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Sub Project</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                name={`subProject_${this.props.index}`}
+                                                                id="subProjectId"
+                                                                required="required"
+                                                                disabled={requesting}
+                                                                component={SubProjectSelector}
+                                                                subProjects={subProjects}
+                                                                onChange={(e, v) => this.scheduleChange(e, v)}
+                                                                className="db-select-nw"
+                                                            />
                                                         </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={!this.props.edit && schedules && schedules.length > 0}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">Call Schedule</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field className="db-select-nw"
-                                                                    component={RenderSelect}
-                                                                    name={`callSchedule_${this.props.index}`}
-                                                                    id="callSchedule"
-                                                                    placeholder="Call Schedule"
-                                                                    disabled={requesting}
-                                                                    style={{ height: '28px' }}
-                                                                    options={[
-                                                                        { value: '', label: 'Select call schedule' },
-                                                                        ...(schedules && schedules.length > 0 ? schedules.map(schedule => ({ value: schedule._id, label: schedule.name })) : [])
-                                                                    ]}
-                                                                />
-                                                            </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={schedules && schedules.length > 0}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Call Schedule</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field className="db-select-nw"
+                                                                component={RenderSelect}
+                                                                name={`callSchedule_${this.props.index}`}
+                                                                id="callSchedule"
+                                                                placeholder="Call Schedule"
+                                                                disabled={requesting}
+                                                                style={{ height: '28px' }}
+                                                                options={[
+                                                                    { value: '', label: 'Select call schedule' },
+                                                                    ...(schedules && schedules.length > 0 ? schedules.map(schedule => ({ value: schedule._id, label: schedule.name })) : [])
+                                                                ]}
+                                                            />
                                                         </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={type === 'api'}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">HTTP Method</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field className="db-select-nw"
-                                                                    component={RenderSelect}
-                                                                    name={`method_${this.props.index}`}
-                                                                    id="method"
-                                                                    placeholder="Http Method"
-                                                                    disabled={requesting}
-                                                                    validate={ValidateField.select}
-                                                                    options={[
-                                                                        { value: '', label: 'Select method' },
-                                                                        { value: 'get', label: 'GET' },
-                                                                        { value: 'post', label: 'POST' },
-                                                                        { value: 'put', label: 'PUT' },
-                                                                        { value: 'delete', label: 'DELETE' }
-                                                                    ]}
-                                                                    style={{ height: '28px' }}
-                                                                />
-                                                            </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={type === 'api'}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">HTTP Method</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field className="db-select-nw"
+                                                                component={RenderSelect}
+                                                                name={`method_${this.props.index}`}
+                                                                id="method"
+                                                                placeholder="Http Method"
+                                                                disabled={requesting}
+                                                                validate={ValidateField.select}
+                                                                options={[
+                                                                    { value: '', label: 'Select method' },
+                                                                    { value: 'get', label: 'GET' },
+                                                                    { value: 'post', label: 'POST' },
+                                                                    { value: 'put', label: 'PUT' },
+                                                                    { value: 'delete', label: 'DELETE' }
+                                                                ]}
+                                                                style={{ height: '28px' }}
+                                                            />
                                                         </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={type === 'url' || type === 'api'}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">URL</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={RenderField}
-                                                                    type="url"
-                                                                    name={`url_${this.props.index}`}
-                                                                    id="url"
-                                                                    placeholder="https://mywebsite.com"
-                                                                    disabled={requesting}
-                                                                    validate={[ValidateField.required, ValidateField.url]}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={type === 'manual'}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">Description (optional)</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={RenderField}
-                                                                    type="text"
-                                                                    name={`description_${this.props.index}`}
-                                                                    id="description"
-                                                                    placeholder="Home Page's Monitor"
-                                                                    disabled={requesting}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
-                                                    {type === 'device' && <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">Device ID</label>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={type === 'url' || type === 'api'}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">URL</label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 component={RenderField}
-                                                                type="deviceId"
-                                                                name={`deviceId_${this.props.index}`}
-                                                                id="deviceId"
-                                                                placeholder="of234dfgqwe"
+                                                                type="url"
+                                                                name={`url_${this.props.index}`}
+                                                                id="url"
+                                                                placeholder="https://mywebsite.com"
                                                                 disabled={requesting}
-                                                                validate={ValidateField.required}
+                                                                validate={[ValidateField.required, ValidateField.url]}
                                                             />
                                                         </div>
-                                                    </div>}
-                                                    <ShouldRender if={type === 'script'}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">Script</label>
-                                                            <div className="bs-Fieldset-fields">
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={type === 'manual'}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Description (optional)</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={RenderField}
+                                                                type="text"
+                                                                name={`description_${this.props.index}`}
+                                                                id="description"
+                                                                placeholder="Home Page's Monitor"
+                                                                disabled={requesting}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                {type === 'device' && <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">Device ID</label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            component={RenderField}
+                                                            type="deviceId"
+                                                            name={`deviceId_${this.props.index}`}
+                                                            id="deviceId"
+                                                            placeholder="of234dfgqwe"
+                                                            disabled={requesting}
+                                                            validate={ValidateField.required}
+                                                        />
+                                                    </div>
+                                                </div>}
+                                                <ShouldRender if={type === 'script'}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Script</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span>
                                                                 <span>
-                                                                    <span>
-                                                                        <AceEditor
-                                                                            placeholder="Enter script here"
-                                                                            mode="javascript"
-                                                                            theme="github"
-                                                                            value={this.state.script}
-                                                                            name={`script_${this.props.index}`}
-                                                                            id="script"
-                                                                            editorProps={{ $blockScrolling: true }}
-                                                                            height="150px"
-                                                                            highlightActiveLine={true}
-                                                                            onChange={this.scriptTextChange}
-                                                                        />
-                                                                    </span>
+                                                                    <AceEditor
+                                                                        placeholder="Enter script here"
+                                                                        mode="javascript"
+                                                                        theme="github"
+                                                                        value={this.state.script}
+                                                                        name={`script_${this.props.index}`}
+                                                                        id="script"
+                                                                        editorProps={{ $blockScrolling: true }}
+                                                                        height="150px"
+                                                                        highlightActiveLine={true}
+                                                                        onChange={this.scriptTextChange}
+                                                                    />
                                                                 </span>
-                                                            </div>
+                                                            </span>
                                                         </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script') && !this.state.advance}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label"></label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <button className="button-as-anchor" onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</button>
-                                                            </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script') && !this.state.advance}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label"></label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <button className="button-as-anchor" onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</button>
                                                         </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={this.state.advance && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script')}>
+                                                    <ShouldRender if={this.state.advance && type === 'api'}>
+                                                        <ApiAdvance index={this.props.index} />
                                                     </ShouldRender>
-                                                    <ShouldRender if={this.state.advance && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script')}>
-                                                        <ShouldRender if={this.state.advance && type === 'api'}>
-                                                            <ApiAdvance index={this.props.index} />
-                                                        </ShouldRender>
-                                                        <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} type={this.state.type} />
-                                                        <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} type={this.state.type} />
-                                                        <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} type={this.state.type} />
-                                                    </ShouldRender>
+                                                    <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} type={this.state.type} />
+                                                    <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} type={this.state.type} />
+                                                    <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} type={this.state.type} />
                                                 </ShouldRender>
                                             </div>
                                         </fieldset>
@@ -544,7 +544,6 @@ class NewMonitor extends Component {
                     </div>
                 </div>
             </div>
-
         );
     }
 }

@@ -146,6 +146,7 @@ module.exports = {
                     new: true
                 }
             );
+            updatedProject = await _this.findOneBy(Object.assign({}, query, { deleted: { $ne: null } }));
             return updatedProject;
         } catch (error) {
             ErrorService.log('projectService.updateOneBy', error);
