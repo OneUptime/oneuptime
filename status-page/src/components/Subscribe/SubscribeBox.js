@@ -29,44 +29,54 @@ class SubscribeBox extends Component {
         return (
             <div className="subscribe-overlay">
             <ClickOutHandler onClickOut={() => this.props.openSubscribeMenu()}>
-                <div className="white box subscribe-box" style={{ height: 'auto', width: '300px' }}>
-                    <div className="btn-group">
-                        <button
-                            id="updates-dropdown-email-btn"
-                            disabled={this.props.subscribed.requesting}
-                            onClick={() => this.selectbutton(1)}
-                            className={this.props.select === 1 ? 'icon-container selected' : 'icon-container'}>
-                            <span className='sub-icon icon-message'></span>
-                        </button>
-                        <button
-                            id="updates-dropdown-sms-btn"
-                            disabled={this.props.subscribed.requesting}
-                            onClick={() => this.selectbutton(2)}
-                            className={this.props.select === 2 ? 'icon-container selected' : 'icon-container'}>
-                            <span className='sub-icon icon-call'></span>
-                        </button>
-                        <button
-                            id="updates-dropdown-webhook-btn"
-                            disabled={this.props.subscribed.requesting}
-                            onClick={() => this.selectbutton(3)}
-                            className={this.props.select === 3 ? 'icon-container selected' : 'icon-container'}>
-                            <span className='sub-icon icon-webhook'></span>
-                        </button>
-                        <button
-                            id="updates-dropdown-atom-btn"
-                            disabled={this.props.subscribed.requesting}
-                            onClick={() => this.selectbutton(4)}
-                            className={this.props.select === 4 ? 'icon-container selected' : 'icon-container'}>
-                            <span className='sub-icon icon-rss'></span>
-                        </button>
-                        <button
-                            id="updates-dropdown-close-btn"
-                            onClick={() => this.subscribebutton()}
-                            disabled={this.props.subscribed.requesting}
-                            className="icon-container">
-                            <span className='close-button'>X</span>
-                        </button>
-                    </div>
+                    <div className="white box subscribe-box" style={{ height: 'auto', width: '300px' }}>
+                        <div className="btn-group">
+                            <button
+                                id="updates-dropdown-email-btn"
+                                disabled={this.props.subscribed.requesting}
+                                onClick={() => this.selectbutton(1)}
+                                className={this.props.select === 1 ? 'icon-container selected' : 'icon-container'}>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <span className='sub-icon icon-message'></span>
+                                </div>
+                            </button>
+                            <button
+                                id="updates-dropdown-sms-btn"
+                                disabled={this.props.subscribed.requesting}
+                                onClick={() => this.selectbutton(2)}
+                                className={this.props.select === 2 ? 'icon-container selected' : 'icon-container'}>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <span className='sub-icon icon-call'></span>
+                                </div>
+                            </button>
+                            <button
+                                id="updates-dropdown-webhook-btn"
+                                disabled={this.props.subscribed.requesting}
+                                onClick={() => this.selectbutton(3)}
+                                className={this.props.select === 3 ? 'icon-container selected' : 'icon-container'}>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <span className='sub-icon icon-webhook'></span>
+                                </div>
+                            </button>
+                            <button
+                                id="updates-dropdown-atom-btn"
+                                disabled={this.props.subscribed.requesting}
+                                onClick={() => this.selectbutton(4)}
+                                className={this.props.select === 4 ? 'icon-container selected' : 'icon-container'}>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <span className='sub-icon icon-rss'></span>
+                                </div>
+                            </button>
+                            <button
+                                id="updates-dropdown-close-btn"
+                                onClick={() => this.subscribebutton()}
+                                disabled={this.props.subscribed.requesting}
+                                className="icon-container">
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <span className='sub-icon icon-close'></span>
+                                </div>
+                            </button>
+                        </div>
 
                     <div className="subscribe-box-inner">
                         <ShouldRender if={!this.props.openSelectedBox && this.props.select === 1}>
