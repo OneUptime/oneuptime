@@ -13,7 +13,7 @@ afterAll(async () => {
 })
 
 describe('Check status-page up', () => {
-    test('should load status page and show login screen', async () => {
+    test('should load status page and show status page is not present', async () => {
         await page.goto(utils.STATUSPAGE_URL, {
             waitUntil: 'domcontentloaded'
         });
@@ -21,6 +21,6 @@ describe('Check status-page up', () => {
         const response = await page.$eval('#app-loading > div', (e) => {
             return e.innerHTML;
         });
-        expect(response).toBe( 'Status page does not exist.');
+        expect(response).toBe( 'StatusPage Not present');
     })
 })
