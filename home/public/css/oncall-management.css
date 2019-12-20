@@ -216,7 +216,7 @@ main header .stripes :nth-child(5){
     border-radius:20px;
     background:hsla(0,0%,100%,.92);
     box-shadow:0 5px 10px rgba(153,107,46,.1);
-    color:#299fc4;
+    color:black;
     opacity:0;
     transition:transform .15s ease,opacity .7s;
     will-change:opacity;
@@ -238,12 +238,12 @@ main header .stripes :nth-child(5){
     width:12px;
     height:14px;
     margin-right:9px;
-    fill:#299fc4;
+    fill:black;
     transition:fill .2s
 }
 @media (min-width:670px){
     #header-hero .common-Button:hover svg{
-        fill:#00c2ff
+        fill:black
     }
 }
 #header-hero .cubes{
@@ -340,13 +340,13 @@ main header .stripes :nth-child(5){
 }
 #intro li:first-child .common-Button{
     color:#fff;
-    background-color:#00c2ff
+    background-color:black
 }
 #intro li:first-child .common-Button:active{
     background-color:#24b47e
 }
 #intro li:last-child .common-Button{
-    color:#299fc4
+    color:black
 }
 @media (min-width:670px){
     #intro{

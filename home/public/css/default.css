@@ -362,17 +362,17 @@ code,pre{
     font-weight:600;
     text-transform:uppercase;
     letter-spacing:.025em;
-    color:#299fc4;
+    color:black;
     text-decoration:none;
     transition:all .15s ease
 }
 .common-Button:hover{
-    color:#299fc4;
+    color:black;
     transform:translateY(-1px);
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08)
 }
 .common-Button:active{
-    color:#299fc4;
+    color:black;
     background-color:#f6f9fc;
     transform:translateY(1px);
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08)
@@ -383,11 +383,11 @@ code,pre{
 }
 .common-Button--default:hover{
     color:#fff;
-    background-color:#299fc4
+    background-color:black
 }
 .common-Button--default:active{
     color:#e6ebf1;
-    background-color:#299fc4
+    background-color:black
 }
 .common-Button--dark{
     color:#fff;

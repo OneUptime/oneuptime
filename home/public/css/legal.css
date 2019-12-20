@@ -188,7 +188,7 @@ body{
 .search-results li a{
     font-size:15px;
     font-weight:500;
-    color:#0099e5;
+    color:#797979;
     text-decoration:underline;
     display:inline-block;
     margin-bottom:5px;
@@ -275,7 +275,7 @@ body{
     font-size:20px;
     line-height:20px;
     vertical-align:top;
-    color:#0099e5;
+    color:#797979;
     font-weight:500;
     text-decoration:none
 }
@@ -336,10 +336,10 @@ header#main-header a{
     font-size:15px;
     line-height:55px;
     padding-left:30px;
-    color:#0099e5
+    color:#797979
 }
 header#main-header a:hover{
-    color:#32325d
+    color:black
 }
 header#main-header .button a:after{
     font:normal 16px fyipeIcons;
@@ -347,7 +347,7 @@ header#main-header .button a:after{
     padding-left:5px
 }
 #loading-bar{
-    background:#0099e5;
+    background:#797979;
     height:3px;
     position:absolute;
     top:0;
@@ -367,7 +367,7 @@ header#main-header .button a:after{
 #sidebar h1,#sidebar h1 a{
     display:block;
     font-size:15px;
-    color:#0d2b3e;
+    color:black;
     font-weight:500;
     height:36px;
     line-height:36px;
@@ -569,7 +569,7 @@ header#main-header .button a:after{
     border-top:1px solid rgba(120,134,156,.08)
 }
 #sidebar h1 a.selected,#sidebar ul li a.selected{
-    color:#0099e5;
+    color:#797979;
     font-weight:500
 }
 #sidebar ul ul{
@@ -647,14 +647,14 @@ header#main-header .button a:after{
 }
 article h1{
     font-size:31px;
-    color:#0d2b3e;
+    color:black;
     font-weight:400
 }
 article h2{
     font-size:22px
 }
 article h2,article h3{
-    color:#0d2b3e;
+    color:black;
     font-weight:500
 }
 article h3{
@@ -662,7 +662,7 @@ article h3{
 }
 article h4,article h5,article h6{
     font-size:17px;
-    color:#0d2b3e;
+    color:black;
     font-weight:500
 }
 article blockquote,article dl,article ol,article p,article table tbody,article ul{
@@ -756,7 +756,7 @@ article footer #csat-widget .common-Button{
     margin-left:5px;
     line-height:25px;
     height:25px;
-    color:#299fc4;
+    color:black;
     text-transform:unset;
     cursor:pointer
 }
@@ -837,7 +837,7 @@ article aside.important.flash{
     }
 }
 .key-popover a,article a,article a code{
-    color:#0099e5;
+    color:#797979;
     font-weight:500;
     text-decoration:underline
 }
@@ -884,7 +884,7 @@ article a[href^="/docs/api"]:active:after{
 }
 article code,article strong{
     font-weight:500;
-    color:#0d2b3e
+    color:black
 }
 article code{
     font-family:Source Code Pro,monospace
@@ -1005,7 +1005,7 @@ article ul.large-items>li a{
 article ul.large-items>li h3{
     position:relative;
     display:inline-block;
-    color:#0099e5;
+    color:#797979;
     font-size:15px;
     font-weight:500
 }
@@ -1116,7 +1116,7 @@ article table.reference .attr,article table.reference td:first-child code{
     text-align:right
 }
 article table.reference .attr{
-    color:#0d2b3e;
+    color:black;
     font-weight:500
 }
 article table.reference .type{
@@ -1129,7 +1129,7 @@ article table.reference .type{
 .card-number,.card-token{
     white-space:nowrap;
     font-family:Source Code Pro,monospace;
-    color:#0d2b3e;
+    color:black;
     font-weight:500
 }
 .card-number span{
@@ -1238,7 +1238,7 @@ article .tabs-code>nav a:active{
     color:#2f3538
 }
 article .tabs-code>nav a.selected{
-    color:#0099e5
+    color:#797979
 }
 article .code>nav{
     display:flex;
@@ -1394,7 +1394,7 @@ article .tabs-regular .nav-tabs{
 article .tabs-regular .nav-tabs select{
     font-size:15px;
     font-weight:500;
-    color:#0099e5;
+    color:#797979;
     background:transparent;
     outline:none;
     padding:0 13px 0 0;
@@ -1422,7 +1422,7 @@ article .tabs-regular .nav-tabs a:active{
     background:#f0f4f7;
     border-top-left-radius:3px;
     border-top-right-radius:3px;
-    color:#0d2b3e
+    color:black
 }
 article .tabs-regular .nav-tabs a.selected{
     background:#0e99e5;
@@ -1583,7 +1583,7 @@ article a.column h4+p{
     padding-top:5px
 }
 article a.column:hover,article a.column:hover>*{
-    color:#0099e5
+    color:#797979
 }
 article .card-form{
     width:325px;

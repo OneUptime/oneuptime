@@ -6,6 +6,11 @@ main{
 main a{
     outline:none
 }
+
+.grey{
+    color:#797979
+}
+
 main h2[class^=common-Uppercase]{
     color:#24b47e
 }
@@ -301,7 +306,7 @@ main header{
 #intro li:first-child a{
     margin-right:23px;
     color:#fff;
-    background:#00c2ff;
+    background:black;
     text-shadow:0 1px 3px rgba(36,180,126,.4)
 }
 #intro li:first-child svg{
@@ -317,7 +322,7 @@ main header{
         display:block
     }
     #intro li:last-child a{
-        color:#299fc4
+        color:black
     }
 }
 #app-illustrations{
@@ -1042,7 +1047,7 @@ main header{
 }
 #comparison li:last-child .label{
     margin-right:7px;
-    background:#00c2ff
+    background:black
 }
 #comparison section:first-child li:last-child{
     -ms-flex-pack:end;
@@ -1068,7 +1073,7 @@ main header{
     height:var(--size);
     border-radius:50%;
     background:#fff;
-    border:2px solid #00c2ff
+    border:2px solid black
 }
 #comparison .launch-marker-bar{
     display:block;
@@ -1095,7 +1100,7 @@ main header{
 #cookie-consent{
     bottom: 0; 
     top: auto; 
-    background: #00c2ff; 
+    background: black; 
     position: fixed; 
     width: 100%; 
     z-index: 500; 
