@@ -1,6 +1,4 @@
 process.env.PORT = 3020;
-process.env.REDIS_HOST = 'redis.default.svc.cluster.local';
-process.env.REDIS_PORT = 6379;
 var expect = require('chai').expect;
 var chai = require('chai');
 chai.use(require('chai-http'));

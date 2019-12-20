@@ -416,10 +416,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    app: redis
   name: redis
 spec:
   ports:
     - port: 6379
+      targetPort: 6379
       name: redis
   clusterIP: None
   selector:
@@ -473,11 +476,11 @@ kind: StatefulSet
 metadata:
   name: redis
 spec:
+  serviceName: redis
+  replicas: 1
   selector:
     matchLabels:
       app: redis
-  serviceName: redis
-  replicas: 1
   template:
     metadata:
       labels:
@@ -485,18 +488,11 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:3.2-alpine
+          image: redis:5.0.7
           imagePullPolicy: Always
-          args: ["--requirepass", "$(REDIS_PASS)"]
           ports:
             - containerPort: 6379
               name: redis
-          env:
-            - name: REDIS_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: env-secrets
-                  key: REDIS_PASS
           volumeMounts:
             - name: data
               mountPath: /data
@@ -505,7 +501,7 @@ spec:
     - metadata:
         name: data
         annotations:
-          volume.alpha.kubernetes.io/storage-class: productiondata
+          volume.beta.kubernetes.io/storage-class: productiondata
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
