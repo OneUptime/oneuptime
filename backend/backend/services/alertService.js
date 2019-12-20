@@ -280,13 +280,67 @@ module.exports = {
         }
     },
 
-    sendSubscriberAlert: async function (subscriber, incident) {
+    sendIncidentAcknowledgedToSubscribers: async function (incident) {
+        try {
+            let _this = this;
+            if (incident) {
+                let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+                var subscribers = await SubscriberService.findBy({ monitorId: monitorId });
+                subscribers.forEach(async (subscriber) => {
+                    if (subscriber.statusPageId) {
+                        var enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
+                        if (enabledStatusPage) {
+                            await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Acknowldeged');
+                        }
+                    } else {
+                        await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Acknowldeged');
+                    }
+                });
+            }
+        } catch (error) {
+            ErrorService.log('alertService.sendIncidentAcknowledgedToSubscribers', error);
+            throw error;
+        }
+    },
+
+    sendIncidentResolvedToSubscribers: async function (incident) {
+        try {
+            let _this = this;
+            if (incident) {
+                let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+                var subscribers = await SubscriberService.findBy({ monitorId: monitorId });
+                subscribers.forEach(async (subscriber) => {
+                    if (subscriber.statusPageId) {
+                        var enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
+                        if (enabledStatusPage) {
+                            await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Resolved');
+                        }
+                    } else {
+                        await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Resolved');
+                    }
+                });
+            }
+        } catch (error) {
+            ErrorService.log('alertService.sendIncidentResolvedToSubscribers', error);
+            throw error;
+        }
+    },
+
+    sendSubscriberAlert: async function (subscriber, incident, emailType = 'Subscriber Incident Created') {
         try {
             let _this = this;
             let date = new Date();
             if (subscriber.alertVia == AlertType.Email) {
-                var emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType: 'Subscriber Incident' });
-                await MailService.sendIncidentCreatedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident.projectId, emailTemplate);
+                var emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType });
+                var project = await ProjectService.findOneBy({ _id: incident.projectId });
+                var statusPageLink = `${baseApiUrl}/project/${incident.projectId}/status-pages`;
+                if (emailType === 'Subscriber Incident Acknowldeged') {
+                    await MailService.sendIncidentAcknowledgedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, statusPageLink);
+                } else if (emailType === 'Subscriber Incident Resolved') {
+                    await MailService.sendIncidentResolvedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, statusPageLink);
+                } else {
+                    await MailService.sendIncidentCreatedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, statusPageLink);
+                }
                 await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.Email, alertStatus: 'Sent' });
             } else if (subscriber.alertVia == AlertType.SMS) {
                 var countryCode = await _this.mapCountryShortNameToCountryCode(subscriber.countryCode);

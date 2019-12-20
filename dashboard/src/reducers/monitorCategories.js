@@ -196,6 +196,9 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting:false,
                     success:true,
                     error:false
+                },
+                newMonitorCategory: {
+                    ...INITIAL_STATE.newMonitorCategory
                 }
             });
         case DELETE_MONITOR_CATEGORY_FAILURE:
