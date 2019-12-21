@@ -1,6 +1,7 @@
 /* eslint-disable no-useless-escape */
 var expect = require('chai').expect;
 process.env.PORT = 3020;
+process.env.SOCKET_PORT = 3021;
 var userData = require('./data/user');
 var chai = require('chai');
 chai.use(require('chai-http'));

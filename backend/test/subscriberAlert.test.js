@@ -1,4 +1,5 @@
 process.env.PORT = 3020;
+process.env.SOCKET_PORT = 3021;
 let expect = require('chai').expect;
 let userData = require('./data/user');
 let chai = require('chai');

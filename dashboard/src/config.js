@@ -8,6 +8,7 @@ import moment from 'moment';
 import { emaildomains } from './constants/emaildomains';
 
 let apiUrl = 'http://localhost:3002';
+let socketUrl = 'http://localhost:3009';
 let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
@@ -40,11 +41,13 @@ function env(value) {
 if (!isServer) {
     if (window.location.href.indexOf('localhost') > -1) {
         apiUrl = 'http://localhost:3002';
+        socketUrl = 'http://localhost:3009';
         dashboardUrl = 'http://localhost:3000';
         accountsUrl = 'http://localhost:3003';
         domain = 'localhost';
     } else if (env('BACKEND_HOST')) {
         apiUrl = env('BACKEND_HOST');
+        socketUrl = env('SOCKET_HOST');
         dashboardUrl = env('HOST');
         accountsUrl = env('ACCOUNTS_HOST');
         domain = env('DOMAIN');
@@ -52,6 +55,8 @@ if (!isServer) {
 }
 
 export const API_URL = apiUrl;
+
+export const SOCKET_URL = socketUrl;
 
 export const DASHBOARD_URL = dashboardUrl;
 

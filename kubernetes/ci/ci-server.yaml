@@ -32,6 +32,8 @@ spec:
               value: "http://accounts.app.local:3003"
             - name: BACKEND_HOST
               value: "http://backend.app.local:3002"
+            - name: SOCKET_HOST
+              value: "http://socket.app.local:3009"
             - name: DOMAIN
               value: ".app.local"
           ports:
@@ -86,6 +88,8 @@ spec:
               value: "http://accounts.app.local:3003"
             - name: BACKEND_HOST
               value: "http://backend.app.local:3002"
+            - name: SOCKET_HOST
+              value: "http://socket.app.local:3009"
             - name: DASHBOARD_HOST
               value: "http://dashboard.app.local:3000"
             - name: DOMAIN
@@ -142,6 +146,8 @@ spec:
               value: "accounts"
             - name: BACKEND_HOST
               value: "backend"
+            - name: SOCKET_HOST
+              value: "socket"
             - name: DASHBOARD_HOST
               value: "dashboard"
           ports:
@@ -206,6 +212,8 @@ spec:
               value: "sk_test_YxwnzywggtAd8jDaHecNmHiN"
             - name: PORT
               value: "3002"
+            - name: SOCKET_PORT
+              value: "3009"
             - name: MAIL_USER
               value: "noreply@fyipe.com"
             - name: MAIL_PASSWORD
@@ -248,6 +256,22 @@ spec:
       targetPort: 3002
   selector:
     app: backend
+  type: LoadBalancer
+---
+# Fyipe Socket Deployment
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: socket
+  name: socket
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3009
+  selector:
+    app: socket
   type: LoadBalancer
 ---
 # Slack
@@ -322,6 +346,8 @@ spec:
               value: "home"
             - name: BACKEND_HOST
               value: "backend"
+            - name: SOCKET_HOST
+              value: "socket"
             - name: ACCOUNTS_HOST
               value: "accounts"
             - name: DASHBOARD_HOST
@@ -376,6 +402,8 @@ spec:
               value: "statuspage"
             - name: BACKEND_HOST
               value: "backend"
+            - name: SOCKET_HOST
+              value: "socket"
             - name: ACCOUNTS_HOST
               value: "accounts"
             - name: DASHBOARD_HOST

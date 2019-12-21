@@ -10,6 +10,7 @@ var env = {
   REACT_APP_HOST: process.env.HOST,
   REACT_APP_ACCOUNTS_HOST: process.env.ACCOUNTS_HOST,
   REACT_APP_BACKEND_HOST: process.env.BACKEND_HOST,
+  REACT_APP_SOCKET_HOST: process.env.SOCKET_HOST,
   REACT_APP_DOMAIN: process.env.DOMAIN
 }
 

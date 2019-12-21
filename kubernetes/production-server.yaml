@@ -136,6 +136,8 @@ spec:
               value: "sk_live_ADLzzMrOCz0kyYTsxWatAqxh"
             - name: PORT
               value: "3002"
+            - name: SOCKET_PORT
+              value: "3009"
             - name: CLUSTER_KEY
               value: "asjldjsa-30as-nm32-q2as-lkj09asdjn0a"
           ports:
@@ -162,6 +164,21 @@ spec:
     app: backend
   type: LoadBalancer
 ---
+# Fyipe Socket Deployment
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: socket
+  name: socket
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3009
+  selector:
+    app: socket
+  type: LoadBalancer
 ---
 # Slack
 apiVersion: apps/v1
