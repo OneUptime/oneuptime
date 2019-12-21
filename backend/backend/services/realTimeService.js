@@ -1,4 +1,11 @@
-var io = global.io;
+var io = require('socket.io')(process.env.SOCKET_PORT || 3009);
+var redisAdapter = require('socket.io-redis');
+var keys = require('../config/keys.js');
+
+io.adapter(redisAdapter({
+    host: keys.redisURL || 'localhost',
+    port: process.env.REDIS_PORT || 6379
+}));
 
 module.exports = {
     sendIncidentCreated: async (incident) => {
