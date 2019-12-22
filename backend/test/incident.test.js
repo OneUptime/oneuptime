@@ -142,62 +142,62 @@ describe('Incident API', function () {
         });
     });
 
-    // it('should not send incident alert when balance is below minimum amount', async function () {
-    //     var authorization = `Basic ${token}`;
-    //     await ProjectModel.findByIdAndUpdate(projectId, {
-    //         $set: {
-    //             alertEnable: true,
-    //             alertOptions: {
-    //                 minimumBalance: 50,
-    //                 rechargeToBalance: 100,
-    //                 billingUS: true,
-    //                 billingNonUSCountries: true,
-    //                 billingRiskCountries: false
-    //             }
-    //         }
-    //     });
-    //     await sleep(5000);
-    //     await UserModel.findByIdAndUpdate(userId, {
-    //         $set: {
-    //             alertPhoneNumber: TwilioConfig.testphoneNumber
-    //         }
-    //     });
-    //     var schedule = await request.post(`/schedule/${projectId}`)
-    //         .set('Authorization', authorization)
-    //         .send({
-    //             name: 'test schedule'
-    //         });
-    //     var selectMonitor = await request.put(`/schedule/${projectId}/${schedule.body._id}`)
-    //         .set('Authorization', authorization)
-    //         .send({
-    //             monitorIds: [monitorId]
-    //         });
-    //     if (selectMonitor) {
-    //         var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
-    //             .send([{
-    //                 callFrequency: 10,
-    //                 call: false,
-    //                 sms: true,
-    //                 email: false,
-    //                 teamMember: [{
-    //                     member: userId,
-    //                     startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
-    //                     endTime: 'Tue Dec 17 2019 23:55:26 GMT+0000',
-    //                     timezone: 'UTC(GMT +00:00)'
-    //                 }]
-    //             }]);
-    //         if (createEscalation) {
-    //             var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
-    //                 .set('Authorization', authorization)
-    //                 .send(incidentData);
-    //             var alert = await AlertModel.findOne({
-    //                 incidentId: createdIncident.body._id
-    //             });
-    //         }
-    //     }
-    //     expect(alert).to.be.an('object');
-    //     expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
-    // });
+    it('should not send incident alert when balance is below minimum amount', async function () {
+        var authorization = `Basic ${token}`;
+        await ProjectModel.findByIdAndUpdate(projectId, {
+            $set: {
+                alertEnable: true,
+                alertOptions: {
+                    minimumBalance: 50,
+                    rechargeToBalance: 100,
+                    billingUS: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: false
+                }
+            }
+        });
+        await sleep(5000);
+        await UserModel.findByIdAndUpdate(userId, {
+            $set: {
+                alertPhoneNumber: TwilioConfig.testphoneNumber
+            }
+        });
+        var schedule = await request.post(`/schedule/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'test schedule'
+            });
+        var selectMonitor = await request.put(`/schedule/${projectId}/${schedule.body._id}`)
+            .set('Authorization', authorization)
+            .send({
+                monitorIds: [monitorId]
+            });
+        if (selectMonitor) {
+            var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
+                .send([{
+                    callFrequency: 10,
+                    call: false,
+                    sms: true,
+                    email: false,
+                    teamMember: [{
+                        member: userId,
+                        startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
+                        endTime: 'Tue Dec 17 2019 22:55:26 GMT+0000',
+                        timezone: 'UTC(GMT +00:00)'
+                    }]
+                }]);
+            if (createEscalation) {
+                var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
+                    .set('Authorization', authorization)
+                    .send(incidentData);
+                var alert = await AlertModel.findOne({
+                    incidentId: createdIncident.body._id
+                });
+            }
+        }
+        expect(alert).to.be.an('object');
+        expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
+    });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function () {
         request.get(`alert/${projectId}/alert/charges`, function (err, res) {
@@ -208,23 +208,23 @@ describe('Incident API', function () {
             expect(res.body.data.length).to.be.equal(0);
         });
     });
-    // it('should send incident alert when balance is above minimum amount', async function () {
-    //     var authorization = `Basic ${token}`;
-    //     await ProjectModel.findByIdAndUpdate(projectId, {
-    //         $set: {
-    //             balance: 100
-    //         }
-    //     });
-    //     var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
-    //         .set('Authorization', authorization)
-    //         .send(incidentData);
-    //     await sleep(10000);
-    //     var alert = await AlertModel.findOne({
-    //         incidentId: createdIncident.body._id
-    //     });
-    //     expect(alert).to.be.an('object');
-    //     expect(alert.alertStatus).to.be.equal('success');
-    // });
+    it('should send incident alert when balance is above minimum amount', async function () {
+        var authorization = `Basic ${token}`;
+        await ProjectModel.findByIdAndUpdate(projectId, {
+            $set: {
+                balance: 100
+            }
+        });
+        var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(incidentData);
+        await sleep(10000);
+        var alert = await AlertModel.findOne({
+            incidentId: createdIncident.body._id
+        });
+        expect(alert).to.be.an('object');
+        expect(alert.alertStatus).to.be.equal('success');
+    });
     it('should create an alert charge when an alert is sent to a user.', async function () {
         request.get(`alert/${projectId}/alert/charges`, function (err, res) {
             expect(res).to.have.status(200);
