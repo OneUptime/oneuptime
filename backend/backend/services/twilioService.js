@@ -71,16 +71,18 @@ module.exports = {
         }
     },
 
-    sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, projectId) {
+    sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName) {
         try {
             let _this = this;
-            var { template } = await _this.getTemplate(smsTemplate);
+            var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Created');
             let data = {
+                projectName,
                 monitorName: monitorName,
-                incidentTime: incidentTime
+                incidentTime: incidentTime,
+                incidentType: incident.incidentType
             };
             template = template(data);
-            let creds = getTwilioSettings(projectId);
+            let creds = getTwilioSettings(incident.projectId);
             var options = {
                 body: template,
                 from: creds.phoneNumber,
@@ -91,6 +93,58 @@ module.exports = {
             return message;
         } catch (error) {
             ErrorService.log('twillioService.sendIncidentCreatedMessageToSubscriber', error);
+            throw error;
+        }
+    },
+
+    sendIncidentAcknowldegedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName) {
+        try {
+            let _this = this;
+            var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Acknowldeged');
+            let data = {
+                projectName,
+                monitorName: monitorName,
+                incidentTime: incidentTime,
+                incidentType: incident.incidentType
+            };
+            template = template(data);
+            let creds = getTwilioSettings(incident.projectId);
+            var options = {
+                body: template,
+                from: creds.phoneNumber,
+                to: number
+            };
+            let newClient = dynamicClient(creds.accountSid, creds.authToken);
+            var message = await newClient.messages.create(options);
+            return message;
+        } catch (error) {
+            ErrorService.log('twillioService.sendIncidentAcknowldegedMessageToSubscriber', error);
+            throw error;
+        }
+    },
+
+    sendIncidentResolvedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName) {
+        try {
+            let _this = this;
+            var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Resolved');
+            let data = {
+                projectName,
+                monitorName: monitorName,
+                incidentTime: incidentTime,
+                incidentType: incident.incidentType
+            };
+            template = template(data);
+            let creds = getTwilioSettings(incident.projectId);
+            var options = {
+                body: template,
+                from: creds.phoneNumber,
+                to: number
+            };
+            let newClient = dynamicClient(creds.accountSid, creds.authToken);
+            var message = await newClient.messages.create(options);
+            return message;
+        } catch (error) {
+            ErrorService.log('twillioService.sendIncidentResolvedMessageToSubscriber', error);
             throw error;
         }
     },
@@ -136,8 +190,8 @@ module.exports = {
         }
     },
 
-    getTemplate: async function (smsTemplate) {
-        var defaultTemplate = defaultSmsTemplates.filter(template => template.smsType === 'Subscriber Incident')[0];
+    getTemplate: async function (smsTemplate, smsTemplateType) {
+        var defaultTemplate = defaultSmsTemplates.filter(template => template.smsType === smsTemplateType)[0];
         var smsContent = defaultTemplate.body;
         if (smsTemplate != null && smsTemplate != undefined && smsTemplate.body) {
             smsContent = smsTemplate.body;

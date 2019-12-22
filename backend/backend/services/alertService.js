@@ -326,20 +326,19 @@ module.exports = {
         }
     },
 
-    sendSubscriberAlert: async function (subscriber, incident, emailType = 'Subscriber Incident Created') {
+    sendSubscriberAlert: async function (subscriber, incident, templateType = 'Subscriber Incident Created') {
         try {
             let _this = this;
             let date = new Date();
+            var project = await ProjectService.findOneBy({ _id: incident.projectId });
             if (subscriber.alertVia == AlertType.Email) {
-                var emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType });
-                var project = await ProjectService.findOneBy({ _id: incident.projectId });
-                var statusPageLink = `${baseApiUrl}/project/${incident.projectId}/status-pages`;
-                if (emailType === 'Subscriber Incident Acknowldeged') {
-                    await MailService.sendIncidentAcknowledgedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, statusPageLink);
-                } else if (emailType === 'Subscriber Incident Resolved') {
-                    await MailService.sendIncidentResolvedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, statusPageLink);
+                var emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType: templateType });
+                if (templateType === 'Subscriber Incident Acknowldeged') {
+                    await MailService.sendIncidentAcknowledgedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate);
+                } else if (templateType === 'Subscriber Incident Resolved') {
+                    await MailService.sendIncidentResolvedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate);
                 } else {
-                    await MailService.sendIncidentCreatedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, statusPageLink);
+                    await MailService.sendIncidentCreatedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate);
                 }
                 await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.Email, alertStatus: 'Sent' });
             } else if (subscriber.alertVia == AlertType.SMS) {
@@ -348,8 +347,14 @@ module.exports = {
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
-                var smsTemplate = await SmsTemplateService.findOneBy({ projectId: incident.projectId, smsType: 'Subscriber Incident' });
-                await TwilioService.sendIncidentCreatedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident.projectId);
+                var smsTemplate = await SmsTemplateService.findOneBy({ projectId: incident.projectId, smsType: templateType });
+                if (templateType === 'Subscriber Incident Acknowldeged') {
+                    await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name);
+                } else if (templateType === 'Subscriber Incident Resolved') {
+                    await TwilioService.sendIncidentResolvedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name);
+                } else {
+                    await TwilioService.sendIncidentCreatedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name);
+                }
                 await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.SMS, alertStatus: 'Success' });
             }
         } catch (error) {
