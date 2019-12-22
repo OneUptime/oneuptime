@@ -44,6 +44,7 @@ build_n_test_backend:
     - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker ps
+    - sudo docker logs redis
     - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
   except:
     refs:
