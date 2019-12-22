@@ -10,10 +10,6 @@ sudo sed -i '/backend/c\' /etc/hosts
 BACKEND_IP=`sudo k describe svc backend | grep Endpoints | cut -d ":" -f 2`
 echo $BACKEND_IP'      backend.app.local' | sudo tee -a /etc/hosts
 
-sudo sed -i '/socket/c\' /etc/hosts
-SOCKET_IP=`sudo k describe svc socket | grep Endpoints | cut -d ":" -f 2`
-echo $SOCKET_IP'      socket.app.local' | sudo tee -a /etc/hosts
-
 sudo sed -i '/home/c\' /etc/hosts
 HOME_IP=`sudo k describe svc home | grep Endpoints | cut -d ":" -f 2`
 echo $HOME_IP'      home.app.local' | sudo tee -a /etc/hosts

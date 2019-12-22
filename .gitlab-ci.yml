@@ -398,7 +398,6 @@ e2e_test:
     - export ACCOUNTS_URL=http://accounts.app.local:3003
     - export DASHBOARD_URL=http://dashboard.app.local:3000
     - export BACKEND_URL=http://backend.app.local:3002
-    - export SOCKET_URL=http://socket.app.local:3009
     - export STATUSPAGE_URL=http://status-page.app.local:3006
     - export APIDOCS_URL=http://api-docs.app.local:1445
     - chmod +x ./kubernetes/ci/hosts-setup.sh
@@ -959,7 +958,6 @@ smoke_test_production:
     - export ACCOUNTS_URL=https://accounts.fyipe.com
     - export DASHBOARD_URL=https://dashboard.fyipe.com
     - export BACKEND_URL=https://api.fyipe.com
-    - export SOCKET_URL=https://socket.fyipe.com
     - export STATUSPAGE_URL=https://statuspage.fyipe.com
     - export APIDOCS_URL=https://docs.fyipe.com
     - cd smoke-test
@@ -981,7 +979,6 @@ smoke_test_staging:
     - export ACCOUNTS_URL=https://staging-accounts.fyipe.com
     - export DASHBOARD_URL=https://staging-dashboard.fyipe.com
     - export BACKEND_URL=https://staging-api.fyipe.com
-    - export SOCKET_URL=https://staging-socket.fyipe.com
     - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
     - export APIDOCS_URL=https://staging-docs.fyipe.com
     - cd smoke-test

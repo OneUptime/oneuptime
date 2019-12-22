@@ -30,9 +30,7 @@ COPY . /usr/src/app
 
 # Expose ports.
 #   - 3002: Fyipe-backend
-#   - 3009: Socket.io
 EXPOSE 3002
-EXPOSE 3009
 
 #Run the app
 CMD [ "npm", "start"]

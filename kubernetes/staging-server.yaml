@@ -32,8 +32,6 @@ spec:
               value: "https://staging-accounts.fyipe.com"
             - name: BACKEND_HOST
               value: "https://staging-api.fyipe.com"
-            - name: SOCKET_HOST
-              value: "https://staging-socket.fyipe.com"
             - name: DOMAIN
               value: ".fyipe.com"
           ports:
@@ -90,8 +88,6 @@ spec:
               value: "https://staging-dashboard.fyipe.com"
             - name: BACKEND_HOST
               value: "https://staging-api.fyipe.com"
-            - name: SOCKET_HOST
-              value: "https://staging-socket.fyipe.com"
             - name: DOMAIN
               value: ".fyipe.com"
           ports:
@@ -156,8 +152,6 @@ spec:
               value: "sk_test_YxwnzywggtAd8jDaHecNmHiN"
             - name: PORT
               value: "3002"
-            - name: SOCKET_PORT
-              value: "3009"
             - name: MAIL_USER
               value: "noreply@fyipe.com"
             - name: MAIL_PASSWORD
@@ -208,22 +202,6 @@ spec:
       targetPort: 3002
   selector:
     app: backend
-  type: LoadBalancer
----
-# Fyipe Socket Deployment
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: socket
-  name: socket
-spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3009
-  selector:
-    app: socket
   type: LoadBalancer
 ---
 # Fyipe Home

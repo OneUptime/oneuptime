@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import io from 'socket.io-client';
 import RemovedFromSubProjectModal from '../modals/RemovedFromSubProject';
 import RemovedFromProjectModal from '../modals/RemovedFromProject';
-import { User, SOCKET_URL } from '../../config';
+import { User, API_URL } from '../../config';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import {
@@ -16,7 +16,7 @@ import {
 import DataPathHoC from '../DataPathHoC';
 
 class SocketApp extends Component {
-    socket = io(SOCKET_URL)
+    socket = io(API_URL)
 
     shouldComponentUpdate(nextProps) {
         if (this.props.project !== nextProps.project) {

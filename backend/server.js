@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var path = require('path');
 var http = require('http').createServer(app);
+var io = require('socket.io')(http);
 var bodyParser = require('body-parser');
 var cors = require('cors');
 //var { fork } = require('child_process');
@@ -12,6 +13,8 @@ var { NODE_ENV } = process.env;
 
 if (NODE_ENV === 'local' || NODE_ENV === 'development')
     require('custom-env').env(process.env.NODE_ENV);
+
+global.io = io;
 
 app.use(cors());
 

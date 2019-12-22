@@ -1,5 +1,4 @@
 process.env.PORT = 3020;
-process.env.SOCKET_PORT = 3021;
 var expect = require('chai').expect;
 var data = require('./data/user');
 var profile = require('./data/user').profile;

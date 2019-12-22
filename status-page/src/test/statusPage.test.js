@@ -1,4 +1,3 @@
-process.env.SOCKET_PORT = 3021;
 var puppeteer = require('puppeteer');
 var expect = require('chai').expect;
 var chai = require('chai');

@@ -20,7 +20,6 @@ const HOME_URL = process.env.HOME_URL || 'http://localhost:1444';
 const ACCOUNTS_URL = process.env.ACCOUNTS_URL || 'http://localhost:3003';
 const DASHBOARD_URL = process.env.DASHBOARD_URL || 'http://localhost:3000';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
-const SOCKET_URL = process.env.SOCKET_URL || 'http://localhost:3009';
 const STATUSPAGE_URL = process.env.STATUSPAGE_URL || 'http://localhost:3006';
 const APIDOCS_URL = process.env.APIDOCS_URL || 'http://localhost:1445';
 
@@ -40,7 +39,6 @@ module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
     BACKEND_URL,
-    SOCKET_URL,
     STATUSPAGE_URL,
     APIDOCS_URL,
     user,

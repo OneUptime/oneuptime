@@ -1,6 +1,5 @@
 /* eslint-disable linebreak-style */
 process.env.PORT = 3020;
-process.env.SOCKET_PORT = 3021;
 var expect = require('chai').expect;
 var userData = require('./data/user');
 var chai = require('chai');
