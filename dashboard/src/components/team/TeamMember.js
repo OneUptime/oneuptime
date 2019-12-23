@@ -73,11 +73,12 @@ export class TeamMember extends Component {
         const thereAreOtherAdmins = teamMembers.some(user => user.userId !== loggedInUser && (user.role === 'Administrator' || user.role === 'Owner') && user.name);
 
         return (
-            <div
-                className="bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                style={{ cursor: 'pointer' }}
-                onClick={() => { history.push('/profile/' + this.props.userId) }}>
-                <div className="bs-ObjectList-cell bs-u-v-middle">
+            <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
+                <div
+                    className="bs-ObjectList-cell bs-u-v-middle"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => { history.push('/profile/' + this.props.userId) }}
+                >
                     <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{this.props.name}</div>
                     <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
                         {this.props.email}
