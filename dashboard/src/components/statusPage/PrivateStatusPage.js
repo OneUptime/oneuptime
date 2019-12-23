@@ -253,6 +253,7 @@ let PrivateStatusPageForm = reduxForm({
 
 PrivateStatusPage.propTypes = {
     updatePrivateStatusPage: PropTypes.func.isRequired,
+    openModal: PropTypes.func.isRequired,
     statusPage: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
