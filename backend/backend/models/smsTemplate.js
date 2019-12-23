@@ -12,7 +12,7 @@ var smsTemplateSchema = new Schema({
     body: { type: String },
     smsType: {
         type: String,
-        enum: ['Subscriber Incident', 'Team Member Incident'],
+        enum: ['Subscriber Incident Created', 'Subscriber Incident Acknowldeged', 'Subscriber Incident Resolved', 'Team Member Incident'],
         required: true
     },
     allowedVariables: [{ type: String, required: true }],
