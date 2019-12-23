@@ -4,7 +4,16 @@ import DataPathHoC from '../DataPathHoC';
 import UpdateFooterLink from '../modals/FooterLink';
 import RemoveFooterLink from '../modals/RemoveFooterLink';
 
-const RenderLinks = ({ fields, openModal, createFooterLinkModalId, submitForm, statusPage, removeFooterLink, removeFooterLinkModalId }) => {
+const RenderLinks = ({
+    fields,
+    openModal,
+    createFooterLinkModalId,
+    submitForm,
+    statusPage,
+    removeFooterLink,
+    removeFooterLinkModalId,
+    deleting,
+}) => {
     return (
         <ul>
             <table className="Table">
@@ -99,7 +108,7 @@ const RenderLinks = ({ fields, openModal, createFooterLinkModalId, submitForm, s
                                                                         resolve(true);
                                                                     })
                                                                 },
-                                                                content: RemoveFooterLink
+                                                                content: DataPathHoC(RemoveFooterLink, {deleting})
                                                             })
                                                         }}
                                                         className="Button bs-ButtonLegacy"
@@ -130,6 +139,7 @@ RenderLinks.propTypes = {
     submitForm: PropTypes.func.isRequired,
     removeFooterLink: PropTypes.func.isRequired,
     createFooterLinkModalId: PropTypes.string,
+    deleting: PropTypes.bool,
     removeFooterLinkModalId: PropTypes.string,
     statusPage: PropTypes.object,
     openModal: PropTypes.func.isRequired,

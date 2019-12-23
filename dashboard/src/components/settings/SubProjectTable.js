@@ -8,6 +8,7 @@ import uuid from 'uuid'
 import DataPathHoC from '../DataPathHoC'
 import { openModal, closeModal } from '../../actions/modal'
 import RemoveSubProject from '../modals/RemoveSubProject'
+import SubProjectApiKey from '../modals/SubProjectApiKey'
 
 export class SubProjectTable extends Component {
 	constructor(props) {
@@ -29,7 +30,7 @@ export class SubProjectTable extends Component {
 				</div>
 				<div className='bs-ObjectList-cell bs-u-v-middle' style={{ padding: '10px' }}>
 					<div className='bs-ObjectList-cell-row'>
-						{subProject.users ? subProject.users.length : 'no users added yet'}
+						{subProject.parentProjectId && subProject.parentProjectId._id ? subProject.parentProjectId._id : ''}
 					</div>
 				</div>
 				<div className='bs-ObjectList-cell bs-u-v-middle' style={{ padding: '10px' }}>
@@ -43,6 +44,24 @@ export class SubProjectTable extends Component {
 					style={{ padding: '10px' }}>
 					<div>
 						<div className='Flex-flex Flex-alignContent--spaceBetween'>
+							<button
+								title='apiKey'
+								id={`sub_project_api_key_${this.props.loop}`}
+								disabled={disabled}
+								className='bs-Button bs-DeprecatedButton Margin-left--8'
+								type='button'
+								onClick={() =>
+									this.props.openModal({
+										id: this.state.subProjectModalId,
+										content: DataPathHoC(SubProjectApiKey, {
+											subProjectModalId: this.state.subProjectModalId,
+											subProjectId: subProject._id,
+											subProjectTitle: subProject.name,
+										})
+									})
+								}>
+								<span>Reveal Api Key</span>
+							</button>
 							<button
 								title='edit'
 								id={`sub_project_edit_${this.props.loop}`}

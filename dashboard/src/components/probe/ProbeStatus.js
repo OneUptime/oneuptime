@@ -6,17 +6,19 @@ function ProbeStatus({ lastAlive }) {
     const [now, setNow] = useState(Date.now());
 
     useEffect(() => {
+        setNow(Date.now());
+
         let nowHandler = setTimeout(() => {
             setNow(Date.now());
-        }, 65000);
+        }, 300000);
 
         return () => {
             clearTimeout(nowHandler);
         };
-    });
+    }, [lastAlive]);
 
     return (
-        lastAlive && moment(now).diff(moment(lastAlive), 'minutes') > 1 ?
+        (lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) || !lastAlive ?
             (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                     <span>OFFLINE</span>

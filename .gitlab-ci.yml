@@ -27,7 +27,7 @@ lint_n_audit_backend:
     - cd backend
     - npm ci
     - npm run lint
-    # - npm run audit
+    - npm run audit
     - cd ..
   except:
     refs:
@@ -41,8 +41,11 @@ build_n_test_backend:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --name fyipe --network container:mongo fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
+    - sudo docker ps
+    - sudo docker logs redis
+    - sudo docker run --name fyipe --net=host fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
   except:
     refs:
       - hotfix-master
@@ -59,7 +62,7 @@ lint_n_audit_dashboard:
     - cd dashboard
     - npm ci
     - npm run lint
-    # - npm run audit
+    - npm run audit
     - cd ..
   except:
     refs:
@@ -76,6 +79,7 @@ build_n_test_dashboard:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
@@ -186,6 +190,7 @@ build_n_test_statuspage:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/status-page:3.0.$CI_PIPELINE_IID ./status-page
@@ -236,6 +241,7 @@ build_n_test_accounts:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
@@ -274,6 +280,35 @@ lint_n_audit_home:
       - hotfix-release
 
 build_n_test_home:
+  stage: BuildAndTest
+  script:
+    - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
+## SLACK
+lint_n_audit_slack:
+  stage: BuildAndTest
+  allow_failure: true
+  script:
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
+    - cd slack
+    - npm ci
+    - npm run lint
+    - npm run audit
+    - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
+build_n_test_slack:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
@@ -341,6 +376,7 @@ build_n_test_server-monitor:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker ps
@@ -539,6 +575,55 @@ deploy_production_home:
     - sudo docker push registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/home:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/home home=registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production
+
+# DEPLOYMENT STAGE - slack
+deploy_staging_slack:
+  stage: Deploy
+  allow_failure: true
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy slack.
+    - sudo docker build -t fyipe-project/slack:master ./slack
+    - sudo docker tag fyipe-project/slack:master registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/slack:master registry.gitlab.com/fyipe-project/slack:master
+    - sudo docker push registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/slack:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/slack slack=registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+      - hotfix-master
+  environment:
+    name: staging
+
+deploy_production_slack:
+  stage: Deploy
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker build -t fyipe-project/slack:latest ./slack
+    - sudo docker tag fyipe-project/slack:latest registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/slack:latest registry.gitlab.com/fyipe-project/slack:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/slack:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/slack slack=registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -980,6 +1065,24 @@ staging_rollback_home:
   except:
     - $STAGING_SMOKE_TEST_STATUS
 
+staging_rollback_slack:
+  stage: RollbackIfSmokeTestFail
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback slack
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/slack
+  only:
+    refs:
+      - master
+  except:
+    - $STAGING_SMOKE_TEST_STATUS
+
 staging_rollback_status-page:
   stage: RollbackIfSmokeTestFail
   script:
@@ -1115,6 +1218,22 @@ production_rollback_home:
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
+  only:
+    refs:
+      - release
+
+production_rollback_slack:
+  stage: RollbackIfSmokeTestFail
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback slack
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/slack
   only:
     refs:
       - release

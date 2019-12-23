@@ -18,6 +18,9 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
         let monitorId = body.monitorId;
         let endpoint = body.endpoint;
         let endpointType = body.endpointType;
+        let incidentCreated = body.incidentCreated;
+        let incidentResolved = body.incidentResolved;
+        let incidentAcknowledged = body.incidentAcknowledged;
 
         if(!projectId) {
             return sendErrorResponse( req, res, {
@@ -53,10 +56,11 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
             });
         }
 
-        var data = {userId: userId, endpoint, endpointType, monitorId};
+        var data = {userId, endpoint, endpointType, monitorId};
+        var notificationOptions = { incidentCreated, incidentAcknowledged, incidentResolved };
         var integrationType = 'webhook';
-        var slack = await IntegrationService.create(projectId, userId, data, integrationType);
-        return sendItemResponse(req, res, slack);
+        var webhook = await IntegrationService.create(projectId, userId, data, integrationType, notificationOptions);
+        return sendItemResponse(req, res, webhook);
     } catch(error) {
         return sendErrorResponse(req, res, error);
     }

@@ -13,7 +13,7 @@ var emailTemplateSchema = new Schema({
     body: { type: String },
     emailType: {
         type: String,
-        enum: ['Subscriber Incident'],
+        enum: ['Subscriber Incident Created', 'Subscriber Incident Acknowldeged', 'Subscriber Incident Resolved'],
         required: true
     },
     allowedVariables: [{ type: String, required: true }],

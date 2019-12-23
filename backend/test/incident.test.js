@@ -182,7 +182,7 @@ describe('Incident API', function () {
                     teamMember: [{
                         member: userId,
                         startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
-                        endTime: 'Tue Dec 17 2019 23:55:26 GMT+0000',
+                        endTime: 'Tue Dec 17 2019 22:55:26 GMT+0000',
                         timezone: 'UTC(GMT +00:00)'
                     }]
                 }]);
@@ -208,7 +208,7 @@ describe('Incident API', function () {
             expect(res.body.data.length).to.be.equal(0);
         });
     });
-    it('should send incident alert when balance is above minimum amount ', async function () {
+    it('should send incident alert when balance is above minimum amount', async function () {
         var authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
             $set: {

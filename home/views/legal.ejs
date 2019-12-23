@@ -33,6 +33,9 @@
             <a href="/legal/gdpr">GDPR Policy</a>
           </li>
           <li>
+            <a href="/legal/ccpa">CCPA</a>
+          </li>
+          <li>
             <a href="/legal/hipaa">HIPAA Compliance</a>
           </li>
           <li>
@@ -115,6 +118,10 @@
 
         <% if(section === "sla") {%>
         <% include ./sla %>
+        <% }%>
+
+        <% if(section === "ccpa") {%>
+        <% include ./ccpa %>
         <% }%>
 
         <% if(section === "data-residency") {%>

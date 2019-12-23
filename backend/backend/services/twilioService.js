@@ -13,6 +13,7 @@ var Handlebars = require('handlebars');
 var defaultSmsTemplates = require('../config/smsTemplate');
 var SmsSmtpService = require('./smsSmtpService');
 var UserModel = require('../models/user');
+var UserService = require('./userService');
 var SmsCountService = require('./smsCountService');
 
 var getTwilioSettings = async (projectId) => {
@@ -53,7 +54,7 @@ module.exports = {
                 from: twilioCredentials.phoneNumber,
                 to: number
             };
-    
+
             // create incidentSMSAction entry for matching sms from twilio.
             const incidentSMSAction = new incidentSMSActionModel();
             incidentSMSAction.incidentId = incidentId;
@@ -61,7 +62,7 @@ module.exports = {
             incidentSMSAction.number = number;
             incidentSMSAction.name = name;
             await incidentSMSAction.save();
-            
+
             var message = await client.messages.create(options);
             return message;
         } catch (error) {
@@ -70,16 +71,18 @@ module.exports = {
         }
     },
 
-    sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, projectId) {
+    sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName) {
         try {
             let _this = this;
-            var { template } = await _this.getTemplate(smsTemplate);
+            var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Created');
             let data = {
+                projectName,
                 monitorName: monitorName,
-                incidentTime: incidentTime
+                incidentTime: incidentTime,
+                incidentType: incident.incidentType
             };
             template = template(data);
-            let creds = getTwilioSettings(projectId);
+            let creds = getTwilioSettings(incident.projectId);
             var options = {
                 body: template,
                 from: creds.phoneNumber,
@@ -90,6 +93,58 @@ module.exports = {
             return message;
         } catch (error) {
             ErrorService.log('twillioService.sendIncidentCreatedMessageToSubscriber', error);
+            throw error;
+        }
+    },
+
+    sendIncidentAcknowldegedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName) {
+        try {
+            let _this = this;
+            var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Acknowldeged');
+            let data = {
+                projectName,
+                monitorName: monitorName,
+                incidentTime: incidentTime,
+                incidentType: incident.incidentType
+            };
+            template = template(data);
+            let creds = getTwilioSettings(incident.projectId);
+            var options = {
+                body: template,
+                from: creds.phoneNumber,
+                to: number
+            };
+            let newClient = dynamicClient(creds.accountSid, creds.authToken);
+            var message = await newClient.messages.create(options);
+            return message;
+        } catch (error) {
+            ErrorService.log('twillioService.sendIncidentAcknowldegedMessageToSubscriber', error);
+            throw error;
+        }
+    },
+
+    sendIncidentResolvedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName) {
+        try {
+            let _this = this;
+            var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Resolved');
+            let data = {
+                projectName,
+                monitorName: monitorName,
+                incidentTime: incidentTime,
+                incidentType: incident.incidentType
+            };
+            template = template(data);
+            let creds = getTwilioSettings(incident.projectId);
+            var options = {
+                body: template,
+                from: creds.phoneNumber,
+                to: number
+            };
+            let newClient = dynamicClient(creds.accountSid, creds.authToken);
+            var message = await newClient.messages.create(options);
+            return message;
+        } catch (error) {
+            ErrorService.log('twillioService.sendIncidentResolvedMessageToSubscriber', error);
             throw error;
         }
     },
@@ -135,8 +190,8 @@ module.exports = {
         }
     },
 
-    getTemplate: async function (smsTemplate) {
-        var defaultTemplate = defaultSmsTemplates.filter(template => template.smsType === 'Subscriber Incident')[0];
+    getTemplate: async function (smsTemplate, smsTemplateType) {
+        var defaultTemplate = defaultSmsTemplates.filter(template => template.smsType === smsTemplateType)[0];
         var smsContent = defaultTemplate.body;
         if (smsTemplate != null && smsTemplate != undefined && smsTemplate.body) {
             smsContent = smsTemplate.body;
@@ -154,6 +209,7 @@ module.exports = {
                 .verifications
                 .create({ to, channel });
             await SmsCountService.create(userId, to);
+            await UserService.updateOneBy({_id:userId},{tempAlertPhoneNumber:to});
             return verificationRequest;
         } catch (error) {
             ErrorService.log('twillioService.sendVerificationSMS', error);
@@ -176,7 +232,8 @@ module.exports = {
             if (verificationResult.status === 'approved') {
                 await UserModel.findByIdAndUpdate(userId, {
                     $set: {
-                        alertPhoneNumber: to
+                        alertPhoneNumber: to,
+                        tempAlertPhoneNumber: null
                     }
                 });
             }

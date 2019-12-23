@@ -164,6 +164,24 @@ module.exports = {
         return updatedIncident;
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await IncidentModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('incidentService.updateMany', error);
+            throw error;
+        }
+    },
+
     async _sendIncidentCreatedAlert(incident) {
         try {
             await AlertService.sendIncidentCreated(incident);
@@ -178,7 +196,7 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
                 // Ping webhook
-                await WebHookService.sendNotification(incident.projectId, msg, incident.monitorId);
+                await WebHookService.sendNotification(incident.projectId, incident, incident.monitorId, 'created');
             } else {
                 let msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
                 let slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *${incident.createdById.name}*`;
@@ -186,7 +204,7 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
                 // Ping webhook
-                await WebHookService.sendNotification(incident.projectId, msg, incident.monitorId);
+                await WebHookService.sendNotification(incident.projectId, incident, incident.monitorId, 'created');
             }
         } catch (error) {
             ErrorService.log('incidentService._sendIncidentCreatedAlert', error);
@@ -222,7 +240,6 @@ module.exports = {
                     downtimestring = `${Math.floor(downtime / 60)} hours ${Math.floor(downtime % 60)} minutes`;
                 }
 
-                var msg = `${incident.monitorId.name} monitor was acknowledged by ${name}`;
                 var slackMsg = `*${incident.monitorId.name}* monitor was acknowledged by *${name}* after being down for _${downtimestring}_`;
 
                 // send slack notification
@@ -231,8 +248,9 @@ module.exports = {
                 // Ping webhook
                 var monitor = await MonitorService.findOneBy({ _id: incident.monitorId });
                 incident = await _this.findOneBy({ _id: incident._id });
+                await AlertService.sendIncidentAcknowledgedToSubscribers(incident);
 
-                await WebHookService.sendNotification(incident.projectId, msg, monitor);
+                await WebHookService.sendNotification(incident.projectId, incident, monitor, 'acknowledged');
                 await RealTimeService.incidentAcknowledged(incident);
                 await ZapierService.pushToZapier('incident_acknowledge', incident);
             } else {
@@ -336,7 +354,8 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
                 // Ping webhook
-                await WebHookService.sendNotification(incident.projectId, msg, resolvedincident.monitorId);
+                await WebHookService.sendNotification(incident.projectId, incident, resolvedincident.monitorId, 'resolved');
+                await AlertService.sendIncidentResolvedToSubscribers(incident);
             }
             else {
                 msg = `${resolvedincident.monitorId.name} monitor was down for ${downtimestring} and is now resolved by ${name || 'fyipe'}`;
@@ -346,7 +365,8 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
                 // Ping webhook
-                await WebHookService.sendNotification(incident.projectId, msg, resolvedincident.monitorId);
+                await WebHookService.sendNotification(incident.projectId, incident, resolvedincident.monitorId, 'resolved');
+                await AlertService.sendIncidentResolvedToSubscribers(incident);
             }
         } catch (error) {
             ErrorService.log('incidentService.sendIncidentResolvedNotification', error);

@@ -25,9 +25,13 @@ export class ProjectSettings extends Component {
     submitForm = (values)=> {
 
         const projectName = values.project_name;
-         
+
         if(projectName){
-            this.props.renameProject(this.props.projectId, projectName);
+            this.props.renameProject(this.props.projectId, projectName).then(val => {
+                if(val && val.data && val.data.name){
+                    document.title = val.data.name + ' Dashboard';
+                }
+            });
             if(window.location.href.indexOf('localhost') <= -1){
             this.context.mixpanel.track('Rename Project',values);
             }
@@ -60,7 +64,7 @@ export class ProjectSettings extends Component {
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">Project Name</label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <Field 
+                                                        <Field
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                             component={RenderField}
                                                             type="text"
@@ -80,16 +84,16 @@ export class ProjectSettings extends Component {
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                 <span className="db-SettingsForm-footerMessage"></span>
                                 <div>
-                                    <button 
+                                    <button
                                         id="btnCreateProject"
-                                        className="bs-Button bs-Button--blue" 
-                                        disabled={this.props.isRequesting} 
+                                        className="bs-Button bs-Button--blue"
+                                        disabled={this.props.isRequesting}
                                         type="submit"
                                     >
-                                        <ShouldRender if={!this.props.isRequesting}>    
+                                        <ShouldRender if={!this.props.isRequesting}>
                                             <span>Save</span>
                                         </ShouldRender>
-                                        <ShouldRender if={this.props.isRequesting}>    
+                                        <ShouldRender if={this.props.isRequesting}>
                                             <FormLoader />
                                         </ShouldRender>
                                     </button>

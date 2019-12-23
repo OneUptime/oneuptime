@@ -77,14 +77,16 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
     const uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
     useEffect(() => {
+        setNow(Date.now());
+
         let nowHandler = setTimeout(() => {
             setNow(Date.now());
-        }, 65000);
+        }, 300000);
 
         return () => {
             clearTimeout(nowHandler);
         };
-    });
+    }, [lastAlive]);
 
     let block = [];
     for (let i = 0; i < range; i++) {
@@ -241,7 +243,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
         monitorInfo = <div className="db-Trend">
             <div className="block-chart-side line-chart">
                 <div className="db-TrendRow">
-                    {(lastAlive && moment(now).diff(moment(lastAlive), 'minutes') > 1) || !lastAlive ?
+                    {(lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) || !lastAlive ?
                         <div className="db-Trend-colInformation probe-offline">
                             <div className="db-Trend-rowTitle" title="Currently not monitoring">
                                 <div className="db-Trend-title"><strong><span className="chart-font">Currently not monitoring</span></strong></div>

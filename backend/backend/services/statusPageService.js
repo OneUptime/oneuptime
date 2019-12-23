@@ -166,6 +166,24 @@ module.exports = {
         return updatedStatusPage;
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await StatusPageModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('statusPageService.updateMany', error);
+            throw error;
+        }
+    },
+
     getNotes: async function (query, skip, limit) {
         try {
             var _this = this;

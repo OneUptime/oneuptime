@@ -29,7 +29,7 @@ module.exports = {
             countryType = 'billingNonUSCountries';
         } else if (countryType === 'risk') {
             countryType = 'billingRiskCountries';
-        } 
+        }
         if(alertOptions[countryType]) {
             return true;
         }
@@ -129,6 +129,24 @@ module.exports = {
         return updatedAlert;
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await AlertModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('alertService.updateMany', error);
+            throw error;
+        }
+    },
+
     deleteBy: async function (query, userId) {
         try {
             if (!query) {
@@ -175,7 +193,7 @@ module.exports = {
                                 if (escalation) {
                                     escalation.teamMember.forEach(async (teamMember) => {
                                         const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
-                                        if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) { 
+                                        if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) {
                                             var user = await UserService.findOneBy({ _id: teamMember.member });
 
                                             if (user) {
@@ -187,7 +205,7 @@ module.exports = {
                                                     let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
                                                     let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
                                                     let firstName = user.name;
-                                                    await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType);
+                                                    await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType,project.name);
                                                     await _this.create(incident.projectId, monitorId, AlertType.Email, user._id, incident._id);
                                                 }
                                                 if (escalation.sms) {
@@ -262,13 +280,66 @@ module.exports = {
         }
     },
 
-    sendSubscriberAlert: async function (subscriber, incident) {
+    sendIncidentAcknowledgedToSubscribers: async function (incident) {
+        try {
+            let _this = this;
+            if (incident) {
+                let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+                var subscribers = await SubscriberService.findBy({ monitorId: monitorId });
+                subscribers.forEach(async (subscriber) => {
+                    if (subscriber.statusPageId) {
+                        var enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
+                        if (enabledStatusPage) {
+                            await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Acknowldeged');
+                        }
+                    } else {
+                        await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Acknowldeged');
+                    }
+                });
+            }
+        } catch (error) {
+            ErrorService.log('alertService.sendIncidentAcknowledgedToSubscribers', error);
+            throw error;
+        }
+    },
+
+    sendIncidentResolvedToSubscribers: async function (incident) {
+        try {
+            let _this = this;
+            if (incident) {
+                let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+                var subscribers = await SubscriberService.findBy({ monitorId: monitorId });
+                subscribers.forEach(async (subscriber) => {
+                    if (subscriber.statusPageId) {
+                        var enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
+                        if (enabledStatusPage) {
+                            await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Resolved');
+                        }
+                    } else {
+                        await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Resolved');
+                    }
+                });
+            }
+        } catch (error) {
+            ErrorService.log('alertService.sendIncidentResolvedToSubscribers', error);
+            throw error;
+        }
+    },
+
+    sendSubscriberAlert: async function (subscriber, incident, templateType = 'Subscriber Incident Created') {
         try {
             let _this = this;
             let date = new Date();
+            var project = await ProjectService.findOneBy({ _id: incident.projectId });
             if (subscriber.alertVia == AlertType.Email) {
-                var emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType: 'Subscriber Incident' });
-                await MailService.sendIncidentCreatedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident.projectId, emailTemplate);
+                var emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType: templateType });
+                if (templateType === 'Subscriber Incident Acknowldeged') {
+                    await MailService.sendIncidentAcknowledgedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate);
+                } else if (templateType === 'Subscriber Incident Resolved') {
+                    await MailService.sendIncidentResolvedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate);
+                } else {
+                    await MailService.sendIncidentCreatedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate);
+                }
                 await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.Email, alertStatus: 'Sent' });
             } else if (subscriber.alertVia == AlertType.SMS) {
                 var countryCode = await _this.mapCountryShortNameToCountryCode(subscriber.countryCode);
@@ -276,8 +347,14 @@ module.exports = {
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
-                var smsTemplate = await SmsTemplateService.findOneBy({ projectId: incident.projectId, smsType: 'Subscriber Incident' });
-                await TwilioService.sendIncidentCreatedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident.projectId);
+                var smsTemplate = await SmsTemplateService.findOneBy({ projectId: incident.projectId, smsType: templateType });
+                if (templateType === 'Subscriber Incident Acknowldeged') {
+                    await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name);
+                } else if (templateType === 'Subscriber Incident Resolved') {
+                    await TwilioService.sendIncidentResolvedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name);
+                } else {
+                    await TwilioService.sendIncidentCreatedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name);
+                }
                 await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.SMS, alertStatus: 'Success' });
             }
         } catch (error) {
@@ -360,7 +437,7 @@ module.exports = {
 
         startTime = moment(startTimeDate).toObject().hours;
         endTime = moment(endTimeDate).toObject().hours;
-        
+
         return { currentTime, startTime, endTime };
     },
 
@@ -452,3 +529,4 @@ let jwt = require('jsonwebtoken');
 const baseApiUrl = require('../config/baseApiUrl');
 let { getAlertChargeAmount, getCountryType } = require('../config/alertType');
 var moment = require('moment');
+var momentTz = require('moment-timezone');

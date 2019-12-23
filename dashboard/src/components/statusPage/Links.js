@@ -75,6 +75,11 @@ export class Links extends Component {
     render() {
         const { handleSubmit, statusPage, openModal } = this.props;
         const { createFooterLinkModalId, MessageBoxId, removeFooterLinkModalId } = this.state;
+        let deleting = false;
+
+        if (this.props.statusPage.links && this.props.statusPage.links.requesting) {
+            deleting = true;
+        }
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium" onKeyDown={this.handleKeyBoard}>
@@ -136,6 +141,7 @@ export class Links extends Component {
                                                 statusPage={statusPage}
                                                 removeFooterLink={this.handleRemoveFooterLink}
                                                 removeFooterLinkModalId={removeFooterLinkModalId}
+                                                deleting={deleting}
                                             />
                                         </div>
                                         <ShouldRender if={this.props.initialValues.links.length === 0}>

@@ -29,8 +29,14 @@ class WebHookInput extends React.Component {
 	}
 
 	render() {
-		const { data, monitorId } = this.props;
+		
+		const { data, monitorId, webhooks } = this.props;
 		const { endpoint, endpointType } = data.data;
+		let deleting = false;
+
+		if (webhooks && webhooks.deleteWebHook && webhooks.deleteWebHook.requesting) {
+			deleting = true;
+		}
 
 		return (
 			<tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
@@ -69,7 +75,7 @@ class WebHookInput extends React.Component {
 												id: data._id,
 												onClose: () => '',
 												onConfirm: () => this.deleteItem(),
-												content: DeleteWebhook
+												content: DataPathHoC(DeleteWebhook, {deleting})
 											})
 										}
 									>
@@ -97,7 +103,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 
 const mapStateToProps = state => (
 	{
-		webhook: state.webhook,
+		webhooks: state.webHooks,
 		team: state.team,
 		currentProject: state.project.currentProject,
 	}
@@ -113,6 +119,7 @@ WebHookInput.propTypes = {
 	openModal: PropTypes.func.isRequired,
 	data: PropTypes.object.isRequired,
 	monitorId: PropTypes.string,
+	webhooks: PropTypes.object,
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookInput);

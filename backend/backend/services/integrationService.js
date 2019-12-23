@@ -27,7 +27,7 @@ module.exports = {
     },
 
     // create a new integration
-    create: async function (projectId, userId, data, integrationType) {
+    create: async function (projectId, userId, data, integrationType, notificationOptions) {
         try {
             let _this = this;
             var integrationModel = new IntegrationModel(data);
@@ -36,6 +36,9 @@ module.exports = {
             integrationModel.data = data;
             integrationModel.integrationType = integrationType;
             integrationModel.monitorId = data.monitorId;
+            if (notificationOptions) {
+                integrationModel.notificationOptions = notificationOptions;
+            }
 
             var integration = await integrationModel.save();
             integration = await _this.findOneBy({ _id: integration._id });
@@ -115,7 +118,10 @@ module.exports = {
                         monitorId: data.monitorId,
                         'data.endpoint': data.endpoint,
                         'data.monitorId':data.monitorId,
-                        'data.endpointType': data.endpointType
+                        'data.endpointType': data.endpointType,
+                        'notificationOptions.incidentCreated': data.incidentCreated,
+                        'notificationOptions.incidentResolved': data.incidentResolved,
+                        'notificationOptions.incidentAcknowledged': data.incidentAcknowledged,
                     }
                 }, { new: true });
                 updatedIntegration = await _this.findOneBy({_id: updatedIntegration._id});
@@ -123,12 +129,30 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('IntegrationService.update', error);
-            throw error; 
+            throw error;
         }
     },
 
-    removeMonitor: async function(monitorId, userId){
-        try{
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await IntegrationModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('IntegrationService.updateMany', error);
+            throw error;
+        }
+    },
+
+    removeMonitor: async function (monitorId, userId) {
+        try {
             let query = {};
             if(monitorId){
                 query = {monitorId:monitorId};

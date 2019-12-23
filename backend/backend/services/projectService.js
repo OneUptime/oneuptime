@@ -146,9 +146,28 @@ module.exports = {
                     new: true
                 }
             );
+            updatedProject = await _this.findOneBy(Object.assign({}, query, { deleted: { $ne: null } }));
             return updatedProject;
         } catch (error) {
             ErrorService.log('projectService.updateOneBy', error);
+            throw error;
+        }
+    },
+
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await ProjectModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('projectService.updateMany', error);
             throw error;
         }
     },

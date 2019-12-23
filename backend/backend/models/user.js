@@ -68,7 +68,7 @@ var userSchema = new Schema({
         type: String,
         default: ''
     },
-
+    tempAlertPhoneNumber: String,
     tutorial: Object
 });
 

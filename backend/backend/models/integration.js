@@ -16,13 +16,15 @@ var integrationSchema = new Schema({
         type: Date,
         default: Date.now,
     },
-
+    notificationOptions: {
+        incidentCreated: { type: Boolean, default: false},
+        incidentAcknowledged: { type: Boolean, default: false},
+        incidentResolved: { type: Boolean, default: false},
+    },
     deleted: { type: Boolean, default: false},
-
     deletedAt: {
         type: Date
     },
-
     deletedById: { type: String, ref: 'User' },
 });
 

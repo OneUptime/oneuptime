@@ -24,7 +24,7 @@ const initialState = {
         success: false,
         requesting: false,
         error: null
-    },  
+    },
     addBalance: {
         success: false,
         requesting: false,
@@ -81,6 +81,7 @@ export default function project(state = initialState, action) {
         case types.PROJECTS_REQUEST:
             return Object.assign({}, state, {
                 projects: {
+                    ...state.projects,
                     requesting: true,
                     success: false,
                     error: null
@@ -90,10 +91,10 @@ export default function project(state = initialState, action) {
         case types.PROJECTS_FAILED:
             return Object.assign({}, state, {
                 projects: {
+                    ...state.projects,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    projects: []
                 },
             });
 
@@ -484,6 +485,7 @@ export default function project(state = initialState, action) {
         case types.ALERT_OPTIONS_UPDATE_REQUEST:
             return Object.assign({}, state, {
                 alertOptionsUpdate: {
+                    ...state.alertOptionsUpdate,
                     success: false,
                     requesting: true,
                     error: null
@@ -492,6 +494,7 @@ export default function project(state = initialState, action) {
         case types.ALERT_OPTIONS_UPDATE_FAILED:
             return Object.assign({}, state, {
                 alertOptionsUpdate: {
+                    ...state.alertOptionsUpdate,
                     success: false,
                     requesting: false,
                     error: action.payload

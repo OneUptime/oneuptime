@@ -238,6 +238,13 @@ export function sendVerificationSMSError(error) {
 	};
 }
 
+export function sendVerificationSMSReset() {
+
+	return function (dispatch) {
+		dispatch({ type: types.SEND_VERIFICATION_SMS_RESET });
+	};
+}
+
 export function sendEmailVerificationRequest() {
 	return {
 		type: types.SEND_EMAIL_VERIFICATION_REQUEST,
@@ -332,6 +339,13 @@ export function verifySMSCodeError(error) {
 	return {
 		type: types.VERIFY_SMS_CODE_FAILURE,
 		payload: error
+	};
+}
+
+export function verifySMSCodeReset() {
+
+	return function (dispatch) {
+		dispatch({ type: types.VERIFY_SMS_CODE_RESET });
 	};
 }
 

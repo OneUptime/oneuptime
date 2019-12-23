@@ -112,6 +112,24 @@ module.exports = {
         }
     },
 
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            var updatedData = await MonitorModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('monitorService.updateMany', error);
+            throw error;
+        }
+    },
+
     //Description: Gets all monitors by project.
     //Params:
     //Param 1: data: MonitorModal.
