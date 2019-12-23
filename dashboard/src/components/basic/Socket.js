@@ -2,10 +2,10 @@ import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import * as CB from 'cloudboost';
+import io from 'socket.io-client';
 import RemovedFromSubProjectModal from '../modals/RemovedFromSubProject';
 import RemovedFromProjectModal from '../modals/RemovedFromProject';
-import { User } from '../../config';
+import { User, API_URL } from '../../config';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import {
@@ -16,34 +16,25 @@ import {
 import DataPathHoC from '../DataPathHoC';
 
 class SocketApp extends Component {
+    socket = io(API_URL)
+
     shouldComponentUpdate(nextProps) {
         if (this.props.project !== nextProps.project) {
             if (this.props.project) {
-                CB.CloudNotification.off(`incidentResolved-${this.props.project._id}`);
-                CB.CloudNotification.off(`incidentAcknowledged-${this.props.project._id}`);
-                CB.CloudNotification.off(`createMonitor-${this.props.project._id}`);
-                CB.CloudNotification.off(`updateMonitor-${this.props.project._id}`);
-                CB.CloudNotification.off(`deleteMonitor-${this.props.project._id}`);
-                CB.CloudNotification.off(`incidentCreated-${this.props.project._id}`);
-                CB.CloudNotification.off(`updateResponseTime-${this.props.project._id}`);
-                CB.CloudNotification.off(`updateMonitorLog-${this.props.project._id}`);
-                CB.CloudNotification.off(`updateProbe-${this.props.project._id}`);
-                CB.CloudNotification.off(`NewNotification-${this.props.project._id}`);
-                CB.CloudNotification.off(`TeamMemberRoleUpdate-${this.props.project._id}`);
-                CB.CloudNotification.off(`TeamMemberCreate-${this.props.project._id}`);
-                CB.CloudNotification.off(`TeamMemberDelete-${this.props.project._id}`);
+                this.socket.close();
             }
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
+
     render() {
         var thisObj = this;
         const loggedInUser = User.getUserId();
+
         if (this.props.project) {
-            CB.CloudNotification.on(`incidentResolved-${this.props.project._id}`, function (data) {
+            this.socket.on(`incidentResolved-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (!data.resolvedBy) {
@@ -63,7 +54,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            CB.CloudNotification.on(`incidentAcknowledged-${this.props.project._id}`, function (data) {
+            this.socket.on(`incidentAcknowledged-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (!data.acknowledgedBy) {
@@ -83,7 +74,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            CB.CloudNotification.on(`createMonitor-${this.props.project._id}`, function (data) {
+            this.socket.on(`createMonitor-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (data.createdById !== User.getUserId()) {
@@ -97,7 +88,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            CB.CloudNotification.on(`updateMonitor-${this.props.project._id}`, function (data) {
+            this.socket.on(`updateMonitor-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.updatemonitorbysocket(data);
@@ -107,7 +98,7 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.updatemonitorbysocket(data);
                 }
             });
-            CB.CloudNotification.on(`deleteMonitor-${this.props.project._id}`, function (data) {
+            this.socket.on(`deleteMonitor-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.deletemonitorbysocket(data);
@@ -117,7 +108,7 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.deletemonitorbysocket(data);
                 }
             });
-            CB.CloudNotification.on(`incidentCreated-${this.props.project._id}`, function (data) {
+            this.socket.on(`incidentCreated-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (data && ((data.createdById && data.createdById._id !== User.getUserId()) || data.createdById === null)) {
@@ -131,10 +122,10 @@ class SocketApp extends Component {
                     }
                 }
             });
-            CB.CloudNotification.on(`updateResponseTime-${this.props.project._id}`, function (data) {
+            this.socket.on(`updateResponseTime-${this.props.project._id}`, function (data) {
                 thisObj.props.updateresponsetime(data);
             });
-            CB.CloudNotification.on(`updateMonitorLog-${this.props.project._id}`, function (data) {
+            this.socket.on(`updateMonitorLog-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.updatemonitorlogbysocket(data);
@@ -144,7 +135,7 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.updatemonitorlogbysocket(data);
                 }
             });
-            CB.CloudNotification.on(`updateProbe-${this.props.project._id}`, function (data) {
+            this.socket.on(`updateProbe-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.updateprobebysocket(data);
@@ -154,7 +145,7 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.updateprobebysocket(data);
                 }
             });
-            CB.CloudNotification.on(`NewNotification-${this.props.project._id}`, function (data) {
+            this.socket.on(`NewNotification-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (data.createdBy && data.createdBy !== User.getUserId()) {
@@ -168,7 +159,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            CB.CloudNotification.on(`TeamMemberRoleUpdate-${this.props.project._id}`, function (data) {
+            this.socket.on(`TeamMemberRoleUpdate-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.teamMemberRoleUpdate(data.response);
@@ -178,7 +169,7 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.teamMemberRoleUpdate(data.response);
                 }
             });
-            CB.CloudNotification.on(`TeamMemberCreate-${this.props.project._id}`, function (data) {
+            this.socket.on(`TeamMemberCreate-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (data.userId !== User.getUserId()) {
@@ -192,7 +183,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            CB.CloudNotification.on(`TeamMemberDelete-${this.props.project._id}`, function (data) {
+            this.socket.on(`TeamMemberDelete-${this.props.project._id}`, function (data) {
                 if (data.projectId === thisObj.props.project._id) {
                     var projectUser = data.teamMembers.find(member => member.userId === User.getUserId());
                     if (!projectUser) {

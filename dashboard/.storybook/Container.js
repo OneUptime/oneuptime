@@ -17,13 +17,11 @@ import { history } from '../src/store';
 import mixpanel from 'mixpanel-browser';
 import MixpanelProvider from 'react-mixpanel';
 import ErrorBoundary from '../src/components/basic/ErrorBoundary';
-import * as CB from 'cloudboost';
 
-Date.now = (() => 1487076708000) 
+Date.now = (() => 1487076708000)
 
-CB.CloudApp.init('hcaarmonukbk', 'cdcc37f4-dfc6-44e0-b61b-de8c887ec202');
 mixpanel.init('de27af9b37fa926bf648bb704836fd5f');
-localStorage.setItem('access_token','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjViMWMwYzI5Y2IwNmNjMjNiMTMyZGIwNyIsIm5hbWUiOiJEYW5zdGFuIE9ueWFuZ28iLCJlbWFpbCI6ImRhbnN0YW4ub3RpZW5vQGdtYWlsLmNvbSIsImlhdCI6MTUzMDA0MzExOCwiZXhwIjoxNTM4NjgzMTE4fQ.pFQe22E51cTEURtecghKp64zPMR0SsUi8tdsf5ol1iQ')
+localStorage.setItem('access_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjViMWMwYzI5Y2IwNmNjMjNiMTMyZGIwNyIsIm5hbWUiOiJEYW5zdGFuIE9ueWFuZ28iLCJlbWFpbCI6ImRhbnN0YW4ub3RpZW5vQGdtYWlsLmNvbSIsImlhdCI6MTUzMDA0MzExOCwiZXhwIjoxNTM4NjgzMTE4fQ.pFQe22E51cTEURtecghKp64zPMR0SsUi8tdsf5ol1iQ')
 
 export default class Container extends React.Component {
   render() {
@@ -31,15 +29,15 @@ export default class Container extends React.Component {
 
     return (
       <Provider store={store}>
-      <MixpanelProvider mixpanel={mixpanel}>
-        <ErrorBoundary>
-          <Router history={history}>
-           {story()}
-          </Router>
-        </ErrorBoundary>
-      </MixpanelProvider>
+        <MixpanelProvider mixpanel={mixpanel}>
+          <ErrorBoundary>
+            <Router history={history}>
+              {story()}
+            </Router>
+          </ErrorBoundary>
+        </MixpanelProvider>
 
-    </Provider>
+      </Provider>
     );
   }
 }

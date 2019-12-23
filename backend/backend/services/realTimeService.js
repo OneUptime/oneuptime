@@ -1,6 +1,4 @@
-var CB = require('cloudboost');
-
-CB.CloudApp.init('hcaarmonukbk', 'cc7427bc-ca50-450e-a8a4-d2fc42155847');
+var io = global.io;
 
 module.exports = {
     sendIncidentCreated: async (incident) => {
@@ -8,7 +6,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
-            CB.CloudNotification.publish(`incidentCreated-${projectId}`, incident);
+            io.emit(`incidentCreated-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realTimeService.sendIncidentCreated', error);
             throw error;
@@ -20,7 +18,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
 
-            CB.CloudNotification.publish(`createMonitor-${projectId}`, monitor);
+            io.emit(`createMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realTimeService.sendMonitorCreated', error);
             throw error;
@@ -32,7 +30,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
 
-            CB.CloudNotification.publish(`deleteMonitor-${projectId}`, monitor);
+            io.emit(`deleteMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realTimeService.sendMonitorDelete', error);
             throw error;
@@ -44,7 +42,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
-            CB.CloudNotification.publish(`incidentResolved-${projectId}`, incident);
+            io.emit(`incidentResolved-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realTimeService.incidentResolved', error);
             throw error;
@@ -56,7 +54,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
-            CB.CloudNotification.publish(`incidentAcknowledged-${projectId}`, incident);
+            io.emit(`incidentAcknowledged-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realTimeService.incidentAcknowledged', error);
             throw error;
@@ -68,7 +66,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
 
-            CB.CloudNotification.publish(`updateMonitor-${projectId}`, monitor);
+            io.emit(`updateMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realTimeService.monitorEdit', error);
             throw error;
@@ -80,7 +78,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-            CB.CloudNotification.publish(`updateResponseTime-${projectId}`, data);
+            io.emit(`updateResponseTime-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.updateResponseTime', error);
             throw error;
@@ -92,7 +90,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: projectId });
             var parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
-            CB.CloudNotification.publish(`updateMonitorLog-${parentProjectId}`, { projectId, monitorId, data });
+            io.emit(`updateMonitorLog-${parentProjectId}`, { projectId, monitorId, data });
         } catch (error) {
             ErrorService.log('realTimeService.updateMonitorLog', error);
             throw error;
@@ -105,7 +103,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
-            CB.CloudNotification.publish(`updateProbe-${projectId}`, data);
+            io.emit(`updateProbe-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.updateProbe', error);
             throw error;
@@ -117,7 +115,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: data.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : data.projectId;
 
-            CB.CloudNotification.publish(`NewNotification-${projectId}`, data);
+            io.emit(`NewNotification-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.sendNotification', error);
             throw error;
@@ -129,7 +127,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-            CB.CloudNotification.publish(`TeamMemberRoleUpdate-${projectId}`, data);
+            io.emit(`TeamMemberRoleUpdate-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.updateTeamMemberRole', error);
             throw error;
@@ -141,7 +139,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-            CB.CloudNotification.publish(`TeamMemberCreate-${projectId}`, data);
+            io.emit(`TeamMemberCreate-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.createTeamMember', error);
             throw error;
@@ -153,7 +151,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-            CB.CloudNotification.publish(`TeamMemberDelete-${projectId}`, data);
+            io.emit(`TeamMemberDelete-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.deleteTeamMember', error);
             throw error;
