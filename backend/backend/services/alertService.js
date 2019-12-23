@@ -29,7 +29,7 @@ module.exports = {
             countryType = 'billingNonUSCountries';
         } else if (countryType === 'risk') {
             countryType = 'billingRiskCountries';
-        } 
+        }
         if(alertOptions[countryType]) {
             return true;
         }
@@ -193,7 +193,7 @@ module.exports = {
                                 if (escalation) {
                                     escalation.teamMember.forEach(async (teamMember) => {
                                         const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
-                                        if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) { 
+                                        if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) {
                                             var user = await UserService.findOneBy({ _id: teamMember.member });
 
                                             if (user) {
@@ -205,7 +205,7 @@ module.exports = {
                                                     let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
                                                     let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
                                                     let firstName = user.name;
-                                                    await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType);
+                                                    await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType,project.name);
                                                     await _this.create(incident.projectId, monitorId, AlertType.Email, user._id, incident._id);
                                                 }
                                                 if (escalation.sms) {
@@ -437,7 +437,7 @@ module.exports = {
 
         startTime = moment(startTimeDate).toObject().hours;
         endTime = moment(endTimeDate).toObject().hours;
-        
+
         return { currentTime, startTime, endTime };
     },
 
@@ -529,3 +529,4 @@ let jwt = require('jsonwebtoken');
 const baseApiUrl = require('../config/baseApiUrl');
 let { getAlertChargeAmount, getCountryType } = require('../config/alertType');
 var moment = require('moment');
+var momentTz = require('moment-timezone');
