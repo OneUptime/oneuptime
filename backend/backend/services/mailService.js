@@ -470,12 +470,12 @@ module.exports = {
      * @param {string} resolve_url API link that has requirements for resolving incident.
      * @param {string} accessToken An access token to be used used to access API from email.
      */
-    sendIncidentCreatedMail: async function (incidentTime, monitorName, email, userId, userName, projectId, ack_url, resolve_url, accessToken, incidentType) {
+    sendIncidentCreatedMail: async function (incidentTime, monitorName, email, userId, userName, projectId, ack_url, resolve_url, accessToken, incidentType,projectName) {
 
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
-            subject: 'A new incident created',
+            subject: `${projectName}/${monitorName} is ${incidentType}`,
             template: 'new_incident_created',
             context: {
                 homeURL: HOME_HOST,
@@ -488,6 +488,7 @@ module.exports = {
                 ack_url,
                 resolve_url,
                 incidentType,
+                projectName,
                 dashboardURL: DASHBOARD_HOST
             }
         };
@@ -504,7 +505,7 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentCreatedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, statusPageLink) {
+    sendIncidentCreatedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate) {
         try {
             var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Created');
             let data = {
@@ -513,7 +514,6 @@ module.exports = {
                 userName,
                 userId,
                 projectName,
-                statusPageLink,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
             };
@@ -545,7 +545,7 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentAcknowledgedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, statusPageLink) {
+    sendIncidentAcknowledgedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate) {
         try {
             var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Acknowldeged');
             let data = {
@@ -554,7 +554,6 @@ module.exports = {
                 userName,
                 userId,
                 projectName,
-                statusPageLink,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
             };
@@ -586,7 +585,7 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentResolvedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, statusPageLink) {
+    sendIncidentResolvedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate) {
         try {
             var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Resolved');
             let data = {
@@ -595,7 +594,6 @@ module.exports = {
                 userName,
                 userId,
                 projectName,
-                statusPageLink,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
             };
