@@ -470,12 +470,12 @@ module.exports = {
      * @param {string} resolve_url API link that has requirements for resolving incident.
      * @param {string} accessToken An access token to be used used to access API from email.
      */
-    sendIncidentCreatedMail: async function (incidentTime, monitorName, email, userId, userName, projectId, ack_url, resolve_url, accessToken, incidentType) {
+    sendIncidentCreatedMail: async function (incidentTime, monitorName, email, userId, userName, projectId, ack_url, resolve_url, accessToken, incidentType,projectName) {
 
         var mailOptions = {
             from: '"Fyipe " <' + accountMail.from + '>',
             to: email,
-            subject: 'A new incident created',
+            subject: `${projectName}/${monitorName} is ${incidentType}`,
             template: 'new_incident_created',
             context: {
                 homeURL: HOME_HOST,
@@ -488,6 +488,7 @@ module.exports = {
                 ack_url,
                 resolve_url,
                 incidentType,
+                projectName,
                 dashboardURL: DASHBOARD_HOST
             }
         };
