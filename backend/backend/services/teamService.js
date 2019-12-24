@@ -47,10 +47,45 @@ module.exports = {
         }
     },
 
-    getTeamMemberBy: async function (query) {
+    getTeamMemberBy: async function (projectId, teamMemberUserId) {
+        var index;
+        var subProject = null;
+
         try {
-            var user = await UserService.findOneBy(query);
-            return user;
+            var project = await ProjectService.findOneBy({ _id: projectId });
+            if (project.parentProjectId) {
+                subProject = project;
+                project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
+            }
+            if (subProject) {
+                for (let i = 0; i < subProject.users.length; i++) {
+                    if (teamMemberUserId == subProject.users[i].userId) {
+                        index = i;
+                        break;
+                    } else {
+                        index = -1;
+                    }
+                }
+            } else {
+                for (let i = 0; i < project.users.length; i++) {
+                    if (teamMemberUserId == project.users[i].userId) {
+                        index = i;
+                        break;
+                    } else {
+                        index = -1;
+                    }
+                }
+            }
+            // Checks if team member is present in the project or not.
+            if (index === -1) {
+                let error = new Error('Member does not exist in project.');
+                error.code = 400;
+                ErrorService.log('teamService.getTeamMemberBy', error);
+                throw error;
+            } else {
+                var user = await UserService.findOneBy({ _id: teamMemberUserId });
+                return user;
+            }
         } catch (error) {
             ErrorService.log('teamService.getTeamMemberBy', error);
             throw error;

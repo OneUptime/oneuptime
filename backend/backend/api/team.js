@@ -55,11 +55,12 @@ router.get('/:projectId/teamMembers', getUser, isAuthorized, getSubProjects, asy
 // Description: Get individual team member details
 // Params
 // Returns: 200: Individual team member object; 400: Error.
-router.get('/:projectId/:teamMemberId', getUser, isAuthorized, getSubProjects, async function (req, res) {
-    // var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+router.get('/:projectId/:teamMemberId', getUser, isAuthorized, async function (req, res) {
+    var projectId = req.params.projectId;
     var teamMemberUserId = req.params.teamMemberId;
+
     try {
-        let teamMember = await TeamService.getTeamMemberBy({ _id: teamMemberUserId });
+        let teamMember = await TeamService.getTeamMemberBy(projectId, teamMemberUserId);
         let teamMemberObj = {
             id: teamMember._id,
             name: teamMember.name ? teamMember.name : '',

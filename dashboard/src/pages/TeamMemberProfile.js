@@ -4,11 +4,19 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { API_URL } from '../config';
 import Dashboard from '../components/Dashboard';
+import { LargeSpinner as Loader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 
 import { getTeamMember } from '../actions/team';
 
-function TeamMemberProfile({ requesting, teamMember, projectId, match, getTeamMember }) {
+const noDataStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '150px'
+};
+
+function TeamMemberProfile({ requesting, error, teamMember, projectId, match, getTeamMember }) {
     const memberId = match.params.memberId;
 
     useEffect(() => {
@@ -50,7 +58,7 @@ function TeamMemberProfile({ requesting, teamMember, projectId, match, getTeamMe
 
                                                     <div className='bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2'>
                                                         <div>
-                                                            {!requesting && teamMember ?
+                                                            {!requesting && teamMember && !error ?
                                                                 <div className='bs-Fieldset-wrapper Box-root Margin-bottom--2'>
                                                                     <fieldset className='bs-Fieldset'>
                                                                         <div className='bs-Fieldset-rows'>
@@ -101,7 +109,10 @@ function TeamMemberProfile({ requesting, teamMember, projectId, match, getTeamMe
                                                                         </div>
                                                                     </fieldset>
                                                                 </div>
-                                                                : ''
+                                                                :
+                                                                <div style={noDataStyle}>
+                                                                    {requesting ? <Loader /> : <span style={{ color: 'red' }}>User details not found</span>}
+                                                                </div>
                                                             }
                                                         </div>
                                                     </div>
@@ -138,6 +149,7 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         requesting: state.team.teamMember.requesting,
+        error: state.team.teamMember.error,
         teamMember: state.team.teamMember.member,
         projectId: state.project.currentProject !== null && state.project.currentProject._id,
     }
@@ -145,6 +157,7 @@ function mapStateToProps(state) {
 
 TeamMemberProfile.propTypes = {
     requesting: PropTypes.bool,
+    error: PropTypes.bool,
     teamMember: PropTypes.oneOfType([PropTypes.object, PropTypes.string, PropTypes.oneOf([null])]),
     projectId: PropTypes.string,
     match: PropTypes.object,
