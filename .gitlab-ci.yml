@@ -40,11 +40,12 @@ build_n_test_backend:
     - curl -sSL https://get.docker.com/ | sh #Install docker.
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker run --name redis -p 6379:6379 -d redis
-    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker ps
-    - sudo docker logs redis
+    - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
+    - sudo docker ps
+    - sudo docker run --name redis -p 6379:6379 -d redis
+    - sudo docker ps
+    - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --name fyipe --net=host fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
   except:
     refs:
@@ -650,7 +651,7 @@ deploy_staging_probe:
     - sudo docker push registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/probe:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe probe=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
-    # Additionally update probe1 deployment as well. 
+    # Additionally update probe1 deployment as well.
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe1 probe1=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
