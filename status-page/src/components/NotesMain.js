@@ -35,6 +35,8 @@ class NotesMain extends Component {
         if (this.props.noteData && this.props.noteData.notes) {
             note = <Notes notes={this.props.noteData.notes} />;
         }
+        const { enableRSSFeed, smsNotification, webhookNotification, emailNotification } = this.props.statusPage;
+        const showSubscriberOption = enableRSSFeed || smsNotification || webhookNotification || emailNotification;
 
         return (
             <div className="twitter-feed white box" style={{ overflow: 'visible' }}>
@@ -50,11 +52,11 @@ class NotesMain extends Component {
                                 <ShouldRender if={this.props.individualnote}>
                                     <span className="feed-title">Incidents for {this.props.individualnote ? this.props.individualnote.name : ''} on {this.props.individualnote ? moment(this.props.individualnote.date).format('LL') : ''}</span>
                                 </ShouldRender>
-                                <ShouldRender if={this.props.isEnabled === true}>
+                                <ShouldRender if={this.props.isSubscriberEnabled === true && showSubscriberOption}>
                                     <button className="bs-Button-subscribe" type="submit" onClick={() => this.subscribebutton()} style={{ marginLeft: 'auto', marginRight: '18px', marginTop: '-8px' }}><span>Subscribe</span></button>
                                 </ShouldRender>
                             </div>
-                            <ShouldRender if={this.props.subscribed}>
+                            <ShouldRender if={this.props.subscribed && showSubscriberOption}>
                                 <SubscribeBox />
                             </ShouldRender>
                             <ShouldRender if={this.props.noteData && !this.props.noteData.requesting && this.props.noteData.notes && this.props.noteData.notes.length}>
@@ -158,8 +160,10 @@ const mapStateToProps = (state) => {
         individualnote: state.status.individualnote,
         notesmessage: state.status.notesmessage,
         subscribed: state.subscribe.subscribeMenu,
-        skip, count,
-        isEnabled: state.status.statusPage.isSubscriberEnabled
+        skip,
+        count,
+        isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
+        statusPage: state.status.statusPage
     }
 };
 
@@ -178,7 +182,8 @@ NotesMain.propTypes = {
     skip: PropTypes.number,
     count: PropTypes.number,
     statusPageId: PropTypes.string,
-    isEnabled: PropTypes.bool.isRequired
+    isSubscriberEnabled: PropTypes.bool.isRequired,
+    statusPage: PropTypes.object
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(NotesMain);
