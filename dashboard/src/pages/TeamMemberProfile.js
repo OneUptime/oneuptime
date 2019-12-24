@@ -21,7 +21,7 @@ function TeamMemberProfile({ requesting, teamMember, projectId, match, getTeamMe
         : 'https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404'
     let profileImage = <span />
 
-    if (profilePic) {
+    if (fileData) {
         profileImage = <img src={fileData} alt='' className='image-small-circle' style={{ marginTop: '10px' }} />
     }
 
@@ -54,38 +54,50 @@ function TeamMemberProfile({ requesting, teamMember, projectId, match, getTeamMe
                                                                 <div className='bs-Fieldset-wrapper Box-root Margin-bottom--2'>
                                                                     <fieldset className='bs-Fieldset'>
                                                                         <div className='bs-Fieldset-rows'>
-                                                                            <div className='bs-Fieldset-row'>
-                                                                                <label className='bs-Fieldset-label'>Full Name</label>
-                                                                                <div className='bs-Fieldset-fields'>
-                                                                                    <span className="value" style={{ marginTop: '6px' }}>{teamMember.name}</span>
+                                                                            <ShouldRender if={teamMember.name}>
+                                                                                <div className='bs-Fieldset-row'>
+                                                                                    <label className='bs-Fieldset-label'>Full Name</label>
+                                                                                    <div className='bs-Fieldset-fields'>
+                                                                                        <span className="value" style={{ marginTop: '6px' }}>{teamMember.name}</span>
+                                                                                    </div>
                                                                                 </div>
-                                                                            </div>
-                                                                            <div className='bs-Fieldset-row'>
-                                                                                <label className='bs-Fieldset-label'>Email</label>
-                                                                                <div className='bs-Fieldset-fields'>
-                                                                                    <span className="value" style={{ marginTop: '6px' }}>{teamMember.email}</span>
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className='bs-Fieldset-row'>
-                                                                                <label className='bs-Fieldset-label'>Phone</label>
-                                                                                <div className='bs-Fieldset-fields'>
-                                                                                    <span className="value" style={{ marginTop: '6px' }}>{teamMember.companyPhoneNumber}</span>
-                                                                                </div>
-                                                                            </div>
+                                                                            </ShouldRender>
 
-                                                                            <div className='bs-Fieldset-row'>
-                                                                                <label className='bs-Fieldset-label'>Profile Picture</label>
-                                                                                <div className='bs-Fieldset-fields'>
-                                                                                    <ShouldRender if={profilePic}>{profileImage}</ShouldRender>
+                                                                            <ShouldRender if={teamMember.email}>
+                                                                                <div className='bs-Fieldset-row'>
+                                                                                    <label className='bs-Fieldset-label'>Email</label>
+                                                                                    <div className='bs-Fieldset-fields'>
+                                                                                        <span className="value" style={{ marginTop: '6px' }}>{teamMember.email}</span>
+                                                                                    </div>
                                                                                 </div>
-                                                                            </div>
+                                                                            </ShouldRender>
 
-                                                                            <div className='bs-Fieldset-row'>
-                                                                                <label className='bs-Fieldset-label'>Timezone</label>
-                                                                                <div className='bs-Fieldset-fields'>
-                                                                                    <span className="value" style={{ marginTop: '6px' }}>{teamMember.timezone}</span>
+                                                                            <ShouldRender if={teamMember.companyPhoneNumber}>
+                                                                                <div className='bs-Fieldset-row'>
+                                                                                    <label className='bs-Fieldset-label'>Phone</label>
+                                                                                    <div className='bs-Fieldset-fields'>
+                                                                                        <span className="value" style={{ marginTop: '6px' }}>{teamMember.companyPhoneNumber}</span>
+                                                                                    </div>
                                                                                 </div>
-                                                                            </div>
+                                                                            </ShouldRender>
+
+                                                                            <ShouldRender if={fileData}>
+                                                                                <div className='bs-Fieldset-row'>
+                                                                                    <label className='bs-Fieldset-label'>Profile Picture</label>
+                                                                                    <div className='bs-Fieldset-fields'>
+                                                                                        {profileImage}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </ShouldRender>
+
+                                                                            <ShouldRender if={teamMember.timezone}>
+                                                                                <div className='bs-Fieldset-row'>
+                                                                                    <label className='bs-Fieldset-label'>Timezone</label>
+                                                                                    <div className='bs-Fieldset-fields'>
+                                                                                        <span className="value" style={{ marginTop: '6px' }}>{teamMember.timezone}</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </ShouldRender>
                                                                         </div>
                                                                     </fieldset>
                                                                 </div>
