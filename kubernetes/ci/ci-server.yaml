@@ -475,15 +475,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: redis
   name: redis
 spec:
+  type: ClusterIP
   ports:
     - port: 6379
       targetPort: 6379
-      name: redis
-  clusterIP: None
+      name: client
+    - port: 16379
+      targetPort: 16379
+      name: gossip
   selector:
     app: redis
 ---
@@ -529,14 +530,32 @@ spec:
           requests:
             storage: 900Gi
 ---
-# stateful set config for redis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis
+data:
+  update-node.sh: |
+    #!/bin/sh
+    REDIS_NODES="/data/nodes.conf"
+    sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
+    exec "$@"
+  redis.conf: |+
+    cluster-enabled yes
+    cluster-require-full-coverage no
+    cluster-node-timeout 15000
+    cluster-config-file /data/nodes.conf
+    cluster-migration-barrier 1
+    appendonly yes
+    protected-mode no
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: redis
 spec:
   serviceName: redis
-  replicas: 3
+  replicas: 6
   selector:
     matchLabels:
       app: redis
@@ -548,19 +567,32 @@ spec:
       containers:
         - name: redis
           image: redis:5.0.7
-          imagePullPolicy: Always
           ports:
             - containerPort: 6379
-              name: redis
+              name: client
+            - containerPort: 16379
+              name: gossip
+          command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           volumeMounts:
+            - name: conf
+              mountPath: /conf
+              readOnly: false
             - name: data
               mountPath: /data
               readOnly: false
+      volumes:
+        - name: conf
+          configMap:
+            name: redis
+            defaultMode: 0755
   volumeClaimTemplates:
     - metadata:
         name: data
-        annotations:
-          volume.beta.kubernetes.io/storage-class: productiondata
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
