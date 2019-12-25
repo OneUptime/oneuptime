@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi,putApi } from '../api';
+import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/team'
 import errors from '../errors'
 
@@ -41,10 +41,10 @@ export function teamLoading(projectId) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(teamLoadingError(errors(error)));
@@ -92,10 +92,10 @@ export function subProjectTeamLoading(projectId) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(subProjectTeamLoadingError(errors(error)));
@@ -144,10 +144,10 @@ export function teamCreate(projectId, values) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(teamCreateError(errors(error)));
@@ -184,8 +184,8 @@ export function teamDeleteReset() {
 	};
 }
 
-export function resetTeamDelete(){
-	return function(dispatch){
+export function resetTeamDelete() {
+	return function (dispatch) {
 		dispatch(teamDeleteReset());
 	}
 }
@@ -200,21 +200,71 @@ export function teamDelete(projectId, teamMemberId) {
 		promise.then(function (response) {
 			var team = response.data;
 			dispatch(teamDeleteSuccess(team));
-			return {team};
+			return { team };
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(teamDeleteError(errors(error)));
-			return {error};
+			return { error };
+		});
+
+		return promise;
+	};
+}
+
+export function teamMemberRequest(teamMemberId) {
+	return {
+		type: types.TEAM_MEMBER_REQUEST,
+		payload: teamMemberId
+	};
+}
+
+export function teamMemberSuccess(teamMember) {
+	return {
+		type: types.TEAM_MEMBER_SUCCESS,
+		payload: teamMember
+	};
+}
+
+export function teamMemberError(error) {
+	return {
+		type: types.TEAM_MEMBER_FAILURE,
+		payload: error
+	};
+}
+
+// Calls the API to get team member.
+export function getTeamMember(projectId, teamMemberId) {
+	return function (dispatch) {
+
+		var promise = getApi(`team/${projectId}/${teamMemberId}`);
+		dispatch(teamMemberRequest(teamMemberId));
+
+		promise.then(function (response) {
+			console.log(response);
+			dispatch(teamMemberSuccess(response.data));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else {
+				error = 'Network Error';
+			}
+			dispatch(teamMemberError(errors(error)));
 		});
 
 		return promise;
@@ -258,10 +308,10 @@ export function teamUpdateRole(projectId, values) {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			else{
+			else {
 				error = 'Network Error';
 			}
 			dispatch(teamUpdateRoleError(errors(error)));
@@ -286,14 +336,14 @@ export function paginatePrev(Id) {
 	};
 }
 
-export function paginateReset(){
+export function paginateReset() {
 	return {
 		type: types.PAGINATE_RESET
 	};
 }
 
-export function paginate(type,Id){
-	return function(dispatch){
+export function paginate(type, Id) {
+	return function (dispatch) {
 		type === 'next' && dispatch(paginateNext(Id));
 		type === 'prev' && dispatch(paginatePrev(Id));
 		type === 'reset' && dispatch(paginateReset());

@@ -5,6 +5,9 @@ import {
 	TEAM_LOADING_REQUEST,
 	TEAM_LOADING_SUCCESS,
 	TEAM_LOADING_FAILURE,
+	TEAM_MEMBER_REQUEST,
+	TEAM_MEMBER_SUCCESS,
+	TEAM_MEMBER_FAILURE,
 	TEAM_SUBPROJECT_LOADING_REQUEST,
 	TEAM_SUBPROJECT_LOADING_SUCCESS,
 	TEAM_SUBPROJECT_LOADING_FAILURE,
@@ -48,6 +51,12 @@ const initialState = {
 		requesting: false,
 		success: false,
 		deleting: []
+	},
+	teamMember: {
+		error: null,
+		requesting: false,
+		success: false,
+		member: null
 	},
 	teamMembers: [],
 	subProjectTeamMembers: [],
@@ -219,6 +228,42 @@ export default (state = initialState, action) => {
 				},
 			};
 
+		case TEAM_MEMBER_REQUEST:
+			return {
+				...state,
+				teamMember: {
+					...state.teamMember,
+					error: null,
+					requesting: true,
+					success: false,
+					member: action.payload
+				},
+			};
+
+		case TEAM_MEMBER_SUCCESS:
+			return {
+				...state,
+				teamMember: {
+					...state.teamMember,
+					error: null,
+					requesting: false,
+					success: true,
+					member: action.payload
+				}
+			};
+
+		case TEAM_MEMBER_FAILURE:
+			return {
+				...state,
+				teamMember: {
+					...state.teamMember,
+					error: action.payload,
+					requesting: false,
+					success: false,
+					member: []
+				}
+			};
+
 		case TEAM_UPDATE_ROLE_REQUEST:
 			return {
 				...state,
@@ -266,7 +311,7 @@ export default (state = initialState, action) => {
 				...state,
 				pages: {
 					...state.pages,
-					[action.payload] : state.pages[action.payload] ? state.pages[action.payload] + 1 : 2
+					[action.payload]: state.pages[action.payload] ? state.pages[action.payload] + 1 : 2
 				}
 			}
 
@@ -275,7 +320,7 @@ export default (state = initialState, action) => {
 				...state,
 				pages: {
 					...state.pages,
-					[action.payload] : state.pages[action.payload] ? state.pages[action.payload] - 1 : 1
+					[action.payload]: state.pages[action.payload] ? state.pages[action.payload] - 1 : 1
 				}
 			}
 

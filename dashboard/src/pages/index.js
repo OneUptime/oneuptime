@@ -12,6 +12,7 @@ import Schedule from './Schedule';
 import ChangePassword from './ChangePassword';
 
 import TeamMembers from './TeamMembers';
+import TeamMemberProfile from './TeamMemberProfile';
 import Profile from './Profile';
 import Settings from './Settings';
 
@@ -33,6 +34,7 @@ export default {
     Settings,
     OnCall,
     TeamMembers,
+    TeamMemberProfile,
     StatusPage,
     StatusPages,
     Profile,
@@ -48,4 +50,4 @@ export default {
     Reports,
     MonitorView,
     Probe
-}
+};
