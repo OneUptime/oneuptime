@@ -211,7 +211,7 @@ export const groups = [
 				index: 1
 			},
 			{
-				title: 'Team Memeber Profile',
+				title: 'Team Member Profile',
 				path: '/profile/:memberId',
 				icon: 'customers',
 				visible: true,
