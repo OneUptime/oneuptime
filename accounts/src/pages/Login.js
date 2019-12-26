@@ -6,6 +6,7 @@ import { connect } from 'react-redux';
 import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
+import { identify, setUserId, logEvent } from '../analytics';
 
 class LoginPage extends React.Component {
 
@@ -20,11 +21,12 @@ class LoginPage extends React.Component {
 	}
 
 	submitHandler = (values) => {
-		let thisObj = this;
 		this.props.loginUser(values).then((user) => {
 			if (user && user.data && user.data.id) {
 				if(window.location.href.indexOf('localhost') <= -1){
-					thisObj.context.mixpanel.identify(user.data.id);
+					identify(user.data.id);
+					setUserId(user.data.id);
+					logEvent('Log in user', { id: user.data.id })
 				}
 			}
 		})
