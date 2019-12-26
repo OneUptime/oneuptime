@@ -89,11 +89,6 @@ function mapStateToProps(state) {
     register: state.register
   };
 }
-
-RegisterForm.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
-};
-
 RegisterForm.propTypes = {
   saveUserState: PropTypes.func.isRequired,
   isUserInvited: PropTypes.func.isRequired,
