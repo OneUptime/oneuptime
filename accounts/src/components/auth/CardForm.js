@@ -26,6 +26,7 @@ import {
   signupUser
 } from '../../actions/register';
 import { setUserId, setPeople, identify, logEvent } from '../../analytics';
+import { IS_DEV } from '../config';
 
 const createOptions = () => {
   return {
@@ -111,7 +112,7 @@ class CardForm extends Component {
         })
         .then(({ data }) => {
           signupSuccess(data);
-          if (window.location.href.indexOf('localhost') <= -1) {
+          if (!IS_DEV) {
             setUserId(data.id);
             identify(data.id);
             setPeople({

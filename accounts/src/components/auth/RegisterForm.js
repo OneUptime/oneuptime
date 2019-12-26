@@ -7,6 +7,7 @@ import { signupUser, incrementStep, decrementStep, saveUserState, isUserInvited 
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { setUserId, setPeople, identify, logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class RegisterForm extends Component {
 
@@ -23,7 +24,7 @@ export class RegisterForm extends Component {
         thisObj.props.signupUser({...values, planId: thisObj.props.planId })
           .then((user) => {
             if (user && user.data && user.data.id) {
-              if (window.location.href.indexOf('localhost') <= -1) {
+              if (!IS_DEV) {
                 setUserId(user.data.id);
                 identify(user.data.id);
                 setPeople({
@@ -37,7 +38,7 @@ export class RegisterForm extends Component {
           })
       } else {
         thisObj.props.incrementStep();
-        if (window.location.href.indexOf('localhost') <= -1) {
+        if (!IS_DEV) {
           setUserId(values.email);
           identify(values.email);
           setPeople({
