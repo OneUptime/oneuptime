@@ -13,12 +13,8 @@ sudo k delete secret gitlabcredv2 || echo 'No gitlabcredv2 key found'
 echo "RUNNING COMMAND: sudo k create secret docker-registry gitlabcredv2 --docker-server=\$DOCKER_REGISTRY_SERVER --docker-username=\$DOCKER_USER --docker-password=\$DOCKER_PASSWORD --docker-email=\$DOCKER_EMAIL"
 sudo k create secret docker-registry gitlabcredv2 --docker-server=$DOCKER_REGISTRY_SERVER --docker-username=$DOCKER_USER --docker-password=$DOCKER_PASSWORD --docker-email=$DOCKER_EMAIL
 # Create the entire cluster.
-echo "RUNNING COMMAND: sudo k create -f test-server.yaml"
+echo "RUNNING COMMAND: sudo k create -f ./kubernetes/ci/ci-server.yaml"
 sudo k create -f ./kubernetes/ci/ci-server.yaml
-echo "RUNNING COMMAND: sleep 5m"
-sleep 5m
-# Deploy redis cluster, 3 masters and 3 slaves
-sudo k exec -it redis-0 -- redis-cli --cluster create --cluster-replicas 1 $(sudo k get pods -l app=redis -o jsonpath='{range.items[*]}{.status.podIP}:6379 ') --cluster-yes
 # Wait for all the services to come online.
 echo "RUNNING COMMAND: echo 'Wait for 5 mins....'"
 echo 'Wait for 5 mins....'

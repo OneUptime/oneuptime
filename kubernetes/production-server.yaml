@@ -127,7 +127,10 @@ spec:
             - name: MONGO_URL
               value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
             - name: REDIS_HOST
-              value: "redis-0.redis.default.svc.cluster.local,redis-1.redis.default.svc.cluster.local,redis-2.redis.default.svc.cluster.local"
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-host
+                  key: REDIS_HOST
             - name: REDIS_PORT
               value: "6379"
             - name: STRIPE_PUBLIC_KEY
@@ -180,16 +183,16 @@ spec:
         app: slack
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/slack:master
-        name: slack
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 1267
-          hostPort: 1267
+        - image: registry.gitlab.com/fyipe-project/slack:master
           name: slack
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 1267
+              hostPort: 1267
+              name: slack
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 apiVersion: v1
 kind: Service
@@ -199,9 +202,9 @@ metadata:
   name: slack
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 1267
+    - port: 80
+      protocol: TCP
+      targetPort: 1267
   selector:
     app: slack
   type: LoadBalancer
