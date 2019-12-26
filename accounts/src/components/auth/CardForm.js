@@ -26,7 +26,7 @@ import {
   signupUser
 } from '../../actions/register';
 import { setUserId, setPeople, identify, logEvent } from '../../analytics';
-import { IS_DEV } from '../config';
+import { IS_DEV } from '../../config';
 
 const createOptions = () => {
   return {
