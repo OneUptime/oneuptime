@@ -468,7 +468,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                 probeLogs.logs
                                                     && probeLogs.logs.length > 0
                                                     && moment(probeLogs.logs[0].createdAt).isSame(moment(action.payload.data.createdAt), 'days') ?
-                                                    [...(probeLogs.logs.splice(0, 1, action.payload.data))]
+                                                    [action.payload.data, ...(probeLogs.logs.slice(1))]
                                                     : [action.payload.data, ...probeLogs.logs])
                                         } : probeLogs;
                                 }) :
