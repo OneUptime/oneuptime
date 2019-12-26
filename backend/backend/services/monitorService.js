@@ -231,7 +231,7 @@ module.exports = {
                 if (projectSeats && projectSeats > seats && monitorsCount > 0 && monitorsCount <= ((projectSeats - 1) * 5)) {
                     projectSeats = projectSeats - 1;
                     await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
-                    await ProjectService.updateOneBy({ _id: project._id},{ seats: projectSeats.toString() });
+                    await ProjectService.updateOneBy({ _id: project._id }, { seats: projectSeats.toString() });
                 }
                 var incidents = await IncidentService.findBy({ monitorId: monitor._id });
 
@@ -339,6 +339,22 @@ module.exports = {
             let end = moment(endDate).toDate();
             var monitorData = await MonitorLogModel.aggregate([
                 { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
+                { $sort: { 'createdAt': -1 } },
+                {
+                    $group: {
+                        _id: {
+                            probeId: '$probeId',
+                            createdAt: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
+                        },
+                        monitorId: { $first: '$monitorId' },
+                        probeId: { $first: '$probeId' },
+                        responseTime: { $first: '$responseTime' },
+                        responseStatus: { $first: '$responseStatus' },
+                        status: { $first: '$status' },
+                        data: { $first: '$data' },
+                        createdAt: { $first: '$createdAt' }
+                    }
+                },
                 { $sort: { 'createdAt': -1 } },
                 { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
             ]);
