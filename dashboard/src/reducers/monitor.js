@@ -40,6 +40,7 @@ import {
     ADD_SEAT_RESET,
     SELECT_PROBE,
 } from '../constants/monitor';
+import moment from 'moment';
 
 const INITIAL_STATE = {
     monitorsList: {
@@ -462,7 +463,14 @@ export default function monitor(state = INITIAL_STATE, action) {
                                 monitor.logs = monitor.logs && monitor.logs.length > 0 ? monitor.logs.map(probeLogs => {
                                     return probeLogs._id === action.payload.data.probeId
                                         || (probeLogs._id === null && !action.payload.data.probeId) ?
-                                        { _id: probeLogs._id, logs: [action.payload.data, ...probeLogs.logs] } : probeLogs;
+                                        {
+                                            _id: probeLogs._id, logs: (
+                                                probeLogs.logs
+                                                    && probeLogs.logs.length > 0
+                                                    && moment(probeLogs.logs[0].createdAt).isSame(moment(action.payload.data.createdAt), 'days') ?
+                                                    [...(probeLogs.logs.splice(0, 1, action.payload.data))]
+                                                    : [action.payload.data, ...probeLogs.logs])
+                                        } : probeLogs;
                                 }) :
                                     (action.payload.data.probeId ?
                                         [{ _id: action.payload.data.probeId, logs: [action.payload.data] }]
