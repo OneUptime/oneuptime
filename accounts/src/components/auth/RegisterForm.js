@@ -3,9 +3,10 @@ import { reduxForm } from 'redux-form'
 import UserForm from './UserForm';
 import CardForm from './CardForm';
 import { connect } from 'react-redux';
-import { signupError, signupSuccess, signupUser, incrementStep, decrementStep, resetSignup, saveUserState, saveCardState, isUserInvited } from '../../actions/register'
+import { signupUser, incrementStep, decrementStep, saveUserState, isUserInvited } from '../../actions/register'
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+import { setUserId, setPeople, identify, logEvent } from '../../analytics';
 
 export class RegisterForm extends Component {
 
@@ -23,41 +24,35 @@ export class RegisterForm extends Component {
           .then((user) => {
             if (user && user.data && user.data.id) {
               if (window.location.href.indexOf('localhost') <= -1) {
-                thisObj.context.mixpanel.identify(user.data.id);
-                thisObj.context.mixpanel.people.set({
-                  '$first_name': user.data.name,
-                  '$created': new Date(),
-                  '$email': user.data.email
+                setUserId(user.data.id);
+                identify(user.data.id);
+                setPeople({
+                  'Name': user.data.name,
+                  'Created': new Date(),
+                  'Email': user.data.email
                 });
-                thisObj.context.mixpanel.track('user registered', { 'First Time': 'TRUE', 'id': user.data.id });
+                logEvent('Sign up completed for invited user', { 'First Time': 'TRUE', 'id': user.data.id });
               }
             }
           })
       } else {
         thisObj.props.incrementStep();
+        if (window.location.href.indexOf('localhost') <= -1) {
+          setUserId(values.email);
+          identify(values.email);
+          setPeople({
+            'Name': values.name,
+            'Created': new Date(),
+            'Email': values.email,
+            'CompanyName': values.companyName,
+            'CompanyPhoneNumber': values.companyPhoneNumber
+          });
+          logEvent('Sign up step one completed', { 'First Time': 'TRUE' });
+        }
       }
     }, function (error) {
       return error
     });
-  }
-
-  cardFormSubmitted = (values) => {
-    var thisObj = this;
-    this.props.saveCardState(values);
-    this.props.signupUser({ ...this.props.register.user, ...values, planId: this.props.planId })
-      .then((user) => {
-        if (user && user.data && user.data.id) {
-          if (window.location.href.indexOf('localhost') <= -1) {
-            thisObj.context.mixpanel.identify(user.data.id);
-            thisObj.context.mixpanel.people.set({
-              '$first_name': user.data.name,
-              '$created': new Date(),
-              '$email': user.data.email
-            });
-            thisObj.context.mixpanel.track('user registered', { 'First Time': 'TRUE', 'id': user.data.id });
-          }
-        }
-      })
   }
 
   render() {
@@ -65,7 +60,7 @@ export class RegisterForm extends Component {
     return (
       <div>
         { step === 1 && <UserForm submitForm={this.userFormSubmitted} error={this.props.register.error} location={this.props.location} />}
-        { step === 2 && <CardForm planId={this.props.planId} submitForm={this.cardFormSubmitted} error={this.props.register.error} />}
+        { step === 2 && <CardForm planId={this.props.planId} error={this.props.register.error} />}
       </div>
     )
   }
@@ -81,14 +76,10 @@ let registerForm = reduxForm({
 
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators({
-    signupError,
-    signupSuccess,
     signupUser,
     incrementStep,
     decrementStep,
-    resetSignup,
     saveUserState,
-    saveCardState,
     isUserInvited,
   }, dispatch);
 };
@@ -104,9 +95,6 @@ RegisterForm.contextTypes = {
 };
 
 RegisterForm.propTypes = {
-  signupUser: PropTypes.func.isRequired,
-  saveCardState: PropTypes.func.isRequired,
-  //incrementStep: PropTypes.func.isRequired,
   saveUserState: PropTypes.func.isRequired,
   isUserInvited: PropTypes.func.isRequired,
   register: PropTypes.object.isRequired,
