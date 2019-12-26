@@ -25,6 +25,7 @@ import {
 	signupSuccess,
 	signupUser
 } from '../../actions/register';
+import { setUserId, setPeople, identify, logEvent } from '../../analytics';
 
 const createOptions = () => {
 	return {
@@ -108,8 +109,16 @@ class CardForm extends Component {
 						else
 							throw new Error(data.error.message);
 					})
-					.then((data) => {
-						signupSuccess(data)
+					.then(({ data }) => {
+						signupSuccess(data);
+						setUserId(data.id);
+						identify(data.id);
+						setPeople({
+						  'Name': data.name,
+						  'Created': new Date(),
+						  'Email': data.email
+						});
+						logEvent('Sign up completed', { 'First Time': 'TRUE', 'id': data.id });
 					})
 					.catch((error) => {
 						signupError(error.message)
