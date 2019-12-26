@@ -15,6 +15,7 @@ var SmsSmtpService = require('./smsSmtpService');
 var UserModel = require('../models/user');
 var UserService = require('./userService');
 var SmsCountService = require('./smsCountService');
+var AlertService = require('./alertService');
 
 var getTwilioSettings = async (projectId) => {
     let { accountSid, authToken, phoneNumber } = twilioCredentials;
@@ -47,31 +48,39 @@ module.exports = {
             throw error;
         }
     },
-    sendIncidentCreatedMessage: async function (incidentTime, monitorName, number, incidentId, userId, name, incidentType) {
+    sendIncidentCreatedMessage: async function (incidentTime, monitorName, number, incidentId, userId, name, incidentType, projectId) {
         try {
-            var options = {
-                body: `Your monitor ${monitorName} is ${incidentType}. Acknowledge this incident by sending 1 or Resolve by sending 2 to ${twilioCredentials.phoneNumber}. You can also log into Fyipe dashboard to acknowledge or reoslve it.`,
-                from: twilioCredentials.phoneNumber,
-                to: number
-            };
+            var alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+            if (alertLimit) {
+                var options = {
+                    body: `Your monitor ${monitorName} is ${incidentType}. Acknowledge this incident by sending 1 or Resolve by sending 2 to ${twilioCredentials.phoneNumber}. You can also log into Fyipe dashboard to acknowledge or reoslve it.`,
+                    from: twilioCredentials.phoneNumber,
+                    to: number
+                };
 
-            // create incidentSMSAction entry for matching sms from twilio.
-            const incidentSMSAction = new incidentSMSActionModel();
-            incidentSMSAction.incidentId = incidentId;
-            incidentSMSAction.userId = userId;
-            incidentSMSAction.number = number;
-            incidentSMSAction.name = name;
-            await incidentSMSAction.save();
+                // create incidentSMSAction entry for matching sms from twilio.
+                const incidentSMSAction = new incidentSMSActionModel();
+                incidentSMSAction.incidentId = incidentId;
+                incidentSMSAction.userId = userId;
+                incidentSMSAction.number = number;
+                incidentSMSAction.name = name;
+                await incidentSMSAction.save();
 
-            var message = await client.messages.create(options);
-            return message;
+                var message = await client.messages.create(options);
+                return message;
+            }
+            else {
+                var error = new Error('Alerts limit reached for the day.');
+                error.code = 400;
+                return error;
+            }
         } catch (error) {
             ErrorService.log('twillioService.sendIncidentCreatedMessage', error);
             throw error;
         }
     },
 
-    sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName) {
+    sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName, projectId) {
         try {
             let _this = this;
             var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Created');
@@ -89,15 +98,26 @@ module.exports = {
                 to: number
             };
             let newClient = dynamicClient(creds.accountSid, creds.authToken);
-            var message = await newClient.messages.create(options);
-            return message;
+            var alertLimit = true;
+            if (twilioCredentials.accountSid === creds.accountSid) {
+                alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+            }
+            if (alertLimit) {
+                var message = await newClient.messages.create(options);
+                return message;
+            }
+            else {
+                var error = new Error('Alerts limit reached for the day.');
+                error.code = 400;
+                return error;
+            }
         } catch (error) {
             ErrorService.log('twillioService.sendIncidentCreatedMessageToSubscriber', error);
             throw error;
         }
     },
 
-    sendIncidentAcknowldegedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName) {
+    sendIncidentAcknowldegedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName, projectId) {
         try {
             let _this = this;
             var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Acknowldeged');
@@ -115,15 +135,25 @@ module.exports = {
                 to: number
             };
             let newClient = dynamicClient(creds.accountSid, creds.authToken);
-            var message = await newClient.messages.create(options);
-            return message;
+            var alertLimit = true;
+            if (twilioCredentials.accountSid === creds.accountSid) {
+                alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+            }
+            if (alertLimit) {
+                var message = await newClient.messages.create(options);
+                return message;
+            } else {
+                var error = new Error('Alerts limit reached for the day.');
+                error.code = 400;
+                return error;
+            }
         } catch (error) {
             ErrorService.log('twillioService.sendIncidentAcknowldegedMessageToSubscriber', error);
             throw error;
         }
     },
 
-    sendIncidentResolvedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName) {
+    sendIncidentResolvedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName, projectId) {
         try {
             let _this = this;
             var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Resolved');
@@ -141,8 +171,18 @@ module.exports = {
                 to: number
             };
             let newClient = dynamicClient(creds.accountSid, creds.authToken);
-            var message = await newClient.messages.create(options);
-            return message;
+            var alertLimit = true;
+            if (twilioCredentials.accountSid === creds.accountSid) {
+                alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+            }
+            if (alertLimit) {
+                var message = await newClient.messages.create(options);
+                return message;
+            } else {
+                var error = new Error('Alerts limit reached for the day.');
+                error.code = 400;
+                return error;
+            }
         } catch (error) {
             ErrorService.log('twillioService.sendIncidentResolvedMessageToSubscriber', error);
             throw error;
@@ -182,8 +222,15 @@ module.exports = {
                 statusCallbackMethod: 'GET',
                 StatusCallbackEvent: ['no-answer', 'canceled', 'failed']
             };
-            var call = await client.calls.create(options);
-            return call;
+            var alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+            if (alertLimit) {
+                var call = await client.calls.create(options);
+                return call;
+            } else {
+                var error = new Error('Alerts limit reached for the day.');
+                error.code = 400;
+                return error;
+            }
         } catch (error) {
             ErrorService.log('twillioService.sendIncidentCreatedCall', error);
             throw error;
@@ -199,45 +246,59 @@ module.exports = {
         var template = await Handlebars.compile(smsContent);
         return { template };
     },
-    sendVerificationSMS: async function (to, userId) {
+    sendVerificationSMS: async function (to, userId, projectId) {
         try {
-            if (!to.startsWith('+')) {
-                to = '+' + to;
+            var alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+            if (alertLimit) {
+                if (!to.startsWith('+')) {
+                    to = '+' + to;
+                }
+                var channel = 'sms';
+                var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
+                    .verifications
+                    .create({ to, channel });
+                await SmsCountService.create(userId, to);
+                await UserService.updateOneBy({ _id: userId }, { tempAlertPhoneNumber: to });
+                return verificationRequest;
+            } else {
+                var error = new Error('Alerts limit reached for the day.');
+                error.code = 400;
+                throw error;
             }
-            var channel = 'sms';
-            var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
-                .verifications
-                .create({ to, channel });
-            await SmsCountService.create(userId, to);
-            await UserService.updateOneBy({_id:userId},{tempAlertPhoneNumber:to});
-            return verificationRequest;
         } catch (error) {
             ErrorService.log('twillioService.sendVerificationSMS', error);
             throw error;
         }
     },
-    verifySMSCode: async function (to, code, userId) {
+    verifySMSCode: async function (to, code, userId, projectId) {
         try {
-            if (!to.startsWith('+')) {
-                to = '+' + to;
+            var alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+            if (alertLimit) {
+                if (!to.startsWith('+')) {
+                    to = '+' + to;
+                }
+                var verificationResult = await client.verify.services(twilioCredentials.verificationSid)
+                    .verificationChecks
+                    .create({ to, code });
+                if (verificationResult.status === 'pending') {
+                    var error = new Error('Incorrect code');
+                    error.code = 400;
+                    throw error;
+                }
+                if (verificationResult.status === 'approved') {
+                    await UserModel.findByIdAndUpdate(userId, {
+                        $set: {
+                            alertPhoneNumber: to,
+                            tempAlertPhoneNumber: null
+                        }
+                    });
+                }
+                return verificationResult;
+            } else {
+                var newError = new Error('Alerts limit reached for the day.');
+                newError.code = 400;
+                throw newError;
             }
-            var verificationResult = await client.verify.services(twilioCredentials.verificationSid)
-                .verificationChecks
-                .create({ to, code });
-            if (verificationResult.status === 'pending') {
-                var error = new Error('Incorrect code');
-                error.code = 400;
-                throw error;
-            }
-            if (verificationResult.status === 'approved') {
-                await UserModel.findByIdAndUpdate(userId, {
-                    $set: {
-                        alertPhoneNumber: to,
-                        tempAlertPhoneNumber: null
-                    }
-                });
-            }
-            return verificationResult;
         } catch (error) {
             if (error.message === 'Invalid parameter: To') {
                 var invalidNumbererror = new Error('Invalid number');
