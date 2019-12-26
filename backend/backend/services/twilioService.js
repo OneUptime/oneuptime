@@ -257,7 +257,7 @@ module.exports = {
                 var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
                     .verifications
                     .create({ to, channel });
-                await SmsCountService.create(userId, to);
+                await SmsCountService.create(userId, to,projectId);
                 await UserService.updateOneBy({ _id: userId }, { tempAlertPhoneNumber: to });
                 return verificationRequest;
             } else {

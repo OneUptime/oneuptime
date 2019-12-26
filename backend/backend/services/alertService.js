@@ -525,10 +525,11 @@ module.exports = {
         var _this = this;
         var yesterday = new Date(new Date().getTime() - (24*60*60*1000));
         let alerts = await _this.countBy({ projectId: projectId ,alertVia : {$in: [AlertType.Call, AlertType.SMS]},error : {$in: [null, undefined,false]},createdAt:{$gte: yesterday}});
+        let smsCounts = await SmsCountService.countBy({ projectId: projectId, createdAt: { '$gte': yesterday } });
         if(twilioAlertLimit && typeof twilioAlertLimit === 'string'){
             twilioAlertLimit = parseInt(twilioAlertLimit,10);
         }
-        if(alerts < twilioAlertLimit){
+        if((alerts + smsCounts) <= twilioAlertLimit){
             return true;
         }
         else {
@@ -561,3 +562,4 @@ const baseApiUrl = require('../config/baseApiUrl');
 let { getAlertChargeAmount, getCountryType } = require('../config/alertType');
 var moment = require('moment');
 var { twilioAlertLimit } = require('../config/twilio');
+var SmsCountService = require('./smsCountService');
