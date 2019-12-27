@@ -164,16 +164,17 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function 
     try {
         var { to } = req.body;
         var userId = req.user ? req.user.id : null;
+        var projectId = req.query.projectId;
         var {validateResend,problem} = await SmsCountService.validateResend(userId);
         if (validateResend) {
-            var sendVerifyToken = await sendVerificationSMS(to, userId);
+            var sendVerifyToken = await sendVerificationSMS(to, userId,projectId);
             return sendItemResponse(req, res, sendVerifyToken);
         }
         else {
             return sendErrorResponse(req, res, { statusCode: 400, message: problem });
         }
     } catch (error) {
-        return sendErrorResponse(req, res, { status: 'action failed' });
+        return sendErrorResponse(req, res, error.message ? {statusCode: 400, message: error.message } : { status: 'action failed' });
     }
 });
 
@@ -182,7 +183,8 @@ router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
     try {
         var { to, code } = req.body;
         var userId = req.user ? req.user.id : null;
-        var sendVerifyToken = await verifySMSCode(to, code, userId);
+        var projectId = req.query.projectId;
+        var sendVerifyToken = await verifySMSCode(to, code, userId,projectId);
         return sendItemResponse(req, res, sendVerifyToken);
     } catch (error) {
         return sendErrorResponse(req, res, {

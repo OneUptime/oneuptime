@@ -1,6 +1,6 @@
 {
   "name": "fyipe-homepage",
-  "version": "3.0.972",
+  "version": "3.0.1090",
   "scripts": {
     "start": "node server.js",
     "test": "echo 'no tests'",
@@ -9,10 +9,12 @@
     "lighthouse-test": "jest lighthouse-tests/test/index.test.js --env=node --detectOpenHandles",
     "lighthouse": "start-server-and-test http://localhost:1444",
     "smoketest": "jest smoketest/index.test.js --env=node --detectOpenHandles",
-    "audit": "npm-audit-ci-wrapper --threshold=high"
+    "audit": "npm-audit-ci-wrapper --threshold=high",
+    "light-house": "node lighthouse.js"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
+    "cli-table": "^0.3.1",
     "compression": "^1.7.4",
     "ejs": "^2.6.2",
     "express": "^4.17.1",
@@ -30,8 +32,10 @@
     "eslint-plugin-react": "^7.14.3",
     "faker": "^4.1.0",
     "jest": "^24.8.0",
-    "lighthouse": "^2.9.4",
+    "lighthouse": "^5.6.0",
+    "lighthouse-ci": "^1.10.0",
     "npm-audit-ci-wrapper": "^2.4.1",
+    "ora": "^4.0.3",
     "puppeteer": "^1.20.0",
     "start-server-and-test": "^1.9.1"
   }

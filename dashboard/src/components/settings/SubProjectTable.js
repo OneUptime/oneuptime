@@ -38,7 +38,6 @@ export class SubProjectTable extends Component {
 						<span>{moment(subProject.createdAt).format('lll')}</span>
 					</div>
 				</div>
-				<div className='bs-ObjectList-cell bs-u-v-middle' style={{ padding: '10px' }}></div>
 				<div
 					className='bs-ObjectList-cell bs-u-right bs-u-shrink bs-u-v-middle Flex-alignContent--spaceBetween'
 					style={{ padding: '10px' }}>
@@ -48,7 +47,7 @@ export class SubProjectTable extends Component {
 								title='apiKey'
 								id={`sub_project_api_key_${this.props.loop}`}
 								disabled={disabled}
-								className='bs-Button bs-DeprecatedButton Margin-left--8'
+								className='bs-Button bs-DeprecatedButton'
 								type='button'
 								onClick={() =>
 									this.props.openModal({
