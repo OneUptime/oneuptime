@@ -1,7 +1,7 @@
 /**
- * 
- * Copyright HackerBay, Inc. 
- * 
+ *
+ * Copyright HackerBay, Inc.
+ *
  */
 
 var mongoose = require('../config/db');
@@ -15,8 +15,10 @@ var alertSchema = new Schema({
     monitorId: { type: String, ref: 'Monitor' },
     createdAt: { type: Date, default: Date.now },
     incidentId : { type: String, ref: 'Incident' },
+    error: { type: Boolean, default: false },
+    errorMessage:String,
     deleted: { type: Boolean, default: false},
-    
+
     deletedAt: {
         type: Date
     },
