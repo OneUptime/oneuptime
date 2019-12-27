@@ -777,40 +777,47 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 */
 .icon-container .icon-message{
-  background-image: url(/images/message.png);
+  background-image: url(/images/email.svg);
 }
 
 .icon-container.selected .icon-message{
-  background-image: url(/images/message-white.png);
+  background-image: url(/images/email.svg);
 }
 
 .icon-container .icon-call{
-  background-image: url(/images/call-answer.png);
+  background-image: url(/images/phone.svg);
 }
 
 .icon-container.selected .icon-call{
-  background-image: url(/images/call-answer-white.png);
+  background-image: url(/images/phone.svg);
 }
 .icon-container .icon-webhook{
-  background-image: url(/images/opposite-arrows.png);
+  background-image: url(/images/code.svg);
 }
 
 .icon-container.selected .icon-webhook{
-  background-image: url(/images/opposite-arrows-white.png);
+  background-image: url(/images/code.svg);
 }
 .icon-container .icon-rss{
-  background-image: url(/images/rss-symbol.png);
+  background-image: url(/images/rss.svg);
 }
 
 .icon-container.selected .icon-rss{
-  background-image: url(/images/rss-symbol-white.png);
+  background-image: url(/images/rss.svg);
+}
+.icon-container .icon-close{
+  background-image: url(/images/close.svg);
+}
+
+.icon-container.selected .icon-close{
+  background-image: url(/images/close.svg);
 }
 
 .sub-icon{
   display:block;
-  height:18px;
-  width:18px;
-  background-size: 18px 18px;
+  height:24px;
+  width:24px;
+  background-size: 24px 24px;
 }
 .close-button{
   font-weight: bold;

@@ -3,6 +3,7 @@ import pages from './pages';
 const {
 	Settings,
 	TeamMembers,
+	TeamMemberProfile,
 	StatusPage,
 	StatusPages,
 	Profile,
@@ -208,6 +209,15 @@ export const groups = [
 				component: Profile,
 				subRoutes: [],
 				index: 1
+			},
+			{
+				title: 'Team Member Profile',
+				path: '/profile/:memberId',
+				icon: 'customers',
+				visible: true,
+				component: TeamMemberProfile,
+				subRoutes: [],
+				index: 2
 			}
 		]
 	}

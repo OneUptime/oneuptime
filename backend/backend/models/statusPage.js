@@ -8,8 +8,14 @@ var statusSchema = new Schema({
     links: Array,
     title: String,
     name: String,
-    isPrivate: Boolean,
-    isSubscriberEnabled: Boolean,
+    isPrivate: {
+        type: Boolean,
+        default: false
+    },
+    isSubscriberEnabled: {
+        type: Boolean,
+        default: false
+    },
     isGroupedByMonitorCategory: {
         type: Boolean,
         default: false
@@ -26,7 +32,22 @@ var statusSchema = new Schema({
         type: Date,
         default: Date.now
     },
-
+    enableRSSFeed: {
+        type: Boolean,
+        default: true
+    },
+    emailNotification: {
+        type: Boolean,
+        default: true
+    },
+    smsNotification: {
+        type: Boolean,
+        default: true
+    },
+    webhookNotification: {
+        type: Boolean,
+        default: true
+    },
     deleted: { type: Boolean, default: false},
     
     deletedAt: {
