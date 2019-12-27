@@ -10,7 +10,8 @@
     "lighthouse": "start-server-and-test http://localhost:1444",
     "smoketest": "jest smoketest/index.test.js --env=node --detectOpenHandles",
     "audit": "npm-audit-ci-wrapper --threshold=high",
-    "light-house": "node lighthouse.js"
+    "light-house": "node lighthouse.js --web",
+    "light-house-mobile": "node lighthouse.js --mobile"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "babel-eslint": "^10.0.2",
     "chrome-launcher": "^0.10.7",
+    "commander": "^4.0.1",
     "eslint": "5.16.0",
     "eslint-plugin-react": "^7.14.3",
     "faker": "^4.1.0",
