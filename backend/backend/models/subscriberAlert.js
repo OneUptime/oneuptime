@@ -12,6 +12,8 @@ var subscriberAlertSchema = new Schema({
     },
     alertStatus: String,
     createdAt: { type: Date, default: Date.now },
+    error: { type: Boolean, default: false },
+    errorMessage:String,
     deleted: { type: Boolean, default: false},
 
     deletedAt: {
