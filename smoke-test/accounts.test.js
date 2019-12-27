@@ -60,9 +60,8 @@ describe('Login API', () => {
             }
             return json;
         });
-        
+
         await page.waitFor(10000);
-        localStorageData.should.have.property('sessionID');
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.DASHBOARD_URL);
