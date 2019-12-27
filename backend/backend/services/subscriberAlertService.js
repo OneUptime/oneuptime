@@ -7,6 +7,10 @@ module.exports = {
             subscriberAlertModel.incidentId = data.incidentId || null;
             subscriberAlertModel.alertVia = data.alertVia || null;
             subscriberAlertModel.alertStatus = data.alertStatus || null;
+            if(data.error){
+                subscriberAlertModel.error = data.error;
+                subscriberAlertModel.errorMessage = data.errorMessage;
+            }
             var subscriberAlert = await subscriberAlertModel.save();
             return subscriberAlert;
         } catch (error) {
