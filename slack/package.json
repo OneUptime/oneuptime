@@ -1,6 +1,6 @@
 {
   "name": "slack",
-  "version": "1.0.0",
+  "version": "3.0.1090",
   "description": "Slack invite page for Slack",
   "main": "server.js",
   "scripts": {
