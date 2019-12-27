@@ -119,7 +119,6 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
 
         for(let value of req.body){
             let storagevalue = {};
-            let teamMember = [];
             let rotation = [];
             if(!value.callFrequency){
                 return sendErrorResponse(req, res, {
@@ -146,40 +145,34 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
 
             if(value._id) storagevalue._id = value._id;
 
-            for (let rot of value.rotation) {
+            for (let escalationRotation  of value.rotation) {
                 let rotationData = {};
-                if (!rot.rotationFrequency) {
+                let teamMember = [];
+                if (!escalationRotation.rotationFrequency) {
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message: 'Rotation frequency is required'
                     });
                 }
 
-                for(let escalation of rot.teamMember){
+                for (let TM of escalationRotation.teamMember) {
                     let data = {};
-    
-                    if(!escalation.member){
+                    if (!TM.member) {
                         return sendErrorResponse(req, res, {
                             code: 400,
                             message: 'Team Members is required'
                         });
                     }
-    
-                    data.member = escalation.member;
-                    data.startTime = escalation.startTime;
-                    data.endTime = escalation.endTime;
-                    data.timezone = escalation.timezone;
-    
+                    data.member = TM.member;
+                    data.startTime = TM.startTime;
+                    data.endTime = TM.endTime;
+                    data.timezone = TM.timezone;
                     teamMember.push(data);
                 }
-                // console.log('team mambebr', teamMember)
-                rotationData.rotationFrequency = rot.rotationFrequency;
+                rotationData.rotationFrequency = escalationRotation.rotationFrequency;
                 rotationData.teamMember = teamMember;
                 rotation.push(rotationData);
-
             }
-
-            
             storagevalue.rotation = rotation;
             escalationData.push(storagevalue);
         }
