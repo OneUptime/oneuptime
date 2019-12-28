@@ -14,6 +14,10 @@ stages:
   - SmokeTest
   - RollbackIfSmokeTestFail
 
+default:
+  before_script:
+    - sudo apt-get remove -y redis redis-server
+
 #BACKEND
 lint_n_audit_backend:
   stage: BuildAndTest
@@ -41,7 +45,7 @@ build_n_test_backend:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker run --name redis --expose 6379 -P -d redis redis-server --appendonly yes
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker ps
     - sudo docker run --name fyipe --net=host fyipe-project/backend:3.0.$CI_PIPELINE_IID npm test
@@ -78,7 +82,7 @@ build_n_test_dashboard:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker run --name redis --expose 6379 -P -d redis redis-server --appendonly yes
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
@@ -189,7 +193,7 @@ build_n_test_statuspage:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker run --name redis --expose 6379 -P -d redis redis-server --appendonly yes
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/status-page:3.0.$CI_PIPELINE_IID ./status-page
@@ -270,7 +274,7 @@ build_n_test_accounts:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker run --name redis --expose 6379 -P -d redis redis-server --appendonly yes
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
@@ -427,7 +431,7 @@ build_n_test_server-monitor:
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
-    - sudo docker run --name redis --expose 6379 -P -d redis redis-server --appendonly yes
+    - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker ps
