@@ -1,6 +1,12 @@
 const { fork } = require('child_process')
 const child = fork('./lighthouseWorker');
 const Table = require('cli-table');
+const program = require('commander');
+
+program
+	.option('-m, --mobile', 'Run lighthouse on mobile')
+	.option('-w, --web', 'Run lighthouse on the web');
+program.parse(process.argv);
 
 let table = new Table({
 	head: ['url', 'performance', 'accessibility', 'best-practices', 'seo'],
@@ -37,7 +43,11 @@ child.on('message', function (score){
 });
 
 function pages () {
-	child.send(sites[sitesIndex]);
+	if (program.mobile) {
+		child.send({url: sites[sitesIndex], mobile: program.mobile });
+	} else {
+		child.send({url: sites[sitesIndex], mobile: false });
+	}
 	sitesIndex++
 }
 pages();

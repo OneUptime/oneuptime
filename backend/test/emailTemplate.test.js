@@ -70,11 +70,11 @@ describe('Email Template API', function () {
         var authorization = `Basic ${token}`;
         request.post(`/emailTemplate/${projectId}`).set('Authorization', authorization).send({
             subject: 'Mail Subject',
-            body: '<p>{{abc<iframe/\/src=jAva&Tab;script:alert(3)>def}}',
+            body: '<img src=x onerror=alert(1)//>',
             emailType: 'Subscriber Incident Created'
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.body).to.be.equal('<html><head></head><body><p>{{abcdef}}</p></body></html>');
+            expect(res.body.body).to.be.equal('<html><head></head><body><img src="x"></body></html>');
             done();
         });
     });

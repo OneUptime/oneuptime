@@ -11,16 +11,14 @@ function launchChromeAndRunLighthouse(url, flags = {}, config = null) {
 	});
 }
 
-const flags = {
-	chromeFlags: ['--headless'],
-};
+let flags = {chromeFlags: ['--headless'], emulatedFormFactor: 'desktop'};
 
-process.on('message', function (site) {
+process.on('message', function (data) {
+	if (data.mobile) flags.emulatedFormFactor = 'mobile';
 	let scores = {};
-	const spinner = ora(`Running lighthouse on ${site}`).start();
+	const spinner = ora(`Running lighthouse on ${data.url}`).start();
 	spinner.color = 'green';
-	spinner.text = `Running lighthouse on ${site}`;
-	launchChromeAndRunLighthouse(site, flags).then(results => {
+	launchChromeAndRunLighthouse(data.url, flags).then(results => {
 		results.artifacts = 'ignore';
 		results.reportGroups = 'ignore';
 		results.timing = 'ignore';
