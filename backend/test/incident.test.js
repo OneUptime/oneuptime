@@ -30,7 +30,7 @@ var token, userId, airtableId, projectId, monitorId, incidentId, monitor = {
     data: { url: 'http://www.tests.org' }
 };
 
-describe('Incident API', function () {
+describe.only('Incident API', function () {
     this.timeout(120000);
     before(function (done) {
         this.timeout(60000);
@@ -176,14 +176,17 @@ describe('Incident API', function () {
             var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
                 .send([{
                     callFrequency: 10,
-                    call: false,
+                    call: true,
                     sms: true,
                     email: false,
-                    teamMember: [{
-                        member: userId,
-                        startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
-                        endTime: 'Tue Dec 17 2019 22:55:26 GMT+0000',
-                        timezone: 'UTC(GMT +00:00)'
+                    rotation: [{
+                        rotationFrequency: 'week',
+                        teamMember: [{
+                            member: userId,
+                            startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
+                            endTime: 'Tue Dec 17 2019 22:55:26 GMT+0000',
+                            timezone: 'UTC(GMT +00:00)'
+                        }]
                     }]
                 }]);
             if (createEscalation) {
