@@ -25,7 +25,7 @@ import {
   signupSuccess,
   signupUser
 } from '../../actions/register';
-import { setUserId, setPeople, identify, logEvent } from '../../analytics';
+import { setUserId, setUserProperties, identify, logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
 
 const createOptions = () => {
@@ -115,7 +115,7 @@ class CardForm extends Component {
           if (!IS_DEV) {
             setUserId(data.id);
             identify(data.id);
-            setPeople({
+            setUserProperties({
               'Name': data.name,
               'Created': new Date(),
               'Email': data.email

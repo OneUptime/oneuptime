@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import { signupUser, incrementStep, decrementStep, saveUserState, isUserInvited } from '../../actions/register'
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import { setUserId, setPeople, identify, logEvent } from '../../analytics';
+import { setUserId, setUserProperties, identify, logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
 
 export class RegisterForm extends Component {
@@ -27,7 +27,7 @@ export class RegisterForm extends Component {
               if (!IS_DEV) {
                 setUserId(user.data.id);
                 identify(user.data.id);
-                setPeople({
+                setUserProperties({
                   'Name': user.data.name,
                   'Created': new Date(),
                   'Email': user.data.email
@@ -41,7 +41,7 @@ export class RegisterForm extends Component {
         if (!IS_DEV) {
           setUserId(values.email);
           identify(values.email);
-          setPeople({
+          setUserProperties({
             'Name': values.name,
             'Created': new Date(),
             'Email': values.email,

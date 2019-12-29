@@ -8,7 +8,7 @@ export var setUserId = function (userId) {
 export var identify = function(userId) {
     amplitude.identify(userId);
 }
-export var setPeople = function(properties) {
+export var setUserProperties = function(properties) {
     amplitude.setUserProperties(properties);
 }
 export var logEvent = function (event, data) {
