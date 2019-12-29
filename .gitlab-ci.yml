@@ -14,10 +14,6 @@ stages:
   - SmokeTest
   - RollbackIfSmokeTestFail
 
-default:
-  before_script:
-    - sudo apt-get remove -y redis redis-server
-
 #BACKEND
 lint_n_audit_backend:
   stage: BuildAndTest
