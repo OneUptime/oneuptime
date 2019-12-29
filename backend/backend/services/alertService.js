@@ -75,7 +75,7 @@ module.exports = {
     },
 
 
-    create: async function (projectId, monitorId, alertVia, userId, incidentId, alertStatus) {
+    create: async function (projectId, monitorId, alertVia, userId, incidentId, alertStatus,error,errorMessage) {
         try {
             var alert = new AlertModel();
             alert.projectId = projectId;
@@ -84,6 +84,10 @@ module.exports = {
             alert.userId = userId;
             alert.incidentId = incidentId;
             alert.alertStatus = alertStatus;
+            if(error){
+                alert.error = error;
+                alert.errorMessage = errorMessage;
+            }
             var savedAlert = await alert.save();
             return savedAlert;
         } catch (error) {
@@ -175,8 +179,8 @@ module.exports = {
             if (incident) {
                 var _this = this;
                 var date = new Date();
-                let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
-                let projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
+                var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+                var projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
                 var monitor = await MonitorService.findOneBy({ _id: monitorId });
                 var schedules = await ScheduleService.findBy({ monitorIds: monitorId });
                 var project = await ProjectService.findOneBy({ _id: projectId });
@@ -213,8 +217,11 @@ module.exports = {
                                                     let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
                                                     let configCheckStatus = await _this.checkConfig(incident.projectId, user.alertPhoneNumber);
                                                     if (balanceCheckStatus && configCheckStatus) {
-                                                        let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name, incident.incidentType);
-                                                        if (alertSuccess) {
+                                                        let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name, incident.incidentType,projectId);
+                                                        if(alertSuccess && alertSuccess.code && alertSuccess.code === 400){
+                                                            await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, null,true,alertSuccess.message);
+                                                        }
+                                                        else if (alertSuccess) {
                                                             alertStatus = 'success';
                                                             alert = await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
                                                             balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.SMS);
@@ -231,7 +238,10 @@ module.exports = {
                                                     if (balanceCheckStatus) {
 
                                                         let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
-                                                        if (alertSuccess) {
+                                                        if(alertSuccess && alertSuccess.code && alertSuccess.code === 400){
+                                                            await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, null,true,alertSuccess.message);
+                                                        }
+                                                        else if (alertSuccess) {
                                                             alertStatus = 'success';
                                                             alert = await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
                                                             balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.Call);
@@ -347,15 +357,21 @@ module.exports = {
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
+                var sendResult;
                 var smsTemplate = await SmsTemplateService.findOneBy({ projectId: incident.projectId, smsType: templateType });
                 if (templateType === 'Subscriber Incident Acknowldeged') {
-                    await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name);
+                    sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name,incident.projectId);
                 } else if (templateType === 'Subscriber Incident Resolved') {
-                    await TwilioService.sendIncidentResolvedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name);
+                    sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name,incident.projectId);
                 } else {
-                    await TwilioService.sendIncidentCreatedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name);
+                    sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name,incident.projectId);
                 }
-                await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.SMS, alertStatus: 'Success' });
+                if(sendResult && sendResult.code && sendResult.code === 400){
+                    await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.SMS, alertStatus: null,error:true,errorMessage:sendResult.message });
+                }
+                else {
+                    await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.SMS, alertStatus: 'Success' });
+                }
             }
         } catch (error) {
             ErrorService.log('alertService.sendSubscriberAlert', error);
@@ -504,6 +520,22 @@ module.exports = {
             closingBalance: balance
         };
     },
+
+    checkPhoneAlertsLimit: async function (projectId) {
+        var _this = this;
+        var yesterday = new Date(new Date().getTime() - (24*60*60*1000));
+        let alerts = await _this.countBy({ projectId: projectId ,alertVia : {$in: [AlertType.Call, AlertType.SMS]},error : {$in: [null, undefined,false]},createdAt:{$gte: yesterday}});
+        let smsCounts = await SmsCountService.countBy({ projectId: projectId, createdAt: { '$gte': yesterday } });
+        if(twilioAlertLimit && typeof twilioAlertLimit === 'string'){
+            twilioAlertLimit = parseInt(twilioAlertLimit,10);
+        }
+        if((alerts + smsCounts) <= twilioAlertLimit){
+            return true;
+        }
+        else {
+            return false;
+        }
+    },
 };
 
 let AlertModel = require('../models/alert');
@@ -529,4 +561,5 @@ let jwt = require('jsonwebtoken');
 const baseApiUrl = require('../config/baseApiUrl');
 let { getAlertChargeAmount, getCountryType } = require('../config/alertType');
 var moment = require('moment');
-var momentTz = require('moment-timezone');
+var { twilioAlertLimit } = require('../config/twilio');
+var SmsCountService = require('./smsCountService');

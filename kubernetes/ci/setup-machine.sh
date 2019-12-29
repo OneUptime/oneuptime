@@ -37,8 +37,8 @@ sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl s
 
 if [[ ! $(which docker) ]]
 then
-  echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
-  curl -sSL https://get.docker.com/ | sh 
+    echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
+    curl -sSL https://get.docker.com/ | sh
 fi
 
 echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
@@ -48,14 +48,14 @@ echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /et
 echo "RUNNING COMMAND: sudo systemctl restart docker"
 sudo systemctl restart docker
 
-# We do not need to install kubectl here. 
+# We do not need to install kubectl here.
 # if [[ ! $(which kubectl) ]]
 # then
 #   #Install Kubectl
 #   echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
 #   curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
 #   echo "RUNNING COMMAND: chmod +x ./kubectl"
-#   chmod +x ./kubectl 
+#   chmod +x ./kubectl
 #   echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
 #   sudo mv ./kubectl /usr/local/bin/kubectl
 # fi
@@ -79,7 +79,7 @@ echo "RUNNING COMMAND: microk8s.enable ingress"
 microk8s.enable ingress
 echo "RUNNING COMMAND: sudo microk8s.inspect"
 sudo microk8s.inspect
-# Making 'k' as an alias to microk8s.kubectl 
+# Making 'k' as an alias to microk8s.kubectl
 echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl k"
 sudo snap alias microk8s.kubectl k
 echo "RUNNING COMMAND: microk8s.kubectl config view --raw > $HOME/.kube/config"
@@ -96,11 +96,12 @@ echo "RUNNING COMMAND: sudo apt-get update"
 sudo apt-get update
 echo "RUNNING COMMAND: sudo apt-get install -y mongodb-org"
 sudo apt-get install -y mongodb-org
-echo "RUNNING COMMAND: sudo apt-get install -y redis"
-sudo apt-get install -y redis
 # Install JQ, a way for bash to interact with JSON
 echo "RUNNING COMMAND: sudo apt-get install -y jq"
 sudo apt-get install -y jq
+# Install jsonpath, a way for bash to interact with JSON
+echo "RUNNING COMMAND: sudo apt-get install -y python-jsonpath-rw"
+sudo apt-get install -y python-jsonpath-rw
 # Install nodeJS
 echo "RUNNING COMMAND: curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -"
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -

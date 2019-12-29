@@ -143,7 +143,10 @@ spec:
             - name: MONGO_URL
               value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
             - name: REDIS_HOST
-              value: "redis.default.svc.cluster.local"
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-host
+                  key: REDIS_HOST
             - name: REDIS_PORT
               value: "6379"
             - name: STRIPE_PUBLIC_KEY
@@ -269,19 +272,19 @@ spec:
         app: slack
     spec:
       containers:
-      - image: registry.gitlab.com/fyipe-project/slack:master
-        name: slack
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: FYIPE_HOSTED
-          value: "true"
-        ports:
-        - containerPort: 1267
-          hostPort: 1267
+        - image: registry.gitlab.com/fyipe-project/slack:master
           name: slack
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+          ports:
+            - containerPort: 1267
+              hostPort: 1267
+              name: slack
       restartPolicy: Always
       imagePullSecrets:
-      - name: gitlabcredv2
+        - name: gitlabcredv2
 ---
 apiVersion: v1
 kind: Service
@@ -291,9 +294,9 @@ metadata:
   name: slack
 spec:
   ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 1267
+    - port: 80
+      protocol: TCP
+      targetPort: 1267
   selector:
     app: slack
   type: LoadBalancer
@@ -416,15 +419,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: redis
   name: redis
 spec:
+  type: ClusterIP
   ports:
     - port: 6379
       targetPort: 6379
-      name: redis
-  clusterIP: None
+      name: client
+    - port: 16379
+      targetPort: 16379
+      name: gossip
   selector:
     app: redis
 ---
@@ -470,14 +474,32 @@ spec:
           requests:
             storage: 900Gi
 ---
-# stateful set config for redis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis
+data:
+  update-node.sh: |
+    #!/bin/sh
+    REDIS_NODES="/data/nodes.conf"
+    sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
+    exec "$@"
+  redis.conf: |+
+    cluster-enabled yes
+    cluster-require-full-coverage no
+    cluster-node-timeout 15000
+    cluster-config-file /data/nodes.conf
+    cluster-migration-barrier 1
+    appendonly yes
+    protected-mode no
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: redis
 spec:
   serviceName: redis
-  replicas: 1
+  replicas: 6
   selector:
     matchLabels:
       app: redis
@@ -489,19 +511,32 @@ spec:
       containers:
         - name: redis
           image: redis:5.0.7
-          imagePullPolicy: Always
           ports:
             - containerPort: 6379
-              name: redis
+              name: client
+            - containerPort: 16379
+              name: gossip
+          command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           volumeMounts:
+            - name: conf
+              mountPath: /conf
+              readOnly: false
             - name: data
               mountPath: /data
               readOnly: false
+      volumes:
+        - name: conf
+          configMap:
+            name: redis
+            defaultMode: 0755
   volumeClaimTemplates:
     - metadata:
         name: data
-        annotations:
-          volume.beta.kubernetes.io/storage-class: productiondata
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
