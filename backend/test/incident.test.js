@@ -30,7 +30,7 @@ var token, userId, airtableId, projectId, monitorId, incidentId, monitor = {
     data: { url: 'http://www.tests.org' }
 };
 
-describe.only('Incident API', function () {
+describe('Incident API', function () {
     this.timeout(120000);
     before(function (done) {
         this.timeout(60000);
