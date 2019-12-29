@@ -1,28 +1,4 @@
 module.exports = {
-    //Description: Create token in stripe for user.
-    //Params:
-    //Param 1: cardNumber: Card number.
-    //Param 2: cvc: Card cvc.
-    //Param 3: expMonth: Card expiry month.
-    //Param 4: expYear: Card expiry year.
-    //Returns: promise
-    createToken: async function (cardNumber, cvc, expMonth, expYear, zipCode) {
-        try {
-            var token = await stripe.tokens.create({
-                card: {
-                    'number': cardNumber,
-                    'exp_month': expMonth,
-                    'exp_year': expYear,
-                    'cvc': cvc,
-                    'address_zip': zipCode
-                }});
-            return token.id;
-        } catch (error) {
-            ErrorService.log('paymentService.createToken', error);
-            throw error;
-        }
-    },
-
     //Description: Retrieve payment intent.
     //Params:
     //Param 1: paymentIntent: Payment Intent
@@ -229,35 +205,6 @@ module.exports = {
             return subscription;
         } catch (error) {
             ErrorService.log('paymentService.chargeExtraUser', error);
-            throw error;
-        }
-    },
-
-    //Description: Call this fuction when a user is almost done with signing up.
-    //             This verifies if the card is billable during sign-up
-    //             by charging $1 on the user's account.
-    //Params:
-    //Param 1: stripeCustomerId: Received during signup process.
-    //Returns : promise
-    testCardCharge: async function(customerId) {
-        try {
-            var testChargeValue = 100;
-            var charge = await stripe.charges.create(
-                {
-                    amount: testChargeValue,
-                    currency: 'usd',
-                    customer: customerId,
-                    description: 'Verify if card is billable.'
-                });
-            if (!charge || !charge.paid) {
-                let error = new Error('Card is not billable. Account will be disabled in 15 days.');
-                error.code;
-                ErrorService.log('paymentService.testCardCharge', error);
-                throw error;
-            }
-            return charge;
-        } catch (error) {
-            ErrorService.log('paymentService.testCardCharge', error);
             throw error;
         }
     }

@@ -69,11 +69,11 @@ describe('SMS Template API', function () {
     it('should sanitize dirty template data sent to endpoint', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/smsTemplate/${projectId}`).set('Authorization', authorization).send({
-            body: '{{abc<iframe/\/src=jAva&Tab;script:alert(3)>def}}',
+            body: '<img src=x onerror=alert(1)//>',
             smsType: 'Subscriber Incident Created'
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.body).to.be.equal('{{abcdef}}');
+            expect(res.body.body).to.be.equal('<img src="x">');
             done();
         });
     });
