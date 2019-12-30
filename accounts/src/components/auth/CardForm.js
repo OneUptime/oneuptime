@@ -130,6 +130,22 @@ class CardForm extends Component {
       signupError('Problem connnecting to payment gateway, please try again later')
     }
   }
+
+  trackClick = (target) => {
+    const { formValues } = this.props;
+    const allowedValues = ['address1', 'address2', 'country', 'city', 'state', 'zipCode', 'promoCode'];
+    const filteredValues = formValues && Object.keys(formValues)
+      .filter(key => allowedValues.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = formValues[key];
+        return obj;
+      }, {});
+
+    if (!IS_DEV) {
+      logEvent(`Register page click on #${target.id}`, { data: filteredValues });
+    }
+  }
+  
   render() {
     this.plan = PricingPlan.getPlanById(this.props.planId);
     const { handleSubmit } = this.props;
@@ -141,7 +157,7 @@ class CardForm extends Component {
       header = <span>Enter your card details</span>
     }
     return (
-      <div id="main-body" className="box css" style={{ width: 500 }}>
+      <div id="main-body" className="box css" style={{ width: 500 }} onClick={(event) => this.trackClick(event.target)}>
         <div className="inner">
           <div className="title extra">
             <div>
@@ -371,7 +387,8 @@ const mapDispatchToProps = (dispatch) => {
 function mapStateToProps(state) {
   return {
     register: state.register,
-    addCard: state.register.addCard
+    addCard: state.register.addCard,
+    formValues: state.form && state.form.CardForm && state.form.CardForm.values
   };
 }
 
