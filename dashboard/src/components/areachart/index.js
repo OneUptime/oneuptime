@@ -56,7 +56,11 @@ class AreaChart extends Component {
             }) : type === 'manual' ? data.map(a => {
                 return { name: this.parseDate(a.date), v: this.parseValue(a.downTime), display: this.parseValue(a.downTime, null, true, symbol) };
             }) : data.map(a => {
-                return { name: this.parseDate(a.createdAt), v: this.parseValue(a.responseTime), display: this.parseValue(a.responseTime, null, true, symbol) };
+                return {
+                    name: a.intervalDate || this.parseDate(a.createdAt),
+                    v: this.parseValue(Math.round(a.avgResponseTime || 0)),
+                    display: this.parseValue(Math.round(a.avgResponseTime || 0), null, true, symbol)
+                };
             })).reverse();
 
             return (

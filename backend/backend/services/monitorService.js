@@ -335,8 +335,22 @@ module.exports = {
 
     async getMonitorLogs(monitorId, startDate, endDate) {
         try {
-            let start = moment(startDate).toDate();
-            let end = moment(endDate).toDate();
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).toDate();
+            const interval = (moment(endDate)).diff(moment(startDate), 'days');
+
+            let dateFormat, outputFormat;
+            if (interval > 30) {
+                dateFormat = '%Y-%U';
+                outputFormat = 'wo [week of] YYYY';
+            } else if (interval > 2) {
+                dateFormat = '%Y-%m-%d';
+                outputFormat = 'MMM Do YYYY';
+            } else {
+                dateFormat = '%Y-%m-%dT%H';
+                outputFormat = 'MMM Do YYYY, h A';
+            }
+
             var monitorData = await MonitorLogModel.aggregate([
                 { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $sort: { 'createdAt': -1 } },
@@ -344,7 +358,7 @@ module.exports = {
                     $group: {
                         _id: {
                             probeId: '$probeId',
-                            createdAt: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
+                            createdAt: { $dateToString: { format: dateFormat, date: '$createdAt' } }
                         },
                         monitorId: { $first: '$monitorId' },
                         probeId: { $first: '$probeId' },
@@ -352,13 +366,25 @@ module.exports = {
                         responseStatus: { $first: '$responseStatus' },
                         status: { $first: '$status' },
                         data: { $first: '$data' },
-                        createdAt: { $first: '$createdAt' }
+                        createdAt: { $first: '$createdAt' },
+                        avgResponseTime: { $avg: '$responseTime' }
                     }
                 },
                 { $sort: { 'createdAt': -1 } },
                 { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
             ]);
-            return monitorData;
+            var monitorLogs = monitorData && monitorData.length > 0 ? monitorData.map(probeData => {
+                return {
+                    ...probeData,
+                    logs: probeData.logs && probeData.logs.length > 0 ? probeData.logs.map(data => {
+                        return {
+                            ...data,
+                            intervalDate: moment(data.createdAt).format(outputFormat)
+                        };
+                    }) : []
+                };
+            }) : [];
+            return monitorLogs;
         } catch (error) {
             ErrorService.log('monitorService.getMonitorLogs', error);
             throw error;
