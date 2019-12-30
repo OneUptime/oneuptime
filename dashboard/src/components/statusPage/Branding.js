@@ -16,6 +16,8 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -55,8 +57,8 @@ export class Branding extends Component {
         } catch (error) {
             return
         }
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('New Logo Selected');
+        if (!IS_DEV) {
+            logEvent('New Logo Selected');
         }
     }
 
@@ -74,8 +76,8 @@ export class Branding extends Component {
         } catch (error) {
             return
         }
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('New Favicon Selected');
+        if (!IS_DEV) {
+            logEvent('New Favicon Selected');
         }
     }
 
@@ -92,8 +94,8 @@ export class Branding extends Component {
         }, function () {
 
         });
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Changed Logo, Style, Branding', values);
+        if (!IS_DEV) {
+            logEvent('Changed Logo, Style, Branding', values);
         }
     }
 
@@ -320,9 +322,5 @@ function mapStateToProps(state) {
 
     };
 }
-
-Branding.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(BrandingForm);

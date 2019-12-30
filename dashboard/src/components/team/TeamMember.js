@@ -18,6 +18,8 @@ import { openModal, closeModal } from '../../actions/modal';
 import { history } from '../../store';
 
 import '@trendmicro/react-dropdown/dist/react-dropdown.css';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class TeamMember extends Component {
     constructor(props) {
@@ -37,8 +39,8 @@ export class TeamMember extends Component {
                 });
             } else return null;
         });
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Team Member Removed', { projectId: this.props.subProjectId, userId: values.userId });
+        if (!IS_DEV) {
+            logEvent('Team Member Removed', { projectId: this.props.subProjectId, userId: values.userId });
         }
     }
 
@@ -54,8 +56,8 @@ export class TeamMember extends Component {
         const { changeProjectRoles } = this.props;
         this.props.teamUpdateRole(this.props.subProjectId, data)
             .then((team) => changeProjectRoles(team.data));
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Team Member Role Changed', { projectId: this.props.subProjectId, role: data.role });
+        if (!IS_DEV) {
+            logEvent('Team Member Role Changed', { projectId: this.props.subProjectId, role: data.role });
         }
     }
 
@@ -230,9 +232,5 @@ function mapStateToProps(state, props) {
         currentProject: state.project.currentProject
     };
 }
-
-TeamMember.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(TeamMemberForm);

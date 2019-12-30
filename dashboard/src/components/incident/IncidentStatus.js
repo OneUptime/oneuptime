@@ -7,6 +7,8 @@ import { acknowledgeIncident, resolveIncident, closeIncident } from '../../actio
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class IncidentStatus extends Component {
     constructor(props) {
@@ -16,8 +18,8 @@ export class IncidentStatus extends Component {
     acknowledge = () => {
         let userId = User.getUserId();
         this.props.acknowledgeIncident(this.props.incident.projectId, this.props.incident._id, userId, this.props.multiple);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Incident Acknowledged', {
+        if (!IS_DEV) {
+            logEvent('Incident Acknowledged', {
                 ProjectId: this.props.incident.projectId,
                 incidentId: this.props.incident._id,
                 userId: userId
@@ -28,8 +30,8 @@ export class IncidentStatus extends Component {
     resolve = () => {
         let userId = User.getUserId();
         this.props.resolveIncident(this.props.incident.projectId, this.props.incident._id, userId, this.props.multiple);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Incident Resolved', {
+        if (!IS_DEV) {
+            logEvent('Incident Resolved', {
                 ProjectId: this.props.incident.projectId,
                 incidentId: this.props.incident._id,
                 userId: userId
@@ -270,9 +272,5 @@ IncidentStatus.propTypes = {
     multiple: PropTypes.bool,
     count: PropTypes.number
 }
-
-IncidentStatus.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);

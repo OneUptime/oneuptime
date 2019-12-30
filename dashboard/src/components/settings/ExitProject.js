@@ -10,6 +10,8 @@ import { switchProject, getProjects,exitProject } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import ExitProjectModal from './ExitProjectModal';
 import { openModal, closeModal } from '../../actions/modal';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class ExitProjectBox extends Component {
 
@@ -22,8 +24,8 @@ export class ExitProjectBox extends Component {
                 return exitProject(projectId, userId).then(function(){
                     !nextProject && dispatch({type: 'CLEAR_STORE'});
                     getProjects(false)
-                    if(window.location.href.indexOf('localhost') <= -1){
-                        thisObj.context.mixpanel.track('User Exited Project', {projectId, userId});
+                    if(!IS_DEV){
+                        logEvent('User Exited Project', {projectId, userId});
                     }
                 })
             },
@@ -107,9 +109,5 @@ ExitProjectBox.propTypes = {
     ]),
     isRequesting: PropTypes.oneOf([null,undefined,true,false]),
 }
-
-ExitProjectBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(ExitProjectBox));

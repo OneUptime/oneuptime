@@ -57,8 +57,4 @@ class ZapierBox extends React.Component {
 
 ZapierBox.displayName = 'ZapierBox';
 
-ZapierBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
-
 export default withRouter(ZapierBox);

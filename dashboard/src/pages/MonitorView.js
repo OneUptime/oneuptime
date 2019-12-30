@@ -14,6 +14,8 @@ import ShouldRender from '../components/basic/ShouldRender';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { mapCriteria } from '../config';
 import WebHookBox from '../components/webHooks/WebHookBox';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class MonitorView extends React.Component {
   // eslint-disable-next-line
@@ -22,8 +24,8 @@ class MonitorView extends React.Component {
   }
 
   componentDidMount() {
-    if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('MonitorView Page Loaded');
+    if (!IS_DEV) {
+      logEvent('MonitorView Page Loaded');
     }
   }
 
@@ -31,8 +33,8 @@ class MonitorView extends React.Component {
     const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
     this.props.fetchMonitorsIncidents(subProjectId, this.props.monitor._id, 0, 5); //0 -> skip, 5-> limit.
     this.props.fetchMonitorsSubscribers(subProjectId, this.props.monitor._id, 0, 5); //0 -> skip, 5-> limit.
-    if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('MonitorView Page Ready, Data Requested');
+    if (!IS_DEV) {
+      logEvent('MonitorView Page Ready, Data Requested');
     }
   }
 
@@ -139,10 +141,6 @@ const mapStateToProps = (state, props) => {
 const mapDispatchToProps = dispatch => {
   return bindActionCreators({ fetchMonitorsIncidents, fetchMonitorsSubscribers }, dispatch);
 }
-
-MonitorView.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
-};
 
 MonitorView.propTypes = {
   monitor: PropTypes.object,

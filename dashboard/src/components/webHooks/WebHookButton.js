@@ -54,10 +54,6 @@ const mapStateToProps = state => (
     }
 );
 
-WebHookButton.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
-
 WebHookButton.propTypes = {
 	openModal: PropTypes.func.isRequired,
 	monitorId: PropTypes.string,

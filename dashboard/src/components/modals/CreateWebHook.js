@@ -289,10 +289,6 @@ class CreateWebHook extends React.Component {
 
 CreateWebHook.displayName = 'CreateWebHook';
 
-CreateWebHook.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
-
 CreateWebHook.propTypes = {
 	currentProject: PropTypes.object,
 	createWebHook: PropTypes.func.isRequired,

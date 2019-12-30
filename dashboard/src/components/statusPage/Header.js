@@ -43,8 +43,4 @@ const mapStateToProps = state => {
     return { statusPage };
 }
 
-StatusHeader.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
-
 export default connect(mapStateToProps, mapDispatchToProps)(StatusHeader);

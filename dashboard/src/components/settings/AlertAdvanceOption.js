@@ -389,12 +389,6 @@ const mapStateToProps = state => (
     }
 )
 
-AlertAdvanceOption.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
-
-
-
 const AlertAdvanceOptionFormStripe = injectStripe(connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm));
 
 export default class AlertAdvanceOptionWithCheckout extends Component {

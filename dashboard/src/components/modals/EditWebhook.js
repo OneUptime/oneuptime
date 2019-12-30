@@ -298,10 +298,6 @@ class EditWebHook extends React.Component {
 
 EditWebHook.displayName = 'CreateWebHook';
 
-EditWebHook.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
-
 EditWebHook.propTypes = {
 	currentProject: PropTypes.object,
 	updateWebHook: PropTypes.func.isRequired,

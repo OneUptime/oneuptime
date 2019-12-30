@@ -9,6 +9,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { deleteStatusPage } from '../../actions/statusPage';
 import DeleteStatusPageModal from './DeleteStatusPageModal';
 import { openModal, closeModal } from '../../actions/modal';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class DeleteStatusPageBox extends Component {
 
@@ -27,8 +29,8 @@ export class DeleteStatusPageBox extends Component {
             onConfirm: () => {
                return deleteStatusPage(subProjectId, scheduleId)
                 .then(() =>{
-                if (window.location.href.indexOf('localhost') <= -1) {
-                    thisObj.context.mixpanel.track('Status Page Deleted', { subProjectId, scheduleId });
+                if (!IS_DEV) {
+                    logEvent('Status Page Deleted', { subProjectId, scheduleId });
                 }
                 history.push(`/project/${projectId}/status-pages`);
             })
@@ -127,9 +129,5 @@ DeleteStatusPageBox.propTypes = {
     match: PropTypes.object
 
 }
-
-DeleteStatusPageBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(DeleteStatusPageBox));

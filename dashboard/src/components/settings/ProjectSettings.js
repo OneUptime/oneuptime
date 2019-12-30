@@ -8,6 +8,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { renameProject } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 function validate(value) {
 
@@ -32,8 +34,8 @@ export class ProjectSettings extends Component {
                     document.title = val.data.name + ' Dashboard';
                 }
             });
-            if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Rename Project',values);
+            if(!IS_DEV){
+            logEvent('Rename Project',values);
             }
         }
     }
@@ -138,9 +140,5 @@ const mapStateToProps = state => (
         initialValues: { project_name: state.project.currentProject !== null ? state.project.currentProject.name : '' }
     }
 )
-
-ProjectSettings.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectSettingsForm);

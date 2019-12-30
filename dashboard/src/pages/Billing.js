@@ -10,6 +10,8 @@ import RenderIfOwner from '../components/basic/RenderIfOwner';
 import ChangePlan from '../components/settings/ChangePlan';
 import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 import PropTypes from 'prop-types';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class Billing extends Component {
 
@@ -19,8 +21,8 @@ class Billing extends Component {
   }
 
   componentDidMount() {
-    if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('Billing page Loaded');
+    if (!IS_DEV) {
+      logEvent('Billing page Loaded');
     }
   }
 
@@ -47,10 +49,6 @@ class Billing extends Component {
     );
   }
 }
-
-Billing.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
-};
 
 Billing.displayName = 'Billing'
 

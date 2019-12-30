@@ -10,6 +10,8 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -76,8 +78,8 @@ export class OnCallAlertBox extends Component {
     submitForm = (values) => {
         const { subProjectId, scheduleId } = this.props;
         this.props.addEscalation(subProjectId, scheduleId, values);
-         if (window.location.href.indexOf('localhost') <= -1) {
-             this.context.mixpanel.track('Links Updated', values);
+         if (!IS_DEV) {
+             logEvent('Links Updated', values);
          }
     }
 
@@ -212,9 +214,5 @@ let OnCallAlertForm = reduxForm({
     validate,// <--- validation function given to redux-for
     enableReinitialize: true
 })(OnCallAlertBox);
-
-OnCallAlertBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(OnCallAlertForm));

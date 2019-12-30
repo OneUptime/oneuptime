@@ -17,6 +17,8 @@ import {
     paginate
 } from '../../actions/webHook';
 import { ListLoader } from '../basic/Loader';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class WebHookList extends React.Component {
 
@@ -25,8 +27,8 @@ class WebHookList extends React.Component {
         if (projectId) {
             getWebHook(projectId);
         }
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Call WebHook Integration Component Loaded');
+        if(!IS_DEV){
+            logEvent('Call WebHook Integration Component Loaded');
         }
     }
 
@@ -54,8 +56,8 @@ class WebHookList extends React.Component {
 
         getWebHook(projectId, ((skip || 0) > (limit || 10)) ? skip - limit : 0, 10);
         paginate('prev');
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Fetch Previous Webhook');
+        if(!IS_DEV){
+            logEvent('Fetch Previous Webhook');
         }
     }
 
@@ -64,8 +66,8 @@ class WebHookList extends React.Component {
 
         getWebHook(projectId, skip + limit, 10);
         paginate('next');
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Fetch Next Webhook');
+        if(!IS_DEV){
+            logEvent('Fetch Next Webhook');
         }
     }
 
@@ -202,10 +204,6 @@ WebHookList.propTypes = {
     isRequesting: PropTypes.bool,
     webHook: PropTypes.any,
     paginate: PropTypes.func.isRequired,
-};
-
-WebHookList.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookList);

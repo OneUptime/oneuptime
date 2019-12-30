@@ -11,6 +11,8 @@ import { teamLoading } from '../../actions/team';
 import { reduxForm } from 'redux-form';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderIfMember from '../basic/RenderIfMember';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 function submitUserForm(values, dispatch, props) {
     const { projectId, scheduleId } = props.match.params;
@@ -22,8 +24,8 @@ function submitUserForm(values, dispatch, props) {
         }
     }
     props.addUsers(projectId, scheduleId, { users });
-    if(window.location.href.indexOf('localhost') <= -1){
-        this.context.mixpanel.track('Added Users To Schedule', {projectId, scheduleId, users });
+    if(!IS_DEV){
+        logEvent('Added Users To Schedule', {projectId, scheduleId, users });
     }
 }
 
@@ -179,9 +181,5 @@ let mapStateToProps = (state, props) => {
 const mapDispatchToProps = dispatch => (
     bindActionCreators({ addUsers, teamLoading }, dispatch)
 )
-
-UserBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(AddUsersForm));

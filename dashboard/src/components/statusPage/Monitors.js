@@ -11,6 +11,8 @@ import MonitorInputs from '../schedule/MonitorInputs';
 import ShouldRender from '../basic/ShouldRender';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class Monitors extends Component {
 
@@ -29,8 +31,8 @@ export class Monitors extends Component {
             .then(() => {
                 this.props.fetchProjectStatusPage(this.props.currentProject._id, true, 0, 10)
             })
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('StatusPage Monitors Updated', values);
+        if (!IS_DEV) {
+            logEvent('StatusPage Monitors Updated', values);
         }
     }
 
@@ -170,10 +172,5 @@ const mapStateToProps = state => {
     let subProjects = state.subProject.subProjects.subProjects;
     return { initialValues, monitors, statusPage, currentProject, subProjects };
 }
-
-
-Monitors.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorsForm);

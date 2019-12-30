@@ -10,6 +10,8 @@ import Badge from '../common/Badge';
 import StatuspageProjectBox from './StatuspageProjectBox'
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject'
 import ShouldRender from '../basic/ShouldRender';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class StatusPagesTable extends Component {
 
@@ -20,8 +22,8 @@ class StatusPagesTable extends Component {
 
     componentDidMount() {
         this.props.fetchSubProjectStatusPages(this.props.projectId)
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('StatusPage Settings Loaded');
+        if (!IS_DEV) {
+            logEvent('StatusPage Settings Loaded');
         }
     }
 
@@ -35,8 +37,8 @@ class StatusPagesTable extends Component {
 
         fetchProjectStatusPage(projectId, false, ((skip || 0) > (limit || 10)) ? skip - limit : 0, 10);
         paginate('prev');
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Fetch Previous Webhook');
+        if (!IS_DEV) {
+            logEvent('Fetch Previous Webhook');
         }
     }
 
@@ -45,8 +47,8 @@ class StatusPagesTable extends Component {
 
         fetchProjectStatusPage(projectId, false, skip + limit, 10);
         paginate('next');
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Fetch Previous Webhook');
+        if (!IS_DEV) {
+            logEvent('Fetch Previous Webhook');
         }
     }
 
@@ -188,10 +190,6 @@ function mapStateToProps(state) {
         subProjects,
     };
 }
-
-StatusPagesTable.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 StatusPagesTable.propTypes = {
     subProjectStatusPages: PropTypes.array.isRequired,
