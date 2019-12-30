@@ -142,10 +142,6 @@ function mapStateToProps(state) {
 	};
 }
 
-LoginForm.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
-
 LoginForm.propTypes = {
 	onSubmit: PropTypes.func.isRequired,
 	handleSubmit: PropTypes.func.isRequired,
