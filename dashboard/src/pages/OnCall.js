@@ -68,7 +68,7 @@ export class OnCall extends Component {
         const { createSchedule, currentProjectId, history } = this.props;
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
-            history.push(`/project/${currentProjectId}/subProject/${subProjectId}/schedule/${data[0]._id}`);
+            history.push(`/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`);
         });
         if (!IS_DEV) {
             logEvent('New Schedule Created', { subProjectId, name: 'Unnamed' });
