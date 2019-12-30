@@ -45,10 +45,10 @@ function validate(values) {
                     alertArrayErrors[i] = repeatErrors;
                 }
             }
-            values.OnCallAlertBox[i] && values.OnCallAlertBox[i].teamMember.forEach((val, j) => {
+            (values.OnCallAlertBox[i] && values.OnCallAlertBox[i].rotation) && values.OnCallAlertBox[i].rotation.forEach((val, j) => {
                 const escalationErrors = {}
                 if (val) {
-                    if (val.member === '') {
+                    if (val.teamMember[0].member === '') {
                         escalationErrors.member = 'Please select a member.';
                         escalationArrayErrors[j] = escalationErrors;
                     }
@@ -187,13 +187,18 @@ const mapStateToProps = (state, props) => {
             email: true,
             sms: false,
             call: false,
-            teamMember: [
-                {
-                    member: '',
-                    timezone: '',
-                    startTime: '',
-                    endTime: ''
-                }
+            rotation: [
+              {
+                rotationFrequency: 'Week',
+                teamMember: [
+                  {
+                      member: '',
+                      timezone: '',
+                      startTime: '',
+                      endTime: ''
+                  }
+                ]
+              }
             ]
         }
     ];

@@ -66,7 +66,7 @@ export class OnCall extends Component {
         const { createSchedule, currentProjectId, history } = this.props;
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
-            history.push(`/project/${currentProjectId}/subProject/${subProjectId}/schedule/${data[0]._id}`);
+            history.push(`/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`);
         });
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('New Schedule Created', { subProjectId, name: 'Unnamed' });

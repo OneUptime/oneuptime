@@ -4,7 +4,7 @@ import { FieldArray } from 'redux-form';
 import { Field, formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { RenderNames } from './RenderNames';
+import { RenderRotation } from './RenderRotation';
 import { RenderField } from './RenderField';
 
 
@@ -181,8 +181,8 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                     <div className="bs-Fieldset-rows">
 
                                                         <FieldArray
-                                                            name={`${policy}.teamMember`}
-                                                            component={RenderNames}
+                                                            name={`${policy}.rotation`}
+                                                            component={RenderRotation}
                                                             subProjectId={subProjectId}
                                                             policyIndex={i}
                                                         />
@@ -230,13 +230,11 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                 email: true,
                                                 sms: false,
                                                 call: false,
-                                                teamMember: [
-                                                    { 
-                                                        member: '',
-                                                        timezone: '',
-                                                        startTime: '',
-                                                        endTime: ''
-                                                    }
+                                                rotation: [
+                                                  {
+                                                    rotationFrequency: 'Week',
+                                                    teamMember: [],
+                                                  }
                                                 ]
                                             }
                                         )}
