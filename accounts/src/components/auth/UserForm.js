@@ -227,7 +227,8 @@ UserForm.propTypes = {
 	submitForm: PropTypes.func.isRequired,
 	handleSubmit: PropTypes.func.isRequired,
 	register: PropTypes.object.isRequired,
-	location: PropTypes.object.isRequired
+	location: PropTypes.object.isRequired,
+	formValues: PropTypes.object
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(userForm);

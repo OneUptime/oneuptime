@@ -403,6 +403,7 @@ CardForm.propTypes = {
   signupError: PropTypes.func.isRequired,
   signupSuccess: PropTypes.func.isRequired,
   signupUser: PropTypes.func.isRequired,
+  formValues: PropTypes.object
 }
 
 const CardFormWithCheckOut = injectStripe(connect(mapStateToProps, mapDispatchToProps)(cardForm));
