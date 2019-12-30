@@ -9,7 +9,7 @@ function Row(props) {
     const { projectId } = props.match.params;
     const { subProjectId } = props;
 
-    const path = `/project/${projectId}/subProject/${subProjectId}/schedule/${props.id}`;
+    const path = `/project/${projectId}/sub-project/${subProjectId}/schedule/${props.id}`;
 
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem" onClick={() => { history.push(path) }}>
