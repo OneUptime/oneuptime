@@ -367,7 +367,11 @@ module.exports = {
                         status: { $first: '$status' },
                         data: { $first: '$data' },
                         createdAt: { $first: '$createdAt' },
-                        avgResponseTime: { $avg: '$responseTime' }
+                        avgResponseTime: { $avg: '$responseTime' },
+                        avgCpuLoad: { $avg: '$data.load.currentload' },
+                        avgMemoryUsed: { $avg: '$data.memory.used' },
+                        avgStorageUsed: { $avg: '$data.disk.used' },
+                        avgMainTemp: { $avg: '$data.temperature.main' }
                     }
                 },
                 { $sort: { 'createdAt': -1 } },
@@ -376,10 +380,23 @@ module.exports = {
             var monitorLogs = monitorData && monitorData.length > 0 ? monitorData.map(probeData => {
                 return {
                     ...probeData,
-                    logs: probeData.logs && probeData.logs.length > 0 ? probeData.logs.map(data => {
+                    logs: probeData.logs && probeData.logs.length > 0 ? probeData.logs.map(logData => {
                         return {
-                            ...data,
-                            intervalDate: moment(data.createdAt).format(outputFormat)
+                            ...logData,
+                            data: logData.data ? {
+                                cpuLoad: logData.data.load.currentload,
+                                avgCpuLoad: logData.data.load.avgload,
+                                cpuCores: logData.data.load.cpus.length,
+                                memoryUsed: logData.data.memory.used,
+                                totalMemory: logData.data.memory.total,
+                                swapUsed: logData.data.memory.swapused,
+                                storageUsed: logData.data.disk.used,
+                                totalStorage: logData.data.disk.size,
+                                storageUsage: logData.data.disk.use,
+                                mainTemp: logData.data.temperature.main,
+                                maxTemp: logData.data.temperature.max
+                            } : null,
+                            intervalDate: moment(logData.createdAt).format(outputFormat)
                         };
                     }) : []
                 };
