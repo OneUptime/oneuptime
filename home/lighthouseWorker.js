@@ -11,10 +11,10 @@ function launchChromeAndRunLighthouse(url, flags = {}, config = null) {
 	});
 }
 
-let flags = {chromeFlags: ['--headless'], emulatedFormFactor: "desktop"};
+let flags = {chromeFlags: ['--headless'], emulatedFormFactor: 'desktop'};
 
 process.on('message', function (data) {
-	if (data.mobile) flags.emulatedFormFactor = "mobile";
+	if (data.mobile) flags.emulatedFormFactor = 'mobile';
 	let scores = {};
 	const spinner = ora(`Running lighthouse on ${data.url}`).start();
 	spinner.color = 'green';
