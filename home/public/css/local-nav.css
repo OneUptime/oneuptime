@@ -51,13 +51,13 @@
     letter-spacing:.025em;
     text-transform:uppercase;
     text-decoration:none;
-    color:#8898aa;
+    color:#a7a7a7;
     display:block;
     padding:25px 15px;
     transition:color .1s ease
 }
 .LocalNavigation-list a:hover{
-    color:black
+    color:#000000
 }
 @media (min-width:670px){
     .LocalNavigation-list a{
@@ -66,5 +66,5 @@
     }
 }
 .LocalNavigation-list a.active{
-    color:black
+    color:#000000
 }

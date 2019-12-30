@@ -94,7 +94,7 @@ body{
 .notify-close:after,.notify-close:before{
     content:'';
     position:absolute;
-    background:#8898aa;
+    background:#a7a7a7;
     border-radius:1px;
     left:14px;
     right:14px;
@@ -107,7 +107,7 @@ body{
     transform:rotate(-45deg)
 }
 .notify-close:hover:after,.notify-close:hover:before{
-    background:black
+    background:#000000
 }
 .notify-header,.notify-success{
     position:relative
@@ -171,7 +171,7 @@ body{
     overflow:hidden;
     font-size:16px;
     line-height:22px;
-    color:black
+    color:#000000
 }
 .notify-input input[type=email],.notify-input input[type=text]{
     border:none;
@@ -180,7 +180,7 @@ body{
     padding:9px 13px;
     background:transparent;
     font:inherit;
-    color:black
+    color:#000000
 }
 .notify-input input[type=email]::-webkit-input-placeholder,.notify-input input[type=text]::-webkit-input-placeholder{
     color:#aab7c4
@@ -841,7 +841,7 @@ body{
 .elements-graphic .elements-form{
     border-radius:4px;
     background:#f6f9fc;
-    color:black;
+    color:#000000;
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08);
     padding:15px 20px;
     font-size:17px;
@@ -1064,7 +1064,7 @@ body{
     top:0;
     bottom:0;
     z-index:-1;
-    background:black;
+    background:#000000;
     will-change:transform
 }
 .stripes-developers .fyipe{
@@ -1569,7 +1569,7 @@ body{
     }
 }
 .header-content .common-ProductLockup{
-    color:black;
+    color:#000000;
     margin-left:-6px
 }
 @media (min-width:1040px){

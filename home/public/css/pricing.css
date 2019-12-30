@@ -75,7 +75,7 @@
     padding:0
 }
 .TransfersAside-title{
-    color:black;
+    color:#000000;
     font-weight:500
 }
 .PricingFAQ{
@@ -115,7 +115,7 @@
     z-index:10
 }
 .Plan--enterprise{
-    background:black;
+    background:#000000;
     background-image:linear-gradient(to bottom right,black,#29294c);
     border-radius:0 0 4px 4px;
     z-index:5
@@ -131,7 +131,7 @@
     text-align:center;
     padding:35px 30px 20px;
     margin:0 auto 20px;
-    color:black;
+    color:#000000;
     border-bottom:2px solid #f6f9fc
 }
 .Plan-title--enterprise{
@@ -158,7 +158,7 @@
     line-height:60px;
     letter-spacing:-.05em;
     vertical-align:middle;
-    color:black
+    color:#000000
 }
 .Plan-cardRate-percent--split{
     font-size:3em;
@@ -180,10 +180,10 @@
 .Plan-cardRate-fixed{
     font-size: 3em;
     font-weight:500;
-    color:black
+    color:#000000
 }
 .Plan-cardRate-description{
-    color:#8898aa;
+    color:#a7a7a7;
     font-size:1.6em;
     line-height:1.4em;
     padding-top:3px
@@ -252,7 +252,7 @@
 .Plan-button{
     background:#f6f9fc;
     display:block;
-    color:black;
+    color:#000000;
     text-align:center;
     text-decoration:none;
     padding:25px;
@@ -345,7 +345,7 @@
     font-size:2.6em;
     font-weight:400;
     margin:0;
-    color:black;
+    color:#000000;
     white-space:nowrap
 }
 @media only screen and (min-width:880px) and (max-width:1040px){
@@ -391,7 +391,7 @@
     margin-top:7px
 }
 .PricingDetailsRow-body strong{
-    color:black;
+    color:#000000;
     font-weight:500
 }
 .PricingDetailsRow-cardBrands{
@@ -508,7 +508,7 @@
 .PricingDetailsRow-price{
     font-size:2.4em;
     margin:0;
-    color:black
+    color:#000000
 }
 @media (min-width:670px){
     .PricingDetailsRow-price.has-cap{
@@ -534,7 +534,7 @@
     padding-top:20px
 }
 .PricingDetails-section--alternate{
-    background:black;
+    background:#000000;
     border-top:0;
     padding:0
 }
@@ -645,7 +645,7 @@ strong.PricingDetails-Currency-header{
     font-weight:500
 }
 .PricingTable td{
-    color:black;
+    color:#000000;
     text-align:right
 }
 .PricingTable tr:last-child td,.PricingTable tr:last-child th{

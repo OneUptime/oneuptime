@@ -1178,7 +1178,7 @@ td,th{
     }
 }
 .contactCalloutBox:hover .common-Link{
-    color:black
+    color:#000000
 }
 @media (min-width:670px){
     .contactCalloutBox:active{
@@ -1253,7 +1253,7 @@ td,th{
     }
 }
 .ContactCalloutTitle{
-    color:black;
+    color:#000000;
     font-size:17px;
     font-weight:500;
     line-height:17px;

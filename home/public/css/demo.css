@@ -175,7 +175,7 @@ section.form-section .customers{
     }
 }
 section.form-section .customers .copy-1{
-    color:black;
+    color:#000000;
     font-size:24px;
     font-weight:500;
     line-height:36px
@@ -464,7 +464,7 @@ section.form-section .form-row input,section.form-section .form-row select,secti
     outline:none;
     width:100%;
     border-radius:4px;
-    color:black;
+    color:#000000;
     font-family:Open Sans,Segoe UI,sans-serif;
     font-weight:400;
     font-size:17px;
@@ -491,7 +491,7 @@ section.form-section .form-row .select-wrapper{
     cursor:pointer
 }
 section.form-section .form-row .select-wrapper select{
-    color:#8898aa;
+    color:#a7a7a7;
     width:100%;
     pointer-events:none;
     background-color:transparent
@@ -502,7 +502,7 @@ section.form-section .form-row .select-wrapper select{
     }
 }
 section.form-section .form-row .select-wrapper select.has-value{
-    color:black
+    color:#000000
 }
 section.form-section .form-row input:focus,section.form-section .form-row select:focus,section.form-section .form-row textarea:focus{
     box-shadow:0 0 0 1px #fff
@@ -514,19 +514,19 @@ section.form-section .form-row input:focus,section.form-section .form-row select
     }
 }
 section.form-section .form-row input::-webkit-input-placeholder,section.form-section .form-row textarea::-webkit-input-placeholder{
-    color:#8898aa;
+    color:#a7a7a7;
     transition:color .08s ease-in
 }
 section.form-section .form-row input::-moz-placeholder,section.form-section .form-row textarea::-moz-placeholder{
-    color:#8898aa;
+    color:#a7a7a7;
     transition:color .08s ease-in
 }
 section.form-section .form-row input:-ms-input-placeholder,section.form-section .form-row textarea:-ms-input-placeholder{
-    color:#8898aa;
+    color:#a7a7a7;
     transition:color .08s ease-in
 }
 section.form-section .form-row input::placeholder,section.form-section .form-row textarea::placeholder{
-    color:#8898aa;
+    color:#a7a7a7;
     transition:color .08s ease-in
 }
 section.form-section .form-row textarea::-webkit-input-placeholder{
@@ -720,7 +720,7 @@ section.form-section .form-row input.invalid-missing,section.form-section .form-
     }
 }
 section.form-section .form-row.has-focus input,section.form-section .form-row.has-focus textarea,section.form-section .form-row input:focus,section.form-section .form-row textarea:focus{
-    color:#8898aa!important;
+    color:#a7a7a7!important;
     background-position-x:-5000px!important;
     box-shadow:0 0 0 1px #fff
 }
@@ -1168,7 +1168,7 @@ html[lang=it] section.contact-sales-header .headline{
 section.contact-sales-header .headline-text{
     font-size:40px;
     line-height:50px;
-    color:black;
+    color:#000000;
     font-weight:400;
     margin-bottom:20px;
     margin-left:auto;
@@ -1211,7 +1211,7 @@ section.success .phone-number-container .copy-container{
     padding:20px
 }
 section.success .phone-number-container .phone-number-headline{
-    color:black;
+    color:#000000;
     font-size:40px;
     font-weight:400;
     line-height:50px;
@@ -1258,7 +1258,7 @@ section.success .phone-number-form-container label{
 section.success .phone-number-form-container .phone-country-code-placeholder{
     max-width:20px;
     background:#fff;
-    color:black;
+    color:#000000;
     font-weight:400;
     font-size:17px;
     line-height:26px;
@@ -1277,7 +1277,7 @@ section.success .phone-number-form-container input#phone{
     outline:none;
     background:#fff;
     border-radius:4px;
-    color:black;
+    color:#000000;
     font-weight:400;
     font-size:17px;
     line-height:26px;
@@ -1292,19 +1292,19 @@ section.success .phone-number-form-container input#phone{
     }
 }
 section.success .phone-number-form-container input#phone::-webkit-input-placeholder{
-    color:#8898aa;
+    color:#a7a7a7;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone::-moz-placeholder{
-    color:#8898aa;
+    color:#a7a7a7;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone:-ms-input-placeholder{
-    color:#8898aa;
+    color:#a7a7a7;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone::placeholder{
-    color:#8898aa;
+    color:#a7a7a7;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone::-ms-clear{
@@ -1424,7 +1424,7 @@ section.form-section .searchable-select-container input.searchable-select-input{
 }
 .searchable-select-container .searchable-select-no-results{
     font-weight:300;
-    color:#8898aa;
+    color:#a7a7a7;
     padding:8px 0;
     padding-left:12px;
     font-size:17px;
@@ -1442,7 +1442,7 @@ section.form-section .searchable-select-container input.searchable-select-input{
 }
 .searchable-select-container .searchable-select-result.highlighted{
     background:#f2f7fc;
-    color:black;
+    color:#000000;
     font-weight:400
 }
 .searchable-select-container .searchable-select-result.selected{
@@ -1546,7 +1546,7 @@ section.success .thank-you .copy-container{
     margin:0 auto
 }
 section.success .thank-you .success-headline{
-    color:black;
+    color:#000000;
     font-size:40px;
     font-weight:400;
     line-height:50px;

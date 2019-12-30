@@ -339,7 +339,7 @@ header#main-header a{
     color:#797979
 }
 header#main-header a:hover{
-    color:black
+    color:#000000
 }
 header#main-header .button a:after{
     font:normal 16px fyipeIcons;
@@ -367,7 +367,7 @@ header#main-header .button a:after{
 #sidebar h1,#sidebar h1 a{
     display:block;
     font-size:15px;
-    color:black;
+    color:#000000;
     font-weight:500;
     height:36px;
     line-height:36px;
@@ -647,14 +647,14 @@ header#main-header .button a:after{
 }
 article h1{
     font-size:31px;
-    color:black;
+    color:#000000;
     font-weight:400
 }
 article h2{
     font-size:22px
 }
 article h2,article h3{
-    color:black;
+    color:#000000;
     font-weight:500
 }
 article h3{
@@ -662,7 +662,7 @@ article h3{
 }
 article h4,article h5,article h6{
     font-size:17px;
-    color:black;
+    color:#000000;
     font-weight:500
 }
 article blockquote,article dl,article ol,article p,article table tbody,article ul{
@@ -756,7 +756,7 @@ article footer #csat-widget .common-Button{
     margin-left:5px;
     line-height:25px;
     height:25px;
-    color:black;
+    color:#000000;
     text-transform:unset;
     cursor:pointer
 }
@@ -884,7 +884,7 @@ article a[href^="/docs/api"]:active:after{
 }
 article code,article strong{
     font-weight:500;
-    color:black
+    color:#000000
 }
 article code{
     font-family:Source Code Pro,monospace
@@ -1116,7 +1116,7 @@ article table.reference .attr,article table.reference td:first-child code{
     text-align:right
 }
 article table.reference .attr{
-    color:black;
+    color:#000000;
     font-weight:500
 }
 article table.reference .type{
@@ -1129,7 +1129,7 @@ article table.reference .type{
 .card-number,.card-token{
     white-space:nowrap;
     font-family:Source Code Pro,monospace;
-    color:black;
+    color:#000000;
     font-weight:500
 }
 .card-number span{
@@ -1422,7 +1422,7 @@ article .tabs-regular .nav-tabs a:active{
     background:#f0f4f7;
     border-top-left-radius:3px;
     border-top-right-radius:3px;
-    color:black
+    color:#000000
 }
 article .tabs-regular .nav-tabs a.selected{
     background:#0e99e5;

@@ -11,7 +11,7 @@
 .comparision-heading>h3{
     font-size: 4em;
     font-weight: 400;
-    color:black;
+    color:#000000;
 }
 .comparision-heading>h4{
     font-size: 1.8em;
@@ -66,7 +66,7 @@
 .fyipe-list-head>h3{
     font-size: 3em;
     font-weight: 500;
-    color:black;
+    color:#000000;
 }
 .fyipe-list-head>h4{
     font-size: 1.8em;
@@ -197,11 +197,11 @@
 }
 .fyipe-list-text>h3,.comparision-fyipe>h3,
 .list-text>h3,.comparision-others>h3{
-    color:black; 
+    color:#000000; 
     font-size: 2em;
 }
 .fyipe-checklist>li{
-    color:black;
+    color:#000000;
     font-size: 2em;
 }
 .list-text>h4{

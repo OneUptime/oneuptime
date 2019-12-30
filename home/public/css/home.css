@@ -12,11 +12,11 @@ main a{
 }
 
 .black{
-    color:black;
+    color:#000000;
 }
 
 main h2[class^=common-Uppercase]{
-    color:black
+    color:#000000
 }
 main header{
     position:relative
@@ -256,7 +256,7 @@ main header{
     font-size:12px;
     line-height:16px;
     font-weight:600;
-    background:black;
+    background:#000000;
     text-transform:uppercase;
     border-radius:10px
 }
@@ -303,7 +303,7 @@ main header{
 #intro li:first-child a{
     margin-right:23px;
     color:#fff;
-    background:black;
+    background:#000000;
     text-shadow:0 1px 3px rgba(36,180,126,.4)
 }
 #intro li:first-child svg{
@@ -319,7 +319,7 @@ main header{
         display:block
     }
     #intro li:last-child a{
-        color:black
+        color:#000000
     }
 }
 #app-illustrations{
@@ -616,7 +616,7 @@ main header{
     width:100%;
     font-family:Open Sans,Segoe UI,sans-serif;
     font-size:17px;
-    color:black;
+    color:#000000;
     border-radius:2px;
     padding:7px 12px;
     border:none;
@@ -715,13 +715,13 @@ main header{
         transition:fill .3s
     }
     #notebook nav .selected{
-        color:black
+        color:#000000
     }
     #notebook nav .selected path{
-        fill:black
+        fill:#000000
     }
     #notebook nav button:not(.selected):hover path{
-        fill:black
+        fill:#000000
     }
     #notebook nav a{
         display:block;
@@ -974,7 +974,7 @@ main header{
     background:#f4f8fb
 }
 #comparison section:last-child .common-Uppercase{
-    color:black;
+    color:#000000;
     background:#f2feef
 }
 #comparison .common-BodyText{
@@ -1044,7 +1044,7 @@ main header{
 }
 #comparison li:last-child .label{
     margin-right:7px;
-    background:black
+    background:#000000
 }
 #comparison section:first-child li:last-child{
     -ms-flex-pack:end;

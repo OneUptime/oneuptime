@@ -64,7 +64,7 @@
 }
 .font-bold {
   line-height: 1.5;
-  color:black
+  color:#000000
 }
 .sdlc-column {
   display: flex;

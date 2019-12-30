@@ -7,6 +7,8 @@ Fyipe brand color is black, just like HackerBay.io. This will help all the Hacke
 - Default: black
 - Unhighlighted Text / Small Text: #797979 (grey)
 - Table Borders: #ececec
+- Background Grey: #a7a7a7
+- 
 
 ## Font
 
