@@ -56,7 +56,7 @@ module.exports = {
             escalationModel.projectId = data.projectId || null;
             escalationModel.scheduleId = data.scheduleId || null;
             escalationModel.createdById = data.createdById || null;
-            escalationModel.teamMember = data.teamMember || null;
+            escalationModel.rotation = data.rotation || null;
             var escalation = await escalationModel.save();
             return escalation;
         } catch (error) {
