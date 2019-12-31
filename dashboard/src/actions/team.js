@@ -250,7 +250,6 @@ export function getTeamMember(projectId, teamMemberId) {
 		dispatch(teamMemberRequest(teamMemberId));
 
 		promise.then(function (response) {
-			console.log(response);
 			dispatch(teamMemberSuccess(response.data));
 		}, function (error) {
 			if (error && error.response && error.response.data)
