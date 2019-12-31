@@ -129,7 +129,7 @@
       "!src/setupTests.js"
     ],
     "testMatch": [
-      "<rootDir>/src/test/puppeteer/**/*.test.js"
+      "<rootDir>/src/test/puppeteer/**/Monitor.test.js"
     ]
   },
   "browserslist": {
