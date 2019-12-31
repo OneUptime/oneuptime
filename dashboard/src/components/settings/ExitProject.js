@@ -17,7 +17,6 @@ export class ExitProjectBox extends Component {
 
     handleClick =()=>{
         const { projectId, userId, nextProject, exitProject, dispatch } = this.props;
-        var thisObj = this;
         this.props.openModal({
             id: uuid.v4(),
             onConfirm: () => {

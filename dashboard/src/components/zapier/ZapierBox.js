@@ -1,6 +1,5 @@
 import React from 'react';
 import { withRouter } from 'react-router-dom';
-import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 
 class ZapierBox extends React.Component {

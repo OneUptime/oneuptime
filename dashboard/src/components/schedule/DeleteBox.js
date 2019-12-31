@@ -22,7 +22,6 @@ export class DeleteScheduleBox extends Component {
     handleClick = () => {
         const { subProjectId, projectId, deleteSchedule, scheduleId, history } = this.props;
         const { deleteModalId } = this.state
-        var thisObj = this;
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {

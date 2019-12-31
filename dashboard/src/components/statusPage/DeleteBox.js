@@ -23,7 +23,6 @@ export class DeleteStatusPageBox extends Component {
         const { projectId, deleteStatusPage, scheduleId, history } = this.props;
         const { deleteModalId } = this.state
         const { subProjectId } = this.props.match.params;
-        var thisObj = this;
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {

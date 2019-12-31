@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
 import Dashboard from '../components/Dashboard';
-import PropTypes from 'prop-types';
-//import Slack from '../components/slack/Slack';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import ZapierBox from '../components/zapier/ZapierBox';
 import { logEvent } from '../analytics';

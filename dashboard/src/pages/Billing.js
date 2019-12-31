@@ -9,7 +9,6 @@ import AlertCharges from '../components/alert/AlertCharges';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import ChangePlan from '../components/settings/ChangePlan';
 import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
-import PropTypes from 'prop-types';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 

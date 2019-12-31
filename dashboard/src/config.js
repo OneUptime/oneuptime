@@ -23,7 +23,7 @@ if (!isServer) {
         apiUrl = 'http://localhost:3002';
         dashboardUrl = 'http://localhost:3000';
         accountsUrl = 'http://localhost:3003';
-        developmentEnv = false;
+        developmentEnv = true;
         domain = 'localhost';
     } else if (env('BACKEND_HOST')) {
         apiUrl = env('BACKEND_HOST');

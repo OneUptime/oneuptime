@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import Dashboard from '../components/Dashboard';
-import PropTypes from 'prop-types';
 import RenderIfAdmin from '../components/basic/RenderIfAdmin';
 import MonitorCategories from '../components/settings/MonitorCategories';
 import { logEvent } from '../analytics';
