@@ -38,7 +38,7 @@
     font-weight:300;
     font-size:34px;
     line-height:43px;
-    color:#14aad9
+    color:#000000
 }
 @media (min-width:670px){
     .common-PageSubtitle{
@@ -154,19 +154,19 @@
     transition:stroke .1s
 }
 .common-ProductLockupBack:hover .hover-fillLight{
-    fill:#a7a7a7
+    fill:#757575
 }
 .common-ProductLockupBack:hover .hover-fillDark{
     fill:#000000
 }
 .common-ProductLockupBack:hover .hover-strokeLight{
-    stroke:#a7a7a7
+    stroke:#757575
 }
 .common-ProductLockupBack:hover .hover-strokeDark{
     stroke:#000000
 }
 .common-Link{
-    color:#14aad9;
+    color:#000000;
     font-weight:500;
     transition:color .1s ease;
     cursor:pointer
@@ -200,7 +200,7 @@
     color:#c4f0ff
 }
 .common-InvertedText .common-BodyText{
-    color:#9cdbff
+    color:#000000
 }
 .common-InvertedText .common-Link,.common-Link--white{
     color:#fff
@@ -235,13 +235,13 @@
 }
 .common-Button:active{
     color:#000000;
-    background-color:#f6f9fc;
+    background-color:#f9f9f9;
     transform:translateY(1px);
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08)
 }
 .common-Button--default{
     color:#fff;
-    background:#14aad9
+    background:#000000
 }
 .common-Button--default:hover{
     color:#fff;
@@ -334,6 +334,6 @@
     text-align:center;
     padding:2px 6px 2px 7px;
     text-transform:uppercase;
-    color:#a7a7a7;
+    color:#757575;
     background-color:rgba(136,152,170,.15)
 }

@@ -179,7 +179,7 @@ body{
     padding-bottom:18px
 }
 .search-results li.selected{
-    background:#ecfaff;
+    background:#d7d7d7;
     background-image:url(/img/documentation/icon-arrow-blue-small.svg);
     background-size:12px 12px;
     background-repeat:no-repeat;
@@ -746,7 +746,7 @@ article footer{
     padding:39px 0
 }
 article footer #csat-widget{
-    background-color:#f6f9fc;
+    background-color:#f9f9f9;
     border-radius:5px;
     margin-top:20px;
     padding:20px;
@@ -1723,7 +1723,7 @@ article .tag.optional{
 }
 article .tag.warning{
     background:#c23d4b;
-    color:#f6f9fc
+    color:#f9f9f9
 }
 article h1 .tag{
     position:relative;

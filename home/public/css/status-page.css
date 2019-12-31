@@ -52,7 +52,7 @@ body{
 .apm-guide{
     padding:45px 50px 40px;
     text-align:right;
-    border-bottom:2px solid #f6f9fc;
+    border-bottom:2px solid #f9f9f9;
     position:relative
 }
 .apm-guide .icon{
@@ -94,7 +94,7 @@ body{
 .notify-close:after,.notify-close:before{
     content:'';
     position:absolute;
-    background:#a7a7a7;
+    background:#757575;
     border-radius:1px;
     left:14px;
     right:14px;
@@ -160,7 +160,7 @@ body{
     left:0;
     right:0;
     height:1000px;
-    background:#f6f9fc;
+    background:#f9f9f9;
     transform:skewY(-12deg);
     z-index:-1
 }
@@ -255,7 +255,7 @@ body{
     flex:1
 }
 .notify-input.methods .methods-list .other{
-    border-top:2px solid #f6f9fc;
+    border-top:2px solid #f9f9f9;
     position:relative
 }
 .notify-input.methods .methods-list .other:before{
@@ -287,7 +287,7 @@ body{
     transition:all .15s ease
 }
 .notify-input.methods .other.active:before,.notify-input.methods input[type=checkbox]:checked{
-    background-color:#14aad9;
+    background-color:#000000;
     box-shadow:none
 }
 .notify-input.email{
@@ -314,7 +314,7 @@ body{
     text-transform:uppercase;
     font-weight:600;
     letter-spacing:.025em;
-    color:#14aad9;
+    color:#000000;
     cursor:pointer;
     position:relative;
     transition:all .15s ease;
@@ -327,17 +327,17 @@ body{
     top:7px;
     bottom:7px;
     width:2px;
-    background:#f6f9fc
+    background:#f9f9f9
 }
 .notify-input.email .submit-button:focus{
-    background-color:#f6f9fc
+    background-color:#f9f9f9
 }
 .notify-input.email .submit-button:hover{
     color:#7795f8
 }
 .notify-input.email .submit-button:active{
     color:#555abf;
-    background-color:#f6f9fc
+    background-color:#f9f9f9
 }
 .notify-error{
     font-size:15px;
@@ -840,7 +840,7 @@ body{
 }
 .elements-graphic .elements-form{
     border-radius:4px;
-    background:#f6f9fc;
+    background:#f9f9f9;
     color:#000000;
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08);
     padding:15px 20px;
@@ -986,7 +986,7 @@ body{
     right:-20px;
     top:0;
     bottom:0;
-    background:#f6f9fc;
+    background:#f9f9f9;
     z-index:-1
 }
 @media (min-width:670px){
@@ -1058,7 +1058,7 @@ body{
     right:0;
     bottom:50%;
     z-index:-2;
-    background:#f6f9fc
+    background:#f9f9f9
 }
 .stripes-developers{
     top:0;
@@ -1081,7 +1081,7 @@ body{
     left:calc(50% + 450px)
 }
 .stripes-developers .s3{
-    background:#ecfaff;
+    background:#d7d7d7;
     bottom:-170px;
     left:calc(50% + 464px)
 }
@@ -1321,7 +1321,7 @@ body{
     }
 }
 .section-worldwide{
-    background:#f6f9fc;
+    background:#f9f9f9;
     padding:80px 0 100px
 }
 @media (min-width:670px){
@@ -1340,7 +1340,7 @@ body{
     }
 }
 .section-worldwide .section-header h2{
-    color:#14aad9
+    color:#000000
 }
 .worldwide-columns{
     display:-ms-flexbox;
@@ -1543,7 +1543,7 @@ body{
 }
 .stripes-header .s6{
     bottom:816px;
-    background:#14aad9
+    background:#000000
 }
 .header-columns{
     display:-ms-flexbox;

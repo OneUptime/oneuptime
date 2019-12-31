@@ -2,7 +2,7 @@ body{
     background-color:#fbfcfd
 }
 body .gradient-background{
-    background:linear-gradient(90deg,#748df8,#6fa7f8);
+    background:linear-gradient(90deg,#000000,#000000);
     overflow-x:hidden;
     opacity:1;
     transition:opacity 1s ease;
@@ -17,7 +17,7 @@ body .gradient-background{
 }
 @media(min-width:880px){
     body .gradient-background{
-        background:linear-gradient(90deg,#777bf8,#68d4f8 200%)
+        background:linear-gradient(90deg,#000000,#000000 200%)
     }
 }
 body.form-submitted .gradient-background{
@@ -426,7 +426,7 @@ html[lang=es] section.form-section .form-row label,html[lang=fr] section.form-se
     }
 }
 section.form-section .form-row.has-focus label{
-    color:#14aad9
+    color:#000000
 }
 section.form-section .form-row.has-focus .select-wrapper select{
     background-color:transparent;
@@ -474,7 +474,7 @@ section.form-section .form-row input,section.form-section .form-row select,secti
 }
 @media(min-width:670px){
     section.form-section .form-row input,section.form-section .form-row select,section.form-section .form-row textarea{
-        background-color:#f6f9fc;
+        background-color:#f9f9f9;
         padding:5px 20px 8px 13px;
         -ms-flex:68%;
         flex:68%;
@@ -491,14 +491,14 @@ section.form-section .form-row .select-wrapper{
     cursor:pointer
 }
 section.form-section .form-row .select-wrapper select{
-    color:#a7a7a7;
+    color:#757575;
     width:100%;
     pointer-events:none;
     background-color:transparent
 }
 @media(min-width:670px){
     section.form-section .form-row .select-wrapper select{
-        background-color:#f6f9fc
+        background-color:#f9f9f9
     }
 }
 section.form-section .form-row .select-wrapper select.has-value{
@@ -514,19 +514,19 @@ section.form-section .form-row input:focus,section.form-section .form-row select
     }
 }
 section.form-section .form-row input::-webkit-input-placeholder,section.form-section .form-row textarea::-webkit-input-placeholder{
-    color:#a7a7a7;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.form-section .form-row input::-moz-placeholder,section.form-section .form-row textarea::-moz-placeholder{
-    color:#a7a7a7;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.form-section .form-row input:-ms-input-placeholder,section.form-section .form-row textarea:-ms-input-placeholder{
-    color:#a7a7a7;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.form-section .form-row input::placeholder,section.form-section .form-row textarea::placeholder{
-    color:#a7a7a7;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.form-section .form-row textarea::-webkit-input-placeholder{
@@ -563,7 +563,7 @@ section.form-section .form-row select{
     align-self:flex-start
 }
 section.form-section .form-row select.dropdown-open,section.form-section .form-row select:focus{
-    color:#14aad9
+    color:#000000
 }
 section.form-section .form-row input{
     -ms-flex-item-align:center;
@@ -706,7 +706,7 @@ section.form-section .select-wrapper select.invalid-missing{
 }
 section.form-section .select-wrapper select.dropdown-open,section.form-section .select-wrapper select.dropdown-open.invalid-missing{
     background-image:url(/img/v3/contact_sales/form/dropdown-active.svg);
-    color:#14aad9
+    color:#000000
 }
 section.form-section .form-row input.invalid-missing,section.form-section .form-row input.invalid-value,section.form-section .form-row textarea.invalid-missing{
     background-position-x:calc(100% - 16px);
@@ -720,7 +720,7 @@ section.form-section .form-row input.invalid-missing,section.form-section .form-
     }
 }
 section.form-section .form-row.has-focus input,section.form-section .form-row.has-focus textarea,section.form-section .form-row input:focus,section.form-section .form-row textarea:focus{
-    color:#a7a7a7!important;
+    color:#757575!important;
     background-position-x:-5000px!important;
     box-shadow:0 0 0 1px #fff
 }
@@ -843,13 +843,13 @@ section.contact-sales-header .stripes-container{
 section.contact-sales-header .stripes-container.initial .gradient{
     height:5000px;
     bottom:0;
-    background:linear-gradient(270deg,#f6f9fc,#fff);
+    background:linear-gradient(270deg,#f9f9f9,#fff);
     left:0;
     right:0
 }
 section.contact-sales-header .stripes-container.initial .s1{
     height:200px;
-    background:#f6f9fc;
+    background:#f9f9f9;
     right:calc(50% + 255px);
     left:0;
     top:-110%;
@@ -872,7 +872,7 @@ section.contact-sales-header .stripes-container.initial .s2{
     right:0;
     left:calc(50% - 25px);
     bottom:-54px;
-    background:#87b3f8;
+    background:#d7d7d7;
     transition:transform .6s ease-out
 }
 @media(min-width:880px){
@@ -949,7 +949,7 @@ section.contact-sales-header .stripes-container.initial .s6{
     right:0;
     bottom:0;
     opacity:.1;
-    background:#87b3f8
+    background:#d7d7d7
 }
 @media(min-width:670px){
     section.contact-sales-header .stripes-container.initial .s6{
@@ -967,7 +967,7 @@ section.contact-sales-header .stripes-container.initial .s7{
     left:0;
     right:calc(50% + 225px);
     bottom:-54px;
-    background:#e2e9ff;
+    background:#d7d7d7;
     transition:transform .6s ease-out;
     display:none
 }
@@ -1292,19 +1292,19 @@ section.success .phone-number-form-container input#phone{
     }
 }
 section.success .phone-number-form-container input#phone::-webkit-input-placeholder{
-    color:#a7a7a7;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone::-moz-placeholder{
-    color:#a7a7a7;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone:-ms-input-placeholder{
-    color:#a7a7a7;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone::placeholder{
-    color:#a7a7a7;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone::-ms-clear{
@@ -1424,7 +1424,7 @@ section.form-section .searchable-select-container input.searchable-select-input{
 }
 .searchable-select-container .searchable-select-no-results{
     font-weight:300;
-    color:#a7a7a7;
+    color:#757575;
     padding:8px 0;
     padding-left:12px;
     font-size:17px;
@@ -1553,7 +1553,7 @@ section.success .thank-you .success-headline{
     margin-bottom:8px
 }
 section.success .thank-you .success-subhead{
-    color:#87b3f8;
+    color:#d7d7d7;
     font-size:30px;
     font-weight:300;
     transition:opacity .2s ease-out

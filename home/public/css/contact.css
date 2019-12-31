@@ -836,7 +836,7 @@ td,th{
     bottom:45%
 }
 .fyipeBackground-large .gradient{
-    background-image:linear-gradient(-81deg,#6fa7f8 1%,#777bf8);
+    background-image:linear-gradient(-81deg,#000000 1%,#000000);
     bottom:0;
     left:0;
     right:0;
@@ -873,7 +873,7 @@ td,th{
     bottom:0;
     left:calc(100% - 112px);
     right:calc(50% - 312px);
-    background-color:#ecfaff;
+    background-color:#d7d7d7;
     display:none
 }
 @media (min-width:670px){
@@ -882,11 +882,11 @@ td,th{
         bottom:-50px;
         left:calc(100% - 440px);
         right:calc(50% - 572px);
-        background-color:#ecfaff
+        background-color:#d7d7d7
     }
 }
 .fyipeBackground-large .fyipe.s1{
-    background-color:#14aad9;
+    background-color:#000000;
     bottom:0;
     left:0;
     right:calc(100% - 35px)
@@ -897,20 +897,20 @@ td,th{
     }
 }
 .fyipeBackground-large .fyipe.s2{
-    background-image:linear-gradient(90deg,#edf6ff 6%,#edf6ff 23%,#fff 95%);
+    background-image:linear-gradient(90deg,#000000 6%,#000000 23%,#fff 95%);
     bottom:0;
     left:355px;
     right:600px
 }
 .fyipeBackground-large .fyipe.s3{
-    background:#9cdbff;
+    background:#000000;
     bottom:0;
     left:calc(50% + 260px);
     right:0
 }
 .fyipeBackground-large .fyipe.s4{
     opacity:.16;
-    background:#9cdbff;
+    background:#000000;
     bottom:-50px;
     left:0;
     right:calc(50% + 475px)
@@ -1182,7 +1182,7 @@ td,th{
 }
 @media (min-width:670px){
     .contactCalloutBox:active{
-        background-color:#f6f9fc;
+        background-color:#f9f9f9;
         transform:translateY(2px);
         box-shadow:0 11px 20px rgba(50,50,93,.1),0 6px 11px rgba(0,0,0,.08)
     }
@@ -1211,7 +1211,7 @@ td,th{
     height:80px;
     margin-top:-45px;
     margin-bottom:20px;
-    background:#f6f9fc;
+    background:#f9f9f9;
     box-shadow:none
 }
 .contactCallout-Icon:after{
@@ -1288,7 +1288,7 @@ td,th{
 }
 @media (min-width:670px){
     .ContactCalloutFooter{
-        background-color:#f6f9fc;
+        background-color:#f9f9f9;
         position:absolute;
         bottom:0;
         padding-top:10px;
@@ -1302,7 +1302,7 @@ td,th{
     margin-bottom:30px;
     margin-top:-10px;
     padding-left:30px;
-    background-color:#f6f9fc;
+    background-color:#f9f9f9;
     padding-right:20px
 }
 .inner-col section{

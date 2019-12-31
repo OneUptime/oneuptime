@@ -292,13 +292,13 @@ code,pre{
     transition:stroke .1s
 }
 .common-ProductLockupBack:hover .hover-fillLight{
-    fill:#a7a7a7
+    fill:#757575
 }
 .common-ProductLockupBack:hover .hover-fillDark{
     fill:#000000
 }
 .common-ProductLockupBack:hover .hover-strokeLight{
-    stroke:#a7a7a7
+    stroke:#757575
 }
 .common-ProductLockupBack:hover .hover-strokeDark{
     stroke:#000000
@@ -338,7 +338,7 @@ code,pre{
     color:#c4f0ff
 }
 .common-InvertedText .common-BodyText{
-    color:#9cdbff
+    color:#000000
 }
 .common-InvertedText .common-Link,.common-Link--white{
     color:#fff
@@ -373,7 +373,7 @@ code,pre{
 }
 .common-Button:active{
     color:#000000;
-    background-color:#f6f9fc;
+    background-color:#f9f9f9;
     transform:translateY(1px);
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08)
 }
@@ -472,7 +472,7 @@ code,pre{
     text-align:center;
     padding:2px 6px 2px 7px;
     text-transform:uppercase;
-    color:#a7a7a7;
+    color:#757575;
     background-color:rgba(136,152,170,.15)
 }
 .lg-cols,.lg-grid,.lg-rows,.md-cols,.md-grid,.md-rows,.sm-cols,.sm-grid,.sm-rows,.xs-cols,.xs-grid,.xs-rows{
@@ -1113,6 +1113,9 @@ code,pre{
 .globalNav .navSection.primary .rootLink{
     font-weight:500
 }
+.header-bold{
+    font-weight: 900;
+}
 .globalNav .colorize{
     color:#797979;
     transition:color .1s ease
@@ -1186,7 +1189,7 @@ code,pre{
 .globalNav .alternateBackground{
     right:0;
     height:1000px;
-    background:#f6f9fc
+    background:#f9f9f9
 }
 .globalNav .dropdownArrow{
     position:absolute;
@@ -1282,13 +1285,13 @@ code,pre{
     transition:stroke .1s
 }
 .globalNav .linkContainer:hover .hover-fillLight{
-    fill:#a7a7a7
+    fill:#757575
 }
 .globalNav .linkContainer:hover .hover-fillDark{
     fill:#000000
 }
 .globalNav .linkContainer:hover .hover-strokeLight{
-    stroke:#a7a7a7
+    stroke:#757575
 }
 .globalNav .linkContainer:hover .hover-strokeDark{
     stroke:#000000
@@ -1407,7 +1410,7 @@ code,pre{
     color:#000000
 }
 .globalNav .item-sigma .linkTitle{
-    color:#8f6ed5
+    color:#000000
 }
 .globalNav .item-connect .new-badge{
     background:#000000
@@ -1419,10 +1422,10 @@ code,pre{
     color:#e39f48
 }
 .globalNav .item-radar .linkTitle{
-    color:#b76ac4
+    color:#000000
 }
 .globalNav .item-sigma .new-badge{
-    background:#8f6ed5
+    background:#000000
 }
 .globalNav .documentationGroup .linkSub{
     max-width:250px
@@ -1448,7 +1451,7 @@ code,pre{
     text-transform:uppercase;
     letter-spacing:.025em;
     margin:0 0 3px;
-    color:#a7a7a7
+    color:#757575
 }
 .globalNav .blogPosts{
     margin:5px 10px 5px 0px
@@ -1582,7 +1585,7 @@ code,pre{
     background:#000000
 }
 .globalNav .mobileSignIn{
-    background:#f6f9fc;
+    background:#f9f9f9;
     display:block;
     padding:12px 30px;
     font-weight:600
@@ -1599,7 +1602,7 @@ code,pre{
     font-size:14px;
     font-weight:600;
     letter-spacing:.025em;
-    color:#a7a7a7;
+    color:#757575;
     text-transform:uppercase;
     margin:-5px 0 0 30px
 }
@@ -1643,19 +1646,19 @@ code,pre{
     color:#e25950
 }
 .globalNav .mobileProductsList .item-sigma{
-    color:#8f6ed5
+    color:#000000
 }
 .globalNav .mobileProductsList .item-atlas{
     color:#e39f48
 }
 .globalNav .mobileProductsList .item-radar{
-    color:#b76ac4
+    color:#000000
 }
 .globalNav .mobileProductsList .new-badge{
     vertical-align:3px
 }
 .globalNav .mobileSecondaryNav{
-    border-top:2px solid #f6f9fc;
+    border-top:2px solid #f9f9f9;
     padding:15px 10px;
     display:-ms-flexbox;
     display:flex;
@@ -1792,7 +1795,7 @@ html[lang=ja] .productNav ul{
     font-family:Open Sans,Segoe UI,sans-serif;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
-    background:#f6f9fc;
+    background:#f9f9f9;
     position:relative
 }
 .globalFooter.withCards{
@@ -1813,7 +1816,7 @@ html[lang=ja] .productNav ul{
     right:0;
     top:600px;
     height:2000px;
-    background:#f6f9fc;
+    background:#f9f9f9;
     transform:skew(0,-12deg)
 }
 .globalFooterCards .container-xl{
@@ -1907,13 +1910,13 @@ a.globalFooterCard:hover svg .hover-fillDark,div.globalFooterCard:hover svg .hov
     fill:#000000
 }
 a.globalFooterCard:hover svg .hover-fillLight,div.globalFooterCard:hover svg .hover-fillLight{
-    fill:#a7a7a7
+    fill:#757575
 }
 a.globalFooterCard:hover svg .hover-strokeDark,div.globalFooterCard:hover svg .hover-strokeDark{
     stroke:#000000
 }
 a.globalFooterCard:hover svg .hover-strokeLight,div.globalFooterCard:hover svg .hover-strokeLight{
-    stroke:#a7a7a7
+    stroke:#757575
 }
 a.globalFooterCard h2,div.globalFooterCard h2{
     margin:0 0 5px;
@@ -1926,7 +1929,7 @@ a.globalFooterCard.card-pricing,div.globalFooterCard.card-pricing{
     color:#000000
 }
 a.globalFooterCard.card-documentation,div.globalFooterCard.card-documentation{
-    color:#b76ac4
+    color:#000000
 }
 a.globalFooterCard.card-subscriptions,div.globalFooterCard.card-subscriptions{
     color:#000000
@@ -1941,10 +1944,10 @@ a.globalFooterCard.card-atlas,div.globalFooterCard.card-atlas{
     color:#e39f48
 }
 a.globalFooterCard.card-radar,div.globalFooterCard.card-radar{
-    color:#b76ac4
+    color:#000000
 }
 a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
-    color:#8f6ed5
+    color:#000000
 }
 .globalFooterCTA{
     padding:50px 0;
@@ -1982,7 +1985,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
 }
 .globalFooterNav{
     padding:65px 0 55px;
-    color:#a7a7a7;
+    color:#757575;
     line-height:30px;
     font-size:15px;
     white-space:nowrap
@@ -2215,7 +2218,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     transition:color .1s,background-color .1s
 }
 .globalFooterNav .optionList a:hover{
-    background-color:#f6f9fc;
+    background-color:#f9f9f9;
     color:#000000
 }
 .globalFooterNav .optionList a:active{
@@ -2259,7 +2262,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     flex-direction:column
 }
 .globalFooterNav .countryPicker:before{
-    background:#f6f9fc
+    background:#f9f9f9
 }
 @media (min-width:670px){
     .globalFooterNav .countryPicker{
@@ -2275,7 +2278,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     display:flex
 }
 .globalFooterNav .sidebar{
-    background:#f6f9fc;
+    background:#f9f9f9;
     border-radius:0 0 5px 5px;
     overflow:hidden;
     -ms-flex-direction:column;
@@ -2407,7 +2410,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     position:relative;
     width:40px;
     height:40px;
-    color:#a7a7a7;
+    color:#757575;
     transition:color .15s;
     cursor:pointer
 }

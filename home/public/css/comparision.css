@@ -11,12 +11,12 @@
 .comparision-heading>h3{
     font-size: 4em;
     font-weight: 400;
-    color:#000000;
+    color:#FFFFFF;
 }
 .comparision-heading>h4{
     font-size: 1.8em;
     font-weight: 300;
-    color:#797979;
+    color:#FFFFFF;
 }
 @media only screen and (max-width: 1090px) {
 .comparision-heading{
@@ -44,7 +44,7 @@
     height:73%;
     width:99%;
     margin:2px;
-    background-color: #eaf9ec;
+    background-color: #000000;
     border-radius: 10px;
     display:grid;
     grid-template-columns: 30% 70%;
@@ -71,7 +71,7 @@
 .fyipe-list-head>h4{
     font-size: 1.8em;
     font-weight: 500;
-    color:#797979;
+    color:#FFFFFF;
 }
 .comparision-others{
     height:450px;
@@ -117,13 +117,16 @@
     position: relative;
 }
 .fyipe-versus{
+    border-color: white;
+    border-style: solid;
+    border-width: 5px;
     position:absolute;
     top:30%;
     left:-30%;
     height:100px;
     width:100px;
     z-index: 1;
-    background-color: #1d2d35;
+    background-color: #000000;
     border-radius: 50%;
     color:white;
     font-size: 40px;
@@ -201,11 +204,11 @@
     font-size: 2em;
 }
 .fyipe-checklist>li{
-    color:#000000;
+    color:#FFFFFF;
     font-size: 2em;
 }
 .list-text>h4{
-   color:#797979;
+   color:#FFFFFF;
     font-size: 1.6em;
 }
 @media only screen and (max-width: 892px) {

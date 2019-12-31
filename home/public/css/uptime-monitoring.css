@@ -545,7 +545,7 @@ section.simplify:before{
     height:1000%;
     top:-80px;
     transform:skewY(-12deg);
-    background-color:#f6f9fc;
+    background-color:#f9f9f9;
     z-index:-1
 }
 section.simplify .intro-copy{
@@ -620,7 +620,7 @@ section.simplify .rules .rule-builder .group{
     padding:10px 15px;
     margin-bottom:10px;
     border-radius:4px;
-    background-color:#f6f9fc
+    background-color:#f9f9f9
 }
 section.simplify .rules .rule-builder .text-field{
     font-family:Source Code Pro;
@@ -815,7 +815,7 @@ section.simplify .manual-review .review-queue .charge.refunded .button.refund{
     background-color:rgba(136,152,170,0)
 }
 section.simplify .manual-review .review-queue .charge.refunded .button.refund svg path{
-    fill:#a7a7a7
+    fill:#757575
 }
 section.simplify .manual-review .review-queue .charge.refunded .button.accept{
     opacity:0
@@ -993,7 +993,7 @@ section.simplify .manual-review .review-queue .charge .button.click:after{
     animation:button-highlight .35s ease-in-out
 }
 section.simplify .manual-review .review-queue .charge .button.refund{
-    background-color:#a7a7a7
+    background-color:#757575
 }
 section.simplify .manual-review .review-queue .charge .button.refund svg{
     margin-left:-2px

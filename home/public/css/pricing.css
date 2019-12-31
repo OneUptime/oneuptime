@@ -132,7 +132,7 @@
     padding:35px 30px 20px;
     margin:0 auto 20px;
     color:#000000;
-    border-bottom:2px solid #f6f9fc
+    border-bottom:2px solid #f9f9f9
 }
 .Plan-title--enterprise{
     color:#cfd7df;
@@ -183,7 +183,7 @@
     color:#000000
 }
 .Plan-cardRate-description{
-    color:#a7a7a7;
+    color:#757575;
     font-size:1.6em;
     line-height:1.4em;
     padding-top:3px
@@ -250,7 +250,7 @@
     border:1px solid #373767
 }
 .Plan-button{
-    background:#f6f9fc;
+    background:#f9f9f9;
     display:block;
     color:#000000;
     text-align:center;
@@ -321,7 +321,7 @@
 }
 .PricingDetails-section{
     padding:70px 0 90px;
-    border-top:2px solid #f6f9fc
+    border-top:2px solid #f9f9f9
 }
 .PricingDetailsRow{
     margin-bottom:39px
@@ -502,7 +502,7 @@
         bottom:0;
         left:-25%;
         width:2px;
-        background:#f6f9fc
+        background:#f9f9f9
     }
 }
 .PricingDetailsRow-price{
@@ -561,7 +561,7 @@
     color:#fff
 }
 .PricingDetailsRow-body--alternate{
-    color:#9cdbff;
+    color:#000000;
     margin:12px 0 15px
 }
 .PricingDetailsRow-body--alternate strong{
@@ -583,7 +583,7 @@
 .PricingDetailsRow-alsoIncluded{
     padding:65px 0 50px;
     margin-bottom:40px;
-    border-bottom:2px solid #f6f9fc
+    border-bottom:2px solid #f9f9f9
 }
 .PricingDetailsList-container{
     margin-top:20px
@@ -636,7 +636,7 @@ strong.PricingDetails-Currency-header{
     border-collapse:collapse
 }
 .PricingTable td,.PricingTable th{
-    border-bottom:2px solid #f6f9fc;
+    border-bottom:2px solid #f9f9f9;
     padding:7px 0
 }
 .PricingTable th{
@@ -652,7 +652,7 @@ strong.PricingDetails-Currency-header{
     border:none
 }
 .interstitial-cta{
-    background:#f6f9fc;
+    background:#f9f9f9;
     margin-top:80px
 }
 .interstitial-cta .container{
