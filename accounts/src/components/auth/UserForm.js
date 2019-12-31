@@ -8,6 +8,8 @@ import { RenderField } from '../basic/RenderField';
 import { ButtonSpinner } from '../basic/Loader.js';
 import { removeQuery } from '../../store';
 import queryString from 'query-string';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class UserForm extends Component {
 
@@ -25,10 +27,25 @@ class UserForm extends Component {
 		removeQuery();
 	}
 
+	trackClick = (target) => {
+		const { formValues } = this.props; 
+		const allowedValues = ['email', 'name', 'companyName', 'companyPhoneNumber'];
+		const filteredValues = formValues && Object.keys(formValues)
+			.filter(key => allowedValues.includes(key))
+			.reduce((obj, key) => {
+				obj[key] = formValues[key];
+				return obj;
+			}, {});
+
+		if (!IS_DEV) {
+			logEvent(`Register page click on # ${target.id}`, { data: filteredValues});
+		}
+	}
+
 	render() {
 		const { serverResponse } = this.state;
 		return (
-			<div id="main-body" className="box css" style={{ width: 500 }}>
+			<div id="main-body" className="box css" style={{ width: 500 }} onClick={(event) => this.trackClick(event.target)}>
 				<div className="inner">
 					<div className="title extra">
 						<h2>
@@ -201,7 +218,8 @@ const mapDispatchToProps = (dispatch) => {
 
 function mapStateToProps(state) {
 	return {
-		register: state.register
+		register: state.register,
+		formValues: state.form && state.form.UserSignupForm && state.form.UserSignupForm.values
 	};
 }
 
@@ -209,7 +227,8 @@ UserForm.propTypes = {
 	submitForm: PropTypes.func.isRequired,
 	handleSubmit: PropTypes.func.isRequired,
 	register: PropTypes.object.isRequired,
-	location: PropTypes.object.isRequired
+	location: PropTypes.object.isRequired,
+	formValues: PropTypes.object
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(userForm);
