@@ -371,7 +371,8 @@ module.exports = {
                         avgCpuLoad: { $avg: '$data.load.currentload' },
                         avgMemoryUsed: { $avg: '$data.memory.used' },
                         avgStorageUsed: { $avg: '$data.disk.used' },
-                        avgMainTemp: { $avg: '$data.temperature.main' }
+                        avgMainTemp: { $avg: '$data.temperature.main' },
+                        count: { $sum: 1 }
                     }
                 },
                 { $sort: { 'createdAt': -1 } },

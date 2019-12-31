@@ -41,7 +41,7 @@ const ping = (projectId, monitorId, apiKey, interval = '* * * * *') => {
       .then(data => ({
         load: data[0],
         memory: data[1],
-        disk: data[2],
+        disk: data[2] && data[2].length > 0 ? data[2][0] : data[2],
         traffic: data[3],
         temperature: data[4],
         resources: data[5],

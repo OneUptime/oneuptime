@@ -408,6 +408,7 @@ export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
         var promise = getApi(`monitor/${projectId}/log/${monitorId}?startDate=${startDate}&endDate=${endDate}`);
         dispatch(fetchMonitorLogsRequest());
+        dispatch(updateDateRange(startDate, endDate));
 
         promise.then(function (monitorLogs) {
             dispatch(fetchMonitorLogsSuccess({ projectId, monitorId, logs: monitorLogs.data }));
@@ -429,6 +430,13 @@ export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
 
         return promise;
     };
+}
+
+export function updateDateRange(startDate, endDate) {
+    return {
+        type: 'UPDATE_DATE_RANGE',
+        payload: { startDate, endDate }
+    }
 }
 
 export function fetchMonitorLogsRequest() {

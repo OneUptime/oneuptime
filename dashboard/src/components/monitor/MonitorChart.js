@@ -283,7 +283,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                 </div>
             </div>
             <div className="block-chart-main line-chart">
-                <AreaChart type={type} data={data} name={'avg. response time'} symbol="ms" />
+                <AreaChart type={type} data={data} name={'response time'} symbol="ms" />
             </div>
         </div>
     } else if (type === 'manual') {
