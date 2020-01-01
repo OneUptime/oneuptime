@@ -26,10 +26,12 @@ module.exports = {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
+        await page.waitFor(15000);
+
         await page.waitForSelector('iframe[name=__privateStripeFrame5]');
         await page.waitForSelector('iframe[name=__privateStripeFrame6]');
         await page.waitForSelector('iframe[name=__privateStripeFrame7]');
-        await page.waitFor(5000);
+        
         await page.click('input[name=cardName]');
         await page.type('input[name=cardName]', 'Test name');
 
