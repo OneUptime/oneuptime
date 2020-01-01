@@ -1527,10 +1527,10 @@ section.success .thank-you{
     opacity:1
 }
 section.success .divider{
-    background:#cfd7df;
+    background:#dbdbdb;
     border:none;
-    border-top:1px solid #cfd7df;
-    color:#cfd7df;
+    border-top:1px solid #dbdbdb;
+    color:#dbdbdb;
     margin:20px auto;
     max-width:750px;
     opacity:1;

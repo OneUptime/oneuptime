@@ -135,7 +135,7 @@
     border-bottom:2px solid #f9f9f9
 }
 .Plan-title--enterprise{
-    color:#cfd7df;
+    color:#dbdbdb;
     border-bottom-color:rgba(85,90,191,.1)
 }
 .Plan-cardPricing{
@@ -262,7 +262,7 @@
     background:#e6ebf1
 }
 .Plan-button:active{
-    background:#cfd7df
+    background:#dbdbdb
 }
 .Plan-Button--enterprise{
     background:rgba(85,90,191,.2);

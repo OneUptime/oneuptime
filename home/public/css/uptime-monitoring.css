@@ -921,7 +921,7 @@ section.simplify .manual-review .review-queue .charge .detail h3:after{
     bottom:3px;
     left:0;
     border-radius:2px;
-    background-color:#cfd7df;
+    background-color:#dbdbdb;
     pointer-events:none;
     opacity:0;
     transition:opacity .5s cubic-bezier(.645,.045,.355,1)
