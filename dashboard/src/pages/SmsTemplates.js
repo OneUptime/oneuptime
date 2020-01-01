@@ -6,6 +6,8 @@ import { bindActionCreators } from 'redux';
 import SmsTemplatesBox from '../components/smsTemplates/SmsTemplatesBox';
 import SmsSmtpBox from '../components/smsTemplates/SmsSmtpBox';
 import { getSmsTemplates,getSmtpConfig } from '../actions/smsTemplates';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class SmsTemplates extends Component {
 
@@ -20,8 +22,8 @@ class SmsTemplates extends Component {
   }
 
   componentDidMount() {
-      if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('SmsTemplates page Loaded');
+      if(!IS_DEV){
+      logEvent('SmsTemplates page Loaded');
     }
   }
 
@@ -50,10 +52,6 @@ const mapStateToProps = (state) => {
       currentProject: state.project.currentProject
   }
 }
-
-SmsTemplates.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 SmsTemplates.displayName = 'SmsTemplates'
 

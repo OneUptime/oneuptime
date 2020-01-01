@@ -1,17 +1,36 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types'
 import { Field } from 'redux-form';
+import { connect } from 'react-redux';
+import { formValueSelector } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import TimezoneSelector from './TimezoneSelector';
 import TeamSelector from './TeamSelector';
 import TimeSelector from './TimeSelector';
 
-const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex, rotationIndex }) => {
+let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex, rotationIndex, form }) => {
+    const policyRotation = form[policyIndex].rotation[rotationIndex];
     const [timeVisible, setTimeVisible] = useState(false);
+    const [forcedTimeHide, forceTimeHide] = useState(false);
+
+    const manageVisibility = (timeVisible, memberHasCallTimes) => {
+        setTimeVisible(timeVisible);
+        if (memberHasCallTimes && !timeVisible) {
+            forceTimeHide(true);
+        }
+
+        if (memberHasCallTimes && timeVisible) {
+            forceTimeHide(false);
+        }
+    }
+
     return (
         <ul>
             {
                 fields.map((inputarray, i) => {
+                    const memberValue = policyRotation.teamMember[i];
+                    const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
+                    const showTimes = memberHasCallTimes ? (!forcedTimeHide) : timeVisible;
                     return (
                         <li key={i}>
 
@@ -33,8 +52,12 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, poli
 
                             <div className="bs-Fieldset-row">
                                 <label className="bs-Fieldset-label">Time : </label>
-                                {!timeVisible ? (
-                                    <text className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base" style={{ marginTop: '5px', cursor: 'pointer' }} onClick={(() => setTimeVisible(true))}>Add on-call duty times</text>
+                                {!showTimes ? (
+                                    <text
+                                        className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base"
+                                        style={{ marginTop: '5px', cursor: 'pointer' }}
+                                        onClick={(() => manageVisibility(true, memberHasCallTimes))}
+                                    >Add on-call duty times</text>
                                 ) : (
                                   <div className="bs-Fieldset-fields">
                                     <div className="bs-Fieldset-row" style={{paddingLeft:'0px',paddingTop:'0px'}}>
@@ -76,7 +99,11 @@ const RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, poli
                                           />
                                       </div>
                                   </div>
-                                  <text className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base" style={{ marginTop: '5px', cursor: 'pointer' }} onClick={(() => setTimeVisible(false))}>Remove on-call duty times</text>
+                                  <text
+                                      className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base"
+                                      style={{ marginTop: '5px', cursor: 'pointer' }}
+                                      onClick={(() => manageVisibility(false, memberHasCallTimes))}
+                                  >Remove on-call duty times</text>
                                 </div>
                                 )}
                             </div>
@@ -150,6 +177,18 @@ RenderNames.propTypes = {
     ]).isRequired,
     policyIndex: PropTypes.number.isRequired,
     rotationIndex: PropTypes.number.isRequired,
+    form: PropTypes.object.isRequired,
 }
+
+function mapStateToProps(state) {
+    const selector = formValueSelector('OnCallAlertBox');
+    const form = selector(state, 'OnCallAlertBox');
+
+    return {
+      form
+    }
+}
+
+RenderNames = connect(mapStateToProps)(RenderNames);
 
 export { RenderNames }

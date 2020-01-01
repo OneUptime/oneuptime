@@ -2,9 +2,10 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import Dashboard from '../components/Dashboard';
-import PropTypes from 'prop-types';
 import RenderIfAdmin from '../components/basic/RenderIfAdmin';
 import MonitorCategories from '../components/settings/MonitorCategories';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class Monitors extends Component {
 
@@ -14,8 +15,8 @@ class Monitors extends Component {
     }
 
     componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Monitors page Loaded');
+        if (!IS_DEV) {
+            logEvent('Monitors page Loaded');
         }
     }
 
@@ -43,10 +44,6 @@ class Monitors extends Component {
         );
     }
 }
-
-Monitors.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 Monitors.displayName = 'Monitors';
 

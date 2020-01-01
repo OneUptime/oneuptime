@@ -9,6 +9,8 @@ import { FormLoader } from '../basic/Loader';
 import RenderIfAdmin from '../../components/basic/RenderIfAdmin';
 import ResetAPIKey from '../modals/ResetAPIKey';
 import { openModal } from '../../actions/modal';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class APISettings extends Component {
 
@@ -29,8 +31,8 @@ export class APISettings extends Component {
             onConfirm: () => {
                 return this.props.resetProjectToken(this.props.currentProject._id)
                     .then(() => {
-                        if(window.location.href.indexOf('localhost') <= -1){
-                            this.context.mixpanel.track('Project Token Reset', {projectId:this.props.currentProject._id});
+                        if(!IS_DEV){
+                            logEvent('Project Token Reset', {projectId:this.props.currentProject._id});
                         }
                 });
              },
@@ -143,9 +145,5 @@ APISettings.propTypes = {
     isRequesting: PropTypes.oneOf([null,undefined,true,false]),
     openModal: PropTypes.func.isRequired
 }
-
-APISettings.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(APISettings);

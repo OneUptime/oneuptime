@@ -13,6 +13,8 @@ import IncidentInternal from '../components/incident/IncidentInternal';
 import PropTypes from 'prop-types';
 import IncidentDeleteBox from '../components/incident/IncidentDeleteBox'
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class Incident extends React.Component {
 
@@ -21,14 +23,14 @@ class Incident extends React.Component {
     this.props = props;
   }
   componentDidMount() {
-    if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Incident Page Loaded');
+    if(!IS_DEV){
+      logEvent('Incident Page Loaded');
     }
   }
   internalNote = (note) => {
     this.props.setinternalNote(this.props.match.params.projectId, this.props.match.params.incidentId, note);
-    if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Internal Note Added',{
+    if(!IS_DEV){
+      logEvent('Internal Note Added',{
         projectId:this.props.match.params.projectId,
         incidentId:this.props.match.params.incidentId
       });
@@ -37,8 +39,8 @@ class Incident extends React.Component {
 
   investigationNote = (note)=> {
     this.props.setInvestigationNote(this.props.match.params.projectId, this.props.match.params.incidentId, note);
-    if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Incident Note Added',{
+    if(!IS_DEV){
+      logEvent('Incident Note Added',{
         projectId:this.props.match.params.projectId,
         incidentId:this.props.match.params.incidentId
       });
@@ -47,8 +49,8 @@ class Incident extends React.Component {
 
   nextAlerts = () => {
     this.props.fetchIncidentAlert(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.skip, 10) + parseInt(this.props.limit, 10)), parseInt(this.props.limit, 10));
-    if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Next Incident Alert Requested',{
+    if(!IS_DEV){
+      logEvent('Next Incident Alert Requested',{
         projectId:this.props.match.params.projectId,
         incidentId:this.props.match.params.incidentId
       });
@@ -57,8 +59,8 @@ class Incident extends React.Component {
 
   previousAlerts = () => {
     this.props.fetchIncidentAlert(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.skip, 10) - parseInt(this.props.limit, 10)), parseInt(this.props.limit, 10));
-    if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Previous Incident Alert Requested',{
+    if(!IS_DEV){
+      logEvent('Previous Incident Alert Requested',{
         projectId:this.props.match.params.projectId,
         incidentId:this.props.match.params.incidentId
       });
@@ -67,8 +69,8 @@ class Incident extends React.Component {
 
   nextSubscribers = () => {
     this.props.fetchSubscriberAlert(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.subscribersAlerts.skip, 10) + parseInt(this.props.subscribersAlerts.limit, 10)), parseInt(this.props.subscribersAlerts.limit, 10));
-    if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Next Subscriber Alert Requested',{
+    if(!IS_DEV){
+      logEvent('Next Subscriber Alert Requested',{
         projectId:this.props.match.params.projectId,
         incidentId:this.props.match.params.incidentId
       });
@@ -77,8 +79,8 @@ class Incident extends React.Component {
 
   previousSubscribers = () => {
     this.props.fetchSubscriberAlert(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.subscribersAlerts.skip, 10) - parseInt(this.props.subscribersAlerts.limit, 10)), parseInt(this.props.subscribersAlerts.limit, 10));
-    if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Previous Subscriber Alert Requested',{
+    if(!IS_DEV){
+      logEvent('Previous Subscriber Alert Requested',{
         projectId:this.props.match.params.projectId,
         incidentId:this.props.match.params.incidentId
       });
@@ -89,8 +91,8 @@ class Incident extends React.Component {
     this.props.getIncident(this.props.match.params.projectId, this.props.match.params.incidentId);
     this.props.fetchIncidentAlert(this.props.match.params.projectId, this.props.match.params.incidentId, 0, 10);
     this.props.fetchSubscriberAlert(this.props.match.params.projectId, this.props.match.params.incidentId, 0, 10);
-    if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Incident Page Ready, Data Requested', {
+    if(!IS_DEV){
+      logEvent('Incident Page Ready, Data Requested', {
         projectId:this.props.match.params.projectId,
         incidentId:this.props.match.params.incidentId
       });
@@ -154,10 +156,6 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch => {
   return bindActionCreators({ setInvestigationNote, setinternalNote, fetchIncidentAlert, fetchSubscriberAlert, incidentRequest, incidentError, incidentSuccess, resetIncident, getIncident }, dispatch);
 }
-
-Incident.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
-};
 
 Incident.propTypes = {
   getIncident: PropTypes.func,

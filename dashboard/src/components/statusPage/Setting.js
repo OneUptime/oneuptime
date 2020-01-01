@@ -11,6 +11,8 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -38,8 +40,8 @@ export class Setting extends Component {
     }, function () {
 
     });
-    if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('StatusPage Domain Updated', values);
+    if (!IS_DEV) {
+      logEvent('StatusPage Domain Updated', values);
     }
   }
 
@@ -183,9 +185,5 @@ function mapStateToProps(state) {
     subProjects: state.subProject.subProjects.subProjects
   };
 }
-
-Setting.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(SettingForm);

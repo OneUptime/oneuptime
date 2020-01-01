@@ -6,6 +6,8 @@ import { bindActionCreators } from 'redux';
 import EmailTemplatesBox from '../components/emailTemplates/EmailTemplatesBox';
 import EmailSmtpBox from '../components/emailTemplates/EmailSmtpBox';
 import {getEmailTemplates ,getSmtpConfig} from '../actions/emailTemplates';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class EmailTemplates extends Component {
 
@@ -20,8 +22,8 @@ class EmailTemplates extends Component {
   }
 
   componentDidMount() {
-      if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('EmailTemplates page Loaded');
+      if(!IS_DEV){
+      logEvent('EmailTemplates page Loaded');
     }
   }
 
@@ -50,10 +52,6 @@ const mapStateToProps = (state) => {
       currentProject: state.project.currentProject
   }
 }
-
-EmailTemplates.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 EmailTemplates.displayName = 'EmailTemplates'
 

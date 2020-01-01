@@ -21,6 +21,8 @@ import MonitorChart from './MonitorChart';
 import StatusIndicator from './StatusIndicator';
 import ProbeBar from './ProbeBar';
 import { getMonitorStatus } from '../../config';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class MonitorDetail extends Component {
     constructor(props) {
@@ -57,8 +59,8 @@ export class MonitorDetail extends Component {
 
     prevClicked = () => {
         this.props.fetchMonitorsIncidents(this.props.monitor.projectId._id, this.props.monitor._id, (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) - 3) : 3), 3);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Previous Incident Requested', {
+        if (!IS_DEV) {
+            logEvent('Previous Incident Requested', {
                 ProjectId: this.props.monitor.projectId._id,
                 monitorId: this.props.monitor._id,
                 skip: (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) - 3) : 3)
@@ -68,8 +70,8 @@ export class MonitorDetail extends Component {
 
     nextClicked = () => {
         this.props.fetchMonitorsIncidents(this.props.monitor.projectId._id, this.props.monitor._id, (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) + 3) : 3), 3);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Next Incident Requested', {
+        if (!IS_DEV) {
+            logEvent('Next Incident Requested', {
                 ProjectId: this.props.monitor.projectId._id,
                 monitorId: this.props.monitor._id,
                 skip: (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) + 3) : 3)
@@ -79,8 +81,8 @@ export class MonitorDetail extends Component {
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Edit Monitor Switch Clicked', {});
+        if (!IS_DEV) {
+            logEvent('Edit Monitor Switch Clicked', {});
         }
     }
 
@@ -368,10 +370,6 @@ MonitorDetail.propTypes = {
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
     activeIncident: PropTypes.string
-};
-
-MonitorDetail.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorDetail);

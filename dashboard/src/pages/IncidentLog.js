@@ -12,6 +12,8 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import { LoadingState } from '../components/basic/Loader';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class IncidentLog extends React.Component {
 
@@ -22,22 +24,22 @@ class IncidentLog extends React.Component {
     }
 
     componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Incident Log Page Loaded');
+        if (!IS_DEV) {
+            logEvent('Incident Log Page Loaded');
         }
     }
 
     ready = () => {
         this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Incident Log Page Ready, Data Requested');
+        if (!IS_DEV) {
+            logEvent('Incident Log Page Ready, Data Requested');
         }
     }
 
     prevClicked = (projectId, skip, limit) => {
         this.props.getProjectIncidents(projectId, ((skip || 0) > (limit || 10)) ? skip - limit : 0, 10);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Previous Incident Requested', {
+        if (!IS_DEV) {
+            logEvent('Previous Incident Requested', {
                 projectId: projectId,
             });
         }
@@ -45,8 +47,8 @@ class IncidentLog extends React.Component {
 
     nextClicked = (projectId, skip, limit) => {
         this.props.getProjectIncidents(projectId, skip + limit, 10);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Next Incident Requested', {
+        if (!IS_DEV) {
+            logEvent('Next Incident Requested', {
                 projectId: projectId,
             });
         }
@@ -182,10 +184,6 @@ const mapDispatchToProps = dispatch => {
         openModal,
         closeModal,
     }, dispatch);
-};
-
-IncidentLog.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 IncidentLog.propTypes = {

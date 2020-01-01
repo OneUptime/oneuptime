@@ -31,11 +31,7 @@ class BeforeLoad extends React.Component {
     }
 }
 
-BeforeLoad.displayName = 'BeforeLoad'
-
-BeforeLoad.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
+BeforeLoad.displayName = 'BeforeLoad';
 
 BeforeLoad.propTypes = {
     children: PropTypes.any

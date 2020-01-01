@@ -10,6 +10,8 @@ import ClickOutside from 'react-click-outside';
 import { userSettings } from '../../actions/profile';
 import { getVersion } from '../../actions/version';
 import { API_URL, User } from '../../config';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class TopContent extends Component {
 
@@ -21,29 +23,29 @@ class TopContent extends Component {
 
 	showFeedbackModal = () => {
 		this.props.openFeedbackModal();
-		if (window.location.href.indexOf('localhost') <= -1) {
-			this.context.mixpanel.track('Feedback Modal Opened', {});
+		if (!IS_DEV) {
+			logEvent('Feedback Modal Opened', {});
 		}
 	}
 
 	hideFeedbackModal = () => {
 		this.props.closeFeedbackModal();
-		if (window.location.href.indexOf('localhost') <= -1) {
-			this.context.mixpanel.track('Feedback Modal Closed', {});
+		if (!IS_DEV) {
+			logEvent('Feedback Modal Closed', {});
 		}
 	}
 
 	showProfileMenu = (e) => {
 		this.props.showProfileMenu(e.clientX);
-		if (window.location.href.indexOf('localhost') <= -1) {
-			this.context.mixpanel.track('Profile Menu Opened', {});
+		if (!IS_DEV) {
+			logEvent('Profile Menu Opened', {});
 		}
 	}
 
 	showNotificationsMenu = (e) => {
 		this.props.openNotificationMenu(e.clientX);
-		if (window.location.href.indexOf('localhost') <= -1) {
-			this.context.mixpanel.track('Notification Menu Opened', {});
+		if (!IS_DEV) {
+			logEvent('Notification Menu Opened', {});
 		}
 	}
 
@@ -189,9 +191,5 @@ TopContent.propTypes = {
 	length: PropTypes.number,
 	map: PropTypes.func
 }
-
-TopContent.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

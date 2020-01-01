@@ -8,14 +8,16 @@ import { openModal, closeModal } from '../../actions/modal';
 import ProjectSwitcher from '../project/ProjectSwitcher';
 import ClickOutside from 'react-click-outside';
 import { showProjectSwitcher, hideProjectSwitcher, hideForm } from '../../actions/project';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class SideNav extends Component {
 
 	hideSwitcher = () => {
 		if (this.props.project.projectSwitcherVisible) {
 			this.props.hideProjectSwitcher();
-			if (window.location.href.indexOf('localhost') <= -1) {
-				this.context.mixpanel.track('Project Switcher hidden', {});
+			if (!IS_DEV) {
+				logEvent('Project Switcher hidden', {});
 			}
 		}
 	}
@@ -23,8 +25,8 @@ class SideNav extends Component {
 	showSwitcher = () => {
 		if (!this.props.project.projectSwitcherVisible) {
 			this.props.showProjectSwitcher();
-			if (window.location.href.indexOf('localhost') <= -1) {
-				this.context.mixpanel.track('Project Switcher Visible', {});
+			if (!IS_DEV) {
+				logEvent('Project Switcher Visible', {});
 			}
 		}
 	}
@@ -137,7 +139,5 @@ SideNav.propTypes = {
 	showProjectSwitcher: PropTypes.func.isRequired,
 	hideForm: PropTypes.func.isRequired
 }
-SideNav.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
+
 export default connect(mapStateToProps, mapDispatchToProps)(SideNav);

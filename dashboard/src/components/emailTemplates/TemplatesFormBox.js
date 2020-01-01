@@ -205,8 +205,4 @@ function mapStateToProps(state) {
     };
 }
 
-TemplatesFormBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
-
 export default connect(mapStateToProps, mapDispatchToProps)(TemplatesFormBoxForm);

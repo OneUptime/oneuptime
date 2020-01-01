@@ -11,6 +11,8 @@ import { renameSchedule } from '../../actions/schedule';
 import PropTypes from 'prop-types';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 function validate(value) {
 
@@ -26,8 +28,8 @@ function validate(value) {
 
 export class RenameScheduleBox extends Component {
     componentDidMount() {
-        if(window.location.href.indexOf('localhost') <= -1){
-        this.context.mixpanel.track('Schedule settings page Loaded');
+        if(!IS_DEV){
+        logEvent('Schedule settings page Loaded');
         }
     }
 
@@ -39,8 +41,8 @@ export class RenameScheduleBox extends Component {
 
         if (scheduleName) {
             renameSchedule(subProjectId, scheduleId, scheduleName);
-            if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Rename Schedule', values);
+            if(!IS_DEV){
+            logEvent('Rename Schedule', values);
             }
         }
     }
@@ -157,10 +159,6 @@ const mapStateToProps = (state, props) => {
         isRequesting: state.schedule.renameSchedule.requesting,
     }
 }
-
-RenameScheduleBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 RenameScheduleBox.propTypes = {
     scheduleId: PropTypes.string,

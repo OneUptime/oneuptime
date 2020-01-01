@@ -16,6 +16,8 @@ import {
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 function validate(value) {
 
@@ -41,8 +43,8 @@ export class CustomerBalance extends Component {
         const { addBalance, projectId, openModal } = this.props;
         const { MessageBoxId } = this.state;
 
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Add amount to balance', values);
+        if (!IS_DEV) {
+            logEvent('Add amount to balance', values);
         }
         if (rechargeBalanceAmount) {
             addBalance(projectId, values)
@@ -224,10 +226,6 @@ const mapStateToProps = state => (
         paymentIntent: state.project.addBalance.pi
     }
 )
-
-CustomerBalance.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 const CustomerBalanceFormStripe = injectStripe(connect(mapStateToProps, mapDispatchToProps)(CustomerBalanceForm));
 

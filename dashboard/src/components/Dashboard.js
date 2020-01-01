@@ -17,6 +17,8 @@ import { hideProfileMenu } from '../actions/profile';
 import NotificationMenu from './notification/NotificationMenu';
 import { closeNotificationMenu } from '../actions/notification';
 import UnVerifiedEmailBox from '../components/auth/UnVerifiedEmail';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
@@ -50,21 +52,21 @@ export class DashboardApp extends Component {
 
     showProjectForm = () => {
         this.props.showForm();
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Project Form Opened');
+        if (!IS_DEV) {
+            logEvent('Project Form Opened');
         }
     }
 
     hideProfileMenu = () => {
         this.props.hideProfileMenu();
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Profile Menu Closed');
+        if (!IS_DEV) {
+            logEvent('Profile Menu Closed');
         }
     }
     closeNotificationMenu = () => {
         this.props.closeNotificationMenu();
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Notification Menu Closed');
+        if (!IS_DEV) {
+            logEvent('Notification Menu Closed');
         }
     }
 
@@ -218,9 +220,5 @@ let mapDispatchToProps = dispatch => (
         closeNotificationMenu
     }, dispatch)
 )
-
-DashboardApp.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(DashboardApp));
