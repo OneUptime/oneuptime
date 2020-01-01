@@ -23,7 +23,7 @@ class SubProjectApiKey extends Component {
     }
 
     render() {
-        const { subProjectResetToken, closeModal, data, resetSubProjectKeyReset,subproject} = this.props
+        const { subProjectResetToken, closeModal, data, resetSubProjectKeyReset, subproject } = this.props
         return (
             <div onKeyDown={this.handleKeyBoard} className='ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center'>
                 <div className='ModalLayer-contents' tabIndex={-1} style={{ marginTop: 40 }}>
@@ -85,7 +85,7 @@ const mapStateToProps = (state, props) => {
     if (subproject && subproject.length && props.data && props.data.subProjectId) {
         subproject = subproject.find(obj => obj._id === props.data.subProjectId);
     }
-    console.log(subproject);
+
     return {
         subproject: subproject && subproject._id ? subproject : {},
         subProjectResetToken: state.subProject.resetToken
@@ -97,13 +97,13 @@ const mapDispatchToProps = dispatch => {
 }
 
 SubProjectApiKey.propTypes = {
-  closeModal: PropTypes.func,
-  closeThisDialog: PropTypes.func.isRequired,
-  data: PropTypes.object,
-  resetSubProjectKeyReset: PropTypes.func,
-  resetSubProjectToken: PropTypes.func,
-  subProjectResetToken: PropTypes.object,
-  subproject: PropTypes.object
+    closeModal: PropTypes.func,
+    closeThisDialog: PropTypes.func.isRequired,
+    data: PropTypes.object,
+    resetSubProjectKeyReset: PropTypes.func,
+    resetSubProjectToken: PropTypes.func,
+    subProjectResetToken: PropTypes.object,
+    subproject: PropTypes.object
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubProjectApiKey)
