@@ -10,6 +10,8 @@ import PropTypes from 'prop-types';
 import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
 import ShouldRender from '../components/basic/ShouldRender';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 const LoadingState = () => (
     <div className="Box-root Margin-bottom--12">
@@ -165,8 +167,8 @@ class TeamApp extends Component {
         if (this.props.currentProject) {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Team members page Loaded');
+        if (!IS_DEV) {
+            logEvent('Team members page Loaded');
         }
     }
     componentWillUnmount() {
@@ -256,10 +258,6 @@ const mapDispatchToProps = dispatch => (
         dispatch
     )
 );
-
-TeamApp.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 TeamApp.displayName = 'TeamMembers'
 

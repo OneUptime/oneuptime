@@ -56,11 +56,7 @@ export class RowData extends Component {
     }
 }
 
-RowData.displayName = 'StatusPage RowData'
-
-RowData.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
+RowData.displayName = 'StatusPage RowData';
 
 RowData.propTypes = {
     statusPage: PropTypes.object.isRequired,

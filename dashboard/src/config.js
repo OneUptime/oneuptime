@@ -11,26 +11,7 @@ let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
-
-
-// if (!isServer) {
-//     if (window.location.href.indexOf('localhost') > -1) {
-//         apiUrl = 'http://localhost:3002';
-//         dashboardUrl = 'http://localhost:3000';
-//         accountsUrl = 'http://localhost:3003';
-//         domain = 'localhost';
-//     } else if (window.location.href.indexOf('staging') > -1) {
-//         apiUrl = 'https://staging-api.fyipe.com';
-//         dashboardUrl = 'http://staging-dashboard.fyipe.com';
-//         accountsUrl = 'http://staging-accounts.fyipe.com';
-//         domain = 'fyipe.com';
-//     } else {
-//         apiUrl = 'https://api.fyipe.com';
-//         dashboardUrl = 'https://fyipe.com';
-//         accountsUrl = 'https://accounts.fyipe.com';
-//         domain = 'fyipe.com';
-//     }
-// }
+let developmentEnv = false;
 
 function env(value) {
     var { _env } = window;
@@ -42,12 +23,16 @@ if (!isServer) {
         apiUrl = 'http://localhost:3002';
         dashboardUrl = 'http://localhost:3000';
         accountsUrl = 'http://localhost:3003';
+        developmentEnv = true;
         domain = 'localhost';
     } else if (env('BACKEND_HOST')) {
         apiUrl = env('BACKEND_HOST');
         dashboardUrl = env('HOST');
         accountsUrl = env('ACCOUNTS_HOST');
         domain = env('DOMAIN');
+        if (apiUrl.indexOf('staging')  > -1 || apiUrl.indexOf('app.local') > -1) {
+            developmentEnv = true;
+        }
     }
 }
 
@@ -58,6 +43,8 @@ export const DASHBOARD_URL = dashboardUrl;
 export const ACCOUNTS_URL = accountsUrl;
 
 export const DOMAIN_URL = domain;
+
+export const IS_DEV = developmentEnv;
 
 export const User = {
 

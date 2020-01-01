@@ -51,8 +51,4 @@ WebHookBox.propTypes = {
 	monitorId: PropTypes.string,
 };
 
-WebHookBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
-
 export default withRouter(WebHookBox);

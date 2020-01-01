@@ -16,6 +16,8 @@ import IsOwner from '../basic/IsOwner';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class EmailSmtpBox extends Component {
     constructor(props) {
@@ -89,8 +91,8 @@ export class EmailSmtpBox extends Component {
         else if (smtpConfigurations.config._id) {
             this.props.deleteSmtpConfig(this.props.currentProject._id, smtpConfigurations.config._id, values);
         }
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Changed smtp configuration', {});
+        if (!IS_DEV) {
+            logEvent('Changed smtp configuration', {});
         }
     }
 
@@ -382,9 +384,5 @@ function mapStateToProps(state) {
         showEmailSmtpConfiguration,
     };
 }
-
-EmailSmtpBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(EmailSmtpBoxForm);

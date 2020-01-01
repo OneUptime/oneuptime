@@ -9,6 +9,8 @@ import { FormLoader } from '../basic/Loader';
 import {
     updatePrivateStatusPage
 } from '../../actions/statusPage';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class SubscriberAdvanceOption extends React.Component {
     
@@ -27,8 +29,8 @@ class SubscriberAdvanceOption extends React.Component {
                 id: this.props.subscriberAdvanceOptionModalId
             })
         })
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Private StatusPage Updated', values);
+        if (!IS_DEV) {
+            logEvent('Private StatusPage Updated', values);
         }
     }
 

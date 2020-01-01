@@ -10,33 +10,35 @@ import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
 import ShouldRender from '../components/basic/ShouldRender';
 import uuid from 'uuid';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class AlertLog extends Component {
 
     componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Alert Log Loaded');
+        if (!IS_DEV) {
+            logEvent('Alert Log Loaded');
         }
     }
 
     ready = () => {
         this.props.fetchAlert(this.props.currentProject._id);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Project Ready', { projectId: this.props.currentProject._id });
+        if (!IS_DEV) {
+            logEvent('Project Ready', { projectId: this.props.currentProject._id });
         }
     }
 
     prevClicked = (projectId, skip, limit) => {
         this.props.fetchProjectAlert(projectId, ((skip || 0) > (limit || 10)) ? this.props.alerts.skip - this.props.alerts.limit : 0, 10);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Fetch Previous Alert');
+        if (!IS_DEV) {
+            logEvent('Fetch Previous Alert');
         }
     }
 
     nextClicked = (projectId, skip, limit) => {
         this.props.fetchProjectAlert(projectId, skip + limit, 10);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Fetch Next Alert');
+        if (!IS_DEV) {
+            logEvent('Fetch Next Alert');
         }
     }
 
@@ -172,10 +174,6 @@ const mapStateToProps = (state) => {
         subProjects
     }
 }
-
-AlertLog.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 AlertLog.propTypes = {
     fetchAlert: PropTypes.func,

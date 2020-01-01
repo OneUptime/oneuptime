@@ -7,6 +7,8 @@ import { hideUpgradeForm, changePlan, upgradePlanEmpty } from '../../actions/pro
 import { createMonitor, resetCreateMonitor } from '../../actions/monitor';
 import PropTypes from 'prop-types';
 import { PricingPlan } from '../../config';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class UpgradePlanModal extends Component {
 
@@ -27,8 +29,8 @@ export class UpgradePlanModal extends Component {
         const {category: newCategory, type: newType, details: newDetails} = PricingPlan.getPlanById(values.planId);
         const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
 		this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
-		if(window.location.href.indexOf('localhost') <= -1){
-			this.context.mixpanel.track('Plan Changed', {oldPlan, newPlan});
+		if(!IS_DEV){
+			logEvent('Plan Changed', {oldPlan, newPlan});
 		}
 		this.hideForm()
     }
@@ -112,9 +114,5 @@ UpgradePlanModal.propTypes = {
 	match: PropTypes.object.isRequired,
 	visible: PropTypes.bool
 }
-
-UpgradePlanModal.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(UpgradePlanModal));

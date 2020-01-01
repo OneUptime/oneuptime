@@ -10,6 +10,8 @@ import PropTypes from 'prop-types';
 import projectTeamMemberNotification from './projectTeamMemberNotification.js';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class FormModal extends Component {
 	constructor(props){
@@ -40,8 +42,8 @@ export class FormModal extends Component {
 				//do nothing.
 			});
 		}
-		if (window.location.href.indexOf('localhost') <= -1) {
-			this.context.mixpanel.track('Team member invitation form', values);
+		if (!IS_DEV) {
+			logEvent('Team member invitation form', values);
 		}
 	}
 
@@ -199,9 +201,5 @@ FormModal.propTypes = {
 	closeModal: PropTypes.func.isRequired,
 	subProjects: PropTypes.array.isRequired,
 }
-
-FormModal.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(InviteTeamMemberForm);

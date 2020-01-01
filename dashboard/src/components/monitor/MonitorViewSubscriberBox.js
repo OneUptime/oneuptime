@@ -12,6 +12,8 @@ import { FormLoader } from '../basic/Loader';
 import uuid from 'uuid';
 import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class MonitorViewSubscriberBox extends Component {
 
@@ -25,8 +27,8 @@ export class MonitorViewSubscriberBox extends Component {
     prevClicked = () => {
         const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
         this.props.fetchMonitorsSubscribers(subProjectId, this.props.monitor._id, (this.props.monitor.subscribers.skip ? (parseInt(this.props.monitor.subscribers.skip, 10) - 5) : 5), 5);
-        if (window.location.href.indexOf('localhost') <= -1) {
-          this.context.mixpanel.track('Previous Subscriber Requested', {
+        if (!IS_DEV) {
+          logEvent('Previous Subscriber Requested', {
             projectId: subProjectId,
           });
         }
@@ -35,8 +37,8 @@ export class MonitorViewSubscriberBox extends Component {
     nextClicked = () => {
         const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
         this.props.fetchMonitorsSubscribers(subProjectId, this.props.monitor._id, (this.props.monitor.subscribers.skip ? (parseInt(this.props.monitor.subscribers.skip, 10) + 5) : 5), 5);
-        if (window.location.href.indexOf('localhost') <= -1) {
-          this.context.mixpanel.track('Next Subscriber Requested', {
+        if (!IS_DEV) {
+          logEvent('Next Subscriber Requested', {
             projectId: this.props.currentProject._id,
           });
         }
@@ -134,9 +136,5 @@ const mapStateToProps = (state, props) => {
         export: state.subscriber.csvExport.requesting,
     };
 }
-
-MonitorViewSubscriberBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorViewSubscriberBox);

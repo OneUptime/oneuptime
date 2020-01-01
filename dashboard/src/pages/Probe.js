@@ -19,8 +19,8 @@ class Probe extends React.Component {
 
   prevClicked = () => {
     this.props.getProbes(this.props.currentProject._id, (this.props.probes.skip ? (parseInt(this.props.probes.skip, 10) - 10) : 10), 10);
-    /* if (window.location.href.indexOf('localhost') <= -1) {
-       this.context.mixpanel.track('Previous Incident Requested', {
+    /* if (!IS_DEV) {
+       logEvent('Previous Incident Requested', {
          projectId: this.props.currentProject._id,
        });
      }*/
@@ -28,8 +28,8 @@ class Probe extends React.Component {
 
   nextClicked = () => {
     this.props.getProbes(this.props.currentProject._id, (this.props.probes.skip ? (parseInt(this.props.probes.skip, 10) + 10) : 10), 10);
-    /* if (window.location.href.indexOf('localhost') <= -1) {
-       this.context.mixpanel.track('Next Incident Requested', {
+    /* if (!IS_DEV) {
+       logEvent('Next Incident Requested', {
          projectId: this.props.currentProject._id,
        });
      }*/

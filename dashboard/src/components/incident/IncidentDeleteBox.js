@@ -11,6 +11,8 @@ import DeleteIncident from '../modals/DeleteIncident';
 import { deleteIncident } from '../../actions/incident';
 import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class IncidentDeleteBox extends Component {
 
@@ -26,8 +28,8 @@ export class IncidentDeleteBox extends Component {
         let promise = this.props.deleteIncident(projectId, incidentId);
         promise.then(()=>{
             history.push(`/project/${this.props.currentProject._id}/monitoring`);
-            if (window.location.href.indexOf('localhost') <= -1) {
-                this.context.mixpanel.track('Incident Deleted', {
+            if (!IS_DEV) {
+                logEvent('Incident Deleted', {
                     projectId,
                     incidentId
                 });
@@ -110,9 +112,5 @@ IncidentDeleteBox.propTypes = {
     deleteIncident: PropTypes.func.isRequired,
     deleting: PropTypes.bool.isRequired,
 }
-
-IncidentDeleteBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(IncidentDeleteBox));

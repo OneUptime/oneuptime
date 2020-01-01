@@ -7,6 +7,8 @@ import DeleteCaution from './DeleteCaution';
 import { hideDeleteModal, deleteProject, switchProject } from '../../actions/project';
 import { history } from '../../store'
 import DeleteRequestModal from './DeleteRequesModal';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class DeleteProjectModal extends Component {
 
@@ -26,8 +28,8 @@ export class DeleteProjectModal extends Component {
 		deleteProject(projectId, values.feedback).then(() => {
 			this.closeNotice();
 		});
-		if (window.location.href.indexOf('localhost') <= -1) {
-			this.context.mixpanel.track('Project Marked for Deleted', { projectId });
+		if (!IS_DEV) {
+			logEvent('Project Marked for Deleted', { projectId });
 		}
 	}
 
@@ -125,9 +127,5 @@ DeleteProjectModal.propTypes = {
 	visible: PropTypes.bool,
 	isRequesting: PropTypes.bool
 }
-
-DeleteProjectModal.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(DeleteProjectModal));

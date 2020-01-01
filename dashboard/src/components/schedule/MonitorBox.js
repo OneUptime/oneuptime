@@ -11,6 +11,8 @@ import { reduxForm } from 'redux-form';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 function submitMonitorForm(values, dispatch, props) {
     const { subProjectId, scheduleId } = props.match.params;
@@ -22,8 +24,8 @@ function submitMonitorForm(values, dispatch, props) {
         }
     }
     props.addMonitors(subProjectId, scheduleId, { monitorIds: monitors });
-    if(window.location.href.indexOf('localhost') <= -1){
-        this.context.mixpanel.track('Attached Monitor To Schedule', {subProjectId, scheduleId, monitors });
+    if(!IS_DEV){
+        logEvent('Attached Monitor To Schedule', {subProjectId, scheduleId, monitors });
     }
 }
 
@@ -183,9 +185,5 @@ MonitorBox.propTypes = {
     ]),
     subProjects: PropTypes.array.isRequired
 }
-
-MonitorBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(AddMonitorsForm));

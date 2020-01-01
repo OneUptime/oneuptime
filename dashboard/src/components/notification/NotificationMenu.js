@@ -13,6 +13,8 @@ import {
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class NotificationMenu extends Component {
 
@@ -22,8 +24,8 @@ class NotificationMenu extends Component {
 
     markAllAsRead(projectId) {
         this.props.markAllAsRead(projectId);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Notification Marked All As Read', {
+        if (!IS_DEV) {
+            logEvent('Notification Marked All As Read', {
                 projectId: projectId
             });
         }
@@ -31,8 +33,8 @@ class NotificationMenu extends Component {
 
     markAsRead(notification) {
         this.props.markAsRead(notification.projectId, notification._id);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Notification Marked As Read', {
+        if (!IS_DEV) {
+            logEvent('Notification Marked As Read', {
                 projectId: notification.projectId,
                 notificationId: notification._id
             });
@@ -175,10 +177,6 @@ NotificationMenu.propTypes = {
     projectId: PropTypes.string,
     position: PropTypes.number
 }
-
-NotificationMenu.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 const NotificationMenuStripe = injectStripe(connect(mapStateToProps, mapDispatchToProps)(NotificationMenu));
 

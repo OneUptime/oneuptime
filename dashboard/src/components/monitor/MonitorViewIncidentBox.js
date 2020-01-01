@@ -11,6 +11,8 @@ import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class MonitorViewIncidentBox extends Component {
 
@@ -23,8 +25,8 @@ export class MonitorViewIncidentBox extends Component {
 
     prevClicked = () => {
         this.props.fetchMonitorsIncidents(this.props.monitor.projectId._id, this.props.monitor._id, (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) - 5) : 5), 5);
-        if (window.location.href.indexOf('localhost') <= -1) {
-          this.context.mixpanel.track('Previous Incident Requested', {
+        if (!IS_DEV) {
+          logEvent('Previous Incident Requested', {
             projectId: this.props.monitor.projectId._id,
           });
         }
@@ -32,8 +34,8 @@ export class MonitorViewIncidentBox extends Component {
     
     nextClicked = () => {
         this.props.fetchMonitorsIncidents(this.props.monitor.projectId._id, this.props.monitor._id, (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) + 5) : 5), 5);
-        if (window.location.href.indexOf('localhost') <= -1) {
-          this.context.mixpanel.track('Next Incident Requested', {
+        if (!IS_DEV) {
+          logEvent('Next Incident Requested', {
             projectId: this.props.monitor.projectId._id,
           });
         }
@@ -114,9 +116,5 @@ const mapStateToProps = (state) => {
         create: state.incident.newIncident.requesting,
     };
 }
-
-MonitorViewIncidentBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorViewIncidentBox);

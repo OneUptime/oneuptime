@@ -9,6 +9,8 @@ import Monitors from '../components/reports/Monitors';
 import Incidents from '../components/reports/Incidents';
 import ResolveTime from '../components/reports/ResolveTime';
 import Select from 'react-select-fyipe';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 const styles = {
     cardGrid: {
@@ -120,8 +122,8 @@ export class Reports extends Component {
     }
 
     ready = () => {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Reports Page Ready, Data Requested');
+        if (!IS_DEV) {
+            logEvent('Reports Page Ready, Data Requested');
         }
     };
 
@@ -353,10 +355,6 @@ const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject
     };
-};
-
-Reports.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 Reports.propTypes = {

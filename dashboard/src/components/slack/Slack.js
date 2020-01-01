@@ -70,8 +70,4 @@ Slack.propTypes = {
   match: PropTypes.object.isRequired,
 };
 
-Slack.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
-};
-
 export default withRouter(Slack);

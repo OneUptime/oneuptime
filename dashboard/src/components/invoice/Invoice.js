@@ -5,6 +5,8 @@ import { bindActionCreators } from 'redux';
 import InvoiceList from './InvoiceList';
 import { getInvoice, getInvoiceRequest, getInvoiceError, getInvoiceSuccess, getInvoiceReset } from '../../actions/invoice';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class Invoice extends Component {
 
@@ -14,8 +16,8 @@ class Invoice extends Component {
   }
   
   componentDidMount() {
-      if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Invoice page Loaded');
+      if(!IS_DEV){
+      logEvent('Invoice page Loaded');
     }
     this.resetAndFetchInvoices();
   }
@@ -114,10 +116,6 @@ Invoice.propTypes = {
     ]),
     getInvoiceReset: PropTypes.func.isRequired
 }
-
-Invoice.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 Invoice.displayName = 'Invoice'
 
