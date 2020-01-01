@@ -17,7 +17,7 @@ export class RowData extends Component {
                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '270px' }}>
 
                     <div className="bs-ObjectList-cell bs-u-v-middle">
-                        <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{statusPage.title || 'Unknown'}</div>
+                        <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{statusPage.name || 'Unknown'}</div>
                         <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
                             {statusPage.domain || 'Domain not set yet'}
                         </div>
