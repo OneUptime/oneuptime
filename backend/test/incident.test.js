@@ -185,7 +185,7 @@ describe('Incident API', function () {
                             member: userId,
                             startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
                             endTime: 'Tue Dec 17 2019 22:55:26 GMT+0000',
-                            timezone: 'UTC(GMT +00:00)'
+                            timezone: 'Europe/London'
                         }]
                     }]
                 }]);

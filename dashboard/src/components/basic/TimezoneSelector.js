@@ -10,24 +10,24 @@ let errorStyle = {
 
 const TimezoneSelector = ({ input, placeholder, style, meta: { touched, error }, id,disabled }) => {
     const options = [{ value: '', label: 'Select Timezone...' }].concat(Zones.map(zone => (
-        { value: zone.name, label: zone.name }
+        { value: zone.value, label: zone.name }
     )));
 
     const filteredOpt = useRef();
     filteredOpt.current = options.filter(opt => opt.value === input.value);
-    
+
     const [value, setValue] = useState({
         value: input.value, label: filteredOpt.current.length > 0 ?
             filteredOpt.current[0].label : placeholder
     });
-    
+
     useEffect(() => {
         setValue({
             value: input.value, label: filteredOpt.current.length > 0 ?
                 filteredOpt.current[0].label : placeholder
         });
     }, [input, placeholder]);
-    
+
     const handleChange = (option) => {
         setValue(option);
         if (input.onChange) {
@@ -44,6 +44,7 @@ const TimezoneSelector = ({ input, placeholder, style, meta: { touched, error },
                     onChange={handleChange}
                     className="db-select-nw"
                     id={id}
+                    placeholder={placeholder}
                     isDisabled={disabled}
                     options={options.filter(opt => opt.show !== undefined ? opt.show : true)}
                 />
