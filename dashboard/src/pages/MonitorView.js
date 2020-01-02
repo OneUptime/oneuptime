@@ -65,7 +65,7 @@ class MonitorView extends React.Component {
                           <div className="Box-root Margin-bottom--12">
                             <MonitorViewIncidentBox monitor={this.props.monitor} />
                           </div>
-                          <ShouldRender if={this.props.monitor && this.props.monitor.type && this.props.monitor.type !== 'manual'}>
+                          <ShouldRender if={this.props.monitor && this.props.monitor.type && (this.props.monitor.type === 'url' || this.props.monitor.type === 'api')}>
                             <div className="Box-root Margin-bottom--12">
                               <MonitorViewLogsBox monitorId={this.props.monitor._id} monitorName={this.props.monitor.name}/>
                             </div>
