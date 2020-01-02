@@ -525,6 +525,52 @@ export function setMonitorCriteria(monitorName, monitorCategory, monitorSubProje
     };
 }
 
+//Fetch Logs of monitors
+export function getMonitorLogs(projectId, monitorId, skip, limit,startDate,endDate,probeValue) {
+    return function (dispatch) {
+
+        var promise = postApi(`monitor/${projectId}/monitorLogs/${monitorId}`,{skip, limit,startDate,endDate,probeValue});
+        dispatch(getMonitorLogsRequest({monitorId}));
+
+        promise.then(function (monitors) {
+            dispatch(getMonitorLogsSuccess({ monitorId,logs:monitors.data.data.monitorLogs,skip, limit, count: monitors.data.count, probes:monitors.data.data.probes}));
+        }, function (error) {
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            } else {
+                error = 'Network Error';
+            }
+            dispatch(getMonitorLogsFailure({monitorId,error:errors(error)}));
+        });
+        return promise;
+    };
+}
+
+export function getMonitorLogsSuccess(logs) {
+    return {
+        type: types.GET_MONITOR_LOGS_SUCCESS,
+        payload: logs
+    };
+}
+
+export function getMonitorLogsRequest(logs) {
+    return {
+        type: types.GET_MONITOR_LOGS_REQUEST,
+        payload: logs
+    };
+}
+
+export function getMonitorLogsFailure(error) {
+    return {
+        type: types.GET_MONITOR_LOGS_FAILURE,
+        payload: error
+    };
+}
 
 export function addSeat(projectId) {
 

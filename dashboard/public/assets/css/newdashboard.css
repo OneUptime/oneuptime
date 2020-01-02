@@ -4,6 +4,11 @@
   position: absolute !important;
 }
 
+.db-select-pr {
+  width: 250px;
+  font-size: 14px;
+}
+
 .db-select-ne {
   width: 85px;
   font-size: 14px;
@@ -23,14 +28,16 @@
 }
 
 .db-select-nw > div,
-.db-select-ne > div {
+.db-select-ne > div,
+.db-select-pr > div {
   -webkit-flex-flow: unset;
   -ms-flex-flow: unset;
   flex-flow: unset;
   cursor: pointer;
 }
 
-.db-select-nw > span + div {
+.db-select-nw > span + div,
+.db-select-pr > span + div {
   border: none;
   box-shadow: 0 0 0 1px rgba(50, 50, 93, 0), 0 0 0 1px rgba(50, 151, 211, 0.2),
     0 0 0 2px rgba(50, 151, 211, 0.25), 0 1px 1px rgba(0, 0, 0, 0.08);

@@ -217,6 +217,26 @@ router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, getSubProjec
     }
 });
 
+// Route
+// Description: Get all Monitor logs by monitorId.
+router.post('/:projectId/monitorLogs/:monitorId', getUser, isAuthorized, async function (req, res) {
+    try {
+        const {skip, limit,startDate,endDate,probeValue} = req.body;
+        var monitorId = req.params.monitorId;
+        var query = {monitorId};
+        if(probeValue) query.probeId = probeValue;
+        if(startDate && endDate) query.createdAt = { $gte: startDate, $lte: endDate };
+
+        // Call the MonitorService.
+        var monitorLogs = await MonitorService.findLogsBy(query, limit || 0, skip || 0);
+        var count = await MonitorService.countLogsBy(query);
+        var probes = await MonitorService.findLogProbesBy({monitorId});
+        return sendListResponse(req, res, {monitorLogs,probes}, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
         var monitor = await MonitorService.deleteBy({ _id: req.params.monitorId, projectId: req.params.projectId }, req.user.id);
