@@ -3,6 +3,7 @@
   "version": "3.0.1115",
   "scripts": {
     "start": "node server.js",
+    "dev": "nodemon  -e '.coffee|.js|.ejs'  server.js",
     "test": "echo 'no tests'",
     "lint": "eslint .",
     "fix-lint": "eslint . --fix",
@@ -36,6 +37,7 @@
     "jest": "^24.8.0",
     "lighthouse": "^5.6.0",
     "lighthouse-ci": "^1.10.0",
+    "nodemon": "^2.0.2",
     "npm-audit-ci-wrapper": "^2.4.1",
     "ora": "^4.0.3",
     "puppeteer": "^1.20.0",
