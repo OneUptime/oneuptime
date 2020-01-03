@@ -1,3 +1,4 @@
+/*eslint-disable*/
 (function (e, t) {
     var n = e.amplitude || { _q: [], _iq: {} }; var r = t.createElement("script")
         ; r.type = "text/javascript"; r.async = true
