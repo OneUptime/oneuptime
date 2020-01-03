@@ -221,9 +221,11 @@ router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, getSubProjec
 // Description: Get all Monitor logs by monitorId.
 router.post('/:projectId/monitorLogs/:monitorId', getUser, isAuthorized, async function (req, res) {
     try {
-        const {skip, limit,startDate,endDate,probeValue} = req.body;
+        const {skip, limit,startDate,endDate,probeValue,incidentId} = req.body;
         var monitorId = req.params.monitorId;
-        var query = {monitorId};
+        var query = {};
+        if(monitorId && !incidentId) query.monitorId = monitorId;
+        if(incidentId) query.incidentIds = incidentId;
         if(probeValue) query.probeId = probeValue;
         if(startDate && endDate) query.createdAt = { $gte: startDate, $lte: endDate };
 

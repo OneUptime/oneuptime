@@ -526,10 +526,10 @@ export function setMonitorCriteria(monitorName, monitorCategory, monitorSubProje
 }
 
 //Fetch Logs of monitors
-export function getMonitorLogs(projectId, monitorId, skip, limit,startDate,endDate,probeValue) {
+export function getMonitorLogs(projectId, monitorId, skip, limit,startDate,endDate,probeValue,incidentId) {
     return function (dispatch) {
 
-        var promise = postApi(`monitor/${projectId}/monitorLogs/${monitorId}`,{skip, limit,startDate,endDate,probeValue});
+        var promise = postApi(`monitor/${projectId}/monitorLogs/${monitorId}`,{skip, limit,startDate,endDate,probeValue,incidentId: incidentId ? incidentId: null});
         dispatch(getMonitorLogsRequest({monitorId}));
 
         promise.then(function (monitors) {

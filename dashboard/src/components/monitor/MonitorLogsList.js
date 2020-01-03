@@ -196,7 +196,8 @@ export class MonitorLogsList extends Component {
                                                                     <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                         <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                <span>{log.data ? log.data : ''}</span>
+                                                                                {log.data && typeof log.data === 'string' ?
+                                                                                <span>{log.data ? log.data.length > 20 ? log.data.substr(0, 20) + '&hellip;': log.data : ''}</span> : ''}
                                                                             </span>
                                                                         </div>
                                                                     </div>

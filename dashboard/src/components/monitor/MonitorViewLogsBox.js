@@ -22,6 +22,7 @@ export class MonitorViewLogsBox extends Component {
 
     prevClicked = (monitorId, skip, limit) => {
         const { currentProject,getMonitorLogs} = this.props;
+        const incidentId = this.props.incidentId ? this.props.incidentId : null;
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -29,7 +30,8 @@ export class MonitorViewLogsBox extends Component {
             limit,
             moment(this.state.startDate).utc(),
             moment(this.state.endDate).utc(),
-            this.state.probeValue.value);
+            this.state.probeValue.value,
+            incidentId);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Previous Incident Requested', {
                 projectId: currentProject._id,
@@ -39,6 +41,7 @@ export class MonitorViewLogsBox extends Component {
 
     nextClicked = (monitorId, skip, limit) => {
         const { currentProject,getMonitorLogs} = this.props;
+        const incidentId = this.props.incidentId ? this.props.incidentId : null;
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -46,7 +49,8 @@ export class MonitorViewLogsBox extends Component {
             limit,
             moment(this.state.startDate).utc(),
             moment(this.state.endDate).utc(),
-            this.state.probeValue.value);
+            this.state.probeValue.value,
+            incidentId);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Next Incident Requested', {
                 projectId: currentProject._id,
@@ -98,9 +102,9 @@ export class MonitorViewLogsBox extends Component {
                                 </span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <span>
-                                        Here&#39;s all of the logs for the monitor created by the probes.
-                                </span>
+                                    {this.props.incidentId ?
+                                    <span>Here&#39;s all of the monitor logs that created this incident.</span> :
+                                    <span>Here&#39;s all of the logs for the monitor created by the probes.</span>}
                                 </span>
                             </div>
                         </div>
@@ -142,9 +146,9 @@ export class MonitorViewLogsBox extends Component {
 MonitorViewLogsBox.displayName = 'MonitorViewLogsBox'
 
 MonitorViewLogsBox.propTypes = {
-  incidentId: PropTypes.string,
   currentProject: PropTypes.object,
   getMonitorLogs: PropTypes.func,
+  incidentId: PropTypes.string,
   monitorId: PropTypes.string,
   monitorLogs: PropTypes.object,
   monitorName: PropTypes.string
@@ -163,7 +167,7 @@ function mapStateToProps(state, props) {
 }
 
 MonitorViewLogsBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
+    mixpanel: PropTypes.object
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorViewLogsBox);

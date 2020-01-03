@@ -13,6 +13,8 @@ import IncidentInternal from '../components/incident/IncidentInternal';
 import PropTypes from 'prop-types';
 import IncidentDeleteBox from '../components/incident/IncidentDeleteBox'
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
+import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
+import {getMonitorLogs} from '../actions/monitor';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 
@@ -23,91 +25,99 @@ class Incident extends React.Component {
     this.props = props;
   }
   componentDidMount() {
-    if(!IS_DEV){
+    if (!IS_DEV) {
       logEvent('Incident Page Loaded');
     }
   }
   internalNote = (note) => {
     this.props.setinternalNote(this.props.match.params.projectId, this.props.match.params.incidentId, note);
-    if(!IS_DEV){
-      logEvent('Internal Note Added',{
-        projectId:this.props.match.params.projectId,
-        incidentId:this.props.match.params.incidentId
+    if (!IS_DEV) {
+      logEvent('Internal Note Added', {
+        projectId: this.props.match.params.projectId,
+        incidentId: this.props.match.params.incidentId
       });
     }
   }
 
-  investigationNote = (note)=> {
+  investigationNote = (note) => {
     this.props.setInvestigationNote(this.props.match.params.projectId, this.props.match.params.incidentId, note);
-    if(!IS_DEV){
-      logEvent('Incident Note Added',{
-        projectId:this.props.match.params.projectId,
-        incidentId:this.props.match.params.incidentId
+    if (!IS_DEV) {
+      logEvent('Incident Note Added', {
+        projectId: this.props.match.params.projectId,
+        incidentId: this.props.match.params.incidentId
       });
     }
   }
 
   nextAlerts = () => {
     this.props.fetchIncidentAlert(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.skip, 10) + parseInt(this.props.limit, 10)), parseInt(this.props.limit, 10));
-    if(!IS_DEV){
-      logEvent('Next Incident Alert Requested',{
-        projectId:this.props.match.params.projectId,
-        incidentId:this.props.match.params.incidentId
+    if (!IS_DEV) {
+      logEvent('Next Incident Alert Requested', {
+        projectId: this.props.match.params.projectId,
+        incidentId: this.props.match.params.incidentId
       });
     }
   }
 
   previousAlerts = () => {
     this.props.fetchIncidentAlert(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.skip, 10) - parseInt(this.props.limit, 10)), parseInt(this.props.limit, 10));
-    if(!IS_DEV){
-      logEvent('Previous Incident Alert Requested',{
-        projectId:this.props.match.params.projectId,
-        incidentId:this.props.match.params.incidentId
+    if (!IS_DEV) {
+      logEvent('Previous Incident Alert Requested', {
+        projectId: this.props.match.params.projectId,
+        incidentId: this.props.match.params.incidentId
       });
     }
   }
 
   nextSubscribers = () => {
     this.props.fetchSubscriberAlert(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.subscribersAlerts.skip, 10) + parseInt(this.props.subscribersAlerts.limit, 10)), parseInt(this.props.subscribersAlerts.limit, 10));
-    if(!IS_DEV){
-      logEvent('Next Subscriber Alert Requested',{
-        projectId:this.props.match.params.projectId,
-        incidentId:this.props.match.params.incidentId
+    if (!IS_DEV) {
+      logEvent('Next Subscriber Alert Requested', {
+        projectId: this.props.match.params.projectId,
+        incidentId: this.props.match.params.incidentId
       });
     }
   }
 
   previousSubscribers = () => {
     this.props.fetchSubscriberAlert(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.subscribersAlerts.skip, 10) - parseInt(this.props.subscribersAlerts.limit, 10)), parseInt(this.props.subscribersAlerts.limit, 10));
-    if(!IS_DEV){
-      logEvent('Previous Subscriber Alert Requested',{
-        projectId:this.props.match.params.projectId,
-        incidentId:this.props.match.params.incidentId
+    if (!IS_DEV) {
+      logEvent('Previous Subscriber Alert Requested', {
+        projectId: this.props.match.params.projectId,
+        incidentId: this.props.match.params.incidentId
       });
     }
   }
 
-  ready = ()=> {
+  ready = () => {
+    const monitorId = this.props.incident && this.props.incident.monitorId && this.props.incident.monitorId._id ? this.props.incident.monitorId._id : null;
+
     this.props.getIncident(this.props.match.params.projectId, this.props.match.params.incidentId);
     this.props.fetchIncidentAlert(this.props.match.params.projectId, this.props.match.params.incidentId, 0, 10);
     this.props.fetchSubscriberAlert(this.props.match.params.projectId, this.props.match.params.incidentId, 0, 10);
-    if(!IS_DEV){
+    this.props.getMonitorLogs(this.props.match.params.projectId, monitorId, 0, 10,null,null,null,this.props.match.params.incidentId);
+    if (!IS_DEV) {
       logEvent('Incident Page Ready, Data Requested', {
-        projectId:this.props.match.params.projectId,
-        incidentId:this.props.match.params.incidentId
+        projectId: this.props.match.params.projectId,
+        incidentId: this.props.match.params.incidentId
       });
     }
   }
 
   render() {
     let variable = null;
+    const monitorId = this.props.incident && this.props.incident.monitorId && this.props.incident.monitorId._id ? this.props.incident.monitorId._id : null;
+    const monitorName = this.props.incident && this.props.incident.monitorId && this.props.incident.monitorId.name ? this.props.incident.monitorId.name : null;
     if (this.props.incident) {
       variable =
         <div>
           <IncidentDescription incident={this.props.incident} projectId={this.props.currentProject._id} />
           <IncidentStatus incident={this.props.incident} />
           <IncidentAlert next={this.nextAlerts} previous={this.previousAlerts} />
-          <SubscriberAlert next={this.nextSubscribers} previous={this.previousSubscribers} incident={this.props.incident}/>
+          <div className="Box-root Margin-bottom--12">
+            <MonitorViewLogsBox incidentId={this.props.incident._id} monitorId={monitorId} monitorName={monitorName} />
+          </div>
+          <SubscriberAlert next={this.nextSubscribers} previous={this.previousSubscribers} incident={this.props.incident} />
           <IncidentInvestigation incident={this.props.incident} setdata={this.investigationNote} />
           <IncidentInternal incident={this.props.incident} setdata={this.internalNote} />
           <RenderIfSubProjectAdmin>
@@ -121,21 +131,21 @@ class Incident extends React.Component {
     }
     return (
       <Dashboard ready={this.ready}>
+        <div>
           <div>
-            <div>
-              <div className="db-BackboneViewContainer">
-                <div className="react-settings-view react-view">
-                  <span>
+            <div className="db-BackboneViewContainer">
+              <div className="react-settings-view react-view">
+                <span>
+                  <div>
                     <div>
-                      <div>
-                        {variable}
-                      </div>
+                      {variable}
                     </div>
-                  </span>
-                </div>
+                  </div>
+                </span>
               </div>
             </div>
           </div>
+        </div>
       </Dashboard>
     );
   }
@@ -154,28 +164,23 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch => {
-  return bindActionCreators({ setInvestigationNote, setinternalNote, fetchIncidentAlert, fetchSubscriberAlert, incidentRequest, incidentError, incidentSuccess, resetIncident, getIncident }, dispatch);
+  return bindActionCreators({ getMonitorLogs,setInvestigationNote, setinternalNote, fetchIncidentAlert, fetchSubscriberAlert, incidentRequest, incidentError, incidentSuccess, resetIncident, getIncident }, dispatch);
 }
 
 Incident.propTypes = {
-  getIncident: PropTypes.func,
+  currentProject: PropTypes.object.isRequired,
+  deleting: PropTypes.bool.isRequired,
   fetchIncidentAlert: PropTypes.func,
   fetchSubscriberAlert: PropTypes.func,
-  setinternalNote: PropTypes.func,
-  match: PropTypes.object,
+  getIncident: PropTypes.func,
+  getMonitorLogs: PropTypes.func,
   incident: PropTypes.object,
+  limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  match: PropTypes.object,
   setInvestigationNote: PropTypes.func,
-  limit: PropTypes.PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.number
-  ]),
-  skip: PropTypes.PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.number
-  ]),
-  subscribersAlerts: PropTypes.object.isRequired,
-  deleting: PropTypes.bool.isRequired,
-  currentProject: PropTypes.object.isRequired,
+  setinternalNote: PropTypes.func,
+  skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  subscribersAlerts: PropTypes.object.isRequired
 }
 
 Incident.displayName = 'Incident'
