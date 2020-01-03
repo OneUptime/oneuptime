@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.1115",
+  "version": "3.0.1149",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
@@ -85,34 +85,13 @@
     "jest": "jest --runInBand",
     "lint:fix": "eslint . --fix"
   },
-  "lint-staged": {
-    "src/**/*.{js,jsx}": [
-      "npm run lint:fix",
-      "git add"
-    ],
-    "../backend/**/*.js": [
-      "npm run lint:fix",
-      "git add"
-    ],
-    "../accounts/**/*.{js,jsx}": [
-      "npm run lint:fix",
-      "git add"
-    ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "devDependencies": {
     "axios-mock-adapter": "^1.15.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-react": "^6.24.1",
     "babel-runtime": "^6.26.0",
     "cross-env": "^5.2.0",
-    "husky": "^3.1.0",
     "jest-localstorage-mock": "^2.2.0",
-    "lint-staged": "^9.4.2",
     "npm-audit-ci-wrapper": "^2.4.1",
     "react-test-renderer": "^16.5.2",
     "redux-logger": "^3.0.6",
