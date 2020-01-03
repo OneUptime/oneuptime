@@ -37,7 +37,7 @@ export class SubscriberList extends Component {
     
         return (
             <div className="div">
-                <table className="Table">
+                <table className="Table" id="subscribersList">
                     <thead className="Table-body">
                         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>

@@ -19,6 +19,7 @@ export function MonitorList(props) {
     props.monitors && props.monitors.forEach((monitor) => {
         initialValues[`name_${monitor._id}`] = monitor.name;
         initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
+        initialValues[`deviceId_${monitor._id}`] = monitor.data && monitor.data.deviceId;
         initialValues[`description_${monitor._id}`] = monitor.data && monitor.data.description;
         initialValues[`subProject_${monitor._id}`] = monitor.projectId._id || monitor.projectId;
         initialValues[`monitorCategoryId_${monitor._id}`] = monitor.monitorCategoryId;
