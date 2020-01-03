@@ -82,7 +82,7 @@
     "test": "jest --runInBand",
     "start": "node index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
-    "jest": "jest --runInBand",
+    "jest": "jest --runInBand --detectOpenHandles",
     "lint:fix": "eslint . --fix"
   },
   "lint-staged": {
@@ -128,7 +128,7 @@
       "!src/setupTests.js"
     ],
     "testMatch": [
-      "<rootDir>/src/test/puppeteer/**/Monitor.test.js"
+      "<rootDir>/src/test/puppeteer/**/MonitorDetail.test.js"
     ]
   },
   "browserslist": {
