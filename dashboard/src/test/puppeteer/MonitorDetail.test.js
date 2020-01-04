@@ -11,7 +11,7 @@ let monitorName = utils.generateRandomString();
 let newMonitorName = utils.generateRandomString();
 let projectName = utils.generateRandomString();
 let subscriberEmail = utils.generateRandomBusinessEmail();
-let webhookEndpoint = 'https://fyipe.com';
+let webhookEndpoint = utils.generateRandomWebsite();
 
 let userCredentials;
 
@@ -241,7 +241,7 @@ describe('Monitor Detail API', () => {
             expect(countIncidents).toEqual(5);
         };
 
-        cluster.queue({ email, password, monitorName, projectName, userCredentials, counter: 0, limit: 5 }, paginate);
+        cluster.queue({ email, password, monitorName, userCredentials, counter: 0, limit: 5 }, paginate);
         await cluster.idle();
         await cluster.close();
         done();
@@ -306,73 +306,79 @@ describe('Monitor Detail API', () => {
         done();
     }, operationTimeOut);
 
-    // test('Should navigate to monitor details and get list of scheduled events and paginate scheduled events', async (done) => {
-    //     expect.assertions(2);
+    test('Should navigate to monitor details and get list of scheduled events and paginate scheduled events', async (done) => {
+        expect.assertions(2);
 
-    //     const cluster = await Cluster.launch({
-    //         concurrency: Cluster.CONCURRENCY_PAGE,
-    //         puppeteerOptions: utils.puppeteerLaunchConfig,
-    //         puppeteer,
-    //         timeout: 140000,
-    //     });
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 140000,
+        });
 
-    //     cluster.on('taskerror', (err) => {
-    //         throw err;
-    //     });
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-    //     const paginate = async ({ page, data }) => {
-    //         const user = {
-    //             email: data.email,
-    //             password: data.password
-    //         };
-    //         const signInResponse = data.userCredentials;
+        const paginate = async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            };
+            const signInResponse = data.userCredentials;
 
-    //         // intercept request and mock response for login
-    //         await page.setRequestInterception(true);
-    //         await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
+            // intercept request and mock response for login
+            await page.setRequestInterception(true);
+            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
-    //         await init.loginUser(user, page);
-    //         await page.waitFor(2000);
+            await init.loginUser(user, page);
+            await page.waitFor(2000);
 
-    //         const moreButtonSelector = `#more_details_${data.monitorName}`;
-    //         await page.click(moreButtonSelector);
-    //         await page.waitFor(2000);
+            const moreButtonSelector = `#more_details_${data.monitorName}`;
+            await page.click(moreButtonSelector);
+            await page.waitFor(2000);
 
-    //         for (let i = 0; i < 5; i++) {
-    //             await page.waitForSelector(`#createIncident_${data.monitorName}`);
-    //             await page.click(`#createIncident_${data.monitorName}`);
-    //             await page.waitForSelector('#createIncident');
-    //             await init.selectByText('#incidentType', 'Offline', page);
-    //             await page.click('#createIncident');
-    //             await page.waitFor(2000);
-    //         }
+            for (let i = 0; i < 5; i++) {
+                const addButtonSelector = '#addScheduledEventButton';
+                await page.click(addButtonSelector);
+                await page.waitFor(1000);
+                await page.type('input[name=name]', utils.generateRandomString());
+                await page.type('textarea[name=description]', utils.generateRandomString());
+                await page.evaluate(() => {
+                    document.querySelector('input[name=showEventOnStatusPage]').click();
+                });
+                await page.click('#createScheduledEventButton');
+                await page.waitFor(2000);
+            }
 
-    //         const nextSelector = await page.$('#btnNext');
+            const nextSelector = await page.$('#btnNextSchedule');
 
-    //         await nextSelector.click();
-    //         await page.waitFor(5000);
+            await nextSelector.click();
+            await page.waitFor(5000);
 
-    //         let incidentRows = await page.$$('tr.incidentListItem');
-    //         let countIncidents = incidentRows.length;
+            var createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
 
-    //         expect(countIncidents).toEqual(1);
+            let scheduledEventRows = await page.$$(createdScheduledEventSelector);
+            let countScheduledEvent = scheduledEventRows.length;
 
-    //         const prevSelector = await page.$('#btnPrev');
+            expect(countScheduledEvent).toEqual(1);
 
-    //         await prevSelector.click();
-    //         await page.waitFor(5000);
+            const prevSelector = await page.$('#btnPrevSchedule');
 
-    //         incidentRows = await page.$$('tr.incidentListItem');
-    //         countIncidents = incidentRows.length;
+            await prevSelector.click();
+            await page.waitFor(5000);
 
-    //         expect(countIncidents).toEqual(5);
-    //     };
+            scheduledEventRows = await page.$$(createdScheduledEventSelector);
+            countScheduledEvent = scheduledEventRows.length;
 
-    //     cluster.queue({ email, password, monitorName, projectName, userCredentials, counter: 0, limit: 5 }, paginate);
-    //     await cluster.idle();
-    //     await cluster.close();
-    //     done();
-    // }, 200000);
+            expect(countScheduledEvent).toEqual(5);
+        };
+
+        cluster.queue({ email, password, monitorName, userCredentials, counter: 0, limit: 5 }, paginate);
+        await cluster.idle();
+        await cluster.close();
+        done();
+    }, 200000);
 
     test('Should navigate to monitor details and create a new subscriber', async (done) => {
         expect.assertions(1);
@@ -427,73 +433,76 @@ describe('Monitor Detail API', () => {
         done();
     }, operationTimeOut);
 
-    // test('Should navigate to monitor details and get list of subscribers and paginate subscribers', async (done) => {
-    //     expect.assertions(2);
+    test('Should navigate to monitor details and get list of subscribers and paginate subscribers', async (done) => {
+        expect.assertions(2);
 
-    //     const cluster = await Cluster.launch({
-    //         concurrency: Cluster.CONCURRENCY_PAGE,
-    //         puppeteerOptions: utils.puppeteerLaunchConfig,
-    //         puppeteer,
-    //         timeout: 140000,
-    //     });
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 140000,
+        });
 
-    //     cluster.on('taskerror', (err) => {
-    //         throw err;
-    //     });
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-    //     const paginate = async ({ page, data }) => {
-    //         const user = {
-    //             email: data.email,
-    //             password: data.password
-    //         };
-    //         const signInResponse = data.userCredentials;
+        const paginate = async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            };
+            const signInResponse = data.userCredentials;
 
-    //         // intercept request and mock response for login
-    //         await page.setRequestInterception(true);
-    //         await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
+            // intercept request and mock response for login
+            await page.setRequestInterception(true);
+            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
-    //         await init.loginUser(user, page);
-    //         await page.waitFor(2000);
+            await init.loginUser(user, page);
+            await page.waitFor(2000);
 
-    //         const moreButtonSelector = `#more_details_${data.monitorName}`;
-    //         await page.click(moreButtonSelector);
-    //         await page.waitFor(2000);
+            const moreButtonSelector = `#more_details_${data.monitorName}`;
+            await page.click(moreButtonSelector);
+            await page.waitFor(2000);
 
-    //         for (let i = 0; i < 5; i++) {
-    //             await page.waitForSelector(`#createIncident_${data.monitorName}`);
-    //             await page.click(`#createIncident_${data.monitorName}`);
-    //             await page.waitForSelector('#createIncident');
-    //             await init.selectByText('#incidentType', 'Offline', page);
-    //             await page.click('#createIncident');
-    //             await page.waitFor(2000);
-    //         }
+            for (let i = 0; i < 5; i++) {
+                const addButtonSelector = '#addSubscriberButton';
+                await page.click(addButtonSelector);
+                await page.waitFor(1000);
+                await init.selectByText('#alertViaId', 'email', page);
+                await page.type('input[name=email]', utils.generateRandomBusinessEmail());
+                await page.click('#createSubscriber');
+                await page.waitFor(2000);
+            }
 
-    //         const nextSelector = await page.$('#btnNext');
+            const nextSelector = await page.$('#btnNextSubscriber');
 
-    //         await nextSelector.click();
-    //         await page.waitFor(5000);
+            await nextSelector.click();
+            await page.waitFor(5000);
 
-    //         let incidentRows = await page.$$('tr.incidentListItem');
-    //         let countIncidents = incidentRows.length;
+            let createdSubscriberSelector = '#subscribersList > tbody > tr > td:nth-child(4) > div > div > span > div > div > div';
 
-    //         expect(countIncidents).toEqual(1);
+            let subscriberRows = await page.$$(createdSubscriberSelector);
+            let countSubscribers = subscriberRows.length;
 
-    //         const prevSelector = await page.$('#btnPrev');
+            expect(countSubscribers).toEqual(1);
 
-    //         await prevSelector.click();
-    //         await page.waitFor(5000);
+            const prevSelector = await page.$('#btnPrevSubscriber');
 
-    //         incidentRows = await page.$$('tr.incidentListItem');
-    //         countIncidents = incidentRows.length;
+            await prevSelector.click();
+            await page.waitFor(5000);
 
-    //         expect(countIncidents).toEqual(5);
-    //     };
+            subscriberRows = await page.$$(createdSubscriberSelector);
+            countSubscribers = subscriberRows.length;
 
-    //     cluster.queue({ email, password, monitorName, projectName, userCredentials, counter: 0, limit: 5 }, paginate);
-    //     await cluster.idle();
-    //     await cluster.close();
-    //     done();
-    // }, 200000);
+            expect(countSubscribers).toEqual(5);
+        };
+
+        cluster.queue({ email, password, monitorName, userCredentials, counter: 0, limit: 5 }, paginate);
+        await cluster.idle();
+        await cluster.close();
+        done();
+    }, 200000);
 
     test('Should navigate to monitor details and create a webhook', async (done) => {
         expect.assertions(1);
@@ -553,73 +562,79 @@ describe('Monitor Detail API', () => {
         done();
     }, operationTimeOut);
 
-    // test('Should navigate to monitor details and get list of webhooks and paginate webhooks', async (done) => {
-    //     expect.assertions(2);
+    test('Should navigate to monitor details and get list of webhooks and paginate webhooks', async (done) => {
+        expect.assertions(2);
 
-    //     const cluster = await Cluster.launch({
-    //         concurrency: Cluster.CONCURRENCY_PAGE,
-    //         puppeteerOptions: utils.puppeteerLaunchConfig,
-    //         puppeteer,
-    //         timeout: 140000,
-    //     });
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 140000,
+        });
 
-    //     cluster.on('taskerror', (err) => {
-    //         throw err;
-    //     });
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-    //     const paginate = async ({ page, data }) => {
-    //         const user = {
-    //             email: data.email,
-    //             password: data.password
-    //         };
-    //         const signInResponse = data.userCredentials;
+        const paginate = async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            };
+            const signInResponse = data.userCredentials;
 
-    //         // intercept request and mock response for login
-    //         await page.setRequestInterception(true);
-    //         await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
+            // intercept request and mock response for login
+            await page.setRequestInterception(true);
+            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
-    //         await init.loginUser(user, page);
-    //         await page.waitFor(2000);
+            await init.loginUser(user, page);
+            await page.waitFor(2000);
 
-    //         const moreButtonSelector = `#more_details_${data.monitorName}`;
-    //         await page.click(moreButtonSelector);
-    //         await page.waitFor(2000);
+            const moreButtonSelector = `#more_details_${data.monitorName}`;
+            await page.click(moreButtonSelector);
+            await page.waitFor(2000);
 
-    //         for (let i = 0; i < 5; i++) {
-    //             await page.waitForSelector(`#createIncident_${data.monitorName}`);
-    //             await page.click(`#createIncident_${data.monitorName}`);
-    //             await page.waitForSelector('#createIncident');
-    //             await init.selectByText('#incidentType', 'Offline', page);
-    //             await page.click('#createIncident');
-    //             await page.waitFor(2000);
-    //         }
+            for (let i = 0; i < 10; i++) {
+                const addButtonSelector = '#addWebhookButton';
+                await page.click(addButtonSelector);
+                await page.waitFor(1000);
+                await page.type('input[name=endpoint]', utils.generateRandomWebsite());
+                await init.selectByText('#endpointType', 'GET', page);
+                await page.evaluate(() => {
+                    document.querySelector('input[name=incidentCreated]').click();
+                });
+                await page.click('#createWebhook');
+                await page.waitFor(2000);
+            }
 
-    //         const nextSelector = await page.$('#btnNext');
+            const nextSelector = await page.$('#btnNextWebhook');
 
-    //         await nextSelector.click();
-    //         await page.waitFor(5000);
+            await nextSelector.click();
+            await page.waitFor(5000);
 
-    //         let incidentRows = await page.$$('tr.incidentListItem');
-    //         let countIncidents = incidentRows.length;
+            let createdWebhookSelector = '#webhookList > tbody > tr > td:nth-child(1) > div > span > div > span';
 
-    //         expect(countIncidents).toEqual(1);
+            let webhookRows = await page.$$(createdWebhookSelector);
+            let countWebhooks = webhookRows.length;
 
-    //         const prevSelector = await page.$('#btnPrev');
+            expect(countWebhooks).toEqual(1);
 
-    //         await prevSelector.click();
-    //         await page.waitFor(5000);
+            const prevSelector = await page.$('#btnPrevWebhook');
 
-    //         incidentRows = await page.$$('tr.incidentListItem');
-    //         countIncidents = incidentRows.length;
+            await prevSelector.click();
+            await page.waitFor(5000);
 
-    //         expect(countIncidents).toEqual(5);
-    //     };
+            webhookRows = await page.$$(createdWebhookSelector);
+            countWebhooks = webhookRows.length;
 
-    //     cluster.queue({ email, password, monitorName, projectName, userCredentials, counter: 0, limit: 5 }, paginate);
-    //     await cluster.idle();
-    //     await cluster.close();
-    //     done();
-    // }, 200000);
+            expect(countWebhooks).toEqual(10);
+        };
+
+        cluster.queue({ email, password, monitorName, userCredentials, counter: 0, limit: 10 }, paginate);
+        await cluster.idle();
+        await cluster.close();
+        done();
+    }, 200000);
 
     test('Should navigate to monitor details and edit monitor', async (done) => {
         const cluster = await Cluster.launch({
@@ -665,7 +680,6 @@ describe('Monitor Detail API', () => {
             let spanElement;
 
             spanElement = await page.$('span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap');
-            console.log(spanElement);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
 
@@ -678,42 +692,54 @@ describe('Monitor Detail API', () => {
         done();
     }, operationTimeOut);
 
-    // test('Should navigate to monitor details and delete monitor', async (done) => {
-    //     expect.assertions(1);
+    test('Should navigate to monitor details and delete monitor', async (done) => {
+        expect.assertions(1);
 
-    //     const cluster = await Cluster.launch({
-    //         concurrency: Cluster.CONCURRENCY_PAGE,
-    //         puppeteerOptions: utils.puppeteerLaunchConfig,
-    //         puppeteer,
-    //         timeout: 45000
-    //     });
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 45000
+        });
 
-    //     cluster.on('taskerror', (err) => {
-    //         throw err;
-    //     });
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-    //     await cluster.task(async ({ page, data }) => {
-    //         const user = {
-    //             email: data.email,
-    //             password: data.password
-    //         }
-    //         const signInResponse = data.userCredentials;
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
+            const signInResponse = data.userCredentials;
 
-    //         // intercept request and mock response for login
-    //         await page.setRequestInterception(true);
-    //         await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
+            // intercept request and mock response for login
+            await page.setRequestInterception(true);
+            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
-    //         await init.loginUser(user, page);
-    //         await page.waitFor(2000);
+            await init.loginUser(user, page);
+            await page.waitFor(2000);
 
-    //         const moreButtonSelector = `#more_details_${data.newMonitorName}`;
-    //         await page.click(moreButtonSelector);
-    //         await page.waitFor(2000);
-    //     });
+            const moreButtonSelector = `#more_details_${data.newMonitorName}`;
+            await page.click(moreButtonSelector);
+            await page.waitFor(2000);
 
-    //     cluster.queue({ email, password, newMonitorName, userCredentials });
-    //     await cluster.idle();
-    //     await cluster.close();
-    //     done();
-    // }, operationTimeOut);
+            const deleteButtonSelector = `#delete_${data.newMonitorName}`;
+            await page.click(deleteButtonSelector);
+            await page.waitFor(2000);
+
+            const confirmDeleteButtonSelector = '#deleteMonitor';
+            await page.click(confirmDeleteButtonSelector);
+            await page.waitFor(10000);
+
+            let spanElement = await page.$('span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap');
+
+            expect(spanElement).toEqual(null);
+        });
+
+        cluster.queue({ email, password, newMonitorName, userCredentials });
+        await cluster.idle();
+        await cluster.close();
+        done();
+    }, operationTimeOut);
 });
