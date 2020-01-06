@@ -37,7 +37,7 @@
       "git add"
     ],
     "./backend/**/*.js": [
-      "eslint backend/src -c backend/.eslintrc.json --ignore-path backend/.eslintignore",
+      "eslint backend/backend -c backend/.eslintrc.json --ignore-path backend/.eslintignore",
       "git add"
     ],
     "./accounts/**/*.{js,jsx}": [
