@@ -39,14 +39,13 @@ if [[ ! $(which docker) ]]
 then
     echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
     curl -sSL https://get.docker.com/ | sh
+    echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
+    sudo touch /etc/docker/daemon.json
+    echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
+    echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
+    echo "RUNNING COMMAND: sudo systemctl restart docker"
+    sudo systemctl restart docker
 fi
-
-echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
-sudo touch /etc/docker/daemon.json
-echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
-echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
-echo "RUNNING COMMAND: sudo systemctl restart docker"
-sudo systemctl restart docker
 
 # We do not need to install kubectl here.
 # if [[ ! $(which kubectl) ]]
