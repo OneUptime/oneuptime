@@ -22,7 +22,7 @@ const calculateTime = (incidents, start, range, activeProbe) => {
             upTime: 0,
             degradedTime: 0
         };
-        incidents.forEach(incident => {
+        incidents.reverse().forEach(incident => {
             const probes = incident.probes;
             const activeProbeCheck = probes && probes.length === 0 ? true :
                 (probes && probes.length > 0 ? (probes.filter(
@@ -48,6 +48,7 @@ const calculateTime = (incidents, start, range, activeProbe) => {
                     if (incident.incidentType === 'online') {
                         timeObj.upTime = timeObj.upTime + end.diff(start, 'seconds');
                     }
+                    timeObj.date = incident.resolvedAt;
                 }
             }
         });
@@ -239,7 +240,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                 </div>
             </ShouldRender>
         </Fragment>
-    } else if (type === 'url' || type === 'api') {
+    } else if (type === 'url' || type === 'api' || type === 'device') {
         monitorInfo = <div className="db-Trend">
             <div className="block-chart-side line-chart">
                 <div className="db-TrendRow">
