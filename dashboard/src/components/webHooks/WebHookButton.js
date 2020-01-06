@@ -8,14 +8,15 @@ import DataPathHoC from '../DataPathHoC';
 
 class WebHookButton extends React.Component {
 
-    render(){
+	render() {
 		const { monitorId } = this.props;
 
-        return(
+		return (
 			<button
 				className="Button bs-ButtonLegacy ActionIconParent"
 				type="button"
-				onClick={ () =>
+				id="addWebhookButton"
+				onClick={() =>
 					this.props.openModal({
 						id: 'data._id',
 						onClose: () => '',
@@ -35,23 +36,23 @@ class WebHookButton extends React.Component {
 					</span>
 				</div>
 			</button>
-        )
-    }
+		)
+	}
 }
 
 WebHookButton.displayName = 'WebHookButton';
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-    {
+	{
 		openModal,
 		closeModal
 	}
-    , dispatch);
+	, dispatch);
 
 const mapStateToProps = state => (
-    {
+	{
 		currentProject: state.project.currentProject,
-    }
+	}
 );
 
 WebHookButton.propTypes = {

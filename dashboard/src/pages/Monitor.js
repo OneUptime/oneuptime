@@ -216,12 +216,14 @@ const mapStateToProps = state => {
     const initialValues = {
         name_1000: '',
         url_1000: '',
+        deviceId_1000: ''
     };
 
     monitor.monitorsList.monitors.forEach((subProjectMonitors) => {
         subProjectMonitors && subProjectMonitors.monitors.forEach((monitor) => {
             initialValues[`name_${monitor._id}`] = monitor.name;
             initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
+            initialValues[`deviceId_${monitor._id}`] = monitor.data && monitor.data.deviceId;
         });
     });
 

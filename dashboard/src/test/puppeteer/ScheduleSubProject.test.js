@@ -40,36 +40,36 @@ describe('Schedule API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            
+
             // intercept request and mock response for login
             await page.setRequestInterception(true);
             await page.on('request', async (request) => {
                 const signInResponse = userCredentials.find(userCredentials => userCredentials.email === user.email);
 
-                if((await request.url()).match(/user\/login/)){
+                if ((await request.url()).match(/user\/login/)) {
                     request.respond({
                         status: 200,
                         contentType: 'application/json',
                         body: JSON.stringify(signInResponse)
                     });
-                }else{
+                } else {
                     request.continue();
                 }
             });
-            await page.on('response', async (response)=>{
-                try{
+            await page.on('response', async (response) => {
+                try {
                     const res = await response.json();
-                    if(res && res.tokens){
+                    if (res && res.tokens) {
                         userCredentials.push(res);
                     }
-                }catch(error){}
+                } catch (error) { }
             });
 
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-        
-            if(data.isParentUser){
+
+            if (data.isParentUser) {
                 // rename default project
                 await init.renameProject(data.projectName, page);
                 // add sub-project
@@ -77,7 +77,7 @@ describe('Schedule API With SubProjects', () => {
                 // add new user to sub-project
                 await init.addUserToProject({ email: data.newEmail, role: 'Member', subProjectName: data.subProjectName }, page);
                 // add new monitor to sub-project
-                await init.addMonitorToProject(data.subProjectMonitorName, data.subProjectName, page);
+                await init.addMonitorToSubProject(data.subProjectMonitorName, data.subProjectName, page);
             }
         });
 
@@ -88,14 +88,14 @@ describe('Schedule API With SubProjects', () => {
         await cluster.close();
         done();
     });
-    
+
     afterAll(async (done) => {
         done();
     });
 
-    test('should not display create schedule button for subproject `member` role.', async (done) =>{
+    test('should not display create schedule button for subproject `member` role.', async (done) => {
         expect.assertions(1);
-        
+
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -126,7 +126,7 @@ describe('Schedule API With SubProjects', () => {
             await page.click(`#callSchedules > a`);
 
             const createButton = await page.$(`#btnCreateSchedule_${data.subProjectName}`);
-            
+
             expect(createButton).toBe(null);
         });
 
@@ -166,10 +166,10 @@ describe('Schedule API With SubProjects', () => {
             await init.loginUser(user, page);
             await init.addScheduleToProject(data.scheduleName, data.subProjectName, page);
             await page.waitForSelector(`#schedule_count_${data.subProjectName}`);
-            
+
             const scheduleCountSelector = await page.$(`#schedule_count_${data.subProjectName}`);
             let textContent = await scheduleCountSelector.getProperty('innerText');
-            
+
             textContent = await textContent.jsonValue();
             expect(textContent).toEqual('1 schedule');
         });
@@ -181,7 +181,7 @@ describe('Schedule API With SubProjects', () => {
 
     }, operationTimeOut);
 
-    test('should get list schedules in sub-projects and paginate schedules in sub-project', async (done)=>{
+    test('should get list schedules in sub-projects and paginate schedules in sub-project', async (done) => {
         expect.assertions(3);
 
         const cluster = await Cluster.launch({
@@ -207,36 +207,36 @@ describe('Schedule API With SubProjects', () => {
             await page.setRequestInterception(true);
             await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
             await init.loginUser(user, page);
-            if(data.isParentUser){
+            if (data.isParentUser) {
                 // add 10 more schedules to sub-project to test for pagination
                 for (let i = 0; i < 10; i++) {
                     const scheduleName = utils.generateRandomString();
 
                     await init.addScheduleToProject(scheduleName, data.subProjectName, page);
                 }
-            }else{
+            } else {
                 await cluster.waitForOne();
                 // switch to invited project for new user
                 await init.switchProject(data.projectName, page);
                 await page.waitForSelector(`#callSchedules > a`);
                 await page.click(`#callSchedules > a`);
                 await page.waitFor(3000);
-    
+
                 let scheduleRows = await page.$$('tr.scheduleListItem');
                 let countSchedules = scheduleRows.length;
-    
+
                 expect(countSchedules).toEqual(10);
-    
+
                 const nextSelector = await page.$('#btnNext');
-                
+
                 await nextSelector.click();
                 await page.waitFor(5000);
                 scheduleRows = await page.$$('tr.scheduleListItem');
                 countSchedules = scheduleRows.length;
                 expect(countSchedules).toEqual(1);
-                
+
                 const prevSelector = await page.$('#btnPrev');
-                
+
                 await prevSelector.click();
                 await page.waitFor(5000);
                 scheduleRows = await page.$$('tr.scheduleListItem');
@@ -254,7 +254,7 @@ describe('Schedule API With SubProjects', () => {
 
     }, 200000);
 
-    test('should add monitor to sub-project schedule', async (done) =>{
+    test('should add monitor to sub-project schedule', async (done) => {
         expect.assertions(1);
 
         const cluster = await Cluster.launch({
@@ -304,9 +304,9 @@ describe('Schedule API With SubProjects', () => {
 
     }, operationTimeOut);
 
-    test('should delete sub-project schedule', async (done) =>{
+    test('should delete sub-project schedule', async (done) => {
         expect.assertions(1);
-        
+
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
