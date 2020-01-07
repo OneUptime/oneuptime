@@ -192,7 +192,7 @@ class Main extends Component {
 										key={`probes-btn${index}`}
 										id={`probes-btn${index}`}
 										className={this.props.activeProbe === probe._id ? 'icon-container selected' : 'icon-container'}>
-										<span style={probe.status === 'offline' ? redBackground : probe.status === 'degraded' ? yellowBackground : greenBackground}></span>
+										<span style={ probe.status === 'online' ? greenBackground : probe.status === 'degraded' ? yellowBackground: redBackground}></span>
 										<span>{probe.probeName}</span>
 									</button>)
 									)}
