@@ -177,7 +177,7 @@ module.exports = {
                     maxTemp: savedLog.data.temperature.max
                 } : null
             };
-            
+
             await MonitorService.sendResponseTime(logData);
             await MonitorService.sendMonitorLog(logData);
 
@@ -186,6 +186,23 @@ module.exports = {
             return savedLog;
         } catch (error) {
             ErrorService.log('ProbeService.createMonitorLog', error);
+            throw error;
+        }
+    },
+
+    updateMonitorLogBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            var Log = await MonitorLogModel.findOneAndUpdate(query,
+                { $set: data },
+                {
+                    new: true
+                });
+            return Log;
+        } catch (error) {
+            ErrorService.log('ProbeService.updateMonitorLogBy', error);
             throw error;
         }
     },
@@ -244,7 +261,7 @@ module.exports = {
     setTime: async function (data) {
         try {
             var _this = this;
-            var mon, autoAcknowledge, autoResolve;
+            var mon, autoAcknowledge, autoResolve, incidentIds;
             var statuses = await MonitorStatusModel.find({ monitorId: data.monitorId, probeId: data.probeId })
                 .sort([['createdAt', -1]])
                 .limit(1);
@@ -253,7 +270,9 @@ module.exports = {
             var lastStatusId = statuses && statuses[0] && statuses[0]._id ? statuses[0]._id : null;
             if (!lastStatus) {
                 await _this.createMonitorStatus(data);
-                mon = await _this.incidentCreateOrUpdate(data, lastStatus);
+                let tempMon = await _this.incidentCreateOrUpdate(data, lastStatus);
+                mon = tempMon.mon;
+                incidentIds = tempMon.incidentIds;
                 autoAcknowledge = lastStatus && lastStatus === 'degraded' ? mon.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? mon.criteria.down.autoAcknowledge : false;
                 autoResolve = lastStatus === 'degraded' ? mon.criteria.degraded.autoResolve : lastStatus === 'offline' ? mon.criteria.down.autoResolve : false;
                 await _this.incidentResolveOrAcknowledge(data, lastStatus, autoAcknowledge, autoResolve);
@@ -263,10 +282,15 @@ module.exports = {
                     await _this.updateMonitorStatus(lastStatusId);
                 }
                 await _this.createMonitorStatus(data);
-                mon = await _this.incidentCreateOrUpdate(data, lastStatus);
+                let tempMon = await _this.incidentCreateOrUpdate(data, lastStatus);
+                mon = tempMon.mon;
+                incidentIds = tempMon.incidentIds;
                 autoAcknowledge = lastStatus && lastStatus === 'degraded' ? mon.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? mon.criteria.down.autoAcknowledge : false;
                 autoResolve = lastStatus === 'degraded' ? mon.criteria.degraded.autoResolve : lastStatus === 'offline' ? mon.criteria.down.autoResolve : false;
                 await _this.incidentResolveOrAcknowledge(data, lastStatus, autoAcknowledge, autoResolve);
+            }
+            if (incidentIds && incidentIds.length) {
+                log = await _this.updateMonitorLogBy({ _id: log._id }, { incidentIds });
             }
             return log;
         } catch (error) {
@@ -279,11 +303,12 @@ module.exports = {
         try {
             var monitor = await MonitorService.findOneBy({ _id: data.monitorId });
             var incidents = await IncidentService.findBy({ monitorId: data.monitorId, incidentType: data.status, resolved: false });
+            var incidentIds = [];
 
             if (data.status === 'online' && monitor && monitor.criteria && monitor.criteria.up && monitor.criteria.up.createAlert) {
                 if (incidents && incidents.length) {
-                    incidents.map(async (incident) => {
-                        await IncidentService.updateOneBy({
+                    incidentIds = incidents.map(async (incident) => {
+                        return await IncidentService.updateOneBy({
                             _id: incident._id
                         }, {
                             probes: incident.probes.concat({
@@ -295,19 +320,19 @@ module.exports = {
                     });
                 }
                 else {
-                    await IncidentService.create({
+                    incidentIds = await [IncidentService.create({
                         projectId: monitor.projectId,
                         monitorId: data.monitorId,
                         createdById: null,
                         incidentType: 'online',
                         probeId: data.probeId
-                    });
+                    })];
                 }
             }
             else if (data.status === 'degraded' && monitor && monitor.criteria && monitor.criteria.degraded && monitor.criteria.degraded.createAlert) {
                 if (incidents && incidents.length) {
-                    incidents.map(async (incident) => {
-                        await IncidentService.updateOneBy({
+                    incidentIds = incidents.map(async (incident) => {
+                        return await IncidentService.updateOneBy({
                             _id: incident._id
                         }, {
                             probes: incident.probes.concat({
@@ -319,19 +344,19 @@ module.exports = {
                     });
                 }
                 else {
-                    await IncidentService.create({
+                    incidentIds = await [IncidentService.create({
                         projectId: monitor.projectId,
                         monitorId: data.monitorId,
                         createdById: null,
                         incidentType: 'degraded',
                         probeId: data.probeId
-                    });
+                    })];
                 }
             }
             else if (data.status === 'offline' && monitor && monitor.criteria && monitor.criteria.down && monitor.criteria.down.createAlert) {
                 if (incidents && incidents.length) {
-                    incidents.map(async (incident) => {
-                        await IncidentService.updateOneBy({
+                    incidentIds = incidents.map(async (incident) => {
+                        return await IncidentService.updateOneBy({
                             _id: incident._id
                         }, {
                             probes: incident.probes.concat({
@@ -343,16 +368,18 @@ module.exports = {
                     });
                 }
                 else {
-                    await IncidentService.create({
+                    incidentIds = await [IncidentService.create({
                         projectId: monitor.projectId,
                         monitorId: data.monitorId,
                         createdById: null,
                         incidentType: 'offline',
                         probeId: data.probeId
-                    });
+                    })];
                 }
             }
-            return monitor;
+            incidentIds = await Promise.all(incidentIds);
+            incidentIds = incidentIds.map(i => i._id);
+            return { mon: monitor, incidentIds };
         } catch (error) {
             ErrorService.log('ProbeService.incidentCreateOrUpdate', error);
             throw error;

@@ -86,7 +86,7 @@ module.exports = {
     profile: {
         name: 'Olalekan Ayodele',
         email: 'lekan@fyipe.com',
-        timezone: 'London GMT +00:00',
+        timezone: 'Europe/London',
         profilePic: 'Image.jpg',
         companyPhoneNumber: '+919910568840',
         alertPhoneNumber: '+919910568840'
