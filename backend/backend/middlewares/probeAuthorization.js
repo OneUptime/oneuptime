@@ -11,7 +11,7 @@ module.exports = {
     isAuthorizedProbe: async function (req, res, next) {
         try {
             let probeKey, probeName;
-    
+
             if (req.params.probeKey) {
                 probeKey = req.params.probeKey;
             } else if (req.query.probeKey) {
@@ -28,7 +28,7 @@ module.exports = {
                     message: 'Probe Key not found.'
                 });
             }
-    
+
             if (req.params.probeName) {
                 probeName = req.params.probeName;
             } else if (req.query.probeName) {

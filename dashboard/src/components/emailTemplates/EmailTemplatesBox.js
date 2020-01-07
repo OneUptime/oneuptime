@@ -8,6 +8,9 @@ import TemplatesFormBox from './TemplatesFormBox';
 import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
+
 
 class EmailTemplatesBox extends React.Component {
     submitForm = (values) => {
@@ -23,16 +26,16 @@ class EmailTemplatesBox extends React.Component {
             }
         })
         this.props.editEmailTemplates(currentProject._id, val);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Email Templates Updated');
+        if (!IS_DEV) {
+            logEvent('Email Templates Updated');
         }
     }
 
     resetTemplate = (templateId) => {
         const { currentProject } = this.props;
         this.props.resetEmailTemplates(currentProject._id, templateId);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Email Templates Reset');
+        if (!IS_DEV) {
+            logEvent('Email Templates Reset');
         }
     }
 
@@ -137,9 +140,5 @@ const mapStateToProps = (state) => {
         emailTemplates: state.emailTemplates,
     };
 }
-
-EmailTemplatesBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(EmailTemplatesBoxForm);

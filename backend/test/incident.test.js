@@ -176,14 +176,17 @@ describe('Incident API', function () {
             var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
                 .send([{
                     callFrequency: 10,
-                    call: false,
+                    call: true,
                     sms: true,
                     email: false,
-                    teamMember: [{
-                        member: userId,
-                        startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
-                        endTime: 'Tue Dec 17 2019 23:55:26 GMT+0000',
-                        timezone: 'UTC(GMT +00:00)'
+                    rotation: [{
+                        rotationFrequency: 'week',
+                        teamMember: [{
+                            member: userId,
+                            startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
+                            endTime: 'Tue Dec 17 2019 22:55:26 GMT+0000',
+                            timezone: 'UTC(GMT +00:00)'
+                        }]
                     }]
                 }]);
             if (createEscalation) {
@@ -208,7 +211,7 @@ describe('Incident API', function () {
             expect(res.body.data.length).to.be.equal(0);
         });
     });
-    it('should send incident alert when balance is above minimum amount ', async function () {
+    it('should send incident alert when balance is above minimum amount', async function () {
         var authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
             $set: {

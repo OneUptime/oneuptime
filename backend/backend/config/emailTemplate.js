@@ -332,7 +332,7 @@ span.st-Delink.st-Delink--footer a {
       <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
      
-      <strong￼ style="color: #0080a8 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. A new incident has been created on {{incidentTime}} and is available on the <a href="{{statusPageLink}}">status page</a>
+      <strong￼ style="color: #0080a8 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. A new incident has been created on {{incidentTime}} and is available on the status page
  
 
       </td>
@@ -829,7 +829,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
    
-    <strong￼ style="color: #0080a8 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been acknowledged on {{incidentTime}} and is available on the <a href="{{statusPageLink}}">status page</a>
+    <strong￼ style="color: #0080a8 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been acknowledged on {{incidentTime}} and is available on the status page
 
 
     </td>
@@ -1323,7 +1323,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
-    <strong￼ style="color: #0080a8 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been resolved on {{incidentTime}} and is available on the <a href="{{statusPageLink}}">status page</a>
+    <strong￼ style="color: #0080a8 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been resolved on {{incidentTime}} and is available on the status page
 
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">

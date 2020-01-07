@@ -1,6 +1,5 @@
 import React from 'react';
 import { withRouter } from 'react-router-dom';
-import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 
 class ZapierBox extends React.Component {
@@ -56,9 +55,5 @@ class ZapierBox extends React.Component {
 }
 
 ZapierBox.displayName = 'ZapierBox';
-
-ZapierBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(ZapierBox);

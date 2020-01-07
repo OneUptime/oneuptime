@@ -11,6 +11,7 @@ let dashboardUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
 let publicStripeKey = 'pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv';
+let developmentEnv = false;
 
 function env(value) {
     var { _env } = window;
@@ -23,10 +24,15 @@ if (!isServer) {
         dashboardUrl = 'http://localhost:3000';
         domain = 'localhost';
         adminDashboardUrl = 'http://localhost:3100';
-    } else if (env('BACKEND_HOST')) {
+        developmentEnv = true;
+    }
+    else if (env('BACKEND_HOST')) {
         apiUrl = env('BACKEND_HOST');
         dashboardUrl = env('DASHBOARD_HOST');
         domain = env('DOMAIN');
+        if (apiUrl.indexOf('staging')  > -1 || apiUrl.indexOf('app.local') > -1) {
+            developmentEnv = true;
+        }
     }
 }
 
@@ -40,6 +46,8 @@ export const DOMAIN_URL = domain;
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
 export const PUBLIC_STRIPE_KEY = publicStripeKey;
+
+export const IS_DEV = developmentEnv;
 
 export const User = {
 

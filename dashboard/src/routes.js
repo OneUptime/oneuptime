@@ -3,6 +3,7 @@ import pages from './pages';
 const {
 	Settings,
 	TeamMembers,
+	TeamMemberProfile,
 	StatusPage,
 	StatusPages,
 	Profile,
@@ -68,7 +69,7 @@ export const groups = [
 				subRoutes: [
 					{
 						title: 'Status Page',
-						path: '/project/:projectId/subProject/:subProjectId/status-page/:scheduleId',
+						path: '/project/:projectId/sub-project/:subProjectId/status-page/:scheduleId',
 						icon: 'radar',
 						visible: true,
 						subRoutes: [],
@@ -95,7 +96,7 @@ export const groups = [
 				},
 				{
 					title: 'Schedule',
-					path: '/project/:projectId/subProject/:subProjectId/schedule/:scheduleId',
+					path: '/project/:projectId/sub-project/:subProjectId/schedule/:scheduleId',
 					icon: 'radar',
 					visible: true,
 					subRoutes: [],
@@ -208,6 +209,15 @@ export const groups = [
 				component: Profile,
 				subRoutes: [],
 				index: 1
+			},
+			{
+				title: 'Team Member Profile',
+				path: '/profile/:memberId',
+				icon: 'customers',
+				visible: true,
+				component: TeamMemberProfile,
+				subRoutes: [],
+				index: 2
 			}
 		]
 	}

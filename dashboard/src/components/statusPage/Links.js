@@ -12,6 +12,8 @@ import DataPathHoC from '../DataPathHoC';
 import CreateFooterLink from '../modals/FooterLink';
 import { openModal, closeModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -61,8 +63,8 @@ export class Links extends Component {
             this.props.fetchProjectStatusPage(projectId._id || projectId, true);
             this.props.closeModal({ id: this.state.createFooterLinkModalId });
         })
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Links Updated', values);
+        if (!IS_DEV) {
+            logEvent('Links Updated', values);
         }
     }
 
@@ -223,9 +225,5 @@ let LinksForm = reduxForm({
     validate, // <--- validation function given to redux-for
     enableReinitialize: true
 })(Links);
-
-Links.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(LinksForm);

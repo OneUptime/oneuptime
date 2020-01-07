@@ -10,6 +10,8 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -45,10 +47,10 @@ function validate(values) {
                     alertArrayErrors[i] = repeatErrors;
                 }
             }
-            values.OnCallAlertBox[i] && values.OnCallAlertBox[i].teamMember.forEach((val, j) => {
+            (values.OnCallAlertBox[i] && values.OnCallAlertBox[i].rotation) && values.OnCallAlertBox[i].rotation.forEach((val, j) => {
                 const escalationErrors = {}
                 if (val) {
-                    if (val.member === '') {
+                    if (val.teamMember[0].member === '') {
                         escalationErrors.member = 'Please select a member.';
                         escalationArrayErrors[j] = escalationErrors;
                     }
@@ -76,8 +78,8 @@ export class OnCallAlertBox extends Component {
     submitForm = (values) => {
         const { subProjectId, scheduleId } = this.props;
         this.props.addEscalation(subProjectId, scheduleId, values);
-         if (window.location.href.indexOf('localhost') <= -1) {
-             this.context.mixpanel.track('Links Updated', values);
+         if (!IS_DEV) {
+             logEvent('Links Updated', values);
          }
     }
 
@@ -187,13 +189,18 @@ const mapStateToProps = (state, props) => {
             email: true,
             sms: false,
             call: false,
-            teamMember: [
-                {
-                    member: '',
-                    timezone: '',
-                    startTime: '',
-                    endTime: ''
-                }
+            rotation: [
+              {
+                rotationFrequency: 'Week',
+                teamMember: [
+                  {
+                      member: '',
+                      timezone: '',
+                      startTime: '',
+                      endTime: ''
+                  }
+                ]
+              }
             ]
         }
     ];
@@ -212,9 +219,5 @@ let OnCallAlertForm = reduxForm({
     validate,// <--- validation function given to redux-for
     enableReinitialize: true
 })(OnCallAlertBox);
-
-OnCallAlertBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(OnCallAlertForm));

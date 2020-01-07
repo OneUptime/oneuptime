@@ -73,24 +73,15 @@ describe('Stripe payment API', function () {
     });
 
     it('should return payment intent when valid details are passed ', function (done) {
-        stripe.tokens.create({
-            card: {
-                number: '5555555555554444',
-                exp_month: 12,
-                exp_year: 2020,
-                cvc: '123'
-            }
-        }, function (err, token) {
-            request.post(`/stripe/${projectId}/creditCard/${token.id}/pi`).set('Authorization', authorization).end(function (err, res) {
-                cardId = token.card.id;
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('id');
-                expect(res.body).to.have.property('client_secret');
-                expect(res.body.client_secret).not.to.be.null;
-                expect(res.body).to.have.property('source');
-                expect(res.body.source).not.to.be.null;
-                done();
-            });
+        request.post(`/stripe/${projectId}/creditCard/${'tok_amex'}/pi`).set('Authorization', authorization).end(function (err, res) {
+            cardId = res.body.source;
+            expect(res).to.have.status(200);
+            expect(res.body).to.have.property('id');
+            expect(res.body).to.have.property('client_secret');
+            expect(res.body.client_secret).not.to.be.null;
+            expect(res.body).to.have.property('source');
+            expect(res.body.source).not.to.be.null;
+            done();
         });
     });
 

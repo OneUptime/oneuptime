@@ -39,15 +39,23 @@ import {
     ADD_SEAT_REQUEST,
     ADD_SEAT_RESET,
     SELECT_PROBE,
+    GET_MONITOR_LOGS_REQUEST,
+    GET_MONITOR_LOGS_SUCCESS,
+    GET_MONITOR_LOGS_FAILURE,
+    GET_MONITOR_LOGS_RESET
 } from '../constants/monitor';
+import moment from 'moment';
 
 const INITIAL_STATE = {
     monitorsList: {
         monitors: [],
         error: null,
         requesting: false,
-        success: false
+        success: false,
+        startDate: moment().subtract(30, 'd'),
+        endDate: moment(),
     },
+    monitorLogs: {},
     newMonitor: {
         monitor: null,
         error: null,
@@ -88,6 +96,7 @@ export default function monitor(state = INITIAL_STATE, action) {
             isExistingMonitor = state.monitorsList.monitors.find(monitor => monitor._id === action.payload.projectId._id);
             return Object.assign({}, state, {
                 ...state,
+
                 newMonitor: {
                     requesting: false,
                     error: null,
@@ -96,6 +105,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
                 monitorsList: {
                     ...state.monitorsList,
+
                     monitors: isExistingMonitor ? state.monitorsList.monitors.length > 0 ? state.monitorsList.monitors.map((subProjectMonitors) => {
                         return subProjectMonitors._id === action.payload.projectId._id ?
                             {
@@ -144,6 +154,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: false,
@@ -157,6 +169,7 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                 monitorsList: {
                     ...state.monitorsList,
+
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -175,6 +188,7 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                 monitorsList: {
                     ...state.monitorsList,
+
                     requesting: true,
                     error: null,
                     success: false,
@@ -184,7 +198,10 @@ export default function monitor(state = INITIAL_STATE, action) {
         case EDIT_MONITOR_SUCCESS:
             return Object.assign({}, state, {
                 ...state,
+
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: false,
@@ -241,7 +258,10 @@ export default function monitor(state = INITIAL_STATE, action) {
         case EDIT_MONITOR_SWITCH:
             return Object.assign({}, state, {
                 ...state,
+
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: false,
@@ -273,6 +293,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
@@ -299,6 +321,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -319,6 +343,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
@@ -342,6 +368,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -362,6 +390,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
@@ -391,6 +421,7 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                 monitorsList: {
                     ...state.monitorsList,
+
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -417,6 +448,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
@@ -440,6 +473,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -448,31 +483,91 @@ export default function monitor(state = INITIAL_STATE, action) {
                 fetchMonitorLogsRequest: false
             });
 
+        case 'UPDATE_DATE_RANGE':
+            return Object.assign({}, state, {
+                ...state,
+
+                monitorsList: {
+                    ...state.monitorsList,
+
+                    startDate: action.payload.startDate,
+                    endDate: action.payload.endDate
+                }
+            });
+
         case 'UPDATE_MONITOR_LOG':
             return Object.assign({}, state, {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
                             if (monitor._id === action.payload.monitorId) {
+                                const data = Object.assign({}, action.payload.data);
+                                const interval = (moment(state.monitorsList.endDate)).diff(moment(state.monitorsList.startDate), 'days');
+
+                                let dateFormat, outputFormat;
+                                if (interval > 30) {
+                                    dateFormat = 'weeks'
+                                    outputFormat = 'wo [week of] YYYY';
+                                } else if (interval > 2) {
+                                    dateFormat = 'days';
+                                    outputFormat = 'MMM Do YYYY';
+                                } else {
+                                    dateFormat = 'hours';
+                                    outputFormat = 'MMM Do YYYY, h A';
+                                }
+
+                                let logData = {
+                                    ...data,
+                                    avgResponseTime: data.responseTime,
+                                    avgCpuLoad: data.data ? data.data.cpuLoad : null,
+                                    avgMemoryUsed: data.data ? data.data.memoryUsed : null,
+                                    avgStorageUsed: data.data ? data.data.storageUsed : null,
+                                    avgMainTemp: data.data ? data.data.mainTemp : null,
+                                    count: 1,
+                                    intervalDate: moment(data.createdAt).format(outputFormat)
+                                };
+
                                 monitor.logs = monitor.logs && monitor.logs.length > 0 ? monitor.logs.map(probeLogs => {
-                                    return probeLogs._id === action.payload.data.probeId
-                                        || (probeLogs._id === null && !action.payload.data.probeId) ?
-                                        { _id: probeLogs._id, logs: [action.payload.data, ...probeLogs.logs] } : probeLogs;
-                                }) :
-                                    (action.payload.data.probeId ?
-                                        [{ _id: action.payload.data.probeId, logs: [action.payload.data] }]
-                                        : [{ _id: null, logs: [action.payload.data] }]
-                                    );
-                                return monitor
+                                    if (probeLogs._id === logData.probeId || (!probeLogs._id && !logData.probeId)) {
+                                        if (probeLogs.logs && probeLogs.logs.length > 0
+                                            && moment(probeLogs.logs[0].createdAt).isSame(moment(logData.createdAt), dateFormat)) {
+                                            let currentLog = probeLogs.logs[0];
+                                            let currentLogCount = currentLog.count || 1;
+                                            let count = currentLogCount + logData.count;
+
+                                            logData = {
+                                                ...data,
+                                                avgResponseTime: currentLog.avgResponseTime && data.responseTime ? ((currentLog.avgResponseTime * currentLogCount) + data.responseTime) / count : null,
+                                                avgCpuLoad: currentLog.avgCpuLoad && data.data && data.data.cpuLoad ? ((currentLog.avgCpuLoad * currentLogCount) + data.data.cpuLoad) / count : null,
+                                                avgMemoryUsed: currentLog.avgMemoryUsed && data.data && data.data.memoryUsed ? ((currentLog.avgMemoryUsed * currentLogCount) + data.data.memoryUsed) / count : null,
+                                                avgStorageUsed: currentLog.avgStorageUsed && data.data && data.data.storageUsed ? ((currentLog.avgStorageUsed * currentLogCount) + data.data.storageUsed) / count : null,
+                                                avgMainTemp: currentLog.avgMainTemp && data.data && data.data.mainTemp ? ((currentLog.avgMainTemp * currentLogCount) + data.data.mainTemp) / count : null,
+                                                count,
+                                                intervalDate: currentLog.intervalDate ? currentLog.intervalDate : null
+                                            };
+
+                                            return { _id: probeLogs._id, logs: [logData, ...(probeLogs.logs.slice(1))] };
+                                        } else {
+                                            return { _id: probeLogs._id, logs: [logData, ...probeLogs.logs] };
+                                        }
+                                    } else {
+                                        return probeLogs;
+                                    }
+                                }) : (logData.probeId ? [{ _id: logData.probeId, logs: [logData] }] : [{ _id: null, logs: [logData] }]);
+
+                                return monitor;
                             } else {
-                                return monitor
+                                return monitor;
                             }
-                        }) : monitor.monitors
+                        }) : monitor.monitors;
+
                         return monitor;
                     })
                 },
@@ -545,14 +640,19 @@ export default function monitor(state = INITIAL_STATE, action) {
         case REMOVE_MONITORS_SUBSCRIBERS:
             return Object.assign({}, state, {
                 ...state,
+
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        if (monitor._id === action.payload.monitorId) {
-                            monitor.subscribers.subscribers = monitor.subscribers.subscribers.filter(subscriber => subscriber._id !== action.payload._id)
-                            monitor.subscribers.count = monitor.subscribers.count - 1
+                        if (monitor.monitors[0]._id === action.payload.monitorId) {
+                            monitor.monitors[0].subscribers.subscribers = monitor.monitors[0].subscribers.subscribers.filter(
+                                subscriber => subscriber._id !== action.payload._id
+                            );
+                            monitor.monitors[0].subscribers.count = monitor.monitors[0].subscribers.count - 1;
                             return monitor;
                         } else {
                             return monitor;
@@ -566,6 +666,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: false,
@@ -583,6 +685,7 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                 monitorsList: {
                     ...state.monitorsList,
+
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -596,6 +699,7 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                 monitorsList: {
                     ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: false,
@@ -609,6 +713,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
             return Object.assign({}, state, {
                 monitorsList: {
+                    ...state.monitorsList,
+
                     monitors,
                     error: null,
                     loading: false
@@ -620,6 +726,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
@@ -653,6 +761,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
@@ -686,6 +796,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
@@ -719,6 +831,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                 ...state,
 
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: true,
@@ -750,7 +864,10 @@ export default function monitor(state = INITIAL_STATE, action) {
         case 'DELETE_MONITOR_BY_SOCKET':
             return Object.assign({}, state, {
                 ...state,
+
                 monitorsList: {
+                    ...state.monitorsList,
+
                     requesting: false,
                     error: null,
                     success: false,
@@ -765,8 +882,10 @@ export default function monitor(state = INITIAL_STATE, action) {
         case 'ADD_NEW_INCIDENT_TO_MONITORS':
             return Object.assign({}, state, {
                 ...state,
+
                 monitorsList: {
                     ...state.monitorsList,
+
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
                             if (monitor._id === action.payload.monitorId._id) {
@@ -799,8 +918,10 @@ export default function monitor(state = INITIAL_STATE, action) {
         case 'UPDATE_RESPONSE_TIME':
             return Object.assign({}, state, {
                 ...state,
+
                 monitorsList: {
                     ...state.monitorsList,
+
                     monitors: state.monitorsList.monitors.map(monitor => {
                         if (monitor._id === action.payload.monitorId) {
                             return {
@@ -863,6 +984,74 @@ export default function monitor(state = INITIAL_STATE, action) {
         case SELECT_PROBE:
             return Object.assign({}, state, {
                 activeProbe: action.payload
+            });
+
+        case GET_MONITOR_LOGS_SUCCESS:
+            return Object.assign({}, state, {
+                monitorLogs: {
+                    ...state.monitorLogs,
+                    [action.payload.monitorId]: {
+                        logs: action.payload.logs,
+                        probes: action.payload.probes,
+                        error: null,
+                        requesting: false,
+                        success: false,
+                        skip: action.payload.skip,
+                        limit: action.payload.limit,
+                        count: action.payload.count
+                    },
+                }
+            });
+
+        case GET_MONITOR_LOGS_FAILURE:
+            var failureLogs = {
+                ...state.monitorLogs,
+                [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
+                    {
+                        ...state.monitorLogs[action.payload.monitorId],
+                        error: action.payload.error
+                    } :
+                    {
+                        logs: [],
+                        probes: [],
+                        error: action.payload.error,
+                        requesting: false,
+                        success: false,
+                        skip: 0,
+                        limit: 10,
+                        count: null
+                    }
+            };
+            return Object.assign({}, state, {
+                monitorLogs: failureLogs
+            });
+
+        case GET_MONITOR_LOGS_REQUEST:
+            var requestLogs = {
+                ...state.monitorLogs,
+                [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
+                    {
+                        ...state.monitorLogs[action.payload.monitorId],
+                        requesting: true
+                    } :
+                    {
+                        logs: [],
+                        probes: [],
+                        error: null,
+                        requesting: true,
+                        success: false,
+                        skip: 0,
+                        limit: 10,
+                        count: null
+                    }
+            };
+            return Object.assign({}, state, {
+                monitorLogs: requestLogs
+            });
+
+        case GET_MONITOR_LOGS_RESET:
+            return Object.assign({}, state, {
+                monitorLogs: INITIAL_STATE.monitorLogs
             });
 
         default: return state;

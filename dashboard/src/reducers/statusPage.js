@@ -24,6 +24,11 @@ import {
     UPDATE_STATUSPAGE_BRANDING_FAILURE,
     UPDATE_STATUSPAGE_BRANDING_RESET,
 
+    UPDATE_STATUSPAGE_NAME_FAILURE,
+    UPDATE_STATUSPAGE_NAME_REQUEST,
+    UPDATE_STATUSPAGE_NAME_RESET,
+    UPDATE_STATUSPAGE_NAME_SUCCESS,
+
     UPDATE_STATUSPAGE_LINKS_REQUEST,
     UPDATE_STATUSPAGE_LINKS_SUCCESS,
     UPDATE_STATUSPAGE_LINKS_FAILURE,
@@ -88,6 +93,11 @@ const INITIAL_STATE = {
         success: false,
     },
     branding: {
+        error: null,
+        requesting: false,
+        success: false,
+    },
+    pageName: {
         error: null,
         requesting: false,
         success: false,
@@ -162,7 +172,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
 
         case CREATE_STATUSPAGE_FAILURE:
             return Object.assign({}, state, {
-                setting: {
+                newStatusPage: {
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -315,6 +325,40 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE
             });
 
+        // update status page name
+        case UPDATE_STATUSPAGE_NAME_REQUEST:
+            return Object.assign({}, state, {
+                pageName: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        
+        case UPDATE_STATUSPAGE_NAME_SUCCESS:
+            status = action.payload;
+            return Object.assign({}, state, {
+                pageName: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status
+            });
+        
+        case UPDATE_STATUSPAGE_NAME_FAILURE:
+            return Object.assign({}, state, {
+                pageName: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                }
+            });
+        
+        case UPDATE_STATUSPAGE_NAME_RESET:
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
 
         // update links
         case UPDATE_STATUSPAGE_LINKS_REQUEST:

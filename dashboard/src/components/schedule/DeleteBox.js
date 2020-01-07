@@ -9,6 +9,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { deleteSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
 import { openModal, closeModal } from '../../actions/modal';
+import { IS_DEV } from '../../config';
+import { logEvent } from '../../analytics';
 
 export class DeleteScheduleBox extends Component {
 
@@ -20,14 +22,13 @@ export class DeleteScheduleBox extends Component {
     handleClick = () => {
         const { subProjectId, projectId, deleteSchedule, scheduleId, history } = this.props;
         const { deleteModalId } = this.state
-        var thisObj = this;
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {
                 return deleteSchedule(subProjectId, scheduleId)
                 .then(() =>{
-                if (window.location.href.indexOf('localhost') <= -1) {
-                    thisObj.context.mixpanel.track('Schedule Deleted', { subProjectId, scheduleId });
+                if (!IS_DEV) {
+                    logEvent('Schedule Deleted', { subProjectId, scheduleId });
                 }
                 history.push(`/project/${projectId}/on-call`);
             })
@@ -132,9 +133,5 @@ DeleteScheduleBox.propTypes = {
     openModal: PropTypes.func.isRequired
 
 }
-
-DeleteScheduleBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(DeleteScheduleBox));

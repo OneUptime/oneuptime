@@ -12,6 +12,8 @@ import ScheduleProjectBox from '../components/schedule/ScheduleProjectBox';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 export class OnCall extends Component {
 
@@ -25,8 +27,8 @@ export class OnCall extends Component {
         if (subProjectSchedules.length === 0 && currentProjectId) {
             fetchSubProjectSchedules(currentProjectId);
         }
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Call Schedule Page Loaded');
+        if (!IS_DEV) {
+            logEvent('Call Schedule Page Loaded');
         }
     }
 
@@ -47,8 +49,8 @@ export class OnCall extends Component {
 
         fetchProjectSchedule(subProjectId, ((skip || 0) > (limit || 10)) ? skip - limit : 0, 10);
         paginate('prev');
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Fetch Previous Webhook');
+        if (!IS_DEV) {
+            logEvent('Fetch Previous Webhook');
         }
     }
 
@@ -57,8 +59,8 @@ export class OnCall extends Component {
 
         fetchProjectSchedule(subProjectId, skip + limit, 10);
         paginate('next');
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Fetch Next Webhook');
+        if (!IS_DEV) {
+            logEvent('Fetch Next Webhook');
         }
     }
 
@@ -66,10 +68,10 @@ export class OnCall extends Component {
         const { createSchedule, currentProjectId, history } = this.props;
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
-            history.push(`/project/${currentProjectId}/subProject/${subProjectId}/schedule/${data[0]._id}`);
+            history.push(`/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`);
         });
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('New Schedule Created', { subProjectId, name: 'Unnamed' });
+        if (!IS_DEV) {
+            logEvent('New Schedule Created', { subProjectId, name: 'Unnamed' });
         }
     }
 
@@ -274,10 +276,6 @@ OnCall.propTypes = {
     openModal: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     callScheduleTutorial: PropTypes.object
-};
-
-OnCall.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 OnCall.displayName = 'OnCall';

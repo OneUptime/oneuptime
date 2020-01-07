@@ -33,6 +33,8 @@ import PropTypes from 'prop-types'
 import ReactPhoneInput from 'react-phone-input-2'
 import 'react-phone-input-2/lib/style.css'
 import { User } from '../../config'
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 const selector = formValueSelector('Profile')
 
@@ -120,8 +122,8 @@ export class ProfileSetting extends Component {
   }
 
   componentDidMount() {
-    if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('Profile settings page Loaded')
+    if (!IS_DEV) {
+      logEvent('Profile settings page Loaded')
     }
     this.props.userSettings()
     const profilePic =
@@ -179,12 +181,13 @@ export class ProfileSetting extends Component {
     } catch (error) {
       return
     }
-    if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('New Profile Picture selected')
+    if (!IS_DEV) {
+      logEvent('New Profile Picture selected')
     }
   }
 
   submitForm = values => {
+    console.log(values);
     const initialAlertPhoneNumber = this.props.initialValues.alertPhoneNumber
     const { alertPhoneNumber, verified, removedPic } = this.props.profileSettingState
     const { sendVerificationSMSError, verifySMSCodeError, setInitPhoneVerification } = this.props
@@ -199,8 +202,8 @@ export class ProfileSetting extends Component {
     updateProfileSetting(values).then(function() {
       resetFile()
     })
-    if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('Update Profile', values)
+    if (!IS_DEV) {
+      logEvent('Update Profile', values)
     }
     User.setEmail(values.email)
   }
@@ -791,10 +794,6 @@ ProfileSetting.propTypes = {
   verifySMSCode: PropTypes.func.isRequired,
   verifySMSCodeError: PropTypes.oneOfType([PropTypes.object, PropTypes.string, PropTypes.oneOf([null, undefined])]),
   verifySMSCodeRequesting: PropTypes.bool
-}
-
-ProfileSetting.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProfileSettingForm)

@@ -10,6 +10,13 @@
     <% include ./head %>
 
     <link rel="stylesheet" href="/css/uptime-monitoring.css">
+    <script src="/js/amplitude.js"></script>
+    <script>
+        var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+        if (!IS_DEV) {
+            amplitude.getInstance().logEvent('Uptime monitoring page loaded');
+        }
+    </script>
 
 </head>
 

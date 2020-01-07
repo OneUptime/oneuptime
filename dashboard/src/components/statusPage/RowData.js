@@ -11,13 +11,13 @@ export class RowData extends Component {
         const gt = i => monitorIds && monitorIds.length > i;
         let monitors = gt(0) ? monitorIds[0].name : 'Not Yet Added';
         monitors += gt(1) ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}` : '';
-        const path = `/project/${projectId}/subProject/${subProjectId}/status-page/${statusPage._id}`
+        const path = `/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPage._id}`
         return (
             <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink statusPageListItem" onClick={() => { this.props.switchStatusPages(statusPage, path) }}>
                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '270px' }}>
 
                     <div className="bs-ObjectList-cell bs-u-v-middle">
-                        <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{statusPage.title || 'Unknown'}</div>
+                        <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{statusPage.name || 'Unknown'}</div>
                         <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
                             {statusPage.domain || 'Domain not set yet'}
                         </div>
@@ -56,11 +56,7 @@ export class RowData extends Component {
     }
 }
 
-RowData.displayName = 'StatusPage RowData'
-
-RowData.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
+RowData.displayName = 'StatusPage RowData';
 
 RowData.propTypes = {
     statusPage: PropTypes.object.isRequired,

@@ -19,6 +19,8 @@ import { openModal, closeModal } from '../../actions/modal';
 import { history } from '../../store';
 import { getMonitorStatus } from '../../config';
 import DataPathHoC from '../DataPathHoC';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -52,16 +54,16 @@ export class MonitorViewHeader extends Component {
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Edit Monitor Switch Clicked', {});
+        if (!IS_DEV) {
+            logEvent('Edit Monitor Switch Clicked', {});
         }
     }
 
     deleteMonitor = () => {
         let promise = this.props.deleteMonitor(this.props.monitor._id, this.props.monitor.projectId._id || this.props.monitor.projectId);
         history.push(`/project/${this.props.currentProject._id}/monitoring`);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Monitor Deleted', {
+        if (!IS_DEV) {
+            logEvent('Monitor Deleted', {
                 ProjectId: this.props.currentProject._id,
                 monitorId: this.props.monitor._id
             });
@@ -142,7 +144,7 @@ export class MonitorViewHeader extends Component {
                             </div>
                             <div>
                                 <RenderIfSubProjectAdmin subProjectId={subProjectId}>
-                                    <button className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' onClick={this.editMonitor}><span>Edit</span></button>
+                                    <button id={`edit_${monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' onClick={this.editMonitor}><span>Edit</span></button>
                                     <button id={`delete_${monitor.name}`} className={deleting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'} type="button" disabled={deleting}
                                         onClick={() =>
                                             this.props.openModal({
@@ -234,10 +236,6 @@ const mapStateToProps = (state) => {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data
     };
-};
-
-MonitorViewHeader.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorViewHeader);

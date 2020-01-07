@@ -1,6 +1,6 @@
 var utils = require('./test-utils');
 
-module.exports = { 
+module.exports = {
     /**
      * 
      * @param { ObjectConstructor } user 
@@ -8,7 +8,7 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function (user, page){
+    registerUser: async function (user, page) {
         const { email } = user;
         let frame, elementHandle;
         await page.goto(utils.ACCOUNTS_URL + '/register', { waitUntil: 'networkidle2' });
@@ -26,10 +26,11 @@ module.exports = {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
+        await page.waitFor(15000);
+
         await page.waitForSelector('iframe[name=__privateStripeFrame5]');
         await page.waitForSelector('iframe[name=__privateStripeFrame6]');
         await page.waitForSelector('iframe[name=__privateStripeFrame7]');
-        await page.waitFor(5000);
         await page.click('input[name=cardName]');
         await page.type('input[name=cardName]', 'Test name');
 
@@ -37,21 +38,21 @@ module.exports = {
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=cardnumber]');
         await frame.type('input[name=cardnumber]', '42424242424242424242', {
-            delay:50
+            delay: 50
         });
 
         elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=cvc]');
         await frame.type('input[name=cvc]', '123', {
-            delay:50
+            delay: 50
         });
 
         elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=exp-date]');
         await frame.type('input[name=exp-date]', '11/23', {
-            delay:50
+            delay: 50
         });
         await page.click('input[name=address1]');
         await page.type('input[name=address1]', utils.user.address.streetA);
@@ -67,7 +68,7 @@ module.exports = {
         await page.click('button[type=submit]');
         await page.waitFor(25000);
     },
-    loginUser: async function (user, page){
+    loginUser: async function (user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', { waitUntil: 'networkidle2' });
         await page.waitForSelector('#login-button');
@@ -76,7 +77,7 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await page.click('button[type=submit]');
-        await page.waitFor(5000);
+        await page.waitFor(15000);
     },
     selectByText: async function (selector, text, page) {
         await page.click(selector);

@@ -85,8 +85,7 @@ export class SubProjects extends Component {
                       <div className='bs-ObjectList-cell'>Name</div>
                       <div className='bs-ObjectList-cell'>Project Id</div>
                       <div className='bs-ObjectList-cell'>Created</div>
-                      <div className='bs-ObjectList-cell'></div>
-                      <div className='bs-ObjectList-cell'></div>
+                      <div className='bs-ObjectList-cell'>Actions</div>
                     </header>
                     {subProjects && subProjects.length > 0
                       ? subProjects.map((subProject,i) => {
@@ -203,10 +202,6 @@ const mapStateToProps = state => {
     limit,
     count
   }
-}
-
-SubProjects.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubProjects)

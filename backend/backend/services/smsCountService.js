@@ -2,15 +2,15 @@ module.exports = {
     findBy: async function (query, limit, skip) {
         try {
             if (!skip) skip = 0;
-    
+
             if (!limit) limit = 10;
-    
+
             if (typeof (skip) === 'string') skip = parseInt(skip);
-    
+
             if (typeof (limit) === 'string') limit = parseInt(limit);
-    
+
             if (!query) query = {};
-    
+
             if (!query.deleted) query.deleted = false;
 
             var SmsCount = await SmsCountModel.find(query)
@@ -30,7 +30,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var SmsCount = await SmsCountModel.findOne(query)
                 .sort([['createdAt', -1]])
@@ -42,11 +42,12 @@ module.exports = {
         }
     },
 
-    create: async function (userId, sentTo) {
+    create: async function (userId, sentTo,projectId) {
         try {
             var smsCountModel = new SmsCountModel();
             smsCountModel.userId = userId || null;
             smsCountModel.sentTo = sentTo || null;
+            smsCountModel.projectId = projectId || null;
             var smsCount = await smsCountModel.save();
             return smsCount;
         } catch (error) {
@@ -60,7 +61,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-    
+
             if (!query.deleted) query.deleted = false;
             var count = await SmsCountModel.count(query);
             return count;

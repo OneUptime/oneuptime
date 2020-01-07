@@ -13,8 +13,8 @@ function validate(values) {
 
 	const errors = {};
 
-	if (!Validate.text(values.title)) {
-		errors.title = 'Status Page Name is required!'
+	if (!Validate.text(values.name)) {
+		errors.name = 'Status Page Name is required!'
     }
 	return errors;
 }
@@ -72,9 +72,9 @@ export class StatusPageForm extends React.Component{
                                     <Field
                                         required={true}
                                         component="input"
-                                        name="title"
+                                        name="name"
                                         placeholder="Status Page Name?"
-                                        id="title"
+                                        id="name"
                                         className="bs-TextInput"
                                         style={{ width: '90%', 'margin': '10px 0 10px 5%' }}
                                         disabled={this.props.statusPage.newStatusPage.requesting}

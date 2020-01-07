@@ -408,6 +408,7 @@ export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
         var promise = getApi(`monitor/${projectId}/log/${monitorId}?startDate=${startDate}&endDate=${endDate}`);
         dispatch(fetchMonitorLogsRequest());
+        dispatch(updateDateRange(startDate, endDate));
 
         promise.then(function (monitorLogs) {
             dispatch(fetchMonitorLogsSuccess({ projectId, monitorId, logs: monitorLogs.data }));
@@ -429,6 +430,13 @@ export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
 
         return promise;
     };
+}
+
+export function updateDateRange(startDate, endDate) {
+    return {
+        type: 'UPDATE_DATE_RANGE',
+        payload: { startDate, endDate }
+    }
 }
 
 export function fetchMonitorLogsRequest() {
@@ -517,6 +525,52 @@ export function setMonitorCriteria(monitorName, monitorCategory, monitorSubProje
     };
 }
 
+//Fetch Logs of monitors
+export function getMonitorLogs(projectId, monitorId, skip, limit,startDate,endDate,probeValue,incidentId) {
+    return function (dispatch) {
+
+        var promise = postApi(`monitor/${projectId}/monitorLogs/${monitorId}`,{skip, limit,startDate,endDate,probeValue,incidentId: incidentId ? incidentId: null});
+        dispatch(getMonitorLogsRequest({monitorId}));
+
+        promise.then(function (monitors) {
+            dispatch(getMonitorLogsSuccess({ monitorId,logs:monitors.data.data.monitorLogs,skip, limit, count: monitors.data.count, probes:monitors.data.data.probes}));
+        }, function (error) {
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            } else {
+                error = 'Network Error';
+            }
+            dispatch(getMonitorLogsFailure({monitorId,error:errors(error)}));
+        });
+        return promise;
+    };
+}
+
+export function getMonitorLogsSuccess(logs) {
+    return {
+        type: types.GET_MONITOR_LOGS_SUCCESS,
+        payload: logs
+    };
+}
+
+export function getMonitorLogsRequest(logs) {
+    return {
+        type: types.GET_MONITOR_LOGS_REQUEST,
+        payload: logs
+    };
+}
+
+export function getMonitorLogsFailure(error) {
+    return {
+        type: types.GET_MONITOR_LOGS_FAILURE,
+        payload: error
+    };
+}
 
 export function addSeat(projectId) {
 

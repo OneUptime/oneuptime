@@ -27,5 +27,7 @@ yarn.lock
 Untitled-1
 run.sh
 cleanup.sh
+*.local.sh
+*.local.yaml
 
 nohup.out*

@@ -1,6 +1,6 @@
 {
   "name": "slack",
-  "version": "1.0.0",
+  "version": "3.0.1169",
   "description": "Slack invite page for Slack",
   "main": "server.js",
   "scripts": {
@@ -16,6 +16,7 @@
     "slackin-extended": "^1.1.11"
   },
   "devDependencies": {
+    "eslint": "^6.7.2",
     "npm-audit-ci-wrapper": "^2.4.1"
   }
 }

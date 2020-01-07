@@ -258,13 +258,12 @@ module.exports = {
                     populate: { path: 'monitorCategoryId', select: 'name' }
                 })
                 .lean();
-            var projectId = statusPage.projectId._id;
-            var subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
-            var subProjectIds = subProjects ? subProjects.map(project => project._id) : null;
-            var monitors = await MonitorService.getMonitors(subProjectIds, 0, 0);
-            statusPage.monitorsData = monitors;
-
             if (statusPage && (statusPage._id || statusPage.id)) {
+                var projectId = statusPage.projectId._id;
+                var subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
+                var subProjectIds = subProjects ? subProjects.map(project => project._id) : null;
+                var monitors = await MonitorService.getMonitors(subProjectIds, 0, 0);
+                statusPage.monitorsData = monitors;
                 var permitted = await thisObj.isPermitted(user, statusPage);
 
                 if (!permitted) {

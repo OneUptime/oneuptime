@@ -3,18 +3,10 @@
 #
 
 # Pull base image nodejs image.
-FROM ubuntu:latest
+FROM node:10
 
-#SET ENV Variables.
+#SET ENV Variables
 ENV PRODUCTION=true
-
-RUN apt-get update
-RUN apt-get install -y curl software-properties-common
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
-RUN apt-get install -y nodejs
-
-#Update NPM
-RUN npm install -g npm
 
 RUN mkdir -p /usr/src/app
 
@@ -23,7 +15,6 @@ WORKDIR /usr/src/app
 # Install app dependencies
 COPY package*.json /usr/src/app/
 RUN npm ci
-
 
 # Bundle app source
 COPY . /usr/src/app

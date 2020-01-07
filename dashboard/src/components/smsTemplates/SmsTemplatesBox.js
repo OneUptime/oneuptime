@@ -8,6 +8,8 @@ import SmsTemplatesFormBox from './SmsTemplatesFormBox';
 import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class SmsTemplatesBox extends React.Component {
     submitForm = (values) => {
@@ -22,16 +24,16 @@ class SmsTemplatesBox extends React.Component {
             }
         })
         this.props.editSmsTemplates(currentProject._id, val);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('SMS Templates Updated');
+        if (!IS_DEV) {
+            logEvent('SMS Templates Updated');
         }
     }
 
     resetTemplate = (templateId) => {
         const { currentProject } = this.props;
         this.props.resetSmsTemplates(currentProject._id, templateId);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('SMS Templates Reset');
+        if (!IS_DEV) {
+            logEvent('SMS Templates Reset');
         }
     }
 
@@ -140,9 +142,5 @@ const mapStateToProps = (state) => {
         smsTemplates: state.smsTemplates,
     };
 }
-
-SmsTemplatesBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(SmsTemplatesBoxForm);

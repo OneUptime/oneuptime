@@ -6,12 +6,14 @@ import StatusPagesTable from '../components/statusPage/StatusPagesTable'
 import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class StatusPage extends Component {
 
     componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('StatusPage Settings Loaded');
+        if (!IS_DEV) {
+            logEvent('StatusPage Settings Loaded');
         }
     }
 
@@ -49,10 +51,6 @@ function mapStateToProps(state, props) {
 StatusPage.propTypes = {
     projectId: PropTypes.string.isRequired,
     statusPageTutorial: PropTypes.object
-};
-
-StatusPage.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 StatusPage.displayName = 'StatusPage';

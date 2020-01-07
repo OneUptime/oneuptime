@@ -50,6 +50,14 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
         });
     }
 
+    var existingStatusPage = await StatusPageService.findOneBy({ name: data.name });
+    if (existingStatusPage) {
+        return sendErrorResponse( req, res, {
+            code: 400,
+            message: 'StatusPage with that name already exists.',
+        });
+    }
+
     try{
         // Call the StatusPageService.
         var statusPage = await StatusPageService.create(data);
@@ -196,6 +204,13 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(req
 
         try{
             // Call the StatusPageService.
+            var existingStatusPage = await StatusPageService.findOneBy({ name: data.name });
+            if (existingStatusPage && existingStatusPage._id.toString() !== data._id) {
+                return sendErrorResponse( req, res, {
+                    code: 400,
+                    message: 'StatusPage with that name already exists.',
+                });
+            }
             var statusPage = await StatusPageService.updateOneBy({_id:data._id},data);
             return sendItemResponse(req, res, statusPage);
         }catch(error){

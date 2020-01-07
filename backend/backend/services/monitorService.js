@@ -165,6 +165,52 @@ module.exports = {
         }
     },
 
+    async findLogsBy(query, limit, skip) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 10;
+
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+            var monitors = await MonitorLogModel.find(query)
+                .sort([['createdAt', -1]])
+                .limit(limit)
+                .skip(skip)
+                .populate('monitorId', 'name')
+                .populate('probeId', 'probeName');
+            return monitors;
+        } catch (error) {
+            ErrorService.log('monitorService.findLogsBy', error);
+            throw error;
+        }
+    },
+
+    async findLogProbesBy(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            var probes = await MonitorLogModel.find(query)
+                .sort([['createdAt', -1]])
+                .populate('probeId', 'probeName');
+            probes = [...new Set(probes.map(item => item.probeId))];
+            return probes;
+        } catch (error) {
+            ErrorService.log('monitorService.findLogProbesBy', error);
+            throw error;
+        }
+    },
+
     async findOneBy(query) {
         try {
             if (!query) {
@@ -177,6 +223,19 @@ module.exports = {
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
+            throw error;
+        }
+    },
+
+    async countLogsBy(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            var count = await MonitorLogModel.count(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('monitorService.countLogsBy', error);
             throw error;
         }
     },
@@ -231,7 +290,7 @@ module.exports = {
                 if (projectSeats && projectSeats > seats && monitorsCount > 0 && monitorsCount <= ((projectSeats - 1) * 5)) {
                     projectSeats = projectSeats - 1;
                     await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
-                    await ProjectService.updateOneBy({ _id: project._id},{ seats: projectSeats.toString() });
+                    await ProjectService.updateOneBy({ _id: project._id }, { seats: projectSeats.toString() });
                 }
                 var incidents = await IncidentService.findBy({ monitorId: monitor._id });
 
@@ -335,14 +394,74 @@ module.exports = {
 
     async getMonitorLogs(monitorId, startDate, endDate) {
         try {
-            let start = moment(startDate).toDate();
-            let end = moment(endDate).toDate();
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).toDate();
+            const interval = (moment(endDate)).diff(moment(startDate), 'days');
+
+            let dateFormat, outputFormat;
+            if (interval > 30) {
+                dateFormat = '%Y-%U';
+                outputFormat = 'wo [week of] YYYY';
+            } else if (interval > 2) {
+                dateFormat = '%Y-%m-%d';
+                outputFormat = 'MMM Do YYYY';
+            } else {
+                dateFormat = '%Y-%m-%dT%H';
+                outputFormat = 'MMM Do YYYY, h A';
+            }
+
             var monitorData = await MonitorLogModel.aggregate([
                 { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $sort: { 'createdAt': -1 } },
+                {
+                    $group: {
+                        _id: {
+                            probeId: '$probeId',
+                            createdAt: { $dateToString: { format: dateFormat, date: '$createdAt' } }
+                        },
+                        monitorId: { $first: '$monitorId' },
+                        probeId: { $first: '$probeId' },
+                        responseTime: { $first: '$responseTime' },
+                        responseStatus: { $first: '$responseStatus' },
+                        status: { $first: '$status' },
+                        data: { $first: '$data' },
+                        createdAt: { $first: '$createdAt' },
+                        avgResponseTime: { $avg: '$responseTime' },
+                        avgCpuLoad: { $avg: '$data.load.currentload' },
+                        avgMemoryUsed: { $avg: '$data.memory.used' },
+                        avgStorageUsed: { $avg: '$data.disk.used' },
+                        avgMainTemp: { $avg: '$data.temperature.main' },
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { 'createdAt': -1 } },
                 { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
             ]);
-            return monitorData;
+            var monitorLogs = monitorData && monitorData.length > 0 ? monitorData.map(probeData => {
+                return {
+                    ...probeData,
+                    logs: probeData.logs && probeData.logs.length > 0 ? probeData.logs.map(logData => {
+                        return {
+                            ...logData,
+                            data: logData.data ? {
+                                cpuLoad: logData.data.load.currentload,
+                                avgCpuLoad: logData.data.load.avgload,
+                                cpuCores: logData.data.load.cpus.length,
+                                memoryUsed: logData.data.memory.used,
+                                totalMemory: logData.data.memory.total,
+                                swapUsed: logData.data.memory.swapused,
+                                storageUsed: logData.data.disk.used,
+                                totalStorage: logData.data.disk.size,
+                                storageUsage: logData.data.disk.use,
+                                mainTemp: logData.data.temperature.main,
+                                maxTemp: logData.data.temperature.max
+                            } : null,
+                            intervalDate: moment(logData.createdAt).format(outputFormat)
+                        };
+                    }) : []
+                };
+            }) : [];
+            return monitorLogs;
         } catch (error) {
             ErrorService.log('monitorService.getMonitorLogs', error);
             throw error;

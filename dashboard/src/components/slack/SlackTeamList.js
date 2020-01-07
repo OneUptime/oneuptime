@@ -14,6 +14,8 @@ import {
 } from '../../actions/slack';
 import { OnCallTableHeader } from '../onCall/OnCallData';
 import { ListLoader } from '../basic/Loader';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class SlackTeamList extends React.Component {
 
@@ -22,8 +24,8 @@ class SlackTeamList extends React.Component {
         if (teams.length === 0 && projectId) {
             getSlackTeams(projectId);
         }
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Call WebHook Integration Component Loaded');
+        if(!IS_DEV){
+            logEvent('Call WebHook Integration Component Loaded');
         }
     }
 
@@ -40,8 +42,8 @@ class SlackTeamList extends React.Component {
 
         getSlackTeams(projectId, ((skip || 0) > (limit || 10)) ? skip - limit : 0, 10);
         paginate('prev');
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Fetch Previous slack');
+        if(!IS_DEV){
+            logEvent('Fetch Previous slack');
         }
     }
 
@@ -50,8 +52,8 @@ class SlackTeamList extends React.Component {
 
         getSlackTeams(projectId, skip + limit, 10);
         paginate('next');
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Fetch Next slack');
+        if(!IS_DEV){
+            logEvent('Fetch Next slack');
         }
     }
     render() {
@@ -177,10 +179,6 @@ SlackTeamList.propTypes = {
     projectId: PropTypes.string,
     teams: PropTypes.any,
     paginate: PropTypes.func.isRequired,
-};
-
-SlackTeamList.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SlackTeamList);

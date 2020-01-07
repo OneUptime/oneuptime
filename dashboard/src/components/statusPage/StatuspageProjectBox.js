@@ -51,7 +51,7 @@ const StatusPageProjectBox = (props) => (
                 <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                     <td>
                         <div className="bs-ObjectList-cell">
-                            Title
+                            Name
                         </div>
                     </td>
                     <td>

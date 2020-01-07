@@ -19,13 +19,15 @@ import { getProbes } from '../actions/probe';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import Badge from '../components/common/Badge';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class DashboardView extends Component {
 
     componentDidMount() {
         this.props.loadPage('Monitors');
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Main monitor page Loaded');
+        if (!IS_DEV) {
+            logEvent('Main monitor page Loaded');
         }
     }
 
@@ -214,12 +216,14 @@ const mapStateToProps = state => {
     const initialValues = {
         name_1000: '',
         url_1000: '',
+        deviceId_1000: ''
     };
 
     monitor.monitorsList.monitors.forEach((subProjectMonitors) => {
         subProjectMonitors && subProjectMonitors.monitors.forEach((monitor) => {
             initialValues[`name_${monitor._id}`] = monitor.name;
             initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
+            initialValues[`deviceId_${monitor._id}`] = monitor.data && monitor.data.deviceId;
         });
     });
 
@@ -232,10 +236,6 @@ const mapStateToProps = state => {
         subProjects,
         monitorTutorial: state.tutorial.monitor
     };
-};
-
-DashboardView.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 DashboardView.propTypes = {

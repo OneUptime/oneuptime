@@ -8,6 +8,9 @@ var monitorLogSchema = new Schema({
     responseStatus: Number,
     status: String,
     data: Object,
+    incidentIds:[
+        {type: String, ref: 'Incident'}
+    ],
     createdAt: {
         type: Date,
         default: Date.now,

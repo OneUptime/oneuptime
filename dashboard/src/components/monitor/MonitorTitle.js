@@ -74,8 +74,4 @@ const mapStateToProps = () => {
     return {};
 }
 
-MonitorTitle.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
-
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorTitle);

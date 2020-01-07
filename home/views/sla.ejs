@@ -1,6 +1,13 @@
 <header id="pagmt">
     <h1>Service Level Agreement</h1>
     <p>Please Read Carefully Prior To Using This Product</p>
+    <script src="/js/amplitude.js"></script>
+    <script>
+      var IS_DEV = false;
+      if (!IS_DEV) {
+        amplitude.getInstance().logEvent('SLA page loaded');
+      }
+    </script>
 </header>
 
 <section>

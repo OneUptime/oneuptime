@@ -22,7 +22,7 @@ const calculateTime = (incidents, start, range, activeProbe) => {
             upTime: 0,
             degradedTime: 0
         };
-        incidents.forEach(incident => {
+        incidents.reverse().forEach(incident => {
             const probes = incident.probes;
             const activeProbeCheck = probes && probes.length === 0 ? true :
                 (probes && probes.length > 0 ? (probes.filter(
@@ -48,6 +48,7 @@ const calculateTime = (incidents, start, range, activeProbe) => {
                     if (incident.incidentType === 'online') {
                         timeObj.upTime = timeObj.upTime + end.diff(start, 'seconds');
                     }
+                    timeObj.date = incident.resolvedAt;
                 }
             }
         });
@@ -119,7 +120,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                 <div className="db-Trend-title"><span className="chart-font">Current CPU Load</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatDecimal(data[0].data.load.currentload, 2) : 0} %</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatDecimal(data[0].data.cpuLoad, 2) : 0} %</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -127,7 +128,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                 <div className="db-Trend-title"><span className="chart-font">Average CPU Load</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatDecimal(data[0].data.load.avgload, 2) : 0} %</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatDecimal(data[0].data.avgCpuLoad, 2) : 0} %</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -135,7 +136,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                 <div className="db-Trend-title"><span className="chart-font">CPU Cores</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.load.cpus.length : 0}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.cpuCores : 0}</span></span></div>
                             </div>
                         </div>
                     </div>
@@ -152,7 +153,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                 <div className="db-Trend-title"><span className="chart-font">Memory Used</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.memory.used) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.memoryUsed) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -160,7 +161,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                 <div className="db-Trend-title"><span className="chart-font">Memory Available</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.memory.total) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.totalMemory) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -168,7 +169,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                 <div className="db-Trend-title"><span className="chart-font">Swap Used</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.memory.swapused) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.swapUsed) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                     </div>
@@ -185,7 +186,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                 <div className="db-Trend-title"><span className="chart-font">Storage Used</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.disk[0].used) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.storageUsed) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -193,7 +194,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                 <div className="db-Trend-title"><span className="chart-font">Storage Available</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.disk[0].size) : '0 Bytes'}</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? formatBytes(data[0].data.totalStorage) : '0 Bytes'}</span></span></div>
                             </div>
                         </div>
                         <div className="db-Trend-colInformation">
@@ -201,7 +202,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                 <div className="db-Trend-title"><span className="chart-font">Storage Usage</span></div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.disk[0].use : 0} %</span></span></div>
+                                <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.storageUsage : 0} %</span></span></div>
                             </div>
                         </div>
                     </div>
@@ -219,7 +220,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                     <div className="db-Trend-title"><span className="chart-font">Main Temperature</span></div>
                                 </div>
                                 <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.temperature.main : 0} &deg;C</span></span></div>
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.mainTemp : 0} &deg;C</span></span></div>
                                 </div>
                             </div>
                             <div className="db-Trend-colInformation">
@@ -227,7 +228,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                     <div className="db-Trend-title"><span className="chart-font">Max. Temperature</span></div>
                                 </div>
                                 <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.temperature.max : 0} &deg;C</span></span></div>
+                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{checkLogs ? data[0].data.maxTemp : 0} &deg;C</span></span></div>
                                 </div>
                             </div>
                             <div className="db-Trend-colInformation"></div>
@@ -239,7 +240,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                 </div>
             </ShouldRender>
         </Fragment>
-    } else if (type === 'url' || type === 'api') {
+    } else if (type === 'url' || type === 'api' || type === 'device') {
         monitorInfo = <div className="db-Trend">
             <div className="block-chart-side line-chart">
                 <div className="db-TrendRow">

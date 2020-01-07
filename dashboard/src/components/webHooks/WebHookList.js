@@ -17,16 +17,18 @@ import {
     paginate
 } from '../../actions/webHook';
 import { ListLoader } from '../basic/Loader';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class WebHookList extends React.Component {
 
-    ready(){
+    ready() {
         const { getWebHook, projectId } = this.props;
         if (projectId) {
             getWebHook(projectId);
         }
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Call WebHook Integration Component Loaded');
+        if (!IS_DEV) {
+            logEvent('Call WebHook Integration Component Loaded');
         }
     }
 
@@ -38,15 +40,15 @@ class WebHookList extends React.Component {
         this.props.paginate('reset');
     }
 
-    handleKeyBoard = (e)=>{
-        switch(e.key){
+    handleKeyBoard = (e) => {
+        switch (e.key) {
             case 'ArrowRight':
-            return this.nextClicked()
+                return this.nextClicked()
             case 'ArrowLeft':
-            return this.prevClicked();
-			default:
-			return false;
-		}
+                return this.prevClicked();
+            default:
+                return false;
+        }
     }
 
     prevClicked = () => {
@@ -54,8 +56,8 @@ class WebHookList extends React.Component {
 
         getWebHook(projectId, ((skip || 0) > (limit || 10)) ? skip - limit : 0, 10);
         paginate('prev');
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Fetch Previous Webhook');
+        if (!IS_DEV) {
+            logEvent('Fetch Previous Webhook');
         }
     }
 
@@ -64,15 +66,15 @@ class WebHookList extends React.Component {
 
         getWebHook(projectId, skip + limit, 10);
         paginate('next');
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Fetch Next Webhook');
+        if (!IS_DEV) {
+            logEvent('Fetch Next Webhook');
         }
     }
 
     render() {
 
-        const { webHook, isRequesting, monitorId } =  this.props;
-        let { webHooks, count,skip,limit } = webHook;
+        const { webHook, isRequesting, monitorId } = this.props;
+        let { webHooks, count, skip, limit } = webHook;
         let canPaginateForward = (webHook && count) && (count > (skip + limit)) ? true : false;
         let canPaginateBackward = (webHook && skip && skip > 0) ? true : false;
         if (monitorId && webHooks) {
@@ -87,7 +89,7 @@ class WebHookList extends React.Component {
 
         return (
             <React.Fragment>
-                <table className="Table" onKeyDown={this.handleKeyBoard}>
+                <table className="Table" id="webhookList" onKeyDown={this.handleKeyBoard}>
                     <thead className="Table-body">
                         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                             <WebHookTableHeader text="Endpoint" />
@@ -99,7 +101,7 @@ class WebHookList extends React.Component {
                     <tbody className="Table-body">
                         <ShouldRender if={numberOfWebHooks > 0}>
                             {(webHooks ? webHooks : []).map(hook =>
-                                <WebHookItem key={`${hook._id}`} data={hook} monitorId={monitorId}/>
+                                <WebHookItem key={`${hook._id}`} data={hook} monitorId={monitorId} />
                             )}
                         </ShouldRender>
                     </tbody>
@@ -125,7 +127,7 @@ class WebHookList extends React.Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    { webHooks.length } Webhook{numberOfWebHooks === 1 ? '' : 's'}
+                                    {webHooks.length} Webhook{numberOfWebHooks === 1 ? '' : 's'}
                                 </span>
                             </span>
                         </span>
@@ -142,6 +144,7 @@ class WebHookList extends React.Component {
                                     disabled={!canPaginateBackward}
                                     type="button"
                                     onClick={this.prevClicked}
+                                    id="btnPrevWebhook"
                                 >
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -149,25 +152,26 @@ class WebHookList extends React.Component {
                                         </span>
                                     </div>
                                 </button>
-                                </div>
-                                <div className="Box-root">
-                                    <button
-                                        className={`Button bs-ButtonLegacy ${!canPaginateForward ? 'Is--disabled' : ''}`}
-                                        data-db-analytics-name="list_view.pagination.next"
-                                        disabled={!canPaginateForward}
-                                        type="button"
-                                        onClick={this.nextClicked}
-                                    >
-                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                <span>Next</span>
-                                            </span>
-                                        </div>
-                                    </button>
-                                </div>
+                            </div>
+                            <div className="Box-root">
+                                <button
+                                    className={`Button bs-ButtonLegacy ${!canPaginateForward ? 'Is--disabled' : ''}`}
+                                    data-db-analytics-name="list_view.pagination.next"
+                                    disabled={!canPaginateForward}
+                                    type="button"
+                                    onClick={this.nextClicked}
+                                    id="btnNextWebhook"
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Next</span>
+                                        </span>
+                                    </div>
+                                </button>
                             </div>
                         </div>
                     </div>
+                </div>
             </React.Fragment>
         )
     }
@@ -185,12 +189,12 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => (
     bindActionCreators({
-            getWebHook,
-            getWebHookError,
-            getWebHookRequest,
-            getWebHookSuccess,
-            paginate
-        },
+        getWebHook,
+        getWebHookError,
+        getWebHookRequest,
+        getWebHookSuccess,
+        paginate
+    },
         dispatch
     )
 );
@@ -202,10 +206,6 @@ WebHookList.propTypes = {
     isRequesting: PropTypes.bool,
     webHook: PropTypes.any,
     paginate: PropTypes.func.isRequired,
-};
-
-WebHookList.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookList);

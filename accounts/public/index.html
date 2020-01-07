@@ -6,8 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta name="theme-color" content="#000000">
         <meta name="slack-app-id" content="ACVBMTPJQ">
+        <meta name="description" content="This is the login page for Fyipe Dashboard">
 
-        <link rel="manifest" href="/manifest.json">
+        <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
         <link rel="shortcut icon" href="/assets/img/favicons/favicon.ico">
         <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-touch-icon.png">
         <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32x32.png">
@@ -17,14 +18,22 @@
 
         <title>Fyipe Dashboard</title>
 
-        <link rel="stylesheet" href="/assets/css/dashboard.css">
-        <link rel="stylesheet" href="/assets/css/newdashboard.css">
-        <link rel="stylesheet" href="/assets/css/sail.css">
-        <link rel="stylesheet" href="/assets/css/loader.css">
-        <link rel="stylesheet" href="/assets/css/blockchart.css">
-        <link rel="stylesheet" href="/assets/css/Selector.css">
-        <link rel="stylesheet" href="/assets/css/tutorial.css">
-        <link rel="stylesheet" href="/assets/css/reactwidgets.css">
+        <link rel="stylesheet" href="/assets/css/dashboard.css" media="none" onload="if(media!='all')media='all'">
+        <noscript><link rel="stylesheet" href="/assets/css/dashboard.css"></noscript>
+        <link rel="stylesheet" href="/assets/css/newdashboard.css" media="none" onload="if(media!='all')media='all'">
+        <noscript><link rel="stylesheet" href="/assets/css/newdashboard.css"></noscript>
+        <link rel="stylesheet" href="/assets/css/sail.css" media="none" onload="if(media!='all')media='all'">
+        <noscript><link rel="stylesheet" href="/assets/css/sail.css"></noscript>
+        <link rel="stylesheet" href="/assets/css/loader.css" media="none" onload="if(media!='all')media='all'">
+        <noscript><link rel="stylesheet" href="/assets/css/loader.css"></noscript>
+        <link rel="stylesheet" href="/assets/css/blockchart.css" media="none" onload="if(media!='all')media='all'">
+        <noscript><link rel="stylesheet" href="/assets/css/blockchart.css"></noscript>
+        <link rel="stylesheet" href="/assets/css/Selector.css" media="none" onload="if(media!='all')media='all'">
+        <noscript><link rel="stylesheet" href="/assets/css/Selector.css"></noscript>
+        <link rel="stylesheet" href="/assets/css/tutorial.css" media="none" onload="if(media!='all')media='all'">
+        <noscript><link rel="stylesheet" href="/assets/css/tutorial.css"></noscript>
+        <link rel="stylesheet" href="/assets/css/reactwidgets.css" media="none" onload="if(media!='all')media='all'">
+        <noscript><link rel="stylesheet" href="/assets/css/reactwidgets.css"></noscript>
 
 
         <!-- Preload light, regular, medium and bold, which are fonts that are used on home -->
@@ -32,10 +41,11 @@
         <link rel="preload" href="/assets/fonts/camphor/font2.woff2" as="font" type="font/woff2" crossorigin="">
         <link rel="preload" href="/assets/fonts/camphor/font3.woff2" as="font" type="font/woff2" crossorigin="">
         <link rel="preload" href="/assets/fonts/camphor/font4.woff2" as="font" type="font/woff2" crossorigin="">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js" type="text/javascript"></script>
-        <script src="%PUBLIC_URL%/env.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tipsy/1.0.3/jquery.tipsy.min.js" type="text/javascript"></script>
-        <script src="https://js.stripe.com/v3/"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js" type="text/javascript" defer></script>
+        <script src="%PUBLIC_URL%/env.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tipsy/1.0.3/jquery.tipsy.min.js" type="text/javascript" defer></script>
+        <script src="https://js.stripe.com/v3/" defer></script>
+        <link rel="preconnect" href="https://m.stripe.com">
         <style type="text/css">
             /* Camphor */
 
@@ -44,6 +54,7 @@
             font-weight: 300;
             src: url('/assets/fonts/camphor/font1.woff2') format('woff2'),
             url('/assets/fonts/camphor/font1.woff') format('woff');
+            font-display: swap;
             }
 
             @font-face {
@@ -51,6 +62,7 @@
             font-weight: 500;
             src: url('/assets/fonts/camphor/font2.woff2') format('woff2'),
             url('/assets/fonts/camphor/font2.woff') format('woff');
+            font-display: swap;
             }
 
             @font-face {
@@ -58,6 +70,7 @@
             font-weight: 600;
             src: url('/assets/fonts/camphor/font3.woff2') format('woff2'),
             url('/assets/fonts/camphor/font3.woff') format('woff');
+            font-display: swap;
             }
 
             @font-face {
@@ -65,10 +78,11 @@
             font-weight: 400;
             src: url('/assets/fonts/camphor/font4.woff2') format('woff2'),
             url('/assets/fonts/camphor/font4.woff') format('woff');
+            font-display: swap;
             }
         </style>
         <!-- Google Tag Manager -->
-            <script>(function (w, d, s, l, i) {
+            <script defer>(function (w, d, s, l, i) {
                 w[l] = w[l] || []; w[l].push({
                     'gtm.start':
                         new Date().getTime(), event: 'gtm.js'
@@ -80,7 +94,7 @@
     </head>
     <body>
         <div id="root" class="db-DashboardRoot"></div>
-        <script>
+        <script defer>
             !function () {
             if ('PerformanceLongTaskTiming' in window) {
                 var g = window.__tti = { e: [] };
@@ -88,6 +102,15 @@
                 g.o.observe({ entryTypes: ['longtask'] })
             }
             }();
+            if('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('service-workr.js', {scope: '.'})
+                    .then(function(registration) {
+                        console.log('Service Worker Registered');
+                    })
+                    .catch(function(err) {
+                        console.log('Error: Service Worker because Registered: ', err);
+                    })
+            }
         </script>
         <!-- Google Tag Manager (noscript) -->
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH" height="0" width="0"

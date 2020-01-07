@@ -9,6 +9,13 @@
   <% include ./head %>
     <link rel="stylesheet" href="/css/contact.css">
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap" rel="stylesheet">
+    <script src="/js/amplitude.js"></script>
+    <script>
+      var IS_DEV = false;
+      if (!IS_DEV) {
+        amplitude.getInstance().logEvent('Contact us page loaded');
+      }
+    </script>
 </head>
 
 <body>

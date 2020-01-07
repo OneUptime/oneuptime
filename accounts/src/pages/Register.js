@@ -91,6 +91,6 @@ RegisterPage.propTypes = {
 	savePlanId: PropTypes.func.isRequired
 }
 
-RegisterPage.displayName = 'RegisterPage'
+RegisterPage.displayName = 'RegisterPage';
 
 export default connect(mapStateToProps, mapDispatchToProps)(RegisterPage);

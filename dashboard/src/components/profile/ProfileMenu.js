@@ -9,6 +9,8 @@ import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 import About from '../modals/About';
 import uuid from 'uuid';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class ProfileMenu extends Component {
     constructor(props) {
@@ -31,8 +33,8 @@ export class ProfileMenu extends Component {
         const values = { name: User.getName(), email: User.getEmail() };
         const { logoutUser } = this.props;
         logoutUser();
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('User Logged Out', values);
+        if (!IS_DEV) {
+            logEvent('User Logged Out', values);
         }
     }
 
@@ -151,9 +153,5 @@ ProfileMenu.propTypes = {
     ]),
     position: PropTypes.number
 }
-
-ProfileMenu.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProfileMenu);
