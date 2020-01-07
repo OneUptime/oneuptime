@@ -15,6 +15,7 @@
     
     <script src="/js/crm.js" type="text/javascript"></script>
     <link rel="stylesheet" href="/css/home.css">
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap" rel="stylesheet">
     <script defer src="/js/home.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.2.1/js/bootstrap.bundle.min.js"
         type="text/javascript"></script>
@@ -29,11 +30,11 @@
             <header>
 
                 <section id="intro">
-                    <div class="container-lg" style="display: flex;">
-                        <div style="position: relative;">
-                            <h1 class="black">
+                    <div class="container-lg" style="display: flex; justify-content: center;">
+                        <div>
+                            <h1 class="black" style="text-align:center; font-family: 'Source Sans Pro', sans-serif; font-weight:900; font-size:50px">
                                 Status Page, Monitoring
-                                <br>and On-call made simple.
+                                and On-call made simple.
                             </h1>
                             <p class="common-BodyText">
                                 Fyipe monitors your website, dashboards, API's, and more and alerts your team when
@@ -67,9 +68,7 @@
                     </div>
                 </section>
             </header>
-            <div id="introimage">
-                <img src="/img/fyipestatuspage.png" alt="statuspage" id="fyipe-frame-image">
-            </div>
+
             <% include ./sdlc %>
             <% include ./comparision-chart %>
             <% include ./crm %>

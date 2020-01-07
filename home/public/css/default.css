@@ -1107,6 +1107,12 @@ code,pre{
 .globalNav .navSection.logo .rootLink{
     padding-left:20px!important
 }
+
+.highlight {
+    border-radius: 1em 0 1em 0;
+    background-image: linear-gradient(-100deg, rgba(255, 224, 0, 0.3), rgba(255, 224, 0, 0.7) 95%, rgba(255, 224, 0, 0.1));
+}
+
 .globalNav .navSection.secondary .rootLink:last-child{
     padding-right:20px!important
 }

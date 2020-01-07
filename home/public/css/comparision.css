@@ -39,12 +39,15 @@
     border-radius: 12px;
    /* box-shadow:-0.4rem 0.4rem 2rem rgba(0,0,0,0.05); */
 }
+.light-yellow-background{
+    background-color: #FDF3E6;
+}
 .fyipe-listing{
     position:relative;
     height:73%;
     width:99%;
     margin:2px;
-    background-color: #000000;
+    background-color: #FDF3E6;
     border-radius: 10px;
     display:grid;
     grid-template-columns: 30% 70%;
@@ -71,7 +74,7 @@
 .fyipe-list-head>h4{
     font-size: 1.8em;
     font-weight: 500;
-    color:#FFFFFF;
+    color:#000000;
 }
 .comparision-others{
     height:450px;
@@ -113,26 +116,23 @@
     margin:auto 0;
 }
 .space{
-    width:15%;
+    width:10%;
     position: relative;
 }
 .fyipe-versus{
-    border-color: white;
-    border-style: solid;
-    border-width: 5px;
-    position:absolute;
-    top:30%;
-    left:-30%;
-    height:100px;
-    width:100px;
+    position: absolute;
+    top: 30%;
+    left: -35%;
+    height: 80px;
+    width: 80px;
     z-index: 1;
     background-color: #000000;
     border-radius: 50%;
-    color:white;
+    color: white;
     font-size: 40px;
     text-align: center;
     font-weight: 700;
-    line-height: 2.5em;
+    line-height: 2.0em;
 }
 .total{
     text-align:center;
@@ -202,14 +202,17 @@
 .list-text>h3,.comparision-others>h3{
     color:#000000; 
     font-size: 2em;
+    font-weight: 100;
 }
 .fyipe-checklist>li{
-    color:#FFFFFF;
+    color:#000000;
     font-size: 2em;
 }
 .list-text>h4{
    color:#FFFFFF;
-    font-size: 1.6em;
+    font-size: 1.4em;
+    color: black;
+    font-weight: 100;
 }
 @media only screen and (max-width: 892px) {
     .comparision-main{
