@@ -52,7 +52,7 @@ class UptimeGraphs extends Component {
     var block = [];
     var { monitorState, activeProbe } = this.props;
     var currentMonitorId  = this.props.monitor._id;
-    var monitorData = monitorState && monitorState[0].monitors.filter(monitor => monitor._id === currentMonitorId);
+    var monitorData = monitorState.filter(monitor => monitor._id === currentMonitorId);
     var probe = monitorData[0].probes.filter(probe => probe._id === activeProbe);
     var { timeBlock, uptimePercent } = probe && probe.probeStatus ? calculateTime(probe.probeStatus) : calculateTime([]);
 
