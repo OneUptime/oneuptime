@@ -288,6 +288,7 @@ describe('StatusPage API with Sub-Projects', function () {
         request.post(`/statusPage/${subProjectId}`).set('Authorization', authorization).send({
             links: [],
             title: 'Status title',
+            name: 'New StatusPage',
             description: 'status description',
             copyright: 'status copyright',
             projectId,

@@ -5,9 +5,9 @@ import { Component } from 'react';
 import { API_URL } from '../../config';
 import { reduxForm, Field } from 'redux-form';
 import {
-    updateStatusPageBranding, updateStatusPageBrandingRequest, updateStatusPageBrandingSuccess,
-    updateStatusPageBrandingError, createLogoCache, createFaviconCache,
+    createLogoCache, createFaviconCache,
     resetLogoCache, resetFaviconCache, fetchProjectStatusPage,
+    updateStatusPageNameRequest, updateStatusPageName,
 } from '../../actions/statusPage';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
@@ -20,19 +20,9 @@ import { IS_DEV } from '../../config';
 //Client side validation
 function validate(values) {
     const errors = {};
-    if (values.title) {
-        if (!Validate.text(values.title)) {
-            errors.title = 'Please mention title in text format .'
-        }
-    }
-    if (values.description) {
-        if (!Validate.text(values.description)) {
-            errors.description = 'Please mention description in text format .'
-        }
-    }
-    if (values.copyright) {
-        if (!Validate.text(values.copyright)) {
-            errors.copyright = 'Please mention copyright in text format .'
+    if (values.name) {
+        if (!Validate.text(values.name)) {
+            errors.name = 'Please mention name in text format .'
         }
     }
 
@@ -84,7 +74,7 @@ export class Branding extends Component {
         projectId = projectId ? projectId._id || projectId : null;
         if(_id) values._id = _id;
         const { reset, resetLogoCache, resetFaviconCache } = this.props;
-        this.props.updateStatusPageBranding(projectId, values).then( ()=> {
+        this.props.updateStatusPageName(projectId, values).then( ()=> {
             this.props.fetchProjectStatusPage(projectId, true, 0, 10);
             resetLogoCache();
             resetFaviconCache();
@@ -134,13 +124,12 @@ export class Branding extends Component {
                                                     <Field className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         component={RenderField}
                                                         type="text"
-                                                        name="title"
-                                                        id="title"
-                                                        placeholder="MyCompany Status Page"
-                                                        disabled={this.props.statusPage.branding.requesting}
+                                                        name="name"
+                                                        id="name"
+                                                        placeholder="My Company Status Page"
+                                                        disabled={this.props.statusPage.pageName.requesting}
                                                     />
-                                                    <p className="bs-Fieldset-explanation"><span> This is for internal use only.
-																				</span></p>
+                                                    <p className="bs-Fieldset-explanation"><span>This is for internal use only.</span></p>
                                                 </div>
                                             </div>
                                         </div>
@@ -149,7 +138,7 @@ export class Branding extends Component {
                             </div>
                         </div>
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12"><span className="db-SettingsForm-footerMessage">
-                            <ShouldRender if={this.props.statusPage.branding.error}>
+                            <ShouldRender if={this.props.statusPage.pageName.error}>
                                 <div className="bs-Tail-copy">
                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
                                         <div className="Box-root Margin-right--8">
@@ -157,7 +146,7 @@ export class Branding extends Component {
                                             </div>
                                         </div>
                                         <div className="Box-root">
-                                            <span style={{ color: 'red' }}>{this.props.statusPage.branding.error}</span>
+                                            <span style={{ color: 'red' }}>{this.props.statusPage.pageName.error}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -165,8 +154,8 @@ export class Branding extends Component {
                         </span>
 
                             <div>
-                                <button className="bs-Button bs-DeprecatedButton bs-Button--blue" disabled={this.props.statusPage.branding.requesting} type="submit">{!this.props.statusPage.branding.requesting && <span>Save</span>}
-                                    {this.props.statusPage.branding.requesting && <FormLoader />}</button>
+                                <button className="bs-Button bs-DeprecatedButton bs-Button--blue" disabled={this.props.statusPage.pageName.requesting} type="submit">{!this.props.statusPage.pageName.requesting && <span>Save</span>}
+                                    {this.props.statusPage.pageName.requesting && <FormLoader />}</button>
                             </div>
                         </div>
                     </form>
@@ -184,7 +173,7 @@ Branding.propTypes = {
     resetLogoCache: PropTypes.func.isRequired,
     createFaviconCache: PropTypes.func.isRequired,
     resetFaviconCache: PropTypes.func.isRequired,
-    updateStatusPageBranding: PropTypes.func.isRequired,
+    updateStatusPageName: PropTypes.func.isRequired,
     createLogoCache: PropTypes.func.isRequired,
     logourl: PropTypes.oneOfType([
         PropTypes.string,
@@ -198,8 +187,8 @@ Branding.propTypes = {
     fetchProjectStatusPage: PropTypes.func.isRequired,
 }
 
-let BrandingForm = reduxForm({
-    form: 'Branding', // a unique identifier for this form
+let BasicForm = reduxForm({
+    form: 'BasicForm', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for
 })(Branding);
@@ -208,8 +197,7 @@ const mapDispatchToProps = (dispatch) => {
     return bindActionCreators({
         createLogoCache, createFaviconCache,
         resetLogoCache, resetFaviconCache,
-        updateStatusPageBranding, updateStatusPageBrandingRequest,
-        updateStatusPageBrandingSuccess, updateStatusPageBrandingError, fetchProjectStatusPage,
+        fetchProjectStatusPage, updateStatusPageName, updateStatusPageNameRequest,
     }, dispatch)
 }
 
@@ -220,10 +208,9 @@ function mapStateToProps(state) {
         logourl: state.statusPage.logocache.data,
         faviconurl: state.statusPage.faviconcache.data,
         initialValues: {
-            title: state.statusPage && state.statusPage.status && state.statusPage.status.title ? state.statusPage.status.title : '',
-            description: state.statusPage && state.statusPage.status && state.statusPage.status.description ? state.statusPage.status.description : '',
-            copyright: state.statusPage && state.statusPage.status && state.statusPage.status.copyright ? state.statusPage.status.copyright : '',        },
+            name: state.statusPage && state.statusPage.status && state.statusPage.status.name ? state.statusPage.status.name : '',
+        },
     };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(BrandingForm);
+export default connect(mapStateToProps, mapDispatchToProps)(BasicForm);

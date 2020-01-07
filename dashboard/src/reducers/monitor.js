@@ -643,9 +643,11 @@ export default function monitor(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        if (monitor._id === action.payload.monitorId) {
-                            monitor.subscribers.subscribers = monitor.subscribers.subscribers.filter(subscriber => subscriber._id !== action.payload._id)
-                            monitor.subscribers.count = monitor.subscribers.count - 1
+                        if (monitor.monitors[0]._id === action.payload.monitorId) {
+                            monitor.monitors[0].subscribers.subscribers = monitor.monitors[0].subscribers.subscribers.filter(
+                                subscriber => subscriber._id !== action.payload._id
+                            );
+                            monitor.monitors[0].subscribers.count = monitor.monitors[0].subscribers.count - 1;
                             return monitor;
                         } else {
                             return monitor;

@@ -238,6 +238,27 @@ export function updateStatusPageBrandingError(error) {
 	};
 }
 
+// Update status page name
+export function updateStatusPageNameRequest() {
+	return {
+		type: types.UPDATE_STATUSPAGE_NAME_REQUEST,
+	};
+}
+
+export function updateStatusPageNameSuccess(statusPage) {
+	return {
+		type: types.UPDATE_STATUSPAGE_NAME_SUCCESS,
+		payload: statusPage
+	};
+}
+
+export function updateStatusPageNameError(error) {
+	return {
+		type: types.UPDATE_STATUSPAGE_NAME_FAILURE,
+		payload: error
+	};
+}
+
 // Calls the API to update branding.
 export function updateStatusPageBranding(projectId, values) {
 	return function (dispatch) {
@@ -276,6 +297,34 @@ export function updateStatusPageBranding(projectId, values) {
 				error = 'Network Error';
 			}
 			dispatch(updateStatusPageBrandingError(errors(error)));
+		});
+		return promise;
+	};
+}
+
+// Calls the API to update status page name.
+export function updateStatusPageName(projectId, values) {
+	return function (dispatch) {
+
+		var promise = putApi(`statusPage/${projectId}`, values);
+		dispatch(updateStatusPageNameRequest());
+
+		promise.then(function (response) {
+			var statusPage = response.data;
+			dispatch(updateStatusPageNameSuccess(statusPage));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(updateStatusPageNameError(errors(error)));
 		});
 		return promise;
 	};

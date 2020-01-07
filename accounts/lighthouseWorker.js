@@ -48,7 +48,8 @@ process.on('message', function (data) {
 		return scores;
 	})
 	.catch(err => {
-		process.stderr.write(err)
-		return err;
+		/* eslint-disable no-console */
+		console.log(err)
+		process.exit(1);
 	});
 });

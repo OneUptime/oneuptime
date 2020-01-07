@@ -228,7 +228,7 @@ module.exports = {
             await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
             await page.click(`#btnCreateStatusPage_${projectName}`);
             await page.waitForSelector('#btnCreateStatusPage');
-            await page.type('#title', statusPageName);
+            await page.type('#name', statusPageName);
             await page.click('#btnCreateStatusPage');
             await page.waitFor(5000);
         } else {
@@ -237,7 +237,7 @@ module.exports = {
             await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
             await page.click(`#btnCreateStatusPage_${projectName}`);
             await page.waitForSelector('#btnCreateStatusPage');
-            await page.type('#title', statusPageName);
+            await page.type('#name', statusPageName);
             await page.click('#btnCreateStatusPage');
             await page.waitFor(5000);
         }
