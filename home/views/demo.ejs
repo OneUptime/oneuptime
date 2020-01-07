@@ -10,6 +10,13 @@
     <link rel="stylesheet" href="/css/demo.css">
     <script defer src="/js/demo.js"></script>
     <script src="/js/emaildomains.js"></script>
+    <script src="/js/amplitude.js"></script>
+    <script>
+        var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+        if (!IS_DEV) {
+            amplitude.getInstance().logEvent('Demo page loaded');
+        }
+    </script>
 
 </head>
 
@@ -815,32 +822,50 @@
 
     <script type="text/javascript">
         window.onload = function () {
-            var demoUrl = "";
+            var apiURL = "";
             if (window.location.href.indexOf('localhost') > -1) {
-                demoUrl = 'http://localhost:3001';
+                apiURL = 'http://localhost:3002';
             } else if (window.location.href.indexOf('staging') > -1) {
-                demoUrl = 'https://staging-api.fyipe.com';
+                apiURL = 'https://staging-api.fyipe.com';
             } else {
-                demoUrl = 'https://api.fyipe.com';
+                apiURL = 'https://api.fyipe.com';
             }
-            document.getElementById('demoform').action = `${demoUrl}/lead/add/demo`;
-        }
+            document.getElementById('demoform').action = `${apiURL}/lead/add/demo`;
+            }
     </script>
-
     <script type="text/javascript">
         $(document).ready(function (e) {
             $('#request-demo-btn').click(function () {
                 var email = $('#email').val();
-
                 if (emaildomains.test(email)) {
+                    try {
+                        var queryString = $('#demoform').serialize();
+                        var formData = Object.fromEntries(new URLSearchParams(queryString));
+                        var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+                        if (!IS_DEV) {
+                            amplitude.getInstance().logEvent('Filling demo form', { data: formData });
+                        }
+                    } catch {}
                     return 0;
                 }
                 else {
-                    $('#error-text').css("display","block");
+                    $('#error-text').css("display", "block");
                     $('#email').addClass("invalid-value");
                     return false;
                 }
             });
+        });
+    </script>
+    <script type="text/javascript">
+        $(document).ready(function (e) {
+            document.getElementById('demoform').addEventListener('click', function(){
+                var queryString = $('#demoform').serialize();
+                var formData = Object.fromEntries(new URLSearchParams(queryString));
+                var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+                if (!IS_DEV) {
+                    amplitude.getInstance().logEvent('Filling demo form', { data: formData });
+                }
+            })
         });
     </script>
     <%include ./footer %>

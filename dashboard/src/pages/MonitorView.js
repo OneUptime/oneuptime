@@ -107,6 +107,7 @@ const mapStateToProps = (state, props) => {
   if (monitor) {
     initialValues[`name_${monitor._id}`] = monitor.name;
     initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
+    initialValues[`deviceId_${monitor._id}`] = monitor.data && monitor.data.deviceId;
     initialValues[`description_${monitor._id}`] = monitor.data && monitor.data.description;
     initialValues[`subProject_${monitor._id}`] = monitor.projectId._id;
     initialValues[`monitorCategoryId_${monitor._id}`] = monitor.monitorCategoryId;

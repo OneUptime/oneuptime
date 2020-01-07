@@ -8,7 +8,7 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function (user, page){
+    registerUser: async function (user, page) {
         const { email } = user;
         let frame, elementHandle;
         await page.goto(utils.ACCOUNTS_URL + '/register', { waitUntil: 'networkidle2' });
@@ -26,10 +26,12 @@ module.exports = {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
+        await page.waitFor(5000);
+
         await page.waitForSelector('iframe[name=__privateStripeFrame5]');
         await page.waitForSelector('iframe[name=__privateStripeFrame6]');
         await page.waitForSelector('iframe[name=__privateStripeFrame7]');
-        await page.waitFor(5000);
+
         await page.click('input[name=cardName]');
         await page.type('input[name=cardName]', 'Test name');
 
@@ -37,21 +39,21 @@ module.exports = {
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=cardnumber]');
         await frame.type('input[name=cardnumber]', '42424242424242424242', {
-            delay:50
+            delay: 50
         });
 
         elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=cvc]');
         await frame.type('input[name=cvc]', '123', {
-            delay:50
+            delay: 50
         });
 
         elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=exp-date]');
         await frame.type('input[name=exp-date]', '11/23', {
-            delay:50
+            delay: 50
         });
         await page.click('input[name=address1]');
         await page.type('input[name=address1]', utils.user.address.streetA);
@@ -76,7 +78,7 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await page.click('button[type=submit]');
-        await page.waitFor(5000);
+        await page.waitFor(15000);
         // await page.screenshot({path: 'screenshot-login.png'});
     },
     addSchedule: async function (callSchedule, page) {
@@ -136,7 +138,7 @@ module.exports = {
         // await page.screenshot({ path: 'screenshot-switchProject.png' });
     },
     renameProject: async function (newProjectName, page) {
-        await page.reload({waitUntil: 'domcontentloaded'});
+        await page.reload({ waitUntil: 'domcontentloaded' });
         const projectNameSelector = await page.$('input[name=project_name');
         if (projectNameSelector) {
             await this.clear('input[name=project_name]', page);
@@ -168,8 +170,23 @@ module.exports = {
         }
         // await page.screenshot({ path: 'screenshot-selectByText.png' });
     },
-    addMonitorToProject: async function (monitorName, projectName, page) {
-        await page.reload({waitUntil: 'domcontentloaded'});
+    addMonitorToProject: async function (monitorName, page) {
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('#monitors');
+        await page.click('#monitors');
+        await page.waitForSelector('#frmNewMonitor');
+        await page.click('input[id=name]');
+        await page.type('input[id=name]', monitorName);
+        await this.selectByText('#type', 'device', page);
+        await page.waitForSelector('#deviceId');
+        await page.click('#deviceId');
+        await page.type('#deviceId', utils.generateRandomString());
+        await page.click('button[type=submit]');
+        await page.waitFor(5000);
+        // await page.screenshot({ path: `screenshot-addMonitorToProject${monitorName}.png` });
+    },
+    addMonitorToSubProject: async function (monitorName, projectName, page) {
+        await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#monitors');
         await page.click('#monitors');
         await page.waitForSelector('#frmNewMonitor');
@@ -182,7 +199,7 @@ module.exports = {
         await page.type('#deviceId', utils.generateRandomString());
         await page.click('button[type=submit]');
         await page.waitFor(5000);
-        // await page.screenshot({ path: `screenshot-addMonitorToProject${monitorName}.png` });
+        // await page.screenshot({ path: `screenshot-addMonitorToSubProject${monitorName}.png` });
     },
     addIncidentToProject: async function (monitorName, projectName, page) {
         const createIncidentSelector = await page.$(`#btnCreateIncident_${projectName}`);
@@ -248,13 +265,13 @@ module.exports = {
         // await page.screenshot({path: 'screenshot-addScheduleToProject.png'});
     },
     filterRequest: async (request, response) => {
-        if((await request.url()).match(/user\/login/)){
+        if ((await request.url()).match(/user\/login/)) {
             request.respond({
                 status: 200,
                 contentType: 'application/json',
                 body: JSON.stringify(response)
             });
-        }else{
+        } else {
             request.continue();
         }
     }

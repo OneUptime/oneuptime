@@ -144,7 +144,7 @@ export class MonitorViewHeader extends Component {
                             </div>
                             <div>
                                 <RenderIfSubProjectAdmin subProjectId={subProjectId}>
-                                    <button className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' onClick={this.editMonitor}><span>Edit</span></button>
+                                    <button id={`edit_${monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' onClick={this.editMonitor}><span>Edit</span></button>
                                     <button id={`delete_${monitor.name}`} className={deleting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'} type="button" disabled={deleting}
                                         onClick={() =>
                                             this.props.openModal({

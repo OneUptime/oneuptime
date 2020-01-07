@@ -31,9 +31,9 @@ class CreateWebHook extends React.Component {
 		postObj.endpointType = values.endpointType;
 		postObj.monitorId = monitorId ? monitorId : values.monitorId;
 		postObj.type = 'webhook';
-		postObj.incidentCreated = values.incidentCreated ? values.incidentCreated: false;
-		postObj.incidentResolved = values.incidentResolved ? values.incidentResolved: false;
-		postObj.incidentAcknowledged = values.incidentAcknowledged ? values.incidentAcknowledged: false;
+		postObj.incidentCreated = values.incidentCreated ? values.incidentCreated : false;
+		postObj.incidentResolved = values.incidentResolved ? values.incidentResolved : false;
+		postObj.incidentAcknowledged = values.incidentAcknowledged ? values.incidentAcknowledged : false;
 
 		createWebHook(this.props.currentProject._id, postObj)
 			.then(() => {
@@ -228,7 +228,7 @@ class CreateWebHook extends React.Component {
 														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
 														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
 															<div className="bs-Fieldset-field">
-																<label className="Checkbox"  style={{ marginRight: '12px' }}>
+																<label className="Checkbox" style={{ marginRight: '12px' }}>
 																	<Field
 																		component="input"
 																		type="checkbox"
@@ -273,7 +273,7 @@ class CreateWebHook extends React.Component {
 									<button
 										className="bs-Button bs-DeprecatedButton bs-Button--blue"
 										disabled={this.props.newWebHook && this.props.newWebHook.requesting}
-										type="submit">
+										type="submit" id="createWebhook">
 										{this.props.newWebHook && !this.props.newWebHook.requesting && <span>Create</span>}
 										{this.props.newWebHook && this.props.newWebHook.requesting && <FormLoader />}
 									</button>

@@ -20,7 +20,7 @@
 ## Running this project in local environment. 
 
 To run the project in local development. Please follow this steps: 
- - `npm i` - Installs npm depenedencies for precommit hooks, requires git `>= 2.13.0` 
+ - `npm ci` - Installs npm depenedencies for precommit hooks, requires git `>= 2.13.0` 
  - `./install.sh` - Installs npm dependencies in all the projects. 
  
 ## Running the project in staging. 
