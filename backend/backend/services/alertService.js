@@ -200,7 +200,7 @@ module.exports = {
                                             const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
                                             if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) {
                                                 var user = await UserService.findOneBy({ _id: teamMember.member });
-    
+
                                                 if (user) {
                                                     let accessToken = jwt.sign({
                                                         id: user._id
@@ -237,7 +237,7 @@ module.exports = {
                                                         let alertStatus, alert, balanceStatus;
                                                         let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
                                                         if (balanceCheckStatus) {
-    
+
                                                             let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
                                                             if(alertSuccess && alertSuccess.code && alertSuccess.code === 400){
                                                                 await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, null,true,alertSuccess.message);
@@ -453,9 +453,15 @@ module.exports = {
         var startTimeDate = new Date(escalationStartTime);
         var endTimeDate = new Date(escalationEndTime);
 
+        var startDate = moment(startTimeDate).toObject().date;
+        var endDate = moment(endTimeDate).toObject().date;
+
         startTime = moment(startTimeDate).toObject().hours;
         endTime = moment(endTimeDate).toObject().hours;
 
+        if(startDate !== endDate){
+            endTime = ((endDate - startDate) * 24) + endTime;
+        }
         return { currentTime, startTime, endTime };
     },
 
