@@ -126,8 +126,4 @@ const mapStateToProps = state => {
 	}
 }
 
-SubProjectTable.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-}
-
 export default connect(mapStateToProps, mapDispatchToProps)(SubProjectTable)

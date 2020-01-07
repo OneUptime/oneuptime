@@ -102,8 +102,4 @@ SlackTeamItem.propTypes = {
     openModal: PropTypes.func,
 };
 
-SlackTeamItem.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
-
 export default connect(mapStateToProps, mapDispatchToProps)(SlackTeamItem);

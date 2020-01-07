@@ -158,9 +158,28 @@ module.exports = {
             Log.responseStatus = data.responseStatus;
             Log.data = data.data;
             Log.status = data.status;
+
             var savedLog = await Log.save();
-            await MonitorService.sendResponseTime(savedLog);
-            await MonitorService.sendMonitorLog(savedLog);
+            savedLog = savedLog.toObject();
+            var logData = {
+                ...savedLog,
+                data: savedLog.data ? {
+                    cpuLoad: savedLog.data.load.currentload,
+                    avgCpuLoad: savedLog.data.load.avgload,
+                    cpuCores: savedLog.data.load.cpus.length,
+                    memoryUsed: savedLog.data.memory.used,
+                    totalMemory: savedLog.data.memory.total,
+                    swapUsed: savedLog.data.memory.swapused,
+                    storageUsed: savedLog.data.disk.used,
+                    totalStorage: savedLog.data.disk.size,
+                    storageUsage: savedLog.data.disk.use,
+                    mainTemp: savedLog.data.temperature.main,
+                    maxTemp: savedLog.data.temperature.max
+                } : null
+            };
+            
+            await MonitorService.sendResponseTime(logData);
+            await MonitorService.sendMonitorLog(logData);
 
             if (data.probeId && data.monitorId) await this.sendProbe(data.probeId, data.monitorId);
 

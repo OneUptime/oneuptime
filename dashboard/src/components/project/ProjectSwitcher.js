@@ -5,6 +5,8 @@ import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import ReactHoverObserver from 'react-hover-observer';
 import { switchProject, hideProjectSwitcher, showForm } from '../../actions/project';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class ProjectSwitcher extends Component {
 
@@ -25,8 +27,8 @@ export class ProjectSwitcher extends Component {
         switchProject(dispatch, project);
 
         hideProjectSwitcher();
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Project Switched', project);
+        if(!IS_DEV){
+            logEvent('Project Switched', project);
         }
     }
 
@@ -134,9 +136,5 @@ ProjectSwitcher.propTypes = {
     project: PropTypes.object.isRequired,
     visible: PropTypes.bool
 }
-
-ProjectSwitcher.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(ProjectSwitcher));

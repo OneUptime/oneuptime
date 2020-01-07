@@ -8,6 +8,8 @@ import { CSVLink } from 'react-csv';
 import { downloadAlertCharges } from '../../actions/alert';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class AlertCharge extends Component {
 
@@ -19,8 +21,8 @@ class AlertCharge extends Component {
     }
 
     componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('AlertCharge page Loaded');
+        if (!IS_DEV) {
+            logEvent('AlertCharge page Loaded')
         }
     }
     fetchData = () => {
@@ -121,10 +123,6 @@ AlertCharge.propTypes = {
     requesting: PropTypes.bool,
     alertCharges: PropTypes.oneOfType([PropTypes.object, PropTypes.array])
 }
-
-AlertCharge.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 AlertCharge.displayName = 'AlertCharge';
 

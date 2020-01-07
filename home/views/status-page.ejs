@@ -10,6 +10,13 @@
 
     <link rel="stylesheet" href="/css/status-page.css">
     <script defer src="/js/status-page.js"></script>
+    <script src="/js/amplitude.js"></script>
+    <script>
+        var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+        if (!IS_DEV) {
+            amplitude.getInstance().logEvent('Status page loaded');
+        }
+    </script>
 </head>
 
 <body>

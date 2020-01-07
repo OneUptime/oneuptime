@@ -23,6 +23,8 @@ import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 const selector = formValueSelector('NewMonitor');
 
@@ -159,16 +161,16 @@ class NewMonitor extends Component {
                     } else {
                         this.props.fetchMonitorsIncidents(postObj.projectId, this.props.editMonitorProp._id, 0, 3);
                     }
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Monitor Edit', values);
+                    if (!IS_DEV) {
+                        logEvent('Monitor Edit', values);
                     }
                 })
         } else {
             this.props.createMonitor(postObj.projectId, postObj)
                 .then(() => {
                     thisObj.props.reset();
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Add New Monitor', values);
+                    if (!IS_DEV) {
+                        logEvent('Add New Monitor', values);
                     }
                 }, error => {
                     if (error && error.message && error.message === 'You can\'t add any more monitors. Please add an extra seat to add more monitors.') {
@@ -202,8 +204,8 @@ class NewMonitor extends Component {
 
     cancelEdit = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Monitor Edit Cancelled', {});
+        if (!IS_DEV) {
+            logEvent('Monitor Edit Cancelled', {});
         }
     }
 
@@ -640,9 +642,5 @@ NewMonitor.propTypes = {
     setMonitorCriteria: PropTypes.func,
     fetchMonitorCriteria: PropTypes.func
 }
-
-NewMonitor.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

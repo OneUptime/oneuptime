@@ -109,10 +109,6 @@ const mapStateToProps = state => (
 	}
 );
 
-WebHookInput.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
-
 WebHookInput.propTypes = {
 	currentProject: PropTypes.object.isRequired,
 	deleteWebHook: PropTypes.func.isRequired,

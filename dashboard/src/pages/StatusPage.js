@@ -14,12 +14,14 @@ import PrivateStatusPage from '../components/statusPage/PrivateStatusPage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class StatusPage extends Component {
 
     componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('StatusPage Settings Loaded');
+        if (!IS_DEV) {
+            logEvent('StatusPage Settings Loaded');
         }
     }
 
@@ -96,10 +98,6 @@ function mapStateToProps(state) {
 
     };
 }
-
-StatusPage.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 StatusPage.propTypes = {
     statusPage: PropTypes.object.isRequired,

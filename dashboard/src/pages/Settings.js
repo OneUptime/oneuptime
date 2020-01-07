@@ -11,11 +11,13 @@ import RenderIfOwner from '../components/basic/RenderIfOwner';
 import ExitProject from '../components/settings/ExitProject';
 import { hideDeleteModal } from '../actions/project';
 import PropTypes from 'prop-types';
+import { IS_DEV } from '../config';
+import { logEvent } from '../analytics'; 
 
 class Settings extends Component {
   componentDidMount() {
-    if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('Project Settings Page Loaded');
+    if (!IS_DEV) {
+      logEvent('Project Settings Page Loaded');
     }
   }
 
@@ -75,10 +77,6 @@ const mapDispatchToProps = dispatch =>
 
 Settings.propTypes = {
   hideDeleteModal: PropTypes.func.isRequired
-};
-
-Settings.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
 };
 
 Settings.displayName = 'Settings';

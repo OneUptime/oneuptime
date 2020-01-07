@@ -42,36 +42,36 @@ describe('Incident API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            
+
             // intercept request and mock response for login
             await page.setRequestInterception(true);
             await page.on('request', async (request) => {
                 const signInResponse = userCredentials.find(userCredentials => userCredentials.email === user.email);
 
-                if((await request.url()).match(/user\/login/)){
+                if ((await request.url()).match(/user\/login/)) {
                     request.respond({
                         status: 200,
                         contentType: 'application/json',
                         body: JSON.stringify(signInResponse)
                     });
-                }else{
+                } else {
                     request.continue();
                 }
             });
-            await page.on('response', async (response)=>{
-                try{
+            await page.on('response', async (response) => {
+                try {
                     const res = await response.json();
-                    if(res && res.tokens){
+                    if (res && res.tokens) {
                         userCredentials.push(res);
                     }
-                }catch(error){}
+                } catch (error) { }
             });
 
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-        
-            if(data.isParentUser){
+
+            if (data.isParentUser) {
                 // rename default project
                 await init.renameProject(data.projectName, page);
                 // add sub-project
@@ -79,9 +79,9 @@ describe('Incident API With SubProjects', () => {
                 // add new user to sub-project
                 await init.addUserToProject({ email: data.newEmail, role: 'Member', subProjectName: data.subProjectName }, page);
                 // add new monitor to parent project
-                await init.addMonitorToProject(data.projectMonitorName, data.projectName, page);
+                await init.addMonitorToSubProject(data.projectMonitorName, data.projectName, page);
                 // add new monitor to sub-project
-                await init.addMonitorToProject(data.subProjectMonitorName, data.subProjectName, page);
+                await init.addMonitorToSubProject(data.subProjectMonitorName, data.subProjectName, page);
             }
         });
 
@@ -92,11 +92,11 @@ describe('Incident API With SubProjects', () => {
         await cluster.close();
         done();
     });
-    
+
     afterAll(async (done) => {
         done();
     });
-    
+
 
     test('should create an incident in parent project for valid `admin`', async (done) => {
         expect.assertions(1);
@@ -127,11 +127,11 @@ describe('Incident API With SubProjects', () => {
             await page.waitForSelector(`#create_incident_${data.projectMonitorName}`);
             await page.click(`#create_incident_${data.projectMonitorName}`);
             await page.waitForSelector('#createIncident');
-            await init.selectByText('#incidentType','Offline', page);
+            await init.selectByText('#incidentType', 'Offline', page);
             await page.click('#createIncident');
             await page.waitForSelector('#incident_span_0');
             const incidentTitleSelector = await page.$('#incident_span_0');
-            
+
             let textContent = await incidentTitleSelector.getProperty('innerText');
             textContent = await textContent.jsonValue();
             expect(textContent.toLowerCase()).toEqual(`${projectMonitorName}'s Incident Status`.toLowerCase());
@@ -175,11 +175,11 @@ describe('Incident API With SubProjects', () => {
             await page.waitForSelector(`#create_incident_${data.subProjectMonitorName}`);
             await page.click(`#create_incident_${data.subProjectMonitorName}`);
             await page.waitForSelector('#createIncident');
-            await init.selectByText('#incidentType','Offline', page);
+            await init.selectByText('#incidentType', 'Offline', page);
             await page.click('#createIncident');
             await page.waitForSelector('#incident_span_0');
             const incidentTitleSelector = await page.$('#incident_span_0');
-            
+
             let textContent = await incidentTitleSelector.getProperty('innerText');
             textContent = await textContent.jsonValue();
             expect(textContent.toLowerCase()).toEqual(`${subProjectMonitorName}'s Incident Status`.toLowerCase());
@@ -192,9 +192,9 @@ describe('Incident API With SubProjects', () => {
 
     }, operationTimeOut);
 
-    test('should acknowledge incident in sub-project for sub-project `member`', async (done) =>{
+    test('should acknowledge incident in sub-project for sub-project `member`', async (done) => {
         expect.assertions(1);
-        
+
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -237,9 +237,9 @@ describe('Incident API With SubProjects', () => {
     }, operationTimeOut);
 
 
-    test('should resolve incident in sub-project for sub-project `member`', async (done) =>{
+    test('should resolve incident in sub-project for sub-project `member`', async (done) => {
         expect.assertions(1);
-        
+
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -281,7 +281,7 @@ describe('Incident API With SubProjects', () => {
 
     }, operationTimeOut);
 
-    test('should update internal and investigation notes of incident in sub-project', async (done) =>{
+    test('should update internal and investigation notes of incident in sub-project', async (done) => {
         expect.assertions(2);
 
         const cluster = await Cluster.launch({
@@ -328,7 +328,7 @@ describe('Incident API With SubProjects', () => {
 
             internalContent = await internalContent.jsonValue();
             expect(internalContent).toEqual(internalNote);
-            
+
             const investigationNoteSelector = await page.$('#txtInvestigationNote');
             let investigationContent = await investigationNoteSelector.getProperty('textContent');
 
@@ -344,7 +344,7 @@ describe('Incident API With SubProjects', () => {
 
     }, operationTimeOut);
 
-    test('should get list of incidents and paginate for incidents in sub-project', async (done)=>{
+    test('should get list of incidents and paginate for incidents in sub-project', async (done) => {
         expect.assertions(3);
 
         const cluster = await Cluster.launch({
@@ -373,7 +373,7 @@ describe('Incident API With SubProjects', () => {
             // switch to invited project for new user
             await init.switchProject(data.projectName, page);
 
-            for(let i=0; i<10; i++){
+            for (let i = 0; i < 10; i++) {
                 await init.addIncidentToProject(data.subProjectMonitorName, data.subProjectName, page);
             }
 

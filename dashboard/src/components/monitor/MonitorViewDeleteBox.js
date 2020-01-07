@@ -11,6 +11,8 @@ import DeleteMonitor from '../modals/DeleteMonitor';
 import { deleteMonitor } from '../../actions/monitor';
 import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class MonitorViewDeleteBox extends Component {
 
@@ -23,8 +25,8 @@ export class MonitorViewDeleteBox extends Component {
         const projectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
         let promise = this.props.deleteMonitor(this.props.monitor._id, projectId);
         history.push(`/project/${this.props.currentProject._id}/monitoring`);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Monitor Deleted', {
+        if (!IS_DEV) {
+            logEvent('Monitor Deleted', {
                 ProjectId: this.props.currentProject._id,
                 monitorId: this.props.monitor._id
             });
@@ -116,9 +118,5 @@ MonitorViewDeleteBox.propTypes = {
     monitor: PropTypes.object.isRequired,
     deleteMonitor: PropTypes.func.isRequired,
 }
-
-MonitorViewDeleteBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(MonitorViewDeleteBox));

@@ -12,6 +12,8 @@ import { User, ACCOUNTS_URL, DOMAIN_URL } from './config';
 import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
 import { loadPage } from './actions/page';
+import { setUserId, setUserProperties, identify, logEvent } from './analytics';
+import { IS_DEV } from './config';
 
 if (!isServer) {
 	history.listen(location => {
@@ -29,14 +31,28 @@ if (userData !== undefined) {
 	User.setEmail(userData.email);
 	User.setName(userData.name);
 	User.setCardRegistered(userData.cardRegistered);
+	if (!IS_DEV) {
+		setUserId(userData.id);
+		identify(userData.id);
+		setUserProperties({
+			'Name': userData.name,
+			'Created': new Date(),
+			'Email': userData.email
+		});
+		logEvent('Logged in successfully', { 'id': userData.id });
+	}	
 }
 cookies.remove('data', { domain: DOMAIN_URL });
 
 if (!User.isLoggedIn()) {
 	window.location = ACCOUNTS_URL;
 	store.dispatch(loadPage('Home'));
+} else {
+	const id = User.getUserId();
+	if (!IS_DEV) {
+		setUserId(id);
+	}
 }
-
 const App = () => (
 	<div style={{ height: '100%' }}>
 		<Socket />

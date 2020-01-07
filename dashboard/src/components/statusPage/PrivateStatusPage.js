@@ -13,6 +13,8 @@ import uuid from 'uuid';
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class PrivateStatusPage extends Component {
 
@@ -38,8 +40,8 @@ export class PrivateStatusPage extends Component {
             .then(() => {
                 this.props.fetchProjectStatusPage(projectId, true)
             })
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Private StatusPage Updated', values);
+        if (!IS_DEV) {
+            logEvent('Private StatusPage Updated', values);
         }
     }
 
@@ -284,9 +286,5 @@ const mapStateToProps = state => {
 
     return { initialValues, statusPage, currentProject };
 }
-
-PrivateStatusPage.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(PrivateStatusPageForm);

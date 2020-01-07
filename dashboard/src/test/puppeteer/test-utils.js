@@ -28,7 +28,11 @@ function generateWrongEmail() {
     return Math.random().toString(36).substring(8) + '@' + Math.random().toString(24).substring(8) + '.com';
 }
 
-function generateRandomString(){
+function generateRandomWebsite() {
+    return 'http://' + Math.random().toString(36).substring(10) + '.com';
+}
+
+function generateRandomString() {
     return Math.random().toString(36).substring(10)
 }
 
@@ -70,5 +74,6 @@ module.exports = {
     updatedScheduledEventName,
     updatedScheduledEventDescription,
     generateRandomString,
-    generateRandomBusinessEmail
+    generateRandomBusinessEmail,
+    generateRandomWebsite
 };

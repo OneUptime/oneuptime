@@ -34,11 +34,11 @@ CustomTooltip.propTypes = {
 class AreaChart extends Component {
     parseValue(data, name, display, symbol) {
         switch (name) {
-            case 'load': return display ? `${formatDecimal(data.currentload, 2)} ${symbol || '%'}` : data.currentload;
-            case 'memory': return display ? `${formatBytes(data.used)} ${symbol || ''}` : data.used;
-            case 'disk': return display ? `${formatBytes(data.used)} ${symbol || ''}` : data.used;
-            case 'temperature': return display ? `${data.main} ${symbol || '°C'}` : data.main;
-            default: return display ? `${data} ${symbol || ''}` : data;
+            case 'load': return display ? `${formatDecimal(data.avgCpuLoad || 0, 2)} ${symbol || '%'}` : data.avgCpuLoad || 0;
+            case 'memory': return display ? `${formatBytes(data.avgMemoryUsed || 0)} ${symbol || ''}` : data.avgMemoryUsed || 0;
+            case 'disk': return display ? `${formatBytes(data.avgStorageUsed || 0)} ${symbol || ''}` : data.avgStorageUsed || 0;
+            case 'temperature': return display ? `${Math.round(data.avgMainTemp || 0)} ${symbol || '°C'}` : data.avgMainTemp || 0;
+            default: return display ? `${data || 0} ${symbol || ''}` : data || 0;
         }
     }
 
@@ -51,12 +51,15 @@ class AreaChart extends Component {
 
         if (data && data.length > 0) {
             const _data = (type === 'server-monitor' ? data.flatMap(a => {
-                const b = a.data[name], c = b.length > 0 ? b[0] : b;
-                return { name: this.parseDate(a.createdAt), v: this.parseValue(c, name), display: this.parseValue(c, name, true, symbol) };
+                return { name: a.intervalDate, v: this.parseValue(a, name), display: this.parseValue(a, name, true, symbol) };
             }) : type === 'manual' ? data.map(a => {
                 return { name: this.parseDate(a.date), v: this.parseValue(a.downTime), display: this.parseValue(a.downTime, null, true, symbol) };
             }) : data.map(a => {
-                return { name: this.parseDate(a.createdAt), v: this.parseValue(a.responseTime), display: this.parseValue(a.responseTime, null, true, symbol) };
+                return {
+                    name: a.intervalDate || this.parseDate(a.createdAt),
+                    v: this.parseValue(Math.round(a.avgResponseTime || 0)),
+                    display: this.parseValue(Math.round(a.avgResponseTime || 0), null, true, symbol)
+                };
             })).reverse();
 
             return (
@@ -64,7 +67,7 @@ class AreaChart extends Component {
                     <Chart data={_data}>
                         <Tooltip content={<CustomTooltip />} />
                         <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                        <Area type="linear" isAnimationActive={false} name={_.capitalize(name)} dataKey="v" stroke="#14aad9" strokeWidth={1.5} fill="#e2e1f2" />
+                        <Area type="linear" isAnimationActive={false} name={_.startCase(_.toLower(`average ${name}`))} dataKey="v" stroke="#14aad9" strokeWidth={1.5} fill="#e2e1f2" />
                     </Chart>
                 </ResponsiveContainer>
             );

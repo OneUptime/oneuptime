@@ -12,10 +12,12 @@ import { FormLoader } from '../basic/Loader';
 import uuid from 'uuid';
 import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class MonitorViewSubscriberBox extends Component {
 
-    constructor(props){
+    constructor(props) {
         super(props);
         this.state = {
             createSubscriberModalId: uuid.v4()
@@ -25,23 +27,23 @@ export class MonitorViewSubscriberBox extends Component {
     prevClicked = () => {
         const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
         this.props.fetchMonitorsSubscribers(subProjectId, this.props.monitor._id, (this.props.monitor.subscribers.skip ? (parseInt(this.props.monitor.subscribers.skip, 10) - 5) : 5), 5);
-        if (window.location.href.indexOf('localhost') <= -1) {
-          this.context.mixpanel.track('Previous Subscriber Requested', {
-            projectId: subProjectId,
-          });
+        if (!IS_DEV) {
+            logEvent('Previous Subscriber Requested', {
+                projectId: subProjectId,
+            });
         }
     }
-    
+
     nextClicked = () => {
         const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
         this.props.fetchMonitorsSubscribers(subProjectId, this.props.monitor._id, (this.props.monitor.subscribers.skip ? (parseInt(this.props.monitor.subscribers.skip, 10) + 5) : 5), 5);
-        if (window.location.href.indexOf('localhost') <= -1) {
-          this.context.mixpanel.track('Next Subscriber Requested', {
-            projectId: this.props.currentProject._id,
-          });
+        if (!IS_DEV) {
+            logEvent('Next Subscriber Requested', {
+                projectId: this.props.currentProject._id,
+            });
         }
     }
-        
+
     render() {
         let { createSubscriberModalId } = this.state;
         let creating = this.props.create ? this.props.create : false;
@@ -66,11 +68,11 @@ export class MonitorViewSubscriberBox extends Component {
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
-                                onClick={() =>
+                                id="addSubscriberButton" onClick={() =>
                                     this.props.openModal({
                                         id: createSubscriberModalId,
-                                        onClose: () => this.props.closeModal({id: this.state.createSubscriberModalId}),
-                                        content: DataPathHoC(CreateSubscriber, {monitorId, subProjectId })
+                                        onClose: () => this.props.closeModal({ id: this.state.createSubscriberModalId }),
+                                        content: DataPathHoC(CreateSubscriber, { monitorId, subProjectId })
                                     })}>
                                 <ShouldRender if={!creating}>
                                     <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
@@ -83,7 +85,7 @@ export class MonitorViewSubscriberBox extends Component {
                             </button>
                             <RenderIfSubProjectAdmin subProjectId={subProjectId}>
                                 <button className={exporting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={exporting}
-                                    onClick={()=> this.props.exportCSV(subProjectId, monitorId, 0, 100, 'csv')}>
+                                    onClick={() => this.props.exportCSV(subProjectId, monitorId, 0, 100, 'csv')}>
                                     <ShouldRender if={!exporting}>
                                         <span className="bs-Button--icon bs-Button--download">
                                             <span>Export to CSV</span>
@@ -96,8 +98,8 @@ export class MonitorViewSubscriberBox extends Component {
                             </RenderIfSubProjectAdmin>
                         </div>
                     </div>
-                    </div>
-                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                </div>
+                <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <SubscriberList monitorId={monitorId} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
                 </div>
             </div>
@@ -124,9 +126,9 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 )
 
 const mapStateToProps = (state, props) => {
-      const monitor = state.monitor.monitorsList.monitors.map(monitor => 
-        monitor.monitors.find(monitor => 
-        monitor._id === props.monitorId)).filter(monitor => monitor)[0];
+    const monitor = state.monitor.monitorsList.monitors.map(monitor =>
+        monitor.monitors.find(monitor =>
+            monitor._id === props.monitorId)).filter(monitor => monitor)[0];
     return {
         monitor,
         currentProject: state.project.currentProject,
@@ -134,9 +136,5 @@ const mapStateToProps = (state, props) => {
         export: state.subscriber.csvExport.requesting,
     };
 }
-
-MonitorViewSubscriberBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorViewSubscriberBox);

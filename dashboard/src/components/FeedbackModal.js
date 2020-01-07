@@ -7,6 +7,8 @@ import { reduxForm, Field } from 'redux-form';
 import { RenderTextArea } from './basic/RenderTextArea';
 import { reset } from 'redux-form';
 import PropTypes from 'prop-types';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 export class FeedbackModal extends Component {
 
@@ -19,8 +21,8 @@ export class FeedbackModal extends Component {
 			}, function () {
 			});
 
-			if (window.location.href.indexOf('localhost') <= -1) {
-				this.context.mixpanel.track('Feedback Values', values);
+			if (!IS_DEV) {
+				logEvent('Feedback Values', values);
 			}
 			this.props.closeFeedbackModal();
 
@@ -93,10 +95,6 @@ const mapStateToProps = state => ({
 const mapDispatchToProps = dispatch => (
 	bindActionCreators({ createFeedback, closeFeedbackModal, reset }, dispatch)
 );
-
-FeedbackModal.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
 
 FeedbackModal.propTypes = {
 	page: PropTypes.object,

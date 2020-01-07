@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import Dashboard from '../components/Dashboard';
-import PropTypes from 'prop-types';
-//import Slack from '../components/slack/Slack';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import ZapierBox from '../components/zapier/ZapierBox';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 class Integrations extends Component {
 
@@ -13,8 +13,8 @@ class Integrations extends Component {
   }
 
   componentDidMount() {
-      if(window.location.href.indexOf('localhost') <= -1){
-      this.context.mixpanel.track('Integration page Loaded');
+    if(!IS_DEV){
+        logEvent('Integration page Loaded');
     }
   }
 
@@ -28,10 +28,6 @@ class Integrations extends Component {
       );
     }
 }
-
-Integrations.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 Integrations.displayName = 'Integrations'
 

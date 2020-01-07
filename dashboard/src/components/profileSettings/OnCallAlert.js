@@ -21,8 +21,8 @@ export class OnCallAlertSetting extends Component {
         }, function () {
 
         });
-        if(window.location.href.indexOf('localhost') <= -1){
-        this.context.mixpanel.track('Update On Call Alert', alerts);
+        if(!IS_DEV){
+        logEvent('Update On Call Alert', alerts);
         }
     }
 
@@ -231,10 +231,6 @@ OnCallAlertSetting.propTypes = {
         PropTypes.oneOf([null,undefined])
     ])
 }
-
-OnCallAlertSetting.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(OnCallAlertSettingForm);
 */

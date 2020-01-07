@@ -3,6 +3,13 @@
     <h1>SOC 2</h1>
 
     <p>Service Organization Control (SOC) Reports</p>
+    <script src="/js/amplitude.js"></script>
+    <script>
+      var IS_DEV = false;
+      if (!IS_DEV) {
+        amplitude.getInstance().logEvent('SOC 2 page loaded');
+      }
+    </script>
 </header>
 
 <section>

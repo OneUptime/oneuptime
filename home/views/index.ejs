@@ -14,6 +14,13 @@
     <script src="/js/crm.js" type="text/javascript"></script>
     <link rel="stylesheet" href="/css/home.css">
     <script defer src="/js/home.js"></script>
+    <script src="/js/amplitude.js"></script>
+    <script>
+        var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+        if (!IS_DEV) {
+            amplitude.getInstance().logEvent('Home page loaded');
+        }
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.2.1/js/bootstrap.bundle.min.js"
         type="text/javascript"></script>
 </head>
