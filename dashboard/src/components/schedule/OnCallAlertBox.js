@@ -48,7 +48,7 @@ function validate(values) {
             (values.OnCallAlertBox[i] && values.OnCallAlertBox[i].rotation) && values.OnCallAlertBox[i].rotation.forEach((val, j) => {
                 const escalationErrors = {}
                 if (val) {
-                    if (val.teamMember[0].member === '') {
+                    if (val.teamMember[0] && val.teamMember[0].member === '') {
                         escalationErrors.member = 'Please select a member.';
                         escalationArrayErrors[j] = escalationErrors;
                     }
