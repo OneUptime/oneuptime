@@ -75,7 +75,7 @@ let RenderTeams = ({ fields, subProjectId, policyIndex }) => {
             </div>
             <p className="bs-Fieldset-explanation">
                 <span>
-                    Add Names and respective alert medium and time to contact.
+                    Add teams for rotation duty.
                 </span>
             </p>
         </div>
