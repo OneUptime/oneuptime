@@ -534,13 +534,16 @@ module.exports = {
         var yesterday = new Date(new Date().getTime() - (24*60*60*1000));
         let alerts = await _this.countBy({ projectId: projectId ,alertVia : {$in: [AlertType.Call, AlertType.SMS]},error : {$in: [null, undefined,false]},createdAt:{$gte: yesterday}});
         let smsCounts = await SmsCountService.countBy({ projectId: projectId, createdAt: { '$gte': yesterday } });
-        if(twilioAlertLimit && typeof twilioAlertLimit === 'string'){
-            twilioAlertLimit = parseInt(twilioAlertLimit,10);
+        let project = await ProjectService.findOneBy({ _id: projectId });
+        let limit = project && project.alertLimit ? project.alertLimit : twilioAlertLimit;
+        if(limit && typeof limit === 'string'){
+            limit = parseInt(limit,10);
         }
-        if((alerts + smsCounts) <= twilioAlertLimit){
+        if((alerts + smsCounts) <= limit){
             return true;
         }
         else {
+            await ProjectService.updateOneBy({_id:projectId},{alertLimitReached:true});
             return false;
         }
     },
