@@ -1,12 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types'
-import { FieldArray } from 'redux-form';
-import { Field, formValueSelector } from 'redux-form';
+import { Field, FieldArray, formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { RenderSelect } from './RenderSelect';
 import { RenderRotationFrequency } from './RenderRotationFrequency';
-import { RenderNames } from './RenderNames';
+import { RenderTeams } from './RenderTeams';
 import { RenderField } from './RenderField';
 
 
@@ -202,16 +200,15 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                         </div>
                                                     </div>
 
-                                                    {/* <div>
+                                                    <div className="bs-Fieldset-rows">
                                                       <FieldArray
                                                           className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                          name={`${policy}.teamMember`}
-                                                          component={RenderNames}
+                                                          name={`${policy}.team`}
+                                                          component={RenderTeams}
                                                           subProjectId={subProjectId}
-                                                          policyIndex={policyIndex}
-                                                          rotationIndex={i}
+                                                          policyIndex={i}
                                                       />
-                                                    </div> */}
+                                                    </div>
                                                 </fieldset>
                                             </div>
                                         </div>
@@ -257,9 +254,8 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                 call: false,
                                                 rotationFrequency: '',
                                                 rotationInterval: '',
-                                                rotation: [
+                                                team: [
                                                   {
-                                                    rotationFrequency: 'Week',
                                                     teamMember: [],
                                                   }
                                                 ]

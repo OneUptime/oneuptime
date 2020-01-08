@@ -8,8 +8,8 @@ import TimezoneSelector from './TimezoneSelector';
 import TeamSelector from './TeamSelector';
 import TimeSelector from './TimeSelector';
 
-let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex, rotationIndex, form }) => {
-    const policyRotation = form[policyIndex].rotation[rotationIndex];
+let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex, teamIndex, form }) => {
+    const policyRotation = form[policyIndex].team[teamIndex];
     const [timeVisible, setTimeVisible] = useState(false);
     const [forcedTimeHide, forceTimeHide] = useState(false);
 
@@ -45,7 +45,7 @@ let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policy
                                         placeholder="Nawaz"
                                         subProjectId={subProjectId}
                                         policyIndex={policyIndex}
-                                        rotationIndex={rotationIndex}
+                                        teamIndex={teamIndex}
                                     />
                                 </div>
                             </div>                            
@@ -176,7 +176,7 @@ RenderNames.propTypes = {
         PropTypes.object
     ]).isRequired,
     policyIndex: PropTypes.number.isRequired,
-    rotationIndex: PropTypes.number.isRequired,
+    teamIndex: PropTypes.number.isRequired,
     form: PropTypes.object.isRequired,
 }
 
