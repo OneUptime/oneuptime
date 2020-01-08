@@ -259,19 +259,20 @@ module.exports = {
                 })
                 .lean();
             if (statusPage && (statusPage._id || statusPage.id)) {
-                var projectId = statusPage.projectId._id;
-                var subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
-                var subProjectIds = subProjects ? subProjects.map(project => project._id) : null;
-                var monitors = await MonitorService.getMonitors(subProjectIds, 0, 0);
-                statusPage.monitorsData = monitors;
                 var permitted = await thisObj.isPermitted(user, statusPage);
-
                 if (!permitted) {
                     let error = new Error('You are unauthorized to access the page please login to continue.');
                     error.code = 401;
                     ErrorService.log('statusPageService.getStatus', error);
                     throw error;
                 }
+                var monitorIds = statusPage.monitorIds.map( monitorId => monitorId._id.toString());
+                var projectId = statusPage.projectId._id;
+                var subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
+                var subProjectIds = subProjects ? subProjects.map(project => project._id) : null;
+                var monitors = await MonitorService.getMonitors(subProjectIds, 0, 0);
+                var filteredMonitorData = monitors[0].monitors.filter((monitor => monitorIds.includes(monitor._id.toString())));
+                statusPage.monitorsData = filteredMonitorData;
             }
             else {
                 let error = new Error('StatusPage Not present');
