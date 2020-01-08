@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 
-let RenderInterval = ({ input: { onChange }}) => {
+let RenderInterval = ({ input: { onChange, value }}) => {
 
   const handleChange = ({ target: { value }}) => {
     onChange(value)
@@ -14,6 +14,7 @@ let RenderInterval = ({ input: { onChange }}) => {
       className="renderFrequencyInput"
       min="0"
       onChange={handleChange}
+      value={value}
     />
   )
 }
