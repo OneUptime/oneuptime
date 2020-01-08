@@ -16,8 +16,12 @@ Fyipe brand color is black, just like HackerBay.io. This will help all the Hacke
 ### Blue: #28B0CC
 ### Purple: #5856D6
 ### Black: #1D2C35
+### Very Light Grey: #efefef
 
 ## Font
 
 #### Default (for everything else)
 - font-family: Open Sans,Segoe UI,sans-serif;
+
+#### For large headings
+- font-family: 'Source Sans Pro', sans-serif;

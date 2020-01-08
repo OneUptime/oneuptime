@@ -11,10 +11,6 @@ main a{
     color:#797979
 }
 
-.black{
-    color:#000000;
-}
-
 main h2[class^=common-Uppercase]{
     color:#000000
 }
@@ -278,7 +274,9 @@ main header{
 #intro p{
     max-width:500px;
     margin-top:20px;
-    color:#797979
+    color: #444444;
+    font-size: 20px;
+    line-height: 28px;
 }
 @media (min-width:670px){
     #intro p{
@@ -964,6 +962,14 @@ main header{
         grid-gap:0 12px
     }
 }
+
+.main-page-title{
+    font-family: 'Source Sans Pro', sans-serif; 
+    font-weight:900; 
+    font-size:75px !important; 
+    margin-top:120px
+}
+
 #comparison .common-Uppercase{
     padding:11px 0;
     text-align:center;

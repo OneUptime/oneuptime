@@ -11,6 +11,26 @@ ol,ul{
 a{
     text-decoration:none
 }
+
+.text-grey{
+    color: #797979 !important; 
+}
+
+.header-font{
+    font-family: 'Source Sans Pro', sans-serif !important;
+}
+
+.header-size{
+    font-size: 60px !important;
+}
+
+.text-whitegrey{
+    color: #e8e8e8 !important; 
+}
+
+.text-black{
+    color: #000000 !important; 
+}
 button,select{
     border:none;
     outline:none;
@@ -32,7 +52,7 @@ body{
     -ms-flex-direction:column;
     flex-direction:column;
     font-size:62.5%;
-    font-family:Open Sans,Segoe UI,sans-serif;
+    font-family:Segoe UI,sans-serif;
     font-weight:400;
     font-style:normal;
     -webkit-text-size-adjust:100%;
@@ -166,6 +186,17 @@ code,pre{
     line-height:43px;
     color:#000000
 }
+
+.circular-label{
+    color: white;
+    background: black;
+    padding: 10px;
+    font-size: 12px;
+    border-radius: 20px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
 @media (min-width:670px){
     .common-PageTitle{
         font-size:40px;
@@ -1001,7 +1032,7 @@ code,pre{
     background-position:-72px -160px
 }
 .globalNav{
-    font-family:Open Sans,Segoe UI,sans-serif;
+    font-family:Segoe UI,sans-serif;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     position:absolute;
@@ -1107,7 +1138,9 @@ code,pre{
 .globalNav .navSection.logo .rootLink{
     padding-left:20px!important
 }
-
+.black{
+    color:#000000 !important;
+}
 .highlight {
     border-radius: 1em 0 1em 0;
     background-image: linear-gradient(-100deg, rgba(255, 224, 0, 0.3), rgba(255, 224, 0, 0.7) 95%, rgba(255, 224, 0, 0.1));
@@ -1684,7 +1717,7 @@ code,pre{
     min-width:100px
 }
 .productNav{
-    font-family:Open Sans,Segoe UI,sans-serif;
+    font-family:Segoe UI,sans-serif;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     position:absolute;
@@ -1798,7 +1831,7 @@ html[lang=ja] .productNav ul{
     white-space:nowrap
 }
 .globalFooter{
-    font-family:Open Sans,Segoe UI,sans-serif;
+    font-family:Segoe UI,sans-serif;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     background:#f9f9f9;

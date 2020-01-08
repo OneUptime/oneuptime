@@ -116,7 +116,6 @@
 }
 .Plan--enterprise{
     background:#000000;
-    background-image:linear-gradient(to bottom right,black,#29294c);
     border-radius:0 0 4px 4px;
     z-index:5
 }
@@ -135,7 +134,7 @@
     border-bottom:2px solid #f9f9f9
 }
 .Plan-title--enterprise{
-    color:#dbdbdb;
+    color:#FFFFFF;
     border-bottom-color:rgba(85,90,191,.1)
 }
 .Plan-cardPricing{
@@ -196,7 +195,7 @@
     text-align: left;
     font-size:17px;
     line-height:26px;
-    color:#525f7f;
+    color:#757575;
     margin: 29px auto 10px;
     max-width:390px;
     padding:0 37px 0 80px;
@@ -220,16 +219,13 @@
     position:absolute
 }
 .Plan-description{
-    color:#aab7c4;
+    color:#e8e8e8;
     font-size:1.6em;
     line-height:1.55em;
     text-align:center;
     margin:0 auto;
     max-width:460px;
     padding:0 40px
-}
-.Plan-tableContainer{
-    
 }
 .Plan-table{
     width:100%;
@@ -244,10 +240,10 @@
     box-sizing:border-box;
     width:50%;
     text-align:center;
-    color:#e6ebf1;
+    color:#e8e8e8;
     font-size:1.6em;
     line-height:1.4em;
-    border:1px solid #373767
+    border:1px solid #404040
 }
 .Plan-button{
     background:#f9f9f9;
@@ -259,20 +255,20 @@
     transition:background .15s ease
 }
 .Plan-button:hover{
-    background:#e6ebf1
+    background:#f1f1f1
 }
 .Plan-button:active{
-    background:#dbdbdb
+    background:#f1f1f1
 }
 .Plan-Button--enterprise{
-    background:rgba(85,90,191,.2);
-    color:#87bbfd
+    background:#000000;
+    color:#FFFFFF
 }
 .Plan-Button--enterprise:hover{
-    background:rgba(85,90,191,.35)
+    background:rgba(0, 0, 0, 0.35)
 }
 .Plan-Button--enterprise:active{
-    background:rgba(85,90,191,.1)
+    background:rgba(0, 0, 0, 0.1)
 }
 .PricingDetails{
     position:relative;
