@@ -4,7 +4,9 @@ import { FieldArray } from 'redux-form';
 import { Field, formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { RenderRotation } from './RenderRotation';
+import { RenderSelect } from './RenderSelect';
+import { RenderRotationFrequency } from './RenderRotationFrequency';
+import { RenderNames } from './RenderNames';
 import { RenderField } from './RenderField';
 
 
@@ -14,7 +16,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
         <ul>
             {
                 fields.map((policy, i) => {
-                    const { email, sms, call } = form[i];
+                    const { email, sms, call, rotationFrequency } = form[i];
 
                     return (
                         <li key={i} style={{ margin: '5px 0px' }}>
@@ -151,7 +153,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                             <label className="bs-Fieldset-label">SMS Frequency</label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    className="db--BusinessSettingsinput TextInput bs-TextInput"
                                                                     type="text"
                                                                     name={`${policy}.smsFrequency`}
                                                                     component={RenderField}
@@ -178,15 +180,44 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                             </div>
                                                         </div>
                                                     )}
-                                                    <div className="bs-Fieldset-rows">
 
-                                                        <FieldArray
-                                                            name={`${policy}.rotation`}
-                                                            component={RenderRotation}
-                                                            subProjectId={subProjectId}
-                                                            policyIndex={i}
-                                                        />
+                                                    <div className="bs-Fieldset-row">
+                                                      <label className="bs-Fieldset-label">Rotation Frequency</label>
+                                                        <div>
+                                                          <Field
+                                                              name={`${policy}.rotationFrequency`}
+                                                              className="db-select-nw"
+                                                              placeholder="Rotation Frequency"
+                                                              type="text"
+                                                              id="rotationFrequency"
+                                                              options={[
+                                                                { value: 'day', label: 'Day'},
+                                                                { value: 'week', label: 'Week'},
+                                                                { value: 'month', label: 'Month'}
+                                                              ]}
+                                                              component={RenderRotationFrequency}
+                                                              rotationFrequency={rotationFrequency}
+                                                              policy={policy}
+                                                          />
+                                                          {/* {rotationFrequency && (
+                                                            <Field
+                                                              name={`${policy}.rotation`}
+                                                              component={RenderFrequency}
+                                                            />
+                                                          )} */}
+                                                        </div>
                                                     </div>
+
+                                                    {/* <div>
+                                                      <FieldArray
+                                                          className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                          name={`${policy}.teamMember`}
+                                                          component={RenderNames}
+                                                          subProjectId={subProjectId}
+                                                          policyIndex={policyIndex}
+                                                          rotationIndex={i}
+                                                      />
+                                                    </div> */}
                                                 </fieldset>
                                             </div>
                                         </div>
@@ -230,6 +261,8 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                 email: true,
                                                 sms: false,
                                                 call: false,
+                                                rotationFrequency: '',
+                                                rotationInterval: '',
                                                 rotation: [
                                                   {
                                                     rotationFrequency: 'Week',
