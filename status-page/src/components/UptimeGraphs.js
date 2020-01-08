@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import BlockChart from './BlockChart';
 import moment from 'moment';
 import { connect } from 'react-redux';
-import toPascalCase from 'to-pascal-case';
+import { getMonitorStatus } from '../config';
 
 const calculateTime = (probeStatus) => {
   let timeBlock = [];
@@ -52,28 +52,28 @@ class UptimeGraphs extends Component {
     var block = [];
     var { monitorState, activeProbe } = this.props;
     var currentMonitorId  = this.props.monitor._id;
-    var monitorData = monitorState && monitorState[0].monitors.filter(monitor => monitor._id === currentMonitorId);
+    var monitorData = monitorState.filter(monitor => monitor._id === currentMonitorId);
     var probe = monitorData[0].probes.filter(probe => probe._id === activeProbe);
     var { timeBlock, uptimePercent } = probe && probe.probeStatus ? calculateTime(probe.probeStatus) : calculateTime([]);
 
-    let monitorStatus = probe && probe.status ? toPascalCase(probe.status) : 'Online';
+    let monitorStatus = getMonitorStatus(monitorData[0].incidents, probe.probeStatus)
     let uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
 
 
     const upDays = timeBlock.length;
     let status = {};
 
-    if (monitorStatus === 'offline') {
+    if (monitorStatus === 'degraded') {
       status = {
         display: 'inline-block',
         borderRadius: '2px',
         height: '8px',
         width: '8px',
         margin: '0 8px 1px 0',
-        backgroundColor: 'rgb(250, 117, 90)'
-      } // "red-status";
+        backgroundColor: 'rgb(255, 222, 36)'
+      } // "yellow-status";
     }
-    else {
+    else if ( monitorStatus === 'online') {
       status = {
         display: 'inline-block',
         borderRadius: '2px',
@@ -82,6 +82,15 @@ class UptimeGraphs extends Component {
         margin: '0 8px 1px 0',
         backgroundColor: 'rgb(117, 211, 128)'
       }// "green-status";
+    } else {
+      status = {
+        display: 'inline-block',
+        borderRadius: '2px',
+        height: '8px',
+        width: '8px',
+        margin: '0 8px 1px 0',
+        backgroundColor: 'rgb(250, 117, 90)'
+      }// "red-status";
     }
 
     for (let i = 0; i < 90; i++) {

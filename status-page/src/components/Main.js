@@ -6,7 +6,7 @@ import UptimeGraphs from './UptimeGraphs';
 import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
-import { API_URL, ACCOUNTS_URL } from '../config';
+import { API_URL, ACCOUNTS_URL, getServiceStatus } from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
@@ -32,7 +32,7 @@ class Main extends Component {
 			url = window.location.host;
 		}
 		this.props.getStatusPage(projectId, url).then(() => {
-			const probes  = this.props.monitorState && this.props.monitorState[0].monitors[0].probes;
+			const probes  = this.props.monitorState && this.props.monitorState[0].probes;
 			this.selectbutton(probes[0]._id)
 		})
 		.catch(err => {
@@ -104,10 +104,11 @@ class Main extends Component {
 		} else return error;
 	}
 	render() {
-		const probes  = this.props.monitorState && this.props.monitorState[0].monitors[0].probes;
+		const probes  = this.props.monitorState && this.props.monitorState[0].probes;
 		const date = new Date();
 		let view = false;
 		let status = '';
+		let serviceStatus = '';
 		let statusMessage = '';
 		let faviconurl = '';
 		let isGroupedByMonitorCategory = false;
@@ -115,25 +116,20 @@ class Main extends Component {
 
 		if (this.props.statusData && this.props.statusData.monitorIds) {
 
-			let count = this.props.statusData.monitorIds.length;
+			serviceStatus = getServiceStatus(this.props.monitorState);
 			isGroupedByMonitorCategory = this.props.statusData.isGroupedByMonitorCategory;
 
-			this.props.statusData.monitorIds.forEach((el) => {
-				if (el.stat !== 'online') {
-					count--;
-				}
-			});
-			if (count === this.props.statusData.monitorIds.length) {
+			if (serviceStatus === 'all') {
 				status = 'status-bubble status-up';
 				statusMessage = 'All services are online';
 				faviconurl = '/greenfavicon.ico';
 			}
-			else if (count === 0) {
+			else if (serviceStatus === 'none') {
 				status = 'status-bubble status-down';
 				statusMessage = 'All services are offline';
 				faviconurl = '/redfavicon.ico';
 			}
-			else if (count < this.props.statusData.monitorIds.length) {
+			else if (serviceStatus === 'some') {
 				status = 'status-bubble status-paused';
 				statusMessage = 'Some services are offline';
 				faviconurl = '/yellowfavicon.ico';
@@ -192,7 +188,7 @@ class Main extends Component {
 										key={`probes-btn${index}`}
 										id={`probes-btn${index}`}
 										className={this.props.activeProbe === probe._id ? 'icon-container selected' : 'icon-container'}>
-										<span style={probe.status === 'offline' ? redBackground : probe.status === 'degraded' ? yellowBackground : greenBackground}></span>
+										<span style={ probe.status === 'online' ? greenBackground : probe.status === 'degraded' ? yellowBackground: redBackground}></span>
 										<span>{probe.probeName}</span>
 									</button>)
 									)}
