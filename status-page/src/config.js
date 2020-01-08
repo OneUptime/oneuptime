@@ -176,7 +176,7 @@ function compareStatus(incident, log) {
     return moment(incident.createdAt).isSameOrAfter(moment(log.createdAt)) ? (!incident.resolved ? incident.incidentType : 'online') : log.status;
 }
 
-function getMonitorStatus(incidents, logs) {
+export function getMonitorStatus(incidents, logs) {
     let incident = incidents && incidents.length > 0 ? incidents[0] : null;
     let log = logs && logs.length > 0 ? logs[0] : null;
 
