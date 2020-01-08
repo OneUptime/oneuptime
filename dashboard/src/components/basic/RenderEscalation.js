@@ -151,7 +151,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                             <label className="bs-Fieldset-label">SMS Frequency</label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
-                                                                    className="db--BusinessSettingsinput TextInput bs-TextInput"
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                     type="text"
                                                                     name={`${policy}.smsFrequency`}
                                                                     component={RenderField}
