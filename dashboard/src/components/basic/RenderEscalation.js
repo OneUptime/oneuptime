@@ -199,12 +199,6 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                               rotationFrequency={rotationFrequency}
                                                               policy={policy}
                                                           />
-                                                          {/* {rotationFrequency && (
-                                                            <Field
-                                                              name={`${policy}.rotation`}
-                                                              component={RenderFrequency}
-                                                            />
-                                                          )} */}
                                                         </div>
                                                     </div>
 
