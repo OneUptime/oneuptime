@@ -258,14 +258,14 @@ export class MonitorLogsList extends Component {
                 {monitorLogs && monitorLogs.requesting ? <ListLoader /> : null}
 
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                    {monitorLogs && (!monitorLogs.logs || !monitorLogs.logs.length) && !monitorLogs.requesting && !monitorLogs.error ? 'We don\'t have any Logs yet' : null}
+                    {!monitorLogs || (monitorLogs && (!monitorLogs.logs || !monitorLogs.logs.length) && !monitorLogs.requesting && !monitorLogs.error) ? 'We don\'t have any Logs yet' : null}
                     {monitorLogs && monitorLogs.error ? monitorLogs.error : null}
                 </div>
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{count ? count + (count > 1 ? ' Logs' : ' Log') : null}</span>
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{count ? count + (count > 1 ? ' Logs' : ' Log') : '0 Logs'}</span>
                             </span>
                         </span>
                     </div>

@@ -187,7 +187,6 @@ export class ProfileSetting extends Component {
   }
 
   submitForm = values => {
-    console.log(values);
     const initialAlertPhoneNumber = this.props.initialValues.alertPhoneNumber
     const { alertPhoneNumber, verified, removedPic } = this.props.profileSettingState
     const { sendVerificationSMSError, verifySMSCodeError, setInitPhoneVerification } = this.props
