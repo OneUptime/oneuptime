@@ -39,6 +39,10 @@ import {
     ADD_SEAT_REQUEST,
     ADD_SEAT_RESET,
     SELECT_PROBE,
+    GET_MONITOR_LOGS_REQUEST,
+    GET_MONITOR_LOGS_SUCCESS,
+    GET_MONITOR_LOGS_FAILURE,
+    GET_MONITOR_LOGS_RESET
 } from '../constants/monitor';
 import moment from 'moment';
 
@@ -51,6 +55,7 @@ const INITIAL_STATE = {
         startDate: moment().subtract(30, 'd'),
         endDate: moment(),
     },
+    monitorLogs: {},
     newMonitor: {
         monitor: null,
         error: null,
@@ -643,9 +648,11 @@ export default function monitor(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        if (monitor._id === action.payload.monitorId) {
-                            monitor.subscribers.subscribers = monitor.subscribers.subscribers.filter(subscriber => subscriber._id !== action.payload._id)
-                            monitor.subscribers.count = monitor.subscribers.count - 1
+                        if (monitor.monitors[0]._id === action.payload.monitorId) {
+                            monitor.monitors[0].subscribers.subscribers = monitor.monitors[0].subscribers.subscribers.filter(
+                                subscriber => subscriber._id !== action.payload._id
+                            );
+                            monitor.monitors[0].subscribers.count = monitor.monitors[0].subscribers.count - 1;
                             return monitor;
                         } else {
                             return monitor;
@@ -977,6 +984,74 @@ export default function monitor(state = INITIAL_STATE, action) {
         case SELECT_PROBE:
             return Object.assign({}, state, {
                 activeProbe: action.payload
+            });
+
+        case GET_MONITOR_LOGS_SUCCESS:
+            return Object.assign({}, state, {
+                monitorLogs: {
+                    ...state.monitorLogs,
+                    [action.payload.monitorId]: {
+                        logs: action.payload.logs,
+                        probes: action.payload.probes,
+                        error: null,
+                        requesting: false,
+                        success: false,
+                        skip: action.payload.skip,
+                        limit: action.payload.limit,
+                        count: action.payload.count
+                    },
+                }
+            });
+
+        case GET_MONITOR_LOGS_FAILURE:
+            var failureLogs = {
+                ...state.monitorLogs,
+                [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
+                    {
+                        ...state.monitorLogs[action.payload.monitorId],
+                        error: action.payload.error
+                    } :
+                    {
+                        logs: [],
+                        probes: [],
+                        error: action.payload.error,
+                        requesting: false,
+                        success: false,
+                        skip: 0,
+                        limit: 10,
+                        count: null
+                    }
+            };
+            return Object.assign({}, state, {
+                monitorLogs: failureLogs
+            });
+
+        case GET_MONITOR_LOGS_REQUEST:
+            var requestLogs = {
+                ...state.monitorLogs,
+                [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
+                    {
+                        ...state.monitorLogs[action.payload.monitorId],
+                        requesting: true
+                    } :
+                    {
+                        logs: [],
+                        probes: [],
+                        error: null,
+                        requesting: true,
+                        success: false,
+                        skip: 0,
+                        limit: 10,
+                        count: null
+                    }
+            };
+            return Object.assign({}, state, {
+                monitorLogs: requestLogs
+            });
+
+        case GET_MONITOR_LOGS_RESET:
+            return Object.assign({}, state, {
+                monitorLogs: INITIAL_STATE.monitorLogs
             });
 
         default: return state;

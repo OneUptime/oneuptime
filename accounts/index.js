@@ -4,6 +4,7 @@ const app = express();
 const envfile = require('envfile');
 const fs = require('fs');
 var child_process = require('child_process');
+var compression = require('compression');
 
 var env = {
   REACT_APP_FYIPE_HOSTED: process.env.FYIPE_HOSTED,
@@ -19,6 +20,8 @@ fs.writeFileSync('.env', envfile.stringifySync(env));
 child_process.execSync('react-env', {
   stdio: [0, 1, 2]
 });
+
+app.use(compression());
 
 app.use(express.static(path.join(__dirname, 'build')));
 

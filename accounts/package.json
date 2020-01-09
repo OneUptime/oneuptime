@@ -15,6 +15,7 @@
     "cli-table": "^0.3.1",
     "clipboard": "^2.0.1",
     "components": "^0.1.0",
+    "compression": "^1.7.4",
     "connected-react-router": "^4.5.0",
     "creditcard-generator": "0.0.7",
     "envfile": "^3.0.0",
@@ -71,13 +72,15 @@
     "lint": "eslint .",
     "fix-lint": "eslint . --fix",
     "dev": "PORT=3003 react-scripts start",
-    "build": "react-scripts build",
+    "build": "react-scripts build && npm run build-sw && npm run clean-cra-sw",
+    "clean-cra-sw": "rm -f build/precache-manifest.*.js && rm -f build/service-worker.js",
     "test": "npm run lint",
     "jest": "jest --runInBand src/test",
     "start": "node index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "light-house": "node lighthouse.js --web",
-    "light-house-mobile": "node lighthouse.js --mobile"
+    "light-house-mobile": "node lighthouse.js --mobile",
+    "build-sw": "node ./src/sw-build.js"
   },
   "devDependencies": {
     "axios-mock-adapter": "^1.15.0",
@@ -89,11 +92,13 @@
     "cross-env": "^5.2.0",
     "jest-localstorage-mock": "^2.2.0",
     "lighthouse": "^5.6.0",
+    "lighthouse-ci": "^1.10.0",
     "npm-audit-ci-wrapper": "^2.4.1",
     "ora": "^4.0.3",
     "react-test-renderer": "^16.5.2",
     "redux-logger": "^3.0.6",
-    "redux-mock-store": "^1.5.3"
+    "redux-mock-store": "^1.5.3",
+    "workbox-build": "^4.3.1"
   },
   "jest": {
     "collectCoverageFrom": [

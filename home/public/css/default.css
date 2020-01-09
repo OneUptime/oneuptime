@@ -11,6 +11,26 @@ ol,ul{
 a{
     text-decoration:none
 }
+
+.text-grey{
+    color: #797979 !important; 
+}
+
+.header-font{
+    font-family: 'Source Sans Pro', sans-serif !important;
+}
+
+.header-size{
+    font-size: 60px !important;
+}
+
+.text-whitegrey{
+    color: #e8e8e8 !important; 
+}
+
+.text-black{
+    color: #000000 !important; 
+}
 button,select{
     border:none;
     outline:none;
@@ -32,7 +52,7 @@ body{
     -ms-flex-direction:column;
     flex-direction:column;
     font-size:62.5%;
-    font-family:Open Sans,Segoe UI,sans-serif;
+    font-family:Segoe UI,sans-serif;
     font-weight:400;
     font-style:normal;
     -webkit-text-size-adjust:100%;
@@ -151,7 +171,7 @@ code,pre{
     font-weight:300;
     font-size:45px;
     line-height:60px;
-    color:#32325d;
+    color:#000000;
     letter-spacing:-.01em
 }
 @media (min-width:670px){
@@ -164,8 +184,19 @@ code,pre{
     font-weight:400;
     font-size:34px;
     line-height:43px;
-    color:#32325d
+    color:#000000
 }
+
+.circular-label{
+    color: white;
+    background: black;
+    padding: 10px;
+    font-size: 12px;
+    border-radius: 20px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
 @media (min-width:670px){
     .common-PageTitle{
         font-size:40px;
@@ -176,7 +207,7 @@ code,pre{
     font-weight:300;
     font-size:34px;
     line-height:43px;
-    color:#14aad9
+    color:#000000
 }
 @media (min-width:670px){
     .common-PageSubtitle{
@@ -200,13 +231,13 @@ code,pre{
     font-weight:500;
     font-size:19px;
     line-height:28px;
-    color:#32325d
+    color:#000000
 }
 .common-BodyText{
     font-weight:400;
     font-size:17px;
     line-height:26px;
-    color:#6b7c93
+    color:#797979
 }
 .common-UppercaseTitle{
     font-size:20px;
@@ -292,25 +323,25 @@ code,pre{
     transition:stroke .1s
 }
 .common-ProductLockupBack:hover .hover-fillLight{
-    fill:#8898aa
+    fill:#757575
 }
 .common-ProductLockupBack:hover .hover-fillDark{
-    fill:#32325d
+    fill:#000000
 }
 .common-ProductLockupBack:hover .hover-strokeLight{
-    stroke:#8898aa
+    stroke:#757575
 }
 .common-ProductLockupBack:hover .hover-strokeDark{
-    stroke:#32325d
+    stroke:#000000
 }
 .common-Link{
-    color:#14aad9;
+    color:#000000;
     font-weight:500;
     transition:color .1s ease;
     cursor:pointer
 }
 .common-Link:hover{
-    color:#32325d
+    color:#000000
 }
 .common-Link:active{
     color:#000
@@ -338,7 +369,7 @@ code,pre{
     color:#c4f0ff
 }
 .common-InvertedText .common-BodyText{
-    color:#9cdbff
+    color:#000000
 }
 .common-InvertedText .common-Link,.common-Link--white{
     color:#fff
@@ -362,36 +393,36 @@ code,pre{
     font-weight:600;
     text-transform:uppercase;
     letter-spacing:.025em;
-    color:#299fc4;
+    color:#000000;
     text-decoration:none;
     transition:all .15s ease
 }
 .common-Button:hover{
-    color:#299fc4;
+    color:#000000;
     transform:translateY(-1px);
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08)
 }
 .common-Button:active{
-    color:#299fc4;
-    background-color:#f6f9fc;
+    color:#000000;
+    background-color:#f9f9f9;
     transform:translateY(1px);
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08)
 }
 .common-Button--default{
     color:#fff;
-    background:#14aad9
+    background:#000000
 }
 .common-Button--default:hover{
     color:#fff;
-    background-color:#299fc4
+    background-color:#000000
 }
 .common-Button--default:active{
     color:#e6ebf1;
-    background-color:#299fc4
+    background-color:#000000
 }
 .common-Button--dark{
     color:#fff;
-    background:#32325d
+    background:#000000
 }
 .common-Button--dark:hover{
     color:#fff;
@@ -399,7 +430,7 @@ code,pre{
 }
 .common-Button--dark:active{
     color:#e6ebf1;
-    background-color:#32325d
+    background-color:#000000
 }
 .common-Button--disabled{
     color:#fff;
@@ -472,7 +503,7 @@ code,pre{
     text-align:center;
     padding:2px 6px 2px 7px;
     text-transform:uppercase;
-    color:#8898aa;
+    color:#757575;
     background-color:rgba(136,152,170,.15)
 }
 .lg-cols,.lg-grid,.lg-rows,.md-cols,.md-grid,.md-rows,.sm-cols,.sm-grid,.sm-rows,.xs-cols,.xs-grid,.xs-rows{
@@ -1001,7 +1032,7 @@ code,pre{
     background-position:-72px -160px
 }
 .globalNav{
-    font-family:Open Sans,Segoe UI,sans-serif;
+    font-family:Segoe UI,sans-serif;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     position:absolute;
@@ -1022,11 +1053,11 @@ code,pre{
 .globalNav a{
     text-decoration:none;
     -webkit-tap-highlight-color:transparent;
-    color:#14aad9;
+    color:#000000;
     transition:color .1s
 }
 .globalNav a:hover{
-    color:#32325d
+    color:#000000
 }
 .globalNav>.container-lg{
     padding:0
@@ -1107,18 +1138,29 @@ code,pre{
 .globalNav .navSection.logo .rootLink{
     padding-left:20px!important
 }
+.black{
+    color:#000000 !important;
+}
+.highlight {
+    border-radius: 1em 0 1em 0;
+    background-image: linear-gradient(-100deg, rgba(255, 224, 0, 0.3), rgba(255, 224, 0, 0.7) 95%, rgba(255, 224, 0, 0.1));
+}
+
 .globalNav .navSection.secondary .rootLink:last-child{
     padding-right:20px!important
 }
 .globalNav .navSection.primary .rootLink{
     font-weight:500
 }
+.header-bold{
+    font-weight: 900;
+}
 .globalNav .colorize{
-    color:#14aad9;
+    color:#797979;
     transition:color .1s ease
 }
 .globalNav .colorize.active,.globalNav .colorize:hover{
-    color:#32325d
+    color:#000000
 }
 .globalNav .hasDropdown{
     cursor:default
@@ -1186,7 +1228,7 @@ code,pre{
 .globalNav .alternateBackground{
     right:0;
     height:1000px;
-    background:#f6f9fc
+    background:#f9f9f9
 }
 .globalNav .dropdownArrow{
     position:absolute;
@@ -1252,7 +1294,7 @@ code,pre{
 }
 .globalNav .linkTitle{
     margin:0;
-    color:#14aad9;
+    color:#000000;
     font-size:16px;
     line-height:22px;
     text-transform:uppercase;
@@ -1262,7 +1304,7 @@ code,pre{
 .globalNav .linkSub{
     font-size:15px;
     line-height:22px;
-    color:#6b7c93;
+    color:#797979;
     margin:0px 0 0;
     display:block
 }
@@ -1270,7 +1312,7 @@ code,pre{
     transition:color .1s
 }
 .globalNav .linkContainer:hover .linkTitle,.globalNav .linkTitle:hover{
-    color:#32325d
+    color:#000000
 }
 .globalNav .linkContainer:hover .linkSub{
     color:#424770
@@ -1282,16 +1324,16 @@ code,pre{
     transition:stroke .1s
 }
 .globalNav .linkContainer:hover .hover-fillLight{
-    fill:#8898aa
+    fill:#757575
 }
 .globalNav .linkContainer:hover .hover-fillDark{
-    fill:#32325d
+    fill:#000000
 }
 .globalNav .linkContainer:hover .hover-strokeLight{
-    stroke:#8898aa
+    stroke:#757575
 }
 .globalNav .linkContainer:hover .hover-strokeDark{
-    stroke:#32325d
+    stroke:#000000
 }
 .globalNav .linkIcon{
     white-space:nowrap
@@ -1314,7 +1356,7 @@ code,pre{
     font-size:10px;
     line-height:14px;
     font-weight:700;
-    background:#14aad9;
+    background:#000000;
     transition:background .15s;
     border-radius:10px;
     padding:0 5px;
@@ -1323,7 +1365,7 @@ code,pre{
     box-shadow:none
 }
 .globalNav .linkContainer:hover .new-badge{
-    background:#32325d
+    background:#000000
 }
 .globalNav .productsGroupPrimary,.globalNav .productsGroupSecondary{
     margin:-5px -10px;
@@ -1401,16 +1443,16 @@ code,pre{
     margin:0 0 0 10px
 }
 .globalNav .item-subscriptions .linkTitle{
-    color:#24b47e
+    color:#000000
 }
 .globalNav .item-connect .linkTitle{
-    color:#3297d3
+    color:#000000
 }
 .globalNav .item-sigma .linkTitle{
-    color:#8f6ed5
+    color:#000000
 }
 .globalNav .item-connect .new-badge{
-    background:#3297d3
+    background:#000000
 }
 .globalNav .item-relay .linkTitle{
     color:#e25950
@@ -1419,10 +1461,10 @@ code,pre{
     color:#e39f48
 }
 .globalNav .item-radar .linkTitle{
-    color:#b76ac4
+    color:#000000
 }
 .globalNav .item-sigma .new-badge{
-    background:#8f6ed5
+    background:#000000
 }
 .globalNav .documentationGroup .linkSub{
     max-width:250px
@@ -1448,7 +1490,7 @@ code,pre{
     text-transform:uppercase;
     letter-spacing:.025em;
     margin:0 0 3px;
-    color:#8898aa
+    color:#757575
 }
 .globalNav .blogPosts{
     margin:5px 10px 5px 0px
@@ -1482,7 +1524,7 @@ code,pre{
     vertical-align:-1px
 }
 .globalNav .blogPosts a:hover .new-badge{
-    background:#32325d
+    background:#000000
 }
 .globalNav .navSection.mobile .rootLink{
     cursor:pointer;
@@ -1566,7 +1608,7 @@ code,pre{
 .globalNav .popupCloseButton:after,.globalNav .popupCloseButton:before{
     content:'';
     position:absolute;
-    background:#14aad9;
+    background:#000000;
     border-radius:1px;
     left:14px;
     right:14px;
@@ -1579,10 +1621,10 @@ code,pre{
     transform:rotate(-45deg)
 }
 .globalNav .popupCloseButton:hover:after,.globalNav .popupCloseButton:hover:before{
-    background:#32325d
+    background:#000000
 }
 .globalNav .mobileSignIn{
-    background:#f6f9fc;
+    background:#f9f9f9;
     display:block;
     padding:12px 30px;
     font-weight:600
@@ -1599,7 +1641,7 @@ code,pre{
     font-size:14px;
     font-weight:600;
     letter-spacing:.025em;
-    color:#8898aa;
+    color:#757575;
     text-transform:uppercase;
     margin:-5px 0 0 30px
 }
@@ -1624,7 +1666,7 @@ code,pre{
     line-height:50px
 }
 .globalNav .mobileProductsList a:hover{
-    color:#32325d
+    color:#000000
 }
 .globalNav .mobileProductsList a svg{
     display:inline-block;
@@ -1634,28 +1676,28 @@ code,pre{
     vertical-align:-5px
 }
 .globalNav .mobileProductsList .item-subscriptions{
-    color:#24b47e
+    color:#000000
 }
 .globalNav .mobileProductsList .item-connect{
-    color:#3297d3
+    color:#000000
 }
 .globalNav .mobileProductsList .item-relay{
     color:#e25950
 }
 .globalNav .mobileProductsList .item-sigma{
-    color:#8f6ed5
+    color:#000000
 }
 .globalNav .mobileProductsList .item-atlas{
     color:#e39f48
 }
 .globalNav .mobileProductsList .item-radar{
-    color:#b76ac4
+    color:#000000
 }
 .globalNav .mobileProductsList .new-badge{
     vertical-align:3px
 }
 .globalNav .mobileSecondaryNav{
-    border-top:2px solid #f6f9fc;
+    border-top:2px solid #f9f9f9;
     padding:15px 10px;
     display:-ms-flexbox;
     display:flex;
@@ -1675,7 +1717,7 @@ code,pre{
     min-width:100px
 }
 .productNav{
-    font-family:Open Sans,Segoe UI,sans-serif;
+    font-family:Segoe UI,sans-serif;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     position:absolute;
@@ -1766,12 +1808,12 @@ code,pre{
 .productNav a{
     text-decoration:none;
     -webkit-tap-highlight-color:transparent;
-    color:#14aad9;
+    color:#000000;
     transition:color .1s;
     white-space:nowrap
 }
 .productNav a:hover{
-    color:#32325d
+    color:#000000
 }
 .productNav a.external:after{
     font:normal 16px fyipeIcons;
@@ -1779,20 +1821,20 @@ code,pre{
     padding-left:5px
 }
 .productNav .colorize{
-    color:#14aad9;
+    color:#000000;
     transition:color .1s ease
 }
 .productNav .colorize.active,.productNav .colorize:hover{
-    color:#32325d
+    color:#000000
 }
 html[lang=ja] .productNav ul{
     white-space:nowrap
 }
 .globalFooter{
-    font-family:Open Sans,Segoe UI,sans-serif;
+    font-family:Segoe UI,sans-serif;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
-    background:#f6f9fc;
+    background:#f9f9f9;
     position:relative
 }
 .globalFooter.withCards{
@@ -1813,7 +1855,7 @@ html[lang=ja] .productNav ul{
     right:0;
     top:600px;
     height:2000px;
-    background:#f6f9fc;
+    background:#f9f9f9;
     transform:skew(0,-12deg)
 }
 .globalFooterCards .container-xl{
@@ -1869,7 +1911,7 @@ a.globalFooterCard:after,div.globalFooterCard:after{
     }
 }
 a.globalFooterCard:hover,div.globalFooterCard:hover{
-    color:#32325d!important;
+    color:#000000!important;
     transform:translateY(-2px);
     box-shadow:0 18px 35px rgba(50,50,93,.1),0 8px 15px rgba(0,0,0,.07)
 }
@@ -1904,16 +1946,16 @@ a.globalFooterCard svg .hover-strokeDark,a.globalFooterCard svg .hover-strokeLig
     transition:stroke .15s
 }
 a.globalFooterCard:hover svg .hover-fillDark,div.globalFooterCard:hover svg .hover-fillDark{
-    fill:#32325d
+    fill:#000000
 }
 a.globalFooterCard:hover svg .hover-fillLight,div.globalFooterCard:hover svg .hover-fillLight{
-    fill:#8898aa
+    fill:#757575
 }
 a.globalFooterCard:hover svg .hover-strokeDark,div.globalFooterCard:hover svg .hover-strokeDark{
-    stroke:#32325d
+    stroke:#000000
 }
 a.globalFooterCard:hover svg .hover-strokeLight,div.globalFooterCard:hover svg .hover-strokeLight{
-    stroke:#8898aa
+    stroke:#757575
 }
 a.globalFooterCard h2,div.globalFooterCard h2{
     margin:0 0 5px;
@@ -1923,16 +1965,16 @@ a.globalFooterCard p,div.globalFooterCard p{
     margin:5px 0 0
 }
 a.globalFooterCard.card-pricing,div.globalFooterCard.card-pricing{
-    color:#24b47e
+    color:#000000
 }
 a.globalFooterCard.card-documentation,div.globalFooterCard.card-documentation{
-    color:#b76ac4
+    color:#000000
 }
 a.globalFooterCard.card-subscriptions,div.globalFooterCard.card-subscriptions{
-    color:#24b47e
+    color:#000000
 }
 a.globalFooterCard.card-connect,div.globalFooterCard.card-connect{
-    color:#3297d3
+    color:#000000
 }
 a.globalFooterCard.card-relay,div.globalFooterCard.card-relay{
     color:#e25950
@@ -1941,10 +1983,10 @@ a.globalFooterCard.card-atlas,div.globalFooterCard.card-atlas{
     color:#e39f48
 }
 a.globalFooterCard.card-radar,div.globalFooterCard.card-radar{
-    color:#b76ac4
+    color:#000000
 }
 a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
-    color:#8f6ed5
+    color:#000000
 }
 .globalFooterCTA{
     padding:50px 0;
@@ -1966,12 +2008,12 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     font-weight:400;
     font-size:30px;
     line-height:45px;
-    color:#32325d;
+    color:#000000;
     margin:.75em 0
 }
 .globalFooterCTA .subtitle{
     font-weight:300;
-    color:#14aad9;
+    color:#000000;
     display:block
 }
 @media (min-width:670px){
@@ -1982,7 +2024,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
 }
 .globalFooterNav{
     padding:65px 0 55px;
-    color:#8898aa;
+    color:#757575;
     line-height:30px;
     font-size:15px;
     white-space:nowrap
@@ -2012,7 +2054,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     transition:color .1s
 }
 .globalFooterNav a:hover{
-    color:#32325d
+    color:#000000
 }
 .globalFooterNav .metaNav{
     display:-ms-flexbox;
@@ -2043,12 +2085,12 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     z-index:499
 }
 .globalFooterNav .metaNav .rootLink{
-    color:#14aad9;
+    color:#000000;
     font-weight:600;
     cursor:pointer
 }
 .globalFooterNav .metaNav .rootLink:hover{
-    color:#32325d
+    color:#000000
 }
 .globalFooterNav .metaNav .rootLink svg{
     display:inline-block;
@@ -2059,7 +2101,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     fill:currentColor
 }
 .globalFooterNav .metaNav .select.globalPopupActive .rootLink{
-    color:#32325d
+    color:#000000
 }
 @media (min-width:880px){
     .globalFooterNav .metaNav .country{
@@ -2082,7 +2124,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
 
 .globalFooterNav .metaNav .copyright{
     margin-right:0;
-    color:#cfd7df
+    color:#dbdbdb
 }
 .globalFooterNav .siteNav{
     display:-ms-flexbox;
@@ -2215,15 +2257,15 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     transition:color .1s,background-color .1s
 }
 .globalFooterNav .optionList a:hover{
-    background-color:#f6f9fc;
-    color:#32325d
+    background-color:#f9f9f9;
+    color:#000000
 }
 .globalFooterNav .optionList a:active{
     background-color:#e6ebf1
 }
 .globalFooterNav .optionList .selected{
     font-weight:600;
-    color:#32325d
+    color:#000000
 }
 .globalFooterNav .optionList .selected>span:before{
     content:'';
@@ -2259,7 +2301,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     flex-direction:column
 }
 .globalFooterNav .countryPicker:before{
-    background:#f6f9fc
+    background:#f9f9f9
 }
 @media (min-width:670px){
     .globalFooterNav .countryPicker{
@@ -2275,7 +2317,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     display:flex
 }
 .globalFooterNav .sidebar{
-    background:#f6f9fc;
+    background:#f9f9f9;
     border-radius:0 0 5px 5px;
     overflow:hidden;
     -ms-flex-direction:column;
@@ -2311,13 +2353,13 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     line-height:36px;
     padding:0 15px;
     text-transform:uppercase;
-    color:#14aad9;
+    color:#000000;
     font-size:14px;
     font-weight:600;
     letter-spacing:.025em
 }
 .globalFooterNav .countryList h4 a:hover{
-    color:#32325d
+    color:#000000
 }
 .globalFooterNav .countryList h4 a:after{
     font:normal 16px fyipeIcons;
@@ -2332,11 +2374,11 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     color:#424770
 }
 .globalFooterNav .globalLink:hover strong{
-    color:#32325d
+    color:#000000
 }
 .globalFooterNav .globalLink strong{
     display:block;
-    color:#14aad9;
+    color:#000000;
     font-weight:500;
     transition:color .1s
 }
@@ -2407,7 +2449,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     position:relative;
     width:40px;
     height:40px;
-    color:#8898aa;
+    color:#757575;
     transition:color .15s;
     cursor:pointer
 }
@@ -2426,7 +2468,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     transform:translate(-50%,-50%) rotate(-45deg)
 }
 .cookie-notification .dismiss-button:hover{
-    color:#32325d
+    color:#000000
 }
  
 

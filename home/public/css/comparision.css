@@ -9,14 +9,14 @@
     line-height: 50px;
 }
 .comparision-heading>h3{
-    font-size: 4em;
+    font-size: 34px;
     font-weight: 400;
-    color:#32325d;
+    color:#000000;
 }
 .comparision-heading>h4{
     font-size: 1.8em;
     font-weight: 300;
-    color:#6b7c93;
+    color:#797979;
 }
 @media only screen and (max-width: 1090px) {
 .comparision-heading{
@@ -39,12 +39,15 @@
     border-radius: 12px;
    /* box-shadow:-0.4rem 0.4rem 2rem rgba(0,0,0,0.05); */
 }
+.light-yellow-background{
+    background-color: #FBF7F0;
+}
 .fyipe-listing{
     position:relative;
     height:73%;
     width:99%;
     margin:2px;
-    background-color: #eaf9ec;
+    background-color: #FBF7F0;
     border-radius: 10px;
     display:grid;
     grid-template-columns: 30% 70%;
@@ -66,12 +69,12 @@
 .fyipe-list-head>h3{
     font-size: 3em;
     font-weight: 500;
-    color:#32325d;
+    color:#000000;
 }
 .fyipe-list-head>h4{
     font-size: 1.8em;
     font-weight: 500;
-    color:#6b7c93;
+    color:#000000;
 }
 .comparision-others{
     height:450px;
@@ -94,7 +97,7 @@
     width:100%;
     display: flex;
     flex-direction: row;
-    background-color: #fdf3e6;
+    background-color: #FBF7F0;
     margin:10px 0;
     border-radius: 5px;
 }
@@ -113,23 +116,23 @@
     margin:auto 0;
 }
 .space{
-    width:15%;
+    width:10%;
     position: relative;
 }
 .fyipe-versus{
-    position:absolute;
-    top:30%;
-    left:-30%;
-    height:100px;
-    width:100px;
+    position: absolute;
+    top: 30%;
+    left: -35%;
+    height: 80px;
+    width: 80px;
     z-index: 1;
-    background-color: #1d2d35;
+    background-color: #000000;
     border-radius: 50%;
-    color:white;
+    color: white;
     font-size: 40px;
     text-align: center;
     font-weight: 700;
-    line-height: 2.5em;
+    line-height: 2.0em;
 }
 .total{
     text-align:center;
@@ -142,6 +145,7 @@
 .total-text{
     padding: 5px;
     border-radius: 10px;
+    font-weight:bold;
 }
 .list-container:not(:nth-child(1)):before{
     display:block;
@@ -159,7 +163,7 @@
     text-align:center;
     background-color:#fff;
     border-radius:50%;
-    color:#ec7a3c
+    color:#000000
 }
 .total:before{
     display:block;
@@ -176,7 +180,7 @@
     text-align:center;
     background-color:#fff;
     border-radius:100em;
-    color:#ec7a3c;
+    color:#000000;
 }
 .total-green:before{
     display:block;
@@ -197,16 +201,19 @@
 }
 .fyipe-list-text>h3,.comparision-fyipe>h3,
 .list-text>h3,.comparision-others>h3{
-    color:#32325d; 
+    color:#000000; 
     font-size: 2em;
+    font-weight: 100;
 }
 .fyipe-checklist>li{
-    color:#32325d;
+    color:#000000;
     font-size: 2em;
+    font-weight:bold;
 }
 .list-text>h4{
-   color:#6b7c93;
-    font-size: 1.6em;
+    font-size: 1.4em;
+    color: #000000;
+    font-weight: 100;
 }
 @media only screen and (max-width: 892px) {
     .comparision-main{

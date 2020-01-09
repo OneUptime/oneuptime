@@ -1,6 +1,7 @@
 import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
+import moment from 'moment';
 
 let apiUrl = null;
 let dashboardUrl = null;
@@ -170,3 +171,40 @@ export const bindRaf = (fn) => {
         requestAnimationFrame(run);
     };
 };
+
+function compareStatus(incident, log) {
+    return moment(incident.createdAt).isSameOrAfter(moment(log.createdAt)) ? (!incident.resolved ? incident.incidentType : 'online') : log.status;
+}
+
+export function getMonitorStatus(incidents, logs) {
+    let incident = incidents && incidents.length > 0 ? incidents[0] : null;
+    let log = logs && logs.length > 0 ? logs[0] : null;
+
+    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'online'));
+
+    return statusCompare || 'online';
+}
+
+export function getServiceStatus(monitorsData) {
+
+    var monitorsLength = monitorsData.length;
+    var probesLength =  monitorsData[0] && monitorsData[0].probes && monitorsData[0].probes.length;
+
+    var totalServices = monitorsLength * probesLength; 
+    var onlineServices = totalServices;
+    monitorsData.forEach(monitor => {
+        monitor.probes.forEach(probe => {
+            let monitorStatus = getMonitorStatus(monitor.incidents, probe.probeStatus);
+            if (monitorStatus === 'degraded' || monitorStatus === 'offline') {
+                onlineServices--;
+            }
+        })
+    })
+    if (onlineServices === totalServices) {
+        return 'all';
+    } else if (onlineServices === 0) {
+        return 'none';
+    } else if (onlineServices < totalServices){
+        return 'some';
+    }
+}

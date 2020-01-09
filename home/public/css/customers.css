@@ -944,7 +944,7 @@ html#customers .LocalNavigation{
     top:50px;
     right:0;
     bottom:-50px;
-    background:#f6f9fc
+    background:#f9f9f9
 }
 .Section:first-of-type{
     margin-top:-50px
@@ -961,7 +961,7 @@ html#customers .LocalNavigation{
     margin-top:-20px
 }
 .Section-category{
-    color:#24b47e;
+    color:#000000;
     text-align:center;
     margin-top:130px;
     margin-bottom:50px;

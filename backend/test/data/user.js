@@ -1,6 +1,6 @@
 module.exports = {
     user: {
-        name: 'Olalekan Ayodele',
+        name: 'John Smith',
         email: 'noreply@fyipe.com',
         password:'1234567890',
         confirmPassword: '1234567890',
@@ -42,7 +42,7 @@ module.exports = {
     },
 
     newUser: {
-        name: 'Olalekan Ayodele',
+        name: 'John Smith',
         email: 'testmail@fyipe.com',
         password:'1234567890',
         confirmPassword: '1234567890',
@@ -84,9 +84,9 @@ module.exports = {
     },
 
     profile: {
-        name: 'Olalekan Ayodele',
+        name: 'John Smith',
         email: 'lekan@fyipe.com',
-        timezone: 'London GMT +00:00',
+        timezone: 'Europe/London',
         profilePic: 'Image.jpg',
         companyPhoneNumber: '+919910568840',
         alertPhoneNumber: '+919910568840'

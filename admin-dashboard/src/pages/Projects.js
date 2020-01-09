@@ -37,7 +37,7 @@ class Projects extends React.Component {
             fetchProjects(skip + limit, 10);
         }
     }
-    
+
     ready = () => {
         this.props.fetchProjects();
     }
@@ -61,7 +61,7 @@ class Projects extends React.Component {
                                     className="customers-list-view react-view popover-container"
                                     style={{ position: 'relative', overflow: 'visible' }}
                                 ></div>
-                                <div className="bs-BIM">
+                                <div className="bs-BIM" style={{marginTop:'60px'}}>
                                     <div className="Box-root Margin-bottom--12">
                                         <div className="bs-ContentSection Card-root Card-shadow--medium">
                                         <div className="Box-root">
@@ -79,7 +79,7 @@ class Projects extends React.Component {
                                                             <div className="Box-root">
                                                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                                                     <div>
-                                                                        <input 
+                                                                        <input
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             placeholder="search project's name"
                                                                             onChange={this.onChange}
@@ -95,10 +95,10 @@ class Projects extends React.Component {
                                     </div>
                                 </div>
                                 </div>
-                                    <ProjectList 
-                                        projects={this.props.projects || {}} 
-                                        prevClicked={this.prevClicked} 
-                                        nextClicked={this.nextClicked} 
+                                    <ProjectList
+                                        projects={this.props.projects || {}}
+                                        prevClicked={this.prevClicked}
+                                        nextClicked={this.nextClicked}
                                         userId={this.props.userId}
                                         requesting={this.props.requesting}
                                     />
@@ -124,7 +124,7 @@ const mapStateToProps = state => {
     const projects = state.project.projects;
     const searchProjects = state.project.searchProjects;
     const requesting = projects && searchProjects ? projects.requesting || searchProjects.requesting ? true : false : false;
-    
+
     return {
         projects,
         requesting

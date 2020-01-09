@@ -8,10 +8,10 @@
   <% include ./head %>
   <script src="/js/amplitude.js"></script>
   <script>
-      var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
-      if (!IS_DEV) {
-          amplitude.getInstance().logEvent('Pricing page loaded');
-      }
+    var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+    if (!IS_DEV) {
+      amplitude.getInstance().logEvent('Pricing page loaded');
+    }
   </script>
   <noscript id="deferred-styles">
     <link rel="stylesheet" href="/css/flexbox-grid.css">
@@ -31,23 +31,20 @@
     <header class="Header">
 
       <div class="fyipeBackground">
-        <div class="fyipe s0"></div>
-        <div class="fyipe s2 pattern"></div>
+
       </div>
 
       <div class="fyipeBackground accelerated">
-        <div class="fyipe s1"></div>
-        <div class="fyipe s3"></div>
-        <div class="fyipe s4"></div>
+
       </div>
 
       <div class="Header-container container-wide">
 
         <div class="row center-xs">
           <div class="col-xs-12">
-            <h1 class="Header-title common-PageTitle">
+            <h1 class="Header-title common-PageTitle header-font header-size">
               Simple, transparent pricing.
-              <span class="Header-subTitle common-PageSubtitle"> 14 day free trial on all of our plans.</span>
+
             </h1>
             <div style="margin-bottom: 50px;">
               <span id="annual-text" style="font-size: 18px;margin-right:10px;">
@@ -68,14 +65,14 @@
                           col-lg-4 extra-margin">
 
             <div class="Plan Plan--standard">
-              <h2 class="Plan-title common-Uppercase">STANDARD
+              <h2 class="Plan-title common-Uppercase">STARTUP
               </h2>
 
               <div class="Plan-cardPricing">
                 <div class="Plan-cardRate">
 
                   <div id="pro-plus-rate" class="Plan-cardRate-percent">
-                    $6.70
+                    $22
                   </div>
 
 
@@ -86,7 +83,7 @@
                 </div>
 
                 <div id="pro-plus-description" class="Plan-cardRate-description">
-                  Per member billed anually or $6.70 month-to-month
+                  Per member billed anually or $25 month-to-month
                 </div>
 
               </div>
@@ -97,7 +94,70 @@
                   member
                 </li>
                 <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> Unlimited
+                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> 180 Day
+                  Data Retention
+                </li>
+                <li class="Plan-listItem">
+                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> Basic
+                  On-Call Scheduling.
+                </li>
+              </ul>
+
+              <div class="Plan-cardPricing">
+
+
+                <div class="Plan-cardRate-description" style="text-align: left;
+                      padding: 20px;">
+                  Email Support, Alerts charged at $1/call, Sub projects, Assign monitors to team members
+                  and more.
+                </div>
+              </div>
+
+              <a id="pro-plus-link" href="#" onclick="registerUrl()"
+                class="Plan-button common-Uppercase common-Link--arrow">
+                Try Free for 14 days
+              </a>
+
+            </div>
+
+          </div>
+
+          <div class="col-xs-11
+                          col-sm-4
+                          col-md-4
+                          col-lg-4 extra-margin">
+
+            <div class="Plan Plan--standard">
+              <h2 class="Plan-title common-Uppercase"><span class="circular-label">Most Popular</span><br />GROWTH
+              </h2>
+
+              <div class="Plan-cardPricing">
+                <div class="Plan-cardRate">
+
+                  <div id="growth-rate" class="Plan-cardRate-percent">
+                    $50
+                  </div>
+
+
+                  <div class="Plan-cardRate-fixed">
+                    &nbsp;/mo
+                  </div>
+
+                </div>
+
+                <div id="growth-description" class="Plan-cardRate-description">
+                  Per member billed anually or $25 month-to-month
+                </div>
+
+              </div>
+
+              <ul class="Plan-list">
+                <li class="Plan-listItem">
+                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon">10 monitors per
+                  member
+                </li>
+                <li class="Plan-listItem">
+                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> 1 Year
                   Data Retention
                 </li>
                 <li class="Plan-listItem">
@@ -111,14 +171,14 @@
 
                 <div class="Plan-cardRate-description" style="text-align: left;
                       padding: 20px;">
-                  Email Support,Global Alerts for $1/alert, Sub projects, Assign monitors to team members
+                  Priority Email Support, Alerts charged at $1/call, Sub projects, Private Status Pages
                   and more.
                 </div>
               </div>
 
               <a id="pro-plus-link" href="#" onclick="registerUrl()"
                 class="Plan-button common-Uppercase common-Link--arrow">
-                Try Free
+                Try Free for 14 days
               </a>
 
             </div>
@@ -139,7 +199,7 @@
                   <tbody>
                     <tr class="Plan-table-row">
                       <td class="Plan-table-cell Plan-table-cell--alternating">Account Management</td>
-                      <td class="Plan-table-cell">Enterprise Features</td>
+                      <td class="Plan-table-cell">Security and Audits</td>
                     </tr>
                     <tr>
                       <td class="Plan-table-cell">Setup Assistance</td>
@@ -151,13 +211,13 @@
               <div class="Plan-cardPricing">
 
 
-                <div class="Plan-cardRate-description" style="
+                <div class="Plan-cardRate-description text-whitegrey" style="
                       text-align: left;
                       padding: 20px;
                       padding-top: 1px;
                       ">
                   Unlimited monitors, 1000+ Enterprise Integrations, On Premise Install, Invoicing, Custom HTML, CSS
-                  and JS, Enterprise SLA,
+                  and JS, Enterprise SLA, Dedicated Operations Engineer,
                   and more.
                 </div>
               </div>
@@ -198,10 +258,7 @@
 
     </header>
 
-    <div class="comparision-heading">
-      <h3>Save hundreds today, thousands as you grow.</h3>
-      <h4>Fyipe replaces 4-5 apps that cumulatively cost a lot, see our comparision below and decide for yourself.</h4>
-    </div>
+
     <% include ./comparision-chart %>
 
     </article>
@@ -210,25 +267,6 @@
       <div class="container">
 
         <div class="row PricingFAQ-row">
-
-
-          <div class="col-xs-12
-                          col-sm-6">
-
-            <h5 class="common-BodyTitle PricingFAQ-title">
-              How does the 14-day free trial work?
-            </h5>
-            <p class="common-BodyText PricingFAQ-body">
-              If you cancel your Fyipe subscription within 14-days of signing up you will not be charged anything. It's
-              completely free.
-              If you want to keep using the account, you don't need to do anything and you will be billed for the
-              following
-              subscription period after the first 14-days have passed. You can cancel your account at any time after
-              that
-              but you are responsible for any charges that have occurred before you cancelled the subscription.
-            </p>
-
-          </div>
 
           <div class="col-xs-12
                           col-sm-6">
@@ -240,6 +278,16 @@
               the availability of
               your service in different ways. 1 monitor can monitor 1 URL or IP address, 24/7, 365 days of the year at
               one minute intervals.
+            </p>
+          </div>
+
+          <div class="col-xs-12
+                          col-sm-6">
+            <h5 class="common-BodyTitle PricingFAQ-title">
+              What if I need more monitors? 
+            </h5>
+            <p class="common-BodyText PricingFAQ-body">
+              You basically add one more seat to your plan. This can be done in the "Billing" section of your dashboard. Since you've added a seat, you can also add one more member to your project. This can be done later.
             </p>
           </div>
 
@@ -265,7 +313,37 @@
 
             </h5>
             <p class="common-BodyText PricingFAQ-body">
-              Yes. You can.
+              Yes. You can upgrade to growth or enterprise plan at any time.
+            </p>
+
+          </div>
+
+          <div class="col-xs-12
+          col-sm-6">
+
+            <h5 class="common-BodyTitle PricingFAQ-title">
+              What kind of support do I get?
+
+            </h5>
+            <p class="common-BodyText PricingFAQ-body">
+              Startup Plan gets 2 business day email support. 
+              Growth Plan gets priority 1 business day email support. 
+              Emterprise Plan gets priority 24/7 3 hour SLA email and phone support.
+            </p>
+
+          </div>
+
+          <div class="col-xs-12
+          col-sm-6">
+
+            <h5 class="common-BodyTitle PricingFAQ-title">
+              What kind of support do I get?
+
+            </h5>
+            <p class="common-BodyText PricingFAQ-body">
+              Startup Plan gets 2 business day email support. 
+              Growth Plan gets priority 1 business day email support. 
+              Emterprise Plan gets priority 24/7 3 hour SLA email and phone support.
             </p>
 
           </div>
@@ -277,7 +355,7 @@
               What types of payment do you accept?
             </h5>
             <p class="common-BodyText PricingFAQ-body">
-              Fyipe accepts credit card payments (Visa, Mastercard, American Express). Invoice payment available for
+              We accepts credit card payments (Visa, Mastercard, American Express). Invoice payment available for
               Enterprise customers.
             </p>
 
@@ -328,13 +406,21 @@
       annualSelected = !annualSelected;
 
       if (annualSelected) {
-        $("#pro-plus-rate").text("$6.70");
+        $("#growth-rate").text("$49");
+
+        $("#pro-plus-rate").text("$22");
+        $("#growth-description").text("Per user billed anually.");
         $("#pro-plus-description").text("Per user billed anually.");
+
 
         $("#annual-text").css("font-weight", 600);
         $("#monthly-text").css("font-weight", 500);
       } else {
-        $("#pro-plus-rate").text("$8");
+
+        $("#growth-rate").text("$59");
+        $("#growth-description").text("Per user billed monthly.");
+
+        $("#pro-plus-rate").text("$25");
 
         $("#pro-plus-description").text("Per user billed monthly.");
         $("#monthly-text").css("font-weight", 600);

@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { fetchMonitorsIncidents, fetchMonitorsSubscribers } from '../actions/monitor';
+import { fetchMonitorsIncidents, fetchMonitorsSubscribers,getMonitorLogs} from '../actions/monitor';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import MonitorViewHeader from '../components/monitor/MonitorViewHeader';
@@ -16,7 +16,8 @@ import { mapCriteria } from '../config';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
-
+import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
+import moment from 'moment';
 class MonitorView extends React.Component {
   // eslint-disable-next-line
   constructor(props) {
@@ -33,6 +34,7 @@ class MonitorView extends React.Component {
     const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
     this.props.fetchMonitorsIncidents(subProjectId, this.props.monitor._id, 0, 5); //0 -> skip, 5-> limit.
     this.props.fetchMonitorsSubscribers(subProjectId, this.props.monitor._id, 0, 5); //0 -> skip, 5-> limit.
+    this.props.getMonitorLogs(subProjectId, this.props.monitor._id, 0, 10,moment().subtract(1, 'd').utc(),moment().utc()); //0 -> skip, 5-> limit.
     if (!IS_DEV) {
       logEvent('MonitorView Page Ready, Data Requested');
     }
@@ -63,6 +65,11 @@ class MonitorView extends React.Component {
                           <div className="Box-root Margin-bottom--12">
                             <MonitorViewIncidentBox monitor={this.props.monitor} />
                           </div>
+                          <ShouldRender if={this.props.monitor && this.props.monitor.type && (this.props.monitor.type === 'url' || this.props.monitor.type === 'api')}>
+                            <div className="Box-root Margin-bottom--12">
+                              <MonitorViewLogsBox monitorId={this.props.monitor._id} monitorName={this.props.monitor.name}/>
+                            </div>
+                          </ShouldRender>
                           <div className="Box-root Margin-bottom--12">
                             <MonitorAddScheduleBox monitor={this.props.monitor} />
                           </div>
@@ -140,7 +147,7 @@ const mapStateToProps = (state, props) => {
 };
 
 const mapDispatchToProps = dispatch => {
-  return bindActionCreators({ fetchMonitorsIncidents, fetchMonitorsSubscribers }, dispatch);
+  return bindActionCreators({ fetchMonitorsIncidents, fetchMonitorsSubscribers,getMonitorLogs }, dispatch);
 }
 
 MonitorView.propTypes = {
@@ -148,6 +155,7 @@ MonitorView.propTypes = {
   fetchMonitorsIncidents: PropTypes.func.isRequired,
   fetchMonitorsSubscribers: PropTypes.func.isRequired,
   initialValues: PropTypes.object.isRequired,
+  getMonitorLogs:PropTypes.func.isRequired,
 }
 
 MonitorView.displayName = 'MonitorView'

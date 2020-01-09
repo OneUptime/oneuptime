@@ -11,8 +11,11 @@
 
     <link rel="stylesheet" href="/css/crm.css">
     <link rel="stylesheet" href="/css/sdlc.css">
+    <link rel="stylesheet" href="/css/comparision.css">
+    
     <script src="/js/crm.js" type="text/javascript"></script>
     <link rel="stylesheet" href="/css/home.css">
+    
     <script defer src="/js/home.js"></script>
     <script src="/js/amplitude.js"></script>
     <script>
@@ -32,25 +35,17 @@
 
         <main>
             <header>
-                <div id="stripes">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
 
                 <section id="intro">
                     <div class="container-lg" style="display: flex;">
-                        <div style="position: relative;">
-                            <h1>
-                                Status Page, Monitoring
-                                <br>and On-call made simple.
+                        <div>
+                            <h1 class="black main-page-title">
+                                Complete  <br/>
+                                DevOps and IT Ops<br/> 
+                                platform.
                             </h1>
                             <p class="common-BodyText">
-                                Fyipe monitors your website, dashboards, API's, and more and alerts your team when
-                                downtime happens. We also give you a Status
-                                Page which keeps your customers looped in and improves transparency.
+                                Fyipe monitors your website, dashboards, API's, and more and alerts your team when downtime happens. We also give you a Status Page which keeps your customers looped in and improves transparency.
                             </p>
                             <ul>
                                 <li>
@@ -79,42 +74,15 @@
                     </div>
                 </section>
             </header>
-            <div id="introimage">
-                <!-- <iframe title="Fyipe Status" scrolling="no" src="https://status.fyipe.com/?embedded=true" id="fyipe-frame">
 
-                </iframe>-->
-                <img src="/img/fyipestatuspage.png" alt="statuspage" id="fyipe-frame-image">
-            </div>
             <% include ./sdlc %>
-            <% include ./crm %>
-            <section id="primary">
-                <section id="complete-toolkit" class="container-lg">
-
-                    <h2 class="common-UppercaseTitle" style="width:80%">
-                        <img class="heading-icon" src="/img/icon-96-96.png" style="border-radius:50%" alt="icon" />
-
-                        <span>
-                            Status Page for internet business.
-                        </span>
-                    </h2>
-                    <p class="common-BodyText" style="width:80%">
-                        Fyipe gives you simple status page for your business. Status Page helps you to improve
-                        transparency with your customers,
-                        build customer trust, cut support costs during downtime and showcase reliability.
-                    </p>
-                    <div style="text-align:center" style="width:80%">
-                        <img src="/img/dashboard-status.png" class="status-image" alt="dashboard-status" />
-                    </div>
-                    <a class="common-BodyText common-Link common-Link--arrow" href="/product/status-page"
-                        style="width:80%">
-                        Learn more about our status page.
-                    </a>
-                </section>
-                <section id="test"></section>
+            <% include ./comparision-chart %>
+            
+                
                 <section id="developers-first">
                     <div id="programming-languages"></div>
                     <h2 class="common-UppercaseTitle">
-                        <img class="heading-icon" src="/img/wall-calendar.svg" alt="wall-calendar" /> On call and
+                        On call and
                         alerts.
                     </h2>
                     <p class="common-BodyText">
@@ -157,36 +125,9 @@
 
                 <section id="secondary">
                     <div class="cols container-lg">
-                        <section id="always-improving">
-                            <h2 class="common-Uppercase">
-                                <img class="heading-icon" src="/img/graph.svg" alt="graph" />
-                                <span style="font-size:1.5em;"> Uptime Monitoring.</span>
-                            </h2>
-                            <p class="common-BodyText">
-                                Fyipe monitors your dashboard, landing pages, and API's every minute and keeps your
-                                team updated on any downtime that might
-                                happen in the future. We also monitor the page response time, page speed and more
-                                and help your team remove bottlenecks.
-                            </p>
-                            <a class="common-BodyText common-Link common-Link--arrow" href="/product/uptime-monitoring">
-                                Learn more about Uptime Monitoring.
-                            </a>
-                        </section>
+                      
 
-                        <section id="global-scale">
-                            <h2 class="common-Uppercase">
-                                <img class="heading-icon" src="/img/intersection.svg" alt="intersection" />
-                                <span style="font-size:1.5em;">1000+ Integrations.</span>
-                            </h2>
-                            <p class="common-BodyText">
-                                Fyipe works with the tools you already use. Connect to hundreds of your favorite apps
-                                and services.
-                            </p>
-                            <a class="common-BodyText common-Link common-Link--arrow"
-                                href="https://zapier.com/apps/fyipe/integrations">
-                                Check out our intergrations.
-                            </a>
-                        </section>
+                       
                     </div>
 
                     <section id="customer-logos">

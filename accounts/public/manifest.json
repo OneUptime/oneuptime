@@ -1,6 +1,6 @@
 {
   "short_name": "Fyipe",
-  "name": "Fyipe Dashboard",
+  "name": "Fyipe Accounts",
   "icons": [
     {
       "src": "/assets/img/favicons/android-chrome-192x192.png",
@@ -13,7 +13,7 @@
       "type": "image/png"
     }
   ],
-  "start_url": "./index.html",
+  "start_url": ".",
   "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff"
