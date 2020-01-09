@@ -37,6 +37,11 @@ var projectSchema = new Schema({
         type: Boolean,
         default: false
     },
+    alertLimit: String,
+    alertLimitReached: {
+        type: Boolean,
+        default: false
+    },
     balance:{
         type: Number,
         default: 0

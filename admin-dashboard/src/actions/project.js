@@ -9,14 +9,14 @@ import errors from '../errors'
       type: types.FETCH_PROJECTS_REQUEST,
     }
   }
-  
+
   export const fetchProjectsSuccess = projects => {
     return {
       type: types.FETCH_PROJECTS_SUCCESS,
       payload: projects,
     }
   }
-  
+
   export const fetchProjectsError = error => {
     return {
       type: types.FETCH_PROJECTS_FAILURE,
@@ -33,7 +33,7 @@ export const fetchProjects = (skip, limit) => async (dispatch) => {
 
 	try{
 		const response = await getApi(`project/projects/allProjects?skip=${skip}&limit=${limit}`);
-		
+
 		dispatch(fetchProjectsSuccess(response.data));
 		return response;
 	}catch(error){
@@ -257,6 +257,61 @@ export const blockProject = projectId => async (dispatch) => {
 			errorMsg = 'Network Error';
 		}
 		dispatch(blockProjectError(errors(errorMsg)));
+	}
+}
+
+//Renew Alert Limit
+export const renewAlertLimitRequest = () => {
+	return {
+		type: types.ALERT_LIMIT_REQUEST,
+	};
+}
+
+export const renewAlertLimitReset = () => {
+	return {
+		type: types.ALERT_LIMIT_RESET,
+	};
+}
+
+export const renewAlertLimitSuccess = project => {
+	return {
+		type: types.ALERT_LIMIT_SUCCESS,
+		payload: project
+	};
+}
+
+export const renewAlertLimitError = error => {
+	return {
+		type: types.ALERT_LIMIT_FAILED,
+		payload: error
+	};
+}
+
+// Calls the API to block a project
+export const renewAlertLimit = (projectId,alertLimit) => async (dispatch) => {
+
+	dispatch(renewAlertLimitRequest());
+
+	try{
+		const response = await putApi(`project/${projectId}/renewAlertLimit`,{alertLimit});
+		const data = response.data;
+
+		dispatch(renewAlertLimitSuccess(data));
+		return response;
+	}catch(error){
+		let errorMsg;
+		if (error && error.response && error.response.data)
+			errorMsg = error.response.data;
+		if (error && error.data) {
+			errorMsg = error.data;
+		}
+		if(error && error.message){
+			errorMsg = error.message;
+		}
+		else{
+			errorMsg = 'Network Error';
+		}
+		dispatch(renewAlertLimitError(errors(errorMsg)));
 	}
 }
 

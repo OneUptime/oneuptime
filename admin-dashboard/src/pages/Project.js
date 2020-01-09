@@ -8,6 +8,7 @@ import ProjectDetails from '../components/project/ProjectDetails';
 import ProjectDeleteBox from '../components/project/ProjectDeleteBox';
 import ProjectRestoreBox from '../components/project/ProjectRestoreBox';
 import ProjectBlockBox from '../components/project/ProjectBlockBox';
+import ProjectAlertLimitBox from '../components/project/ProjectAlertLimitBox';
 import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
 import AdminNotes from '../components/adminNote/AdminNotes';
 import { addProjectNote, fetchProject } from '../actions/project';
@@ -45,6 +46,11 @@ class Project extends Component {
                                             <ShouldRender if={this.props.project && !this.props.project.deleted && !this.props.project.isBlocked}>
                                                 <div className="Box-root Margin-bottom--12">
                                                     <ProjectBlockBox />
+                                                </div>
+                                            </ShouldRender>
+                                            <ShouldRender if={this.props.project && this.props.project.alertLimitReached}>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <ProjectAlertLimitBox />
                                                 </div>
                                             </ShouldRender>
                                             <ShouldRender if={this.props.project && !this.props.project.deleted && this.props.project.isBlocked}>

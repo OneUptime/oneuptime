@@ -477,31 +477,6 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function (req
     }
 });
 
-// Description: Rename subproject.
-router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (req, res) {
-    try {
-        const subProjectId = req.params.subProjectId;
-        const subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
-        if (!subProjectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'SubProjectId must be present.'
-            });
-        }
-
-        if (!subProjectName) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'SubProject Name must be present.'
-            });
-        }
-        const subProject = await ProjectService.updateOneBy({_id:subProjectId},{name:subProjectName});
-        return sendItemResponse(req, res, subProject);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
 // Description: Delete subproject.
 router.delete('/:projectId/:subProjectId', getUser, isAuthorized, async function (req, res) {
     try {
@@ -589,6 +564,27 @@ router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async functio
     }
 });
 
+router.put('/:projectId/renewAlertLimit',getUser, isUserMasterAdmin, async function (req, res) {
+    try {
+        const projectId = req.params.projectId;
+        var limit = req.body.alertLimit;
+        if (!limit) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'New alert limit must be present.'
+            });
+        }
+        const oldProject = await ProjectService.findOneBy({ _id: projectId, deleted: false });
+        if(oldProject && oldProject.alertLimit){
+            limit = parseInt(limit,10) + parseInt(oldProject.alertLimit,10);
+        }
+        const project = await ProjectService.updateOneBy({ _id: projectId},{alertLimitReached : false,alertLimit: limit});
+        return sendItemResponse(req, res, project);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.put('/:projectId/unblockProject', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const projectId = req.params.projectId;
@@ -604,6 +600,31 @@ router.put('/:projectId/restoreProject', getUser, isUserMasterAdmin, async funct
         const projectId = req.params.projectId;
         const project = await ProjectService.restoreBy({ _id: projectId, deleted: true });
         return sendItemResponse(req, res, project);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Description: Rename subproject.
+router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (req, res) {
+    try {
+        const subProjectId = req.params.subProjectId;
+        const subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
+        if (!subProjectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SubProjectId must be present.'
+            });
+        }
+
+        if (!subProjectName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SubProject Name must be present.'
+            });
+        }
+        const subProject = await ProjectService.updateOneBy({_id:subProjectId},{name:subProjectName});
+        return sendItemResponse(req, res, subProject);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
