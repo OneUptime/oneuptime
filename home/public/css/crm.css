@@ -30,7 +30,7 @@
 
 /* Style the buttons that are used to open the tab content */
 .tab button {
-    color: #797979;
+    color: #939da3;
     padding: 8px 8px;
     margin-top: 7px;
     width: 100%;
@@ -226,7 +226,7 @@
     padding-top: 20px;
 }
 .mobile-content h4{
-    color: #797979;
+    color: #939da3;
     font-weight: 400;
     font-size: 17px;
     line-height: 26px;
@@ -263,5 +263,5 @@
 .tooltiptext > p{
     color:rgba(255,255,255,.75);
     font-size: 1.2em;
-    line-height: 1.6em;
+    line-height: 16px;
 }

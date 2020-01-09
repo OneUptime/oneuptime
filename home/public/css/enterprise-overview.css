@@ -207,7 +207,7 @@ section.marquee #bubble-overlay header h1{
 }
 section.marquee #bubble-overlay header p{
     font-size:30px;
-    color:#797979;
+    color:#939da3;
     margin-top:120px;
 }
 @media screen and (max-width:1012px){
@@ -638,8 +638,8 @@ section.basics .split:after{
     }
 }
 section.basics .split *{
-    font-size:14px;
-    line-height:24px
+    font-size:16px;
+    line-height:26px
 }
 section.basics .split .left{
     position:absolute;

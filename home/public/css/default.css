@@ -13,7 +13,7 @@ a{
 }
 
 .text-grey{
-    color: #797979 !important; 
+    color: #939da3 !important; 
 }
 
 .header-font{
@@ -233,11 +233,16 @@ code,pre{
     line-height:28px;
     color:#000000
 }
+.arrow::after{
+    font: normal 16px fyipeIcons;
+    content: '\279E';
+    padding-left: 1px;
+}
 .common-BodyText{
     font-weight:400;
-    font-size:17px;
+    font-size:18px;
     line-height:26px;
-    color:#797979
+    color:#939da3
 }
 .common-UppercaseTitle{
     font-size:20px;
@@ -1156,7 +1161,7 @@ code,pre{
     font-weight: 900;
 }
 .globalNav .colorize{
-    color:#797979;
+    color:#939da3;
     transition:color .1s ease
 }
 .globalNav .colorize.active,.globalNav .colorize:hover{
@@ -1304,7 +1309,7 @@ code,pre{
 .globalNav .linkSub{
     font-size:15px;
     line-height:22px;
-    color:#797979;
+    color:#939da3;
     margin:0px 0 0;
     display:block
 }
