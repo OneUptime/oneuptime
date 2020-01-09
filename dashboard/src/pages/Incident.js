@@ -14,6 +14,7 @@ import PropTypes from 'prop-types';
 import IncidentDeleteBox from '../components/incident/IncidentDeleteBox'
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
+import IncidentTimelineBox from '../components/incident/IncidentTimelineBox';
 import {getMonitorLogs} from '../actions/monitor';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
@@ -116,6 +117,9 @@ class Incident extends React.Component {
           <IncidentAlert next={this.nextAlerts} previous={this.previousAlerts} />
           <div className="Box-root Margin-bottom--12">
             <MonitorViewLogsBox incidentId={this.props.incident._id} monitorId={monitorId} monitorName={monitorName} />
+          </div>
+          <div className="Box-root Margin-bottom--12">
+            <IncidentTimelineBox />
           </div>
           <SubscriberAlert next={this.nextSubscribers} previous={this.previousSubscribers} incident={this.props.incident} />
           <IncidentInvestigation incident={this.props.incident} setdata={this.investigationNote} />

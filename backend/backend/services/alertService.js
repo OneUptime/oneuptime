@@ -210,6 +210,9 @@ module.exports = {
                                                         let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
                                                         let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
                                                         let firstName = user.name;
+                                                        if(user.timezone && TimeZoneNames.indexOf(user.timezone) > -1){
+                                                            date = momentTz(date).tz(user.timezone).format();
+                                                        }
                                                         await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType,project.name);
                                                         await _this.create(incident.projectId, monitorId, AlertType.Email, user._id, incident._id);
                                                     }
@@ -571,3 +574,5 @@ let { getAlertChargeAmount, getCountryType } = require('../config/alertType');
 var moment = require('moment');
 var { twilioAlertLimit } = require('../config/twilio');
 var SmsCountService = require('./smsCountService');
+const momentTz = require('moment-timezone');
+const TimeZoneNames = momentTz.tz.names();
