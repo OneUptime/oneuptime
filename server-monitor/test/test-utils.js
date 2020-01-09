@@ -1,6 +1,6 @@
 module.exports = {
   user: {
-    name: 'Olalekan Ayodele',
+    name: 'John Smith',
     password: '1234567890',
     confirmPassword: '1234567890',
     companyName: 'Hackerbay',
