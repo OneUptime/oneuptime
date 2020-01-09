@@ -1,10 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 import { FieldArray } from 'redux-form';
-import { Field } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderNames } from './RenderNames';
-import { RenderSelect } from './RenderSelect';
 
 let RenderTeams = ({ fields, subProjectId, policyIndex }) => {
   return (

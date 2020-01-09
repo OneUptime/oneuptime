@@ -23,7 +23,8 @@ RenderInterval.displayName = 'RenderInterval';
 
 RenderInterval.propTypes = {
   input: PropTypes.shape({
-    onChange: PropTypes.func.isRequired
+    onChange: PropTypes.func.isRequired,
+    value: PropTypes.number,
   })
 }
 

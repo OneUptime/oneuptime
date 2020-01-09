@@ -86,7 +86,9 @@ RenderRotationFrequency.propTypes = {
     style: PropTypes.object,
     options: PropTypes.array.isRequired,
     message: PropTypes.string,
-    id: PropTypes.string
+    id: PropTypes.string,
+    policy: PropTypes.any.isRequired,
+    rotationFrequency: PropTypes.string.isRequired,
 }
 
 export { RenderRotationFrequency }
