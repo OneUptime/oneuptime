@@ -6,7 +6,6 @@ body,h1,h2,h3,p,ul{
 }
 body{
     background:#fff;
-    -webkit-font-smoothing:subpixel-antialiased
 }
 div.content{
     width:952px;
@@ -48,8 +47,11 @@ ul.columns:after{
     }
 }
 ul.columns h3{
-    margin-bottom:5px
+    margin-bottom:5px;
+    font-size:19px;
+    text-align: center;
 }
+
 ul.columns>li{
     width:243px;
     float:left;
@@ -148,7 +150,9 @@ section.marquee #bubble-overlay{
     height:100%
 }
 section.marquee #bubble-overlay header{
-    padding:83px 0 87px 223px
+    margin-top:100px;
+    text-align: center;
+    margin-bottom:30px;
 }
 @media screen and (max-width:1012px){
     section.marquee #bubble-overlay header{
@@ -173,7 +177,6 @@ section.marquee #bubble-overlay header:before{
 }
 @media (min--moz-device-pixel-ratio:1.5),(min-device-pixel-ratio:1.5),(min-resolution:1.5dppx),(min-resolution:138dpi),all and (-webkit-min-device-pixel-ratio:1.5){
     section.marquee #bubble-overlay header:before{
-        
         background-size:100% 100%
     }
 }
@@ -203,8 +206,9 @@ section.marquee #bubble-overlay header h1{
     }
 }
 section.marquee #bubble-overlay header p{
-    font-size:18px;
-    color:#b1b6eb
+    font-size:30px;
+    color:#797979;
+    margin-top:120px;
 }
 @media screen and (max-width:1012px){
     section.marquee #bubble-overlay header p{
@@ -423,9 +427,16 @@ section.main header{
     }
 }
 section.main header h2{
-    font-size:24px;
+    font-size:34px;
     font-weight:400;
     margin-bottom:10px
+}
+
+.header{
+    font-size:34px !important;
+    font-weight:400 !important;
+    margin-bottom:10px;
+    line-height: 40px !important;
 }
 @media screen and (max-width:1012px){
     section.main header h2{
@@ -504,6 +515,49 @@ section.basics .columns{
 section.basics .columns .billing:before{
     background-image:url(/img/team.svg)
 }
+
+
+section.basics .columns :before{
+    text-align: center !important;
+    align-content: center;
+    height: 100px;
+    width: 100px;
+    margin-left: 70px;
+    margin-bottom: 30px;
+}
+section.basics .columns .soc:before{
+    background-image:url(/img/logo_soc3@2x.png)
+}
+
+section.basics .columns .gdpr:before{
+    background-image:url(/img/gdpr.png);
+}
+
+section.basics .columns .ccpa:before{
+    background-image:url(/img/ccpa.jpg);
+    width:130px;
+    margin-left:40px
+}
+
+section.basics .columns .pci:before{
+    background-image:url(/img/pci.png);
+    width: 320px;
+    margin-left: -50px;
+}
+
+section.basics .columns .iso:before{
+    background-image:url(/img/iso.png);
+    width: 120px;
+    margin-left: 60px;
+}
+
+section.basics .columns .hipaa:before{
+    background-image:url(/img/logo_hipaa@2x.png);
+    width: 185px;
+    margin-left: 40px;
+}
+
+
 @media (min--moz-device-pixel-ratio:1.5),(min-device-pixel-ratio:1.5),(min-resolution:1.5dppx),(min-resolution:138dpi),all and (-webkit-min-device-pixel-ratio:1.5){
     section.basics .columns .billing:before{
         background-image:url(/img/team.svg);

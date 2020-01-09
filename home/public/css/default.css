@@ -1142,8 +1142,8 @@ code,pre{
     color:#000000 !important;
 }
 .highlight {
-    border-radius: 1em 0 1em 0;
-    background-image: linear-gradient(-100deg, rgba(255, 224, 0, 0.3), rgba(255, 224, 0, 0.7) 95%, rgba(255, 224, 0, 0.1));
+    border-radius: 1em 0.5em 1em 0.5em;
+    background-image: linear-gradient(-100deg, rgba(255, 224, 0, 0.88), rgba(255, 224, 0, 0.87) 95%, rgba(255, 224, 0, 0.1))
 }
 
 .globalNav .navSection.secondary .rootLink:last-child{
@@ -1759,6 +1759,13 @@ code,pre{
 .productNav a.home span{
     margin-left:12px
 }
+.text-center{
+    text-align:center;
+}
+.black-link{
+    color:#000000; 
+    text-decoration: underline;
+}
 .productNav .mask-container{
     -ms-flex-positive:1;
     flex-grow:1;
@@ -1848,16 +1855,7 @@ html[lang=ja] .productNav ul{
     pointer-events:auto;
     position:relative
 }
-.globalFooter.withCards:before{
-    content:'';
-    position:absolute;
-    left:0;
-    right:0;
-    top:600px;
-    height:2000px;
-    background:#f9f9f9;
-    transform:skew(0,-12deg)
-}
+
 .globalFooterCards .container-xl{
     display:-ms-flexbox;
     display:flex;
@@ -1936,7 +1934,7 @@ a.globalFooterCard img,a.globalFooterCard svg,div.globalFooterCard img,div.globa
 }
 @media (min-width:880px){
     a.globalFooterCard img,a.globalFooterCard svg,div.globalFooterCard img,div.globalFooterCard svg{
-        left:-35px
+        left:-25px
     }
 }
 a.globalFooterCard svg .hover-fillDark,a.globalFooterCard svg .hover-fillLight,div.globalFooterCard svg .hover-fillDark,div.globalFooterCard svg .hover-fillLight{
