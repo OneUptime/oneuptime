@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types'
-import { FieldArray } from 'redux-form';
-import { Field, formValueSelector } from 'redux-form';
+import { Field, FieldArray, formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { RenderRotation } from './RenderRotation';
+import { RenderRotationFrequency } from './RenderRotationFrequency';
+import { RenderTeams } from './RenderTeams';
 import { RenderField } from './RenderField';
 
 
@@ -14,7 +14,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
         <ul>
             {
                 fields.map((policy, i) => {
-                    const { email, sms, call } = form[i];
+                    const { email, sms, call, rotationFrequency } = form[i];
 
                     return (
                         <li key={i} style={{ margin: '5px 0px' }}>
@@ -178,14 +178,36 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                             </div>
                                                         </div>
                                                     )}
-                                                    <div className="bs-Fieldset-rows">
 
-                                                        <FieldArray
-                                                            name={`${policy}.rotation`}
-                                                            component={RenderRotation}
-                                                            subProjectId={subProjectId}
-                                                            policyIndex={i}
-                                                        />
+                                                    <div className="bs-Fieldset-row">
+                                                      <label className="bs-Fieldset-label">Rotation Frequency</label>
+                                                        <div>
+                                                          <Field
+                                                              name={`${policy}.rotationFrequency`}
+                                                              className="db-select-nw"
+                                                              placeholder="Rotation Frequency"
+                                                              type="text"
+                                                              id="rotationFrequency"
+                                                              options={[
+                                                                { value: 'day', label: 'Day'},
+                                                                { value: 'week', label: 'Week'},
+                                                                { value: 'month', label: 'Month'}
+                                                              ]}
+                                                              component={RenderRotationFrequency}
+                                                              rotationFrequency={rotationFrequency}
+                                                              policy={policy}
+                                                          />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-rows">
+                                                      <FieldArray
+                                                          className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                          name={`${policy}.team`}
+                                                          component={RenderTeams}
+                                                          subProjectId={subProjectId}
+                                                          policyIndex={i}
+                                                      />
                                                     </div>
                                                 </fieldset>
                                             </div>
@@ -230,9 +252,10 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                 email: true,
                                                 sms: false,
                                                 call: false,
-                                                rotation: [
+                                                rotationFrequency: '',
+                                                rotationInterval: '',
+                                                team: [
                                                   {
-                                                    rotationFrequency: 'Week',
                                                     teamMember: [],
                                                   }
                                                 ]

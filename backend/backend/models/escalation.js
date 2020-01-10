@@ -1,8 +1,7 @@
 var mongoose = require('../config/db');
 
 var Schema = mongoose.Schema;
-const rotationSchema = new Schema({
-    rotationFrequency: String,
+const teamSchema = new Schema({
     teamMember: [
         {
             startTime: String,
@@ -18,12 +17,14 @@ var escalationSchema = new Schema({
     callFrequency: String,
     emailFrequency: String,
     smsFrequency: String,
+    rotationFrequency: String,
+    rotationInterval: Number,
     call: {type: Boolean, default: false},
     email: {type: Boolean, default: false},
     sms: {type: Boolean, default: false},
     createdById: { type: String, ref: 'User' },
     scheduleId: String,
-    rotation: [rotationSchema],
+    team: [teamSchema],
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false},
 

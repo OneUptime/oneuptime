@@ -119,7 +119,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
 
         for(let value of req.body){
             let storagevalue = {};
-            let rotation = [];
+            let tempTeam = [];
             if(!value.callFrequency){
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -136,6 +136,8 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             storagevalue.callFrequency = value.callFrequency;
             storagevalue.smsFrequency = value.smsFrequency;
             storagevalue.emailFrequency = value.emailFrequency;
+            storagevalue.rotationFrequency = value.rotationFrequency;
+            storagevalue.rotationInterval = value.rotationInterval;
             storagevalue.email = value.email;
             storagevalue.call = value.call;
             storagevalue.sms = value.sms;
@@ -145,17 +147,11 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
 
             if(value._id) storagevalue._id = value._id;
 
-            for (let escalationRotation  of value.rotation) {
+            for (let team  of value.team) {
                 let rotationData = {};
                 let teamMember = [];
-                if (!escalationRotation.rotationFrequency) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Rotation frequency is required'
-                    });
-                }
 
-                for (let TM of escalationRotation.teamMember) {
+                for (let TM of team.teamMember) {
                     let data = {};
                     if (!TM.member) {
                         return sendErrorResponse(req, res, {
@@ -169,14 +165,13 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                     data.timezone = TM.timezone;
                     teamMember.push(data);
                 }
-                rotationData.rotationFrequency = escalationRotation.rotationFrequency;
                 rotationData.teamMember = teamMember;
-                rotation.push(rotationData);
+                tempTeam.push(rotationData);
             }
-            storagevalue.rotation = rotation;
+            storagevalue.team = tempTeam;
             escalationData.push(storagevalue);
         }
-        let escalation = await ScheduleService.addEscalation(scheduleId, escalationData,userId);
+        let escalation = await ScheduleService.addEscalation(scheduleId, escalationData, userId);
         return sendItemResponse(req, res, escalation);
     } catch (error) {
         return sendErrorResponse(req, res, error);
