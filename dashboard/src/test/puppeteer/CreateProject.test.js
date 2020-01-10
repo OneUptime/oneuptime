@@ -6,8 +6,7 @@ const { Cluster } = require('puppeteer-cluster');
 
 // user credentials
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
-let userCredentials;
+let password = '1234567890';
 
 describe('Project API', () => {
     const operationTimeOut = 50000;
@@ -32,31 +31,6 @@ describe('Project API', () => {
                 email: data.email,
                 password: data.password
             }
-            
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => {
-                const signInResponse = userCredentials;
-
-                if((await request.url()).match(/user\/login/)){
-                    request.respond({
-                        status: 200,
-                        contentType: 'application/json',
-                        body: JSON.stringify(signInResponse)
-                    });
-                }else{
-                    request.continue();
-                }
-            });
-            await page.on('response', async (response)=>{
-                try{
-                    const res = await response.json();
-                    if(res && res.tokens){
-                        userCredentials = res;
-                    }
-                }catch(error){}
-            });
-
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
@@ -90,11 +64,6 @@ describe('Project API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector('#selector');
@@ -117,7 +86,7 @@ describe('Project API', () => {
             localStorageData.should.have.property('project');
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();

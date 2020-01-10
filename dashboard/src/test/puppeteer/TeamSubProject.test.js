@@ -6,18 +6,17 @@ const { Cluster } = require('puppeteer-cluster');
 
 // parent user credentials
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
+let password = '1234567890';
 let projectName = utils.generateRandomString();
 // sub-project user credentials
 let newEmail = utils.generateRandomBusinessEmail();
-let newPassword = utils.generateRandomString();
+let newPassword = '1234567890';
 // another user credentials
 let anotherEmail = utils.generateRandomBusinessEmail();
 let anotherPassword = utils.generateRandomString();
 
 let subProjectName = utils.generateRandomString();
 let subProjectMonitorName = utils.generateRandomString();
-let userCredentials = [];
 
 describe('Team API With SubProjects', () => {
     const operationTimeOut = 50000;
@@ -44,29 +43,7 @@ describe('Team API With SubProjects', () => {
                 password: data.password
             }
 
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => {
-                const signInResponse = userCredentials.find(userCredentials => userCredentials.email === user.email);
 
-                if((await request.url()).match(/user\/login/)){
-                    request.respond({
-                        status: 200,
-                        contentType: 'application/json',
-                        body: JSON.stringify(signInResponse)
-                    });
-                }else{
-                    request.continue();
-                }
-            });
-            await page.on('response', async (response)=>{
-                try{
-                    const res = await response.json();
-                    if(res && res.tokens){
-                        userCredentials.push(res);
-                    }
-                }catch(error){}
-            });
 
             // user
             await init.registerUser(user, page);
@@ -113,11 +90,7 @@ describe('Team API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
 
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
             await init.loginUser(user, page);
             if(data.isParentUser){
                 const role = 'Administrator';
@@ -154,8 +127,8 @@ describe('Team API With SubProjects', () => {
             }
         });
 
-        cluster.queue({ email, password, anotherEmail, userCredentials, projectName, isParentUser: true });
-        cluster.queue({ email: anotherEmail, password: anotherPassword, projectName, userCredentials, isParentUser: false });
+        cluster.queue({ email, password, anotherEmail, projectName, isParentUser: true });
+        cluster.queue({ email: anotherEmail, password: anotherPassword, projectName, isParentUser: false });
 
         await cluster.idle();
         await cluster.close();
@@ -183,11 +156,7 @@ describe('Team API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
 
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
             await init.loginUser(user, page);
             if(data.isParentUser){
                 const role = 'Member';
@@ -222,8 +191,8 @@ describe('Team API With SubProjects', () => {
             }
         });
 
-        cluster.queue({ email, password, newEmail, subProjectName, userCredentials, isParentUser: true });
-        cluster.queue({ email: newEmail, password: newPassword, projectName, userCredentials, isParentUser: false });
+        cluster.queue({ email, password, newEmail, subProjectName, isParentUser: true });
+        cluster.queue({ email: newEmail, password: newPassword, projectName, isParentUser: false });
 
         await cluster.idle();
         await cluster.close();
@@ -251,11 +220,6 @@ describe('Team API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector('#teamMembers');
@@ -271,7 +235,7 @@ describe('Team API With SubProjects', () => {
             expect(userRoleValue).toBe(data.newRole);
         });
 
-        cluster.queue({ email, password, newRole, userCredentials });
+        cluster.queue({ email, password, newRole });
         await cluster.idle();
         await cluster.close();
         done();
@@ -295,11 +259,6 @@ describe('Team API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector('#teamMembers');
@@ -311,7 +270,7 @@ describe('Team API With SubProjects', () => {
             await page.waitFor(5000);
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();
