@@ -25,3 +25,6 @@ Fyipe brand color is black, just like HackerBay.io. This will help all the Hacke
 
 #### For large headings
 - font-family: 'Source Sans Pro', sans-serif;
+
+#### Handwriting
+Gochi Hand

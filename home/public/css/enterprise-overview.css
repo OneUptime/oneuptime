@@ -516,6 +516,33 @@ section.basics .columns .billing:before{
     background-image:url(/img/team.svg)
 }
 
+section.basics .columns .revenue:before{
+    background-image:url(/img/growth.svg)
+}
+
+section.basics .columns .downtime:before{
+    background-image:url(/img/download.svg)
+}
+
+section.basics .columns .perfectsoftware:before{
+    background-image:url("/img/dashboard (1).svg")
+}
+
+section.basics .columns .perfectsoftware:before{
+    background-image:url("/img/dashboard (1).svg")
+}
+
+section.basics .columns .reli:before{
+    background-image:url("/img/fpo-status-line.svg")
+}
+
+section.basics .columns .moni:before{
+    background-image:url("/img/fpo-monitor.svg")
+}
+
+section.basics .columns .cost:before{
+    background-image:url("/img/cost.svg")
+}
 
 section.basics .columns :before{
     text-align: center !important;
@@ -526,35 +553,40 @@ section.basics .columns :before{
     margin-bottom: 30px;
 }
 section.basics .columns .soc:before{
-    background-image:url(/img/logo_soc3@2x.png)
+    background-image:url(/img/soc-black.png)
 }
 
 section.basics .columns .gdpr:before{
-    background-image:url(/img/gdpr.png);
+    background-image:url(/img/gdpr-black.png);
+    width:150px;
+    margin-left: 50px;
 }
 
 section.basics .columns .ccpa:before{
-    background-image:url(/img/ccpa.jpg);
-    width:130px;
+    background-image:url(/img/ccpa.png);
+    width:100px;
     margin-left:40px
 }
 
 section.basics .columns .pci:before{
-    background-image:url(/img/pci.png);
-    width: 320px;
-    margin-left: -50px;
+    background-image:url(/img/pci-black.png);
+    width: 100px;
+    margin-left: 60px;
 }
 
 section.basics .columns .iso:before{
-    background-image:url(/img/iso.png);
+    background-image:url(/img/iso-black.png);
     width: 120px;
     margin-left: 60px;
 }
 
 section.basics .columns .hipaa:before{
-    background-image:url(/img/logo_hipaa@2x.png);
-    width: 185px;
+    background-image: url(/img/hipaa-black.png);
+    height: 200px;
     margin-left: 40px;
+    margin-top: -50px;
+    margin-bottom: -19px;
+    width:unset;
 }
 
 
@@ -585,31 +617,31 @@ section.basics .columns .private:before{
 }
 
 section.basics .columns .reliability:before{
-    background-image:url(/img/idea.svg)
+    background-image:url(/img/integration.svg)
 }
 @media (min--moz-device-pixel-ratio:1.5),(min-device-pixel-ratio:1.5),(min-resolution:1.5dppx),(min-resolution:138dpi),all and (-webkit-min-device-pixel-ratio:1.5){
     section.basics .columns .reliability:before{
-        background-image:url(/img/idea.svg);
+        background-image:url(/img/integration.svg);
         background-size:auto auto
     }
 }
 
 section.basics .columns .monitor:before{
-    background-image:url(/img/analytics.svg)
+    background-image:url(/img/process.svg)
 }
 @media (min--moz-device-pixel-ratio:1.5),(min-device-pixel-ratio:1.5),(min-resolution:1.5dppx),(min-resolution:138dpi),all and (-webkit-min-device-pixel-ratio:1.5){
     section.basics .columns .monitor:before{
-        background-image:url(/img/analytics.svg);
+        background-image:url(/img/process.svg);
         background-size:auto auto
     }
 }
 
 section.basics .columns .analytics:before{
-    background-image:url(/img/research.svg)
+    background-image:url(/img/product.svg)
 }
 @media (min--moz-device-pixel-ratio:1.5),(min-device-pixel-ratio:1.5),(min-resolution:1.5dppx),(min-resolution:138dpi),all and (-webkit-min-device-pixel-ratio:1.5){
     section.basics .columns .analytics:before{
-        background-image:url(/img/research.svg);
+        background-image:url(/img/product.svg);
         background-size:auto auto
     }
 }
@@ -638,7 +670,7 @@ section.basics .split:after{
     }
 }
 section.basics .split *{
-    font-size:16px;
+    font-size:18px;
     line-height:26px
 }
 section.basics .split .left{
@@ -667,11 +699,20 @@ section.basics .split .left{
 section.basics .split .left p:first-of-type{
     margin-bottom:10px
 }
+.integration-list{
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.integration-logo{
+    height:40px
+}
 section.basics .split .right{
     margin-left:310px;
     width:2500px;
     padding:55px 0 55px 42px;
     border-left:1px solid #efeff1;
+    border-bottom:1px solid #efeff1;
     background-color:#f8fafb;
     background:-webkit-linear-gradient(290deg,#f5f7f9,#fff 50%);
     background:linear-gradient(160deg,#f5f7f9,#fff 50%)

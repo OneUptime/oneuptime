@@ -1148,7 +1148,7 @@ code,pre{
 }
 .highlight {
     border-radius: 1em 0.5em 1em 0.5em;
-    background-image: linear-gradient(-100deg, rgba(255, 224, 0, 0.88), rgba(255, 224, 0, 0.87) 95%, rgba(255, 224, 0, 0.1))
+    background-image: linear-gradient(-100deg, rgba(255, 224, 0, 0.88), rgba(255, 224, 0, 0.87) 95%, rgb(255, 224, 0))
 }
 
 .globalNav .navSection.secondary .rootLink:last-child{
