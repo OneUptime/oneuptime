@@ -63,7 +63,7 @@
     "chai-http": "^3.0.0",
     "chai-subset": "^1.6.0",
     "custom-env": "^1.0.2",
-    "mocha": "^5.2.0",
+    "mocha": "^6.2.2",
     "nodemon": "^1.18.4",
     "npm-audit-ci-wrapper": "^2.2.1",
     "rewire": "^3.0.2",
