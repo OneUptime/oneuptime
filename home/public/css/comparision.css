@@ -14,9 +14,9 @@
     color:#000000;
 }
 .comparision-heading>h4{
-    font-size: 1.8em;
+    font-size: 18px;
     font-weight: 300;
-    color:#797979;
+    color:#939da3;
 }
 @media only screen and (max-width: 1090px) {
 .comparision-heading{
@@ -72,7 +72,7 @@
     color:#000000;
 }
 .fyipe-list-head>h4{
-    font-size: 1.8em;
+    font-size: 18px;
     font-weight: 500;
     color:#000000;
 }
