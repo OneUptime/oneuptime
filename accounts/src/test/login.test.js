@@ -4,10 +4,10 @@ var utils = require('./test-utils');
 var init = require('./test-init');
 
 let browser;
-let page1, userCredentials;
+let page1;
 
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
+let password = '1234567890';
 const user = {
     email,
     password
@@ -21,27 +21,6 @@ describe('Login API', () => {
         page1 = await browser.newPage();
         page2 = await browser.newPage();
         await page1.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-        // intercept request and mock response for login
-        await page2.setRequestInterception(true);
-        await page2.on('request', async (request) => {
-            if ((await request.url()).match(/user\/login/)) {
-                request.respond({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify(userCredentials)
-                });
-            } else {
-                request.continue();
-            }
-        });
-        await page2.on('response', async (response) => {
-            try {
-                var res = await response.json();
-                if (res && res.tokens) {
-                    userCredentials = res;
-                }
-            } catch (error) { }
-        });
     });
 
     afterAll(async () => {
