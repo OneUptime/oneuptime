@@ -183,6 +183,8 @@ spec:
               value: "lkjdfsas-89ul-et5r-jmkf-u98pura8r89e"
             - name: HOME_HOST
               value: "https://staging.fyipe.com"
+            - name: NODE_ENV
+              value: "development"
           ports:
             - containerPort: 3002
               hostPort: 3002
