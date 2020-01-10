@@ -643,9 +643,9 @@ section.basics .split *{
 }
 section.basics .split .left{
     position:absolute;
-    width:208px;
-    left:61px;
-    top:50%;
+    width: 358px;
+    left: -30px;
+    top:25%;
     -webkit-transform:translateY(-50%);
     transform:translateY(-50%)
 }
