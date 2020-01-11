@@ -47,16 +47,18 @@ module.exports = {
     create: async function (data) {
         try {
             let escalationModel = new EscalationModel();
-            escalationModel.call = data.call || null;
-            escalationModel.email = data.email || null;
-            escalationModel.sms = data.sms || null;
+            escalationModel.call = data.call || false;
+            escalationModel.email = data.email || false;
+            escalationModel.sms = data.sms || false;
             escalationModel.callFrequency = data.callFrequency || null;
             escalationModel.smsFrequency = data.smsFrequency || null;
             escalationModel.emailFrequency = data.emailFrequency || null;
+            escalationModel.rotationFrequency = data.rotationFrequency || null;
+            escalationModel.rotationInterval = data.rotationInterval || null;
             escalationModel.projectId = data.projectId || null;
             escalationModel.scheduleId = data.scheduleId || null;
             escalationModel.createdById = data.createdById || null;
-            escalationModel.rotation = data.rotation || null;
+            escalationModel.team = data.team || null;
             var escalation = await escalationModel.save();
             return escalation;
         } catch (error) {

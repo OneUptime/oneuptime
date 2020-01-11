@@ -195,8 +195,8 @@ module.exports = {
                                 }
                                 var escalation = await EscalationService.findOneBy({ _id: escalationId });
                                 if (escalation) {
-                                    escalation.rotation.forEach(async rotation => {
-                                        rotation.teamMember.forEach(async (teamMember) => {
+                                    escalation.team.forEach(async team => {
+                                        team.teamMember.forEach(async (teamMember) => {
                                             const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
                                             if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) {
                                                 var user = await UserService.findOneBy({ _id: teamMember.member });

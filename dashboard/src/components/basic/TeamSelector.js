@@ -9,8 +9,8 @@ let errorStyle = {
     topMargin: '5px'
 };
 
-const TeamSelector = ({ input, placeholder, meta: { touched, error }, members, form, policyIndex, rotationIndex }) => {
-    const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].rotation[rotationIndex].teamMember, members);
+const TeamSelector = ({ input, placeholder, meta: { touched, error }, members, form, policyIndex, teamIndex }) => {
+    const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].team[teamIndex].teamMember, members);
     const allowedOptionsForDropdown = [{ value: '', label: 'Select Team Member...' }].concat(allowedTeamMembers.map(member => {
         return {
             value: member.userId,
@@ -86,7 +86,7 @@ TeamSelector.propTypes = {
     members: PropTypes.array,
     policyIndex: PropTypes.number.isRequired,
     form: PropTypes.object.isRequired,
-    rotationIndex: PropTypes.number.isRequired,
+    teamIndex: PropTypes.number.isRequired,
 };
 
 function makeAllowedTeamMembers(teamMembers, subProjectTeam = []) {
