@@ -47,7 +47,7 @@ function validate(values) {
                     alertArrayErrors[i] = repeatErrors;
                 }
             }
-            (values.OnCallAlertBox[i] && values.OnCallAlertBox[i].rotation) && values.OnCallAlertBox[i].rotation.forEach((val, j) => {
+            (values.OnCallAlertBox[i] && values.OnCallAlertBox[i].team) && values.OnCallAlertBox[i].team.forEach((val, j) => {
                 const escalationErrors = {}
                 if (val) {
                     if (val.teamMember[0] && val.teamMember[0].member === '') {
@@ -189,9 +189,8 @@ const mapStateToProps = (state, props) => {
             email: true,
             sms: false,
             call: false,
-            rotation: [
+            team: [
               {
-                rotationFrequency: 'Week',
                 teamMember: [
                   {
                       member: '',

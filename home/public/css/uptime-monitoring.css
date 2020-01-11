@@ -446,7 +446,7 @@ section.techguide .chart .x-axis{
 section.techguide .chart .x-axis .label{
     position:relative;
     font-size:15px;
-    color:#797979
+    color:#939da3
 }
 section.techguide .chart .x-axis .label:nth-child(1){
     width:10%
@@ -613,7 +613,7 @@ section.simplify .rules .rule-builder .header h3 span{
 section.simplify .rules .rule-builder .header p{
     font-size:16px;
     line-height:23px;
-    color:#797979
+    color:#939da3
 }
 section.simplify .rules .rule-builder .group{
     position:relative;
@@ -626,7 +626,7 @@ section.simplify .rules .rule-builder .text-field{
     font-family:Source Code Pro;
     font-size:15px;
     font-weight:500;
-    color:#797979;
+    color:#939da3;
     padding-top:7px
 }
 section.simplify .rules .rule-builder .text-field span.token{
@@ -645,7 +645,7 @@ section.simplify .rules .rule-builder .stats h4{
     font-size:16px;
     line-height:23px;
     font-weight:400;
-    color:#797979;
+    color:#939da3;
     text-align:center
 }
 section.simplify .rules .rule-builder .stats .numbers{
@@ -670,7 +670,7 @@ section.simplify .rules .rule-builder .stats .numbers .stat h1{
 }
 section.simplify .rules .rule-builder .stats .numbers .stat p{
     font-size:14px;
-    color:#797979
+    color:#939da3
 }
 section.simplify .rules .rule-builder .add-button{
     position:relative;
@@ -931,7 +931,7 @@ section.simplify .manual-review .review-queue .charge .detail p{
     position:relative;
     max-width:100%;
     font-size:14px;
-    color:#797979;
+    color:#939da3;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;

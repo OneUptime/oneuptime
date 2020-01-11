@@ -1004,7 +1004,7 @@ html#customers .LocalNavigation{
     border-top:1px solid rgba(7,96,115,.07)
 }
 .Section-extraContent{
-    font-size:1.6em;
+    font-size:16px;
     line-height:1.7em;
     color:#566b78;
     margin:0
@@ -1177,7 +1177,7 @@ html#customers .LocalNavigation{
     position:relative;
     font-style:italic;
     font-size:2.1em;
-    line-height:1.6em;
+    line-height:16px;
     margin-bottom:0
 }
 .Quote--warbyParker{
@@ -1557,7 +1557,7 @@ html#customers .LocalNavigation{
     text-transform:uppercase;
     color:#fff;
     font-weight:500;
-    font-size:1.6em;
+    font-size:16px;
     margin-top:24px
 }
 .Quote-footer--warbyParker{

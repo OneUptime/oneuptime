@@ -7,7 +7,7 @@ export class ProjectDetails extends Component {
 
     render() {
         return (
-            <div className="Box-root Margin-bottom--12">
+            <div className="Box-root Margin-bottom--12" style={{marginTop:'60px'}}>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -15,7 +15,7 @@ export class ProjectDetails extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <div>
                                     {
-                                        this.props.project.deleted ? 
+                                        this.props.project.deleted ?
                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                 <span>Deleted</span>

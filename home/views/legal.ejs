@@ -127,6 +127,10 @@
         <% include ./sla %>
         <% }%>
 
+        <% if(section === "pci") {%>
+          <% include ./pci %>
+          <% }%>
+
         <% if(section === "ccpa") {%>
         <% include ./ccpa %>
         <% }%>

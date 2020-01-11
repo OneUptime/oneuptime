@@ -2,3 +2,17 @@ body {
   overflow: hidden;
   height: 100%;
 }
+
+.renderFrequencyInput::-webkit-inner-spin-button,
+.renderFrequencyInput::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+}
+
+.renderFrequencyInput {
+  margin-left: 280px;
+  padding: 5px;
+  border-radius: 5px;
+  border: 0px;
+  display: inline;
+  -moz-appearance:textfield;
+}

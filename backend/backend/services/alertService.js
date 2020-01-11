@@ -195,8 +195,8 @@ module.exports = {
                                 }
                                 var escalation = await EscalationService.findOneBy({ _id: escalationId });
                                 if (escalation) {
-                                    escalation.rotation.forEach(async rotation => {
-                                        rotation.teamMember.forEach(async (teamMember) => {
+                                    escalation.team.forEach(async team => {
+                                        team.teamMember.forEach(async (teamMember) => {
                                             const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
                                             if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) {
                                                 var user = await UserService.findOneBy({ _id: teamMember.member });
@@ -210,6 +210,9 @@ module.exports = {
                                                         let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
                                                         let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
                                                         let firstName = user.name;
+                                                        if(user.timezone && TimeZoneNames.indexOf(user.timezone) > -1){
+                                                            date = momentTz(date).tz(user.timezone).format();
+                                                        }
                                                         await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType,project.name);
                                                         await _this.create(incident.projectId, monitorId, AlertType.Email, user._id, incident._id);
                                                     }
@@ -534,13 +537,16 @@ module.exports = {
         var yesterday = new Date(new Date().getTime() - (24*60*60*1000));
         let alerts = await _this.countBy({ projectId: projectId ,alertVia : {$in: [AlertType.Call, AlertType.SMS]},error : {$in: [null, undefined,false]},createdAt:{$gte: yesterday}});
         let smsCounts = await SmsCountService.countBy({ projectId: projectId, createdAt: { '$gte': yesterday } });
-        if(twilioAlertLimit && typeof twilioAlertLimit === 'string'){
-            twilioAlertLimit = parseInt(twilioAlertLimit,10);
+        let project = await ProjectService.findOneBy({ _id: projectId });
+        let limit = project && project.alertLimit ? project.alertLimit : twilioAlertLimit;
+        if(limit && typeof limit === 'string'){
+            limit = parseInt(limit,10);
         }
-        if((alerts + smsCounts) <= twilioAlertLimit){
+        if((alerts + smsCounts) <= limit){
             return true;
         }
         else {
+            await ProjectService.updateOneBy({_id:projectId},{alertLimitReached:true});
             return false;
         }
     },
@@ -571,3 +577,5 @@ let { getAlertChargeAmount, getCountryType } = require('../config/alertType');
 var moment = require('moment');
 var { twilioAlertLimit } = require('../config/twilio');
 var SmsCountService = require('./smsCountService');
+const momentTz = require('moment-timezone');
+const TimeZoneNames = momentTz.tz.names();

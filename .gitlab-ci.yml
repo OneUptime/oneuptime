@@ -549,11 +549,14 @@ deploy_staging_backend:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy backend.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/backend:master ./backend
+    - sudo docker build -t fyipeproject/backend:latest ./backend
     - sudo docker tag fyipe-project/backend:master registry.gitlab.com/fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/backend:master registry.gitlab.com/fyipe-project/backend:master
     - sudo docker push registry.gitlab.com/fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/backend:master
+    - sudo docker push fyipeproject/backend:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/backend backend=registry.gitlab.com/fyipe-project/backend:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -572,11 +575,14 @@ deploy_production_backend:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/backend:latest ./backend
+    - sudo docker build -t fyipeproject/backend:latest ./backend
     - sudo docker tag fyipe-project/backend:latest registry.gitlab.com/fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/backend:latest registry.gitlab.com/fyipe-project/backend:latest
     - sudo docker push registry.gitlab.com/fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/backend:latest
+    - sudo docker push fyipeproject/backend:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/backend backend=registry.gitlab.com/fyipe-project/backend:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -598,11 +604,14 @@ deploy_staging_api-docs:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy api-docs.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/api-docs:master ./api-docs
+    - sudo docker build -t fyipeproject/api-docs:latest ./api-docs
     - sudo docker tag fyipe-project/api-docs:master registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/api-docs:master registry.gitlab.com/fyipe-project/api-docs:master
     - sudo docker push registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/api-docs:master
+    - sudo docker push fyipeproject/api-docs:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/api-docs api-docs=registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -621,11 +630,14 @@ deploy_production_api-docs:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/api-docs:latest ./api-docs
+    - sudo docker build -t fyipeproject/api-docs:latest ./api-docs
     - sudo docker tag fyipe-project/api-docs:latest registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/api-docs:latest registry.gitlab.com/fyipe-project/api-docs:latest
     - sudo docker push registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/api-docs:latest
+    - sudo docker push fyipeproject/api-docs:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/api-docs api-docs=registry.gitlab.com/fyipe-project/api-docs:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -647,11 +659,14 @@ deploy_staging_home:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy home.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/home:master ./home
+    - sudo docker build -t fyipeproject/home:latest ./home
     - sudo docker tag fyipe-project/home:master registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/home:master registry.gitlab.com/fyipe-project/home:master
     - sudo docker push registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/home:master
+    - sudo docker push fyipeproject/home:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/home home=registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -670,11 +685,14 @@ deploy_production_home:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/home:latest ./home
+    - sudo docker build -t fyipeproject/home:latest ./home
     - sudo docker tag fyipe-project/home:latest registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/home:latest registry.gitlab.com/fyipe-project/home:latest
     - sudo docker push registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/home:latest
+    - sudo docker push fyipeproject/home:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/home home=registry.gitlab.com/fyipe-project/home:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -696,11 +714,14 @@ deploy_staging_slack:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy slack.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/slack:master ./slack
+    - sudo docker build -t fyipeproject/slack:latest ./slack
     - sudo docker tag fyipe-project/slack:master registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/slack:master registry.gitlab.com/fyipe-project/slack:master
     - sudo docker push registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/slack:master
+    - sudo docker push fyipeproject/slack:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/slack slack=registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -719,11 +740,14 @@ deploy_production_slack:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/slack:latest ./slack
+    - sudo docker build -t fyipeproject/slack:latest ./slack
     - sudo docker tag fyipe-project/slack:latest registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/slack:latest registry.gitlab.com/fyipe-project/slack:latest
     - sudo docker push registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/slack:latest
+    - sudo docker push fyipeproject/slack:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/slack slack=registry.gitlab.com/fyipe-project/slack:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -745,11 +769,14 @@ deploy_staging_probe:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy probe.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/probe:master ./probe
+    - sudo docker build -t fyipeproject/probe:latest ./probe
     - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/probe:master registry.gitlab.com/fyipe-project/probe:master
     - sudo docker push registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/probe:master
+    - sudo docker push fyipeproject/backend:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe probe=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     # Additionally update probe1 deployment as well.
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe1 probe1=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
@@ -770,11 +797,14 @@ deploy_production_probe:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/probe:latest ./probe
+    - sudo docker build -t fyipeproject/probe:latest ./probe
     - sudo docker tag fyipe-project/probe:latest registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/probe:latest registry.gitlab.com/fyipe-project/probe:latest
     - sudo docker push registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/probe:latest
+    - sudo docker push fyipeproject/backend:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe probe=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -796,11 +826,14 @@ deploy_staging_status-page:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy status-page.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/status-page:master ./status-page
+    - sudo docker build -t fyipeproject/status-page:latest ./status-page
     - sudo docker tag fyipe-project/status-page:master registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/status-page:master registry.gitlab.com/fyipe-project/status-page:master
     - sudo docker push registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/status-page:master
+    - sudo docker push fyipeproject/status-page:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/status-page status-page=registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -819,11 +852,14 @@ deploy_production_status-page:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/status-page:latest ./status-page
+    - sudo docker build -t fyipeproject/status-page:latest ./status-page
     - sudo docker tag fyipe-project/status-page:latest registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/status-page:latest registry.gitlab.com/fyipe-project/status-page:latest
     - sudo docker push registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/status-page:latest
+    - sudo docker push fyipeproject/status-page:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/status-page status-page=registry.gitlab.com/fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -845,11 +881,14 @@ deploy_staging_admin-dashboard:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy admin-dashboard.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/admin-dashboard:master ./admin-dashboard
+    - sudo docker build -t fyipeproject/admin-dashboard:latest ./admin-dashboard
     - sudo docker tag fyipe-project/admin-dashboard:master registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/admin-dashboard:master registry.gitlab.com/fyipe-project/admin-dashboard:master
     - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:master
+    - sudo docker push fyipeproject/admin-dashboard:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/admin-dashboard admin-dashboard=registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -868,11 +907,14 @@ deploy_production_admin-dashboard:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/admin-dashboard:latest ./admin-dashboard
+    - sudo docker build -t fyipeproject/admin-dashboard:latest ./admin-dashboard
     - sudo docker tag fyipe-project/admin-dashboard:latest registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/admin-dashboard:latest registry.gitlab.com/fyipe-project/admin-dashboard:latest
     - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/admin-dashboard:latest
+    - sudo docker push fyipeproject/admin-dashboard:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/admin-dashboard admin-dashboard=registry.gitlab.com/fyipe-project/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -894,11 +936,14 @@ deploy_staging_accounts:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy accounts.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/accounts:master ./accounts
+    - sudo docker build -t fyipeproject/accounts:latest ./accounts
     - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/accounts:master registry.gitlab.com/fyipe-project/accounts:master
     - sudo docker push registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/accounts:master
+    - sudo docker push fyipeproject/accounts:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/accounts accounts=registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -917,11 +962,14 @@ deploy_production_accounts:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/accounts:latest ./accounts
+    - sudo docker build -t fyipeproject/accounts:latest ./accounts
     - sudo docker tag fyipe-project/accounts:latest registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/accounts:latest registry.gitlab.com/fyipe-project/accounts:latest
     - sudo docker push registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/accounts:latest
+    - sudo docker push fyipeproject/accounts:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/accounts accounts=registry.gitlab.com/fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -943,11 +991,14 @@ deploy_staging_dashboard:
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
     # Build and deploy dashboard.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/dashboard:master ./dashboard
+    - sudo docker build -t fyipeproject/dashboard:latest ./dashboard
     - sudo docker tag fyipe-project/dashboard:master registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/dashboard:master registry.gitlab.com/fyipe-project/dashboard:master
     - sudo docker push registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/dashboard:master
+    - sudo docker push fyipeproject/dashboard:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/dashboard dashboard=registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
@@ -966,11 +1017,14 @@ deploy_production_dashboard:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipe-project/dashboard:latest ./dashboard
+    - sudo docker build -t fyipeproject/dashboard:latest ./dashboard
     - sudo docker tag fyipe-project/dashboard:latest registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker tag fyipe-project/dashboard:latest registry.gitlab.com/fyipe-project/dashboard:latest
     - sudo docker push registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/dashboard:latest
+    - sudo docker push fyipeproject/dashboard:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/dashboard dashboard=registry.gitlab.com/fyipe-project/dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh

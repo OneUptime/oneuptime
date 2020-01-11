@@ -19,6 +19,11 @@ import {
     DELETE_PROJECT_RESET,
     DELETE_PROJECT_SUCCESS,
 
+    ALERT_LIMIT_FAILED,
+    ALERT_LIMIT_REQUEST,
+    ALERT_LIMIT_RESET,
+    ALERT_LIMIT_SUCCESS,
+
     BLOCK_PROJECT_FAILED,
     BLOCK_PROJECT_REQUEST,
     BLOCK_PROJECT_RESET,
@@ -39,7 +44,7 @@ import {
     ADD_PROJECT_NOTE_RESET,
     ADD_PROJECT_NOTE_SUCCESS,
 
-    SEARCH_PROJECTS_REQUEST, 
+    SEARCH_PROJECTS_REQUEST,
     SEARCH_PROJECTS_RESET,
     SEARCH_PROJECTS_SUCCESS,
     SEARCH_PROJECTS_FAILURE,
@@ -76,6 +81,11 @@ const INITIAL_STATE = {
         success: false
     },
     blockProject: {
+        error: null,
+        requesting: false,
+        success: false
+    },
+    alertLimit: {
         error: null,
         requesting: false,
         success: false
@@ -228,7 +238,7 @@ export default function project(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...INITIAL_STATE
             });
-        
+
         case DELETE_PROJECT_SUCCESS:
             return Object.assign({}, state, {
                 deleteProject: {
@@ -243,7 +253,7 @@ export default function project(state = INITIAL_STATE, action) {
                     project: action.payload,
                 }
             });
-    
+
         case DELETE_PROJECT_REQUEST:
             return Object.assign({}, state, {
                 deleteProject: {
@@ -270,7 +280,7 @@ export default function project(state = INITIAL_STATE, action) {
                     error: null,
                 }
             });
-        
+
         case BLOCK_PROJECT_SUCCESS:
             return Object.assign({}, state, {
                 blockProject: {
@@ -285,7 +295,7 @@ export default function project(state = INITIAL_STATE, action) {
                     project: action.payload,
                 }
             });
-    
+
         case BLOCK_PROJECT_REQUEST:
             return Object.assign({}, state, {
                 blockProject: {
@@ -307,6 +317,48 @@ export default function project(state = INITIAL_STATE, action) {
         case BLOCK_PROJECT_RESET:
             return Object.assign({}, state, {
                 blockProject: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                }
+            });
+
+        case ALERT_LIMIT_SUCCESS:
+            return Object.assign({}, state, {
+                alertLimit: {
+                    requesting: false,
+                    success: true,
+                    error: null
+                },
+                project: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    project: action.payload,
+                }
+            });
+
+        case ALERT_LIMIT_REQUEST:
+            return Object.assign({}, state, {
+                alertLimit: {
+                    requesting: true,
+                    success: false,
+                    error: null
+                }
+            });
+
+        case ALERT_LIMIT_FAILED:
+            return Object.assign({}, state, {
+                alertLimit: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            });
+
+        case ALERT_LIMIT_RESET:
+            return Object.assign({}, state, {
+                alertLimit: {
                     requesting: false,
                     success: false,
                     error: null,
