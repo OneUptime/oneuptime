@@ -30,7 +30,7 @@ sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
 sudo mkdir /Users/$USER/mongodb || echo 'Path already exists'
 
 # Run Dependencies
-sudo docker run --name mongo -v /Users/$USER/mongodb -p 27017:27017 -d mongo:3.4
+sudo docker run --name mongo -v /Users/$USER/mongodb:/data/db -p 27017:27017 -d mongo:3.4
 sudo docker run --name redis -p 6379:6379 -d redis redis-server
 
 # Run Backend
