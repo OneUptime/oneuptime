@@ -164,7 +164,7 @@ router.post('/signup', async function (req, res) {
             };
             winston.info('A User just signed up');
             var project = await ProjectService.findOneBy({ 'users.userId': user._id });
-            return sendItemResponse(req, res, Object.assign(authUserObj));
+            return sendItemResponse(req, res, Object.assign(authUserObj, { project: project }));
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);
