@@ -6,7 +6,7 @@ var app = require('../server');
 
 var request = chai.request.agent(app);
 var leadService = require('../backend/services/leadService');
-var { imap, openBox, signUpEmailContent } = require('./utils/mail');
+var { imap, openBox, leadEmailContent } = require('./utils/mail');
 var mailParser = require('mailparser').simpleParser;
 
 
@@ -14,7 +14,7 @@ var textAsHtml, leadData = {
     'csrf-token': '1',
     analytics_event_id: '',
     fullname: 'John Smith',
-    email: 'noreply@fyipe.com',
+    email: 'testmail@fyipe.com',
     website: 'fyipe.com',
     country: 'IN',
     volume: '{"index":0,"total":6,"text":"$75,000 or less","lower_bound":0}',
@@ -24,7 +24,6 @@ var textAsHtml, leadData = {
 
 describe('Lead API', function () {
     this.timeout(20000);
-
 
     it('should add lead when requested for type demo or whitepaper', function (done) {
         request.post('/lead').send(leadData).end(function (err, res) {
@@ -38,9 +37,10 @@ describe('Lead API', function () {
             expect(res).to.have.status(200);
             leadService.hardDeleteBy({ _id: res.body._id });
             imap.once('ready', function () {
-                openBox(function (err) {
+                openBox(function (err, box) {
                     if (err) throw err;
-                    var f = imap.seq.fetch('1:1', {
+                    var seq =  box.messages.total;
+                    var f = imap.fetch(`${seq}:${seq}`, {
                         bodies: [''],
                         struct: true
                     });
@@ -48,13 +48,13 @@ describe('Lead API', function () {
                         msg.on('body', function (stream) {
                             mailParser(stream, {}, function (err, parsedMail) {
                                 textAsHtml = parsedMail.text;
-                                expect(textAsHtml).to.be.equal(signUpEmailContent);
-                                done();
+                                expect(textAsHtml).to.be.equal(leadEmailContent);
                             });
                         });
                     });
                     f.once('end', function () {
                         imap.end();
+                        done();
                     });
                 });
             });
