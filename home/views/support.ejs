@@ -5,17 +5,18 @@
   <meta charset="utf-8">
   <title>Fyipe | Contact Us</title>
 
-  <meta name="description" content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+  <meta name="description"
+    content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
   <% include ./head %>
-    <link rel="stylesheet" href="/css/contact.css">
-    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap" rel="stylesheet">
-    <script src="/js/amplitude.js"></script>
-    <script>
-      var IS_DEV = false;
-      if (!IS_DEV) {
-        amplitude.getInstance().logEvent('Contact us page loaded');
-      }
-    </script>
+  <link rel="stylesheet" href="/css/contact.css">
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap" rel="stylesheet">
+  <script src="/js/amplitude.js"></script>
+  <script>
+    var IS_DEV = false;
+    if (!IS_DEV) {
+      amplitude.getInstance().logEvent('Contact us page loaded');
+    }
+  </script>
 </head>
 
 <body>
@@ -52,7 +53,9 @@
 
       <div class="container Header-container">
         <header class="Header">
-          <h1 class="common-PageTitle header-bold" style="text-align:center; font-family: 'Source Sans Pro', sans-serif; font-weight:900; font-size:50px">Contact us</h1>
+          <h1 class="common-PageTitle header-bold"
+            style="text-align:center; font-family: 'Source Sans Pro', sans-serif; font-weight:900; font-size:50px">
+            Contact us</h1>
           <p class="Header-subTitle common-IntroText">Get in touch and let us know how we can help.</p>
         </header>
       </div>
@@ -101,7 +104,7 @@
           <section>
             <h3 class="common-BodyTitle">Join us on Slack</h3>
             <p class="common-BodyText">If you have technical questions, chat live with developers on our Slack Group.
-              <br/><a href='https://slack.fyipe.com' class='common-Link '>Send me an invite to join.</a>
+              <br /><a href='https://slack.fyipe.com' class='common-Link '>Send me an invite to join.</a>
           </section>
           <section>
             <h3 class="common-BodyTitle">General communication</h3>

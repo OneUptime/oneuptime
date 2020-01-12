@@ -4,7 +4,8 @@
 <head>
     <title>Fyipe | Request Demo</title>
 
-    <meta name="description" content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+    <meta name="description"
+        content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
     <% include ./head %>
 
     <link rel="stylesheet" href="/css/demo.css">
@@ -44,7 +45,8 @@
                 <div class="headline">
                     <div class="container-lg">
                         <h1 class="Header-title common-PageTitle header-font header-size black">Request Demo</h1>
-                        <h2 class="common-IntroText" style="margin-top:30px">Our team is happy to give you a personalized demo. Fill out the
+                        <h2 class="common-IntroText" style="margin-top:30px">Our team is happy to give you a
+                            personalized demo. Fill out the
                             form and we’ll be in touch as
                             soon as possible.</h2>
                     </div>
@@ -56,7 +58,8 @@
                 <div class="container-lg">
                     <div class="form-column">
                         <div class="form-container">
-                            <form action="http://api.fyipe.com/lead/" onsubmit="this.action=formUrl();" id='demoform' method="post" novalidate="">
+                            <form action="http://api.fyipe.com/lead/" onsubmit="this.action=formUrl();" id='demoform'
+                                method="post" novalidate="">
                                 <input type="hidden" name="csrf-token" value="1">
                                 <input type="hidden" name="type" value="demo">
                                 <fieldset>
@@ -71,7 +74,8 @@
                                         <input id="email" name="email" type="email" placeholder="jane.doe@example.com"
                                             required="">
                                     </div>
-                                    <p id="error-text"><img src="/img/information.svg" alt="i">Please enter a business email address.</p>
+                                    <p id="error-text"><img src="/img/information.svg" alt="i">Please enter a business
+                                        email address.</p>
                                     <div class="form-row text Phone">
                                         <label class="Phone" for="phone">Your Phone number</label>
                                         <input id="Phone" name="phone" type="text" placeholder="+1-123-456-7890"
@@ -87,7 +91,8 @@
                                         <div class="select-wrapper">
                                             <select id="country" name="country" required=""
                                                 data-searchable-select-input-placeholder="Search..."
-                                                data-searchable-select-no-results-message="No countries found." class="has-value">
+                                                data-searchable-select-no-results-message="No countries found."
+                                                class="has-value">
                                                 <option disabled="" value="">Choose country…</option>
                                                 <option value="AF">Afghanistan</option>
                                                 <option value="AL">Albania</option>
@@ -345,52 +350,77 @@
                                                         autocorrect="off" autocomplete="off" spellcheck="false"
                                                         aria-label="Countries">
                                                     <ul class="searchable-select-results">
-                                                        <li class="searchable-select-result" data-value="AF">Afghanistan</li>
-                                                        <li class="searchable-select-result" data-value="AL">Albania</li>
-                                                        <li class="searchable-select-result" data-value="DZ">Algeria</li>
+                                                        <li class="searchable-select-result" data-value="AF">Afghanistan
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="AL">Albania
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="DZ">Algeria
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="AS">American
                                                             Samoa</li>
-                                                        <li class="searchable-select-result" data-value="AD">Andorra</li>
+                                                        <li class="searchable-select-result" data-value="AD">Andorra
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="AO">Angola</li>
-                                                        <li class="searchable-select-result" data-value="AI">Anguilla</li>
-                                                        <li class="searchable-select-result" data-value="AQ">Antarctica</li>
+                                                        <li class="searchable-select-result" data-value="AI">Anguilla
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="AQ">Antarctica
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="AG">Antigua
                                                             &amp; Barbuda</li>
-                                                        <li class="searchable-select-result" data-value="AR">Argentina</li>
-                                                        <li class="searchable-select-result" data-value="AM">Armenia</li>
+                                                        <li class="searchable-select-result" data-value="AR">Argentina
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="AM">Armenia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="AW">Aruba</li>
-                                                        <li class="searchable-select-result" data-value="AU">Australia</li>
-                                                        <li class="searchable-select-result" data-value="AT">Austria</li>
-                                                        <li class="searchable-select-result" data-value="AZ">Azerbaijan</li>
-                                                        <li class="searchable-select-result" data-value="BS">Bahamas</li>
-                                                        <li class="searchable-select-result" data-value="BH">Bahrain</li>
-                                                        <li class="searchable-select-result" data-value="BD">Bangladesh</li>
-                                                        <li class="searchable-select-result" data-value="BB">Barbados</li>
-                                                        <li class="searchable-select-result" data-value="BY">Belarus</li>
-                                                        <li class="searchable-select-result" data-value="BE">Belgium</li>
+                                                        <li class="searchable-select-result" data-value="AU">Australia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="AT">Austria
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="AZ">Azerbaijan
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="BS">Bahamas
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="BH">Bahrain
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="BD">Bangladesh
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="BB">Barbados
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="BY">Belarus
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="BE">Belgium
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="BZ">Belize</li>
                                                         <li class="searchable-select-result" data-value="BJ">Benin</li>
-                                                        <li class="searchable-select-result" data-value="BM">Bermuda</li>
+                                                        <li class="searchable-select-result" data-value="BM">Bermuda
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="BT">Bhutan</li>
-                                                        <li class="searchable-select-result" data-value="BO">Bolivia</li>
+                                                        <li class="searchable-select-result" data-value="BO">Bolivia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="BQ">Caribbean
                                                             Netherlands</li>
                                                         <li class="searchable-select-result" data-value="BA">Bosnia</li>
-                                                        <li class="searchable-select-result" data-value="BW">Botswana</li>
+                                                        <li class="searchable-select-result" data-value="BW">Botswana
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="BV">Bouvet
                                                             Island</li>
                                                         <li class="searchable-select-result" data-value="BR">Brazil</li>
                                                         <li class="searchable-select-result" data-value="IO">British
                                                             Indian Ocean Territory</li>
                                                         <li class="searchable-select-result" data-value="BN">Brunei</li>
-                                                        <li class="searchable-select-result" data-value="BG">Bulgaria</li>
+                                                        <li class="searchable-select-result" data-value="BG">Bulgaria
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="BF">Burkina
                                                             Faso</li>
-                                                        <li class="searchable-select-result" data-value="BI">Burundi</li>
-                                                        <li class="searchable-select-result" data-value="KH">Cambodia</li>
-                                                        <li class="searchable-select-result" data-value="CM">Cameroon</li>
+                                                        <li class="searchable-select-result" data-value="BI">Burundi
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="KH">Cambodia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="CM">Cameroon
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="CA">Canada</li>
-                                                        <li class="searchable-select-result" data-value="CV">Cape Verde</li>
+                                                        <li class="searchable-select-result" data-value="CV">Cape Verde
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="KY">Cayman
                                                             Islands</li>
                                                         <li class="searchable-select-result" data-value="CF">Central
@@ -402,43 +432,56 @@
                                                             Island</li>
                                                         <li class="searchable-select-result" data-value="CC">Cocos
                                                             (Keeling) Islands</li>
-                                                        <li class="searchable-select-result" data-value="CO">Colombia</li>
-                                                        <li class="searchable-select-result" data-value="KM">Comoros</li>
+                                                        <li class="searchable-select-result" data-value="CO">Colombia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="KM">Comoros
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="CG">Congo
                                                             (Republic)</li>
                                                         <li class="searchable-select-result" data-value="CD">Congo
                                                             (DRC)</li>
                                                         <li class="searchable-select-result" data-value="CK">Cook
                                                             Islands</li>
-                                                        <li class="searchable-select-result" data-value="CR">Costa Rica</li>
-                                                        <li class="searchable-select-result" data-value="HR">Croatia</li>
+                                                        <li class="searchable-select-result" data-value="CR">Costa Rica
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="HR">Croatia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="CU">Cuba</li>
-                                                        <li class="searchable-select-result" data-value="CW">Curaçao</li>
+                                                        <li class="searchable-select-result" data-value="CW">Curaçao
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="CY">Cyprus</li>
                                                         <li class="searchable-select-result" data-value="CZ">Czech
                                                             Republic</li>
                                                         <li class="searchable-select-result" data-value="CI">Ivory
                                                             Coast</li>
-                                                        <li class="searchable-select-result" data-value="DK">Denmark</li>
-                                                        <li class="searchable-select-result" data-value="DJ">Djibouti</li>
-                                                        <li class="searchable-select-result" data-value="DM">Dominica</li>
+                                                        <li class="searchable-select-result" data-value="DK">Denmark
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="DJ">Djibouti
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="DM">Dominica
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="DO">Dominican
                                                             Republic</li>
-                                                        <li class="searchable-select-result" data-value="EC">Ecuador</li>
+                                                        <li class="searchable-select-result" data-value="EC">Ecuador
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="EG">Egypt</li>
                                                         <li class="searchable-select-result" data-value="SV">El
                                                             Salvador</li>
                                                         <li class="searchable-select-result" data-value="GQ">Equatorial
                                                             Guinea</li>
-                                                        <li class="searchable-select-result" data-value="ER">Eritrea</li>
-                                                        <li class="searchable-select-result" data-value="EE">Estonia</li>
-                                                        <li class="searchable-select-result" data-value="ET">Ethiopia</li>
+                                                        <li class="searchable-select-result" data-value="ER">Eritrea
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="EE">Estonia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="ET">Ethiopia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="FK">Falkland
                                                             Islands (Islas Malvinas)</li>
                                                         <li class="searchable-select-result" data-value="FO">Faroe
                                                             Islands</li>
                                                         <li class="searchable-select-result" data-value="FJ">Fiji</li>
-                                                        <li class="searchable-select-result" data-value="FI">Finland</li>
+                                                        <li class="searchable-select-result" data-value="FI">Finland
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="FR">France</li>
                                                         <li class="searchable-select-result" data-value="GF">French
                                                             Guiana</li>
@@ -448,96 +491,140 @@
                                                             Southern Territories</li>
                                                         <li class="searchable-select-result" data-value="GA">Gabon</li>
                                                         <li class="searchable-select-result" data-value="GM">Gambia</li>
-                                                        <li class="searchable-select-result" data-value="GE">Georgia</li>
-                                                        <li class="searchable-select-result" data-value="DE">Germany</li>
+                                                        <li class="searchable-select-result" data-value="GE">Georgia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="DE">Germany
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="GH">Ghana</li>
-                                                        <li class="searchable-select-result" data-value="GI">Gibraltar</li>
+                                                        <li class="searchable-select-result" data-value="GI">Gibraltar
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="GR">Greece</li>
-                                                        <li class="searchable-select-result" data-value="GL">Greenland</li>
-                                                        <li class="searchable-select-result" data-value="GD">Grenada</li>
-                                                        <li class="searchable-select-result" data-value="GP">Guadeloupe</li>
+                                                        <li class="searchable-select-result" data-value="GL">Greenland
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="GD">Grenada
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="GP">Guadeloupe
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="GU">Guam</li>
-                                                        <li class="searchable-select-result" data-value="GT">Guatemala</li>
-                                                        <li class="searchable-select-result" data-value="GG">Guernsey</li>
+                                                        <li class="searchable-select-result" data-value="GT">Guatemala
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="GG">Guernsey
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="GN">Guinea</li>
-                                                        <li class="searchable-select-result" data-value="GW">Guinea-Bissau</li>
+                                                        <li class="searchable-select-result" data-value="GW">
+                                                            Guinea-Bissau</li>
                                                         <li class="searchable-select-result" data-value="GY">Guyana</li>
                                                         <li class="searchable-select-result" data-value="HT">Haiti</li>
                                                         <li class="searchable-select-result" data-value="HM">Heard
                                                             &amp; McDonald Islands</li>
                                                         <li class="searchable-select-result" data-value="VA">Vatican
                                                             City</li>
-                                                        <li class="searchable-select-result" data-value="HN">Honduras</li>
-                                                        <li class="searchable-select-result" data-value="HK">Hong Kong</li>
-                                                        <li class="searchable-select-result" data-value="HU">Hungary</li>
-                                                        <li class="searchable-select-result" data-value="IS">Iceland</li>
+                                                        <li class="searchable-select-result" data-value="HN">Honduras
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="HK">Hong Kong
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="HU">Hungary
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="IS">Iceland
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="IN">India</li>
-                                                        <li class="searchable-select-result" data-value="ID">Indonesia</li>
+                                                        <li class="searchable-select-result" data-value="ID">Indonesia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="IR">Iran</li>
                                                         <li class="searchable-select-result" data-value="IQ">Iraq</li>
-                                                        <li class="searchable-select-result" data-value="IE">Ireland</li>
+                                                        <li class="searchable-select-result" data-value="IE">Ireland
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="IM">Isle of
                                                             Man</li>
                                                         <li class="searchable-select-result" data-value="IL">Israel</li>
                                                         <li class="searchable-select-result" data-value="IT">Italy</li>
-                                                        <li class="searchable-select-result" data-value="JM">Jamaica</li>
+                                                        <li class="searchable-select-result" data-value="JM">Jamaica
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="JP">Japan</li>
                                                         <li class="searchable-select-result" data-value="JE">Jersey</li>
                                                         <li class="searchable-select-result" data-value="JO">Jordan</li>
-                                                        <li class="searchable-select-result" data-value="KZ">Kazakhstan</li>
+                                                        <li class="searchable-select-result" data-value="KZ">Kazakhstan
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="KE">Kenya</li>
-                                                        <li class="searchable-select-result" data-value="KI">Kiribati</li>
+                                                        <li class="searchable-select-result" data-value="KI">Kiribati
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="KP">North
                                                             Korea</li>
                                                         <li class="searchable-select-result" data-value="KR">South
                                                             Korea</li>
                                                         <li class="searchable-select-result" data-value="KW">Kuwait</li>
-                                                        <li class="searchable-select-result" data-value="KG">Kyrgyzstan</li>
+                                                        <li class="searchable-select-result" data-value="KG">Kyrgyzstan
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="LA">Laos</li>
                                                         <li class="searchable-select-result" data-value="LV">Latvia</li>
-                                                        <li class="searchable-select-result" data-value="LB">Lebanon</li>
-                                                        <li class="searchable-select-result" data-value="LS">Lesotho</li>
-                                                        <li class="searchable-select-result" data-value="LR">Liberia</li>
+                                                        <li class="searchable-select-result" data-value="LB">Lebanon
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="LS">Lesotho
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="LR">Liberia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="LY">Libya</li>
-                                                        <li class="searchable-select-result" data-value="LI">Liechtenstein</li>
-                                                        <li class="searchable-select-result" data-value="LT">Lithuania</li>
-                                                        <li class="searchable-select-result" data-value="LU">Luxembourg</li>
+                                                        <li class="searchable-select-result" data-value="LI">
+                                                            Liechtenstein</li>
+                                                        <li class="searchable-select-result" data-value="LT">Lithuania
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="LU">Luxembourg
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="MO">Macau</li>
                                                         <li class="searchable-select-result" data-value="MK">Macedonia
                                                             (FYROM)</li>
-                                                        <li class="searchable-select-result" data-value="MG">Madagascar</li>
+                                                        <li class="searchable-select-result" data-value="MG">Madagascar
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="MW">Malawi</li>
-                                                        <li class="searchable-select-result" data-value="MY">Malaysia</li>
-                                                        <li class="searchable-select-result" data-value="MV">Maldives</li>
+                                                        <li class="searchable-select-result" data-value="MY">Malaysia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="MV">Maldives
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="ML">Mali</li>
                                                         <li class="searchable-select-result" data-value="MT">Malta</li>
                                                         <li class="searchable-select-result" data-value="MH">Marshall
                                                             Islands</li>
-                                                        <li class="searchable-select-result" data-value="MQ">Martinique</li>
-                                                        <li class="searchable-select-result" data-value="MR">Mauritania</li>
-                                                        <li class="searchable-select-result" data-value="MU">Mauritius</li>
-                                                        <li class="searchable-select-result" data-value="YT">Mayotte</li>
+                                                        <li class="searchable-select-result" data-value="MQ">Martinique
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="MR">Mauritania
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="MU">Mauritius
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="YT">Mayotte
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="MX">Mexico</li>
-                                                        <li class="searchable-select-result" data-value="FM">Micronesia</li>
-                                                        <li class="searchable-select-result" data-value="MD">Moldova</li>
+                                                        <li class="searchable-select-result" data-value="FM">Micronesia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="MD">Moldova
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="MC">Monaco</li>
-                                                        <li class="searchable-select-result" data-value="MN">Mongolia</li>
-                                                        <li class="searchable-select-result" data-value="ME">Montenegro</li>
-                                                        <li class="searchable-select-result" data-value="MS">Montserrat</li>
-                                                        <li class="searchable-select-result" data-value="MA">Morocco</li>
-                                                        <li class="searchable-select-result" data-value="MZ">Mozambique</li>
-                                                        <li class="searchable-select-result" data-value="MM">Myanmar</li>
-                                                        <li class="searchable-select-result" data-value="NA">Namibia</li>
+                                                        <li class="searchable-select-result" data-value="MN">Mongolia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="ME">Montenegro
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="MS">Montserrat
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="MA">Morocco
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="MZ">Mozambique
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="MM">Myanmar
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="NA">Namibia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="NR">Nauru</li>
                                                         <li class="searchable-select-result" data-value="NP">Nepal</li>
-                                                        <li class="searchable-select-result" data-value="NL">Netherlands</li>
+                                                        <li class="searchable-select-result" data-value="NL">Netherlands
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="NC">New
                                                             Caledonia</li>
                                                         <li class="searchable-select-result" data-value="NZ">New
                                                             Zealand</li>
-                                                        <li class="searchable-select-result" data-value="NI">Nicaragua</li>
+                                                        <li class="searchable-select-result" data-value="NI">Nicaragua
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="NE">Niger</li>
-                                                        <li class="searchable-select-result" data-value="NG">Nigeria</li>
+                                                        <li class="searchable-select-result" data-value="NG">Nigeria
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="NU">Niue</li>
                                                         <li class="searchable-select-result" data-value="NF">Norfolk
                                                             Island</li>
@@ -545,56 +632,73 @@
                                                             Mariana Islands</li>
                                                         <li class="searchable-select-result" data-value="NO">Norway</li>
                                                         <li class="searchable-select-result" data-value="OM">Oman</li>
-                                                        <li class="searchable-select-result" data-value="PK">Pakistan</li>
+                                                        <li class="searchable-select-result" data-value="PK">Pakistan
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="PW">Palau</li>
-                                                        <li class="searchable-select-result" data-value="PS">Palestine</li>
+                                                        <li class="searchable-select-result" data-value="PS">Palestine
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="PA">Panama</li>
                                                         <li class="searchable-select-result" data-value="PG">Papua New
                                                             Guinea</li>
-                                                        <li class="searchable-select-result" data-value="PY">Paraguay</li>
+                                                        <li class="searchable-select-result" data-value="PY">Paraguay
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="PE">Peru</li>
-                                                        <li class="searchable-select-result" data-value="PH">Philippines</li>
+                                                        <li class="searchable-select-result" data-value="PH">Philippines
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="PN">Pitcairn
                                                             Islands</li>
                                                         <li class="searchable-select-result" data-value="PL">Poland</li>
-                                                        <li class="searchable-select-result" data-value="PT">Portugal</li>
+                                                        <li class="searchable-select-result" data-value="PT">Portugal
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="PR">Puerto
                                                             Rico</li>
                                                         <li class="searchable-select-result" data-value="QA">Qatar</li>
-                                                        <li class="searchable-select-result" data-value="RO">Romania</li>
+                                                        <li class="searchable-select-result" data-value="RO">Romania
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="RU">Russia</li>
                                                         <li class="searchable-select-result" data-value="RW">Rwanda</li>
-                                                        <li class="searchable-select-result" data-value="RE">Réunion</li>
+                                                        <li class="searchable-select-result" data-value="RE">Réunion
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="BL">St.
                                                             Barthélemy</li>
-                                                        <li class="searchable-select-result" data-value="SH">St. Helena</li>
+                                                        <li class="searchable-select-result" data-value="SH">St. Helena
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="KN">St. Kitts
                                                             &amp; Nevis</li>
-                                                        <li class="searchable-select-result" data-value="LC">St. Lucia</li>
-                                                        <li class="searchable-select-result" data-value="MF">St. Martin</li>
+                                                        <li class="searchable-select-result" data-value="LC">St. Lucia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="MF">St. Martin
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="PM">St. Pierre
                                                             &amp; Miquelon</li>
                                                         <li class="searchable-select-result" data-value="VC">St.
                                                             Vincent &amp; Grenadines</li>
                                                         <li class="searchable-select-result" data-value="WS">Samoa</li>
-                                                        <li class="searchable-select-result" data-value="SM">San Marino</li>
+                                                        <li class="searchable-select-result" data-value="SM">San Marino
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="ST">São Tomé
                                                             &amp; Príncipe</li>
                                                         <li class="searchable-select-result" data-value="SA">Saudi
                                                             Arabia</li>
-                                                        <li class="searchable-select-result" data-value="SN">Senegal</li>
+                                                        <li class="searchable-select-result" data-value="SN">Senegal
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="RS">Serbia</li>
-                                                        <li class="searchable-select-result" data-value="SC">Seychelles</li>
+                                                        <li class="searchable-select-result" data-value="SC">Seychelles
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="SL">Sierra
                                                             Leone</li>
-                                                        <li class="searchable-select-result" data-value="SG">Singapore</li>
+                                                        <li class="searchable-select-result" data-value="SG">Singapore
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="SX">Sint
                                                             Maarten</li>
-                                                        <li class="searchable-select-result" data-value="SK">Slovakia</li>
-                                                        <li class="searchable-select-result" data-value="SI">Slovenia</li>
+                                                        <li class="searchable-select-result" data-value="SK">Slovakia
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="SI">Slovenia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="SB">Solomon
                                                             Islands</li>
-                                                        <li class="searchable-select-result" data-value="SO">Somalia</li>
+                                                        <li class="searchable-select-result" data-value="SO">Somalia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="ZA">South
                                                             Africa</li>
                                                         <li class="searchable-select-result" data-value="GS">South
@@ -602,46 +706,64 @@
                                                         <li class="searchable-select-result" data-value="SS">South
                                                             Sudan</li>
                                                         <li class="searchable-select-result" data-value="ES">Spain</li>
-                                                        <li class="searchable-select-result" data-value="LK">Sri Lanka</li>
+                                                        <li class="searchable-select-result" data-value="LK">Sri Lanka
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="SD">Sudan</li>
-                                                        <li class="searchable-select-result" data-value="SR">Suriname</li>
+                                                        <li class="searchable-select-result" data-value="SR">Suriname
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="SJ">Svalbard
                                                             &amp; Jan Mayen</li>
-                                                        <li class="searchable-select-result" data-value="SZ">Swaziland</li>
+                                                        <li class="searchable-select-result" data-value="SZ">Swaziland
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="SE">Sweden</li>
-                                                        <li class="searchable-select-result" data-value="CH">Switzerland</li>
+                                                        <li class="searchable-select-result" data-value="CH">Switzerland
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="SY">Syria</li>
                                                         <li class="searchable-select-result" data-value="TW">Taiwan</li>
-                                                        <li class="searchable-select-result" data-value="TJ">Tajikistan</li>
-                                                        <li class="searchable-select-result" data-value="TZ">Tanzania</li>
-                                                        <li class="searchable-select-result" data-value="TH">Thailand</li>
-                                                        <li class="searchable-select-result" data-value="TL">East Timor</li>
+                                                        <li class="searchable-select-result" data-value="TJ">Tajikistan
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="TZ">Tanzania
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="TH">Thailand
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="TL">East Timor
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="TG">Togo</li>
-                                                        <li class="searchable-select-result" data-value="TK">Tokelau</li>
+                                                        <li class="searchable-select-result" data-value="TK">Tokelau
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="TO">Tonga</li>
                                                         <li class="searchable-select-result" data-value="TT">Trinidad
                                                             &amp; Tobago</li>
-                                                        <li class="searchable-select-result" data-value="TN">Tunisia</li>
+                                                        <li class="searchable-select-result" data-value="TN">Tunisia
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="TR">Turkey</li>
-                                                        <li class="searchable-select-result" data-value="TM">Turkmenistan</li>
+                                                        <li class="searchable-select-result" data-value="TM">
+                                                            Turkmenistan</li>
                                                         <li class="searchable-select-result" data-value="TC">Turks
                                                             &amp; Caicos Islands</li>
                                                         <li class="searchable-select-result" data-value="TV">Tuvalu</li>
                                                         <li class="searchable-select-result" data-value="UG">Uganda</li>
-                                                        <li class="searchable-select-result" data-value="UA">Ukraine</li>
+                                                        <li class="searchable-select-result" data-value="UA">Ukraine
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="AE">United
                                                             Arab Emirates</li>
                                                         <li class="searchable-select-result" data-value="GB">United
                                                             Kingdom</li>
-                                                        <li class="searchable-select-result selected" data-value="US">United
+                                                        <li class="searchable-select-result selected" data-value="US">
+                                                            United
                                                             States</li>
                                                         <li class="searchable-select-result" data-value="UM">U.S.
                                                             Outlying Islands</li>
-                                                        <li class="searchable-select-result" data-value="UY">Uruguay</li>
-                                                        <li class="searchable-select-result" data-value="UZ">Uzbekistan</li>
-                                                        <li class="searchable-select-result" data-value="VU">Vanuatu</li>
-                                                        <li class="searchable-select-result" data-value="VE">Venezuela</li>
-                                                        <li class="searchable-select-result" data-value="VN">Vietnam</li>
+                                                        <li class="searchable-select-result" data-value="UY">Uruguay
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="UZ">Uzbekistan
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="VU">Vanuatu
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="VE">Venezuela
+                                                        </li>
+                                                        <li class="searchable-select-result" data-value="VN">Vietnam
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="VG">British
                                                             Virgin Islands</li>
                                                         <li class="searchable-select-result" data-value="VI">U.S.
@@ -652,7 +774,8 @@
                                                             Sahara</li>
                                                         <li class="searchable-select-result" data-value="YE">Yemen</li>
                                                         <li class="searchable-select-result" data-value="ZM">Zambia</li>
-                                                        <li class="searchable-select-result" data-value="ZW">Zimbabwe</li>
+                                                        <li class="searchable-select-result" data-value="ZW">Zimbabwe
+                                                        </li>
                                                         <li class="searchable-select-result" data-value="AX">Åland
                                                             Islands</li>
                                                     </ul>
@@ -668,29 +791,55 @@
                                         <div class="select-wrapper">
                                             <select id="volume" name="volume" required="">
                                                 <option selected="" disabled="" value="">Select Company Size</option>
-                                                <option value="{&quot;index&quot;:0,&quot;total&quot;:6,&quot;text&quot;:&quot;1-10&quot;,&quot;lower_bound&quot;:0}">1-10</option>
-                                                <option value="{&quot;index&quot;:1,&quot;total&quot;:6,&quot;text&quot;:&quot;11-50&quot;,&quot;lower_bound&quot;:7500000}">11-50</option>
-                                                <option value="{&quot;index&quot;:2,&quot;total&quot;:6,&quot;text&quot;:&quot;51-200&quot;,&quot;lower_bound&quot;:50000000}">51-200</option>
-                                                <option value="{&quot;index&quot;:3,&quot;total&quot;:6,&quot;text&quot;:&quot;200-1000&quot;,&quot;lower_bound&quot;:100000000}">200-1000</option>
-                                                <option value="{&quot;index&quot;:4,&quot;total&quot;:6,&quot;text&quot;:&quot;1001-5000&quot;,&quot;lower_bound&quot;:500000000}">1001-5000</option>
-                                                <option value="{&quot;index&quot;:5,&quot;total&quot;:6,&quot;text&quot;:&quot;5000+&quot;,&quot;lower_bound&quot;:1000000000}">5000+</option>
+                                                <option
+                                                    value="{&quot;index&quot;:0,&quot;total&quot;:6,&quot;text&quot;:&quot;1-10&quot;,&quot;lower_bound&quot;:0}">
+                                                    1-10</option>
+                                                <option
+                                                    value="{&quot;index&quot;:1,&quot;total&quot;:6,&quot;text&quot;:&quot;11-50&quot;,&quot;lower_bound&quot;:7500000}">
+                                                    11-50</option>
+                                                <option
+                                                    value="{&quot;index&quot;:2,&quot;total&quot;:6,&quot;text&quot;:&quot;51-200&quot;,&quot;lower_bound&quot;:50000000}">
+                                                    51-200</option>
+                                                <option
+                                                    value="{&quot;index&quot;:3,&quot;total&quot;:6,&quot;text&quot;:&quot;200-1000&quot;,&quot;lower_bound&quot;:100000000}">
+                                                    200-1000</option>
+                                                <option
+                                                    value="{&quot;index&quot;:4,&quot;total&quot;:6,&quot;text&quot;:&quot;1001-5000&quot;,&quot;lower_bound&quot;:500000000}">
+                                                    1001-5000</option>
+                                                <option
+                                                    value="{&quot;index&quot;:5,&quot;total&quot;:6,&quot;text&quot;:&quot;5000+&quot;,&quot;lower_bound&quot;:1000000000}">
+                                                    5000+</option>
                                             </select>
                                             <div class="searchable-select-container">
                                                 <div class="searchable-select-dropdown">
                                                     <ul class="searchable-select-results">
-                                                        <li class="searchable-select-result" data-value="{&quot;tier&quot;:&quot;none&quot;,&quot;text&quot;:&quot;None; just getting started&quot;,&quot;lower_bound&quot;:0}">None;
+                                                        <li class="searchable-select-result"
+                                                            data-value="{&quot;tier&quot;:&quot;none&quot;,&quot;text&quot;:&quot;None; just getting started&quot;,&quot;lower_bound&quot;:0}">
+                                                            None;
                                                             just getting started</li>
-                                                        <li class="searchable-select-result" data-value="{&quot;index&quot;:0,&quot;total&quot;:6,&quot;text&quot;:&quot;$75,000 or less&quot;,&quot;lower_bound&quot;:0}">$75,000
+                                                        <li class="searchable-select-result"
+                                                            data-value="{&quot;index&quot;:0,&quot;total&quot;:6,&quot;text&quot;:&quot;$75,000 or less&quot;,&quot;lower_bound&quot;:0}">
+                                                            $75,000
                                                             or less</li>
-                                                        <li class="searchable-select-result" data-value="{&quot;index&quot;:1,&quot;total&quot;:6,&quot;text&quot;:&quot;$75,000 to $500,000&quot;,&quot;lower_bound&quot;:7500000}">$75,000
+                                                        <li class="searchable-select-result"
+                                                            data-value="{&quot;index&quot;:1,&quot;total&quot;:6,&quot;text&quot;:&quot;$75,000 to $500,000&quot;,&quot;lower_bound&quot;:7500000}">
+                                                            $75,000
                                                             to $500,000</li>
-                                                        <li class="searchable-select-result" data-value="{&quot;index&quot;:2,&quot;total&quot;:6,&quot;text&quot;:&quot;$500,000 to $1,000,000&quot;,&quot;lower_bound&quot;:50000000}">$500,000
+                                                        <li class="searchable-select-result"
+                                                            data-value="{&quot;index&quot;:2,&quot;total&quot;:6,&quot;text&quot;:&quot;$500,000 to $1,000,000&quot;,&quot;lower_bound&quot;:50000000}">
+                                                            $500,000
                                                             to $1,000,000</li>
-                                                        <li class="searchable-select-result" data-value="{&quot;index&quot;:3,&quot;total&quot;:6,&quot;text&quot;:&quot;$1,000,000 to $5,000,000&quot;,&quot;lower_bound&quot;:100000000}">$1,000,000
+                                                        <li class="searchable-select-result"
+                                                            data-value="{&quot;index&quot;:3,&quot;total&quot;:6,&quot;text&quot;:&quot;$1,000,000 to $5,000,000&quot;,&quot;lower_bound&quot;:100000000}">
+                                                            $1,000,000
                                                             to $5,000,000</li>
-                                                        <li class="searchable-select-result" data-value="{&quot;index&quot;:4,&quot;total&quot;:6,&quot;text&quot;:&quot;$5,000,000 to $10,000,000&quot;,&quot;lower_bound&quot;:500000000}">$5,000,000
+                                                        <li class="searchable-select-result"
+                                                            data-value="{&quot;index&quot;:4,&quot;total&quot;:6,&quot;text&quot;:&quot;$5,000,000 to $10,000,000&quot;,&quot;lower_bound&quot;:500000000}">
+                                                            $5,000,000
                                                             to $10,000,000</li>
-                                                        <li class="searchable-select-result" data-value="{&quot;index&quot;:5,&quot;total&quot;:6,&quot;text&quot;:&quot;$10,000,000 or more&quot;,&quot;lower_bound&quot;:1000000000}">$10,000,000
+                                                        <li class="searchable-select-result"
+                                                            data-value="{&quot;index&quot;:5,&quot;total&quot;:6,&quot;text&quot;:&quot;$10,000,000 or more&quot;,&quot;lower_bound&quot;:1000000000}">
+                                                            $10,000,000
                                                             or more</li>
                                                     </ul>
                                                 </div>
@@ -699,7 +848,8 @@
                                     </div>
                                     <div class="form-row textarea">
                                         <label class="volume contains-summary" for="message">Anything else? </label>
-                                        <textarea name="message" id="message" required="" placeholder="Tell us more about your project, what you would like to monitor and what results do you expect. This would help us personalize the demo for you."></textarea>
+                                        <textarea name="message" id="message" required=""
+                                            placeholder="Tell us more about your project, what you would like to monitor and what results do you expect. This would help us personalize the demo for you."></textarea>
                                     </div>
                                 </fieldset>
                                 <div class="submit-row">
@@ -709,8 +859,8 @@
                                         </svg>
 
                                     </figure>
-                                    <input type="submit" class="submit-button common-Button common-Button--default" id="request-demo-btn"
-                                        value="Request Demo">
+                                    <input type="submit" class="submit-button common-Button common-Button--default"
+                                        id="request-demo-btn" value="Request Demo">
                                 </div>
                             </form>
                         </div>
@@ -735,8 +885,12 @@
                         <div class="icon-column">
                             <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42">
                                 <g fill="none" fill-rule="evenodd" transform="translate(0 2)">
-                                    <path fill="#d7d7d7" d="M23.3687586,30.1425368 C20.9219925,32.1886371 17.7706231,33.4201682 14.3316134,33.4201682 C11.6954209,33.4201682 9.22824798,32.6965111 7.11790903,31.4370107 L0.720671335,33.5694159 C0.184840538,33.7480255 -0.0887912638,33.4605854 0.0863663199,32.9351109 L2.21876868,26.5378816 C0.959266296,24.4275489 0.235608095,21.9603837 0.235608095,19.3241995 C0.235608095,11.8043462 6.12405444,5.6598097 13.5415258,5.25 C11.8174159,7.83464563 10.8124059,10.939934 10.8124059,14.279955 C10.8124059,21.9925795 16.1713145,28.4535638 23.3687608,30.1425372 Z"></path>
-                                    <path fill="#FFF" d="M39.33385,21.3096508 C40.5933524,19.1993181 41.3170106,16.7321529 41.3170106,14.0959687 C41.3170106,6.31098016 35.0060141,1.77635684e-14 27.2210053,1.77635684e-14 C19.4359965,1.77635684e-14 13.125,6.31098016 13.125,14.0959687 C13.125,21.8809573 19.4359965,28.1919374 27.2210053,28.1919374 C29.8571978,28.1919374 32.3243707,27.4682803 34.4347097,26.2087798 L40.8319474,28.341185 C41.3677782,28.5197947 41.64141,28.2323546 41.4662524,27.70688 L39.33385,21.3096508 Z"></path>
+                                    <path fill="#d7d7d7"
+                                        d="M23.3687586,30.1425368 C20.9219925,32.1886371 17.7706231,33.4201682 14.3316134,33.4201682 C11.6954209,33.4201682 9.22824798,32.6965111 7.11790903,31.4370107 L0.720671335,33.5694159 C0.184840538,33.7480255 -0.0887912638,33.4605854 0.0863663199,32.9351109 L2.21876868,26.5378816 C0.959266296,24.4275489 0.235608095,21.9603837 0.235608095,19.3241995 C0.235608095,11.8043462 6.12405444,5.6598097 13.5415258,5.25 C11.8174159,7.83464563 10.8124059,10.939934 10.8124059,14.279955 C10.8124059,21.9925795 16.1713145,28.4535638 23.3687608,30.1425372 Z">
+                                    </path>
+                                    <path fill="#FFF"
+                                        d="M39.33385,21.3096508 C40.5933524,19.1993181 41.3170106,16.7321529 41.3170106,14.0959687 C41.3170106,6.31098016 35.0060141,1.77635684e-14 27.2210053,1.77635684e-14 C19.4359965,1.77635684e-14 13.125,6.31098016 13.125,14.0959687 C13.125,21.8809573 19.4359965,28.1919374 27.2210053,28.1919374 C29.8571978,28.1919374 32.3243707,27.4682803 34.4347097,26.2087798 L40.8319474,28.341185 C41.3677782,28.5197947 41.64141,28.2323546 41.4662524,27.70688 L39.33385,21.3096508 Z">
+                                    </path>
                                     <ellipse cx="22.313" cy="16.188" fill="#aaaaaa" rx="1.313" ry="1.313"></ellipse>
                                     <ellipse cx="27.125" cy="16.188" fill="#aaaaaa" rx="1.313" ry="1.313"></ellipse>
                                     <ellipse cx="31.938" cy="16.188" fill="#aaaaaa" rx="1.313" ry="1.313"></ellipse>
@@ -756,21 +910,27 @@
                     </div>
                     <div class="cta support">
                         <div class="icon-column">
-                            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="42"
-                                height="42" viewBox="0 0 42 42">
+                            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                                width="42" height="42" viewBox="0 0 42 42">
                                 <defs>
-                                    <path id="support-small-a" d="M17.2727273,34.5454545 C7.73326341,34.5454545 0,26.8121911 0,17.2727273 C0,7.73326341 7.73326341,0 17.2727273,0 C26.8121911,0 34.5454545,7.73326341 34.5454545,17.2727273 C34.5454545,26.8121911 26.8121911,34.5454545 17.2727273,34.5454545 Z M17.2727273,26.7727273 C22.5194324,26.7727273 26.7727273,22.5194324 26.7727273,17.2727273 C26.7727273,12.0260221 22.5194324,7.77272727 17.2727273,7.77272727 C12.0260221,7.77272727 7.77272727,12.0260221 7.77272727,17.2727273 C7.77272727,22.5194324 12.0260221,26.7727273 17.2727273,26.7727273 Z"></path>
+                                    <path id="support-small-a"
+                                        d="M17.2727273,34.5454545 C7.73326341,34.5454545 0,26.8121911 0,17.2727273 C0,7.73326341 7.73326341,0 17.2727273,0 C26.8121911,0 34.5454545,7.73326341 34.5454545,17.2727273 C34.5454545,26.8121911 26.8121911,34.5454545 17.2727273,34.5454545 Z M17.2727273,26.7727273 C22.5194324,26.7727273 26.7727273,22.5194324 26.7727273,17.2727273 C26.7727273,12.0260221 22.5194324,7.77272727 17.2727273,7.77272727 C12.0260221,7.77272727 7.77272727,12.0260221 7.77272727,17.2727273 C7.77272727,22.5194324 12.0260221,26.7727273 17.2727273,26.7727273 Z">
+                                    </path>
                                 </defs>
                                 <g fill="none" fill-rule="evenodd" transform="translate(2 2)">
-                                    <path fill="#aaaaaa" d="M16.4090909,0 L21.5909091,0 C22.5448555,-1.75237108e-16 23.3181818,0.773326341 23.3181818,1.72727273 L23.3181818,1.72727273 C23.3181818,2.68121911 22.5448555,3.45454545 21.5909091,3.45454545 L16.4090909,3.45454545 L16.4090909,3.45454545 C15.4551445,3.45454545 14.6818182,2.68121911 14.6818182,1.72727273 L14.6818182,1.72727273 L14.6818182,1.72727273 C14.6818182,0.773326341 15.4551445,1.75237108e-16 16.4090909,0 L16.4090909,0 Z M6.62464821e-13,21.5909091 L6.62782116e-13,16.4090909 L6.62560072e-13,16.4090909 C6.62443247e-13,15.4551445 0.773326341,14.6818182 1.72727273,14.6818182 L1.72727273,14.6818182 C2.68121911,14.6818182 3.45454545,15.4551445 3.45454545,16.4090909 L3.45454545,21.5909091 L3.45454545,21.5909091 C3.45454545,22.5448555 2.68121911,23.3181818 1.72727273,23.3181818 C0.773326341,23.3181818 6.62581646e-13,22.5448555 6.62464821e-13,21.5909091 Z M34.5454545,21.5909091 L34.5454545,16.4090909 C34.5454545,15.4551445 35.3187809,14.6818182 36.2727273,14.6818182 L36.2727273,14.6818182 C37.2266737,14.6818182 38,15.4551445 38,16.4090909 L38,21.5909091 C38,22.5448555 37.2266737,23.3181818 36.2727273,23.3181818 C35.3187809,23.3181818 34.5454545,22.5448555 34.5454545,21.5909091 Z M16.4090909,34.5454545 L21.5909091,34.5454545 C22.5448555,34.5454545 23.3181818,35.3187809 23.3181818,36.2727273 L23.3181818,36.2727273 L23.3181818,36.2727273 C23.3181818,37.2266737 22.5448555,38 21.5909091,38 L16.4090909,38 C15.4551445,38 14.6818182,37.2266737 14.6818182,36.2727273 C14.6818182,35.3187809 15.4551445,34.5454545 16.4090909,34.5454545 Z"></path>
+                                    <path fill="#aaaaaa"
+                                        d="M16.4090909,0 L21.5909091,0 C22.5448555,-1.75237108e-16 23.3181818,0.773326341 23.3181818,1.72727273 L23.3181818,1.72727273 C23.3181818,2.68121911 22.5448555,3.45454545 21.5909091,3.45454545 L16.4090909,3.45454545 L16.4090909,3.45454545 C15.4551445,3.45454545 14.6818182,2.68121911 14.6818182,1.72727273 L14.6818182,1.72727273 L14.6818182,1.72727273 C14.6818182,0.773326341 15.4551445,1.75237108e-16 16.4090909,0 L16.4090909,0 Z M6.62464821e-13,21.5909091 L6.62782116e-13,16.4090909 L6.62560072e-13,16.4090909 C6.62443247e-13,15.4551445 0.773326341,14.6818182 1.72727273,14.6818182 L1.72727273,14.6818182 C2.68121911,14.6818182 3.45454545,15.4551445 3.45454545,16.4090909 L3.45454545,21.5909091 L3.45454545,21.5909091 C3.45454545,22.5448555 2.68121911,23.3181818 1.72727273,23.3181818 C0.773326341,23.3181818 6.62581646e-13,22.5448555 6.62464821e-13,21.5909091 Z M34.5454545,21.5909091 L34.5454545,16.4090909 C34.5454545,15.4551445 35.3187809,14.6818182 36.2727273,14.6818182 L36.2727273,14.6818182 C37.2266737,14.6818182 38,15.4551445 38,16.4090909 L38,21.5909091 C38,22.5448555 37.2266737,23.3181818 36.2727273,23.3181818 C35.3187809,23.3181818 34.5454545,22.5448555 34.5454545,21.5909091 Z M16.4090909,34.5454545 L21.5909091,34.5454545 C22.5448555,34.5454545 23.3181818,35.3187809 23.3181818,36.2727273 L23.3181818,36.2727273 L23.3181818,36.2727273 C23.3181818,37.2266737 22.5448555,38 21.5909091,38 L16.4090909,38 C15.4551445,38 14.6818182,37.2266737 14.6818182,36.2727273 C14.6818182,35.3187809 15.4551445,34.5454545 16.4090909,34.5454545 Z">
+                                    </path>
                                     <g transform="translate(1.727 1.727)">
                                         <mask id="support-small-b" fill="#fff">
                                             <use xlink:href="#support-small-a"></use>
                                         </mask>
                                         <use fill="#FFF" xlink:href="#support-small-a"></use>
-                                        <path fill="#aaaaaa" d="M7.40734266,-2.09265734 L23.3181818,-2.59090909 C23.3181818,-2.59090909 27.1419879,-1.75052884 27.1381119,-1.72727273 C27.1342359,-1.70401661 21.1590909,10.3636364 21.1590909,10.3636364 L13.2534965,10.3304196 L7.40734266,-2.09265734 Z M27.1542721,36.4033824 L11.2434329,36.9016341 C11.2434329,36.9016341 7.41962683,36.0612539 7.42350285,36.0379977 C7.42737887,36.0147416 13.4025238,23.9470887 13.4025238,23.9470887 L21.3081182,23.9803054 L27.1542721,36.4033824 Z"
+                                        <path fill="#aaaaaa"
+                                            d="M7.40734266,-2.09265734 L23.3181818,-2.59090909 C23.3181818,-2.59090909 27.1419879,-1.75052884 27.1381119,-1.72727273 C27.1342359,-1.70401661 21.1590909,10.3636364 21.1590909,10.3636364 L13.2534965,10.3304196 L7.40734266,-2.09265734 Z M27.1542721,36.4033824 L11.2434329,36.9016341 C11.2434329,36.9016341 7.41962683,36.0612539 7.42350285,36.0379977 C7.42737887,36.0147416 13.4025238,23.9470887 13.4025238,23.9470887 L21.3081182,23.9803054 L27.1542721,36.4033824 Z"
                                             mask="url(#support-small-b)"></path>
-                                        <path fill="#aaaaaa" d="M7.40734266,-2.09265734 L23.3181818,-2.59090909 C23.3181818,-2.59090909 27.1419879,-1.75052884 27.1381119,-1.72727273 C27.1342359,-1.70401661 21.1590909,10.3636364 21.1590909,10.3636364 L13.2534965,10.3304196 L7.40734266,-2.09265734 Z M27.1542721,36.4033824 L11.2434329,36.9016341 C11.2434329,36.9016341 7.41962683,36.0612539 7.42350285,36.0379977 C7.42737887,36.0147416 13.4025238,23.9470887 13.4025238,23.9470887 L21.3081182,23.9803054 L27.1542721,36.4033824 Z"
+                                        <path fill="#aaaaaa"
+                                            d="M7.40734266,-2.09265734 L23.3181818,-2.59090909 C23.3181818,-2.59090909 27.1419879,-1.75052884 27.1381119,-1.72727273 C27.1342359,-1.70401661 21.1590909,10.3636364 21.1590909,10.3636364 L13.2534965,10.3304196 L7.40734266,-2.09265734 Z M27.1542721,36.4033824 L11.2434329,36.9016341 C11.2434329,36.9016341 7.41962683,36.0612539 7.42350285,36.0379977 C7.42737887,36.0147416 13.4025238,23.9470887 13.4025238,23.9470887 L21.3081182,23.9803054 L27.1542721,36.4033824 Z"
                                             mask="url(#support-small-b)" transform="rotate(-90 17.28 17.155)"></path>
                                     </g>
                                 </g>
@@ -807,7 +967,7 @@
                                     <span class="submitted-email">justinsippel@gmail.com</span>
                                     to schedule a call.
                                 </span>
-                                 If you do not find it in your inbox. Please check spam.
+                                If you do not find it in your inbox. Please check spam.
                             </h2>
                             <a class="common-Link common-Link--arrow" href="https://medium.com/fyipe">Read the latest
                                 updates from the Fyipe team</a>
@@ -831,7 +991,7 @@
                 apiURL = 'https://api.fyipe.com';
             }
             document.getElementById('demoform').action = `${apiURL}/lead/add/demo`;
-            }
+        }
     </script>
     <script type="text/javascript">
         $(document).ready(function (e) {
@@ -845,7 +1005,7 @@
                         if (!IS_DEV) {
                             amplitude.getInstance().logEvent('Filling demo form', { data: formData });
                         }
-                    } catch {}
+                    } catch { }
                     return 0;
                 }
                 else {
@@ -858,7 +1018,7 @@
     </script>
     <script type="text/javascript">
         $(document).ready(function (e) {
-            document.getElementById('demoform').addEventListener('click', function(){
+            document.getElementById('demoform').addEventListener('click', function () {
                 var queryString = $('#demoform').serialize();
                 var formData = Object.fromEntries(new URLSearchParams(queryString));
                 var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;

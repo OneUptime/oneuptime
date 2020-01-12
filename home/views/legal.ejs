@@ -11,10 +11,10 @@
   <link rel="stylesheet" href="/css/legal.css">
   <script src="/js/amplitude.js"></script>
   <script>
-      var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
-      if (!IS_DEV) {
-          amplitude.getInstance().logEvent('Legal center page loaded');
-      }
+    var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+    if (!IS_DEV) {
+      amplitude.getInstance().logEvent('Legal center page loaded');
+    }
   </script>
 </head>
 
@@ -128,8 +128,8 @@
         <% }%>
 
         <% if(section === "pci") {%>
-          <% include ./pci %>
-          <% }%>
+        <% include ./pci %>
+        <% }%>
 
         <% if(section === "ccpa") {%>
         <% include ./ccpa %>
@@ -152,8 +152,8 @@
         <% }%>
 
         <% if(section === ("soc-2")) {%>
-          <% include ./soc-2 %>
-          <% }%>
+        <% include ./soc-2 %>
+        <% }%>
 
 
         <% if(section === "iso-27001") {%>

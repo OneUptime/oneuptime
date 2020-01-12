@@ -225,7 +225,7 @@ body{
 .notify-input.methods .methods-dropdown:after{
     font:normal 16px fyipeIcons;
     content:'\27A1';
-    color:#939da3;
+    color:#797979;
     transition:color .15s ease;
     position:absolute;
     right:15px;
@@ -233,7 +233,7 @@ body{
     transform:rotate(90deg)
 }
 .notify-input.methods .methods-dropdown:hover{
-    color:#939da3
+    color:#797979
 }
 .notify-input.methods .methods-dropdown:hover:after{
     color:#aab7c4
@@ -333,7 +333,7 @@ body{
     background-color:#f9f9f9
 }
 .notify-input.email .submit-button:hover{
-    color:#7795f8
+    color:#797979
 }
 .notify-input.email .submit-button:active{
     color:#555abf;
@@ -342,7 +342,7 @@ body{
 .notify-error{
     font-size:15px;
     line-height:22px;
-    color:#939da3;
+    color:#797979;
     display:none;
     position:absolute;
     top:-65px;
@@ -1423,7 +1423,7 @@ body{
 }
 .apm-list{
     font-size:19px;
-    color:#939da3;
+    color:#797979;
     display:-ms-flexbox;
     display:flex;
     -ms-flex-wrap:wrap;

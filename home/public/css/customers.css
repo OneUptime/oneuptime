@@ -7,6 +7,12 @@
         background-image:url(/img/v3/customers/logos/content-logos@2x.png?20)
     }
 }
+.intro-para{
+    margin-top: -100px;
+    color: #444444 !important;
+    font-size: 29px;
+    line-height: 28px;
+}
 .Logo-Justpark{
     background-position:-352px -577px;
     width:173px;
@@ -652,7 +658,7 @@
     background:linear-gradient(90deg,#ecf4fa,#e4eff6)
 }
 .IconsContainer{
-    width:3000px;
+    width:1300px;
     height:460px;
     position:relative;
     left:50px
@@ -708,10 +714,11 @@
     padding:.2em .2em 2em
 }
 .Header-subTitle{
-    color:#7795f8
+    color:#797979
 }
 @media (min-width:670px){
     .Header-subTitle{
+        height: 50px;
         display:block
     }
 }
@@ -1176,8 +1183,8 @@ html#customers .LocalNavigation{
 .Quote p{
     position:relative;
     font-style:italic;
-    font-size:2.1em;
-    line-height:16px;
+    font-size:18px;
+    line-height:25px;
     margin-bottom:0
 }
 .Quote--warbyParker{
@@ -1199,7 +1206,7 @@ html#customers .LocalNavigation{
 .Quote--rad{
     position:relative;
     padding-top:40px;
-    background:#7795f8
+    background:#797979
 }
 .Quote--rad:before{
     content:'';
@@ -1232,7 +1239,7 @@ html#customers .LocalNavigation{
 .Quote--glossier{
     position:relative;
     padding-top:40px;
-    background:#373f4a
+    background:#1d1d1d
 }
 .Quote--glossier:before{
     content:'';

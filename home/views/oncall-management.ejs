@@ -4,176 +4,189 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>Fyipe | Status Page and On-call made simple.</title>
-    <meta name="description" content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
-    <% include ./head %>
+  <title>Fyipe | Status Page and On-call made simple.</title>
+  <meta name="description"
+    content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+  <% include ./head %>
 
-    <link rel="stylesheet" href="/css/oncall-management.css">
-    <script src="/js/amplitude.js"></script>
-    <script>
-        var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
-        if (!IS_DEV) {
-            amplitude.getInstance().logEvent('On call management page loaded');
-        }
-    </script>
+  <link rel="stylesheet" href="/css/oncall-management.css">
+  <script src="/js/amplitude.js"></script>
+  <script>
+    var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+    if (!IS_DEV) {
+      amplitude.getInstance().logEvent('On call management page loaded');
+    }
+  </script>
 </head>
 
 <body>
-    <% include ./nav %>
+  <% include ./nav %>
 
-    <div class="globalContent">
-      
-        <main>
-          <header>
-            <div>
-             
-            </div>
+  <div class="globalContent">
 
-            <section id="intro" class="container-lg">
-              <h1 class="common-PageTitle">Oncall Scheduling &amp; Alerts</h1>
-              <p class="common-BodyText">
-                Fyipe let's you schedule your team on the call duty on a rolling basis and alerts them when incidents happen.
-              </p>
-              <ul>
-                <li>
-                  <a href="#" onclick="registerUrl()" class="common-Button" data-analytics-action="docs" data-analytics-source="header_cta">
-                    Create an account
-                  </a>
-                </li>
-                <li>
-                  <a href="/enterprise/demo" class="common-Button" data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                    Request Demo
-                  </a>
-                </li>
-              </ul>
-            </section>
-          </header>
-        
-          <section id="key-benefits" class="container-lg">
-            <img src="/img/warning.svg" height="50px" alt="warning" />
-        
-            <h1 class="common-BodyTitle">Alerts Before Downtime Happens</h1>
-            <p class="common-BodyText">Fyipe discovers patterns in performance during and before the downtime and may alert the team before the downtime happens.</p>
-        
-          
-            <img src="/img/planning.svg" height="50px" alt="planning" />
-            <h1 class="common-BodyTitle">Transparent Incident Resolution</h1>
-            <p class="common-BodyText">All teams get the same visibility for technical and business response orchestration, enabling better collaboration and rapid resolution.</p>
-        
-            <img src="/img/earth-globe.svg" height="50px" alt="earth-globe" />
-            <h1 class="common-BodyTitle">Global Alerts</h1>
-            <p class="common-BodyText">Our call and SMS alert is global. No matter where your team is, or which timezone they work in. We will call your team when an incident happens. </p>
+    <main>
+      <header>
+        <div>
+
+        </div>
+
+        <section id="intro" class="container-lg">
+          <h1 class="common-PageTitle">Oncall Scheduling &amp; Alerts</h1>
+          <p class="common-BodyText">
+            Fyipe let's you schedule your team on the call duty on a rolling basis and alerts them when incidents
+            happen.
+          </p>
+          <ul>
+            <li>
+              <a href="#" onclick="registerUrl()" class="common-Button" data-analytics-action="docs"
+                data-analytics-source="header_cta">
+                Create an account
+              </a>
+            </li>
+            <li>
+              <a href="/enterprise/demo" class="common-Button" data-analytics-action="contact_sales"
+                data-analytics-source="header_cta">
+                Request Demo
+              </a>
+            </li>
+          </ul>
+        </section>
+      </header>
+
+      <section id="key-benefits" class="container-lg">
+        <img src="/img/warning.svg" height="50px" alt="warning" />
+
+        <h1 class="common-BodyTitle">Alerts Before Downtime Happens</h1>
+        <p class="common-BodyText">Fyipe discovers patterns in performance during and before the downtime and may alert
+          the team before the downtime happens.</p>
+
+
+        <img src="/img/planning.svg" height="50px" alt="planning" />
+        <h1 class="common-BodyTitle">Transparent Incident Resolution</h1>
+        <p class="common-BodyText">All teams get the same visibility for technical and business response orchestration,
+          enabling better collaboration and rapid resolution.</p>
+
+        <img src="/img/earth-globe.svg" height="50px" alt="earth-globe" />
+        <h1 class="common-BodyTitle">Global Alerts</h1>
+        <p class="common-BodyText">Our call and SMS alert is global. No matter where your team is, or which timezone
+          they work in. We will call your team when an incident happens. </p>
+      </section>
+
+      <section id="comparison">
+        <div class="stripes">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+        <h1 class="common-UppercaseTitle">
+          <img src="/img/calendar.svg" alt="calendar">
+          <strong>Flexible on-call scheduling made easy.</strong>
+        </h1>
+
+        <div class="container-lg" style="max-width:800px">
+
+          <section>
+            <h2 class="common-Uppercase">Your Team's schedule.</h2>
+            <p class="common-BodyText">With Fyipe you can schedule on-call for your team with primary and secondary
+              on-call team member and have them rotate week after week, or anyway you like. </p>
+            <ul>
+              <li>
+                <span class="label">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              </li>
+              <li>
+                <span class="label">
+                  <span class="launch-marker">
+                    <span class="launch-marker-circle"></span>
+                    <span class="launch-marker-bar"></span>
+                  </span>
+                  <span class="centered-label">
+                    Alice
+                  </span>
+                </span>
+              </li>
+            </ul>
           </section>
-        
-          <section id="comparison">
-            <div class="stripes">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-        
-            <h1 class="common-UppercaseTitle">
-              <img src="/img/calendar.svg" alt="calendar">
-              <strong>Flexible on-call scheduling made easy.</strong>
-            </h1>
-        
-            <div class="container-lg" style="max-width:800px">
-              
-              <section >
-                <h2 class="common-Uppercase">Your Team's schedule.</h2>
-                <p class="common-BodyText">With Fyipe you can schedule on-call for your team with primary and secondary on-call team member and have them rotate week after week, or anyway you like. </p>
-                <ul>
-                  <li>
-                    <span class="label">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                  </li>
-                  <li>
-                    <span class="label">
-                      <span class="launch-marker">
-                        <span class="launch-marker-circle"></span>
-                        <span class="launch-marker-bar"></span>
-                      </span>
-                      <span class="centered-label">
-                        Alice
-                      </span>
-                    </span>
-                  </li>
-                </ul>
-              </section>
-            </div>
-          </section>
-        
-          <section id="routing-payments">
-            <h1 class="common-UppercaseTitle">
-              <img src="/img/caution.svg" alt="caution">
-              Mitigate Risk, Maximize Agility
-            </h1>
-        
-            <div class="container-lg">
-              <p class="intro"><em>Real-time data needs real-time response with enterprise-grade security.</em></p>
-        
-              <p class="common-BodyText">
-                Ensure objects are only available to the right individuals without getting bogged down with complex approval chains or painful workarounds.
-              </p>
-        
+        </div>
+      </section>
 
-        
-             
-              
-            </div>
-          </section>
-        
-         
-        
-          <section id="compliance">
-          
-            <h1 class="common-UppercaseTitle">
-              <img src="/img/flats.svg" alt="flats">
-              Enterprise Class
-            </h1>
-        
-            <div class="container-lg">
-              <div class="content">
-                <p class="common-BodyText">Fyipe is the only digital operations management platform that is purpose-built to support enterprise-grade demands for security, availability, and scale. Fyipe helps you manage incidents of large enterprise projects which involves multiple teams with ease. </p>
-        
-                <p class="common-BodyText">We take security and control seriously. Granular access to team members and advanced account management. Fyipe runs on a geo-redundant infrastructure at scale.You can do more with your data — everything from investigating to predicting future downtime before they happen. </p>
-              </div>
-        
-              <aside>
-                <h2>Enterprise Grade Platform</h2>
-                <ul>
-                  <li class="common-BodyText">Security and controls</li>
-                  <li class="common-BodyText">Performance and scalability</li>
-                  <li class="common-BodyText">
-                    Supports ITSM workflows
-                  </li>
-                  <li class="common-BodyText">Globally Redundant Architecture</li>
-                  <li class="common-BodyText">
-                    1000+ Integrations with apps and services
-                  </li>
-                  <li class="common-BodyText">Extensible API</li>
-                  <li class="common-BodyText">Incident and Event Intelligence</li>
-                </ul>
-              </aside>
-        
-            </div>
-          </section>
-        
-        
-        
-        
-        
-         
-        
-         
-        </main>
-        
-        
-        
-            </div>
+      <section id="routing-payments">
+        <h1 class="common-UppercaseTitle">
+          <img src="/img/caution.svg" alt="caution">
+          Mitigate Risk, Maximize Agility
+        </h1>
 
-            <% include ./footer %>
+        <div class="container-lg">
+          <p class="intro"><em>Real-time data needs real-time response with enterprise-grade security.</em></p>
 
-        </body>
-        
-        
-        </html>
+          <p class="common-BodyText">
+            Ensure objects are only available to the right individuals without getting bogged down with complex approval
+            chains or painful workarounds.
+          </p>
+
+
+
+
+
+        </div>
+      </section>
+
+
+
+      <section id="compliance">
+
+        <h1 class="common-UppercaseTitle">
+          <img src="/img/flats.svg" alt="flats">
+          Enterprise Class
+        </h1>
+
+        <div class="container-lg">
+          <div class="content">
+            <p class="common-BodyText">Fyipe is the only digital operations management platform that is purpose-built to
+              support enterprise-grade demands for security, availability, and scale. Fyipe helps you manage incidents
+              of large enterprise projects which involves multiple teams with ease. </p>
+
+            <p class="common-BodyText">We take security and control seriously. Granular access to team members and
+              advanced account management. Fyipe runs on a geo-redundant infrastructure at scale.You can do more with
+              your data — everything from investigating to predicting future downtime before they happen. </p>
+          </div>
+
+          <aside>
+            <h2>Enterprise Grade Platform</h2>
+            <ul>
+              <li class="common-BodyText">Security and controls</li>
+              <li class="common-BodyText">Performance and scalability</li>
+              <li class="common-BodyText">
+                Supports ITSM workflows
+              </li>
+              <li class="common-BodyText">Globally Redundant Architecture</li>
+              <li class="common-BodyText">
+                1000+ Integrations with apps and services
+              </li>
+              <li class="common-BodyText">Extensible API</li>
+              <li class="common-BodyText">Incident and Event Intelligence</li>
+            </ul>
+          </aside>
+
+        </div>
+      </section>
+
+
+
+
+
+
+
+
+    </main>
+
+
+
+  </div>
+
+  <% include ./footer %>
+
+</body>
+
+
+</html>

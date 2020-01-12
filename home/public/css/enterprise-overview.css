@@ -28,7 +28,7 @@ hr{
 }
 aside p{
     font-size:12px!important;
-    color:#939da3
+    color:#797979
 }
 ul.columns{
     zoom:1;
@@ -207,7 +207,7 @@ section.marquee #bubble-overlay header h1{
 }
 section.marquee #bubble-overlay header p{
     font-size:30px;
-    color:#939da3;
+    color:#797979;
     margin-top:120px;
 }
 @media screen and (max-width:1012px){
@@ -444,7 +444,7 @@ section.main header h2{
     }
 }
 section.main header p{
-    color:#939da3
+    color:#797979
 }
 section.main header.icon:before{
     content:"";

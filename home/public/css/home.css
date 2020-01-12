@@ -8,7 +8,7 @@ main a{
 }
 
 .grey{
-    color:#939da3
+    color:#797979
 }
 
 main h2[class^=common-Uppercase]{
@@ -1029,7 +1029,7 @@ main header{
 }
 #comparison li:nth-child(2) .label{
     margin-left:18%;
-    background:#7795f8
+    background:#797979
 }
 #comparison li:nth-child(3) .label{
     margin-left:24%;

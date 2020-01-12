@@ -13,7 +13,7 @@ a{
 }
 
 .text-grey{
-    color: #939da3 !important; 
+    color: #797979 !important; 
 }
 
 .header-font{
@@ -219,11 +219,11 @@ code,pre{
     font-weight:400;
     font-size:21px;
     line-height:31px;
-    color:#525f7f
+    color:#000000
 }
 @media (min-width:670px){
     .common-IntroText{
-        font-size:24px;
+        font-size:19px;
         line-height:36px
     }
 }
@@ -240,9 +240,9 @@ code,pre{
 }
 .common-BodyText{
     font-weight:400;
-    font-size:18px;
+    font-size:16px;
     line-height:26px;
-    color:#939da3
+    color:#797979
 }
 .common-UppercaseTitle{
     font-size:20px;
@@ -1161,7 +1161,7 @@ code,pre{
     font-weight: 900;
 }
 .globalNav .colorize{
-    color:#939da3;
+    color:#797979;
     transition:color .1s ease
 }
 .globalNav .colorize.active,.globalNav .colorize:hover{
@@ -1309,7 +1309,7 @@ code,pre{
 .globalNav .linkSub{
     font-size:15px;
     line-height:22px;
-    color:#939da3;
+    color:#797979;
     margin:0px 0 0;
     display:block
 }

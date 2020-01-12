@@ -385,7 +385,7 @@ section.form-section .form-row.submit{
     justify-content:flex-end
 }
 section.form-section .form-row label{
-    color:#939da3;
+    color:#797979;
     font-size:12px;
     font-weight:600;
     letter-spacing:.43px;
@@ -444,7 +444,7 @@ section.form-section .form-row label.contains-summary{
 }
 section.form-section .form-row summary{
     display:block;
-    color:#939da3;
+    color:#797979;
     font-weight:400;
     font-size:13px;
     line-height:17px;
@@ -591,7 +591,7 @@ section.form-section .submit-button{
     font-family:inherit
 }
 section.form-section .submit-button:focus{
-    background-color:#7795f8
+    background-color:#797979
 }
 section.form-section .submit-row{
     text-align:right;
@@ -1181,7 +1181,7 @@ section.contact-sales-header .headline-text{
     }
 }
 section.contact-sales-header .common-IntroText{
-    color:#939da3
+    color:#797979
 }
 .form-submitted section.contact-sales-header .background-container.success{
     opacity:1
@@ -1218,7 +1218,7 @@ section.success .phone-number-container .phone-number-headline{
     margin-bottom:5px
 }
 section.success .phone-number-container .phone-number-subhead{
-    color:#939da3;
+    color:#797979;
     font-size:17px;
     font-weight:400;
     line-height:26px;
@@ -1437,7 +1437,7 @@ section.form-section .searchable-select-container input.searchable-select-input{
     font-weight:300;
     font-size:17px;
     line-height:26px;
-    color:#939da3;
+    color:#797979;
     cursor:pointer
 }
 .searchable-select-container .searchable-select-result.highlighted{
