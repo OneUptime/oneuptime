@@ -188,7 +188,7 @@ body{
 .search-results li a{
     font-size:15px;
     font-weight:500;
-    color:#797979;
+    color:#939da3;
     text-decoration:underline;
     display:inline-block;
     margin-bottom:5px;
@@ -275,7 +275,7 @@ body{
     font-size:20px;
     line-height:20px;
     vertical-align:top;
-    color:#797979;
+    color:#939da3;
     font-weight:500;
     text-decoration:none
 }
@@ -336,7 +336,7 @@ header#main-header a{
     font-size:15px;
     line-height:55px;
     padding-left:30px;
-    color:#797979
+    color:#939da3
 }
 header#main-header a:hover{
     color:#000000
@@ -347,7 +347,7 @@ header#main-header .button a:after{
     padding-left:5px
 }
 #loading-bar{
-    background:#797979;
+    background:#939da3;
     height:3px;
     position:absolute;
     top:0;
@@ -569,7 +569,7 @@ header#main-header .button a:after{
     border-top:1px solid rgba(120,134,156,.08)
 }
 #sidebar h1 a.selected,#sidebar ul li a.selected{
-    color:#797979;
+    color:#939da3;
     font-weight:500
 }
 #sidebar ul ul{
@@ -837,7 +837,7 @@ article aside.important.flash{
     }
 }
 .key-popover a,article a,article a code{
-    color:#797979;
+    color:#939da3;
     font-weight:500;
     text-decoration:underline
 }
@@ -1005,7 +1005,7 @@ article ul.large-items>li a{
 article ul.large-items>li h3{
     position:relative;
     display:inline-block;
-    color:#797979;
+    color:#939da3;
     font-size:15px;
     font-weight:500
 }
@@ -1238,7 +1238,7 @@ article .tabs-code>nav a:active{
     color:#2f3538
 }
 article .tabs-code>nav a.selected{
-    color:#797979
+    color:#939da3
 }
 article .code>nav{
     display:flex;
@@ -1394,7 +1394,7 @@ article .tabs-regular .nav-tabs{
 article .tabs-regular .nav-tabs select{
     font-size:15px;
     font-weight:500;
-    color:#797979;
+    color:#939da3;
     background:transparent;
     outline:none;
     padding:0 13px 0 0;
@@ -1583,7 +1583,7 @@ article a.column h4+p{
     padding-top:5px
 }
 article a.column:hover,article a.column:hover>*{
-    color:#797979
+    color:#939da3
 }
 article .card-form{
     width:325px;

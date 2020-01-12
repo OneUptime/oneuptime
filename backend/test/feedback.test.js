@@ -18,7 +18,7 @@ var token, projectId, userId, airtableId, emailContent;
 var { imap, openBox, feedbackEmailContent } = require('./utils/mail');
 
 describe('Feedback API', function () {
-    this.timeout(20000);
+    this.timeout(50000);
 
     before(function (done) {
         this.timeout(40000);
@@ -60,21 +60,16 @@ describe('Feedback API', function () {
             FeedbackService.hardDeleteBy({ _id: res.body._id });
             AirtableService.deleteFeedback(res.body.airtableId);
             imap.once('ready', function () {
-                openBox(function (err) {
+                openBox(function (err, box) {
                     if (err) throw err;
-                    var f = imap.seq.fetch('1:3', {
+                    var seq =  box.messages.total;
+                    var f = imap.seq.fetch(`${seq}:${seq}`, {
                         bodies: [''],
                         struct: true
                     });
                     f.on('message', function (msg) {
                         msg.on('body', function (stream) {
                             mailParser(stream, {}, async function (err, parsedMail) {
-                                if (parsedMail.subject === 'New Lead Added') {
-                                    emailContent = await JSON.parse(parsedMail.text);
-                                    expect(emailContent).to.be.an('object');
-                                    expect(emailContent.message).to.be.equal(testFeedback.feedback);
-                                    expect(emailContent.page).to.be.equal(testFeedback.page);
-                                }
                                 if (parsedMail.subject === 'Thank you for your feedback!') {
                                     emailContent = (parsedMail.text);
                                     expect(emailContent).to.be.equal(feedbackEmailContent);
@@ -83,8 +78,8 @@ describe('Feedback API', function () {
                         });
                     });
                     f.once('end', function () {
-                        done();
                         imap.end();
+                        done();
                     });
                 });
             });

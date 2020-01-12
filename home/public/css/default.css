@@ -13,7 +13,7 @@ a{
 }
 
 .text-grey{
-    color: #797979 !important; 
+    color: #939da3 !important; 
 }
 
 .header-font{
@@ -233,11 +233,16 @@ code,pre{
     line-height:28px;
     color:#000000
 }
+.arrow::after{
+    font: normal 16px fyipeIcons;
+    content: '\279E';
+    padding-left: 1px;
+}
 .common-BodyText{
     font-weight:400;
-    font-size:17px;
+    font-size:18px;
     line-height:26px;
-    color:#797979
+    color:#939da3
 }
 .common-UppercaseTitle{
     font-size:20px;
@@ -1142,8 +1147,8 @@ code,pre{
     color:#000000 !important;
 }
 .highlight {
-    border-radius: 1em 0 1em 0;
-    background-image: linear-gradient(-100deg, rgba(255, 224, 0, 0.3), rgba(255, 224, 0, 0.7) 95%, rgba(255, 224, 0, 0.1));
+    border-radius: 1em 0.5em 1em 0.5em;
+    background-image: linear-gradient(-100deg, rgba(255, 224, 0, 0.88), rgba(255, 224, 0, 0.87) 95%, rgb(255, 224, 0))
 }
 
 .globalNav .navSection.secondary .rootLink:last-child{
@@ -1156,7 +1161,7 @@ code,pre{
     font-weight: 900;
 }
 .globalNav .colorize{
-    color:#797979;
+    color:#939da3;
     transition:color .1s ease
 }
 .globalNav .colorize.active,.globalNav .colorize:hover{
@@ -1304,7 +1309,7 @@ code,pre{
 .globalNav .linkSub{
     font-size:15px;
     line-height:22px;
-    color:#797979;
+    color:#939da3;
     margin:0px 0 0;
     display:block
 }
@@ -1759,6 +1764,13 @@ code,pre{
 .productNav a.home span{
     margin-left:12px
 }
+.text-center{
+    text-align:center;
+}
+.black-link{
+    color:#000000; 
+    text-decoration: underline;
+}
 .productNav .mask-container{
     -ms-flex-positive:1;
     flex-grow:1;
@@ -1848,16 +1860,7 @@ html[lang=ja] .productNav ul{
     pointer-events:auto;
     position:relative
 }
-.globalFooter.withCards:before{
-    content:'';
-    position:absolute;
-    left:0;
-    right:0;
-    top:600px;
-    height:2000px;
-    background:#f9f9f9;
-    transform:skew(0,-12deg)
-}
+
 .globalFooterCards .container-xl{
     display:-ms-flexbox;
     display:flex;
@@ -1936,7 +1939,7 @@ a.globalFooterCard img,a.globalFooterCard svg,div.globalFooterCard img,div.globa
 }
 @media (min-width:880px){
     a.globalFooterCard img,a.globalFooterCard svg,div.globalFooterCard img,div.globalFooterCard svg{
-        left:-35px
+        left:-25px
     }
 }
 a.globalFooterCard svg .hover-fillDark,a.globalFooterCard svg .hover-fillLight,div.globalFooterCard svg .hover-fillDark,div.globalFooterCard svg .hover-fillLight{

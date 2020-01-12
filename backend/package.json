@@ -9,6 +9,7 @@
     "bcrypt": "^3.0.0",
     "body-parser": "^1.19.0",
     "cors": "^2.8.4",
+    "cross-env": "^6.0.3",
     "dompurify": "^2.0.7",
     "ejs": "^2.6.2",
     "eslint": "^4.19.1",
@@ -52,8 +53,8 @@
   "scripts": {
     "pretest": "eslint --fix --ignore-path .gitignore .",
     "start": "node server.js",
-    "dev": "NODE_ENV=development nodemon server.js",
-    "test": "set NODE_ENV=development && mocha --exit",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "test": "cross-env NODE_ENV=development mocha --exit",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "lint": "eslint ."
   },

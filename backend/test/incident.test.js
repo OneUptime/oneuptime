@@ -176,11 +176,12 @@ describe('Incident API', function () {
             var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
                 .send([{
                     callFrequency: 10,
+                    rotationFrequency: 'week',
+                    rotationInterval: 2,
                     call: true,
                     sms: true,
                     email: false,
-                    rotation: [{
-                        rotationFrequency: 'week',
+                    team: [{
                         teamMember: [{
                             member: userId,
                             startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',

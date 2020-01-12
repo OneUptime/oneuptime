@@ -125,7 +125,7 @@
     }
 }
 .Plan-title{
-    font-size:1.8em;
+    font-size:18px;
     font-weight: bold;
     text-align:center;
     padding:35px 30px 20px;
@@ -183,7 +183,7 @@
 }
 .Plan-cardRate-description{
     color:#757575;
-    font-size:1.6em;
+    font-size:16px;
     line-height:1.4em;
     padding-top:3px
 }
@@ -220,7 +220,7 @@
 }
 .Plan-description{
     color:#e8e8e8;
-    font-size:1.6em;
+    font-size:16px;
     line-height:1.55em;
     text-align:center;
     margin:0 auto;
@@ -241,7 +241,7 @@
     width:50%;
     text-align:center;
     color:#e8e8e8;
-    font-size:1.6em;
+    font-size:16px;
     line-height:1.4em;
     border:1px solid #404040
 }
@@ -280,7 +280,7 @@
 }
 .PricingDetails-title{
     color:#7589a0;
-    font-size:1.8em;
+    font-size:18px;
     font-weight:500;
     text-transform:uppercase;
     margin:0
@@ -585,9 +585,9 @@
     margin-top:20px
 }
 .PricingDetailsList{
-    font-size:1.6em;
-    line-height:1.6em;
-    color:#797979;
+    font-size:16px;
+    line-height:16px;
+    color:#939da3;
     list-style:none;
     padding:0;
     margin:0
@@ -636,7 +636,7 @@ strong.PricingDetails-Currency-header{
     padding:7px 0
 }
 .PricingTable th{
-    color:#797979;
+    color:#939da3;
     text-align:left;
     font-weight:500
 }
