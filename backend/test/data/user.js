@@ -1,7 +1,7 @@
 module.exports = {
     user: {
         name: 'John Smith',
-        email: 'noreply@fyipe.com',
+        email: 'testmail@fyipe.com',
         password:'1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',
@@ -22,7 +22,7 @@ module.exports = {
 
     anotherUser: {
         name: 'Kayode Adebayo',
-        email: 'noreply1@fyipe.com',
+        email: 'testmail1@fyipe.com',
         password:'123456789',
         confirmPassword: '123456789',
         companyName: 'Hackerbay',
