@@ -45,14 +45,14 @@ describe('Resend Verification API', () => {
 		await browser.close();
 	});
 
-	it('Should not resend verification token if a user associated with the email does not exit', async () => {
+	it('Should not resend verification token if a user associated with the email does not exist', async () => {
 		await page.goto(utils.ACCOUNTS_URL + '/user-verify/resend', { waitUntil: 'networkidle2' });
 		await page.waitForSelector('#email');
 		await page.click('input[name=email]');
 		await page.type('input[name=email]', 'invalid@email.com');
 		await page.click('button[type=submit]');
-		await page.waitForSelector('.title > h2 > span');
-		const html = await page.$eval('.title > h2 > span', (e) => {
+		await page.waitForSelector('#error-msg');
+		const html = await page.$eval('#error-msg', (e) => {
 			return e.innerHTML;
 		});
 		should.exist(html);
