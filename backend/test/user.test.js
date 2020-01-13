@@ -34,7 +34,7 @@ describe('User API', function () {
                     request.post('/user/login').send({
                         email: data.user.email,
                         password: data.user.password
-                    }).end(function () {
+                    }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
                         done();
                     });
