@@ -31,7 +31,7 @@ describe('Monitor Criteria API', function () {
                     request.post('/user/login').send({
                         email: userData.user.email,
                         password: userData.user.password
-                    }).end(function () {
+                    }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
                         done();
                     });
