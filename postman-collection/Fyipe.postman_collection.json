@@ -6953,116 +6953,588 @@
 			"name": "Report",
 			"item": [
 				{
-					"name": "Active Members",
+					"name": "Get All Active Members",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/report/:projectId/active-members",
+							"raw": "http://localhost:3002/reports/:projectId/active-members?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
 							"port": "3002",
 							"path": [
-								"report",
+								"reports",
 								":projectId",
 								"active-members"
 							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "Mon%20Dec%2009%202019%2021:06:54%20GMT+0100"
+								},
+								{
+									"key": "endDate",
+									"value": "Wed%20Jan%2008%202020%2021:06:54%20GMT+0100"
+								},
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "Active Members"
+						"description": "Get All Active Members"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All Active Members",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/reports/:projectId/active-members?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"reports",
+										":projectId",
+										"active-members"
+									],
+									"query": [
+										{
+											"key": "startDate",
+											"value": "Mon%20Dec%2009%202019%2021:06:54%20GMT+0100"
+										},
+										{
+											"key": "endDate",
+											"value": "Wed%20Jan%2008%202020%2021:06:54%20GMT+0100"
+										},
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "191"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"bf-gpNTS1tbkxVw7C6Bn3BDDromemc\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 17:35:16 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"memberId\": \"5e089f88b400211639928c92\",\n            \"memberName\": \"Ibukun Olatayo Dairo\",\n            \"incidents\": 30,\n            \"averageAcknowledgeTime\": 663502.1,\n            \"averageResolved\": 663502.1\n        }\n    ],\n    \"count\": 1,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				},
 				{
-					"name": "Active Monitors",
+					"name": "Get All Active Monitors",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/report/:projectId/active-monitors",
+							"raw": "http://localhost:3002/reports/:projectId/active-monitors?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
 							"port": "3002",
 							"path": [
-								"report",
+								"reports",
 								":projectId",
 								"active-monitors"
 							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "Mon%20Dec%2009%202019%2021:06:54%20GMT+0100"
+								},
+								{
+									"key": "endDate",
+									"value": "Wed%20Jan%2008%202020%2021:06:54%20GMT+0100"
+								},
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "Active Monitors"
+						"description": "Get All Active Monitors"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All Active Monitors",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/reports/:projectId/active-monitors?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"reports",
+										":projectId",
+										"active-monitors"
+									],
+									"query": [
+										{
+											"key": "startDate",
+											"value": "Mon%20Dec%2009%202019%2021:06:54%20GMT+0100"
+										},
+										{
+											"key": "endDate",
+											"value": "Wed%20Jan%2008%202020%2021:06:54%20GMT+0100"
+										},
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "324"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"144-XVWyEZnew+kWaykqL6LFwqa5k78\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 17:35:47 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"monitorId\": \"5e0a4b1678caf04fd1fedcbe\",\n            \"monitorName\": \"Ubuntu Machine\",\n            \"incidents\": 6,\n            \"averageAcknowledgeTime\": 2162461,\n            \"averageResolved\": 2162461\n        },\n        {\n            \"monitorId\": \"5e139b39a55da96da8d14968\",\n            \"monitorName\": \"Mello\",\n            \"incidents\": 4,\n            \"averageAcknowledgeTime\": 111149.75,\n            \"averageResolved\": 111149.75\n        }\n    ],\n    \"count\": 2,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				},
 				{
-					"name": "Average Resolved",
+					"name": "Get Average Resolved",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/report/:projectId/average-resolved",
+							"raw": "http://localhost:3002/reports/:projectId/average-resolved?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&filter=month",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
 							"port": "3002",
 							"path": [
-								"report",
+								"reports",
 								":projectId",
 								"average-resolved"
 							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "Mon%20Dec%2009%202019%2021:06:54%20GMT+0100"
+								},
+								{
+									"key": "endDate",
+									"value": "Wed%20Jan%2008%202020%2021:06:54%20GMT+0100"
+								},
+								{
+									"key": "filter",
+									"value": "month"
+								}
+							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "Average Resolved"
+						"description": "Get Average Resolved"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get Average Resolved",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/reports/:projectId/average-resolved?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&filter=month",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"reports",
+										":projectId",
+										"average-resolved"
+									],
+									"query": [
+										{
+											"key": "startDate",
+											"value": "Mon%20Dec%2009%202019%2021:06:54%20GMT+0100"
+										},
+										{
+											"key": "endDate",
+											"value": "Wed%20Jan%2008%202020%2021:06:54%20GMT+0100"
+										},
+										{
+											"key": "filter",
+											"value": "month"
+										}
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "137"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"89-YlPCXJWDUXE1FKf+Hjf9q2dLnLU\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 17:36:12 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"incidents\": 13,\n            \"averageResolved\": 127,\n            \"month\": \"Dec 2019\"\n        },\n        {\n            \"incidents\": 17,\n            \"averageResolved\": 1074,\n            \"month\": \"Jan 2020\"\n        }\n    ],\n    \"count\": 2\n}"
+						}
+					]
 				},
 				{
-					"name": "Incidents",
+					"name": "Get Incidents Count",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/report/:projectId/incidents",
+							"raw": "http://localhost:3002/reports/:projectId/incidents?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&filter=month",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
 							"port": "3002",
 							"path": [
-								"report",
+								"reports",
 								":projectId",
 								"incidents"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "Mon%20Dec%2009%202019%2021:06:54%20GMT+0100"
+								},
+								{
+									"key": "endDate",
+									"value": "Wed%20Jan%2008%202020%2021:06:54%20GMT+0100"
+								},
+								{
+									"key": "filter",
+									"value": "month"
+								}
 							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "Incidents"
+						"description": "Get Incidents Count"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get Incidents Count",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/reports/:projectId/incidents?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&filter=month",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"reports",
+										":projectId",
+										"incidents"
+									],
+									"query": [
+										{
+											"key": "startDate",
+											"value": "Mon%20Dec%2009%202019%2021:06:54%20GMT+0100"
+										},
+										{
+											"key": "endDate",
+											"value": "Wed%20Jan%2008%202020%2021:06:54%20GMT+0100"
+										},
+										{
+											"key": "filter",
+											"value": "month"
+										}
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "92"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"5c-BKMjrhRLDQP6qnbXRKBHw6sVBmk\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 17:36:35 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"incidents\": 13,\n            \"month\": \"Dec 2019\"\n        },\n        {\n            \"incidents\": 17,\n            \"month\": \"Jan 2020\"\n        }\n    ],\n    \"count\": 2\n}"
+						}
+					]
 				}
 			],
 			"description": "Report API",
@@ -7582,12 +8054,12 @@
 			"name": "Slack",
 			"item": [
 				{
-					"name": "Auth",
+					"name": "Slack Auth",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3002/slack/:projectId/link",
+							"raw": "http://localhost:3002/slack/auth/redirect?state=5e089f94b400211639928c94,Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM&code=xyz",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -7595,27 +8067,127 @@
 							"port": "3002",
 							"path": [
 								"slack",
-								":projectId",
-								"link"
+								"auth",
+								"redirect"
 							],
-							"variable": [
+							"query": [
 								{
-									"key": "projectId",
-									"value": ""
+									"key": "state",
+									"value": "5e089f94b400211639928c94,Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM"
+								},
+								{
+									"key": "code",
+									"value": "xyz"
 								}
 							]
 						},
-						"description": "Auth Redirect"
+						"description": "Slack Auth Redirect"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Slack Auth",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/slack/auth/redirect?state=5e089f94b400211639928c94,Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM&code=xyz",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"slack",
+										"auth",
+										"redirect"
+									],
+									"query": [
+										{
+											"key": "state",
+											"value": "5e089f94b400211639928c94,Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM"
+										},
+										{
+											"key": "code",
+											"value": "xyz"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "html",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 18:26:58 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "text/html; charset=utf-8"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "__cfduid=d07d4add52321556978a0e4228a704f7d1578853618; expires=Tue, 11-Feb-20 18:26:58 GMT; path=/; domain=.fyipe.com; HttpOnly; SameSite=Lax; Secure"
+								},
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "CF-Cache-Status",
+									"value": "DYNAMIC"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=0; includeSubDomains; preload"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Expect-CT",
+									"value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+								},
+								{
+									"key": "Server",
+									"value": "cloudflare"
+								},
+								{
+									"key": "CF-RAY",
+									"value": "55412e8bd839c4f0-LOS"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "<!doctype html><html lang=\"\"><head><meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" /><meta charSet='utf-8' /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\"><meta name=\"theme-color\" content=\"#000000\"><meta name=\"slack-app-id\" content=\"ACVBMTPJQ\"><link rel=\"manifest\" href=\"/manifest.json\"><link rel=\"shortcut icon\" href=\"/favicon.ico\"><title>Fyipe Dashboard</title><link rel=\"stylesheet\" href=\"/assets/css/dashboard.css\"><link rel=\"stylesheet\" href=\"/assets/css/newdashboard.css\"><link rel=\"stylesheet\" href=\"/assets/css/sail.css\"><link rel=\"shortcut icon\" href=\"/favicon.ico\"><link rel=\"stylesheet\" href=\"/assets/css/loader.css\"><link rel=\"stylesheet\" href=\"/assets/css/blockchart.css\"><link rel=\"stylesheet\" href=\"/assets/css/Selector.css\"><link rel=\"stylesheet\" href=\"/assets/css/tutorial.css\"><link rel=\"stylesheet\" href=\"/assets/css/reactwidgets.css\">\n<!-- Preload light, regular, medium and bold, which are fonts that are used on home -->\n<link rel=\"preload\" href=\"/assets/fonts/camphor/font1.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"\">\n<link rel=\"preload\" href=\"/assets/fonts/camphor/font2.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"\">\n<link rel=\"preload\" href=\"/assets/fonts/camphor/font3.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"\">\n<link rel=\"preload\" href=\"/assets/fonts/camphor/font4.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"\">\n<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js\" type=\"text/javascript\"></script>\n<script src=\"https://cdnjs.cloudflare.com/ajax/libs/jquery.tipsy/1.0.3/jquery.tipsy.min.js\" type=\"text/javascript\"></script>\n<style type=\"text/css\">\n                        /* Camphor */\n\n                        @font-face {\n                        font-family: 'Camphor';\n                        font-weight: 300;\n                        src: url('/assets/fonts/camphor/font1.woff2') format('woff2'),\n                        url('/assets/fonts/camphor/font1.woff') format('woff');\n                        }\n\n                        @font-face {\n                        font-family: 'Camphor';\n                        font-weight: 500;\n                        src: url('/assets/fonts/camphor/font2.woff2') format('woff2'),\n                        url('/assets/fonts/camphor/font2.woff') format('woff');\n                        }\n\n                        @font-face {\n                        font-family: 'Camphor';\n                        font-weight: 600;\n                        src: url('/assets/fonts/camphor/font3.woff2') format('woff2'),\n                        url('/assets/fonts/camphor/font3.woff') format('woff');\n                        }\n\n                        @font-face {\n                        font-family: 'Camphor';\n                        font-weight: 400;\n                        src: url('/assets/fonts/camphor/font4.woff2') format('woff2'),\n                        url('/assets/fonts/camphor/font4.woff') format('woff');\n                        }\n                    </style>\n<link rel=\"stylesheet\" href=\"/static/css/bundle.5d3d5878.css\">\n<!-- Google Tag Manager -->\n<script>(function (w, d, s, l, i) {\n                            w[l] = w[l] || []; w[l].push({\n                                'gtm.start':\n                                    new Date().getTime(), event: 'gtm.js'\n                            }); var f = d.getElementsByTagName(s)[0],\n                                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =\n                                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);\n                            })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>\n<!-- End Google Tag Manager -->\n                \n</head>\n<body>\n    <div id=\"root\" class=\"db-DashboardRoot\">\n        <div style=\"height:100%\" data-reactroot=\"\">\n            <div></div>\n            <div></div>\n            <div class=\"db-World-root\">\n                <div class=\"db-World-wrapper Box-root Flex-flex Flex-direction--column\"></div>\n            </div>\n            <div id=\"backboneModals\"></div>\n        </div>\n    </div>\n    <script>window.__LOADABLE_STATE__ = {\"children\":[{\"id\":\"./Monitor\"}]};</script>\n    <script src=\"/static/js/bundle.10b4e635.js\"></script>\n    <script>\n                !function () {\n                if ('PerformanceLongTaskTiming' in window) {\n                    var g = window.__tti = { e: [] };\n                    g.o = new PerformanceObserver(function (l) { g.e = g.e.concat(l.getEntries()) });\n                    g.o.observe({ entryTypes: ['longtask'] })\n                }\n                }();\n            </script>\n    <!-- Google Tag Manager (noscript) -->\n    <noscript>\n        <iframe src=\"https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH\" height=\"0\" width=\"0\"\n                    style=\"display:none;visibility:hidden\"></iframe>\n    </noscript>\n    <!-- End Google Tag Manager (noscript) -->\n        \n</body>\n</html>"
+						}
+					]
 				},
 				{
-					"name": "Teams",
+					"name": "Slack Teams",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/slack/:projectId/teams",
+							"raw": "http://localhost:3002/slack/:projectId/teams?skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -7626,24 +8198,55 @@
 								":projectId",
 								"teams"
 							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "Teams"
+						"description": "Slack Teams"
 					},
 					"response": []
 				},
 				{
-					"name": "Link",
+					"name": "Link Slack",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"slug\": \"5e089f94b400211639928c94\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
-							"raw": "http://localhost:3002/slack/:projectId/link",
+							"raw": "http://localhost:3002/slack/:projectId/link?code=xyz",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -7654,22 +8257,34 @@
 								":projectId",
 								"link"
 							],
+							"query": [
+								{
+									"key": "code",
+									"value": "xyz"
+								}
+							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "Link"
+						"description": "Link Slack"
 					},
 					"response": []
 				},
 				{
-					"name": "Unlink",
+					"name": "Unlink Slack",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/slack/:projectId/unLink/:teamId",
 							"protocol": "http",
@@ -7686,7 +8301,7 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "teamId",
@@ -7694,7 +8309,7 @@
 								}
 							]
 						},
-						"description": "Unlink"
+						"description": "Unlink Slack"
 					},
 					"response": []
 				}
@@ -7706,10 +8321,31 @@
 			"name": "SMS SMTP",
 			"item": [
 				{
-					"name": "Setup",
+					"name": "Setup SMS SMTP",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"AC24955ae10e2245b992ff7d44335586cb\",\n    \"authToken\": \"cc385832e44d03cd6d583c5212d9531c\",\n    \"phoneNumber\": \"16194040093\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/smsSmtp/:projectId",
 							"protocol": "http",
@@ -7724,19 +8360,119 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
 						"description": "Setup SMS SMTP"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Setup SMS SMTP",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"AC24955ae10e2245b992ff7d44335586cb\",\n    \"authToken\": \"cc385832e44d03cd6d583c5212d9531c\",\n    \"phoneNumber\": \"16194040093\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/smsSmtp/:projectId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"smsSmtp",
+										":projectId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "226"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"e2-8RBPwoACv/6ZiwlfUH/FnPIzV4M\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 22:48:05 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"The number  is unverified. Trial accounts cannot send messages to unverified numbers; verify  at twilio.com/user/account/phone-numbers/verified, or purchase a Twilio number to send messages to unverified numbers.\"\n}"
+						}
+					]
 				},
 				{
-					"name": "Setup",
+					"name": "Get SMS SMTP Setup",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/smsSmtp/:projectId",
 							"protocol": "http",
@@ -7751,19 +8487,25 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "SMS SMTP Setup"
+						"description": "Get SMS SMTP Setup"
 					},
 					"response": []
 				},
 				{
-					"name": "Edit Setup",
+					"name": "Edit SMS SMTP Setup",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/smsSmtp/:projectId/:smsSmtpId",
 							"protocol": "http",
@@ -7779,7 +8521,7 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "smsSmtpId",
@@ -7787,15 +8529,21 @@
 								}
 							]
 						},
-						"description": "Edit Setup"
+						"description": "Edit SMS SMTP Setup"
 					},
 					"response": []
 				},
 				{
-					"name": "Delete Setup",
+					"name": "Delete SMS SMTP Setup",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/smsSmtp/:projectId/:smsSmtpId",
 							"protocol": "http",
@@ -7811,7 +8559,7 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "smsSmtpId",
@@ -7819,7 +8567,7 @@
 								}
 							]
 						},
-						"description": "Delete Setup"
+						"description": "Delete SMS SMTP Setup"
 					},
 					"response": []
 				}
@@ -7831,10 +8579,31 @@
 			"name": "SMS Template",
 			"item": [
 				{
-					"name": "Create",
+					"name": "Create SMS Template",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/smsTemplate/:projectId",
 							"protocol": "http",
@@ -7849,7 +8618,7 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
@@ -7858,10 +8627,16 @@
 					"response": []
 				},
 				{
-					"name": "Templates",
+					"name": "Get All SMS Templates",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/smsTemplate/:projectId",
 							"protocol": "http",
@@ -7876,19 +8651,104 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "All SMS Templates"
+						"description": "Get All SMS Templates"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All SMS Templates",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/smsTemplate/:projectId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"smsTemplate",
+										":projectId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1384"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"568-O6HEy677+aCwxrsYz4oQhorrLyU\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 23:04:36 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Created\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Acknowldeged\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Resolved\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    }\n]"
+						}
+					]
 				},
 				{
-					"name": "Template",
+					"name": "Get SMS Template",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/smsTemplate/:projectId/smsTemplate/:smsTemplateId",
 							"protocol": "http",
@@ -7905,7 +8765,7 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "smsTemplateId",
@@ -7913,15 +8773,36 @@
 								}
 							]
 						},
-						"description": "Single SMS Template"
+						"description": "Get Single SMS Template"
 					},
 					"response": []
 				},
 				{
-					"name": "Edit Template",
+					"name": "Edit SMS Template",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Created\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Acknowldeged\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Resolved\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/smsTemplate/:projectId/smsTemplate/:smsTemplateId",
 							"protocol": "http",
@@ -7938,7 +8819,7 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "smsTemplateId",
@@ -7951,10 +8832,16 @@
 					"response": []
 				},
 				{
-					"name": "Reset Template",
+					"name": "Reset SMS Template",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/smsTemplate/:projectId/:templateId/reset",
 							"protocol": "http",
@@ -7971,7 +8858,7 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "templateId",
@@ -7984,10 +8871,31 @@
 					"response": []
 				},
 				{
-					"name": "Add Values",
+					"name": "Add Values To SMS Templates",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Created\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Acknowldeged\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Resolved\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/smsTemplate/:projectId",
 							"protocol": "http",
@@ -8002,19 +8910,119 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "Add SMS Template Values"
+						"description": "Add Values To SMS Templates"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Add Values To SMS Templates",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "[\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Created\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Acknowldeged\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Resolved\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    }\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/smsTemplate/:projectId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"smsTemplate",
+										":projectId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1384"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"568-O6HEy677+aCwxrsYz4oQhorrLyU\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 23:11:19 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Created\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Acknowldeged\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    },\n    {\n        \"allowedVariables\": [\n            \"{{incidentTime}} : Time at which this incident occured.\",\n            \"{{monitorName}} : Name of the monitor on which incident has occured.\",\n            \"{{projectName}} : Name of the project on which the incident has occured.\",\n            \"{{incidentType}} : Type of incident.\"\n        ],\n        \"smsType\": \"Subscriber Incident Resolved\",\n        \"body\": \"{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.\"\n    }\n]"
+						}
+					]
 				},
 				{
-					"name": "Delete Template",
+					"name": "Delete SMS Template",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/smsTemplate/:projectId/smsTemplate/:smsTemplateId",
 							"protocol": "http",
@@ -8031,7 +9039,7 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "smsTemplateId",
@@ -8638,10 +9646,31 @@
 			"name": "Subscriber",
 			"item": [
 				{
-					"name": "Create",
+					"name": "Create Status Page Subscriber",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userDetails\": {\n        \"method\": \"email\",\n        \"email\": \"ibukundairo3@hackerbay.io\",\n        \"contactEmail\": \"ibukundairo3@hackerbay.io\"\n    },\n    \"monitors\": [\n        \"5e08a21b25c59a1c8033c7e7\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/subscriber/:projectId/:statusPageId",
 							"protocol": "http",
@@ -8657,23 +9686,143 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "statusPageId",
-									"value": ""
+									"value": "5e1b877a41127144f8144b9d"
 								}
 							]
 						},
 						"description": "Create Status Page Subscriber"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Create Status Page Subscriber",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"userDetails\": {\n        \"method\": \"email\",\n        \"email\": \"ibukundairo3@hackerbay.io\",\n        \"contactEmail\": \"ibukundairo3@hackerbay.io\"\n    },\n    \"monitors\": [\n        \"5e08a21b25c59a1c8033c7e7\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/subscriber/:projectId/:statusPageId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"subscriber",
+										":projectId",
+										":statusPageId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "statusPageId",
+											"value": "5e1b877a41127144f8144b9d"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "370"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"172-ZOJxpViRZaXJ1TZqtAUNwJQIrjE\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 22:09:04 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"_id\": \"5e1b990041127144f8144ce9\",\n        \"createdAt\": \"2020-01-12T22:09:04.011Z\",\n        \"projectId\": {\n            \"_id\": \"5e089f94b400211639928c94\",\n            \"name\": \"Bello\"\n        },\n        \"monitorId\": {\n            \"_id\": \"5e08a21b25c59a1c8033c7e7\",\n            \"name\": \"Google Home\"\n        },\n        \"statusPageId\": \"5e1b877a41127144f8144b9d\",\n        \"alertVia\": \"email\",\n        \"contactEmail\": \"ibukundairo3@hackerbay.io\",\n        \"contactPhone\": null,\n        \"countryCode\": null,\n        \"contactWebhook\": null\n    }\n]"
+						}
+					]
 				},
 				{
-					"name": "Create",
+					"name": "Create Monitor Subscriber",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"alertVia\": \"email\",\n    \"email\": \"ibukundairo3@hackerbay.io\",\n    \"contactEmail\": \"ibukundairo3@hackerbay.io\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/subscriber/:projectId/subscribe/:monitorId",
 							"protocol": "http",
@@ -8690,25 +9839,131 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "monitorId",
-									"value": ""
+									"value": "5e08a21b25c59a1c8033c7e7"
 								}
 							]
 						},
 						"description": "Create Monitor Subscriber"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Create Monitor Subscriber",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"alertVia\": \"email\",\n    \"email\": \"ibukundairo3@hackerbay.io\",\n    \"contactEmail\": \"ibukundairo3@hackerbay.io\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/subscriber/:projectId/subscribe/:monitorId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"subscriber",
+										":projectId",
+										"subscribe",
+										":monitorId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "monitorId",
+											"value": "5e08a21b25c59a1c8033c7e7"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "370"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"172-lbHq6P7vtz+t3P/VkusJEPuguHM\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 22:01:23 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"deleted\": false,\n    \"_id\": \"5e1b973341127144f8144ce8\",\n    \"createdAt\": \"2020-01-12T22:01:23.791Z\",\n    \"projectId\": {\n        \"_id\": \"5e089f94b400211639928c94\",\n        \"name\": \"Bello\"\n    },\n    \"monitorId\": {\n        \"_id\": \"5e08a21b25c59a1c8033c7e7\",\n        \"name\": \"Google Home\"\n    },\n    \"statusPageId\": null,\n    \"alertVia\": \"email\",\n    \"contactEmail\": \"ibukundairo3@hackerbay.io\",\n    \"contactPhone\": null,\n    \"countryCode\": null,\n    \"contactWebhook\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
-					"name": "Subscribers",
+					"name": "Get All Subscribers",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/subscriber/:projectId",
+							"raw": "http://localhost:3002/subscriber/:projectId?skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -8718,24 +9973,129 @@
 								"subscriber",
 								":projectId"
 							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "All Subscribers"
+						"description": "Good All Subscribers"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All Subscribers",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/subscriber/:projectId?skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"subscriber",
+										":projectId"
+									],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "385"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"181-FpllWuoehttfSGimYjoD8W7E48g\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 21:20:26 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"_id\": \"5e0f2e717f3127159be72c9f\",\n            \"createdAt\": \"2020-01-03T12:07:13.864Z\",\n            \"projectId\": {\n                \"_id\": \"5e089f94b400211639928c94\",\n                \"name\": \"Bello\"\n            },\n            \"monitorId\": {\n                \"_id\": \"5e08a21b25c59a1c8033c7e7\",\n                \"name\": \"Google Home\"\n            },\n            \"statusPageId\": null,\n            \"alertVia\": \"email\",\n            \"contactEmail\": \"ibukundairo@hackerbay.io\",\n            \"contactPhone\": null,\n            \"countryCode\": null,\n            \"contactWebhook\": null\n        }\n    ],\n    \"count\": 1,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				},
 				{
-					"name": "Monitor Subscribers",
+					"name": "Get All Monitor Subscribers",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/subscriber/:projectId/monitor/:monitorId",
+							"raw": "http://localhost:3002/subscriber/:projectId/monitor/:monitorId?skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -8747,26 +10107,137 @@
 								"monitor",
 								":monitorId"
 							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "monitorId",
-									"value": ""
+									"value": "5e08a21b25c59a1c8033c7e7"
 								}
 							]
 						},
-						"description": "All Monitor Subscribers"
+						"description": "Get All Monitor Subscribers"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All Monitor Subscribers",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/subscriber/:projectId/monitor/:monitorId?skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"subscriber",
+										":projectId",
+										"monitor",
+										":monitorId"
+									],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "monitorId",
+											"value": "5e08a21b25c59a1c8033c7e7"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "385"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"181-FpllWuoehttfSGimYjoD8W7E48g\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 21:22:26 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"_id\": \"5e0f2e717f3127159be72c9f\",\n            \"createdAt\": \"2020-01-03T12:07:13.864Z\",\n            \"projectId\": {\n                \"_id\": \"5e089f94b400211639928c94\",\n                \"name\": \"Bello\"\n            },\n            \"monitorId\": {\n                \"_id\": \"5e08a21b25c59a1c8033c7e7\",\n                \"name\": \"Google Home\"\n            },\n            \"statusPageId\": null,\n            \"alertVia\": \"email\",\n            \"contactEmail\": \"ibukundairo@hackerbay.io\",\n            \"contactPhone\": null,\n            \"countryCode\": null,\n            \"contactWebhook\": null\n        }\n    ],\n    \"count\": 1,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				},
 				{
-					"name": "Subscriber",
+					"name": "Get Subscriber",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/subscriber/:projectId/:subscriberId",
 							"protocol": "http",
@@ -8782,23 +10253,113 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "subscriberId",
-									"value": ""
+									"value": "5e0f2e717f3127159be72c9f"
 								}
 							]
 						},
-						"description": "Single Subscriber"
+						"description": "Get Single Subscriber"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get Subscriber",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/subscriber/:projectId/:subscriberId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"subscriber",
+										":projectId",
+										":subscriberId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "subscriberId",
+											"value": "5e0f2e717f3127159be72c9f"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "369"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"171-JevriIJEE/Bct6vmAq2uT4bgNzk\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 21:23:03 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"deleted\": false,\n    \"_id\": \"5e0f2e717f3127159be72c9f\",\n    \"createdAt\": \"2020-01-03T12:07:13.864Z\",\n    \"projectId\": {\n        \"_id\": \"5e089f94b400211639928c94\",\n        \"name\": \"Bello\"\n    },\n    \"monitorId\": {\n        \"_id\": \"5e08a21b25c59a1c8033c7e7\",\n        \"name\": \"Google Home\"\n    },\n    \"statusPageId\": null,\n    \"alertVia\": \"email\",\n    \"contactEmail\": \"ibukundairo@hackerbay.io\",\n    \"contactPhone\": null,\n    \"countryCode\": null,\n    \"contactWebhook\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
 					"name": "Delete Subscriber",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/subscriber/:projectId/:subscriberId",
 							"protocol": "http",
@@ -8814,17 +10375,101 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "subscriberId",
-									"value": ""
+									"value": "5e1b973341127144f8144ce8"
 								}
 							]
 						},
 						"description": "Delete Subscriber"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Delete Subscriber",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/subscriber/:projectId/:subscriberId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"subscriber",
+										":projectId",
+										":subscriberId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "subscriberId",
+											"value": "5e1b973341127144f8144ce8"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "397"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"18d-JOCgStxcyXln0gOX2d7Vm8vahzE\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 22:02:33 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"deleted\": true,\n    \"_id\": \"5e1b973341127144f8144ce8\",\n    \"createdAt\": \"2020-01-12T22:01:23.791Z\",\n    \"projectId\": \"5e089f94b400211639928c94\",\n    \"monitorId\": \"5e08a21b25c59a1c8033c7e7\",\n    \"statusPageId\": null,\n    \"alertVia\": \"email\",\n    \"contactEmail\": \"ibukundairo3@hackerbay.io\",\n    \"contactPhone\": null,\n    \"countryCode\": null,\n    \"contactWebhook\": null,\n    \"__v\": 0,\n    \"deletedAt\": \"2020-01-12T22:02:33.736Z\",\n    \"deletedById\": \"5e089f88b400211639928c92\"\n}"
+						}
+					]
 				}
 			],
 			"description": "Subscriber API",
@@ -8834,10 +10479,31 @@
 			"name": "Subscriber Alert",
 			"item": [
 				{
-					"name": "Create",
+					"name": "Create Subscriber Alert",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"alertStatus\": \"offline\",\n\t\"alertVia\": \"sms\",\n\t\"incidentId\": \"5e1725db1f31a13e98acd8d9\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/subscriberAlert/:projectId/:subscriberId",
 							"protocol": "http",
@@ -8853,25 +10519,130 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "subscriberId",
-									"value": ""
+									"value": "5e0f2e717f3127159be72c9f"
 								}
 							]
 						},
 						"description": "Create Subscriber Alert"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Create Subscriber Alert",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"alertStatus\": \"offline\",\n\t\"alertVia\": \"sms\",\n\t\"incidentId\": \"5e1725db1f31a13e98acd8d9\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/subscriberAlert/:projectId/:subscriberId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"subscriberAlert",
+										":projectId",
+										":subscriberId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "subscriberId",
+											"value": "5e0f2e717f3127159be72c9f"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "273"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"111-u40Y+/WoJuNABjr+S5Ohhwruv48\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 17:19:27 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": false,\n    \"deleted\": false,\n    \"_id\": \"5e1b551f41127144f81447ab\",\n    \"createdAt\": \"2020-01-12T17:19:27.346Z\",\n    \"projectId\": \"5e089f94b400211639928c94\",\n    \"subscriberId\": \"5e0f2e717f3127159be72c9f\",\n    \"incidentId\": \"5e1725db1f31a13e98acd8d9\",\n    \"alertVia\": \"sms\",\n    \"alertStatus\": \"offline\",\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
-					"name": "Subscriber Alerts",
+					"name": "Get All Subscriber Alerts",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/subscriberAlert/:projectId",
+							"raw": "http://localhost:3002/subscriberAlert/:projectId?skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -8881,24 +10652,129 @@
 								"subscriberAlert",
 								":projectId"
 							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "All Subscriber Alerts"
+						"description": "Get All Subscriber Alerts"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All Subscriber Alerts",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/subscriberAlert/:projectId?skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"subscriberAlert",
+										":projectId"
+									],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1900"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"76c-GpAF+WJ90Iy4eemMaFRHyt3EiIE\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 16:59:59 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"error\": false,\n            \"_id\": \"5e1776ec1f31a13e98acdd1e\",\n            \"createdAt\": \"2020-01-09T18:54:36.231Z\",\n            \"projectId\": {\n                \"_id\": \"5e089f94b400211639928c94\",\n                \"name\": \"Bello\"\n            },\n            \"subscriberId\": {\n                \"_id\": \"5e0f2e717f3127159be72c9f\",\n                \"contactEmail\": \"ibukundairo@hackerbay.io\",\n                \"contactPhone\": null,\n                \"contactWebhook\": null\n            },\n            \"incidentId\": {\n                \"_id\": \"5e1776861f31a13e98acdd1a\"\n            },\n            \"alertVia\": \"email\",\n            \"alertStatus\": \"Sent\"\n        },\n        {\n            \"error\": false,\n            \"_id\": \"5e1776af1f31a13e98acdd1d\",\n            \"createdAt\": \"2020-01-09T18:53:35.262Z\",\n            \"projectId\": {\n                \"_id\": \"5e089f94b400211639928c94\",\n                \"name\": \"Bello\"\n            },\n            \"subscriberId\": {\n                \"_id\": \"5e0f2e717f3127159be72c9f\",\n                \"contactEmail\": \"ibukundairo@hackerbay.io\",\n                \"contactPhone\": null,\n                \"contactWebhook\": null\n            },\n            \"incidentId\": {\n                \"_id\": \"5e1776861f31a13e98acdd1a\"\n            },\n            \"alertVia\": \"email\",\n            \"alertStatus\": \"Sent\"\n        },\n        {\n            \"error\": false,\n            \"_id\": \"5e1395f5a55da96da8d148bf\",\n            \"createdAt\": \"2020-01-06T20:17:57.981Z\",\n            \"projectId\": {\n                \"_id\": \"5e089f94b400211639928c94\",\n                \"name\": \"Bello\"\n            },\n            \"subscriberId\": {\n                \"_id\": \"5e0f2e717f3127159be72c9f\",\n                \"contactEmail\": \"ibukundairo@hackerbay.io\",\n                \"contactPhone\": null,\n                \"contactWebhook\": null\n            },\n            \"incidentId\": {\n                \"_id\": \"5e13933da55da96da8d1482a\"\n            },\n            \"alertVia\": \"email\",\n            \"alertStatus\": \"Sent\"\n        },\n        {\n            \"error\": false,\n            \"_id\": \"5e139343a55da96da8d14893\",\n            \"createdAt\": \"2020-01-06T20:06:27.277Z\",\n            \"projectId\": {\n                \"_id\": \"5e089f94b400211639928c94\",\n                \"name\": \"Bello\"\n            },\n            \"subscriberId\": {\n                \"_id\": \"5e0f2e717f3127159be72c9f\",\n                \"contactEmail\": \"ibukundairo@hackerbay.io\",\n                \"contactPhone\": null,\n                \"contactWebhook\": null\n            },\n            \"incidentId\": {\n                \"_id\": \"5e13933da55da96da8d1482a\"\n            },\n            \"alertVia\": \"email\",\n            \"alertStatus\": \"Sent\"\n        },\n        {\n            \"error\": false,\n            \"_id\": \"5e138f8578c1306cb706bda3\",\n            \"createdAt\": \"2020-01-06T19:50:29.225Z\",\n            \"projectId\": {\n                \"_id\": \"5e089f94b400211639928c94\",\n                \"name\": \"Bello\"\n            },\n            \"subscriberId\": {\n                \"_id\": \"5e0f2e717f3127159be72c9f\",\n                \"contactEmail\": \"ibukundairo@hackerbay.io\",\n                \"contactPhone\": null,\n                \"contactWebhook\": null\n            },\n            \"incidentId\": {\n                \"_id\": \"5e138f7f78c1306cb706bd68\"\n            },\n            \"alertVia\": \"email\",\n            \"alertStatus\": \"Sent\"\n        }\n    ],\n    \"count\": 16,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				},
 				{
-					"name": "Incident Subscriber Alerts",
+					"name": "Get All Subscriber Alerts By Incident",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/subscriberAlert/:projectId/incident/:incidentId",
+							"raw": "http://localhost:3002/subscriberAlert/:projectId/incident/:incidentId?skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -8910,20 +10786,125 @@
 								"incident",
 								":incidentId"
 							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "incidentId",
-									"value": ""
+									"value": "5e1776861f31a13e98acdd1a"
 								}
 							]
 						},
-						"description": "All Incident Subscriber Alerts"
+						"description": "Get All Subscriber Alerts By Incident"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All Subscriber Alerts By Incident",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/subscriberAlert/:projectId/incident/:incidentId?skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"subscriberAlert",
+										":projectId",
+										"incident",
+										":incidentId"
+									],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "incidentId",
+											"value": "5e1776861f31a13e98acdd1a"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "783"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"30f-LAHX21pd3EE52P0VTwuK7XGacbc\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 17:00:50 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"error\": false,\n            \"_id\": \"5e1776ec1f31a13e98acdd1e\",\n            \"createdAt\": \"2020-01-09T18:54:36.231Z\",\n            \"projectId\": {\n                \"_id\": \"5e089f94b400211639928c94\",\n                \"name\": \"Bello\"\n            },\n            \"subscriberId\": {\n                \"_id\": \"5e0f2e717f3127159be72c9f\",\n                \"contactEmail\": \"ibukundairo@hackerbay.io\",\n                \"contactPhone\": null,\n                \"contactWebhook\": null\n            },\n            \"incidentId\": {\n                \"_id\": \"5e1776861f31a13e98acdd1a\"\n            },\n            \"alertVia\": \"email\",\n            \"alertStatus\": \"Sent\"\n        },\n        {\n            \"error\": false,\n            \"_id\": \"5e1776af1f31a13e98acdd1d\",\n            \"createdAt\": \"2020-01-09T18:53:35.262Z\",\n            \"projectId\": {\n                \"_id\": \"5e089f94b400211639928c94\",\n                \"name\": \"Bello\"\n            },\n            \"subscriberId\": {\n                \"_id\": \"5e0f2e717f3127159be72c9f\",\n                \"contactEmail\": \"ibukundairo@hackerbay.io\",\n                \"contactPhone\": null,\n                \"contactWebhook\": null\n            },\n            \"incidentId\": {\n                \"_id\": \"5e1776861f31a13e98acdd1a\"\n            },\n            \"alertVia\": \"email\",\n            \"alertStatus\": \"Sent\"\n        }\n    ],\n    \"count\": 2,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				}
 			],
 			"description": "Subscriber Alert API",
@@ -8933,10 +10914,31 @@
 			"name": "Team",
 			"item": [
 				{
-					"name": "Create",
+					"name": "Create Team Member",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"emails\": \"hibeekaey2@gmail.com\",\n    \"role\": \"Member\",\n    \"projectId\": \"5e089f94b400211639928c94\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/team/:projectId",
 							"protocol": "http",
@@ -8951,19 +10953,119 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
 						"description": "Create Team Member"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Create Team Member",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"emails\": \"hibeekaey2@gmail.com\",\n    \"role\": \"Member\",\n    \"projectId\": \"5e089f94b400211639928c94\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/team/:projectId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"team",
+										":projectId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "633"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"279-3q125tL9Qcq+A7U6cnIUqvKBmqY\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 20:20:28 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"projectId\": \"5e089f94b400211639928c94\",\n        \"team\": [\n            {\n                \"userId\": \"5e1b7f7241127144f8144ac0\",\n                \"email\": \"hibeekaey2@gmail.com\",\n                \"name\": null,\n                \"role\": \"Member\",\n                \"lastActive\": \"2020-01-12T20:20:02.089Z\"\n            },\n            {\n                \"userId\": \"5e1b7f0f41127144f8144abb\",\n                \"email\": \"hibeekaey@gmail.com\",\n                \"name\": null,\n                \"role\": \"Member\",\n                \"lastActive\": \"2020-01-12T20:18:23.100Z\"\n            },\n            {\n                \"userId\": \"5e162d9f1b8ae8185921498f\",\n                \"email\": \"hibeekaey@yahoo.com\",\n                \"name\": null,\n                \"role\": \"Administrator\",\n                \"lastActive\": \"2020-01-08T19:29:35.404Z\"\n            },\n            {\n                \"userId\": \"5e089f88b400211639928c92\",\n                \"email\": \"ibukundairo@hackerbay.io\",\n                \"name\": \"Ibukun Olatayo Dairo\",\n                \"role\": \"Administrator\",\n                \"lastActive\": \"2020-01-12T20:20:02.051Z\"\n            }\n        ]\n    }\n]"
+						}
+					]
 				},
 				{
-					"name": "Team Members",
+					"name": "Get All Team Members",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/team/:projectId",
 							"protocol": "http",
@@ -8978,19 +11080,104 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "All Team Members"
+						"description": "Get All Team Members"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All Team Members",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/team/:projectId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"team",
+										":projectId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "295"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"127-WkIBMJjAP41N4tt0GZLtbYqswzk\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 19:45:29 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"userId\": \"5e162d9f1b8ae8185921498f\",\n        \"email\": \"hibeekaey@yahoo.com\",\n        \"name\": null,\n        \"role\": \"Member\",\n        \"lastActive\": \"2020-01-08T19:29:35.404Z\"\n    },\n    {\n        \"userId\": \"5e089f88b400211639928c92\",\n        \"email\": \"ibukundairo@hackerbay.io\",\n        \"name\": \"Ibukun Olatayo Dairo\",\n        \"role\": \"Owner\",\n        \"lastActive\": \"2020-01-12T19:45:29.603Z\"\n    }\n]"
+						}
+					]
 				},
 				{
-					"name": "Team Members",
+					"name": "Get All SubProjects Team Members",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/team/:projectId/teamMembers",
 							"protocol": "http",
@@ -9006,19 +11193,105 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								}
 							]
 						},
-						"description": "All Team Members"
+						"description": "Get All SubProjects Team Members"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All SubProjects Team Members",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/team/:projectId/teamMembers",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"team",
+										":projectId",
+										"teamMembers"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "356"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"164-st8NFGf1StX/qZHXLjdJQSswltI\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 19:46:44 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"teamMembers\": [\n            {\n                \"userId\": \"5e162d9f1b8ae8185921498f\",\n                \"email\": \"hibeekaey@yahoo.com\",\n                \"name\": null,\n                \"role\": \"Member\",\n                \"lastActive\": \"2020-01-08T19:29:35.404Z\"\n            },\n            {\n                \"userId\": \"5e089f88b400211639928c92\",\n                \"email\": \"ibukundairo@hackerbay.io\",\n                \"name\": \"Ibukun Olatayo Dairo\",\n                \"role\": \"Owner\",\n                \"lastActive\": \"2020-01-12T19:46:44.316Z\"\n            }\n        ],\n        \"count\": 2,\n        \"_id\": \"5e089f94b400211639928c94\"\n    }\n]"
+						}
+					]
 				},
 				{
-					"name": "Team Member",
+					"name": "Get Team Member",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/team/:projectId/:teamMemberId",
 							"protocol": "http",
@@ -9034,23 +11307,113 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "teamMemberId",
-									"value": ""
+									"value": "5e089f88b400211639928c92"
 								}
 							]
 						},
-						"description": "Team Member"
+						"description": "Get Single Team Member"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get Team Member",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/team/:projectId/:teamMemberId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"team",
+										":projectId",
+										":teamMemberId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "teamMemberId",
+											"value": "5e089f88b400211639928c92"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "395"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"18b-v5QRKcAOwI8oUJDt063c+lIbwbE\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 19:48:16 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"5e089f88b400211639928c92\",\n    \"name\": \"Ibukun Olatayo Dairo\",\n    \"email\": \"ibukundairo@hackerbay.io\",\n    \"companyName\": \"Hackerbay\",\n    \"companyRole\": null,\n    \"companySize\": null,\n    \"referral\": null,\n    \"isVerified\": true,\n    \"companyPhoneNumber\": \"2348158486068\",\n    \"alertPhoneNumber\": \"+234 815 848 606 8\",\n    \"profilePic\": \"c0df90baf454d1e4f1b547791a661b48\",\n    \"timezone\": \"Africa/El_Aaiun\",\n    \"tempEmail\": null,\n    \"tempAlertPhoneNumber\": null\n}"
+						}
+					]
 				},
 				{
 					"name": "Delete Team Member",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/team/:projectId/:teamMemberId",
 							"protocol": "http",
@@ -9066,23 +11429,128 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "teamMemberId",
-									"value": ""
+									"value": "5e1b7f7241127144f8144ac0"
 								}
 							]
 						},
 						"description": "Delete Team Member"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Delete Team Member",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/team/:projectId/:teamMemberId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"team",
+										":projectId",
+										":teamMemberId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "teamMemberId",
+											"value": "5e1b7f7241127144f8144ac0"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "496"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"1f0-BDUkl2MX8/9c5kDX84j6iq4OU6Q\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 20:22:57 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"projectId\": \"5e089f94b400211639928c94\",\n        \"team\": [\n            {\n                \"userId\": \"5e1b7f0f41127144f8144abb\",\n                \"email\": \"hibeekaey@gmail.com\",\n                \"name\": null,\n                \"role\": \"Member\",\n                \"lastActive\": \"2020-01-12T20:18:23.100Z\"\n            },\n            {\n                \"userId\": \"5e162d9f1b8ae8185921498f\",\n                \"email\": \"hibeekaey@yahoo.com\",\n                \"name\": null,\n                \"role\": \"Administrator\",\n                \"lastActive\": \"2020-01-08T19:29:35.404Z\"\n            },\n            {\n                \"userId\": \"5e089f88b400211639928c92\",\n                \"email\": \"ibukundairo@hackerbay.io\",\n                \"name\": \"Ibukun Olatayo Dairo\",\n                \"role\": \"Administrator\",\n                \"lastActive\": \"2020-01-12T20:22:45.095Z\"\n            }\n        ]\n    }\n]"
+						}
+					]
 				},
 				{
-					"name": "Change Role",
+					"name": "Change Team Member Role",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"teamMemberId\": \"5e162d9f1b8ae8185921498f\",\n    \"role\": \"Member\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/team/:projectId/:teamMemberId/changerole",
 							"protocol": "http",
@@ -9099,17 +11567,117 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e089f94b400211639928c94"
 								},
 								{
 									"key": "teamMemberId",
-									"value": ""
+									"value": "5e089f88b400211639928c92"
 								}
 							]
 						},
 						"description": "Change Team Member Role"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Change Team Member Role",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"teamMemberId\": \"5e162d9f1b8ae8185921498f\",\n    \"role\": \"Member\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/team/:projectId/:teamMemberId/changerole",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"team",
+										":projectId",
+										":teamMemberId",
+										"changerole"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e089f94b400211639928c94"
+										},
+										{
+											"key": "teamMemberId",
+											"value": "5e089f88b400211639928c92"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "346"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"15a-gu6l5fx3UkeMHE9S3IiWDcjoM/4\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 12 Jan 2020 19:51:58 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"projectId\": \"5e089f94b400211639928c94\",\n        \"team\": [\n            {\n                \"userId\": \"5e162d9f1b8ae8185921498f\",\n                \"email\": \"hibeekaey@yahoo.com\",\n                \"name\": null,\n                \"role\": \"Member\",\n                \"lastActive\": \"2020-01-08T19:29:35.404Z\"\n            },\n            {\n                \"userId\": \"5e089f88b400211639928c92\",\n                \"email\": \"ibukundairo@hackerbay.io\",\n                \"name\": \"Ibukun Olatayo Dairo\",\n                \"role\": \"Member\",\n                \"lastActive\": \"2020-01-12T19:51:34.323Z\"\n            }\n        ]\n    }\n]"
+						}
+					]
 				}
 			],
 			"description": "Team API",
