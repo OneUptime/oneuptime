@@ -452,7 +452,7 @@ module.exports = {
     getTime: async function (data) {
         try {
             var date = new Date();
-            var log = await MonitorLogModel.findOne({ monitorId: data.monitorId, probeId: data.probeId, createdAt: { $lt: date } });
+            var log = await MonitorLogModel.findOne({ monitorId: data.monitorId, probeId: data.probeId, createdAt: { $lt: data.date || date } });
             return log;
         } catch (error) {
             ErrorService.log('probeService.getTime', error);
