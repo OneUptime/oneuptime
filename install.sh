@@ -1,3 +1,5 @@
+# This script runs the local development server in Docker.
+
 USER=$whoami
 
 if [[ ! $(which docker) && ! $(docker  --version) ]]
@@ -24,18 +26,24 @@ then
   exit
 fi
 
-sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+sudo chmod +x ./uninstall.sh
+sudo ./uninstall.sh
+
+# Sleep 
+sleep 5s
 
 sudo mkdir /Users/$USER/mongodb || echo 'Path already exists'
 
 # Run Dependencies
-sudo docker run --name mongo -v /Users/$USER/mongodb:/data/db -p 27017:27017 -d mongo:3.4
-sudo docker run --name redis -p 6379:6379 -d redis redis-server
+sudo docker run -v /Users/$USER/mongodb:/data/db -p 27017:27017 -d mongo:3.4
+sudo docker run -p 6379:6379 -d redis redis-server
+
+# Sleep 
+sleep 5s
 
 # Run Backend
 sudo docker build -t fyipe-project/backend:latest ./backend
-sudo docker run --net=host --env-file ./backend/.env.development -d fyipe-project/backend:latest #port is not needed because of nethost
+sudo docker run -p 3002:3002 --net=host --env-file ./backend/.env.development -d fyipe-project/backend:latest #port is not needed because of nethost
 
 # Run Accounts
 sudo docker build -t fyipe-project/accounts:latest ./accounts
@@ -64,5 +72,4 @@ sudo docker run -p 3009:3008 -e "SERVER_URL=http://localhost:3002" -e "PROBE_NAM
 # Run Probes 2
 sudo docker build -t fyipe-project/probe:latest ./probe
 sudo docker run -p 3020:3008 -e "SERVER_URL=http://localhost:3002" -e "PROBE_NAME=US" -e "PROBE_KEY=33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4" -d fyipe-project/probe:latest 
-
 
