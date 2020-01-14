@@ -8,24 +8,6 @@ then
   exit
 fi
 
-if [[ ! $(which git) && ! $(docker --git) ]]
-then
-  echo -e "\033[91mPlease install Git. https://git-scm.com/book/en/v2/Getting-Started-Installing-Git"
-  exit
-fi
-
-if [[ ! $(which node) ]]
-then
-  echo -e "\033[91mPlease install Node."
-  exit
-fi
-
-if [[ ! $(which npm) ]]
-then
-  echo -e "\033[91mPlease install npm."
-  exit
-fi
-
 sudo chmod +x ./uninstall.sh
 sudo ./uninstall.sh
 
