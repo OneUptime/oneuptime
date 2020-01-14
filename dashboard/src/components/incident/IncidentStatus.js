@@ -218,7 +218,7 @@ export class IncidentStatus extends Component {
                                 </div>
                             </div>
                         </div>
-                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-vertical--12">
 
                             <ShouldRender if={this.props.multiple && this.props.incident && this.props.incident.resolved}>
                                 <div>

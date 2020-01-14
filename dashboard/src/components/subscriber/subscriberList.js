@@ -118,7 +118,11 @@ export class SubscriberList extends Component {
                                         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
                                             <div className="db-ListViewItem-link" >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <div className="Box-root"><span>{subscriber.alertVia}</span></div>
+                                                    <div class="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                        <span class="Badge-text Text-color--blue Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span>{subscriber.alertVia}</span>
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
