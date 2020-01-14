@@ -48,8 +48,8 @@ describe('Reset Password API', () => {
       await page.click('input[name=email]');
       await page.type('input[name=email]', utils.generateWrongEmail());
       await page.click('button[type=submit]');
-      await page.waitForSelector('#main-body');
-      const html = await page.$eval('#main-body', (e) => {
+      await page.waitForSelector('#error-msg');
+      const html = await page.$eval('#error-msg', (e) => {
          return e.innerHTML;
      });
       should.exist(html);
