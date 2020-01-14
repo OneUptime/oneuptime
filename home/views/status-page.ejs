@@ -15,7 +15,7 @@
     <script>
         var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
         if (!IS_DEV) {
-            amplitude.getInstance().logEvent('Enterprise overview page loaded');
+            amplitude.getInstance().logEvent('Status Page page viewed');
         }
     </script>
 </head>
@@ -32,11 +32,9 @@
                 <div id="bubble-overlay">
                     <div class="content">
 
-                        <header>
+                        <header style="text-align:left">
                             <h1 class="Header-title common-PageTitle header-font header-size black">Status Page</h1>
-                            <p><span class="highlight">&nbsp;Downtime is critical to any business.</span> We at Fyipe
-                                help you reduce it, <br /> increase revenue, and improve transparency with your
-                                customers. </p>
+                            <p style="margin-top:50px"><i>Downtime happens.</i> <span class="highlight">&nbsp;Status Page helps you be more transparent with your customers and showcase reliability.</span> Easily communicate real-time status to your customers, gain trust and increase revenue. </p>
                         </header>
 
                     </div>

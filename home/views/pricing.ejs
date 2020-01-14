@@ -10,7 +10,7 @@
   <script>
     var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
     if (!IS_DEV) {
-      amplitude.getInstance().logEvent('Pricing page loaded');
+      amplitude.getInstance().logEvent('Pricing page viewed');
     }
   </script>
   <noscript id="deferred-styles">
