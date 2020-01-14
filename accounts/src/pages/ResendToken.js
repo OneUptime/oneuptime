@@ -47,9 +47,9 @@ export class ResendTokenForm extends Component {
     if(success) {
       header = <span>Verification Email Sent</span>
     } else if (resendTokenError) {
-      header = <span style={errorStyle}>{resendTokenError}</span>
+      header = <span style={errorStyle} id="error-msg">{resendTokenError}</span>
     } else if (serverResponse) {
-      header = <span style={errorStyle}>{serverResponse}</span>
+      header = <span style={errorStyle} id="error-msg">{serverResponse}</span>
     } else {
       header = <span>Resend verification email.</span>
     }
@@ -70,10 +70,7 @@ export class ResendTokenForm extends Component {
                     {header}
                   </h2>
                 </div>
-
-                <p className="error-message hidden" />
-
-
+                
                 {this.props.resendTokenState.success && <p id="resend-verification-success" className="message"> An email is on its way to you with new verification link. Please don&apos;t forget to check spam. </p>}
                 {!this.props.resendTokenState.success && <p className="message"> Enter your email address below and we will resend you a verification link to activate your fyipe account.</p>}
 
