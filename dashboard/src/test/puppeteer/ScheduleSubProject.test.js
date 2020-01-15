@@ -75,7 +75,7 @@ describe('Schedule API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -114,7 +114,7 @@ describe('Schedule API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         const scheduleName = utils.generateRandomString();
 

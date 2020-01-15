@@ -80,7 +80,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -119,7 +119,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -163,7 +163,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -203,7 +203,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -242,7 +242,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         let investigationNote = utils.generateRandomString();
         let internalNote = utils.generateRandomString();

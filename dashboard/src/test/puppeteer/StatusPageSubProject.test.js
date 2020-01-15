@@ -76,7 +76,7 @@ describe('StatusPage API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -114,7 +114,7 @@ describe('StatusPage API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         const statuspageName = utils.generateRandomString();
 

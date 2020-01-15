@@ -55,7 +55,7 @@ describe('Monitor API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         const monitorName = utils.generateRandomString();
 
@@ -102,7 +102,7 @@ describe('Monitor API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         const monitorName = utils.generateRandomString();
 
@@ -149,7 +149,7 @@ describe('Monitor API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {

@@ -56,7 +56,7 @@ describe('User Feedback', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         const testFeedback = 'test feedback';
 

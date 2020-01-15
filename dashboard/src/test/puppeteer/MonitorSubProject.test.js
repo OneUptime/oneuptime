@@ -72,7 +72,7 @@ describe('Monitor API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -110,7 +110,7 @@ describe('Monitor API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -157,7 +157,7 @@ describe('Monitor API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         let monitorName = utils.generateRandomString();
 
@@ -205,7 +205,7 @@ describe('Monitor API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -247,7 +247,7 @@ describe('Monitor API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
