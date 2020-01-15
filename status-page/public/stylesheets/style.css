@@ -698,7 +698,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 .bs-Button-subscribe{
     padding: 4px 12px 2px;
-    background-color: #0080a8;
+    background-color: #000000;
     border-radius: 4px;
     border:none;
     outline: none;
@@ -834,7 +834,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 .subscribe-btn-full{
   width:100%;
   padding: 4px 5px 2px;
-  background-color: #0080a8;
+  background-color: #000000;
   border-radius: 4px;
   border:none;
   outline: none;

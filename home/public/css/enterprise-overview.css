@@ -544,6 +544,84 @@ section.basics .columns .cost:before{
     background-image:url("/img/cost.svg")
 }
 
+section.basics .columns .informed:before{
+    background-image:url("/img/informed.svg")
+}
+
+section.basics .columns .teams:before{
+    background-image:url("/img/teams.svg")
+}
+
+section.basics .columns .dash:before{
+    background-image:url("/img/dash.svg")
+}
+
+section.basics .columns .htmlcss:before{
+    background-image:url("/img/htmlcss.svg")
+}
+
+section.basics .columns .database:before{
+    background-image:url("/img/database.svg")
+}
+
+section.basics .columns .brand:before{
+    background-image:url("/img/brand.svg")
+}
+
+section.basics .columns .paint:before{
+    background-image:url("/img/paint.svg")
+}
+
+section.basics .columns .sms:before{
+    background-image:url("/img/sms.svg")
+}
+
+section.basics .columns .notification1:before{
+    background-image:url("/img/notification1.svg")
+}
+
+section.basics .columns .callcenter:before{
+    background-image:url("/img/callcenter.svg")
+}
+
+section.basics .columns .security:before{
+    background-image:url("/img/security.svg")
+}
+
+section.basics .columns .note:before{
+    background-image:url("/img/note.svg")
+}
+
+section.basics .columns .trend:before{
+    background-image:url("/img/trend.svg")
+}
+
+section.basics .columns .global:before{
+    background-image:url("/img/global.svg")
+}
+
+section.basics .columns .global1:before{
+    background-image:url("/img/global (1).svg")
+}
+
+section.basics .columns .risk:before{
+    background-image:url("/img/risk.svg")
+}
+
+section.basics .columns .chat:before{
+    background-image:url("/img/chat.svg")
+}
+
+section.basics .columns .rotation:before{
+    background-image:url("/img/mobile-rotation.svg")
+}
+
+section.basics .columns .vacation:before{
+    background-image:url("/img/vacation.svg")
+}
+
+
+
 section.basics .columns :before{
     text-align: center !important;
     align-content: center;

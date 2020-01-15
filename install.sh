@@ -11,7 +11,7 @@ fi
 sudo chmod +x ./uninstall.sh
 sudo ./uninstall.sh
 
-sudo docker network create fyipe-network
+sudo docker network create fyipe-network || "Netork already exists."
 
 # Sleep 
 sleep 5s
@@ -51,8 +51,8 @@ sudo docker run --name admin-dashboard --net=host -p 3100:3100 -d fyipe-project/
 
 # Run Probes 1
 sudo docker build -t fyipe-project/probe:latest ./probe
-sudo docker run  --name probe1 --net=host -p 3019:3008 -e "PORT=3019" -e "SERVER_URL=http://localhost:3002" -e "PROBE_NAME=EU" -e "PROBE_KEY=13b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4" -d fyipe-project/probe:latest 
+sudo docker run  --name probe1 --net=host -p 3019:3019 -e "PORT=3019" -e "SERVER_URL=http://localhost:3002" -e "PROBE_NAME=EU" -e "PROBE_KEY=13b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4" -d fyipe-project/probe:latest 
 
 # Run Probes 2
 sudo docker build -t fyipe-project/probe:latest ./probe
-sudo docker run --name probe2 --net=host -p 3020:3008 -e "PORT=3020" -e "SERVER_URL=http://localhost:3002" -e "PROBE_NAME=US" -e "PROBE_KEY=33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4" -d fyipe-project/probe:latest 
+sudo docker run --name probe2 --net=host -p 3020:3020 -e "PORT=3020" -e "SERVER_URL=http://localhost:3002" -e "PROBE_NAME=US" -e "PROBE_KEY=33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4" -d fyipe-project/probe:latest 

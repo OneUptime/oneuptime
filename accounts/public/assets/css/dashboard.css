@@ -770,22 +770,22 @@ th {
     0 1px 1px 0 rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.08);
 }
 .bs-Button--blue {
-  background: #0080a8;
-  box-shadow: 0 0 0 1px #0080a8, 0 2px 1px 0 rgba(67, 69, 139, 0.15),
+  background: #000000;
+  box-shadow: 0 0 0 1px #000000, 0 2px 1px 0 rgba(67, 69, 139, 0.15),
     0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08),
     0 0 0 0 transparent;
   color: hsla(0, 0%, 100%, 0.9);
 }
 .bs-Button--blue:hover {
-  background: #0080a8;
-  box-shadow: 0 0 0 1px #0080a8, 0 2px 5px 0 rgba(50, 50, 93, 0.3),
+  background: #000000;
+  box-shadow: 0 0 0 1px #000000, 0 2px 5px 0 rgba(50, 50, 93, 0.3),
     0 4px 9px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08),
     0 1px 2px 0 rgba(0, 0, 0, 0.08);
   color: #fff;
 }
 .bs-Button--blue:active {
-  background: #0080a8;
-  box-shadow: 0 0 0 1px #0080a8, 0 2px 4px rgba(50, 50, 93, 0.04),
+  background: #000000;
+  box-shadow: 0 0 0 1px #000000, 0 2px 4px rgba(50, 50, 93, 0.04),
     0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 0 transparent, 0 0 0 0 transparent;
   color: #fff;
 }
@@ -802,8 +802,8 @@ th {
 .bs-Button--blue:disabled:active,
 .bs-Button--blue:disabled:focus,
 .bs-Button--blue:disabled:hover {
-  background: #0080a8;
-  box-shadow: 0 0 0 1px #0080a8, 0 1px 1px 0 rgba(66, 71, 112, 0.1),
+  background: #000000;
+  box-shadow: 0 0 0 1px #000000, 0 1px 1px 0 rgba(66, 71, 112, 0.1),
     0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08),
     0 0 0 0 transparent;
   color: hsla(0, 0%, 100%, 0.75);
@@ -4045,8 +4045,8 @@ a.bs-ObjectList-row {
   width: 100%;
   background: #14aad9;
   border: 0;
-  border-bottom: 2px solid #0080a8;
-  border-top: 2px solid #0080a8;
+  border-bottom: 2px solid #000000;
+  border-top: 2px solid #000000;
   color: hsla(0, 0%, 100%, 0.85);
   font-weight: 500;
   line-height: 20px;
@@ -4055,7 +4055,7 @@ a.bs-ObjectList-row {
 .bs-ObjectList-refresh:active,
 .bs-ObjectList-refresh:focus,
 .bs-ObjectList-refresh:hover {
-  background: #0080a8;
+  background: #000000;
   border-bottom: 2px solid #43458b;
   border-top: 2px solid #43458b;
   color: #fff;
@@ -7409,22 +7409,22 @@ pre.bs-PropertyList-property {
       0 1px 2px 0 rgba(0, 0, 0, 0.04), 0 0 0 0 transparent;
   }
   .bs-Button--blue {
-    background: #0080a8;
-    box-shadow: 0 0 0 1px #0080a8, 0 2px 1px 0 rgba(67, 69, 139, 0.15),
+    background: #000000;
+    box-shadow: 0 0 0 1px #000000, 0 2px 1px 0 rgba(67, 69, 139, 0.15),
       0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08),
       0 0 0 0 transparent;
     color: hsla(0, 0%, 100%, 0.9);
   }
   .bs-Button--blue:hover {
-    background: #0080a8;
-    box-shadow: 0 0 0 1px #0080a8, 0 2px 5px 0 rgba(50, 50, 93, 0.3),
+    background: #000000;
+    box-shadow: 0 0 0 1px #000000, 0 2px 5px 0 rgba(50, 50, 93, 0.3),
       0 4px 9px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08),
       0 1px 2px 0 rgba(0, 0, 0, 0.08);
     color: #fff;
   }
   .bs-Button--blue:active {
-    background: #0080a8;
-    box-shadow: 0 0 0 1px #0080a8, 0 2px 4px rgba(50, 50, 93, 0.04),
+    background: #000000;
+    box-shadow: 0 0 0 1px #000000, 0 2px 4px rgba(50, 50, 93, 0.04),
       0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 0 transparent, 0 0 0 0 transparent;
     color: #fff;
   }
@@ -7436,24 +7436,24 @@ pre.bs-PropertyList-property {
   .bs-Button--blue:disabled:active,
   .bs-Button--blue:disabled:focus,
   .bs-Button--blue:disabled:hover {
-    background: #0080a8;
+    background: #000000;
     box-shadow: 0 0 0 1px #7e82d9, 0 1px 1px 0 rgba(66, 71, 112, 0.1),
       0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08),
       0 0 0 0 transparent;
     color: hsla(0, 0%, 100%, 0.75);
   }
   .bs-Button--blue {
-    box-shadow: 0 0 0 1px #0080a8, 0 1.5px 1px 0 rgba(67, 69, 139, 0.15),
+    box-shadow: 0 0 0 1px #000000, 0 1.5px 1px 0 rgba(67, 69, 139, 0.15),
       0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08),
       0 0 0 0 transparent;
   }
   .bs-Button--blue:hover {
-    box-shadow: 0 0 0 1px #0080a8, 0 2px 5px 0 rgba(50, 50, 93, 0.3),
+    box-shadow: 0 0 0 1px #000000, 0 2px 5px 0 rgba(50, 50, 93, 0.3),
       0 3.6px 9px 0 rgba(50, 50, 93, 0.1), 0 1px 1.5px 0 rgba(0, 0, 0, 0.08),
       0 1px 2px 0 rgba(0, 0, 0, 0.08);
   }
   .bs-Button--blue:active {
-    box-shadow: 0 0 0 1px #0080a8, 0 1.5px 3.75px rgba(50, 50, 93, 0.04),
+    box-shadow: 0 0 0 1px #000000, 0 1.5px 3.75px rgba(50, 50, 93, 0.04),
       0 0.6px 1.5px rgba(0, 0, 0, 0.04), 0 0 0 0 transparent,
       0 0 0 0 transparent;
   }
@@ -15476,7 +15476,7 @@ html.db-NewChrome
 }
 html.db-NewChrome div.dashboard-view div.summary,
 html.db-NewChrome div.platform-overview-dashboard-view div.summary {
-  background: #0080a8;
+  background: #000000;
   border: none;
   box-shadow: none;
   left: 0;
@@ -16617,7 +16617,7 @@ div.pagination div.position strong {
 }
 .popover-view div.header div.buttons a.blue:active {
   color: #eee;
-  background: #0080a8;
+  background: #000000;
   box-shadow: 0 1px 3px 0 rgba(49, 49, 93, 0.04), 0 0 1px 0 rgba(0, 0, 0, 0.04);
 }
 .popover-view div.header div.buttons a.left {

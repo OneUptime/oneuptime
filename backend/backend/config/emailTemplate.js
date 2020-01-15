@@ -58,7 +58,7 @@ td, th {
 **/
 
 span.st-Delink a {
-  color: #0080a8 !important;
+  color: #000000 !important;
   text-decoration: none !important;
 }
 
@@ -71,7 +71,7 @@ span.st-Delink.st-Delink--preheader a {
 
 /** Modifier: title */
 span.st-Delink.st-Delink--title a {
-  color: #0080a8 !important;
+  color: #000000 !important;
   text-decoration: none !important;
 }
 /** */
@@ -84,7 +84,7 @@ span.st-Delink.st-Delink--footer a {
 /** */
 
 .ii a[href] {
-    color: #0080a8;
+    color: #000000;
 }
 
 /**
@@ -181,7 +181,7 @@ span.st-Delink.st-Delink--footer a {
 
   body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
   body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-    background-color: #0080a8;
+    background-color: #000000;
   }
 
   /**
@@ -248,7 +248,7 @@ span.st-Delink.st-Delink--footer a {
         <div>
           <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href={{homeURL}}>
 
-            <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #0080a8; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
+            <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
           </a>
         </div>
       </td>
@@ -283,7 +283,7 @@ span.st-Delink.st-Delink--footer a {
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
-      <td class="st-Font st-Font--body" style="color: #0080a8 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
+      <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
      	<h3>{{projectName}}/{{monitorName}}: Incident Created!</h3>
 
@@ -332,7 +332,7 @@ span.st-Delink.st-Delink--footer a {
       <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
      
-      <strong￼ style="color: #0080a8 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. A new incident has been created on {{incidentTime}} and is available on the status page
+      <strong￼ style="color: #000000 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. A new incident has been created on {{incidentTime}} and is available on the status page
  
 
       </td>
@@ -556,7 +556,7 @@ td, th {
 **/
 
 span.st-Delink a {
-color: #0080a8 !important;
+color: #000000 !important;
 text-decoration: none !important;
 }
 
@@ -569,7 +569,7 @@ text-decoration: none !important;
 
 /** Modifier: title */
 span.st-Delink.st-Delink--title a {
-color: #0080a8 !important;
+color: #000000 !important;
 text-decoration: none !important;
 }
 /** */
@@ -582,7 +582,7 @@ text-decoration: none !important;
 /** */
 
 .ii a[href] {
-  color: #0080a8;
+  color: #000000;
 }
 
 /**
@@ -679,7 +679,7 @@ body[override] table.st-Header.st-Header--simplified td.st-Header-spacing{
 
 body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
 body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-  background-color: #0080a8;
+  background-color: #000000;
 }
 
 /**
@@ -745,7 +745,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
         <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #0080a8; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
+          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
         </a>
       </div>
     </td>
@@ -780,7 +780,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
-    <td class="st-Font st-Font--body" style="color: #0080a8 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
+    <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
      <h3>{{projectName}}/{{monitorName}}: Incident Acknowledged!</h3>
 
@@ -829,7 +829,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
    
-    <strong￼ style="color: #0080a8 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been acknowledged on {{incidentTime}} and is available on the status page
+    <strong￼ style="color: #000000 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been acknowledged on {{incidentTime}} and is available on the status page
 
 
     </td>
@@ -1053,7 +1053,7 @@ td, th {
 **/
 
 span.st-Delink a {
-color: #0080a8 !important;
+color: #000000 !important;
 text-decoration: none !important;
 }
 
@@ -1066,7 +1066,7 @@ text-decoration: none !important;
 
 /** Modifier: title */
 span.st-Delink.st-Delink--title a {
-color: #0080a8 !important;
+color: #000000 !important;
 text-decoration: none !important;
 }
 /** */
@@ -1079,7 +1079,7 @@ text-decoration: none !important;
 /** */
 
 .ii a[href] {
-  color: #0080a8;
+  color: #000000;
 }
 
 /**
@@ -1176,7 +1176,7 @@ body[override] table.st-Header.st-Header--simplified td.st-Header-spacing{
 
 body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
 body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-  background-color: #0080a8;
+  background-color: #000000;
 }
 
 /**
@@ -1242,7 +1242,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
         <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #0080a8; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
+          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
         </a>
       </div>
     </td>
@@ -1277,7 +1277,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
-    <td class="st-Font st-Font--body" style="color: #0080a8 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
+    <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
      <h3>{{projectName}}/{{monitorName}}: Incident Resolved!</h3>
 
@@ -1323,7 +1323,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #525f7f !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
-    <strong￼ style="color: #0080a8 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been resolved on {{incidentTime}} and is available on the status page
+    <strong￼ style="color: #000000 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been resolved on {{incidentTime}} and is available on the status page
 
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">

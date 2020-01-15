@@ -166,7 +166,7 @@
   background-color: #43458b;
 }
 .Box-background--blue3 {
-  background-color: #0080a8;
+  background-color: #000000;
 }
 .Box-background--blue4 {
   background-color: #14aad9;
@@ -1297,7 +1297,7 @@
   color: #14aad9;
 }
 .Text-color--fyipeblue {
-  color: #0080a8;
+  color: #000000;
 }
 .Text-color--cyan {
   color: #3297d3;
@@ -1476,7 +1476,7 @@
   opacity: 0.75;
 }
 .Button--color--blue .Button-fill {
-  background: #0080a8;
+  background: #000000;
   box-shadow: 0 0 0 1px rgba(103, 114, 229, 0.1),
     0 2px 5px 0 rgba(103, 114, 229, 0.08), 0 1px 1.5px 0 rgba(0, 0, 0, 0.07),
     0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent;
@@ -4118,7 +4118,7 @@
   color: #43458b;
 }
 .ChartIcon--color--blue3 {
-  color: #0080a8;
+  color: #000000;
 }
 .ChartIcon--color--blue4 {
   color: #14aad9;
@@ -5022,7 +5022,7 @@ input[type='radio'] + label{
 }
   
 input[type='radio']:checked {
-  border: 5px solid #0080a8;
+  border: 5px solid #000000;
 }
 
 .Checkbox-source:checked + div>.Checkbox-target{
@@ -5073,5 +5073,5 @@ left : 15px;
 }
 
 .unread{
-  border-right: 5px solid #0080a8;
+  border-right: 5px solid #000000;
 }

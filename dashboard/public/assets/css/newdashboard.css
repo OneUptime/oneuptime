@@ -2825,7 +2825,7 @@ html.db-NewChrome body {
   align-self: flex-start;
 }
 .db-Copilot-messageContainer--visitor .db-Copilot-message {
-  background-color: #0080a8;
+  background-color: #000000;
   color: #fff;
 }
 .db-Copilot-messageContainer--visitor .db-Copilot-messageLink {
@@ -3067,7 +3067,7 @@ html.db-NewChrome body {
   width: 82px;
 }
 .db-DateInput:active {
-  background: #0080a8;
+  background: #000000;
   color: #fff;
 }
 .db-DateInput.db-is-disabled:active {
@@ -7574,7 +7574,7 @@ div.db-Trend-groupChart {
   color: #14aad9;
 }
 .db-SegmentedControlOption--selected:hover {
-  color: #0080a8;
+  color: #000000;
 }
 .bs-Modal.db-DiscountAcceptanceModal {
   background: #fff;
@@ -8368,7 +8368,7 @@ html.db-NewChrome
 html.db-NewChrome
   .DayPicker-container
   .CalendarMonth__day.CalendarMonth__day--selected-start:active {
-  background: #0080a8;
+  background: #000000;
   border: none;
 }
 html.db-NewChrome .DayPicker-container .CalendarMonth__day--outside {
@@ -10461,7 +10461,7 @@ table {
   width: 300px;
   margin: 0px;
   padding: 0px;
-  border-color: #0080a8;
+  border-color: #000000;
 }
 
 .db-MultiSelect-auto--grow {
