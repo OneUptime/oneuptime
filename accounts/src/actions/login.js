@@ -29,6 +29,14 @@ export function loginError(error) {
 
 export function loginSuccess(user) {
 	//save user session details.
+	if (!user.id) {
+		User.setEmail(user.email)
+		return {
+			type: types.LOGIN_SUCCESS,
+			payload: user,
+		};
+	}
+
 	var state = store.getState();
 	var { statusPageLogin, statusPageURL } = state.login;
 	if (statusPageLogin) {
@@ -73,6 +81,20 @@ export const resetLogin = () => {
 	};
 };
 
+export function verifyTokenRequest(promise) {
+	return {
+		type: types.AUTH_VERIFICATION_REQUEST,
+		payload: promise
+	};
+}
+
+export function verifyTokenError(error) {
+	return {
+		type: types.AUTH_VERIFICATION_FAILED,
+		payload: error
+	};
+}
+
 // Calls the API to register a user.
 export function loginUser(values) {
 	const initialUrl =  User.initialUrl();
@@ -103,6 +125,88 @@ export function loginUser(values) {
 			dispatch(loginError(errors(error)));
 		});
 		return promise;
+	};
+}
+
+// Calls the API to verify a user token and log them in.
+export function verifyAuthToken(values) {
+	const initialUrl =  User.initialUrl();
+	const redirect = getQueryVar('redirectTo', initialUrl);
+	if(redirect) values.redirect = redirect;
+	const email = User.getEmail();
+	values.email = email;
+	return function (dispatch) {
+		var promise = postApi('user/totp/verifyToken', values);
+		dispatch(verifyTokenRequest(promise));
+
+		promise.then(function (user) {
+			dispatch(loginSuccess(user.data));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			} else {
+				error = 'Network Error';
+			}
+			dispatch(verifyTokenError(errors(error)));
+		});
+		return promise; 
+	};
+}
+
+
+// Use backup code to login a user.
+
+export const resetBackupCodeLogin = () => {
+	return {
+		type: types.RESET_BACKUP_CODE_VERIFICATION,
+	};
+};
+
+export function useBackupCodeRequest(promise) {
+	return {
+		type: types.BACKUP_CODE_VERIFICATION_REQUEST,
+		payload: promise
+	};
+}
+
+export function useBackupCodeError(error) {
+	return {
+		type: types.BACKUP_CODE_VERIFICATION_FAILED,
+		payload: error
+	};
+}
+
+export function verifyBackupCode(values) {
+	const initialUrl =  User.initialUrl();
+	const redirect = getQueryVar('redirectTo', initialUrl);
+	if(redirect) values.redirect = redirect;
+	const email = User.getEmail();
+	values.email = email;
+	return function (dispatch) {
+		var promise = postApi('user/verify/backupCode', values);
+		dispatch(useBackupCodeRequest(promise));
+
+		promise.then(function (user) {
+			dispatch(loginSuccess(user.data));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			} else {
+				error = 'Network Error';
+			}
+			dispatch(useBackupCodeError(errors(error)));
+		});
+		return promise; 
 	};
 }
 
