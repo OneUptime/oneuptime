@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.1255",
+  "version": "3.0.1264",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
@@ -42,10 +42,12 @@
     "prop-types": "^15.6.1",
     "puppeteer": "^1.19.0",
     "puppeteer-cluster": "^0.17.0",
+    "qrcode.react": "^1.0.0",
     "query-string": "^5.1.1",
     "react": "^16.5.2",
     "react-ace": "^7.0.4",
     "react-click-outside": "github:tj/react-click-outside",
+    "react-copy-to-clipboard": "^5.0.2",
     "react-csv": "^1.1.1",
     "react-daterange-picker": "^2.0.1",
     "react-datetime": "^2.16.3",
