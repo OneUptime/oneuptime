@@ -227,8 +227,18 @@ spec:
               value: "3600"
             - name: MAIL_SECURE
               value: "false"
+            - name: DASHBOARD_HOST
+              value: "http://dashboard.app.local:3000"
+            - name: BACKEND_HOST
+              value: "http://backend.app.local:3002"
+            - name: ACCOUNTS_HOST
+              value: "http://accounts.app.local:3003"
             - name: CLUSTER_KEY
               value: "1e9fbee1-00b6-6040-6990-0fef8c37b14c"
+            - name: HOME_HOST
+              value: "http://home.app.local:1444"
+            - name: NODE_ENV
+              value: "development"
           ports:
             - containerPort: 3002
               hostPort: 3002
