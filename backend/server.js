@@ -8,6 +8,7 @@ var keys = require('./backend/config/keys.js');
 var bodyParser = require('body-parser');
 var cors = require('cors');
 const Agenda = require('agenda');
+const switchActiveTeam = require('./backend/services/escalationService').switchActiveTeam;
 //var { fork } = require('child_process');
 
 //fork('./backend/workers/cronjob.js');
@@ -15,7 +16,7 @@ const Agenda = require('agenda');
 const agenda = new Agenda();
 agenda.database(keys.dbURL);
 agenda.define('update active team on rotation', async (job, done) => {
-    // switchActiveTeam();
+    switchActiveTeam();
     if (done) done();
 });
 
