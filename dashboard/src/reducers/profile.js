@@ -45,6 +45,19 @@ const INITIAL_STATE = {
         userEmail: '',
         initPhoneVerificationNumber: '',
         initAlertEmail: '',
+        twoFactorAuthEnabled: false,
+    },
+    twoFactorAuthSetting: {
+        error: null,
+        requesting: false,
+        success: false,
+        data: {}
+    },
+    qrCode: {
+        error: null,
+        requesting: false,
+        success: false,
+        data: {}
     },
     resendTimer: null
 };
@@ -325,6 +338,90 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                     ...state.profileSettingState,
                     alertPhoneNumber: action.payload,
                 }
+            });
+        
+        case types.SET_TWO_FACTOR_AUTH:
+            return Object.assign({}, state, {
+                profileSettingState: {
+                    ...state.profileSettingState,
+                    twoFactorAuthEnabled: action.payload,
+                }
+            });
+
+        //update user's two factor auth settings
+        case types.UPDATE_TWO_FACTOR_AUTH_REQUEST:
+            return Object.assign({}, state, {
+                twoFactorAuthSetting: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    data: state.twoFactorAuthSetting.data,
+                },
+            });
+
+        case types.UPDATE_TWO_FACTOR_AUTH_SUCCESS:
+            return Object.assign({}, state, {
+                profileSetting: {
+                    ...INITIAL_STATE.profileSetting,
+                    data: action.payload
+                },
+                twoFactorAuthSetting: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    data: state.twoFactorAuthSetting.data,
+                },
+            });
+
+        case types.UPDATE_TWO_FACTOR_AUTH_FAILURE:
+            return Object.assign({}, state, {
+                twoFactorAuthSetting: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    data: state.twoFactorAuthSetting.data,
+                },
+            });
+
+        case types.UPDATE_TWO_FACTOR_AUTH_RESET:
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
+
+        //generate user's QR code
+        case types.GENERATE_TWO_FACTOR_QR_REQUEST:
+            return Object.assign({}, state, {
+                qrCode: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    data: state.qrCode.data,
+                },
+            });
+
+        case types.GENERATE_TWO_FACTOR_QR_SUCCESS:
+            return Object.assign({}, state, {
+                qrCode: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    data: action.payload,
+                },
+            });
+
+        case types.GENERATE_TWO_FACTOR_QR_FAILURE:
+            return Object.assign({}, state, {
+                qrCode: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    data: state.qrCode.data,
+                },
+            });
+
+        case types.GENERATE_TWO_FACTOR_QR_RESET:
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
             });
 
         case types.SET_INIT_ALERT_EMAIL:
