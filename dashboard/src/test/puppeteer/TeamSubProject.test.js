@@ -13,13 +13,13 @@ let newEmail = utils.generateRandomBusinessEmail();
 let newPassword = '1234567890';
 // another user credentials
 let anotherEmail = utils.generateRandomBusinessEmail();
-let anotherPassword = utils.generateRandomString();
+let anotherPassword = '1234567890';
 
 let subProjectName = utils.generateRandomString();
 let subProjectMonitorName = utils.generateRandomString();
 
 describe('Team API With SubProjects', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 100000;
 
     beforeAll(async (done) => {
         jest.setTimeout(200000);
@@ -207,7 +207,7 @@ describe('Team API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 60000
+            timeout: 120000
         });
         const newRole = 'Member';
 
@@ -247,7 +247,7 @@ describe('Team API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 60000
+            timeout: 120000
         });
 
         cluster.on('taskerror', (err) => {
