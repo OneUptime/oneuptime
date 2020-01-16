@@ -13,19 +13,18 @@ module.exports = {
     create: async function (projectId, message, page, createdById) {
         try {
             var feedback = new FeedbackModel();
-    
+
             feedback.message = message;
             feedback.page = page;
             feedback.projectId = projectId;
             feedback.createdById = createdById;
             feedback = await feedback.save();
             feedback = feedback.toObject();
-    
+
             var project = await ProjectService.findOneBy({ _id: projectId });
             feedback.project = project;
 
             var user = await UserService.findOneBy({ _id: createdById });
-            feedback.createdBy = user;
 
             var record = await AirtableService.logFeedback({
                 message,
@@ -35,7 +34,7 @@ module.exports = {
                 page
             });
             feedback.airtableId = record.id || null;
-    
+
             await MailService.sendLeadEmailToFyipeTeam(feedback);
             await MailService.sendUserFeedbackResponse(user.email, user.name);
             return feedback;

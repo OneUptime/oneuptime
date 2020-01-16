@@ -54,3 +54,16 @@ export const SET_USER_EMAIL = 'ProfileSetting/SET_USER_EMAIL';
 export const SET_VERIFIED = 'ProfileSetting/SET_VERIFIED';
 export const SET_RESEND_TIMER = 'ProfileSetting/SET_RESEND_TIMER';
 export const SET_INIT_ALERT_EMAIL = 'ProfileSetting/SET_INIT_ALERT_EMAIL';
+export const SET_TWO_FACTOR_AUTH = 'ProfileSetting/SET_TWO_FACTOR_AUTH';
+
+// Update two factor authentication
+export const UPDATE_TWO_FACTOR_AUTH_REQUEST = 'ProfileSetting/UPDATE_TWO_FACTOR_AUTH_REQUEST';
+export const UPDATE_TWO_FACTOR_AUTH_SUCCESS = 'ProfileSetting/UPDATE_TWO_FACTOR_AUTH_SUCCESS';
+export const UPDATE_TWO_FACTOR_AUTH_FAILURE = 'ProfileSetting/UPDATE_TWO_FACTOR_AUTH_FAILURE';
+export const UPDATE_TWO_FACTOR_AUTH_RESET = 'ProfileSetting/UPDATE_TWO_FACTOR_AUTH_RESET';
+
+// Generate two factor qrcode
+export const GENERATE_TWO_FACTOR_QR_REQUEST = 'ProfileSetting/GENERATE_TWO_FACTOR_QR_REQUEST';
+export const GENERATE_TWO_FACTOR_QR_SUCCESS = 'ProfileSetting/GENERATE_TWO_FACTOR_QR_SUCCESS';
+export const GENERATE_TWO_FACTOR_QR_FAILURE = 'ProfileSetting/GENERATE_TWO_FACTOR_QR_FAILURE';
+export const GENERATE_TWO_FACTOR_QR_RESET = 'ProfileSetting/GENERATE_TWO_FACTOR_QR_RESET';

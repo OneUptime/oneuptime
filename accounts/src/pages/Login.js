@@ -8,6 +8,7 @@ import { loginUser, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
 import { identify, setUserId, logEvent } from '../analytics';
 import { IS_DEV } from '../config';
+import { history } from '../store';
 
 class LoginPage extends React.Component {
 
@@ -34,6 +35,11 @@ class LoginPage extends React.Component {
 	}
 
 	render() {
+		const { login } = this.props;
+
+		if (login.success) {
+			history.push('/user-auth/token');
+		}
 
 		return (
 			<div id="wrap">

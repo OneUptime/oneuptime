@@ -211,26 +211,172 @@ router.post('/login', async function (req, res) {
 
         // Call the UserService
         var user = await UserService.login(data.email, data.password, clientIP);
+        let authUserObj;
+        if (!user._id) {
+            authUserObj = {...user};
+        } else {
+            // create access token and refresh token.
+            authUserObj = {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                redirect: data.redirect || null,
+                cardRegistered: user.stripeCustomerId ? true : false,
+                tokens: {
+                    jwtAccessToken: `${jwt.sign({
+                        id: user._id
+                    }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                    jwtRefreshToken: user.jwtRefreshToken,
+                },
+                role: user.role || null
+            };
+        }
+
+        return sendItemResponse(req, res, authUserObj);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+
+});
+
+// Route
+// Description: verify function for  user
+// Params:
+// Param 1: req.body-> {token}
+// Returns: 400: Error; 500: Server Error; 200: user
+router.post('/totp/verifyToken', async function (req, res) {
+    try {
+        var data = req.body;
+        var token = data.token;
+        var userId = data.userId;
+        if (data.email && !data.userId) {
+            var foundUser = await UserService.findOneBy({email: data.email});
+            userId = foundUser._id;
+        }
+        var user = await UserService.verifyAuthToken(token, userId);
+        if (!user || !user._id) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Invalid token.'
+            });
+        }
+        
         // create access token and refresh token.
-        let authUserObj = {
+        let userObj = {
             id: user._id,
-            name: user.name,
-            email: user.email,
-            redirect: data.redirect || null,
-            cardRegistered: user.stripeCustomerId ? true : false,
+            name: user.name ? user.name : '',
+            email: user.email ? user.email : '',
+            password: user.password,
+            companyName: user.companyName,
+            companyRole: user.companyRole,
+            companySize: user.companySize,
+            referral: user.referral,
+            isVerified: user.isVerified,
+            twoFactorAuthEnabled: user.twoFactorAuthEnabled,
+            companyPhoneNumber: user.companyPhoneNumber ? user.companyPhoneNumber : '',
+            alertPhoneNumber: user.alertPhoneNumber ? user.alertPhoneNumber : '',
+            profilePic: user.profilePic,
+            backupCodes: user.backupCodes,
+            timezone: user.timezone ? user.timezone : '',
             tokens: {
                 jwtAccessToken: `${jwt.sign({
                     id: user._id
                 }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
-            role: user.role || null
+            tempEmail:user.tempEmail || null,
+            tempAlertPhoneNumber : user.tempAlertPhoneNumber || null,
         };
-        return sendItemResponse(req, res, authUserObj);
+        return sendItemResponse(req, res, userObj);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
+});
 
+// Route
+// Description: verify function for user backup code.
+// Params:
+// Param 1: req.body-> {code}
+// Returns: 400: Error; 500: Server Error; 200: user
+router.post('/verify/backupCode', async function (req, res) {
+    try {
+        var data = req.body;
+        // Call the UserService
+        var user;
+        user = await UserService.findOneBy({email:data.email});
+        if (!user) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'User not found'
+            });
+        }
+        var backupCode = user.backupCodes.filter(code => code.code === data.code);
+        user = await UserService.verifyUserBackupCode(data.code, user.twoFactorSecretCode, backupCode[0].counter);
+        if (!user || !user._id) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Invalid backup code.'
+            });
+        }
+
+        // create access token and refresh token.
+        let userObj = {
+            id: user._id,
+            name: user.name ? user.name : '',
+            email: user.email ? user.email : '',
+            password: user.password,
+            companyName: user.companyName,
+            companyRole: user.companyRole,
+            companySize: user.companySize,
+            referral: user.referral,
+            isVerified: user.isVerified,
+            twoFactorAuthEnabled: user.twoFactorAuthEnabled,
+            companyPhoneNumber: user.companyPhoneNumber ? user.companyPhoneNumber : '',
+            alertPhoneNumber: user.alertPhoneNumber ? user.alertPhoneNumber : '',
+            profilePic: user.profilePic,
+            backupCodes: user.backupCodes,
+            timezone: user.timezone ? user.timezone : '',
+            tokens: {
+                jwtAccessToken: `${jwt.sign({
+                    id: user._id
+                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                jwtRefreshToken: user.jwtRefreshToken,
+            },
+            tempEmail:user.tempEmail || null,
+            tempAlertPhoneNumber : user.tempAlertPhoneNumber || null,
+        };
+        return sendItemResponse(req, res, userObj);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: generate user secret token for creating QRcode
+// Params:
+// Param 1: req.params-> {userId}
+// Returns: 400: Error; 500: Server Error; 200: user
+router.post('/totp/token/:userId', async function (req, res) {
+    try {
+        var userId = req.params.userId;
+        var user = await UserService.findOneBy({_id:userId});
+        if (!userId || !user._id) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Provide a valid user Id',
+            });
+        }
+
+        if (user.otpauth_url) {
+            let response = {otpauth_url: user.otpauth_url};
+            return sendItemResponse(req, res, response);
+        }
+
+        var response = await UserService.generateTwoFactorSecret(userId);
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
 });
 
 // Route
@@ -544,6 +690,8 @@ router.get('/profile', getUser, async function (req, res) {
             companySize: user.companySize,
             referral: user.referral,
             isVerified: user.isVerified,
+            twoFactorAuthEnabled: user.twoFactorAuthEnabled,
+            backupCodes: user.backupCodes,
             companyPhoneNumber: user.companyPhoneNumber ? user.companyPhoneNumber : '',
             alertPhoneNumber: user.alertPhoneNumber ? user.alertPhoneNumber : '',
             profilePic: user.profilePic,

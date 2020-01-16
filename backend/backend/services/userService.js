@@ -47,6 +47,9 @@ module.exports = {
             userModel.coupon = data.coupon || null;
             userModel.adminNotes = data.adminNotes || null;
             userModel.tempEmail = data.tempEmail || null;
+            userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
+            userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
+            userModel.otpauth_url = data.otpauth_url || null;
 
             var user = await userModel.save();
             return user;
@@ -281,6 +284,72 @@ module.exports = {
         }
     },
 
+    generateUserBackupCodes: async function(secretKey, numberOfCodes) {
+        hotp.options = {digits: 8};
+        let backupCodes = [];
+
+        for (let i = 0; i < numberOfCodes; i++) {
+            let token = hotp.generate(secretKey, i);
+            backupCodes.push({code: token, counter: i});
+        }
+        return backupCodes;
+    },
+
+    verifyUserBackupCode: async function(code, secretKey, counter) {
+        try {
+            var _this = this;
+            hotp.options = {digits: 8};
+            const isValid = hotp.check(code, secretKey, counter);
+            if (isValid) {
+                var user = await _this.findOneBy({twoFactorSecretCode:secretKey});
+                return user;
+            }
+            return isValid;
+        } catch (error) {
+            ErrorService.log('userService.verifyUserBackupCode', error);
+            throw error;
+        }
+    },
+
+    generateTwoFactorSecret: async function(userId) {
+        try {
+            var _this = this;
+            var user = await _this.findOneBy({_id:userId});
+            var secretCode = speakeasy.generateSecret({ length: 20, name: `Fyipe (${user.email})` });
+            const backupCodes = await _this.generateUserBackupCodes(secretCode.base32, 8);
+            const data = {
+                twoFactorSecretCode: secretCode.base32,
+                otpauth_url: secretCode.otpauth_url,
+                backupCodes,
+            };
+            await _this.updateOneBy({_id : userId}, data);
+            return {otpauthUrl: secretCode.otpauth_url};
+        } catch (error) {
+            ErrorService.log('userService.generateTwoFactorSecret', error);
+            throw error;
+        }
+    },
+
+    verifyAuthToken: async function(token, userId) {
+        try {
+            var _this = this;
+            let user = await _this.findOneBy({_id:userId});
+            var isValidCode = speakeasy.totp.verify({
+                secret: user.twoFactorSecretCode,
+                encoding: 'base32',
+                token: token,
+            });
+            if (isValidCode) {
+                const updatedUser = await _this.updateOneBy({_id: user._id}, {twoFactorAuthEnabled:true});
+                return updatedUser;
+            }
+            return isValidCode;
+        } catch (error) {
+            ErrorService.log('userService.verifyAuthToken', error);
+            throw error;
+        }
+    },
+
     //Description: login function to authenticate user.
     //Params:
     //Param 1: email: User email.
@@ -337,6 +406,9 @@ module.exports = {
                         throw error;
                     } else {
                         var res = await bcrypt.compare(password, encryptedPassword);
+                        if (user.twoFactorAuthEnabled) {
+                            return {message: 'Login with 2FA token', email};
+                        }
 
                         if (res) {
                             return user;
@@ -615,3 +687,5 @@ var { BACKEND_HOST, NODE_ENV } = process.env;
 var VerificationTokenModel = require('../models/verificationToken');
 var MailService = require('../services/mailService');
 var AirtableService = require('./airtableService');
+var speakeasy = require('speakeasy');
+var { hotp } = require('otplib');
