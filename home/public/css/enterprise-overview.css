@@ -620,6 +620,20 @@ section.basics .columns .vacation:before{
     background-image:url("/img/vacation.svg")
 }
 
+section.basics .columns .time:before{
+    background-image:url("/img/time.svg")
+}
+
+section.basics .columns .rootcause:before{
+    background-image:url("/img/rootcause.svg")
+}
+
+
+section.basics .columns .customerexperience:before{
+    background-image:url("/img/social-media.svg")
+}
+
+
 
 
 section.basics .columns :before{
