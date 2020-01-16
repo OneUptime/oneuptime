@@ -14,6 +14,7 @@
     "ejs": "^2.6.2",
     "eslint": "^4.19.1",
     "express": "^4.17.1",
+    "express-rate-limit": "^5.0.0",
     "express-winston": "^2.5.0",
     "gridfs-stream": "^1.1.1",
     "history": "^4.9.0",
@@ -70,6 +71,6 @@
     "nodemon": "^1.18.4",
     "npm-audit-ci-wrapper": "^2.2.1",
     "rewire": "^3.0.2",
-    "sinon": "^4.4.4"
+    "sinon": "^4.5.0"
   }
 }
