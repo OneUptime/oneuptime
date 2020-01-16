@@ -21,6 +21,11 @@ var userSchema = new Schema({
     onCallAlert: Array,
     profilePic: String,
 
+    twoFactorAuthEnabled: {type: Boolean, default: false},
+    twoFactorSecretCode: String,
+    otpauth_url: String,
+    backupCodes: Array,
+
     jwtRefreshToken: String,
     stripeCustomerId: String,
     resetPasswordToken: String,

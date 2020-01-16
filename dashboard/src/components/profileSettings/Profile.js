@@ -21,7 +21,9 @@ import {
   setInitialAlertPhoneNumber,
   setUserEmail,
   setResendTimer,
-  setInitAlertEmail
+  setInitAlertEmail,
+  setTwoFactorAuth,
+  updateTwoFactorAuthToken,
 } from '../../actions/profile'
 import { RenderField } from '../basic/RenderField'
 import { Validate, API_URL } from '../../config'
@@ -35,6 +37,10 @@ import 'react-phone-input-2/lib/style.css'
 import { User } from '../../config'
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
+import { openModal } from '../../actions/modal';
+import DataPathHoC from '../DataPathHoC';
+import TwoFactorAuthModal from '../modals/TwoFactorAuth';
+import BackupCodesModal from '../modals/BackupCodes';
 
 const selector = formValueSelector('Profile')
 
@@ -133,7 +139,7 @@ export class ProfileSetting extends Component {
       this.props.profileSettings.data.profilePic !== ''
         ? this.props.profileSettings.data.profilePic
         : null
-    const { alertPhoneNumber, isVerified, email } = this.props.initialValues
+    const { alertPhoneNumber, isVerified, email, twoFactorAuthEnabled } = this.props.initialValues
 
     this.props.setAlertPhoneNumber(alertPhoneNumber)
     this.props.setProfilePic(profilePic)
@@ -141,6 +147,7 @@ export class ProfileSetting extends Component {
     this.props.setFileInputKey(new Date())
     this.props.setInitialAlertPhoneNumber(alertPhoneNumber)
     this.props.setUserEmail(email)
+    this.props.setTwoFactorAuth(twoFactorAuthEnabled);
   }
 
   componentDidUpdate(prevProps) {
@@ -186,6 +193,30 @@ export class ProfileSetting extends Component {
     }
   }
 
+  handleChange = () => {
+    const { profileSettings: { data }, updateTwoFactorAuthToken, openModal, setTwoFactorAuth } = this.props;
+    if (data.twoFactorAuthEnabled) {
+      updateTwoFactorAuthToken({twoFactorAuthEnabled:false, email: data.email}).then(() => {
+        setTwoFactorAuth(!data.twoFactorAuthEnabled);
+      });
+    } else {
+      openModal({
+        twoFactorAuthId: data.id,
+        onClose: () => '',
+        content: DataPathHoC(TwoFactorAuthModal, {})
+      });
+    }
+  }
+
+  handleShowBackupCodes = () => {
+    const { profileSettings: { data }, openModal } = this.props;
+    openModal({
+      twoFactorAuthId: data.id,
+      onClose: () => '',
+      content: DataPathHoC(BackupCodesModal, {})
+    });
+  }
+
   submitForm = values => {
     const initialAlertPhoneNumber = this.props.initialValues.alertPhoneNumber
     const { alertPhoneNumber, verified, removedPic } = this.props.profileSettingState
@@ -222,14 +253,14 @@ export class ProfileSetting extends Component {
   }
 
   render() {
-    var { profileSettingState, resendTimer, emailValue } = this.props
+    var { profileSettingState, resendTimer, emailValue, twoFactorAuthSetting } = this.props
     if (isNaN(resendTimer)) {
       resendTimer = parseInt(resendTimer, 10)
     }
     if (resendTimer < 1) {
       clearInterval(this.timer)
     }
-    const { initPhoneVerification, verified, initialAlertPhoneNumber, initPhoneVerificationNumber } = profileSettingState
+    const { initPhoneVerification, verified, initialAlertPhoneNumber, initPhoneVerificationNumber, twoFactorAuthEnabled } = profileSettingState
 
     if (initPhoneVerification && initPhoneVerificationNumber && initPhoneVerificationNumber !== profileSettingState.alertPhoneNumber) {
       this.props.setInitPhoneVerification(false)
@@ -646,6 +677,36 @@ export class ProfileSetting extends Component {
                         </div>
                       </div>
                     </div>
+										<div className='bs-Fieldset-row'>
+											<label className='bs-Fieldset-label'>Two Factor Auth</label>
+											<div className='bs-Fieldset-fields'>
+												<label className="Toggler-wrap">
+                          <input
+                            className="btn-toggler"
+                            type='checkbox'
+                            onChange={this.handleChange}
+                            name='twoFactorAuthEnabled'
+                            id='twoFactorAuthEnabled'
+                            checked={twoFactorAuthEnabled}
+                            />
+                          <span className="TogglerBtn-slider round"></span>
+                        </label>
+											</div>
+										</div>
+                    <ShouldRender if={twoFactorAuthEnabled}>
+                      <div className='bs-Fieldset-row' style={{ marginBottom: -5, marginTop: -5 }}>
+                        <label className='bs-Fieldset-label'></label>
+                        <div className='bs-Fieldset-fields'>
+                          <button
+                            className='bs-Button'
+                            disabled={profileSettings && profileSettings.requesting}
+                            type='button'
+                            onClick={this.handleShowBackupCodes}>
+                            <span>Show backup codes</span>
+                          </button>
+                        </div>
+                      </div>
+                    </ShouldRender>
                   </fieldset>
                 </div>
               </div>
@@ -657,12 +718,13 @@ export class ProfileSetting extends Component {
                 <div
                   className='Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart'
                   style={{ marginTop: '10px' }}>
-                  <ShouldRender if={profileSettings && profileSettings.error}>
+                  <ShouldRender if={(profileSettings && profileSettings.error) ||(twoFactorAuthEnabled && twoFactorAuthSetting && twoFactorAuthSetting.error)}>
                     <div className='Box-root Margin-right--8'>
                       <div className='Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex'></div>
                     </div>
                     <div className='Box-root'>
                       <span style={{ color: 'red' }}>{profileSettings && profileSettings.error}</span>
+                      <span style={{ color: 'red' }}>{twoFactorAuthEnabled && twoFactorAuthSetting && twoFactorAuthSetting.error}</span>
                     </div>
                   </ShouldRender>
                 </div>
@@ -710,7 +772,10 @@ const mapDispatchToProps = dispatch => {
       setInitialAlertPhoneNumber,
       setUserEmail,
       setResendTimer,
-      setInitAlertEmail
+      setInitAlertEmail,
+      setTwoFactorAuth,
+      updateTwoFactorAuthToken,
+      openModal,
     },
     dispatch
   )
@@ -731,6 +796,7 @@ function mapStateToProps(state) {
   return {
     fileUrl: state.profileSettings.file,
     profileSettings: state.profileSettings.profileSetting,
+    twoFactorAuthSetting: state.profileSettings.twoFactorAuthSetting,
     initialValues: initValues,
     projectId: state.project.currentProject !== null && state.project.currentProject._id,
     otp: state.form.Profile && state.form.Profile.values && state.form.Profile.values.otp,
@@ -780,6 +846,10 @@ ProfileSetting.propTypes = {
   setInitPhoneVerification: PropTypes.func.isRequired,
   setInitPhoneVerificationNumber: PropTypes.func.isRequired,
   setInitialAlertPhoneNumber: PropTypes.func.isRequired,
+  openModal: PropTypes.func.isRequired,
+  setTwoFactorAuth: PropTypes.func.isRequired,
+  updateTwoFactorAuthToken: PropTypes.func.isRequired,
+  twoFactorAuthSetting: PropTypes.oneOfType([PropTypes.object, PropTypes.oneOf([null, undefined])]),
   setIsVerified: PropTypes.func.isRequired,
   setProfilePic: PropTypes.func.isRequired,
   setRemovedPic: PropTypes.func.isRequired,

@@ -23,7 +23,7 @@ export class ResetPasswordForm extends Component {
     const resetPasswordError = this.props.resetPasswordState.error;
 		let header;
 		if (resetPasswordError) {
-			header = <span style={errorStyle}>{resetPasswordError}</span> 
+			header = <span style={errorStyle} id="error-msg">{resetPasswordError}</span> 
 		} else {
 			header = <span>Reset Password.</span>
 		}
@@ -39,10 +39,6 @@ export class ResetPasswordForm extends Component {
                   {header}
                 </h2>
               </div>
-
-              <p className="error-message hidden" />
-
-
               {this.props.resetPasswordState.success && <p id="reset-password-success" className="message"> An email is on its way to you. Follow the instructions to
 														reset your password. Please don&apos;t forget to check spam. </p>}
               {!this.props.resetPasswordState.success && <p className="message"> Enter your email address below and we will send you a link to
