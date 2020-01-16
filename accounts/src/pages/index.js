@@ -3,6 +3,8 @@ import Register from './Register';
 import ResetPassword from './ResetPassword';
 import ChangePassword from './ChangePassword';
 import ResendToken from './ResendToken';
+import VerifyAuthToken from './VerifyAuthToken';
+import VerifyBackupCode from './VerifyBackupCode';
 
 
 export default {
@@ -10,5 +12,7 @@ export default {
     Register,
     ChangePassword,
     Login,
-    ResendToken
+    ResendToken,
+    VerifyAuthToken,
+    VerifyBackupCode,
 }

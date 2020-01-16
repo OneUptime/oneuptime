@@ -5,7 +5,9 @@ const {
 	Login,
 	ResetPassword,
 	ChangePassword,
-	ResendToken
+	ResendToken,
+	VerifyAuthToken,
+	VerifyBackupCode
 } = pages;
 
 export const groups = [
@@ -62,7 +64,27 @@ export const groups = [
 				isPublic: true,
 				visible: true,
 				index: 5
-			}
+			},
+			{
+				title: 'Verify Authenticator Token',
+				path: '/user-auth/token',
+				icon: 'home',
+				component: VerifyAuthToken,
+				subRoutes: [],
+				isPublic: true,
+				visible: true,
+				index: 5
+			},
+			{
+				title: 'Verify Backup Code',
+				path: '/user-auth/backup',
+				icon: 'home',
+				component: VerifyBackupCode,
+				subRoutes: [],
+				isPublic: true,
+				visible: true,
+				index: 5
+			},
 		]
 	}
 ];
