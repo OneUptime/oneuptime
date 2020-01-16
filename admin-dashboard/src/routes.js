@@ -4,7 +4,8 @@ const {
 	Users,
 	User,
 	Projects,
-	Project
+	Project,
+	Probes
 } = pages;
 
 export const groups = [
@@ -45,6 +46,15 @@ export const groups = [
 					index: 1
 				}],
 				index: 2
+			},
+			{
+				title: 'Probes',
+				path: '/probes',
+				icon: 'atlas',
+				component: Probes,
+				visible: true,
+				subRoutes: [],
+				index: 3
 			},
 		]
 	},
