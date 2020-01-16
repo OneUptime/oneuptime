@@ -1,0 +1,333 @@
+<article id="monitor-category" class="cf-grid-container dev-doc-item-container">
+
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Monitor Category</h1>
+    </b>
+    <p>
+      <p>Monitor can be categorized in any way you like. Most of our customers categorize monitors by location - Eg:
+        US EAST, US WEST, EU. You can also categorize monitors by projects. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitorCategory/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <div class="attribute-parameter-container">
+
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+  </section>
+</article>
+
+<article id="MonitorCategory-create" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create a monitor category<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create a monitor category in the project.</p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitorCategory/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+      <ul class="doc-item-detail-container">
+        <li data-location="body">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="body">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorCategoryName</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Name for your monitor category.
+                </p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitorCategory/:projectId</p>
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+"api-key":"xxx",
+"monitorCategoryName":"US EAST"
+}
+              </p>
+            </code>
+          </pre>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+"_id": "5cf0415ad79fda043a0b0916",
+"createdAt": "2019-05-30T20:47:22.581Z",
+"projectId": "5ce6a2fd2ffa26020dbe00b7",
+"createdById": "5ce6a2f52ffa26020dbe00b6",
+"name": "US EAST",
+"__v": 0
+} 
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="MonitorCategory-getAll" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get all monitor categories by project<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get all monitor categories by project ID.</p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitorCategory/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String</h3>
+      <ul class="doc-item-detail-container">
+        <li data-location="Query">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for your Fyipe Project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="query">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type  ">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Items you would like to skip. This is used for pagination.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li data-location="query">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type ">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Number of items you want to get from the API.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code">
+          <p class="url"> https://api.fyipe.com/monitorCategory/:projectId?api-key=XXX&skip=0&limit=10</p>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                      <code class="language-json">
+                        <p>
+    {
+      "data": [
+        {
+      "name": "EU",
+      "_id": "5cef73a78b3eac1c10ec6ab2",
+      "createdAt": "2019-05-30T06:09:43.129Z"
+      },
+        {
+      "name": "US WEST",
+      "_id": "5cee7d95e194a35afba8b9aa",
+      "createdAt": "2019-05-29T12:39:49.062Z"
+      }
+      ],
+      "count": 2,
+      "skip":0,
+      "limit":10
+      }
+
+                        </p>
+  
+                      </code>
+                  </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="MonitorCategory-delete" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Delete a monitor category<span class="requestType">DELETE</span></h3>
+    <p>
+      <p> Delete a monitor category by ID.</p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitorCategory/:projectId/:monitorCategoryId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String</h3>
+      <ul class="doc-item-detail-container">
+        <li data-location="Query">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for your Fyipe Project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code">
+          <p class="url"> https://api.fyipe.com/monitorCategory/:projectId/:monitorCategoryId?api-key=XXX</p>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+"_id": "5ced0a7ed05b2e0ff15e0759",
+"createdAt": "2019-05-28T10:16:30.829Z",
+"projectId": "5ce6a2fd2ffa26020dbe00b7",
+"createdById": "5ce6a2f52ffa26020dbe00b6",
+"name": "US EAST",
+"__v": 0,
+}
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>

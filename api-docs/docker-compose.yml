@@ -1,8 +1,0 @@
-web:
-  build: .
-  ports:
-   - "80:1445"
-  volumes:
-   - .:/usr/src/app/
-  environment:
-   NODE_ENV: production

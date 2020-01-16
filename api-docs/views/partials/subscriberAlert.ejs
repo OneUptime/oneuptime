@@ -1,0 +1,175 @@
+<article id="subscriber-alerts" class="cf-grid-container dev-doc-item-container">
+
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Subscriber Alert</h1>
+    </b>
+    <p>
+      <p>Subscriber Alert are alerts sent to your subscribers for monitors they have subscribed to.
+      </p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/subscriberAlert/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+
+
+
+    <div class="attribute-parameter-container">
+
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+  </section>
+</article>
+
+
+<article id="Subscriber-alert-getAll" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get all subscriber alerts by Project<span class="requestType">GET</span></h3>
+    <p>
+      <p> Get all subscribers by Project </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/subscriberAlert/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String</h3>
+      <ul class="doc-item-detail-container">
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Number of items you would like to return from the API.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Number of items you would need to skip. This is used in pagination</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId (optional)</span>
+                <span class="item-type">String</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Set this value if you want to filter the results by Monitor</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/subscriberAlert/:projectId?skip=0&limit=10&api-key=XXX</p>
+
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                                  <code class="language-json">
+                                    <p>
+{
+"subscriberAlerts" [
+"_id": "qb0c129e36753400Xfdbc46P"
+"alertVia": "call",
+"status": "success"
+"subscriber": {
+  "_id": "eb0c129e36753400Xfdbc46l"
+  "alertVia": ["sms", "email"],
+  "monitors": [{ 
+    "_id": "Ab0c129e367534000fdbc46f", 
+    "name": "Sample Monitor"
+  }],
+  "contactEmail":"my@email.com",
+  "contactPhone": "+1-510-751-0204",
+}
+}],
+count:1,
+skip:0,
+limit:10
+}
+                                    
+                                    </p>
+              
+                                  </code>
+                              </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>

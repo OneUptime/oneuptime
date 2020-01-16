@@ -1,0 +1,716 @@
+<article id="incident" class="cf-grid-container dev-doc-item-container">
+
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Incidents</h1>
+    </b>
+    <p>
+      <p>Inidents are created when your monitor goes down. Incidents alerts team members which are responsible for
+        that monitor. Team members can Acknowledge the incident and when the issue is fixed, resolve it. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/incident/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+
+
+
+    <div class="attribute-parameter-container">
+
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+  </section>
+</article>
+
+<!-- POST  -->
+
+<article id="Incident-getAll" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Incident<span class="requestType">POST</span></h3>
+    <p>
+      <p> Create an incident for a monitor. If an unresolved incident exists, then it is returne and no new
+        incident is created. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/incident/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+      <ul class="doc-item-detail-container">
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>ID of the monitor you want to create incidents for.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/incident/:projectId</p>
+          <p>Request Body</p>
+          <pre><code class="language-json"><p>{
+"api-key":"xxx",
+"monitorId": "5b521b39f1a8f6000fce3839"
+}</p></code></pre>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                        <code class="language-json">
+                          <p>{
+"acknowledged": false,
+"resolved": false,
+"internalNote": "",
+"investigationNote": "",
+"_id": "5bf698dad2f835000fb63fb6",
+"createdAt": "2018-11-22T11:54:02.716Z",
+"project": {
+"_id": "5bd722c156f172000f33a2cc",
+"name": "Sample Project"
+},
+"subProjectId": "xf3cf7a6c6cc5a000fc523be",
+"monitor": {
+"_id": "5b521b39f1a8f6000fce3839",
+"name": "cloudboost",
+},
+"createdBy": {
+"_id": "5b0c1298367534000fdbc46e",
+"name": "Nawaz Dhandala"
+}
+}</p></code>
+                    </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="Incidents-By-Monitor-getAll" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get all incidents by Monitor<span class="requestType">GET</span></h3>
+    <p>
+      <p> Get the log of all incidents by Monitor. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/incident/:projectId/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String</h3>
+      <ul class="doc-item-detail-container">
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for your Fyipe Project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type  ">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Number of items you need from the API.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type  ">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Number of items you want to skip. This is used for pagination.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code">
+          <p class="url">
+            https://api.fyipe.com/incident/:projectId/:monitorId?api-key=XXX&limit=10&skip=0</p>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                        <code class="language-json">
+                          <p>{
+"data":
+[
+{
+  "acknowledged": false,
+  "resolved": false,
+  "internalNote": "",
+  "investigationNote": "",
+  "_id": "5bf698dad2f835000fb63fb6",
+  "createdAt": "2018-11-22T11:54:02.716Z",
+  "project": {
+    "_id": "5bd722c156f172000f33a2cc",
+    "name": "Sample Project"
+  },
+  "subProjectId": "xf3cf7a6c6cc5a000fc523be",
+  "monitor": {
+    "_id": "5b521b39f1a8f6000fce3839",
+    "name": "cloudboost",
+  },
+  "createdBy": {
+    "_id": "5b0c1298367534000fdbc46e",
+    "name": "Nawaz Dhandala"
+  },
+  
+},
+{
+  "acknowledged": false,
+  "resolved": false,
+  "internalNote": "",
+  "investigationNote": "",
+  "_id": "5bf698dad2f835000fb63fb6",
+  "createdAt": "2018-11-22T11:54:02.716Z",
+  "project": {
+    "_id": "5bd722c156f172000f33a2cc",
+    "name": "Sample Project"
+  },
+  "subProjectId": "xf3cf7a6c6cc5a000fc523be",
+  "monitor": {
+    "_id": "5b521b39f1a8f6000fce3839",
+    "name": "cloudboost",
+  },
+  "createdBy": {
+    "_id": "5b0c1298367534000fdbc46e",
+    "name": "Nawaz Dhandala"
+  },
+  
+}
+],
+"count":2,
+"skip":"0",
+"limit":"10"
+}</p>
+    
+                        </code>
+                    </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="Incidents-By-Project-getAll" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get all incidents by Project<span class="requestType">GET</span></h3>
+    <p>
+      <p> Get the log of all incidents by Project. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/incident/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String</h3>
+      <ul class="doc-item-detail-container">
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for your Fyipe Project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type  ">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Number of items you need from the API.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type  ">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Number of items you want to skip. This is used for pagination.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code">
+          <p class="url"> https://api.fyipe.com/incident/:projectId?api-key=XXX&limit=10&skip=0</p>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                        <code class="language-json">
+                          <p>{
+"data":
+[
+{
+  "acknowledged": false,
+  "resolved": false,
+  "internalNote": "",
+  "investigationNote": "",
+  "_id": "5bf698dad2f835000fb63fb6",
+  "createdAt": "2018-11-22T11:54:02.716Z",
+  "project": {
+    "_id": "5bd722c156f172000f33a2cc",
+    "name": "Sample Project"
+  },
+  "subProjectId": "xf3cf7a6c6cc5a000fc523be",
+  "monitor": {
+    "_id": "5b521b39f1a8f6000fce3839",
+    "name": "cloudboost",
+  },
+  "createdBy": {
+    "_id": "5b0c1298367534000fdbc46e",
+    "name": "Nawaz Dhandala"
+  },
+  
+},
+{
+  "acknowledged": false,
+  "resolved": false,
+  "internalNote": "",
+  "investigationNote": "",
+  "_id": "5bf698dad2f835000fb63fb6",
+  "createdAt": "2018-11-22T11:54:02.716Z",
+  "project": {
+    "_id": "5bd722c156f172000f33a2cc",
+    "name": "Sample Project"
+  },
+  "subProjectId": "xf3cf7a6c6cc5a000fc523be",
+  "monitor": {
+    "_id": "5b521b39f1a8f6000fce3839",
+    "name": "cloudboost",
+  },
+  "createdBy": {
+    "_id": "5b0c1298367534000fdbc46e",
+    "name": "Nawaz Dhandala"
+  },
+  
+}
+],
+"count":2,
+"skip":"0",
+"limit":"10"
+}</p>
+    
+                        </code>
+                    </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="Incident-get" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get incident by Incident ID<span class="requestType">GET</span></h3>
+    <p>
+      <p> Get the incident by Incident ID. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/incident/:projectId/:incidentId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String</h3>
+      <ul class="doc-item-detail-container">
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for your Fyipe Project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code">
+          <p class="url"> https://api.fyipe.com/incident/:projectId/:incidentId?api-key=XXX</p>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                        <code class="language-json">
+                          <p>{
+"acknowledged": false,
+"resolved": false,
+"internalNote": "",
+"investigationNote": "",
+"_id": "5bf698dad2f835000fb63fb6",
+"createdAt": "2018-11-22T11:54:02.716Z",
+"project": { 
+  "_id": "5bd722c156f172000f33a2cc",
+  "name": "Sample Project"
+},
+"subProjectId": "xf3cf7a6c6cc5a000fc523be",
+"monitor": {
+"_id": "5b521b39f1a8f6000fce3839",
+"name": "cloudboost",
+},
+"createdBy": {
+"_id": "5b0c1298367534000fdbc46e",
+"name": "Nawaz Dhandala"
+},
+}</p>
+    
+                        </code>
+                    </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<!-- POST  -->
+
+<article id="Incident-update" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Update an incident<span class="requestType">PUT</span></h3>
+    <p>
+      <p> Update an incident (acknowledge it, resolve it, or post investigation notes or internal notes) </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/incident/:projectId/:incidentId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+      <ul class="doc-item-detail-container">
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>resolved</span>
+                <span class="item-type">boolean</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Is this incident resolved?</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>acknowledged</span>
+                <span class="item-type">boolean</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Is this incident acknowledged?</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>internalNote</span>
+                <span class="item-type">boolean</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Internal note for your team</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>investigationNote</span>
+                <span class="item-type">boolean</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Investigation note that will be posted to status page.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/incident/:projectId/:incidentId</p>
+          <p>Request Body</p>
+          <pre><code class="language-json"><p>{
+"api-key":"xxx",
+"acknowledged": true
+}</p></code></pre>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                        <code class="language-json">
+                          <p>
+{
+"acknowledged": true,
+"resolved": false,
+"internalNote": "",
+"investigationNote": "",
+"_id": "5bf698dad2f835000fb63fb6",
+"createdAt": "2018-11-22T11:54:02.716Z",
+"project": {
+"_id": "5bd722c156f172000f33a2cc",
+"name": "Sample Project"
+},
+"subProjectId": "xf3cf7a6c6cc5a000fc523be",
+"monitor": {
+"_id": "5b521b39f1a8f6000fce3839",
+"createdAt": "2018-07-20T17:26:17.087Z",
+"pollTime": "2018-10-28T07:35:28.736Z",
+"updateTime": "2018-10-28T00:00:18.320Z",
+"createdBy": "5b0c1298367534000fdbc46e",
+"name": "cloudboost",
+"type": "url",
+"data": {
+  "url": "https://cloudboost.io/"
+},
+"project": {  
+  "_id": "5bd722c156f172000f33a2cc",
+  "name": "Sample Project"
+}
+},
+"createdBy": {
+"_id": "5b0c1298367534000fdbc46e",
+"name": "Nawaz Dhandala"
+},
+"acknowledgedBy":{
+"_id": "5b0c1298367534000fdbc46e",
+"name": "Nawaz Dhandala"
+},
+"acknowledgedAt": "2018-11-22T11:54:02.716Z", 
+}
+                          
+                          </p>
+    
+                        </code>
+                    </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>

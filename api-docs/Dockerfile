@@ -13,7 +13,7 @@ RUN npm ci
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 1445: CloudBoost Dcos
+#   - 1445: Fyipe Dcos
 EXPOSE 1445
 
 #Run the app

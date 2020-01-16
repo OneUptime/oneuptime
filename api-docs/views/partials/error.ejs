@@ -1,0 +1,69 @@
+<div id="errors" class="cf-grid-container dev-doc-item-container dev-doc-description-container">
+  <div class="col-lg-half col-md-half dev-doc-item">
+    <h1>Errors</h1>
+    <p>
+      <p>The Fyipe Developers API uses standard HTTP response codes for responses. These HTTP codes indicate
+        whether or not an API operation is successful.</p>
+      <p>Status Code 200 is the desired response code. A standard JSON response will follow.</p>
+      <p>Codes in the 400s range detail all of the errors a Fyipe Developer could encounter while using the API.
+        Bad Request, Rate Limit Reached, and Unauthorized are some of the sorts of responses in the 400s block.</p>
+      <p>Codes in the 500s range are error responses from the Fyipe system. If an error has occured anywhere in the
+        execution of a resource that was not due to user input, a 500 response will be returned with a
+        corresponding JSON
+        error body. In that body will contain a message detailing what went wrong.</p>
+    </p>
+  </div>
+  <div class="col-lg-half col-md-half dev-doc-example">
+    <div class="doc-example-item">
+      <h1>HTTP Status Codes</h1>
+      <div class="example-table">
+        <ul>
+
+          <li>
+            <div class="col-lg-third-1 col-md-half status-title">200</div>
+            <div class="col-lg-third-2 col-md-half status-description">OK - Everything went as planned</div>
+          </li>
+
+          <li>
+            <div class="col-lg-third-1 col-md-half status-title">204</div>
+            <div class="col-lg-third-2 col-md-half status-description">NO CONTENT - Request fulfilled, but no body
+            </div>
+          </li>
+
+          <li>
+            <div class="col-lg-third-1 col-md-half status-title">400</div>
+            <div class="col-lg-third-2 col-md-half status-description">BAD REQUEST - The request was formatted
+              improperly
+            </div>
+          </li>
+
+          <li>
+            <div class="col-lg-third-1 col-md-half status-title">401</div>
+            <div class="col-lg-third-2 col-md-half status-description">UNAUTHORIZED - API Key missing or invalid
+            </div>
+          </li>
+
+          <li>
+            <div class="col-lg-third-1 col-md-half status-title">403</div>
+            <div class="col-lg-third-2 col-md-half status-description">FORBIDDEN - Insufficient permissions</div>
+          </li>
+
+          <li>
+            <div class="col-lg-third-1 col-md-half status-title">404</div>
+            <div class="col-lg-third-2 col-md-half status-description">NOT FOUND - The resource requested does not
+              exist
+            </div>
+          </li>
+
+          <li>
+            <div class="col-lg-third-1 col-md-half status-title">500</div>
+            <div class="col-lg-third-2 col-md-half status-description">INTERNAL ERROR - We had an error! Sorry
+              about
+              that.</div>
+          </li>
+
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

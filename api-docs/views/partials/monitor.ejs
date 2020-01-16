@@ -1,0 +1,738 @@
+<article id="monitor" class="cf-grid-container dev-doc-item-container">
+
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Monitors</h1>
+    </b>
+    <p>
+      <p>Monitors are the one's that actually monitors your resource, and creates a new incident when something
+        unexpected happens. Resource can be a URL, Device, Server, Application or a Process. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+
+
+
+    <div class="attribute-parameter-container">
+
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+  </section>
+</article>
+
+<article id="Monitor-create" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create a monitor<span class="requestType">POST</span></h3>
+    <p>
+      <p> Create a monitor in the project. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+      <ul class="doc-item-detail-container">
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>name</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Monitor Name</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorCategoryId (optional)</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Monitor category ID of the monitor category you want to attach with the monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>type</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Monitor Type- This can be `url` if you monitor a URL, can be `device` if you want to monitor a
+                  device or can be `manual` like the monitor to not monitor anything.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>type</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Monitor Type- This can be `url` if you monitor a URL, can be `device` if you want to monitor a
+                  device or can be `manual` like the monitor to not monitor anything.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>data</span>
+                <span class="item-type">json</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>If monitor type is `url`. Data should be {url: 'https://anyurl.com'} which is the URL that you
+                  would like to monitor. <br /> If monitor type is `device`. Data should be `{deviceId: 'any-id'}.
+                  Device ID is any ID of an IoT device that you would like to monitor. <br /> If Monitor Type is
+                  `Manual`. Data can be null. </p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+
+      </ul>
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/:projectId</p>
+          <p>Request Body</p>
+          <pre><code class="language-json"><p>{
+"api-key":"xxx",
+"name": "Google",
+"type": "url",
+"monitorCategoryId":"5cf5f4c27428480b750ae199",
+"data": {
+"url": "https://google.com"
+}
+}</p></code></pre>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                      <code class="language-json">
+                        <p>{
+"_id": "5b521b39f1a8f6000fce3839",
+"createdAt": "2018-07-20T17:26:17.087Z",
+"pollTime": "2018-10-28T07:35:28.736Z",
+"updateTime": "2018-10-28T00:00:18.320Z",
+"createdBy": "5b0c1298367534000fdbc46e",
+"name": "Google",
+"type": "url",
+"monitorCategoryId":"5cf5f4c27428480b750ae199",
+"data": {
+"url": "https://google.com/"
+},
+"project": {  
+"_id": "5bd722c156f172000f33a2cc",
+"name": "Sample Project"
+},
+} </p>
+  
+                      </code>
+                  </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="Monitor-update" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Update a monitor<span class="requestType">PUT</span></h3>
+    <p>
+      <p> Update a monitor in the project. You cannot change the type of the monitor. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+      <ul class="doc-item-detail-container">
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>name</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Monitor Name</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>type</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Monitor Type- This can be `url` if you monitor a URL, can be `device` if you want to monitor a
+                  device or can be `manual` like the monitor to not monitor anything.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>data</span>
+                <span class="item-type">json</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>If monitor type is `url`. Data should be {url: 'https://anyurl.com'} which is the URL that you
+                  would like to monitor. <br /> If monitor type is `device`. Data should be `{deviceId: 'any-id'}.
+                  Device ID is any ID of an IoT device that you would like to monitor. <br /> If Monitor Type is
+                  `Manual`. Data can be null. </p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+
+      </ul>
+    </div>
+
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/:projectId/:monitorId</p>
+          <p>Request Body</p>
+          <pre><code class="language-json"><p>{
+"api-key":"xxx",
+"name": "Google",
+"data": {
+"url": "https://google.com"
+}
+}</p></code></pre>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                      <code class="language-json">
+                        <p>{
+"_id": "5b521b39f1a8f6000fce3839",
+"createdAt": "2018-07-20T17:26:17.087Z",
+"pollTime": "2018-10-28T07:35:28.736Z",
+"updateTime": "2018-10-28T00:00:18.320Z",
+"createdBy": "5b0c1298367534000fdbc46e",
+"name": "Google",
+"type": "url",
+"data": {
+"url": "https://google.com/"
+},
+"project": {
+"_id": "5bd722c156f172000f33a2cc",
+"name": "Sample Project"
+},
+}</p>
+  
+                      </code>
+                  </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="Monitor-getAll" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get all monitors by Project ID<span class="requestType">GET</span></h3>
+    <p>
+      <p> Get all monitors by Project ID. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String</h3>
+      <ul class="doc-item-detail-container">
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for your Fyipe Project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type  ">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Items you would like to skip. This is used for pagination.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type ">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Number of items you want to get from the API.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code">
+          <p class="url"> https://api.fyipe.com/monitor/:projectId?api-key=XXX&skip=0&limit=10</p>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                      <code class="language-json">
+                        <p>
+{
+"monitors":
+[
+{
+  "_id": "5b521b39f1a8f6000fce3839",
+  "createdAt": "2018-07-20T17:26:17.087Z",
+  "pollTime": "2018-10-28T07:35:28.736Z",
+  "updateTime": "2018-10-28T00:00:18.320Z",
+  "createdBy": "5b0c1298367534000fdbc46e",
+  "name": "cloudboost",
+  "type": "url",
+  "data": {
+    "url": "https://cloudboost.io/"
+  },
+  "project": {  
+    "_id": "5bd722c156f172000f33a2cc",
+    "name": "Sample Project"
+  },
+}
+],
+"count":1,
+"skip":"0",
+"limit":"10"
+}
+                        
+                        </p>
+  
+                      </code>
+                  </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="Monitor-get" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get monitor by monitor ID<span class="requestType">GET</span></h3>
+    <p>
+      <p> Get all monitors by Monitor ID. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String</h3>
+      <ul class="doc-item-detail-container">
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for your Fyipe Project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code">
+          <p class="url"> https://api.fyipe.com/monitor/:projectId/:monitorId?api-key=XXX</p>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                      <code class="language-json">
+                        <p>{
+"_id": "5b521b39f1a8f6000fce3839",
+"createdAt": "2018-07-20T17:26:17.087Z",
+"pollTime": "2018-10-28T07:35:28.736Z",
+"updateTime": "2018-10-28T00:00:18.320Z",
+"createdBy": "5b0c1298367534000fdbc46e",
+"name": "cloudboost",
+"type": "url",
+"data": {
+"url": "https://cloudboost.io/"
+},
+"project": {  
+"_id": "5bd722c156f172000f33a2cc",
+"name": "Sample Project"
+},
+
+}</p>
+  
+                      </code>
+                  </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<!-- DELETE -->
+
+<article id="Monitor-delete" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Delete a monitor<span class="requestType">DELETE</span></h3>
+    <p>
+      <p> Delete a monitor by Monitor ID </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String</h3>
+      <ul class="doc-item-detail-container">
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for your Fyipe Project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code">
+          <p class="url"> https://api.fyipe.com/monitor/:projectId/:monitorId?api-key=XXX</p>
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                      <code class="language-json">
+                        <p>
+{
+"_id": "5b521b39f1a8f6000fce3839",
+"createdAt": "2018-07-20T17:26:17.087Z",
+"pollTime": "2018-10-28T07:35:28.736Z",
+"updateTime": "2018-10-28T00:00:18.320Z",
+"createdBy": "5b0c1298367534000fdbc46e",
+"name": "cloudboost",
+"type": "url",
+"data": {
+"url": "https://cloudboost.io/"
+},
+"project": {  
+"_id": "5bd722c156f172000f33a2cc",
+"name": "Sample Project"
+},
+
+}
+                        </p>
+  
+                      </code>
+                  </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="Monitor-Device-update" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Update Monitor of Type Device <span class="requestType">POST</span> or <span class="requestType">GET</span>
+    </h3>
+    <p>
+      <p> Monitor of Type device needs to send a post or a get request in order to keep the monitor updated. If the
+        monitor is not updated, then an incident is automatically created and that alerts the team. </p>
+    </p>
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/inbound/:deviceId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query String or Body</h3>
+      <ul class="doc-item-detail-container">
+
+        <li data-location="header">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type  ">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for your Fyipe Project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+        <div class="example-code">
+          <p class="url"> https://api.fyipe.com/monitor/:projectId/inbound/:deviceId?api-key=XXX</p>
+
+        </div>
+
+      </div>
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                      <code class="language-json">
+                        <p>
+{
+
+}
+                        
+                        </p>
+  
+                      </code>
+                  </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
