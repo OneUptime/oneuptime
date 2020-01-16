@@ -39,10 +39,18 @@
             </li>
 
             <li class="navSection secondary">
+                <% if(!support) { %>
                 <a class="rootLink item-support colorize" href="/support" data-analytics-action="support"
                     data-analytics-source="global_nav">
                     Support
                 </a>
+                <% } %>
+                <% if(support) { %>
+                <a class="rootLink item-support colorize" href="/enterprise/overview" data-analytics-action="support"
+                    data-analytics-source="global_nav">
+                    Enterprises
+                </a>
+                <% } %>
                 <a class="rootLink item-dashboard colorize" data-adroll-segment='submit_two' href="#"
                     onclick="loginUrl()" data-analytics-source="global_nav" data-analytics-action="sign_in">
                     Sign in
