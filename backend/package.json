@@ -57,7 +57,7 @@
     "pretest": "eslint --fix --ignore-path .gitignore .",
     "start": "node server.js",
     "dev": "cross-env NODE_ENV=development nodemon server.js",
-    "test": "cross-env NODE_ENV=development mocha --exit",
+    "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "lint": "eslint ."
   },
