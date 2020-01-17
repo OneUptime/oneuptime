@@ -38,7 +38,5 @@ describe('API limit rate', function () {
     });
     after(function () {
         sandbox.restore();
-        delete require.cache[require.resolve( '../server' )]
-        app.close();
     });
 });
