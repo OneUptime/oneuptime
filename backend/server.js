@@ -22,7 +22,7 @@ agenda.define('update active team on rotation', async (job, done) => {
 
 (async function() {
     await agenda.start();
-    await agenda.every('5 minutes', 'update active team on rotation');
+    await agenda.every('12 hours', 'update active team on rotation');
 })();
 
 var { NODE_ENV } = process.env;
