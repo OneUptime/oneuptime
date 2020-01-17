@@ -62,9 +62,8 @@ describe('Zapier API', function () {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await ZapierService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
-        request.get('/').end(function () {
-            request.close();
-        });
+        delete require.cache[require.resolve( '../server' )];
+        app.close();
     });
 
     it('should not subscribe to zapier when missing apiKey in query', function (done) {

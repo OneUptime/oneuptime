@@ -40,7 +40,7 @@
     "moment-timezone": "^0.5.27",
     "npm": "^6.13.4",
     "prop-types": "^15.6.1",
-    "puppeteer": "^1.19.0",
+    "puppeteer": "1.19.0",
     "puppeteer-cluster": "^0.17.0",
     "qrcode.react": "^1.0.0",
     "query-string": "^5.1.1",

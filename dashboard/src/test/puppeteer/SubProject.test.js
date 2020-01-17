@@ -6,8 +6,8 @@ const { Cluster } = require('puppeteer-cluster');
 
 // user credentials
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
-let userCredentials, subProjectName;
+let password = '1234567890';
+let subProjectName;
 
 describe('Sub-Project API', () => {
     const operationTimeOut = 50000;
@@ -33,30 +33,6 @@ describe('Sub-Project API', () => {
                 password: data.password
             }
 
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => {
-                const signInResponse = userCredentials;
-
-                if((await request.url()).match(/user\/login/)){
-                    request.respond({
-                        status: 200,
-                        contentType: 'application/json',
-                        body: JSON.stringify(signInResponse)
-                    });
-                }else{
-                    request.continue();
-                }
-            });
-            await page.on('response', async (response)=>{
-                try{
-                    const res = await response.json();
-                    if(res && res.tokens){
-                        userCredentials = res;
-                    }
-                }catch(error){}
-            });
-
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
@@ -80,7 +56,7 @@ describe('Sub-Project API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -92,11 +68,6 @@ describe('Sub-Project API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector('#projectSettings');
@@ -116,7 +87,7 @@ describe('Sub-Project API', () => {
             expect(await (await spanSelector.getProperty('textContent')).jsonValue()).toEqual('Subproject name must be present.')
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();
@@ -129,7 +100,7 @@ describe('Sub-Project API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -141,11 +112,6 @@ describe('Sub-Project API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
 
@@ -172,7 +138,7 @@ describe('Sub-Project API', () => {
             expect(await (await subProjectSelector.getProperty('textContent')).jsonValue()).toEqual(subProjectName)
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();
@@ -185,7 +151,7 @@ describe('Sub-Project API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -197,11 +163,6 @@ describe('Sub-Project API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
 
@@ -228,7 +189,7 @@ describe('Sub-Project API', () => {
             subProjectName = subProjectName + editSubProjectName
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();
@@ -241,7 +202,7 @@ describe('Sub-Project API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -253,11 +214,6 @@ describe('Sub-Project API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
 
@@ -280,7 +236,7 @@ describe('Sub-Project API', () => {
             expect(await (await spanSelector.getProperty('textContent')).jsonValue()).toEqual('You already have a sub-project with same name.')
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();
@@ -293,7 +249,7 @@ describe('Sub-Project API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -305,11 +261,6 @@ describe('Sub-Project API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector('#projectSettings');
@@ -325,7 +276,7 @@ describe('Sub-Project API', () => {
             expect(subProjectSelector).toEqual(null)
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();

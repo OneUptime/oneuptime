@@ -6,8 +6,7 @@ const { Cluster } = require('puppeteer-cluster');
 
 // user credentials
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
-let userCredentials;
+let password = '1234567890';
 
 describe('Monitor Category', () => {
     const operationTimeOut = 50000;
@@ -32,30 +31,6 @@ describe('Monitor Category', () => {
                 email: data.email,
                 password: data.password
             }
-            
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => {
-                const signInResponse = userCredentials;
-
-                if((await request.url()).match(/user\/login/)){
-                    request.respond({
-                        status: 200,
-                        contentType: 'application/json',
-                        body: JSON.stringify(signInResponse)
-                    });
-                }else{
-                    request.continue();
-                }
-            });
-            await page.on('response', async (response)=>{
-                try{
-                    const res = await response.json();
-                    if(res && res.tokens){
-                        userCredentials = res;
-                    }
-                }catch(error){}
-            });
 
             // user
             await init.registerUser(user, page);
@@ -80,7 +55,7 @@ describe('Monitor Category', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -92,11 +67,6 @@ describe('Monitor Category', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector('#projectSettings');
@@ -115,7 +85,7 @@ describe('Monitor Category', () => {
             expect(createdMonitorCategoryName).toEqual(utils.monitorCategoryName);
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();
@@ -128,7 +98,7 @@ describe('Monitor Category', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -140,11 +110,6 @@ describe('Monitor Category', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
 
@@ -160,7 +125,7 @@ describe('Monitor Category', () => {
             expect(monitorCategoryCheck).toEqual(true);
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();
@@ -171,7 +136,7 @@ describe('Monitor Category', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -183,11 +148,6 @@ describe('Monitor Category', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector('#frmNewMonitor');
@@ -207,7 +167,7 @@ describe('Monitor Category', () => {
             expect(createdMonitorName).toEqual(utils.monitorName);
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();
@@ -220,7 +180,7 @@ describe('Monitor Category', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -232,11 +192,6 @@ describe('Monitor Category', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector('#projectSettings');
@@ -258,7 +213,7 @@ describe('Monitor Category', () => {
             expect(monitorCategoryCount).toEqual("0 Monitor Category");
         });
 
-        cluster.queue({ email, password, userCredentials });
+        cluster.queue({ email, password });
         await cluster.idle();
         await cluster.close();
         done();
