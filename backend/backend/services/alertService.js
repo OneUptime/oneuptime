@@ -195,7 +195,11 @@ module.exports = {
                                 }
                                 var escalation = await EscalationService.findOneBy({ _id: escalationId });
                                 if (escalation) {
-                                    const { activeTeam } = escalation;
+                                    const { activeTeam, estimatedSwitchTime } = escalation;
+                                    const currentDate = new Date();
+                                    if (moment(estimatedSwitchTime).isSameOrBefore(currentDate))
+                                        await switchActiveTeam();
+                                    
                                     activeTeam.teamMember.forEach(async (teamMember) => {
                                         const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
                                         if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) {
@@ -578,3 +582,4 @@ var { twilioAlertLimit } = require('../config/twilio');
 var SmsCountService = require('./smsCountService');
 const momentTz = require('moment-timezone');
 const TimeZoneNames = momentTz.tz.names();
+const switchActiveTeam = require('./escalationService').switchActiveTeam;
