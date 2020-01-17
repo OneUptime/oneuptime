@@ -126,7 +126,7 @@ export class MonitorDetail extends Component {
         const probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
         const probeData = this.filterProbeData(monitor, probe);
 
-        const status = getMonitorStatus(monitor.incidentsRange, probeData);
+        const status = getMonitorStatus(monitor.incidentsRange || monitor.incidents, probeData);
 
         const creating = create || false;
 
@@ -240,7 +240,7 @@ export class MonitorDetail extends Component {
                         <div className="btn-group">
                             {monitor && monitor.probes.map((location, index) => {
                                 let probeData = this.filterProbeData(monitor, location);
-                                let status = getMonitorStatus(monitor.incidentsRange, probeData);
+                                let status = getMonitorStatus(monitor.incidentsRange || monitor.incidents, probeData);
                                 let probe = probes.filter(probe => probe._id === location._id);
                                 let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
 
