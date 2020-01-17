@@ -189,9 +189,9 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                               type="text"
                                                               id="rotationFrequency"
                                                               options={[
-                                                                { value: 'day', label: 'Day'},
-                                                                { value: 'week', label: 'Week'},
-                                                                { value: 'month', label: 'Month'}
+                                                                { value: 'days', label: 'Day'},
+                                                                { value: 'weeks', label: 'Week'},
+                                                                { value: 'months', label: 'Month'}
                                                               ]}
                                                               component={RenderRotationFrequency}
                                                               rotationFrequency={rotationFrequency}
