@@ -53,7 +53,7 @@ class Projects extends React.Component {
     render(){
         return (
             <Dashboard ready={this.ready}>
-                <div onKeyDown={this.handleKeyBoard} >
+                <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">
@@ -61,7 +61,7 @@ class Projects extends React.Component {
                                     className="customers-list-view react-view popover-container"
                                     style={{ position: 'relative', overflow: 'visible' }}
                                 ></div>
-                                <div className="bs-BIM" style={{marginTop:'60px'}}>
+                                <div className="bs-BIM">
                                     <div className="Box-root Margin-bottom--12">
                                         <div className="bs-ContentSection Card-root Card-shadow--medium">
                                         <div className="Box-root">
@@ -71,7 +71,7 @@ class Projects extends React.Component {
                                                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                                             <span style={{'textTransform':'capitalize'}}>Fyipe Projects</span>
                                                             </span>
-                                                            <span style={{'textTransform':'lowercase'}} className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                 <span>Here is a list of all fyipe projects</span>
                                                             </span>
                                                         </div>
