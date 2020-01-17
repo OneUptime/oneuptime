@@ -197,6 +197,7 @@ export class PrivateStatusPage extends Component {
                                                             <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
                                                                 <label>
                                                                     <button
+                                                                        type="button"
                                                                         className="button-as-anchor"
                                                                         style={{ cursor: 'pointer' }}
                                                                         onClick={() => {
