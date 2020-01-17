@@ -28,6 +28,7 @@ import page from './page';
 import probe from './probe';
 import version from './version';
 import tutorial from './tutorial';
+import dateTime from './dateTime';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -58,7 +59,8 @@ const appReducer = combineReducers({
     page,
     probe,
     version,
-    tutorial
+    tutorial,
+    dateTime
 });
 
 export default (state, action) => {
