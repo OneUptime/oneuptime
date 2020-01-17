@@ -230,7 +230,7 @@ describe('Projects SubProjects API', function () {
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send(
             { subProjectName: 'New SubProject' }
         ).end(function (err, res) {
-            subProjectId = res.body._id;
+            subProjectId = res.body[0]._id;
             expect(res).to.have.status(200);
             done();
         });
