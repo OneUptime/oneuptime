@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import Select from 'react-select-fyipe';
 import { Field } from 'redux-form';
 import { RenderInterval } from './RenderInterval';
-import { RenderField } from './RenderField';
 
 const RenderRotationFrequency = ({
     input, placeholder, className,

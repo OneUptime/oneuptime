@@ -1,129 +1,29 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types'
-import { Field } from 'redux-form';
 import { connect } from 'react-redux';
 import { formValueSelector } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
-import TimezoneSelector from './TimezoneSelector';
-import TeamSelector from './TeamSelector';
-import TimeSelector from './TimeSelector';
+import { RenderName } from './RenderName';
 
 let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex, teamIndex, form }) => {
     const policyRotation = form[policyIndex].team[teamIndex];
-    const [timeVisible, setTimeVisible] = useState(false);
-    const [forcedTimeHide, forceTimeHide] = useState(false);
-
-    const manageVisibility = (timeVisible, memberHasCallTimes) => {
-        setTimeVisible(timeVisible);
-        if (memberHasCallTimes && !timeVisible) {
-            forceTimeHide(true);
-        }
-
-        if (memberHasCallTimes && timeVisible) {
-            forceTimeHide(false);
-        }
-    }
 
     return (
         <ul>
             {
                 fields.map((inputarray, i) => {
                     const memberValue = policyRotation.teamMember[i];
-                    const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
-                    const showTimes = memberHasCallTimes ? (!forcedTimeHide) : timeVisible;
+                    
                     return (
-                        <li key={i}>
-
-                            <div className="bs-Fieldset-row">
-                                <label className="bs-Fieldset-label">Team Member {i + 1}</label>
-                                <div className="bs-Fieldset-fields">
-                                    <Field
-                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                        type="text"
-                                        name={`${inputarray}.member`}
-                                        component={TeamSelector}
-                                        placeholder="Nawaz"
-                                        subProjectId={subProjectId}
-                                        policyIndex={policyIndex}
-                                        teamIndex={teamIndex}
-                                    />
-                                </div>
-                            </div>                            
-
-                            <div className="bs-Fieldset-row">
-                                <label className="bs-Fieldset-label">Time : </label>
-                                {!showTimes ? (
-                                    <text
-                                        className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base"
-                                        style={{ marginTop: '5px', cursor: 'pointer' }}
-                                        onClick={(() => manageVisibility(true, memberHasCallTimes))}
-                                    >Add on-call duty times</text>
-                                ) : (
-                                  <div className="bs-Fieldset-fields">
-                                    <div className="bs-Fieldset-row" style={{paddingLeft:'0px',paddingTop:'0px'}}>
-                                        <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>From</label>
-                                        <div className="bs-Fieldset-fields">
-                                            <Field
-                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                type="text"
-                                                name={`${inputarray}.startTime`}
-                                                component={TimeSelector}
-                                                placeholder="10pm"
-                                                style={{width:'250px'}}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="bs-Fieldset-row" style={{paddingLeft:'0px'}}>
-                                        <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>To</label>
-                                        <div className="bs-Fieldset-fields">
-                                            <Field
-                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                type="text"
-                                                name={`${inputarray}.endTime`}
-                                                component={TimeSelector}
-                                                placeholder="11pm"
-                                                style={{width:'250px'}}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="bs-Fieldset-row" style={{paddingLeft:'0px'}}>
-                                      <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}></label>
-                                      <div className="bs-Fieldset-fields">
-                                          <Field
-                                              className="db-BusinessSettings-input TextInput bs-TextInput"
-                                              type="text"
-                                              name={`${inputarray}.timezone`}
-                                              component={TimezoneSelector}
-                                              style={{width:'250px'}}
-                                              placeholder="CXT - Christmas"
-                                          />
-                                      </div>
-                                  </div>
-                                  <text
-                                      className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base"
-                                      style={{ marginTop: '5px', cursor: 'pointer' }}
-                                      onClick={(() => manageVisibility(false, memberHasCallTimes))}
-                                  >Remove on-call duty times</text>
-                                </div>
-                                )}
-                            </div>
-                            <ShouldRender if={fields.length > 1}>
-                            <div className="bs-Fieldset-row">
-                                <label className="bs-Fieldset-label"></label>
-                                <div className="bs-Fieldset-fields">
-                                    <div className="Box-root Flex-flex Flex-alignItems--center">
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton"
-                                            type="button"
-                                            onClick={() => fields.remove(i)}
-                                        >
-                                            Remove Member
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            </ShouldRender>
-                        </li>
+                        <RenderName
+                            memberValue={memberValue}
+                            subProjectId={subProjectId}
+                            policyIndex={policyIndex}
+                            teamIndex={teamIndex}
+                            inputarray={inputarray}
+                            nameIndex={i}
+                            fields={fields}
+                        />
                     )
                 })
             }
