@@ -31,7 +31,12 @@ var monitorSchema = new Schema({
         {
             probeId: { type: String, ref: 'Probe' },
             updatedAt: { type: Date },
-            status: { type: Boolean, default: true }
+            status: { type: Boolean, default: true },
+            reportedStatus:{
+                type: String,
+                enum: ['online', 'offline', 'degraded'],
+                required: false
+            }
         }
     ],
     resolvedBy: { type: String, ref: 'User' }, // userId

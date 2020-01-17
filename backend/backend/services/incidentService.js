@@ -57,7 +57,8 @@ module.exports = {
                     incident.probes = [{
                         probeId: data.probeId,
                         updatedAt: Date.now(),
-                        status: true
+                        status: true,
+                        reportedStatus:data.incidentType
                     }];
                 }
                 if (data.manuallyCreated) {

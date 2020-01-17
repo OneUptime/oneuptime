@@ -314,7 +314,8 @@ module.exports = {
                             probes: incident.probes.concat({
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
-                                status: true
+                                status: true,
+                                reportedStatus:data.status
                             })
                         });
                     });
@@ -338,7 +339,8 @@ module.exports = {
                             probes: incident.probes.concat({
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
-                                status: true
+                                status: true,
+                                reportedStatus:data.status
                             })
                         });
                     });
@@ -362,7 +364,8 @@ module.exports = {
                             probes: incident.probes.concat({
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
-                                status: true
+                                status: true,
+                                reportedStatus:data.status
                             })
                         });
                     });
@@ -413,7 +416,8 @@ module.exports = {
                     probes: v1.probes.concat([{
                         probeId: data.probeId,
                         updatedAt: Date.now(),
-                        status: false
+                        status: false,
+                        reportedStatus:data.status
                     }])
                 });
                 incidentsV2.push(newIncident);
