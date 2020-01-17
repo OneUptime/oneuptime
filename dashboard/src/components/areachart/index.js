@@ -53,7 +53,7 @@ class AreaChart extends Component {
             const _data = (type === 'server-monitor' ? data.flatMap(a => {
                 return { name: a.intervalDate, v: this.parseValue(a, name), display: this.parseValue(a, name, true, symbol) };
             }) : type === 'manual' ? data.map(a => {
-                return { name: this.parseDate(a.date), v: this.parseValue(a.downTime), display: this.parseValue(a.downTime, null, true, symbol) };
+                return { name: this.parseDate(a.date), v: -this.parseValue(a.downTime), display: this.parseValue(a.downTime, null, true, symbol) };
             }) : data.map(a => {
                 return {
                     name: a.intervalDate || this.parseDate(a.createdAt),

@@ -165,7 +165,7 @@ describe('Team API with Sub-Projects', async function () {
         var authorization = `Basic ${token}`;
         // create a subproject for parent project
         var res1 = await request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({ subProjectName: 'New SubProject' });
-        subProjectId = res1.body._id;
+        subProjectId = res1.body[0]._id;
         // sign up second user (subproject user)
         var checkCardData = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',

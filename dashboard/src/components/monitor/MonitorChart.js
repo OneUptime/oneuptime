@@ -68,7 +68,8 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
 
     const range = moment(end).diff(moment(start), 'days');
     const { timeBlock, uptimePercent } = monitor.incidentsRange && monitor.incidentsRange.length > 0 ? calculateTime(monitor.incidentsRange, end, range, activeProbeObj)
-        : calculateTime([], end, range, activeProbeObj);
+        : monitor.incidents && monitor.incidents.length > 0 ? calculateTime(monitor.incidents, end, range, activeProbeObj)
+            : calculateTime([], end, range, activeProbeObj);
 
     const type = monitor.type;
     const checkLogs = data && data.length > 0;
