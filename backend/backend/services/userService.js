@@ -393,7 +393,7 @@ module.exports = {
                         ErrorService.log('userService.login', error);
                         throw error;
                     }
-                    if (!user.isVerified) {
+                    if (!user.isVerified && NODE_ENV !== 'development') {
                         let error = new Error('Verify your email first.');
                         error.code = 401;
                         ErrorService.log('userService.login', error);
@@ -683,7 +683,7 @@ var ErrorService = require('./errorService');
 var jwt = require('jsonwebtoken');
 var iplocation = require('iplocation').default;
 var jwtKey = require('../config/keys');
-var { BACKEND_HOST } = process.env;
+var { BACKEND_HOST, NODE_ENV } = process.env;
 var VerificationTokenModel = require('../models/verificationToken');
 var MailService = require('../services/mailService');
 var AirtableService = require('./airtableService');

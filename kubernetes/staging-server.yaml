@@ -183,6 +183,14 @@ spec:
               value: "lkjdfsas-89ul-et5r-jmkf-u98pura8r89e"
             - name: HOME_HOST
               value: "https://staging.fyipe.com"
+            - name: NODE_ENV
+              value: "development"
+            - name: WINDOWMS
+              value: "216000"
+            - name: MAX
+              value: "5000"
+            - name: RATE_LIMITING_ENABLED
+              value: "false"
           ports:
             - containerPort: 3002
               hostPort: 3002

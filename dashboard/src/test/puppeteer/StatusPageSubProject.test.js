@@ -6,14 +6,13 @@ const { Cluster } = require('puppeteer-cluster');
 
 // parent user credentials
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
+let password = '1234567890';
 let projectName = utils.generateRandomString();
 let subProjectMonitorName = utils.generateRandomString();
 // sub-project user credentials
 let newEmail = utils.generateRandomBusinessEmail();
-let newPassword = utils.generateRandomString();
+let newPassword = '1234567890';
 let subProjectName = utils.generateRandomString();
-let userCredentials = [];
 
 
 
@@ -41,30 +40,6 @@ describe('StatusPage API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => {
-                const signInResponse = userCredentials.find(userCredentials => userCredentials.email === user.email);
-
-                if ((await request.url()).match(/user\/login/)) {
-                    request.respond({
-                        status: 200,
-                        contentType: 'application/json',
-                        body: JSON.stringify(signInResponse)
-                    });
-                } else {
-                    request.continue();
-                }
-            });
-            await page.on('response', async (response) => {
-                try {
-                    const res = await response.json();
-                    if (res && res.tokens) {
-                        userCredentials.push(res);
-                    }
-                } catch (error) { }
-            });
 
             // user
             await init.registerUser(user, page);
@@ -101,7 +76,7 @@ describe('StatusPage API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -113,11 +88,6 @@ describe('StatusPage API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             // switch to invited project for new user
@@ -130,7 +100,7 @@ describe('StatusPage API With SubProjects', () => {
             expect(createButton).toBe(null);
         });
 
-        cluster.queue({ email: newEmail, password: newPassword, projectName, subProjectName, userCredentials });
+        cluster.queue({ email: newEmail, password: newPassword, projectName, subProjectName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -144,7 +114,7 @@ describe('StatusPage API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         const statuspageName = utils.generateRandomString();
 
@@ -157,11 +127,6 @@ describe('StatusPage API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
             await init.loginUser(user, page);
             await init.addStatusPageToProject(data.statuspageName, data.subProjectName, page);
             await page.waitForSelector(`#status_page_count_${data.subProjectName}`);
@@ -173,7 +138,7 @@ describe('StatusPage API With SubProjects', () => {
             expect(textContent).toEqual('1 Status Page');
         });
 
-        cluster.queue({ email, password, subProjectName, statuspageName, userCredentials });
+        cluster.queue({ email, password, subProjectName, statuspageName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -200,11 +165,7 @@ describe('StatusPage API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
 
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
             await init.loginUser(user, page);
             if (data.isParentUser) {
                 // add 10 more statuspages to sub-project to test for pagination
@@ -243,8 +204,8 @@ describe('StatusPage API With SubProjects', () => {
             }
         });
 
-        cluster.queue({ email, password, subProjectName, userCredentials, isParentUser: true });
-        cluster.queue({ email: newEmail, password: newPassword, projectName, userCredentials, isParentUser: false });
+        cluster.queue({ email, password, subProjectName, isParentUser: true });
+        cluster.queue({ email: newEmail, password: newPassword, projectName, isParentUser: false });
 
         await cluster.idle();
         await cluster.close();
@@ -269,11 +230,6 @@ describe('StatusPage API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector(`#statusPages > a`);
@@ -302,7 +258,7 @@ describe('StatusPage API With SubProjects', () => {
 
         });
 
-        cluster.queue({ email, password, subProjectMonitorName, userCredentials });
+        cluster.queue({ email, password, subProjectMonitorName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -328,11 +284,6 @@ describe('StatusPage API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector(`#statusPages > a`);
@@ -356,7 +307,7 @@ describe('StatusPage API With SubProjects', () => {
             expect(countStatusPages).toEqual(10);
         });
 
-        cluster.queue({ email, password, projectName, subProjectMonitorName, userCredentials });
+        cluster.queue({ email, password, projectName, subProjectMonitorName });
         await cluster.idle();
         await cluster.close();
         done();

@@ -111,13 +111,7 @@ router.post('/signup', async function (req, res) {
                     id: user._id,
                     name: user.name,
                     email: user.email,
-                    cardRegistered: user.stripeCustomerId ? true : false,
-                    tokens: {
-                        jwtAccessToken: `${jwt.sign({
-                            id: user._id
-                        }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
-                        jwtRefreshToken: user.jwtRefreshToken,
-                    },
+                    cardRegistered: user.stripeCustomerId ? true : false
                 };
                 winston.info('User just signed up');
                 return sendItemResponse(req, res, authUserObj);
@@ -166,13 +160,7 @@ router.post('/signup', async function (req, res) {
                 name: user.name,
                 email: user.email,
                 airtableId: user.airtableId,
-                cardRegistered: user.stripeCustomerId ? true : false,
-                tokens: {
-                    jwtAccessToken: `${jwt.sign({
-                        id: user._id
-                    }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
-                    jwtRefreshToken: user.jwtRefreshToken,
-                },
+                cardRegistered: user.stripeCustomerId ? true : false
             };
             winston.info('A User just signed up');
             var project = await ProjectService.findOneBy({ 'users.userId': user._id });

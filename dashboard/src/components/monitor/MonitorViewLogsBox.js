@@ -5,17 +5,15 @@ import PropTypes from 'prop-types';
 import { getMonitorLogs } from '../../actions/monitor';
 import MonitorLogsList from '../monitor/MonitorLogsList';
 import DateTimeRangeWrapper from './DateTimeRangeWrapper';
-import moment from 'moment';
 import Select from 'react-select-fyipe';
 import ShouldRender from '../../components/basic/ShouldRender';
+import TimeRangeSelector from '../../components/basic/TimeRangeSelector';
 
 export class MonitorViewLogsBox extends Component {
     constructor(props) {
         super(props);
         this.props = props;
         this.state = {
-            startDate: props.incidentId ? '' : moment().subtract(1, 'd'),
-            endDate: props.incidentId ? '' :moment(),
             probeValue: { value: '', label: 'All Probes' },
         }
     }
@@ -23,13 +21,15 @@ export class MonitorViewLogsBox extends Component {
     prevClicked = (monitorId, skip, limit) => {
         const { currentProject,getMonitorLogs} = this.props;
         const incidentId = this.props.incidentId ? this.props.incidentId : null;
+        let start = incidentId ? '' : this.props.startDate.clone().utc();
+        let end = incidentId ? '' : this.props.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
             (skip ? (parseInt(skip, 10) - 10) : 10),
             limit,
-            moment(this.state.startDate).utc(),
-            moment(this.state.endDate).utc(),
+            start,
+            end,
             this.state.probeValue.value,
             incidentId);
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -42,13 +42,15 @@ export class MonitorViewLogsBox extends Component {
     nextClicked = (monitorId, skip, limit) => {
         const { currentProject,getMonitorLogs} = this.props;
         const incidentId = this.props.incidentId ? this.props.incidentId : null;
+        let start = incidentId ? '' : this.props.startDate.clone().utc();
+        let end = incidentId ? '' : this.props.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
             (skip ? (parseInt(skip, 10) + 10) : 10),
             limit,
-            moment(this.state.startDate).utc(),
-            moment(this.state.endDate).utc(),
+            start,
+            end,
             this.state.probeValue.value,
             incidentId);
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -59,15 +61,26 @@ export class MonitorViewLogsBox extends Component {
     }
 
     handleDateChange = (startDate, endDate) => {
-        this.setState({ startDate, endDate });
         const { currentProject,getMonitorLogs,monitorId} = this.props;
         getMonitorLogs(
             currentProject._id,
             monitorId,
             0,
             10,
-            moment(startDate).utc(),
-            moment(endDate).utc(),
+            startDate.clone().utc(),
+            endDate.clone().utc(),
+            this.state.probeValue.value);
+    }
+
+    handleTimeChange = (startDate, endDate) => {
+        const { currentProject,getMonitorLogs,monitorId} = this.props;
+        getMonitorLogs(
+            currentProject._id,
+            monitorId,
+            0,
+            10,
+            startDate.clone().utc(),
+            endDate.clone().utc(),
             this.state.probeValue.value);
     }
 
@@ -79,8 +92,8 @@ export class MonitorViewLogsBox extends Component {
             monitorId,
             0,
             10,
-            moment(this.state.startDate).utc(),
-            moment(this.state.endDate).utc(),
+            this.props.startDate.clone().utc(),
+            this.props.endDate.clone().utc(),
             data.value);
     }
 
@@ -114,9 +127,16 @@ export class MonitorViewLogsBox extends Component {
                     <div className="db-Trends-controls">
                         <div className="db-Trends-timeControls">
                             <DateTimeRangeWrapper
-                                selected={this.state.startDate}
+                                selected={this.props.startDate}
                                 onChange={this.handleDateChange}
                                 dateRange={1}
+                            />
+                        </div>
+                        <div className="db-Trends-timeControls">
+                            <TimeRangeSelector
+                                name1='asdfgh'
+                                name2='asdfghuio'
+                                onChange={this.handleTimeChange}
                             />
                         </div>
                         <div style={{ height: '28px', width: '250px' }}>
@@ -147,11 +167,13 @@ MonitorViewLogsBox.displayName = 'MonitorViewLogsBox'
 
 MonitorViewLogsBox.propTypes = {
   currentProject: PropTypes.object,
+  endDate: PropTypes.object,
   getMonitorLogs: PropTypes.func,
   incidentId: PropTypes.string,
   monitorId: PropTypes.string,
   monitorLogs: PropTypes.object,
-  monitorName: PropTypes.string
+  monitorName: PropTypes.string,
+  startDate: PropTypes.object
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
@@ -162,7 +184,9 @@ function mapStateToProps(state, props) {
     let monitorId = props.monitorId ? props.monitorId : null;
     return {
         monitorLogs: monitorId ? state.monitor.monitorLogs[monitorId] : {},
-        currentProject: state.project.currentProject
+        currentProject: state.project.currentProject,
+        startDate: state.dateTime.dates.startDate,
+        endDate: state.dateTime.dates.endDate
     };
 }
 

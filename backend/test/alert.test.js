@@ -137,7 +137,7 @@ describe('Alert API', function () {
             // create a subproject for parent project
             request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({ subProjectName: 'New SubProject' }
             ).end(function (err, res) {
-                subProjectId = res.body._id;
+                subProjectId = res.body[0]._id;
                 // sign up second user (subproject user)
                 createUser(request, userData.newUser, function(err, res) {
                     userId = res.body.id;

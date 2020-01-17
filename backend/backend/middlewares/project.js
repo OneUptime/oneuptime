@@ -1,7 +1,7 @@
 /**
- * 
- * Copyright HackerBay, Inc. 
- * 
+ *
+ * Copyright HackerBay, Inc.
+ *
  */
 
 var ProjectService = require('../services/projectService');
@@ -12,7 +12,7 @@ var apiMiddleware = require('../middlewares/api');
 
 module.exports = {
     // Description: Checks if user belongs to the project.
-    //             
+    //
     // Params:
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: Project does not exist or User is not present in this project; 500: Server Error
@@ -32,9 +32,9 @@ module.exports = {
                     });
                 }
                 // Calls the ProjectService
-                var project = await ProjectService.findOneBy({_id: projectId});    
+                var project = await ProjectService.findOneBy({_id: projectId});
                 let isUserPresentInProject = false;
-    
+
                 if (project) {
                     var subProjects = await ProjectService.findBy({ parentProjectId: project._id });
                     var projectUsers = project.users;
@@ -56,7 +56,7 @@ module.exports = {
                         message:'Project does not exist.'
                     });
                 }
-    
+
                 if (isUserPresentInProject) {
                     next();
                 } else {
@@ -76,7 +76,7 @@ module.exports = {
     },
 
     // Description: Checks if user is admin.
-    //             
+    //
     // Params:
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: You are not authorized to add member to project. Only admin can add.; 500: Server Error
