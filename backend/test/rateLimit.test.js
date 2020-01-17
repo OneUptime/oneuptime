@@ -1,24 +1,25 @@
-process.env.PORT = 3020;
-process.env.WINDOWMS = 5000;
-process.env.MAX = 3;
-process.env.RATE_LIMITING_ENABLED = true;
-
-const sinon = require('sinon');
-let sandbox = sinon.createSandbox();
-sandbox.stub(process.env, 'WINDOWMS').value('5000');
-sandbox.stub(process.env, 'MAX').value('3');
-sandbox.stub(process.env, 'RATE_LIMITING_ENABLED').value('true');
-
 var expect = require('chai').expect;
 var chai = require('chai');
 chai.use(require('chai-http'));
 var requests = [], _;
-var app, request;
-app = require('../server');
-request = chai.request.agent(app);
+var app, request, sandbox;
 
 describe('API limit rate', function () {
 
+    before(function () {
+        process.env.PORT = 3020;
+        process.env.WINDOWMS = 5000;
+        process.env.MAX = 3;
+        process.env.RATE_LIMITING_ENABLED = true;
+
+        const sinon = require('sinon');
+        sandbox = sinon.createSandbox();
+        sandbox.stub(process.env, 'WINDOWMS').value('5000');
+        sandbox.stub(process.env, 'MAX').value('3');
+        sandbox.stub(process.env, 'RATE_LIMITING_ENABLED').value('true');
+        app = require('../server');
+        request = chai.request(app);
+    });
     this.timeout(10000);
 
     it('should get too many requests response after 3 requests', async function () {
@@ -37,5 +38,7 @@ describe('API limit rate', function () {
     });
     after(function () {
         sandbox.restore();
+        delete require.cache[require.resolve( '../server' )]
+        app.close();
     });
 });

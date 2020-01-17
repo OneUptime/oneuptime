@@ -212,6 +212,8 @@ describe('Projects SubProjects API', function () {
     after(async function () {
         await ProjectService.hardDeleteBy({ _id: { $in: [projectId, subProjectId] } });
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
+        delete require.cache[require.resolve( '../server' )]
+        app.close();
     });
 
     it('should not create a subproject without a name.', function (done) {

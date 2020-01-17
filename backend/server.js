@@ -86,7 +86,7 @@ app.use('/version', require('./backend/api/version'));
 app.use('/tutorial', require('./backend/api/tutorial'));
 app.set('port', process.env.PORT || 3002);
 
-http.listen(app.get('port'), function () {
+const server = http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     console.log('Server Started on port ' + app.get('port'));
 });
@@ -103,4 +103,10 @@ app.use('/*', function (req, res) {
     res.status(404).render('notFound.ejs', {});
 });
 
+function close() {
+    server.close();
+}
+
 module.exports = app;
+
+module.exports.close = close;
