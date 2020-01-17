@@ -180,8 +180,8 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                     )}
 
                                                     <div className="bs-Fieldset-row">
-                                                      <label className="bs-Fieldset-label">Rotation Frequency</label>
-                                                        <div>
+                                                        <label className="bs-Fieldset-label">Rotation Frequency</label>
+                                                        <div className="bs-Fieldset-fields">
                                                           <Field
                                                               name={`${policy}.rotationFrequency`}
                                                               className="db-select-nw"
