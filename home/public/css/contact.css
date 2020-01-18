@@ -791,13 +791,7 @@ td,th{
     padding-right:10px;
     min-height:200px
 }
-.Header .common-PageTitle{
-    color:#fff;
-    margin-bottom:20px
-}
-.Header .common-IntroText{
-    color:#fff
-}
+
 @media (min-width:670px){
     .Header{
         padding-top:100px;
@@ -1214,7 +1208,31 @@ td,th{
     background:#f9f9f9;
     box-shadow:none
 }
+
+.sales{
+    background:#fff;
+    border-radius:50%;
+    display:inline-block;
+    width:80px;
+    height:80px;
+    margin-top:-45px;
+    margin-bottom:20px;
+    background:#f9f9f9;
+    box-shadow:none
+}
 .contactCallout-Icon:after{
+    content:'';
+    display:block;
+    width:42px;
+    height:42px;
+    position:relative;
+    background:url(/img/lifesupport.svg) no-repeat;
+    background-size:42px;
+    margin-left:auto;
+    margin-right:auto;
+    margin-top:19px
+}
+.sales:after{
     content:'';
     display:block;
     width:42px;
@@ -1227,10 +1245,16 @@ td,th{
     margin-top:19px
 }
 .contactCallout-Icon.support:after{
-    background:url(/img/contact/support-cyan.svg) no-repeat
+    background:url(/img/lifesupport.svg) no-repeat
 }
 .contactCallout-Icon.media:after{
     background:url(/img/contact/media-cyan.svg) no-repeat
+}
+.contactCallout-Icon.lifesupport:after{
+    background:url(/img/lifesupport.svg) no-repeat
+}
+.contactCallout-Icon.sales:after{
+    background:url(/img/contact/sales-cyan.svg) no-repeat
 }
 @media (min-width:670px){
     .contactCallout-Icon{
@@ -1239,7 +1263,28 @@ td,th{
         background-color:#fff;
         box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08)
     }
+    
     .contactCallout-Icon:after{
+        content:'';
+        display:block;
+        width:52px;
+        height:52px;
+        position:relative;
+        background:url(/img/lifesupport.svg) no-repeat;
+        background-size:52px;
+        margin-left:auto;
+        margin-right:auto;
+        margin-top:24px
+    }
+
+    .sales{
+        width:100px;
+        height:100px;
+        background-color:#fff;
+        box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08)
+    }
+
+    .sales:after{
         content:'';
         display:block;
         width:52px;
@@ -1250,6 +1295,19 @@ td,th{
         margin-left:auto;
         margin-right:auto;
         margin-top:24px
+    }
+
+    .contactCallout-Icon.support:after{
+        background:url(/img/lifesupport.svg) no-repeat
+    }
+    .contactCallout-Icon.media:after{
+        background:url(/img/contact/media-cyan.svg) no-repeat
+    }
+    .contactCallout-Icon.lifesupport:after{
+        background:url(/img/lifesupport.svg) no-repeat
+    }
+    .contactCallout-Icon.sales:after{
+        background:url(/img/contact/sales-cyan.svg) no-repeat
     }
 }
 .ContactCalloutTitle{
@@ -1267,7 +1325,7 @@ td,th{
     }
 }
 .ContactCalloutTagline{
-    color:#939da3;
+    color:#797979;
     font-size:15px;
     font-weight:400;
     line-height:22px
@@ -1344,90 +1402,4 @@ td,th{
         padding-right:40px
     }
 }
-@media(min-width:670px){
-    .globalNav .navSection.logo{
-        padding-left:20px
-    }
-}
-@media(min-width:880px){
-    .globalNav .navSection.logo{
-        padding-left:inherit
-    }
-}
-@media(min-width:670px){
-    .globalNav .navSection.secondary{
-        padding-right:20px
-    }
-}
-@media(min-width:880px){
-    .globalNav .navSection.secondary{
-        padding-right:inherit
-    }
-}
-.globalNav .navSection.primary{
-    display:none
-}
-.globalNav .navSection.mobile .rootLink{
-    padding:0 25px;
-    top:1px
-}
-.globalNav .navSection.mobile .rootLink h2:before{
-    top:-6px
-}
-.globalNav .navSection.mobile .rootLink h2:after{
-    top:6px
-}
-.globalNav .navSection.mobile .rootLink h2,.globalNav .navSection.mobile .rootLink h2:after,.globalNav .navSection.mobile .rootLink h2:before{
-    width:18px;
-    height:2px
-}
-body footer .globalFooterNav{
-    padding-top:35px;
-    padding-bottom:18px
-}
-@media (min-width:670px){
-    body footer .globalFooterNav{
-        padding-top:17px;
-        padding-bottom:12px
-    }
-}
-body footer .globalFooterNav .container-lg{
-    padding:0 28px
-}
-@media (min-width:670px){
-    body footer .globalFooterNav .container-lg{
-        padding:0 20px
-    }
-}
-body footer .globalFooterNav .metaNav{
-    margin:0
-}
-.globalFooter .metaNav{
-    display:block
-}
-@media (min-width:670px){
-    .globalFooter .metaNav{
-        display:-ms-flexbox;
-        display:flex;
-        -ms-flex-direction:row;
-        flex-direction:row
-    }
-}
-@media (min-width:670px){
-    .globalFooter .metaNav .country{
-        margin-right:35px
-    }
-}
-.globalFooter .metaNav .copyright{
-    position:absolute;
-    right:28px;
-    top:35px
-}
-@media (min-width:670px){
-    .globalFooter .metaNav .copyright{
-        position:static
-    }
-}
-.globalFooter .siteNav{
-    display:none
-}
+

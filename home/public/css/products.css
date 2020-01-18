@@ -28,7 +28,7 @@ hr{
 }
 aside p{
     font-size:12px!important;
-    color:#939da3
+    color:#797979
 }
 ul.columns{
     zoom:1;
@@ -207,7 +207,7 @@ section.marquee #bubble-overlay header h1{
 }
 section.marquee #bubble-overlay header p{
     font-size:30px;
-    color:#939da3;
+    color:#797979;
     margin-top:120px;
 }
 @media screen and (max-width:1012px){
@@ -444,7 +444,7 @@ section.main header h2{
     }
 }
 section.main header p{
-    color:#939da3
+    color:#797979
 }
 section.main header.icon:before{
     content:"";
@@ -543,6 +543,98 @@ section.basics .columns .moni:before{
 section.basics .columns .cost:before{
     background-image:url("/img/cost.svg")
 }
+
+section.basics .columns .informed:before{
+    background-image:url("/img/informed.svg")
+}
+
+section.basics .columns .teams:before{
+    background-image:url("/img/teams.svg")
+}
+
+section.basics .columns .dash:before{
+    background-image:url("/img/dash.svg")
+}
+
+section.basics .columns .htmlcss:before{
+    background-image:url("/img/htmlcss.svg")
+}
+
+section.basics .columns .database:before{
+    background-image:url("/img/database.svg")
+}
+
+section.basics .columns .brand:before{
+    background-image:url("/img/brand.svg")
+}
+
+section.basics .columns .paint:before{
+    background-image:url("/img/paint.svg")
+}
+
+section.basics .columns .sms:before{
+    background-image:url("/img/sms.svg")
+}
+
+section.basics .columns .notification1:before{
+    background-image:url("/img/notification1.svg")
+}
+
+section.basics .columns .callcenter:before{
+    background-image:url("/img/callcenter.svg")
+}
+
+section.basics .columns .security:before{
+    background-image:url("/img/security.svg")
+}
+
+section.basics .columns .note:before{
+    background-image:url("/img/note.svg")
+}
+
+section.basics .columns .trend:before{
+    background-image:url("/img/trend.svg")
+}
+
+section.basics .columns .global:before{
+    background-image:url("/img/global.svg")
+}
+
+section.basics .columns .global1:before{
+    background-image:url("/img/global (1).svg")
+}
+
+section.basics .columns .risk:before{
+    background-image:url("/img/risk.svg")
+}
+
+section.basics .columns .chat:before{
+    background-image:url("/img/chat.svg")
+}
+
+section.basics .columns .rotation:before{
+    background-image:url("/img/mobile-rotation.svg")
+}
+
+section.basics .columns .vacation:before{
+    background-image:url("/img/vacation.svg")
+}
+
+section.basics .columns .time:before{
+    background-image:url("/img/time.svg")
+}
+
+section.basics .columns .rootcause:before{
+    background-image:url("/img/rootcause.svg")
+}
+
+
+section.basics .columns .customerexperience:before{
+    background-image:url("/img/social-media.svg")
+}
+
+
+
 
 section.basics .columns :before{
     text-align: center !important;

@@ -7,7 +7,7 @@ import DateFnsUtils from '@date-io/date-fns';
 const theme = createMuiTheme({
     palette: {
         primary: {
-            main: '#0080a8'
+            main: '#000000'
         },
         secondary: {
             main: '#0066ff'

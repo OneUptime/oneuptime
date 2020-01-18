@@ -257,7 +257,7 @@ div.block-chart div.bar:last-child {
 .btn-group .icon-container {
   background-color: #f6f9fc; /* Green background */
   border: 2px solid #e6ebf1; /* Green border */
-  color: #525f7f; /* White text */
+  color: #000000; /* White text */
   padding: 6px; /* Some padding */
   cursor: pointer; /* Pointer/hand icon */
   box-sizing: border-box;

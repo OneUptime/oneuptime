@@ -1186,7 +1186,7 @@ a.button.blue span,button.button.blue span,strong.button.blue span,div.button.bl
 }
 
 a.button.blue:active,a.button.blue.active,button.button.blue:active,button.button.blue.active,strong.button.blue:active,strong.button.blue.active,div.button.blue:active,div.button.blue.active {
-  background: #005d93;
+  background: #000000;
 }
 
 a.button.blue:active span,a.button.blue.active span,button.button.blue:active span,button.button.blue.active span,strong.button.blue:active span,strong.button.blue.active span,div.button.blue:active span,div.button.blue.active span {
@@ -4177,7 +4177,7 @@ body.api-docs .footer {
 }
 
 .stripe-connect:active {
-  background: #005d93;
+  background: #000000;
 }
 
 .stripe-connect:active span {
@@ -7748,7 +7748,7 @@ span.highlight_js.xml .attribute {
 }
 
 .page-wrapper div#bottom a {
-  color: #696f77;
+  color: #7b7b7b;
   font-weight: bold;
   font-size: 12px;
   text-shadow: 0 1px 0 rgba(255,255,255,0.5);

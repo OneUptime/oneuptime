@@ -385,7 +385,7 @@ section.form-section .form-row.submit{
     justify-content:flex-end
 }
 section.form-section .form-row label{
-    color:#939da3;
+    color:#797979;
     font-size:12px;
     font-weight:600;
     letter-spacing:.43px;
@@ -444,7 +444,7 @@ section.form-section .form-row label.contains-summary{
 }
 section.form-section .form-row summary{
     display:block;
-    color:#939da3;
+    color:#797979;
     font-weight:400;
     font-size:13px;
     line-height:17px;
@@ -591,7 +591,7 @@ section.form-section .submit-button{
     font-family:inherit
 }
 section.form-section .submit-button:focus{
-    background-color:#7795f8
+    background-color:#797979
 }
 section.form-section .submit-row{
     text-align:right;
@@ -729,93 +729,7 @@ section.form-section .form-row.has-focus input,section.form-section .form-row.ha
         box-shadow:0 0 0 1px #e4effa
     }
 }
-body footer .globalFooterNav{
-    padding-top:35px;
-    padding-bottom:18px
-}
-@media (min-width:670px){
-    body footer .globalFooterNav{
-        padding-top:17px;
-        padding-bottom:12px
-    }
-}
-body footer .globalFooterNav .container-lg{
-    padding:0 28px
-}
-@media (min-width:670px){
-    body footer .globalFooterNav .container-lg{
-        padding:0 20px
-    }
-}
-body footer .globalFooterNav .metaNav{
-    margin:0
-}
-.globalFooter .metaNav{
-    display:block
-}
-@media (min-width:670px){
-    .globalFooter .metaNav{
-        display:-ms-flexbox;
-        display:flex;
-        -ms-flex-direction:row;
-        flex-direction:row
-    }
-}
-@media (min-width:670px){
-    .globalFooter .metaNav .country{
-        margin-right:35px
-    }
-}
-.globalFooter .metaNav .copyright{
-    position:absolute;
-    right:28px;
-    top:35px
-}
-@media (min-width:670px){
-    .globalFooter .metaNav .copyright{
-        position:static
-    }
-}
-.globalFooter .siteNav{
-    display:none
-}
-@media(min-width:670px){
-    .globalNav .navSection.logo{
-        padding-left:20px
-    }
-}
-@media(min-width:880px){
-    .globalNav .navSection.logo{
-        padding-left:inherit
-    }
-}
-@media(min-width:670px){
-    .globalNav .navSection.secondary{
-        padding-right:20px
-    }
-}
-@media(min-width:880px){
-    .globalNav .navSection.secondary{
-        padding-right:inherit
-    }
-}
-.globalNav .navSection.primary{
-    display:none
-}
-.globalNav .navSection.mobile .rootLink{
-    padding:0 25px;
-    top:1px
-}
-.globalNav .navSection.mobile .rootLink h2:before{
-    top:-6px
-}
-.globalNav .navSection.mobile .rootLink h2:after{
-    top:6px
-}
-.globalNav .navSection.mobile .rootLink h2,.globalNav .navSection.mobile .rootLink h2:after,.globalNav .navSection.mobile .rootLink h2:before{
-    width:18px;
-    height:2px
-}
+
 section.contact-sales-header .stripes-container{
     pointer-events:none;
     position:absolute;
@@ -1109,7 +1023,6 @@ section.contact-sales-header .stripes-container .left-dots-container:before{
 .form-submitted section.contact-sales-header .stripes-container.initial .s3{
     transform:translate(-110px);
     opacity:1;
-    background-color:#ecf3fc
 }
 .form-submitted section.contact-sales-header .stripes-container.initial .s2{
     display:none
@@ -1181,7 +1094,7 @@ section.contact-sales-header .headline-text{
     }
 }
 section.contact-sales-header .common-IntroText{
-    color:#939da3
+    color:#797979
 }
 .form-submitted section.contact-sales-header .background-container.success{
     opacity:1
@@ -1218,7 +1131,7 @@ section.success .phone-number-container .phone-number-headline{
     margin-bottom:5px
 }
 section.success .phone-number-container .phone-number-subhead{
-    color:#939da3;
+    color:#797979;
     font-size:17px;
     font-weight:400;
     line-height:26px;
@@ -1437,7 +1350,7 @@ section.form-section .searchable-select-container input.searchable-select-input{
     font-weight:300;
     font-size:17px;
     line-height:26px;
-    color:#939da3;
+    color:#797979;
     cursor:pointer
 }
 .searchable-select-container .searchable-select-result.highlighted{
@@ -1553,7 +1466,7 @@ section.success .thank-you .success-headline{
     margin-bottom:8px
 }
 section.success .thank-you .success-subhead{
-    color:#d7d7d7;
+    color:#000000;
     font-size:30px;
     font-weight:300;
     transition:opacity .2s ease-out

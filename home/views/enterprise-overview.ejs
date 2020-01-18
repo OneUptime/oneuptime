@@ -5,314 +5,351 @@
   <meta charset="utf-8">
   <title>Fyipe | Enterprises</title>
 
-  <meta name="description" content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+  <meta name="description"
+    content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
   <% include ./head %>
-    <link rel="stylesheet" href="/css/shared-site.css">
-    <link rel="stylesheet" href="/css/home.css">
-    <link rel="stylesheet" href="/css/enterprise-overview.css">
-    <script src="/js/amplitude.js"></script>
-    <script>
-        var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
-        if (!IS_DEV) {
-            amplitude.getInstance().logEvent('Enterprise overview page loaded');
-        }
-    </script>
+  <link rel="stylesheet" href="/css/shared-site.css">
+  <link rel="stylesheet" href="/css/home.css">
+  <link rel="stylesheet" href="/css/products.css">
+  <script src="/js/amplitude.js"></script>
+  <script>
+    var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+    if (!IS_DEV) {
+      amplitude.getInstance().logEvent('Enterprise overview page viewed');
+    }
+  </script>
 </head>
 
 <body>
 
-    <% include ./nav %>
+  <% include ./nav %>
 
-    <div class="globalContent">
-      <div id="main-content">
+  <div class="globalContent">
+    <div id="main-content">
 
-        <section class="marquee nav-animation-element">
+      <section class="marquee nav-animation-element">
 
-          <div id="bubble-overlay">
-            <div class="content">
-
-              <header>
-                <h1 class="Header-title common-PageTitle header-font header-size black">Fyipe for Enterprises</h1>
-                <p><span class="highlight">&nbsp;Downtime is critical to any business.</span> We at Fyipe help you reduce it, <br/> increase revenue, and improve transparency with your customers. </p>
-              </header>
-
-            </div>
-          </div>
-
-        </section>
-
-
-        <section class="main basics">
+        <div id="bubble-overlay">
           <div class="content">
-            <ul class="columns">
-              <li class="revenue">
-                <h3>Increase revenue</h3>
-                <p class="text-center"><span class="highlight">Your businss loses revenue with every second of downtime.</span> Fyipe alerts your team immediately 
-                  so they can get to fixing it quickly and thereby increasing revenue.</p>
-              </li>
-              <li class="downtime">
-                <h3>Eliminate Downtime</h3>
-                <p class="text-center"> Fyipe trains your team on best-practices and processes which can be implemented in your organization to completely eliminate downtime. </p>
-              </li>
-              <li class="perfectsoftware">
-                <h3>Deliver perfect software</h3>
-                <p class="text-center">Deliver downtime free software to your customers. Fyipe informs your team on any production issues so they can fix them as soon as issues comes in.</p>
-              </li>
-            </ul>
 
-            <ul class="columns">
-              <li class="reli">
-                <h3>Showcase Reliability</h3>
-                <p class="text-center">Showcase the reliability of your platform and compliance to your SLA and build trust with your customers.</p>
-              </li>
-              <li class="moni">
-                <h3>Monitor Anything.</h3>
-                <p class="text-center">An endpoint, an applications, a container, cluster, network, or anything else. You name it. We monitor all of
-                  them for you. </p>
-              </li>
-              <li class="cost">
-                <h3>Cut Support Costs</h3>
-                <p class="text-center">Communicate any incidents to your customers through a status page. This saves them from creating a flood of support tickets saving you a ton of support costs. </p>
-              </li>
-            </ul>
-
+            <header>
+              <h1 class="Header-title common-PageTitle header-font header-size black">We're enterprise-ready.</h1>
+              <p style="margin-top:50px"><span class="highlight">&nbsp;Downtime is critical to any business.</span> We at Fyipe help you reduce
+                it, <br /> increase revenue, and improve transparency with your customers. </p>
+            </header>
 
           </div>
-          <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
-            <h2 class="header">Our Engineer is yours.</h2>
-            <p class="common-BodyText"> You will have a dedicated engineer who will help you integrate Fyipe in your organization, train your IT ops team on best practices and processes, and also implement any future feature requests that you may have. </p>
-          </header>
-          <div class="content">
+        </div>
+
+      </section>
+
+
+      <section class="main basics" style="padding:0px">
+        <div class="content">
+          <ul class="columns">
+            <li class="revenue">
+              <h3>Increase revenue</h3>
+              <p class="text-center"><span class="highlight">Your business loses revenue with every second of
+                  downtime.</span> Fyipe alerts your team immediately
+                so they can get to fixing it quickly and thereby increasing revenue.</p>
+            </li>
+            <li class="downtime">
+              <h3>Eliminate Downtime</h3>
+              <p class="text-center"> Fyipe trains your team on best-practices and processes which can be implemented in
+                your organization to eliminate downtime. </p>
+            </li>
+            <li class="perfectsoftware">
+              <h3>Deliver perfect software</h3>
+              <p class="text-center">Deliver downtime free software to your customers. Fyipe informs your team on any
+                production issues so they can fix them as soon as issues come in.</p>
+            </li>
+          </ul>
+
+          <ul class="columns">
+            <li class="reli">
+              <h3>Showcase Reliability</h3>
+              <p class="text-center">Showcase the reliability of your platform and compliance with your SLA and build
+                trust with your customers.</p>
+            </li>
+            <li class="moni">
+              <h3>Monitor Anything.</h3>
+              <p class="text-center">An endpoint, applications, a container, cluster, network, or anything else. You
+                name it. We monitor all of
+                them for you. </p>
+            </li>
+            <li class="cost">
+              <h3>Cut Support Costs</h3>
+              <p class="text-center">Communicate any incidents to your customers through a status page. This saves them
+                from creating a flood of support tickets saving you a ton of support costs. </p>
+            </li>
+          </ul>
+
+
+        </div>
+        <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
+          <h2 class="header">Our Engineer is yours.</h2>
+          <p class="common-BodyText"> You will have a <span class="highlight">dedicated engineer who will help you integrate Fyipe in your
+            organization, <br/>train your IT ops team on best practices and processes, and also implement any <br/> future feature
+            requests that you may have.</span> </p>
+        </header>
+        <div class="content">
           <ul class="columns">
             <li class="reliability">
               <h3>Helps integrate Fyipe in your organization.</h3>
-              <p class="text-center">Our dedicated engineer will help you integrate Fyipe in your organization with apps, services and processes your team works with.</p>
+              <p class="text-center">Our dedicated engineer will help you integrate Fyipe in your organization with
+                apps, services and processes your team works with.</p>
             </li>
             <li class="monitor">
               <h3>Trains team on Best Practices.</h3>
-              <p class="text-center">Our dedicated engineer is an DevOps and IT Ops expert and will train your team on best practices and processes to follow to eliminate downtime. </p>
+              <p class="text-center">Our dedicated engineer is a DevOps and IT Ops expert and will train your team on
+                best practices and processes to follow to eliminate downtime. </p>
             </li>
             <li class="analytics">
               <h3>Implements Feature Requests.</h3>
-              <p class="text-center"> Our dedicated engneer will implement any future feature requests you may have to better integrate Fyipe with your processes and services.</p>
+              <p class="text-center"> Our dedicated engineer will implement any future feature requests you may have to
+                better integrate Fyipe with your processes and services.</p>
             </li>
           </ul>
         </div>
-          <header style="margin-top:50px;border-bottom:0px; padding-top:50px; border-top: 1px solid rgba(0,0,0,.07);">
-            <h2 class="header">Our Customers</h2>
-            <p class="common-BodyText"> Organizations all over the world cut downtime and run IT Ops efficiently with Fyipe. </p>
-          </header>
+        <header style="margin-top:50px;border-bottom:0px; padding-top:50px; border-top: 1px solid rgba(0,0,0,.07);">
+          <h2 class="header">Our Customers</h2>
+          <p class="common-BodyText"> Organizations all over the world cut downtime and run IT Ops efficiently with
+            Fyipe. </p>
+        </header>
 
-          <section id="customer-logos" style="border-top:0px; margin-top:-50px">
-            <a href="/customers" class="container-lg">
-              <span class="common-Button common-Button--default">See our customers</span>
+        <section id="customer-logos" style="border-top:0px; margin-top:-50px">
+          <a href="/customers" class="container-lg">
+            <span class="common-Button common-Button--default">See our customers</span>
+            <ul>
+              <li>
+                <img style="height:40px" class="cloudboost" alt="cloudboost" src="/img/cloudboost.svg"> </li>
+
+              <li>
+                <img style="height:22px" class="ironio" alt="ironio" src="/img/iron-io.svg">
+              </li>
+              <li>
+                <img style="height:90px" class="siemens" alt="siemens" src="/img/siemens.svg">
+              </li>
+              <li>
+                <img style="height:70px" class="hersheys" alt="hersheys" src="/img/hershey-s.svg">
+              </li>
+              <li>
+                <img style="height:30px" class="elasticstack" alt="elasticstack" src="/img/elastic-stack.svg">
+              </li>
+              <li>
+                <img style="height:24px" class="freshsales" alt="freshsales" src="/img/freshsales-1.svg">
+              </li>
+
+            </ul>
+          </a>
+        </section>
+        <div class="split">
+          <div class="content">
+
+            <div class="left">
+
+              <h3 class="header" style="margin-top:250px">More Enterprise Features.</h3>
+              <p class="common-BodyText" style="font-size:18px"><span class="highlight" style="font-size:18px">Efficient
+                  IT Ops management depends<br />on the right information being shared <br />with the right people at
+                  the right time <br /> and knowing it’s shared securely. </span><br /><br /> Fyipe ensures sensitive
+                company <br /> and customer information remains <br />secure with enterprise-ready security features and
+                compliance with various <br /> industry and cloud service standards. </p>
+
+            </div>
+
+            <div class="right">
               <ul>
                 <li>
-                  <img style="height:40px" class="cloudboost" alt="cloudboost" src="/img/cloudboost.svg"> </li>
+                  <h3>Enterprise-class 99.995% SLA.</h3>
 
-                <li>
-                  <img style="height:22px" class="ironio" alt="ironio" src="/img/iron-io.svg">
                 </li>
                 <li>
-                  <img style="height:90px" class="siemens" alt="siemens" src="/img/siemens.svg">
+                  <h3>Install Anywhere - On-premise, Private Cloud or Public Cloud.</h3>
                 </li>
                 <li>
-                  <img style="height:70px" class="hersheys" alt="hersheys" src="/img/hershey-s.svg">
+                  <h3>Annual Contracts with Invoicing.</h3>
+
                 </li>
                 <li>
-                  <img style="height:30px" class="elasticstack" alt="elasticstack" src="/img/elastic-stack.svg">
+                  <h3>Support for Audit Logs.</h3>
+
                 </li>
                 <li>
-                  <img style="height:24px" class="freshsales" alt="freshsales" src="/img/freshsales-1.svg">
+                  <h3>Data Encrypted in transit and at rest.</h3>
+
+                </li>
+                <li>
+                  <h3>Mobile apps for IT Ops management.</h3>
+
+                </li>
+                <li>
+                  <h3>Support for Data Loss Prevention (DLP).</h3>
+
+                </li>
+                <li>
+                  <h3>Granular platform management.</h3>
+
+                </li>
+                <li>
+                  <h3>SAML-based SSO.</h3>
+
+                </li>
+                <li>
+                  <h3>SCIM provisioning.</h3>
+                </li>
+                <li>
+                  <h3>Data residency.</h3>
+
                 </li>
 
               </ul>
-            </a>
-          </section>
-          <div class="split">
-            <div class="content">
-
-              <div class="left">
-                
-                <h3 class="header" style="margin-top:250px">More Enterprise Features.</h3>
-                <p class="common-BodyText" style="font-size:18px"><span class="highlight" style="font-size:18px">Efficient IT Ops management depends<br/>on the right information being shared <br/>with the right  people at the right time <br/>  and knowing it’s shared  securely. </span><br/><br/> Fyipe ensures sensitive company <br/> and customer information remains  <br/>secure  with enterprise-ready security features and compliance with various <br/> industry and cloud service standards.  </p>
-               
-              </div>
-
-              <div class="right">
-                <ul>
-                  <li>
-                    <h3>Enterprise Class 99.995% SLA.</h3>
-                   
-                  </li>
-                  <li>
-                    <h3>Install Anywhere - On Premise, Private Cloud or Public Cloud.</h3>
-                  </li>
-                  <li>
-                    <h3>Annual Contracts with Invoicing.</h3>
-                    
-                  </li>
-                  <li>
-                    <h3>Support for Audit Logs.</h3>
-                   
-                  </li>
-                  <li>
-                    <h3>Data Encrypted in transit and at rest.</h3>
-                   
-                  </li>
-                  <li>
-                    <h3>Mobile apps for IT Ops management.</h3>
-                    
-                  </li>
-                  <li>
-                    <h3>Support for Data Loss Prevention (DLP).</h3>
-                    
-                  </li>
-                  <li>
-                    <h3>Granular platform management.</h3>
-                    
-                  </li>
-                  <li>
-                    <h3>SAML-based SSO.</h3>
-                    
-                  </li>
-                  <li>
-                    <h3>SCIM provisioning.</h3>
-                  </li>
-                  <li>
-                    <h3>Data residency.</h3>
-                    
-                  </li>
-                  
-                </ul>
-              </div>
-
             </div>
+
           </div>
-          <div class="content">
+        </div>
+        <div class="content">
 
-            <header style="margin-top:50px">
-              <h2 class="header">Security, Encryption and Compliance.</h2>
-              <p class="common-BodyText">We take security seriously here at Fyipe, and we are proud to exceed the industry standard when it comes to protecting your data.</p>
-            </header>
+          <header style="margin-top:50px">
+            <h2 class="header">Security, Encryption and, Compliance.</h2>
+            <p class="common-BodyText">We take security seriously here at Fyipe, and we are proud to exceed the industry
+              standard when it comes to protecting your data.</p>
+          </header>
 
-            <ul class="columns">
-              <li class="soc">
-                <h3>SOC 2 (Type 2)</h3>
-                <p class="text-center">SOC 2 ensures your service providers securely manage your data to protect the interests of your organization. <br/><br/><a class="black-link" href="/legal/soc-2">Request report here.</a></p>
-              </li>
-              <li class="soc">
-                <h3>SOC 3</h3>
-                <p class="text-center"> Soc 3 report outlines information related to controls for security, availability, processing integrity, confidentiality or privacy. <br/><br/><a class="black-link" href="/legal/soc-3">Download report here.</a></p>
-              </li>
-              <li class="iso">
-                <h3>ISO/IEC 27001</h3>
-                <p class="text-center">ISO 27001 includes all legal, physical and technical controls involved in an information risk management processes.<br/><br/><a class="black-link" href="/legal/iso-27017">Download certificate here.</a></p>
-              </li>
-            </ul>
+          <ul class="columns">
+            <li class="soc">
+              <h3>SOC 2 (Type 2)</h3>
+              <p class="text-center">SOC 2 ensures your service providers securely manage your data to protect the
+                interests of your organization. <br /><br /><a class="black-link" href="/legal/soc-2">Request a report
+                  here.</a></p>
+            </li>
+            <li class="soc">
+              <h3>SOC 3</h3>
+              <p class="text-center"> Soc 3 report outlines information related to controls for security, availability,
+                processing integrity, confidentiality or privacy. <br /><br /><a class="black-link"
+                  href="/legal/soc-3">Download the report here.</a></p>
+            </li>
+            <li class="iso">
+              <h3>ISO/IEC 27001</h3>
+              <p class="text-center">ISO 27001 includes all legal, physical and technical controls involved in 
+                information risk management processes.<br /><br /><a class="black-link" href="/legal/iso-27017">Download
+                  certificate here.</a></p>
+            </li>
+          </ul>
 
-            <ul class="columns">
-              <li class="iso">
-                <h3>ISO/IEC 27017</h3>
-                <p class="text-center">ISO/IEC 27017 security on aspects of cloud computing, recommending cloud-specific information security controls.<br/><br/><a class="black-link" href="/legal/iso-27017">Download certificate here.</a></p>
-              </li>
-              
-              <li class="iso">
-                <h3>ISO/IEC 27018</h3>
-                <p class="text-center">ISO/IEC 27018 is a code of practice that focuses on protection of personal data in the cloud.  <br/><br/><a class="black-link" href="/legal/iso-27018">Download certificate here.</a > </p>
-              </li>
-              <li class="hipaa">
-                <h3>HIPAA</h3>
-                <p class="text-center">HIPAA is United States legislation that provides data privacy and security provisions for safeguarding medical information.<br/><br/><a class="black-link" href="/legal/hipaa">Request information here.</a> </p>
-              </li>
-            </ul>
+          <ul class="columns">
+            <li class="iso">
+              <h3>ISO/IEC 27017</h3>
+              <p class="text-center">ISO/IEC 27017 security on aspects of cloud computing, recommending cloud-specific
+                information security controls.<br /><br /><a class="black-link" href="/legal/iso-27017">Download
+                  certificate here.</a></p>
+            </li>
 
-            <ul class="columns">
-              <li class="gdpr">
-                <h3>GDPR</h3>
-                <p class="text-center">The GDPR is a law on data protection and privacy in the European Union and the European Economic Area. <br/><br/><a class="black-link" href="/legal/gdpr">Read our poliy here.</a></p>
-              </li>
-              <li class="ccpa">
-                <h3>CCPA</h3>
-                <p class="text-center">The CCPA is a new data privacy law that applies to businesses that collect personal information from California residents. <br/><br/><a class="black-link" href="/legal/ccpa">Read our poliy here.</a></p>
-              </li>
-              <li class="pci">
-                <h3>PCI DSS</h3>
-                <p class="text-center">PCI DSS is a standard for organizations that handle branded credit cards from the major card schemes.<br/><br/><a class="black-link" href="/legal/pci">Read our report here.</a></p>
-              </li>
-            </ul>
-          </div>
-          
-          <div style="background-color:black;height: 600px;width:100%;">
-            <header style="padding-top:75px">
-              <h2 class="header" style="color:white">1500+ Enterprise Integrations and counting.</h2>
-              <p class="common-BodyText">Fyipe integrates with over a thousand enterprise class app and services which helps you streamline and automate your digital ops workflow.</p>
-            </header>
+            <li class="iso">
+              <h3>ISO/IEC 27018</h3>
+              <p class="text-center">ISO/IEC 27018 is a code of practice that focuses on the protection of personal data in
+                the cloud. <br /><br /><a class="black-link" href="/legal/iso-27018">Download certificate here.</a> </p>
+            </li>
+            <li class="hipaa">
+              <h3>HIPAA</h3>
+              <p class="text-center">HIPAA is United States legislation that provides data privacy and security
+                provisions for safeguarding medical information.<br /><br /><a class="black-link"
+                  href="/legal/hipaa">Request information here.</a> </p>
+            </li>
+          </ul>
 
-            <ul class="integration-list">
-              <li>
-                <img class="integration-logo" src="/img/slack-white.svg">
-              </li>
-              <li>
-                <img class="integration-logo" src="/img/atlassian.svg" style="
+          <ul class="columns">
+            <li class="gdpr">
+              <h3>GDPR</h3>
+              <p class="text-center">The GDPR is a law on data protection and privacy in the European Union and the
+                European Economic Area. <br /><br /><a class="black-link" href="/legal/gdpr">Read our policy here.</a>
+              </p>
+            </li>
+            <li class="ccpa">
+              <h3>CCPA</h3>
+              <p class="text-center">The CCPA is a new data privacy law that applies to businesses that collect personal
+                information from California residents. <br /><br /><a class="black-link" href="/legal/ccpa">Read our
+                  policy here.</a></p>
+            </li>
+            <li class="pci">
+              <h3>PCI DSS</h3>
+              <p class="text-center">PCI DSS is a standard for organizations that handle branded credit cards from the
+                major card schemes.<br /><br /><a class="black-link" href="/legal/pci">Read our report here.</a></p>
+            </li>
+          </ul>
+        </div>
+
+        <div style="background-color:black;height: 600px;width:100%;">
+          <header style="padding-top:75px">
+            <h2 class="header" style="color:white">1500+ Enterprise Integrations and counting.</h2>
+            <p class="common-BodyText">Fyipe integrates with over a thousand enterprise-class app and services which
+              helps you streamline and automate your digital ops workflow.</p>
+          </header>
+
+          <ul class="integration-list">
+            <li>
+              <img class="integration-logo" src="/img/slack-white.svg">
+            </li>
+            <li>
+              <img class="integration-logo" src="/img/atlassian.svg" style="
     height: 70px;
     margin-top: -15px;
 ">
-              </li>
-              <li>
-                <img class="integration-logo" src="/img/servicenow.svg">
-              </li>
-            </ul>
-            <ul class="integration-list" style="margin-top: 60px;">
-              <li>
-                <img class="integration-logo" src="/img/okta.svg" style="
+            </li>
+            <li>
+              <img class="integration-logo" src="/img/servicenow.svg">
+            </li>
+          </ul>
+          <ul class="integration-list" style="margin-top: 60px;">
+            <li>
+              <img class="integration-logo" src="/img/okta.svg" style="
     height: 30px;
     margin-left: -50px;
 ">
-              </li>
-              <li>
-                <img class="integration-logo" src="/img/aws-white.svg" style="
+            </li>
+            <li>
+              <img class="integration-logo" src="/img/aws-white.svg" style="
     height: 50px;
     margin-left: -80px;
 ">
-              </li>
-              <li>
-                <img class="integration-logo" src="/img/appdynamics.svg" style="
+            </li>
+            <li>
+              <img class="integration-logo" src="/img/appdynamics.svg" style="
     height: 80px;
 ">
-              </li>
-            </ul>
-            <ul class="integration-list" style="margin-top: 40px;">
-              <li>
-                <img class="integration-logo" src="/img/newrelic.svg" style="
+            </li>
+          </ul>
+          <ul class="integration-list" style="margin-top: 40px;">
+            <li>
+              <img class="integration-logo" src="/img/newrelic.svg" style="
     height: 80px;
     margin-left: -60px;
 ">
-              </li>
-              <li>
-                <img class="integration-logo" src="/img/zendesk.svg" style="
+            </li>
+            <li>
+              <img class="integration-logo" src="/img/zendesk.svg" style="
     height: 60px;
     margin-left: -90px;
 ">
-              </li>
-              <li>
-                <img class="integration-logo" src="/img/azure.svg" style="
+            </li>
+            <li>
+              <img class="integration-logo" src="/img/azure.svg" style="
     height: 60px;
 ">
-              </li>
-            </ul>
+            </li>
+          </ul>
 
-          </div>
-        </section>
-
-       
+        </div>
+      </section>
 
 
 
-      </div>
+
+
     </div>
-
-    <% include ./footer %>
+  </div>
+  <div style="margin-top:100px">
+  <% include ./footer %>
+  </div>
 
 </body>
 

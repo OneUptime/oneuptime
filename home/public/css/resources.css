@@ -3,10 +3,10 @@ main{
     display:block
 }
 .productNav .colorize{
-    color:#525f7f
+    color:#000000
 }
 .productNav .colorize.active,.productNav .colorize:hover{
-    color:#939da3
+    color:#797979
 }
 .common-Button{
     cursor:pointer
@@ -168,7 +168,7 @@ article.guide-content{
     margin-top:50px;
     font-size:17px;
     line-height:28px;
-    color:#525f7f;
+    color:#000000;
     & h1 a,h2 a,h3 a,h4 a{
         text-decoration:none!important
     }
@@ -269,7 +269,7 @@ article.guide-content p{
     font-weight:400;
     font-size:17px;
     line-height:28px;
-    color:#525f7f;
+    color:#000000;
     margin-bottom:10px
 }
 article.guide-content h1{
@@ -347,7 +347,7 @@ article.guide-content p a{
     text-decoration:underline
 }
 article.guide-content a:hover{
-    color:#525f7f
+    color:#000000
 }
 article.guide-content a.common-Button{
     color:#fff;
@@ -393,7 +393,7 @@ article.guide-content ul li a{
     text-decoration:underline
 }
 article.guide-content ul li a:hover{
-    color:#525f7f
+    color:#000000
 }
 article.guide-content blockquote{
     position:relative;
@@ -657,7 +657,7 @@ ol li:before{
 .guide-sidebar .byline p{
     font-size:15px;
     line-height:24px;
-    color:#939da3;
+    color:#797979;
     max-width:400px;
     margin:0 auto
 }
@@ -679,7 +679,7 @@ ol li:before{
     margin-left:15px
 }
 .guide-sidebar .download-pdf a:hover{
-    color:#525f7f
+    color:#000000
 }
 .guide-sidebar .download-pdf a:hover:before{
     opacity:.7
@@ -714,7 +714,7 @@ ol li:before{
     margin-left:15px
 }
 .guide-sidebar .share a:hover{
-    color:#525f7f
+    color:#000000
 }
 .guide-sidebar .share a:hover:before{
     opacity:.7
@@ -765,7 +765,7 @@ ol li:before{
     will-change:height
 }
 .guide-sidebar .toc .sub ul{
-    color:#939da3;
+    color:#797979;
     margin-top:5px
 }
 .guide-sidebar .toc .sub ul li a{
@@ -780,7 +780,7 @@ ol li:before{
     position:relative;
     width:100%;
     font-size:17px;
-    color:#939da3;
+    color:#797979;
     padding-top:25px;
     border-top:1px solid #e6ebf1;
     margin-top:20px
