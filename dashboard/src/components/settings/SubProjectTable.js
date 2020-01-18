@@ -59,7 +59,7 @@ export class SubProjectTable extends Component {
 										})
 									})
 								}>
-								<span>Reveal Api Key</span>
+								<span>Reveal API Key</span>
 							</button>
 							<button
 								title='edit'

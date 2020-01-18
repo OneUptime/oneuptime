@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import DatetimeRangePicker from 'react-daterange-picker';
 import PropTypes from 'prop-types';
 import originalMoment from 'moment';
 import { extendMoment } from 'moment-range';
+import { setStartDate, setEndDate } from '../../actions/dateTime';
 const moment = extendMoment(originalMoment);
 
 class DateTimeRangeWrapper extends Component {
@@ -11,16 +14,18 @@ class DateTimeRangeWrapper extends Component {
         super(props, context);
 
         const today = moment();
-
+        const { startDate, endDate } = props;
         this.state = {
             isOpen: false,
-            value: moment.range(today.clone().subtract(this.props.dateRange ? this.props.dateRange : 1, 'days'), today.clone())
+            value: moment.range(startDate ? startDate : today.clone().subtract(this.props.dateRange ? this.props.dateRange : 1, 'days'), endDate ? endDate : today.clone())
         };
     }
 
     onSelect = (value) => {
         this.setState({ value });
-        this.props.onChange(this.state.value.start.toDate(), this.state.value.end.toDate());
+        this.props.setStartDate(value.start);
+        this.props.setEndDate(value.end);
+        this.props.onChange(this.state.value.start, this.state.value.end);
     };
 
     onToggle = () => {
@@ -53,7 +58,7 @@ class DateTimeRangeWrapper extends Component {
                                 className="db-DateRangeInput-start"
                                 style={{ padding: '3px' }}
                             >
-                                {this.state.value.start.format('lll')}
+                                {this.state.value.start.format('ll')}
                             </span>
                             <span
                                 className="db-DateRangeInput-input-arrow"
@@ -63,7 +68,7 @@ class DateTimeRangeWrapper extends Component {
                                 className="db-DateRangeInput-end"
                                 style={{ padding: '3px' }}
                             >
-                                {this.state.value.end.format('lll')}
+                                {this.state.value.end.format('ll')}
                             </span>
                         </div>
                     </div>
@@ -95,8 +100,23 @@ class DateTimeRangeWrapper extends Component {
 DateTimeRangeWrapper.displayName = 'DateTimeRangeWrapper'
 
 DateTimeRangeWrapper.propTypes = {
-    onChange: PropTypes.func,
-    dateRange: PropTypes.oneOfType([PropTypes.object, PropTypes.number]),
+  dateRange: PropTypes.oneOfType([PropTypes.object, PropTypes.number]),
+  endDate: PropTypes.object,
+  onChange: PropTypes.func,
+  setEndDate: PropTypes.func,
+  setStartDate: PropTypes.func,
+  startDate: PropTypes.object
 }
 
-export default DateTimeRangeWrapper;
+const mapDispatchToProps = dispatch => bindActionCreators(
+    { setStartDate, setEndDate }, dispatch
+)
+
+function mapStateToProps(state) {
+    return {
+        startDate: state.dateTime.dates.startDate,
+        endDate: state.dateTime.dates.endDate
+    };
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(DateTimeRangeWrapper);

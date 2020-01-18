@@ -123,39 +123,31 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case CREATE_MONITOR_FAILURE:
             return Object.assign({}, state, {
-                ...state,
                 newMonitor: {
+                    ...state.newMonitor,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitor: state.newMonitor.monitor
                 }
             });
 
         case CREATE_MONITOR_RESET:
             return Object.assign({}, state, {
-                ...state,
                 newMonitor: INITIAL_STATE.newMonitor
             });
 
         case CREATE_MONITOR_REQUEST:
             return Object.assign({}, state, {
-                ...state,
                 newMonitor: {
+                    ...state.newMonitor,
                     requesting: true,
-                    error: null,
-                    success: false,
-                    monitor: state.newMonitor.monitor
                 }
             });
 
         case FETCH_MONITORS_SUCCESS:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: false,
@@ -165,11 +157,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITORS_FAILURE:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -178,17 +167,13 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITORS_RESET:
             return Object.assign({}, state, {
-                ...state,
                 monitorsList: INITIAL_STATE.monitorsList
             });
 
         case FETCH_MONITORS_REQUEST:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: true,
                     error: null,
                     success: false,
@@ -197,11 +182,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case EDIT_MONITOR_SUCCESS:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: false,
@@ -231,7 +213,6 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case EDIT_MONITOR_FAILURE:
             return Object.assign({}, state, {
-                ...state,
                 editMonitor: {
                     requesting: false,
                     error: action.payload,
@@ -241,13 +222,11 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case EDIT_MONITOR_RESET:
             return Object.assign({}, state, {
-                ...state,
                 editMonitor: INITIAL_STATE.editMonitor
             });
 
         case EDIT_MONITOR_REQUEST:
             return Object.assign({}, state, {
-                ...state,
                 editMonitor: {
                     requesting: true,
                     error: null,
@@ -257,11 +236,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case EDIT_MONITOR_SWITCH:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: false,
@@ -290,11 +266,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITORS_INCIDENT_SUCCESS:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -318,33 +291,24 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITORS_INCIDENT_FAILURE:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitors: state.monitorsList.monitors
                 },
                 fetchMonitorsIncidentRequest: false
             });
 
         case FETCH_MONITORS_INCIDENT_REQUEST:
             return Object.assign({}, state, {
-                ...state,
-
                 fetchMonitorsIncidentRequest: action.payload
             });
 
         case FETCH_MONITORS_INCIDENTS_RANGE_SUCCESS:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -365,33 +329,24 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITORS_INCIDENTS_RANGE_FAILURE:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitors: state.monitorsList.monitors
                 },
                 fetchMonitorsIncidentsRangeRequest: false
             });
 
         case FETCH_MONITORS_INCIDENTS_RANGE_REQUEST:
             return Object.assign({}, state, {
-                ...state,
-
                 fetchMonitorsIncidentsRangeRequest: action.payload
             });
 
         case FETCH_MONITORS_SUBSCRIBER_SUCCESS:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -417,11 +372,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITORS_SUBSCRIBER_FAILURE:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -431,25 +383,18 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITORS_SUBSCRIBER_REQUEST:
             return Object.assign({}, state, {
-                ...state,
-
                 fetchMonitorsSubscriberRequest: action.payload
             });
 
         case FETCH_MONITOR_LOGS_REQUEST:
             return Object.assign({}, state, {
-                ...state,
-
                 fetchMonitorLogsRequest: true
             });
 
         case FETCH_MONITOR_LOGS_SUCCESS:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -470,26 +415,19 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITOR_LOGS_FAILURE:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitors: state.monitorsList.monitors
                 },
                 fetchMonitorLogsRequest: false
             });
 
         case 'UPDATE_DATE_RANGE':
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     startDate: action.payload.startDate,
                     endDate: action.payload.endDate
                 }
@@ -497,11 +435,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case 'UPDATE_MONITOR_LOG':
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -576,15 +511,11 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITOR_CRITERIA_REQUEST:
             return Object.assign({}, state, {
-                ...state,
-
                 fetchMonitorCriteriaRequest: action.payload
             });
 
         case FETCH_MONITOR_CRITERIA_SUCCESS:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorCriteria: {
                     requesting: false,
                     error: null,
@@ -596,13 +527,11 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case FETCH_MONITOR_CRITERIA_FAILURE:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorCriteria: {
+                    ...state.monitorCriteria,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    criteria: state.monitorCriteria.criteria
                 },
                 fetchMonitorCriteriaRequest: false
             });
@@ -622,8 +551,6 @@ export default function monitor(state = INITIAL_STATE, action) {
             );
 
             return Object.assign({}, state, {
-                ...state,
-
                 newMonitor: {
                     ...state.newMonitor,
                     initialValue: {
@@ -639,11 +566,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case REMOVE_MONITORS_SUBSCRIBERS:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -663,11 +587,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case DELETE_MONITOR_SUCCESS:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: false,
@@ -681,11 +602,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case DELETE_MONITOR_FAILURE:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -695,11 +613,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case DELETE_MONITOR_REQUEST:
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: false,
@@ -714,7 +629,6 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
-
                     monitors,
                     error: null,
                     loading: false
@@ -723,11 +637,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case 'RESOLVE_INCIDENT_SUCCESS':
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -758,11 +669,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case 'ACKNOWLEDGE_INCIDENT_SUCCESS':
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -793,11 +701,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case 'INCIDENT_RESOLVED_BY_SOCKET':
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -828,11 +733,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case 'INCIDENT_ACKNOWLEDGED_BY_SOCKET':
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: true,
@@ -863,11 +765,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case 'DELETE_MONITOR_BY_SOCKET':
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     requesting: false,
                     error: null,
                     success: false,
@@ -881,11 +780,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case 'ADD_NEW_INCIDENT_TO_MONITORS':
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
                             if (monitor._id === action.payload.monitorId._id) {
@@ -917,11 +813,8 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case 'UPDATE_RESPONSE_TIME':
             return Object.assign({}, state, {
-                ...state,
-
                 monitorsList: {
                     ...state.monitorsList,
-
                     monitors: state.monitorsList.monitors.map(monitor => {
                         if (monitor._id === action.payload.monitorId) {
                             return {
@@ -939,7 +832,6 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case ADD_SEAT_SUCCESS:
             return Object.assign({}, state, {
-                ...state,
                 addseat: {
                     requesting: false,
                     error: null,
@@ -950,7 +842,6 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case ADD_SEAT_FAILURE:
             return Object.assign({}, state, {
-                ...state,
                 addseat: {
                     requesting: false,
                     error: action.payload,
@@ -961,7 +852,6 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case ADD_SEAT_REQUEST:
             return Object.assign({}, state, {
-                ...state,
                 addseat: {
                     requesting: true,
                     error: null,
@@ -972,7 +862,6 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case ADD_SEAT_RESET:
             return Object.assign({}, state, {
-                ...state,
                 addseat: {
                     requesting: false,
                     error: null,

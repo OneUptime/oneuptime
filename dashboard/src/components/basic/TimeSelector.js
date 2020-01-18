@@ -28,7 +28,7 @@ const TimeSelector = ({ input, meta: { touched, error }, style }) => {
     return (
         <span>
             <div style={{ ...style, height: '28px', marginTop: '-15px' }}>
-                
+
                 <MuiThemeProvider theme={theme}>
                   <MuiPickersUtilsProvider utils={DateFnsUtils}>
                     <TimePicker

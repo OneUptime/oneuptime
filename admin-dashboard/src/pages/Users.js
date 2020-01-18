@@ -85,7 +85,7 @@ class Users extends Component {
                                                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                                             <span style={{'textTransform':'capitalize'}}>Fyipe Users</span>
                                                             </span>
-                                                            <span style={{'textTransform':'lowercase'}} className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                 <span>Here is a list of all fyipe users</span>
                                                             </span>
                                                         </div>
@@ -93,7 +93,7 @@ class Users extends Component {
                                                             <div className="Box-root">
                                                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                                                     <div>
-                                                                        <input 
+                                                                        <input
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             placeholder="search username or email"
                                                                             onChange={this.onChange}
@@ -120,7 +120,7 @@ class Users extends Component {
                                                                 <div className="bs-ObjectList-cell"></div>
                                                                 <div className="bs-ObjectList-cell"></div>
                                                             </header>
-                                                            { !requesting ? 
+                                                            { !requesting ?
                                                                 <UserList users={ users } /> :
                                                                 <Fragment>
                                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
@@ -131,7 +131,7 @@ class Users extends Component {
                                                                         <div className="bs-ObjectList-cell-row">
                                                                             <ListLoader />
                                                                         </div>
-                                                                    </div> 
+                                                                    </div>
                                                                 </Fragment>
                                                             }
                                                             </div>
@@ -162,8 +162,8 @@ class Users extends Component {
                                             </div>
                                             </div>
                                         </div>
-                                        
-                                </div>  
+
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -179,7 +179,7 @@ const mapDispatchToProps = (dispatch) => {
 
 const mapStateToProps = state => {
     const requesting = state.user.users.requesting || state.user.searchUsers.requesting ? true : false;
-    
+
     return {
         user: state.user,
         users: state.user.users.users || [],

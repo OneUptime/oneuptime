@@ -6,8 +6,7 @@ const { Cluster } = require('puppeteer-cluster');
 
 // user credentials
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
-let userCredentials;
+let password = '1234567890';
 
 describe('User Feedback', () => {
 
@@ -34,30 +33,6 @@ describe('User Feedback', () => {
                 password: data.password
             }
             
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => {
-                const signInResponse = userCredentials;
-
-                if((await request.url()).match(/user\/login/)){
-                    request.respond({
-                        status: 200,
-                        contentType: 'application/json',
-                        body: JSON.stringify(signInResponse)
-                    });
-                }else{
-                    request.continue();
-                }
-            });
-            await page.on('response', async (response)=>{
-                try{
-                    const res = await response.json();
-                    if(res && res.tokens){
-                        userCredentials = res;
-                    }
-                }catch(error){}
-            });
-
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
@@ -81,7 +56,7 @@ describe('User Feedback', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         const testFeedback = 'test feedback';
 
@@ -94,11 +69,6 @@ describe('User Feedback', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitForSelector('#feedback-div');
@@ -112,7 +82,7 @@ describe('User Feedback', () => {
             expect(feedbackMessage).toEqual('Thank you for your feedback.');
         });
 
-        cluster.queue({ email, password, testFeedback, userCredentials });
+        cluster.queue({ email, password, testFeedback });
         await cluster.idle();
         await cluster.close();
         done();

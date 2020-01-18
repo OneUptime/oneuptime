@@ -96,10 +96,29 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId', 'name')
-                .populate('monitorId', 'name')
-                .populate('statusPageId', 'title');
-            return subscribers;
+                .populate('projectId')
+                .populate('monitorId')
+                .populate('statusPageId');
+
+            var subscribersArr = [];
+            for (var result of subscribers) {
+                var temp = {};
+                temp._id = result._id;
+                temp.projectId = result.projectId._id;
+                temp.projectName = result.projectId.name;
+                temp.monitorId = result.monitorId._id;
+                temp.monitorName = result.monitorId.name;
+                temp.statusPageId = result.statusPageId ? result.statusPageId._id : null;
+                temp.statusPageName = result.statusPageId ? result.statusPageId.name : null;
+                temp.createdAt = result.createdAt;
+                temp.alertVia = result.alertVia;
+                temp.contactEmail = result.contactEmail;
+                temp.contactPhone = result.contactPhone;
+                temp.countryCode = result.countryCode;
+                temp.contactWebhook = result.contactWebhook;
+                subscribersArr.push(temp);
+            }
+            return subscribersArr;
         } catch (error) {
             ErrorService.log('subscriberService.find', error);
             throw error;
