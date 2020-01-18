@@ -20,27 +20,6 @@ describe('Registration API', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-        // intercept request and mock response for login
-        await page.setRequestInterception(true);
-        await page.on('request', async (request) => {
-            if ((await request.url()).match(/user\/login/)) {
-                request.respond({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify(userCredentials)
-                });
-            } else {
-                request.continue();
-            }
-        });
-        await page.on('response', async (response) => {
-            try {
-                var res = await response.json();
-                if (res && res.tokens) {
-                    userCredentials = res;
-                }
-            } catch (error) { }
-        });
     });
 
     afterAll(async () => {

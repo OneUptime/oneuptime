@@ -7,9 +7,23 @@ var redisAdapter = require('socket.io-redis');
 var keys = require('./backend/config/keys.js');
 var bodyParser = require('body-parser');
 var cors = require('cors');
+const Agenda = require('agenda');
+const switchActiveTeam = require('./backend/services/escalationService').switchActiveTeam;
 //var { fork } = require('child_process');
 
 //fork('./backend/workers/cronjob.js');
+
+const agenda = new Agenda();
+agenda.database(keys.dbURL);
+agenda.define('update active team on rotation', async (job, done) => {
+    switchActiveTeam();
+    if (done) done();
+});
+
+(async function() {
+    await agenda.start();
+    await agenda.every('5 minutes', 'update active team on rotation');
+})();
 
 var { NODE_ENV } = process.env;
 
@@ -39,6 +53,11 @@ app.use(function (req, res, next) {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+var { RATE_LIMITING_ENABLED } = process.env;
+if ( RATE_LIMITING_ENABLED === 'true'){
+    var rateLimiter = require('./backend/middlewares/rateLimit');
+    app.use(rateLimiter);
+}
 //View engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -81,7 +100,7 @@ app.use('/version', require('./backend/api/version'));
 app.use('/tutorial', require('./backend/api/tutorial'));
 app.set('port', process.env.PORT || 3002);
 
-http.listen(app.get('port'), function () {
+const server = http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     console.log('Server Started on port ' + app.get('port'));
 });
@@ -98,4 +117,10 @@ app.use('/*', function (req, res) {
     res.status(404).render('notFound.ejs', {});
 });
 
+function close() {
+    server.close();
+}
+
 module.exports = app;
+
+module.exports.close = close;

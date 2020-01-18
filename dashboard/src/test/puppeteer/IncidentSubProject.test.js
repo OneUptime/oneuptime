@@ -6,17 +6,16 @@ const { Cluster } = require('puppeteer-cluster');
 
 // parent user credentials
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
+let password = '1234567890';
 
 // sub-project user credentials
 let newEmail = utils.generateRandomBusinessEmail();
-let newPassword = utils.generateRandomString();
+let newPassword = '1234567890';
 
 let projectName = utils.generateRandomString();
 let projectMonitorName = utils.generateRandomString();
 let subProjectMonitorName = utils.generateRandomString();
 let subProjectName = utils.generateRandomString();
-let userCredentials = [];
 
 describe('Incident API With SubProjects', () => {
     const operationTimeOut = 50000;
@@ -42,30 +41,6 @@ describe('Incident API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => {
-                const signInResponse = userCredentials.find(userCredentials => userCredentials.email === user.email);
-
-                if ((await request.url()).match(/user\/login/)) {
-                    request.respond({
-                        status: 200,
-                        contentType: 'application/json',
-                        body: JSON.stringify(signInResponse)
-                    });
-                } else {
-                    request.continue();
-                }
-            });
-            await page.on('response', async (response) => {
-                try {
-                    const res = await response.json();
-                    if (res && res.tokens) {
-                        userCredentials.push(res);
-                    }
-                } catch (error) { }
-            });
 
             // user
             await init.registerUser(user, page);
@@ -105,7 +80,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -117,12 +92,6 @@ describe('Incident API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
-
             await init.loginUser(user, page);
             await page.waitForSelector(`#create_incident_${data.projectMonitorName}`);
             await page.click(`#create_incident_${data.projectMonitorName}`);
@@ -137,7 +106,7 @@ describe('Incident API With SubProjects', () => {
             expect(textContent.toLowerCase()).toEqual(`${projectMonitorName}'s Incident Status`.toLowerCase());
         });
 
-        cluster.queue({ email, password, projectMonitorName, userCredentials });
+        cluster.queue({ email, password, projectMonitorName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -150,7 +119,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -162,11 +131,6 @@ describe('Incident API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             // switch to invited project for new user
@@ -185,7 +149,7 @@ describe('Incident API With SubProjects', () => {
             expect(textContent.toLowerCase()).toEqual(`${subProjectMonitorName}'s Incident Status`.toLowerCase());
         });
 
-        cluster.queue({ email: newEmail, password: newPassword, projectName, subProjectMonitorName, userCredentials });
+        cluster.queue({ email: newEmail, password: newPassword, projectName, subProjectMonitorName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -199,7 +163,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -211,11 +175,6 @@ describe('Incident API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             // switch to invited project for new user
@@ -229,7 +188,7 @@ describe('Incident API With SubProjects', () => {
             expect(acknowledgeTextSelector).not.toBeNull();
         });
 
-        cluster.queue({ email: newEmail, password: newPassword, projectName, subProjectMonitorName, userCredentials });
+        cluster.queue({ email: newEmail, password: newPassword, projectName, subProjectMonitorName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -244,7 +203,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -256,11 +215,6 @@ describe('Incident API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             // switch to invited project for new user
@@ -274,7 +228,7 @@ describe('Incident API With SubProjects', () => {
             expect(resolveTextSelector).not.toBeNull();
         });
 
-        cluster.queue({ email: newEmail, password: newPassword, projectName, userCredentials });
+        cluster.queue({ email: newEmail, password: newPassword, projectName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -288,7 +242,7 @@ describe('Incident API With SubProjects', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
         let investigationNote = utils.generateRandomString();
         let internalNote = utils.generateRandomString();
@@ -302,11 +256,6 @@ describe('Incident API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             // switch to invited project for new user
@@ -337,7 +286,7 @@ describe('Incident API With SubProjects', () => {
 
         });
 
-        cluster.queue({ email: newEmail, password: newPassword, subProjectMonitorName, projectName, internalNote, investigationNote, userCredentials });
+        cluster.queue({ email: newEmail, password: newPassword, subProjectMonitorName, projectName, internalNote, investigationNote });
         await cluster.idle();
         await cluster.close();
         done();
@@ -363,11 +312,6 @@ describe('Incident API With SubProjects', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials.find(userDetails => userDetails.email === user.email);
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             // switch to invited project for new user
@@ -399,7 +343,7 @@ describe('Incident API With SubProjects', () => {
             expect(countIncidents).toEqual(10);
         }
 
-        cluster.queue({ email: newEmail, password: newPassword, subProjectMonitorName, subProjectName, projectName, userCredentials, counter: 0, limit: 10 }, paginate);
+        cluster.queue({ email: newEmail, password: newPassword, subProjectMonitorName, subProjectName, projectName, counter: 0, limit: 10 }, paginate);
 
         await cluster.idle();
         await cluster.close();

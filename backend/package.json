@@ -1,9 +1,10 @@
 {
   "name": "fyipe-backend",
-  "version": "3.0.1278",
+  "version": "3.0.1295",
   "private": true,
   "dependencies": {
     "@slack/client": "^4.12.0",
+    "agenda": "^2.3.0",
     "airtable": "^0.7.2",
     "axios": "^0.18.1",
     "bcrypt": "^3.0.0",
@@ -14,6 +15,7 @@
     "ejs": "^2.6.2",
     "eslint": "^4.19.1",
     "express": "^4.17.1",
+    "express-rate-limit": "^5.0.0",
     "express-winston": "^2.5.0",
     "gridfs-stream": "^1.1.1",
     "history": "^4.9.0",
@@ -56,7 +58,7 @@
     "pretest": "eslint --fix --ignore-path .gitignore .",
     "start": "node server.js",
     "dev": "cross-env NODE_ENV=development nodemon server.js",
-    "test": "cross-env NODE_ENV=development mocha --exit",
+    "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "lint": "eslint ."
   },
@@ -66,10 +68,10 @@
     "chai-http": "^3.0.0",
     "chai-subset": "^1.6.0",
     "custom-env": "^1.0.2",
-    "mocha": "^5.2.0",
+    "mocha": "^6.2.2",
     "nodemon": "^1.18.4",
     "npm-audit-ci-wrapper": "^2.2.1",
     "rewire": "^3.0.2",
-    "sinon": "^4.4.4"
+    "sinon": "^4.5.0"
   }
 }

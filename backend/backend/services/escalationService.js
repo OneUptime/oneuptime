@@ -46,19 +46,32 @@ module.exports = {
 
     create: async function (data) {
         try {
-            let escalationModel = new EscalationModel();
-            escalationModel.call = data.call || false;
-            escalationModel.email = data.email || false;
-            escalationModel.sms = data.sms || false;
-            escalationModel.callFrequency = data.callFrequency || null;
-            escalationModel.smsFrequency = data.smsFrequency || null;
-            escalationModel.emailFrequency = data.emailFrequency || null;
-            escalationModel.rotationFrequency = data.rotationFrequency || null;
-            escalationModel.rotationInterval = data.rotationInterval || null;
-            escalationModel.projectId = data.projectId || null;
-            escalationModel.scheduleId = data.scheduleId || null;
-            escalationModel.createdById = data.createdById || null;
-            escalationModel.team = data.team || null;
+            let escalationModel = new EscalationModel({
+                call: data.call,
+                email: data.email,
+                sms: data.sms,
+                callFrequency: data.callFrequency,
+                smsFrequency: data.smsFrequency,
+                emailFrequency: data.emailFrequency,
+                rotationFrequency: data.rotationFrequency,
+                rotationInterval: data.rotationInterval,
+                projectId: data.projectId,
+                scheduleId: data.scheduleId,
+                createdById: data.createdById,
+                team: data.team,
+            });
+
+            const activeTeam = composeActiveTeam(
+                escalationModel.team[0]._id,
+                escalationModel.team,
+                escalationModel.rotationInterval,
+                escalationModel.rotationFrequency
+            );
+
+            escalationModel.activeTeamId = activeTeam._id;
+            escalationModel.activeTeam = activeTeam;
+            escalationModel.estimatedSwitchTime = activeTeam.rotationEndTime;
+
             var escalation = await escalationModel.save();
             return escalation;
         } catch (error) {
@@ -195,5 +208,65 @@ module.exports = {
     }
 };
 
+function composeActiveTeam (id, teams, interval, frequency, date = new Date(), incrementBy = date) {
+    const activeTeam = teams.find(team => team._id === id);
+    activeTeam.rotationStartTime = date;
+    activeTeam.rotationEndTime = moment(incrementBy).add(interval, frequency);
+
+    return activeTeam;
+}
+
+async function switchActiveTeam() {
+    try {
+        const escalations = await EscalationModel.find();
+        escalations.forEach(async escalation => {
+            let {
+                estimatedSwitchTime, activeTeamId, _id,
+                team, rotationInterval, rotationFrequency,
+            } = escalation;
+      
+            const currentDate = new Date();
+            if (moment(estimatedSwitchTime).isSameOrBefore(currentDate)) {
+                const activeTeamIndex = escalation.team.findIndex(team => team._id.toString() === activeTeamId.toString());
+                let nextTeamIndex = activeTeamIndex + 1;
+                if (!escalation.team[nextTeamIndex]) {
+                    nextTeamIndex = 0;
+                }
+    
+                const nextActiveTeamId = escalation.team[nextTeamIndex]._id;
+
+                const nextActiveTeam = composeActiveTeam(
+                    nextActiveTeamId,
+                    team,
+                    rotationInterval,
+                    rotationFrequency,
+                    escalation.estimatedSwitchTime
+                );
+                team.splice(nextTeamIndex, 1, nextActiveTeam);
+                team.forEach(indTeam => {
+                    if (indTeam._id.toString() !== nextActiveTeam._id.toString()) {
+                        indTeam.rotationStartTime = null;
+                        indTeam.rotationEndTime = null;
+                    }
+                });
+                await EscalationModel
+                    .findByIdAndUpdate(_id, {
+                        activeTeam: nextActiveTeam,
+                        activeTeamId: nextActiveTeam._id,
+                        team,
+                        estimatedSwitchTime: nextActiveTeam.rotationEndTime
+                    })
+                    .exec();
+            }
+          
+        });
+    } catch (err) {
+        throw err;
+    }
+}
+
+module.exports.switchActiveTeam = switchActiveTeam;
+
 var EscalationModel = require('../models/escalation');
 var ErrorService = require('./errorService');
+const moment = require('moment');
