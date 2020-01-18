@@ -30,11 +30,6 @@ var token, userId, airtableId, token_, projectId, scheduleEventId, apiKey, monit
         callScheduleOnEvent: true,
         monitorDuringEvent: false
     },
-    monitor = {
-        name: 'New Monitor',
-        type: 'url',
-        data: { url: 'http://www.tests.org' }
-    },
     invisibleScheduledEvent = {
         name: 'New invisible scheduled Event',
         startDate: '2019-06-11 11:01:52.178',
@@ -51,7 +46,7 @@ describe('Scheduled event API', function () {
 
     before(function (done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createUser(request, userData.user, function (err, res) {
             let project = res.body.project;
             userId = res.body.id;
             projectId = project._id;
@@ -65,7 +60,11 @@ describe('Scheduled event API', function () {
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
                         var authorization = `Basic ${token}`;
-                        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+                        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
+                            name: 'New Monitor 1',
+                            type: 'url',
+                            data: { url: 'http://www.tests.org' }
+                        }).end(function (err, res) {
                             monitorId = res.body[0]._id;
                             done();
                         });
@@ -152,10 +151,10 @@ describe('User from other project have access to read / write and delete API.', 
 
     before(function (done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createUser(request, userData.user, function (err, res) {
             let project = res.body.project;
             projectId = project._id;
-            createUser(request, userData.newUser, function(err, res) {
+            createUser(request, userData.newUser, function (err, res) {
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -326,7 +325,7 @@ describe('Non-admin user access to create, delete and access scheduled events.',
 
     before(function (done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createUser(request, userData.user, function (err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -341,7 +340,7 @@ describe('Non-admin user access to create, delete and access scheduled events.',
                         request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).send(scheduledEvent)
                             .end(function (err, res) {
                                 scheduleEventId = res.body._id;
-                                createUser(request, userData.newUser, function(err, res) {
+                                createUser(request, userData.newUser, function (err, res) {
                                     projectIdSecondUser = res.body.project._id;
                                     emailToBeInvited = userData.newUser.email;
                                     userId = res.body.id;
@@ -419,7 +418,7 @@ describe('Scheduled events APIs accesible through API key', function () {
 
     before(function (done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createUser(request, userData.user, function (err, res) {
             let project = res.body.project;
             projectId = project._id;
             apiKey = project.apiKey;
@@ -536,7 +535,11 @@ describe('Scheduled events APIs for status page', function () {
         authorization = `Basic ${token}`;
 
         var monitorRequest = await request.post(`/monitor/${projectId}`)
-            .set('Authorization', authorization).send(monitor);
+            .set('Authorization', authorization).send({
+                name: 'New Monitor 2',
+                type: 'url',
+                data: { url: 'http://www.tests.org' }
+            });
         monitorId = monitorRequest.body[0]._id;
 
         await request.post(`/scheduledEvent/${projectId}/${monitorId}`)

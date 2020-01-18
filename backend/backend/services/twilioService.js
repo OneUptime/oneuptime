@@ -91,7 +91,7 @@ module.exports = {
                 incidentType: incident.incidentType
             };
             template = template(data);
-            let creds = getTwilioSettings(incident.projectId);
+            let creds = await getTwilioSettings(incident.projectId);
             var options = {
                 body: template,
                 from: creds.phoneNumber,
@@ -128,7 +128,7 @@ module.exports = {
                 incidentType: incident.incidentType
             };
             template = template(data);
-            let creds = getTwilioSettings(incident.projectId);
+            let creds = await getTwilioSettings(incident.projectId);
             var options = {
                 body: template,
                 from: creds.phoneNumber,
@@ -164,7 +164,7 @@ module.exports = {
                 incidentType: incident.incidentType
             };
             template = template(data);
-            let creds = getTwilioSettings(incident.projectId);
+            let creds = await getTwilioSettings(incident.projectId);
             var options = {
                 body: template,
                 from: creds.phoneNumber,
@@ -257,7 +257,7 @@ module.exports = {
                 var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
                     .verifications
                     .create({ to, channel });
-                await SmsCountService.create(userId, to,projectId);
+                await SmsCountService.create(userId, to, projectId);
                 await UserService.updateOneBy({ _id: userId }, { tempAlertPhoneNumber: to });
                 return verificationRequest;
             } else {

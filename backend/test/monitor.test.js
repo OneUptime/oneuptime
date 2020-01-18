@@ -18,11 +18,7 @@ var AirtableService = require('../backend/services/airtableService');
 
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
-var token, userId, airtableId, projectId, monitorId, monitorCategoryId, monitor = {
-    name: 'New Monitor',
-    type: 'url',
-    data: { url: 'http://www.tests.org' }
-};
+var token, userId, airtableId, projectId, monitorId, monitorCategoryId;
 
 var monitorCategory = {
     monitorCategoryName: 'New Monitor Category',
@@ -32,8 +28,8 @@ describe('Monitor API', function () {
     this.timeout(30000);
 
     before(function (done) {
-  this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -54,9 +50,9 @@ describe('Monitor API', function () {
     });
 
     after(async function () {
+        await MonitorService.hardDeleteBy({ projectId });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
-        await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
     });
@@ -85,7 +81,7 @@ describe('Monitor API', function () {
     it('should not create a monitor when the `type` field is null', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
-            name: 'New Monitor',
+            name: 'New Monitor 1',
             type: null,
             data: { url: 'http://www.tests.org' }
         }).end(function (err, res) {
@@ -97,7 +93,7 @@ describe('Monitor API', function () {
     it('should not create a monitor when the `data` field is not valid', function (done) {
         var authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
-            name: 'New Monitor',
+            name: 'New Monitor 2',
             type: 'url',
             data: null
         }).end(function (err, res) {
@@ -108,10 +104,14 @@ describe('Monitor API', function () {
 
     it('should create a new monitor when the correct data is given by an authenticated user', function (done) {
         var authorization = `Basic ${token}`;
-        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
+            name: 'New Monitor 3',
+            type: 'url',
+            data: { url: 'http://www.tests.org' }
+        }).end(function (err, res) {
             monitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal(monitor.name);
+            expect(res.body[0].name).to.be.equal('New Monitor 3');
             done();
         });
     });
@@ -120,7 +120,7 @@ describe('Monitor API', function () {
         let scheduleId = 20;
         var authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
-            name: 'New Monitor',
+            name: 'New Monitor 4',
             type: 'url',
             callScheduleId: scheduleId,
             data: { url: 'http://www.tests.org' }
@@ -138,20 +138,20 @@ describe('Monitor API', function () {
         }).end(function (err, res) {
             scheduleId = res.body._id;
             request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
-                name: 'New Monitor',
+                name: 'New Monitor 5',
                 type: 'url',
                 callScheduleId: scheduleId,
                 data: { url: 'http://www.tests.org' }
             }).end(function (err, res) {
                 monitorId = res.body[0]._id;
                 expect(res).to.have.status(200);
-                expect(res.body[0].name).to.be.equal(monitor.name);
+                expect(res.body[0].name).to.be.equal('New Monitor 5');
                 request.get(`/schedule/${projectId}`).set('Authorization', authorization).end(function (err, res) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
                     expect(res.body.data[0]).to.containSubset({
-                        monitorIds: [{ name: 'New Monitor' }]
+                        monitorIds: [{ name: 'New Monitor 5' }]
                     });
                     done();
                 });
@@ -167,14 +167,14 @@ describe('Monitor API', function () {
         }).end(function (err, res) {
             scheduleId = res.body._id;
             request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
-                name: 'New Monitor 1',
+                name: 'New Monitor 6',
                 type: 'url',
                 callScheduleId: scheduleId,
                 data: { url: 'http://www.tests.org' }
             }).end(function (err, res) {
                 monitorId = res.body[0]._id;
                 request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
-                    name: 'New Monitor 2',
+                    name: 'New Monitor 7',
                     type: 'url',
                     callScheduleId: scheduleId,
                     data: { url: 'http://www.tests.org' }
@@ -185,7 +185,7 @@ describe('Monitor API', function () {
                         expect(res.body).to.be.an('object');
                         expect(res.body).to.have.property('data');
                         expect(res.body.data[0]).to.containSubset({
-                            monitorIds: [{ name: 'New Monitor 1' }, { name: 'New Monitor 2' }]
+                            monitorIds: [{ name: 'New Monitor 6' }, { name: 'New Monitor 7' }]
                         });
                         done();
                     });
@@ -244,8 +244,8 @@ describe('Monitor API with monitor Category', function () {
     this.timeout(30000);
 
     before(function (done) {
-  this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -268,19 +268,22 @@ describe('Monitor API with monitor Category', function () {
     });
 
     after(async function () {
-        await MonitorService.hardDeleteBy({ _id: monitorId });
         await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
+        await MonitorService.hardDeleteBy({ _id: monitorId });
     });
-
 
     it('should create a new monitor when the monitor Category is provided by an authenticated user', function (done) {
         var authorization = `Basic ${token}`;
-        monitor.monitorCategoryId = monitorCategoryId;
-        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
+            name: 'New Monitor 8',
+            type: 'url',
+            data: { url: 'http://www.tests.org' },
+            monitorCategoryId: monitorCategoryId
+        }).end(function (err, res) {
             monitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal(monitor.name);
-            expect(res.body[0].monitorCategoryId).to.be.equal(monitor.monitorCategoryId);
+            expect(res.body[0].name).to.be.equal('New Monitor 8');
+            expect(res.body[0].monitorCategoryId).to.be.equal(monitorCategoryId);
             done();
         });
     });
@@ -299,7 +302,7 @@ describe('Monitor API with Sub-Projects', function () {
         ).end(function (err, res) {
             subProjectId = res.body[0]._id;
             // sign up second user (subproject user)
-            createUser(request, userData.newUser, function(err, res) {
+            createUser(request, userData.newUser, function (err, res) {
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -323,10 +326,13 @@ describe('Monitor API with Sub-Projects', function () {
         });
     });
 
-    after(async function () { });
+    after(async function () {
+        await MonitorService.hardDeleteBy({ _id: monitorId });
+        await MonitorService.hardDeleteBy({ _id: subProjectMonitorId });
+    });
 
     it('should not create a monitor for user not present in project', function (done) {
-        createUser(request, userData.anotherUser, function(err, res) {
+        createUser(request, userData.anotherUser, function (err, res) {
             userId = res.body.id;
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -335,7 +341,11 @@ describe('Monitor API with Sub-Projects', function () {
                         password: userData.anotherUser.password
                     }).end(function (err, res) {
                         var authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
-                        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+                        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
+                            name: 'New Monitor 9',
+                            type: 'url',
+                            data: { url: 'http://www.tests.org' }
+                        }).end(function (err, res) {
                             expect(res).to.have.status(400);
                             expect(res.body.message).to.be.equal('You are not present in this project.');
                             done();
@@ -348,7 +358,11 @@ describe('Monitor API with Sub-Projects', function () {
 
     it('should not create a monitor for user that is not `admin` in project.', function (done) {
         var authorization = `Basic ${newUserToken}`;
-        request.post(`/monitor/${subProjectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+        request.post(`/monitor/${subProjectId}`).set('Authorization', authorization).send({
+            name: 'New Monitor 10',
+            type: 'url',
+            data: { url: 'http://www.tests.org' }
+        }).end(function (err, res) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('You cannot edit the project because you\'re not an admin.');
             done();
@@ -357,20 +371,28 @@ describe('Monitor API with Sub-Projects', function () {
 
     it('should create a monitor in parent project by valid admin.', function (done) {
         var authorization = `Basic ${token}`;
-        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
+            name: 'New Monitor 11',
+            type: 'url',
+            data: { url: 'http://www.tests.org' }
+        }).end(function (err, res) {
             monitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal(monitor.name);
+            expect(res.body[0].name).to.be.equal('New Monitor 11');
             done();
         });
     });
 
     it('should create a monitor in sub-project.', function (done) {
         var authorization = `Basic ${token}`;
-        request.post(`/monitor/${subProjectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+        request.post(`/monitor/${subProjectId}`).set('Authorization', authorization).send({
+            name: 'New Monitor 12',
+            type: 'url',
+            data: { url: 'http://www.tests.org' }
+        }).end(function (err, res) {
             subProjectMonitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal(monitor.name);
+            expect(res.body[0].name).to.be.equal('New Monitor 12');
             done();
         });
     });
@@ -461,7 +483,11 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
     // project seats -> 2, monitors -> 10
     it('should not create a new monitor because project seats are filled up (project seats -> 2, monitors -> 10).', function (done) {
         var authorization = `Basic ${token}`;
-        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
+            name: 'New Monitor 13',
+            type: 'url',
+            data: { url: 'http://www.tests.org' }
+        }).end(function (err, res) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
             done();
@@ -471,7 +497,11 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
     // project seats -> 3, monitors -> 10
     it('should add a new seat (project seats -> 3, monitors -> 10).', function (done) {
         var authorization = `Basic ${token}`;
-        request.post(`/monitor/${projectId}/addseat`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+        request.post(`/monitor/${projectId}/addseat`).set('Authorization', authorization).send({
+            name: 'New Monitor 14',
+            type: 'url',
+            data: { url: 'http://www.tests.org' }
+        }).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.text).to.be.equal('A new seat added. Now you can add a monitor');
             done();
@@ -481,10 +511,14 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
     // project seats -> 3, monitors -> 11
     it('should create a monitor (project seats -> 3, monitors -> 11).', function (done) {
         var authorization = `Basic ${token}`;
-        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
+            name: 'New Monitor 15',
+            type: 'url',
+            data: { url: 'http://www.tests.org' }
+        }).end(function (err, res) {
             monitorId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal(monitor.name);
+            expect(res.body[0].name).to.be.equal('New Monitor 15');
             done();
         });
     });
