@@ -44,7 +44,7 @@ let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policy
                                     <button
                                         type="button"
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                        onClick={() => fields.push({ member: '', email: true, sms: true, call: true, timezone: '', startTime: '', endTime: '' })}
+                                        onClick={() => fields.push({ member: '', timezone: '', startTime: '', endTime: '' })}
                                     >
                                         Add Member
                                     </button>

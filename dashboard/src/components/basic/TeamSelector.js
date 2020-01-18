@@ -9,8 +9,9 @@ let errorStyle = {
     topMargin: '5px'
 };
 
-const TeamSelector = ({ input, placeholder, meta: { touched, error }, members, form, policyIndex, teamIndex }) => {
-    const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].team[teamIndex].teamMember, members);
+const TeamSelector = ({ input, placeholder, meta: { touched, error }, subProjectTeam, form, policyIndex, teamIndex }) => {
+    const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].team[teamIndex].teamMember, subProjectTeam);
+
     const allowedOptionsForDropdown = [{ value: '', label: 'Select Team Member...' }].concat(allowedTeamMembers.map(member => {
         return {
             value: member.userId,
@@ -19,7 +20,7 @@ const TeamSelector = ({ input, placeholder, meta: { touched, error }, members, f
         }
     }));
   
-    const options = [{ value: '', label: 'Select Team Member...' }].concat(members.map(member => {
+    const options = [{ value: '', label: 'Select Team Member...' }].concat(subProjectTeam.map(member => {
         return {
             value: member.userId,
             label: member.name,
@@ -91,14 +92,20 @@ TeamSelector.propTypes = {
 
 function makeAllowedTeamMembers(teamMembers, subProjectTeam = []) {
     const validTeamMembers = teamMembers.filter(member => member.member);
-    if (!validTeamMembers.length) return subProjectTeam;
+    if (!validTeamMembers.length)
+      return subProjectTeam;
+
+    const memberMap = new Map();
     const allowedTeamMembers = [];
     validTeamMembers.forEach(member => {
-      const allowedMember = subProjectTeam.find(TM => TM.userId !== member.member);
-      if (allowedMember) {
-          allowedTeamMembers.push(allowedMember);
-      }
-  })
+      memberMap.set(member.member, member);
+    });
+    const memberArray = Array.from(memberMap.keys());
+    subProjectTeam.forEach(TM => {
+      if (!memberArray.includes(TM.userId)) 
+        allowedTeamMembers.push(TM)
+    });
+
     return allowedTeamMembers;
 }
 
@@ -106,10 +113,10 @@ function mapStateToProps(state, props) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
     const subProjectTeams = state.team.subProjectTeamMembers;
-    const members = subProjectTeams.find(subProjectTeam => subProjectTeam._id === props.subProjectId) || {}
+    const subProjectTeam = subProjectTeams.find(team => team._id === props.subProjectId) || {};
 
     return {
-        members: members.teamMembers || [],
+        subProjectTeam: subProjectTeam.teamMembers || [],
         form,
     };
 }
