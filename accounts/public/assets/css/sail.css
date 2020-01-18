@@ -157,7 +157,7 @@
   background-color: #f7f7f7;
 }
 .Box-background--blue {
-  background-color: #14aad9;
+  background-color: #000000;
 }
 .Box-background--blue1 {
   background-color: #4c4c4c;
@@ -169,7 +169,7 @@
   background-color: #000000;
 }
 .Box-background--blue4 {
-  background-color: #14aad9;
+  background-color: #000000;
 }
 .Box-background--blue5 {
   background-color: #7795f8;
@@ -1294,7 +1294,7 @@
   color: #b76ac4;
 }
 .Text-color--blue {
-  color: #14aad9;
+  color: #000000;
 }
 .Text-color--fyipeblue {
   color: #000000;
@@ -4109,7 +4109,7 @@
   color: #f7f7f7;
 }
 .ChartIcon--color--blue {
-  color: #14aad9;
+  color: #000000;
 }
 .ChartIcon--color--blue1 {
   color: #4c4c4c;
@@ -4121,7 +4121,7 @@
   color: #000000;
 }
 .ChartIcon--color--blue4 {
-  color: #14aad9;
+  color: #000000;
 }
 .ChartIcon--color--blue5 {
   color: #7795f8;
@@ -5026,7 +5026,7 @@ input[type='radio']:checked {
 }
 
 .Checkbox-source:checked + div>.Checkbox-target{
-  background-color: #14aad9;
+  background-color: #000000;
 }
 
 img.image-small-circle{

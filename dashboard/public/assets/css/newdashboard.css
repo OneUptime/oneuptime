@@ -87,7 +87,7 @@ div.css-15k3avv {
   right: 0;
   top: 0;
   bottom: 0;
-  background: #14aad9;
+  background: #000000;
   opacity: 0;
   pointer-events: none;
 }
@@ -157,7 +157,7 @@ div.css-15k3avv {
   overflow: hidden;
 }
 .db-Account.db-is-selected .db-Account-nickname {
-  color: #14aad9;
+  color: #000000;
   font-weight: 600;
 }
 .db-Account.db-has-label .db-Account-nickname {
@@ -751,7 +751,7 @@ html.db-NewChrome body {
 }
 .db-Sidebar-link.db-is-selected {
   font-weight: 700;
-  color: #14aad9;
+  color: #000000;
 }
 .db-Sidebar-link.db-is-disabled,
 .db-Sidebar-link.db-is-disabled:hover {
@@ -1036,7 +1036,7 @@ html.db-NewChrome body {
 }
 .db-ContentTabs-tab .db-is-selected {
   font-weight: 700;
-  color: #14aad9;
+  color: #000000;
 }
 .db-ContentTabs-tab .db-ContentTabs-tab-link--icon-settings {
   background-size: 20px 20px;
@@ -1160,7 +1160,7 @@ html.db-NewChrome body {
 }
 .db-FeedbackForm-successTitle {
   margin: 9px auto 0;
-  color: #14aad9;
+  color: #000000;
   font-size: 15px;
   font-weight: 700;
 }
@@ -1869,7 +1869,7 @@ html.db-NewChrome body {
   opacity: 1;
 }
 .db-SearchField-token {
-  color: #14aad9;
+  color: #000000;
   padding-top: 1px;
   padding-bottom: 1px;
   box-shadow: inset 0 -1px 0 #e1e3fa;
@@ -1970,7 +1970,7 @@ html.db-NewChrome body {
   text-transform: uppercase;
 }
 .db-SearchResult.db-is-selected .db-SearchResult-type {
-  color: #14aad9;
+  color: #000000;
 }
 .db-SearchResult-header {
   margin: 6px 0 7px;
@@ -2458,7 +2458,7 @@ html.db-NewChrome body {
   color: #e39f48;
 }
 .db-JsonDisplay-property {
-  color: #14aad9;
+  color: #000000;
 }
 .db-GravatarImage {
   background-color: #fff;
@@ -2635,7 +2635,7 @@ html.db-NewChrome body {
   overflow: hidden;
 }
 .db-Tabs-selectedBackground {
-  background-color: #14aad9;
+  background-color: #000000;
   background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMyIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgMTMgNSI+PHBhdGggZmlsbD0iI0Y4RkFGRCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMSA1LjA5Nkw1LjY1Ni40NEExLjUwNiAxLjUwNiAwIDAgMSA3Ljc3NC40M2w0LjY2NiA0LjY2NkgxeiIvPjwvc3ZnPg==");
   background-repeat: no-repeat;
   background-size: 13px 5px;
@@ -2681,7 +2681,7 @@ html.db-NewChrome body {
   z-index: 2;
 }
 .db-Tab:active {
-  border-color: #14aad9;
+  border-color: #000000;
   z-index: 1;
 }
 .db-Tab:active:before {
@@ -3048,7 +3048,7 @@ html.db-NewChrome body {
   border: none;
   border-radius: 3px;
   box-sizing: border-box;
-  color: #14aad9;
+  color: #000000;
   background: transparent;
 }
 .db-DateInput::-webkit-input-placeholder {
@@ -3060,7 +3060,7 @@ html.db-NewChrome body {
   font-size: 12px;
 }
 .db-DateInput.db-is-selected {
-  background: #14aad9;
+  background: #000000;
   color: #fff;
 }
 .db-DateInput.db-is-numeric {
@@ -3158,7 +3158,7 @@ html.db-NewChrome body {
   font-style: normal;
 }
 .db-MoneyTransmissionReceipt-subheader {
-  background: #14aad9;
+  background: #000000;
   font-size: 16px;
 }
 .db-MoneyTransmissionReceipt-subheaderInner {
@@ -3216,7 +3216,7 @@ html.db-NewChrome body {
 }
 .db-DateFilter--selected {
   font-weight: 600;
-  color: #14aad9;
+  color: #000000;
 }
 .db-InvisibleFileInput {
   position: absolute;
@@ -3315,7 +3315,7 @@ html.db-NewChrome body {
 }
 .db-Trends-dateFiltersOther--selected {
   font-weight: 600;
-  color: #14aad9;
+  color: #000000;
   background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMyIgaGVpZ2h0PSIxMyIgdmlld0JveD0iMCAwIDEzIDEzIj48cGF0aCBmaWxsPSIjNjc3MkU1IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik02LjI5NiAxMC4wMDVhLjY5NS42OTUgMCAwIDAgLjQ5Ni0uMjAybDQuNTk2LTQuNTk2YS43MDQuNzA0IDAgMCAwLS4wMDctLjk5OC43MS43MSAwIDAgMC0xLS4wMDhMNi4yOTcgOC4yODggMi4yMDkgNC4yYS43MS43MSAwIDAgMC0uOTk4LjAwOC43MDQuNzA0IDAgMCAwLS4wMDcuOTk4bDQuNTk1IDQuNTk2YS42OTUuNjk1IDAgMCAwIC40OTcuMjAyeiIvPjwvc3ZnPg==");
 }
 .db-Trends-content {
@@ -3470,7 +3470,7 @@ html.db-NewChrome body {
   white-space: nowrap;
 }
 .db-Trend-colValue {
-  color: #14aad9;
+  color: #000000;
   font-weight: 500;
   line-height: 1;
 }
@@ -3587,7 +3587,7 @@ div.db-Trend-groupChart {
   right: 20px;
   font-weight: 500;
   font-size: 11px;
-  color: #14aad9;
+  color: #000000;
   text-transform: uppercase;
   padding-right: 14px;
   background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48cGF0aCBmaWxsPSIjNjc3MkU1IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yLjk0My45MzJBMS40MTcgMS40MTcgMCAwIDAgLjkxOS45MTljLS41Ni41Ni0uNTUgMS40NjEuMDEzIDIuMDI0TDUuOTg5IDggLjkzMiAxMy4wNTdhMS40MTcgMS40MTcgMCAwIDAtLjAxMyAyLjAyNGMuNTYuNTYgMS40NjEuNTUgMi4wMjQtLjAxM0w4IDEwLjAxMWw1LjA1NyA1LjA1N2MuNTguNTggMS40NjkuNTY4IDIuMDI0LjAxMy41Ni0uNTYuNTUtMS40NjEtLjAxMy0yLjAyNEwxMC4wMTEgOGw1LjA1Ny01LjA1N2MuNTgtLjU4LjU2OC0xLjQ2OS4wMTMtMi4wMjRhMS40MjggMS40MjggMCAwIDAtMi4wMjQuMDEzTDggNS45ODkgMi45NDMuOTMyeiIvPjwvc3ZnPg==");
@@ -3628,7 +3628,7 @@ div.db-Trend-groupChart {
 }
 .db-HomeWelcome-link strong {
   font-weight: 500;
-  color: #14aad9;
+  color: #000000;
 }
 .db-HomeWelcome-link:before {
   content: "";
@@ -5243,7 +5243,7 @@ div.db-Trend-groupChart {
 }
 .db-VersionUsageChart-fill {
   border-width: 1px 0 0;
-  border-color: #14aad9;
+  border-color: #000000;
   border-style: solid;
 }
 .db-DeveloperChart-stack {
@@ -5274,7 +5274,7 @@ div.db-Trend-groupChart {
   white-space: nowrap;
 }
 .db-DeveloperChartHover-color--blue4 {
-  background-color: #14aad9;
+  background-color: #000000;
 }
 .db-DeveloperChartHover-color--purple6 {
   background-color: #f6a4eb;
@@ -5441,7 +5441,7 @@ div.db-Trend-groupChart {
   margin-right: 24px;
 }
 .db-SigmaSidebar-section:hover {
-  color: #14aad9;
+  color: #000000;
 }
 .db-SigmaSidebar-sectionFixedContent {
   border-top: 1px solid #fbfbfb;
@@ -5461,7 +5461,7 @@ div.db-Trend-groupChart {
   line-height: 28px;
 }
 .db-SigmaSidebar-tab:hover {
-  color: #14aad9;
+  color: #000000;
 }
 .db-SigmaSidebar-section:first-of-type,
 .db-SigmaSidebar-tab:first-of-type {
@@ -5474,7 +5474,7 @@ div.db-Trend-groupChart {
 .db-SigmaSidebar-section.bs-is-active,
 .db-SigmaSidebar-tab.bs-is-active {
   font-weight: 700;
-  color: #14aad9;
+  color: #000000;
 }
 .db-SigmaSidebar-section.bs-is-disabled,
 .db-SigmaSidebar-tab.bs-is-disabled {
@@ -5513,7 +5513,7 @@ div.db-Trend-groupChart {
 }
 .db-SigmaSidebar-footerDocsLink:hover,
 .db-SigmaSidebar-footerFeedbackLink:hover {
-  color: #14aad9;
+  color: #000000;
 }
 .db-SigmaSidebar-footerFeedbackLink {
   font-weight: 400;
@@ -5606,7 +5606,7 @@ div.db-Trend-groupChart {
 }
 .db-QueryEntry.bs-is-active {
   background-color: rgba(225, 232, 250, 0.5);
-  border-left: 3px solid #14aad9;
+  border-left: 3px solid #000000;
 }
 .db-QueryEntry-row {
   display: flex;
@@ -5694,7 +5694,7 @@ div.db-Trend-groupChart {
 }
 .db-QueryTemplates-query.bs-is-active {
   background-color: rgba(225, 232, 250, 0.5);
-  border-left: 3px solid #14aad9;
+  border-left: 3px solid #000000;
 }
 .db-QueryTemplates-query:hover {
   background-color: hsla(0, 0%, 100%, 0.5);
@@ -5723,7 +5723,7 @@ div.db-Trend-groupChart {
   color: #aab7c4;
 }
 .db-QueryTemplates-advert {
-  background-color: #14aad9;
+  background-color: #000000;
   color: #fff;
   border-radius: 4px;
   padding: 10px 20px;
@@ -5930,7 +5930,7 @@ div.db-Trend-groupChart {
   font-weight: 500;
 }
 .db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-name {
-  color: #14aad9;
+  color: #000000;
   line-height: 22px;
 }
 .db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn--fk,
@@ -5940,7 +5940,7 @@ div.db-Trend-groupChart {
 .db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-type,
 .db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-type--fk,
 .db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-type--pk {
-  color: #14aad9;
+  color: #000000;
 }
 .db-SchemaBrowserColumnPopover-wrapper {
   padding: 20px;
@@ -6768,7 +6768,7 @@ div.db-Trend-groupChart {
 }
 .db-PricingSlider-pastMonthIndicatorLabel {
   white-space: nowrap;
-  color: #14aad9;
+  color: #000000;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -6882,7 +6882,7 @@ div.db-Trend-groupChart {
 .db-SigmaUpgradeModal-subHeader {
   font-weight: 600;
   font-size: 16px;
-  color: #14aad9;
+  color: #000000;
   margin-bottom: 10px;
   text-transform: uppercase;
 }
@@ -7116,7 +7116,7 @@ div.db-Trend-groupChart {
   background-color: #7795f8;
 }
 .db-MonthlyRepeatDayNumberTable-day.bs-is-selected {
-  background-color: #14aad9;
+  background-color: #000000;
 }
 .db-PluralFrequency {
   display: inline-block;
@@ -7468,15 +7468,15 @@ div.db-Trend-groupChart {
   background-color: rgba(184, 253, 254, 0);
 }
 .db-AnimatedValue--color-blue4 {
-  color: #14aad9;
+  color: #000000;
 }
 .backgroundcliptext .db-AnimatedValue--color-blue4:not(.db-is-entering) {
-  background-color: #14aad9;
+  background-color: #000000;
   background-image: linear-gradient(
     90deg,
-    #14aad9,
+    #000000,
     rgba(103, 114, 229, 0.5) 50%,
-    #14aad9
+    #000000
   );
 }
 .db-AnimatedValue--color-blue4.db-AnimatedValue--loading:not(.db-is-entering) {
@@ -7571,7 +7571,7 @@ div.db-Trend-groupChart {
 }
 .db-SegmentedControlOption--selected {
   font-weight: 700;
-  color: #14aad9;
+  color: #000000;
 }
 .db-SegmentedControlOption--selected:hover {
   color: #000000;
@@ -7655,7 +7655,7 @@ div.db-Trend-groupChart {
 .db-MentionEditor-mentionSuggestionsEntryFocused {
   padding: 7px 10px 3px;
   color: #f7f7f7;
-  background-color: #14aad9;
+  background-color: #000000;
 }
 .db-MentionEditor-mentionSuggestionsEntryContainer {
   display: table;
@@ -7729,7 +7729,7 @@ div.db-Trend-groupChart {
   white-space: nowrap;
   font-weight: 500;
   line-height: 20px;
-  color: #14aad9;
+  color: #000000;
   padding: 4px 8px 5px;
   text-align: center;
   height: 27px;
@@ -7767,12 +7767,12 @@ div.db-Trend-groupChart {
   r: 4;
 }
 .db-ChartHoverDot--size-small .db-ChartHoverDot-dot {
-  fill: #14aad9;
+  fill: #000000;
   stroke-width: 1.5;
   r: 2.5;
 }
 .db-ChartHoverDot-line {
-  stroke: #14aad9;
+  stroke: #000000;
 }
 .db-GroupChartHover {
   position: relative;
@@ -7824,7 +7824,7 @@ div.db-Trend-groupChart {
   color: #000000;
 }
 .db-GroupChartHover-value {
-  color: #14aad9;
+  color: #000000;
   text-align: right;
 }
 .db-GroupChartHover-compareToValue {
@@ -7877,7 +7877,7 @@ div.db-Trend-groupChart {
   font-weight: 500;
 }
 .db-LegendValue--highlighted {
-  color: #14aad9;
+  color: #000000;
   font-weight: 500;
 }
 .db-LegendValue--white {
@@ -7960,7 +7960,7 @@ div.db-Trend-groupChart {
   opacity: 0.25;
 }
 .db-Sparkline--color-blue .db-Sparkline-dot {
-  fill: #14aad9;
+  fill: #000000;
   stroke: #fff;
 }
 .db-Sparkline--color-gray .db-Sparkline-main-line {
@@ -8008,14 +8008,14 @@ div.db-Trend-groupChart {
   stroke: #fff;
 }
 .db-Sparkline--color-blue4 .db-Sparkline-main-line {
-  stroke: #14aad9;
+  stroke: #000000;
 }
 .db-Sparkline--color-blue4 .db-Sparkline-fill {
-  fill: #14aad9;
+  fill: #000000;
   opacity: 0.1;
 }
 .db-Sparkline--color-blue4 .db-Sparkline-dot {
-  fill: #14aad9;
+  fill: #000000;
   stroke: #fff;
 }
 .db-Sparkline--color-cyan6 .db-Sparkline-main-line {
@@ -8093,14 +8093,14 @@ div.db-Trend-groupChart {
     stroke: #fff;
   }
   .db-Sparkline--color-cyan .db-Sparkline-main-line {
-    stroke: #14aad9;
+    stroke: #000000;
   }
   .db-Sparkline--color-cyan .db-Sparkline-fill {
-    fill: #14aad9;
+    fill: #000000;
     opacity: 0.1;
   }
   .db-Sparkline--color-cyan .db-Sparkline-dot {
-    fill: #14aad9;
+    fill: #000000;
     stroke: #fff;
   }
   .db-Sparkline-dot {
@@ -8356,7 +8356,7 @@ html.db-NewChrome
 html.db-NewChrome
   .DayPicker-container
   .CalendarMonth__day.CalendarMonth__day--selected {
-  background: #14aad9;
+  background: #000000;
   color: #fff;
 }
 html.db-NewChrome
@@ -8458,7 +8458,7 @@ html.db-NewChrome .bs-FilterControl-flyout-header .bs-Button {
 html.db-NewChrome
   .bs-FilterControl-flyout-header
   .bs-FilterControl-flyout-header-done {
-  background: #14aad9;
+  background: #000000;
   color: #fff;
 }
 html.db-NewChrome .bs-FilterControl-item-label {
@@ -10409,7 +10409,7 @@ html div.db-SurveyRequestNotice .Icon {
   cursor: pointer;
 }
 .db-CurrencyBlock--selected {
-  box-shadow: inset 0 4px #14aad9;
+  box-shadow: inset 0 4px #000000;
   color: #4c4c4c;
 }
 .db-CurrencyBlock:not(:first-child) {
@@ -10419,10 +10419,10 @@ html div.db-SurveyRequestNotice .Icon {
   box-shadow: inset 1px 0 #cfd7df, inset -1px 0 #cfd7df;
 }
 .db-CurrencyBlock:not(:first-child).db-CurrencyBlock--selected {
-  box-shadow: inset 1px 0 #cfd7df, inset 0 4px #14aad9;
+  box-shadow: inset 1px 0 #cfd7df, inset 0 4px #000000;
 }
 .db-CurrencyBlock:last-child.db-CurrencyBlock--selected {
-  box-shadow: inset 1px 0 #cfd7df, inset -1px 0 #cfd7df, inset 0 4px #14aad9;
+  box-shadow: inset 1px 0 #cfd7df, inset -1px 0 #cfd7df, inset 0 4px #000000;
 }
 .db-CurrencyBlock:hover .db-CurrencyBlock-amount,
 .db-CurrencyBlock:hover .db-CurrencyBlock-currencyCode {
@@ -10530,7 +10530,7 @@ table {
 .db-MultiSelect-dropdown--disabled {
 }
 .db-MultiSelect-dropdown-header--focused {
-  border-color: #14aad9;
+  border-color: #000000;
   box-shadow: none;
 }
 .db-MultiSelect-dropdown-header--expanded {
@@ -10549,7 +10549,7 @@ table {
 .db-MultiSelect-dropdown-heading-dd-arrow {
   box-sizing: border-box;
   top: 2px;
-  border-color: transparent transparent #14aad9;
+  border-color: transparent transparent #000000;
   border-style: solid;
   border-style: 0px 5px 5px;
   display: inline-block;
