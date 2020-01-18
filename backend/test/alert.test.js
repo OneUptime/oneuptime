@@ -34,7 +34,7 @@ describe('Alert API', function () {
 
         before(function (done) {
             this.timeout(30000);
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function (err, res) {
                 let project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -139,7 +139,7 @@ describe('Alert API', function () {
             ).end(function (err, res) {
                 subProjectId = res.body[0]._id;
                 // sign up second user (subproject user)
-                createUser(request, userData.newUser, function(err, res) {
+                createUser(request, userData.newUser, function (err, res) {
                     userId = res.body.id;
                     UserModel.findByIdAndUpdate(userId, { $set: { isVerified: true } }, function () {
                         request.post('/user/login').send({
@@ -172,7 +172,7 @@ describe('Alert API', function () {
         });
 
         it('should not create alert for user not in the project.', function (done) {
-            createUser(request, userData.anotherUser, function(err, res) {
+            createUser(request, userData.anotherUser, function (err, res) {
                 userId = res.body.id;
                 UserModel.findByIdAndUpdate(userId, { $set: { isVerified: true } }, function () {
                     request.post('/user/login').send({
