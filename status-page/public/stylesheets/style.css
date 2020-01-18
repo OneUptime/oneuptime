@@ -469,7 +469,7 @@ div.feed-header {
 }
 
   .feed-title {
-    color: #525f7f;
+    color: #000000;
     font-size: 15px;
     padding-right: 10px;
   }
@@ -537,7 +537,7 @@ div.feed-header {
         padding: 7px 12px;
         font-size: 14px;
         line-height: 21px;
-        color: #525f7f;
+        color: #000000;
       }
 
 div.twitter-link {
@@ -556,7 +556,7 @@ div.twitter-link {
   div.empty h3 {
     text-align: center;
     font-size: 16px;
-    color: #525f7f;
+    color: #000000;
     background: url(/images/twitter/big_bird.svg) 50% 0 no-repeat;
     margin-top: 20px;
     padding-top: 75px;
@@ -667,10 +667,10 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 
 .more:hover{
-  color:#525f7f;
+  color:#000000;
 }
 .more:active{
-  color:#525f7f;
+  color:#000000;
   text-shadow: 0.5px 0.5px;
 }
 #notes-loader{
@@ -742,7 +742,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 .btn-group .icon-container {
   background-color: #f6f9fc; /* Green background */
   border: 2px solid #e6ebf1; /* Green border */
-  color: #525f7f; /* White text */
+  color: #000000; /* White text */
   padding: 6px; /* Some padding */
   cursor: pointer; /* Pointer/hand icon */
   box-sizing: border-box;
@@ -863,7 +863,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 .directions{
   font-size: 15px;
-  color:#525f7f;
+  color:#000000;
   margin-bottom: 10px;
 }
 .select-full{
@@ -871,13 +871,13 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   height:30px;
   border:1px solid #999999;
   border-radius: 5px;
-  color:#525f7f;
+  color:#000000;
   box-sizing: border-box;
   outline: none;
 }
 
 .small{
-  color:#525f7f;
+  color:#000000;
   font-size: 0.7em;
 }
 /* Customize the label (the container) */
@@ -889,7 +889,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   cursor: pointer;
   font-size: 14px;
   font-weight: 400;
-  color:#525f7f;
+  color:#000000;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;

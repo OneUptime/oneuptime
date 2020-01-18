@@ -438,7 +438,7 @@ export class ProfileSetting extends Component {
                             value={profileSettingState.alertPhoneNumber}
                             onChange={this.handleOnChange}
                             disabled={profileSettings && profileSettings.requesting}
-                            inputStyle={{ width: 250, height: 28, fontSize: 14, color: '#525f7f', fontFamily: 'camphor' }}
+                            inputStyle={{ width: 250, height: 28, fontSize: 14, color: '#000000', fontFamily: 'camphor' }}
                           />
                         </div>
                         <ShouldRender if={profileSettingState.alertPhoneNumber}>

@@ -270,7 +270,7 @@ th {
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0),
     0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08);
-  color: #525f7f;
+  color: #000000;
   cursor: text;
   font-size: 14px;
   line-height: 1.6;
@@ -575,7 +575,7 @@ th {
   box-shadow: 0 0 0 1px rgba(50, 50, 93, 0.1),
     0 2px 5px 0 rgba(50, 50, 93, 0.08), 0 1px 1.5px 0 rgba(0, 0, 0, 0.07),
     0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent;
-  color: #525f7f;
+  color: #000000;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
@@ -1028,7 +1028,7 @@ html {
   font-size: 14px;
   font-weight: 400;
   line-height: normal;
-  color: #525f7f;
+  color: #000000;
   text-transform: none;
 }
 .bs-Fieldset-explanation,
@@ -1055,7 +1055,7 @@ h2 .bs-is-muted,
 h3 .bs-is-muted,
 h4 .bs-is-muted,
 h5 .bs-is-muted {
-  color: #525f7f;
+  color: #000000;
 }
 h1 strong,
 h2 strong,
@@ -1325,7 +1325,7 @@ span.bs-Icon {
 }
 .bs-Number-suffix {
   margin-left: 3px;
-  color: #525f7f;
+  color: #000000;
   font-size: 14px;
   font-weight: 500;
   text-transform: uppercase;
@@ -3356,7 +3356,7 @@ figure.bs-Number > figcaption {
   color: #32325d;
 }
 .bs-LinkList-copy p {
-  color: #525f7f;
+  color: #000000;
   line-height: 1.6;
 }
 .bs-LinkList-copy p + h3 {
@@ -3518,7 +3518,7 @@ figure.bs-Number > figcaption {
   box-shadow: 0 0 10px rgba(207, 215, 223, 0.5);
 }
 .bs-MissingWell--page p {
-  color: #525f7f;
+  color: #000000;
   font-size: 15px;
 }
 .bs-MissingWell--small {
@@ -3862,7 +3862,7 @@ a.bs-ObjectList-row {
   position: relative;
   display: table-cell;
   padding: 9px 10px;
-  color: #525f7f;
+  color: #000000;
   font-weight: 400;
   line-height: 22px;
   vertical-align: top;
@@ -3900,10 +3900,10 @@ a.bs-ObjectList-row {
 }
 .bs-ObjectList-cell.bs-is-reverted,
 .bs-ObjectList-copy.bs-is-reverted {
-  color: #525f7f;
+  color: #000000;
 }
 .bs-ObjectList-cell code {
-  color: #525f7f;
+  color: #000000;
   font-weight: 400;
 }
 .bs-ObjectList-cell-layout {
@@ -3942,7 +3942,7 @@ a.bs-ObjectList-row {
 .bs-ObjectList-row--regular .bs-ObjectList-cell.bs-is-highlighted,
 .bs-ObjectList-row--regular .bs-ObjectList-copy.bs-is-highlighted,
 .bs-ObjectList-row--regular code {
-  color: #525f7f;
+  color: #000000;
 }
 .bs-ObjectList-row--gray,
 .bs-ObjectList-row--gray .bs-ObjectList-cell,
@@ -5392,7 +5392,7 @@ pre.bs-PropertyList-property {
   line-height: 20px;
 }
 .bs-Source-detail--body {
-  color: #525f7f;
+  color: #000000;
   font-size: 14px;
   line-height: 20px;
 }
@@ -5519,7 +5519,7 @@ pre.bs-PropertyList-property {
   background: #f7f9fa;
 }
 .bs-Table-row.bs-is-highlighted .bs-Table-cell {
-  color: #525f7f;
+  color: #000000;
   font-size: 15px;
 }
 .bs-Table-row.bs-is-highlighted .bs-Table-cell.bs-is-highlighted {
@@ -5530,7 +5530,7 @@ pre.bs-PropertyList-property {
 }
 .bs-Table-head .bs-Table-cell,
 .bs-Table-head .bs-Table-cell.bs-is-highlighted {
-  color: #525f7f;
+  color: #000000;
   font-family: Camphor, Segoe UI, Open Sans, sans-serif;
   font-size: 13px;
   font-weight: 600;
@@ -5560,7 +5560,7 @@ pre.bs-PropertyList-property {
   padding-right: 5px;
 }
 .bs-Table-cell.bs-is-highlighted {
-  color: #525f7f;
+  color: #000000;
   font-weight: 500;
 }
 .bs-Table-cell.bs-is-muted {
@@ -5756,7 +5756,7 @@ pre.bs-PropertyList-property {
 }
 .bs-Timeline-title {
   display: block;
-  color: #525f7f;
+  color: #000000;
   font-size: 14px;
   line-height: 20px;
   word-break: break-word;
@@ -5986,7 +5986,7 @@ pre.bs-PropertyList-property {
 }
 .bs-VerticalMenu-item a {
   padding: 0 15px;
-  color: #525f7f;
+  color: #000000;
   line-height: 36px;
 }
 .bs-VerticalMenu-item:hover a:active,
@@ -6083,7 +6083,7 @@ pre.bs-PropertyList-property {
 }
 .bs-Checkbox-label {
   padding-left: 10px;
-  color: #525f7f;
+  color: #000000;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.6;
@@ -6524,7 +6524,7 @@ pre.bs-PropertyList-property {
 }
 .bs-Radio-label {
   padding-left: 10px;
-  color: #525f7f;
+  color: #000000;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.6;
@@ -6644,7 +6644,7 @@ pre.bs-PropertyList-property {
   padding-left: 15px;
 }
 .bs-SwitchList-copy h3 {
-  color: #525f7f;
+  color: #000000;
   font-size: 15px;
 }
 .bs-SwitchList-row.bs-is-disabled .bs-SwitchList-copy h3,
@@ -8868,7 +8868,7 @@ html .modal-dialog-view div.modal div.modal-header h2 {
   line-height: 44px;
   font-weight: 500;
   font-size: 15px;
-  color: #525f7f;
+  color: #000000;
   text-shadow: none;
 }
 html .modal-dialog-view div.modal div.modal-footer {
@@ -14923,7 +14923,7 @@ a.button.blue,
 button.button.blue,
 div.button.blue,
 strong.button.blue {
-  background: #005d93;
+  background: #000000;
 }
 a.button.blue span,
 button.button.blue span,
@@ -14931,7 +14931,7 @@ div.button.blue span,
 strong.button.blue span {
   color: #fff;
   text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
-  background: #005d93;
+  background: #000000;
 }
 a.button.blue.active,
 a.button.blue:active,
@@ -14941,7 +14941,7 @@ div.button.blue.active,
 div.button.blue:active,
 strong.button.blue.active,
 strong.button.blue:active {
-  background: #005d93;
+  background: #000000;
 }
 a.button.blue.active span,
 a.button.blue:active span,
@@ -15994,7 +15994,7 @@ div.filter-view div.row label input {
 div.filter-view div.row label span {
   font-weight: 500;
   font-size: 12px;
-  color: #525f7f;
+  color: #000000;
 }
 div.filter-view div.row div.row-content {
   padding: 10px;
@@ -16103,7 +16103,7 @@ div.filter-view div.row div.row-content span.integer-filter span.single {
 div.filter-view div.row div.row-content span {
   font-weight: 500;
   text-shadow: none;
-  color: #525f7f;
+  color: #000000;
 }
 div.filter-view div.row:last-child label {
   border: none;
@@ -16561,7 +16561,7 @@ div.pagination div.position strong {
 .popover-view div.header h2 {
   font-weight: 500;
   font-size: 15px;
-  color: #525f7f;
+  color: #000000;
   padding: 0;
   line-height: 32px;
   text-align: center;
@@ -16584,7 +16584,7 @@ div.pagination div.position strong {
   font-family: Camphor, Segoe UI, Open Sans, sans-serif;
   font-size: 11px;
   font-weight: 500;
-  color: #525f7f;
+  color: #000000;
   text-shadow: none;
   border: none;
   background: #fff;
@@ -45826,7 +45826,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 .page-wrapper div#wrap {
   position: relative;
   min-height: 100%;
-  background-color: #f7f8fc;
+  background-color: #fdfdfd;
 }
 
 #login div#login-background,
@@ -45873,7 +45873,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   padding: 17px 24px;
   background: url('login/divider-da67eb5fc0c6d51d6a5cc4f1546da491.png') 50% 100%
     no-repeat;
-  color: #525f7f;
+  color: #000000;
   font-size: 15px;
   font-weight: bold;
   line-height: 21px;
@@ -46019,7 +46019,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   -webkit-font-smoothing: antialiased;
   border: 1px solid #bbb;
   font-size: 18px;
-  color:#525f7f
+  color:#000000
 }
 
 #login div#main-body form p a.button,
@@ -46221,7 +46221,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   span.password-strength
   span.password-strength-popover
   span {
-  color: #696f77;
+  color: #7b7b7b;
   font-family: Lucida Grande, Lucida Sans Unicode, Geneva, sans-serif;
   font-size: 12px;
   line-height: 17px;
@@ -46637,7 +46637,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 #login div#bottom a,
 #recovery div#bottom a,
 .page-wrapper div#bottom a {
-  color: #696f77;
+  color: #7b7b7b;
   font-weight: 700;
   font-size: 12px;
   text-shadow: 0 1px 0 hsla(0, 0%, 100%, 0.5);
@@ -47300,7 +47300,7 @@ body.oauth-page div#bottom li.last {
   padding-right: 16px;
 }
 body.oauth-page div#bottom a {
-  color: #696f77;
+  color: #7b7b7b;
   font-weight: 700;
   font-size: 12px;
   text-shadow: 0 1px 0 hsla(0, 0%, 100%, 0.5);
@@ -48810,7 +48810,7 @@ html[dir='rtl'] .select2-search-choice-close {
 }
 .cm-s-fyipe.CodeMirror {
   background-color: #fff;
-  color: #525f7f;
+  color: #000000;
   line-height: 1.4375;
 }
 .cm-s-fyipe .CodeMirror-line,
@@ -48818,7 +48818,7 @@ html[dir='rtl'] .select2-search-choice-close {
   padding: 0;
   font-family: Source Code Pro, Courier New, Courier, monospace;
   font-weight: 400;
-  color: #525f7f;
+  color: #000000;
   font-size: 13px;
   line-height: 23px;
 }
@@ -48925,7 +48925,7 @@ html[dir='rtl'] .select2-search-choice-close {
 .cm-s-fyipe.cm-s-fyipe-readonly .cm-variable-3,
 .cm-s-fyipe.cm-s-fyipe-readonly .CodeMirror-line,
 .cm-s-fyipe.cm-s-fyipe-readonly.CodeMirror pre {
-  color: #525f7f;
+  color: #000000;
 }
 html.db-NewChrome .db-Badge--testmode,
 html.db-NewChrome .test-badge,

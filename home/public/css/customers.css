@@ -1140,7 +1140,7 @@ html#customers .LocalNavigation{
     top:0;
     right:0;
     bottom:0;
-    background:#525f7f;
+    background:#000000;
     opacity:0;
     transition:opacity .25s
 }
@@ -1223,7 +1223,7 @@ html#customers .LocalNavigation{
     position:relative;
     padding-top:40px;
     background:#ffded9;
-    color:#525f7f
+    color:#000000
 }
 .Quote--missguided:before{
     content:'';

@@ -136,7 +136,7 @@
   background-color: #424770;
 }
 .Box-background--slate3 {
-  background-color: #525f7f;
+  background-color: #000000;
 }
 .Box-background--slate4 {
   background-color: #6b7c93;
@@ -1282,7 +1282,7 @@
   color: #32325d;
 }
 .Text-color--default {
-  color: #525f7f;
+  color: #000000;
 }
 .Text-color--secondary {
   color: #6b7c93;
@@ -1411,7 +1411,7 @@
   display: flex;
   margin: 0;
   padding: 0;
-  color: #525f7f;
+  color: #000000;
   background: transparent;
   border: 0;
   cursor: pointer;
@@ -1750,7 +1750,7 @@
   color: #3297d3;
 }
 .ActionIcon--color--slate {
-  color: #525f7f;
+  color: #000000;
 }
 .ActionIcon--color--white {
   color: #fff;
@@ -4088,7 +4088,7 @@
   color: #424770;
 }
 .ChartIcon--color--slate3 {
-  color: #525f7f;
+  color: #000000;
 }
 .ChartIcon--color--slate4 {
   color: #6b7c93;
