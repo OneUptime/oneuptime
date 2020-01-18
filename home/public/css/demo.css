@@ -1466,7 +1466,7 @@ section.success .thank-you .success-headline{
     margin-bottom:8px
 }
 section.success .thank-you .success-subhead{
-    color:#d7d7d7;
+    color:#000000;
     font-size:30px;
     font-weight:300;
     transition:opacity .2s ease-out

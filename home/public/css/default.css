@@ -200,7 +200,7 @@ code,pre{
 @media (min-width:670px){
     .common-PageTitle{
         font-size:40px;
-        line-height:50px
+        line-height:55px
     }
 }
 .common-PageSubtitle{
@@ -238,9 +238,14 @@ code,pre{
     content: '\279E';
     padding-left: 1px;
 }
+
+.font16{
+    font-size:17px !important;
+}
+
 .common-BodyText{
     font-weight:400;
-    font-size:16px;
+    font-size:20px;
     line-height:26px;
     color:#797979
 }
@@ -1320,7 +1325,7 @@ code,pre{
     color:#000000
 }
 .globalNav .linkContainer:hover .linkSub{
-    color:#424770
+    color:#000000
 }
 .globalNav .hover-fillDark,.globalNav .hover-fillLight{
     transition:fill .1s
@@ -1474,6 +1479,10 @@ code,pre{
 .globalNav .documentationGroup .linkSub{
     max-width:250px
 }
+.imageshadow{
+    box-shadow: 0px 1px 20px 8px rgba(228, 228, 228, 0.75);
+}
+
 .globalNav .documentationArticles{
     font-size:15px;
     line-height:26px;

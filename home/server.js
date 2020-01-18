@@ -143,13 +143,13 @@ app.get('/legal/sla', function(req, res) {
 });
 
 app.get('/enterprise/download-resource/:resourceName', function(req, res) {
-    res.render('download-resource.ejs', {footerCards: false, cta:false, blackLogo:true,requestDemoCta:false});
+    res.render('download-resource.ejs', {footerCards: false, support:false, cta:false, blackLogo:true,requestDemoCta:false});
 });
 
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 2592000 }));
 
 app.get('/*', function(req, res) {
-    res.render('notFound.ejs', {footerCards: false, cta:false, blackLogo:false,requestDemoCta:false});
+    res.render('notFound.ejs', {footerCards: false, support:false, cta:false, blackLogo:false,requestDemoCta:false});
 });
 
 app.set('port', process.env.PORT || 1444);
