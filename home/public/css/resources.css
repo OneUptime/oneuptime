@@ -426,7 +426,7 @@ article.guide-content hr{
     padding-top:0;
     margin-top:30px;
     margin-bottom:30px;
-    border:1px solid #e6ebf1
+    border:1px solid #fbfbfb
 }
 article.guide-content aside{
     display:-ms-flexbox;
@@ -782,7 +782,7 @@ ol li:before{
     font-size:17px;
     color:#797979;
     padding-top:25px;
-    border-top:1px solid #e6ebf1;
+    border-top:1px solid #fbfbfb;
     margin-top:20px
 }
 .guide-sidebar .toc>.cta h3{

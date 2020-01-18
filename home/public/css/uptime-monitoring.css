@@ -492,7 +492,7 @@ section.techguide .chart .effectiveness .slider{
     flex-grow:1;
     height:4px;
     border-radius:2px;
-    background-color:#e6ebf1;
+    background-color:#fbfbfb;
     overflow:hidden;
     -webkit-mask-image:url(data:image/png;
     base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA5JREFUeNpiYGBgAAgwAAAEAAGbA+oJAAAAAElFTkSuQmCC)
@@ -796,7 +796,7 @@ section.simplify .manual-review .review-queue .charge:nth-child(1) .content,sect
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08)
 }
 section.simplify .manual-review .review-queue .charge:nth-child(1) .risk-icon,section.simplify .manual-review .review-queue .charge:nth-child(2) .risk-icon,section.simplify .manual-review .review-queue .charge:nth-child(4) .risk-icon,section.simplify .manual-review .review-queue .charge:nth-child(5) .risk-icon{
-    background-color:#e6ebf1
+    background-color:#fbfbfb
 }
 section.simplify .manual-review .review-queue .charge:nth-child(1) .detail h3,section.simplify .manual-review .review-queue .charge:nth-child(2) .detail h3,section.simplify .manual-review .review-queue .charge:nth-child(4) .detail h3,section.simplify .manual-review .review-queue .charge:nth-child(5) .detail h3{
     color:rgba(50,50,93,0)
@@ -951,7 +951,7 @@ section.simplify .manual-review .review-queue .charge .detail p:after{
     bottom:4px;
     left:0;
     border-radius:2px;
-    background-color:#e6ebf1;
+    background-color:#fbfbfb;
     pointer-events:none;
     opacity:0;
     transition:opacity .5s cubic-bezier(.645,.045,.355,1)

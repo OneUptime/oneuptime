@@ -427,7 +427,7 @@ code,pre{
     background-color:#000000
 }
 .common-Button--default:active{
-    color:#e6ebf1;
+    color:#fbfbfb;
     background-color:#000000
 }
 .common-Button--dark{
@@ -439,7 +439,7 @@ code,pre{
     background-color:#43458b
 }
 .common-Button--dark:active{
-    color:#e6ebf1;
+    color:#fbfbfb;
     background-color:#000000
 }
 .common-Button--disabled{
@@ -2273,7 +2273,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     color:#000000
 }
 .globalFooterNav .optionList a:active{
-    background-color:#e6ebf1
+    background-color:#fbfbfb
 }
 .globalFooterNav .optionList .selected{
     font-weight:600;
@@ -2298,7 +2298,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     font-style:normal;
     padding:2px 3px 1px;
     border-radius:4px;
-    border:1px solid #e6ebf1;
+    border:1px solid #fbfbfb;
     display:inline-block;
     vertical-align:1px;
     margin-left:8px

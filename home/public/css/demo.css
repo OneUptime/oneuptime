@@ -1284,7 +1284,7 @@ section.success .phone-number-container{
     width:calc(100% + 12px);
     padding:5px;
     padding-bottom:0;
-    border:1px solid #e6ebf1;
+    border:1px solid #fbfbfb;
     border-radius:4px;
     transition:opacity .08s ease-out,transform .08s ease-out;
     opacity:0;

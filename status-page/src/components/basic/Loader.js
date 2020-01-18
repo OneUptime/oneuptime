@@ -13,7 +13,7 @@ export const FormLoader = () => <div className="ball-beat"><div style={{ height:
 
 FormLoader.displayName = 'FormLoader'
 
-export const ListLoader = () => <div className="ball-beat" style={{ textAlign: 'center', marginTop: '20px' }}><div style={{ height: '8px', width: '8px', backgroundColor: '#32325d' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#32325d' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#32325d' }}></div></div>;
+export const ListLoader = () => <div className="ball-beat" style={{ textAlign: 'center', marginTop: '20px' }}><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div></div>;
 
 ListLoader.displayName = 'ListLoader'
 
