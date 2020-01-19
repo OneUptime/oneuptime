@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>Fyipe | HTTP Test Server</title>
+    <meta name="description" content="Http test server allows for testing of HTTP requests">
+	<% include ./head %>
+</head>
+
+<body id='http-server' style="overflow: auto;" style="background-color: #f7f8fc;">
+	<div style="height: 100%;" id="wrap">
+		<div id="header" style="height: 0;"></div>
+		<div>
+			<div id="main-body" class="box css">
+				<div class="inner">
+					<div>
+						<form action="/api/settings" method="POST">
+							<div class="step">
+								<h2 style="margin-bottom: 15px;">HTTP Test server settings</h2>
+								<% if (data.error) { %>
+									<p class="text error" style="color: #e25950; text-align: center; font-weight: normal;" id="errorMsg">
+										<label id="error"><span><%= data.error %></span></label>
+									</p>
+								<% } %>
+								<p class="text">
+									<label for="responseTime">Response Time</label>
+									<input type="text" name="responseTime" id="responseTime" placeholder="Response Time" required value="<%= data.responseTime %>">
+								</p>
+								<p class="text">
+									<label for="statusCode">Status Code</label>
+									<input type="text" name="statusCode" id="statusCode" placeholder="Server Status Code" required value="<%= data.statusCode %>">
+								</p>
+								<p class="text">
+									<label for="responseType"><span>Response Type</span></label>
+									<select id="responseType" class="selector" name="responseType">
+										<% data.responseType.values.forEach(function (type) { %>
+											<option value="<%= type %>" id="responseType"><%= type %></option>
+										<% }) %>
+									</select>
+								</p>
+								<p class="text">
+									<label for="body">Response Body</label>
+									<textarea type="body" name="body" id="body" placeholder="Response Time" required value="<%= data.body %>" style="font-size: 14px; color: #525f7f;"><%= data.body %></textarea>
+								</p>
+								<p class="submit">
+									<button type="submit" class="button blue medium" id="save-btn"><span>Save</span></button>
+								</p>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+
+</html>

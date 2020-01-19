@@ -96,6 +96,42 @@ build_n_test_dashboard:
       - hotfix-master
       - hotfix-release
 
+##HTTP_TEST_SERVER
+lint_n_audit_http_test_server:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
+    - cd dashboard
+    - npm ci
+    - npm run lint
+    - npm run audit
+    - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
+build_n_test_http_test_server:
+  stage: BuildAndTest
+  script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker build -t fyipe-project/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
+    - sudo docker run -p 3010:3010 -d fyipe-project/http-test-server:3.0.$CI_PIPELINE_IID
+    - sudo docker ps
+    - cd http-test-server
+    - npm ci
+    - npm test
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
 ##ADMINDASHBOARD
 lint_n_audit_admin-dashboard:
   stage: BuildAndTest
@@ -584,6 +620,61 @@ deploy_production_backend:
     - sudo docker push registry.gitlab.com/fyipe-project/backend:latest
     - sudo docker push fyipeproject/backend:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/backend backend=registry.gitlab.com/fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production
+
+# DEPLOYMENT STAGE - HTTP-TEST-SERVER
+deploy_staging_http_test_server:
+  stage: Deploy
+  allow_failure: true
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy http-test-server.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipe-project/http_test_server:master ./http_test_server
+    - sudo docker build -t fyipeproject/http_test_server:latest ./http_test_server
+    - sudo docker tag fyipe-project/http_test_server:master registry.gitlab.com/fyipe-project/http_test_server:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/http_test_server:master registry.gitlab.com/fyipe-project/http_test_server:master
+    - sudo docker push registry.gitlab.com/fyipe-project/http_test_server:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/http_test_server:master
+    - sudo docker push fyipeproject/http_test_server:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/http_test_server http_test_server=registry.gitlab.com/fyipe-project/http_test_server:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+      - hotfix-master
+  environment:
+    name: staging
+
+deploy_production_http_test_server:
+  stage: Deploy
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipe-project/http_test_server:latest ./http_test_server
+    - sudo docker build -t fyipeproject/http_test_server:latest ./http_test_server
+    - sudo docker tag fyipe-project/http_test_server:latest registry.gitlab.com/fyipe-project/http_test_server:3.0.$CI_PIPELINE_IID
+    - sudo docker tag fyipe-project/http_test_server:latest registry.gitlab.com/fyipe-project/http_test_server:latest
+    - sudo docker push registry.gitlab.com/fyipe-project/http_test_server:3.0.$CI_PIPELINE_IID
+    - sudo docker push registry.gitlab.com/fyipe-project/http_test_server:latest
+    - sudo docker push fyipeproject/http_test_server:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/http_test_server http_test_server=registry.gitlab.com/fyipe-project/http_test_server:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
