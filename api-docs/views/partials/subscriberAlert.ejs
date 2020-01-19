@@ -23,13 +23,7 @@
       </ul>
     </div>
 
-
-
-
-    <div class="attribute-parameter-container">
-
-    </div>
-
+    <div class="attribute-parameter-container"></div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -38,7 +32,7 @@
 
 <article id="create-subscriber-alert" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Create Subscriber Alert<span class="requestType">POST</span></h3>
     <p>
       <p></p>
     </p>
@@ -50,7 +44,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/subscriberAlert/:projectId/:subscriberId</span>
               </div>
             </div>
           </div>
@@ -88,7 +82,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/subscriberAlert/:projectId/:subscriberId</p>
 
           <p>Request Body</p>
           <pre>
@@ -116,10 +110,11 @@
 
 <article id="get-all-subscriber-alerts" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get all subscriber alerts by Project<span class="requestType">GET</span></h3>
+    <h3>Get All Subscriber Alerts<span class="requestType">GET</span></h3>
     <p>
       <p> Get all subscribers by Project </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -200,8 +195,8 @@
         </li>
       </ul>
     </div>
-
   </section>
+
   <section class="col-lg-half col-md-half dev-doc-example">
 
     <div class="sample-type type-curl">
@@ -209,7 +204,7 @@
         <h1>Example Request</h1>
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriberAlert/:projectId?skip=0&limit=10&api-key=XXX</p>
+          <p class="url">https://api.fyipe.com/subscriberAlert/:projectId?skip=0&limit=5</p>
 
         </div>
 
@@ -253,7 +248,7 @@ limit:10
 
 <article id="get-all-subscriber-alerts-by-incident" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Get All Subscriber Alerts By Incident<span class="requestType">GET</span></h3>
     <p>
       <p></p>
     </p>
@@ -265,7 +260,7 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/subscriberAlert/:projectId/incident/:incidentId</span>
               </div>
             </div>
           </div>
@@ -303,7 +298,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/subscriberAlert/:projectId/incident/:incidentId?skip=0&limit=5</p>
 
           <p>Request Body</p>
           <pre>

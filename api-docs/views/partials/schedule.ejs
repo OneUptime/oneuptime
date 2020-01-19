@@ -23,13 +23,7 @@
       </ul>
     </div>
 
-
-
-
-    <div class="attribute-parameter-container">
-
-    </div>
-
+    <div class="attribute-parameter-container"></div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -38,10 +32,11 @@
 
 <article id="create-schedule" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Create a schedule<span class="requestType">POST</span></h3>
+    <h3>Create Schedule<span class="requestType">POST</span></h3>
     <p>
       <p> Create a schedule in the project. </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -120,13 +115,10 @@
             </div>
           </div>
         </li>
-
-
-
       </ul>
     </div>
-
   </section>
+
   <section class="col-lg-half col-md-half dev-doc-example">
 
     <div class="sample-type type-curl">
@@ -188,10 +180,11 @@
 
 <article id="get-all-schedules" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get all schedules by Project<span class="requestType">GET</span></h3>
+    <h3>Get All Schedules<span class="requestType">GET</span></h3>
     <p>
       <p> Get all schedules by Project </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -255,22 +248,17 @@
             </div>
           </div>
         </li>
-
-
-
-
       </ul>
     </div>
-
   </section>
-  <section class="col-lg-half col-md-half dev-doc-example">
 
+  <section class="col-lg-half col-md-half dev-doc-example">
     <div class="sample-type type-curl">
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId?skip=0&limit=10&api-key=XXX</p>
+          <p class="url">https://api.fyipe.com/schedule/:projectId?skip=0&limit=5</p>
 
         </div>
 
@@ -320,7 +308,7 @@ limit:10
 
 <article id="get-all-schedules" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Get All Schedules<span class="requestType">GET</span></h3>
     <p>
       <p></p>
     </p>
@@ -332,7 +320,7 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/schedule/:projectId/schedule</span>
               </div>
             </div>
           </div>
@@ -370,7 +358,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/schedule/:projectId/schedule?skip=0&limit=5</p>
 
           <p>Request Body</p>
           <pre>
@@ -398,7 +386,7 @@ limit:10
 
 <article id="get-all-subprojects-schedules" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Get All SubProjects Schedules<span class="requestType">GET</span></h3>
     <p>
       <p></p>
     </p>
@@ -410,7 +398,7 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/schedule/:projectId/schedules</span>
               </div>
             </div>
           </div>
@@ -448,7 +436,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/schedule/:projectId/schedules</p>
 
           <p>Request Body</p>
           <pre>
@@ -476,10 +464,11 @@ limit:10
 
 <article id="edit-schedule" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Update a schedule<span class="requestType">PUT</span></h3>
+    <h3>Edit Schedule<span class="requestType">PUT</span></h3>
     <p>
       <p> Update a schedule in the project. </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -558,13 +547,10 @@ limit:10
             </div>
           </div>
         </li>
-
-
-
       </ul>
     </div>
-
   </section>
+
   <section class="col-lg-half col-md-half dev-doc-example">
 
     <div class="sample-type type-curl">
@@ -572,7 +558,7 @@ limit:10
         <h1>Example Request</h1>
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId/:scheduledId</p>
+          <p class="url">https://api.fyipe.com/schedule/:projectId/:scheduleId</p>
           <p>Request Body</p>
           <pre><code class="language-json"><p>{
 "api-key":"xxx",
@@ -626,10 +612,11 @@ limit:10
 
 <article id="delete-schedule" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Delete a schedule<span class="requestType">DELETE</span></h3>
+    <h3>Delete Schedule<span class="requestType">DELETE</span></h3>
     <p>
       <p> Delete a schedule by Schedule ID </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -674,7 +661,7 @@ limit:10
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
         <div class="example-code">
-          <p class="url"> https://api.fyipe.com/schedule/:projectId/:scheduleId?api-key=XXX</p>
+          <p class="url"> https://api.fyipe.com/schedule/:projectId/:scheduleId</p>
         </div>
 
       </div>
@@ -720,7 +707,7 @@ limit:10
 
 <article id="add-escalation" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Add Escalation<span class="requestType">POST</span></h3>
     <p>
       <p></p>
     </p>
@@ -732,7 +719,7 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/schedule/:projectId/:scheduleId/addEscalation</span>
               </div>
             </div>
           </div>
@@ -770,7 +757,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/schedule/:projectId/:scheduleId/addEscalation</p>
 
           <p>Request Body</p>
           <pre>
@@ -798,7 +785,7 @@ limit:10
 
 <article id="get-escalation" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Get Escalation<span class="requestType">GET</span></h3>
     <p>
       <p></p>
     </p>
@@ -810,7 +797,7 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/schedule/:projectId/:scheduleId/getescalation</span>
               </div>
             </div>
           </div>
@@ -848,7 +835,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/schedule/:projectId/:scheduleId/getescalation</p>
 
           <p>Request Body</p>
           <pre>

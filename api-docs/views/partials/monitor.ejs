@@ -22,13 +22,7 @@
       </ul>
     </div>
 
-
-
-
-    <div class="attribute-parameter-container">
-
-    </div>
-
+    <div class="attribute-parameter-container"></div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -37,10 +31,11 @@
 
 <article id="create-monitor" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Create a monitor<span class="requestType">POST</span></h3>
+    <h3>Create Monitor<span class="requestType">POST</span></h3>
     <p>
       <p> Create a monitor in the project. </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -158,10 +153,9 @@
 
       </ul>
     </div>
-
   </section>
-  <section class="col-lg-half col-md-half dev-doc-example">
 
+  <section class="col-lg-half col-md-half dev-doc-example">
     <div class="sample-type type-curl">
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
@@ -214,10 +208,11 @@
 
 <article id="get-all-monitors" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get all monitors by Project ID<span class="requestType">GET</span></h3>
+    <h3>Get All Monitors<span class="requestType">GET</span></h3>
     <p>
       <p> Get all monitors by Project ID. </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -296,7 +291,7 @@
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
         <div class="example-code">
-          <p class="url"> https://api.fyipe.com/monitor/:projectId?api-key=XXX&skip=0&limit=10</p>
+          <p class="url"> https://api.fyipe.com/monitor/:projectId?skip=0&limit=5</p>
         </div>
 
       </div>
@@ -343,7 +338,7 @@
 
 <article id="get-all-monitors-by-type" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Get All Monitors By Type<span class="requestType">GET</span></h3>
     <p>
       <p></p>
     </p>
@@ -355,7 +350,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/monitor/:projectId/monitor</span>
               </div>
             </div>
           </div>
@@ -393,7 +388,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/monitor/:projectId/monitor?skip=0&limit=5&type=url</p>
 
           <p>Request Body</p>
           <pre>
@@ -421,7 +416,7 @@
 
 <article id="get-monitor" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get monitor by monitor ID<span class="requestType">GET</span></h3>
+    <h3>Get Monitor<span class="requestType">GET</span></h3>
     <p>
       <p> Get all monitors by Monitor ID. </p>
     </p>
@@ -432,7 +427,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://api.fyipe.com/monitor/:projectId/:monitorId</span>
+                <span>https://api.fyipe.com/monitor/:projectId/monitor/:monitorId</span>
               </div>
             </div>
           </div>
@@ -469,7 +464,7 @@
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
         <div class="example-code">
-          <p class="url"> https://api.fyipe.com/monitor/:projectId/:monitorId?api-key=XXX</p>
+          <p class="url"> https://api.fyipe.com/monitor/:projectId/monitor/:monitorId</p>
         </div>
 
       </div>
@@ -506,10 +501,11 @@
 
 <article id="edit-monitor" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Update a monitor<span class="requestType">PUT</span></h3>
+    <h3>Edit Monitor<span class="requestType">PUT</span></h3>
     <p>
       <p> Update a monitor in the project. You cannot change the type of the monitor. </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -597,8 +593,8 @@
 
       </ul>
     </div>
-
   </section>
+
   <section class="col-lg-half col-md-half dev-doc-example">
 
     <div class="sample-type type-curl">
@@ -650,10 +646,11 @@
 
 <article id="delete-monitor" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Delete a monitor<span class="requestType">DELETE</span></h3>
+    <h3>Delete Monitor<span class="requestType">DELETE</span></h3>
     <p>
       <p> Delete a monitor by Monitor ID </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -698,7 +695,7 @@
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
         <div class="example-code">
-          <p class="url"> https://api.fyipe.com/monitor/:projectId/:monitorId?api-key=XXX</p>
+          <p class="url"> https://api.fyipe.com/monitor/:projectId/:monitorId</p>
         </div>
 
       </div>
@@ -737,7 +734,7 @@
 
 <article id="create-server-monitor-log" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Create Server Monitor Log<span class="requestType">POST</span></h3>
     <p>
       <p></p>
     </p>
@@ -749,7 +746,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/monitor/:projectId/log/:monitorId</span>
               </div>
             </div>
           </div>
@@ -787,7 +784,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/monitor/:projectId/log/:monitorId</p>
 
           <p>Request Body</p>
           <pre>
@@ -815,7 +812,7 @@
 
 <article id="get-monitor-logs" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Get Monitor Logs<span class="requestType">POST</span></h3>
     <p>
       <p></p>
     </p>
@@ -827,7 +824,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/monitor/:projectId/monitorLogs/:monitorId</span>
               </div>
             </div>
           </div>
@@ -865,7 +862,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/monitor/:projectId/monitorLogs/:monitorId</p>
 
           <p>Request Body</p>
           <pre>
@@ -893,7 +890,7 @@
 
 <article id="get-aggregate-monitor-logs" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Get Aggregate Monitor Logs<span class="requestType">GET</span></h3>
     <p>
       <p></p>
     </p>
@@ -905,7 +902,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/monitor/:projectId/log/:monitorId</span>
               </div>
             </div>
           </div>
@@ -943,7 +940,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/monitor/:projectId/log/:monitorId?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100</p>
 
           <p>Request Body</p>
           <pre>
@@ -971,7 +968,7 @@
 
 <article id="add-monitor-seat-to-project" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Add Monitor Seat To Project<span class="requestType">POST</span></h3>
     <p>
       <p></p>
     </p>
@@ -983,7 +980,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/monitor/:projectId/addseat</span>
               </div>
             </div>
           </div>
@@ -1021,7 +1018,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/monitor/:projectId/addseat</p>
 
           <p>Request Body</p>
           <pre>
@@ -1049,12 +1046,13 @@
 
 <article id="update-device-monitor-ping-time" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Update Monitor of Type Device <span class="requestType">POST</span> or <span class="requestType">GET</span>
+    <h3>Update Device Monitor Ping Time<span class="requestType">POST</span> or <span class="requestType">GET</span>
     </h3>
     <p>
       <p> Monitor of Type device needs to send a post or a get request in order to keep the monitor updated. If the
         monitor is not updated, then an incident is automatically created and that alerts the team. </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -1091,7 +1089,6 @@
         </li>
       </ul>
     </div>
-
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -1100,7 +1097,7 @@
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
         <div class="example-code">
-          <p class="url"> https://api.fyipe.com/monitor/:projectId/inbound/:deviceId?api-key=XXX</p>
+          <p class="url"> https://api.fyipe.com/monitor/:projectId/inbound/:deviceId</p>
 
         </div>
 
@@ -1127,7 +1124,7 @@
 
 <article id="get-device-monitor-ping-time" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Get Device Monitor Ping Time<span class="requestType">GET</span></h3>
     <p>
       <p></p>
     </p>
@@ -1139,7 +1136,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/monitor/:projectId/inbound/:deviceId</span>
               </div>
             </div>
           </div>
@@ -1177,7 +1174,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/monitor/:projectId/inbound/:deviceId</p>
 
           <p>Request Body</p>
           <pre>

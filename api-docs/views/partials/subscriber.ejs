@@ -24,13 +24,7 @@
       </ul>
     </div>
 
-
-
-
-    <div class="attribute-parameter-container">
-
-    </div>
-
+    <div class="attribute-parameter-container"></div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -39,7 +33,7 @@
 
 <article id="create-status-spage-subscriber" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Create a subscriber<span class="requestType">POST</span></h3>
+    <h3>Create Status Page Subscriber<span class="requestType">POST</span></h3>
     <p>
       <p> Create a subscriber for a monitor. </p>
     </p>
@@ -50,7 +44,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://api.fyipe.com/subscriber/:projectId</span>
+                <span>https://api.fyipe.com/subscriber/:projectId/:statusPageId</span>
               </div>
             </div>
           </div>
@@ -141,6 +135,7 @@
     </div>
 
   </section>
+
   <section class="col-lg-half col-md-half dev-doc-example">
 
     <div class="sample-type type-curl">
@@ -148,7 +143,7 @@
         <h1>Example Request</h1>
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId</p>
+          <p class="url">https://api.fyipe.com/subscriber/:projectId/:statusPageId</p>
           <p>Request Body</p>
           <pre><code class="language-json"><p>{
 "api-key":"xxx",
@@ -187,7 +182,7 @@
 
 <article id="create-monitor-subscriber" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Update a subscriber<span class="requestType">PUT</span></h3>
+    <h3>Create Monitor Subscriber<span class="requestType">POST</span></h3>
     <p>
       <p> Update a subscriber in the project. </p>
     </p>
@@ -198,7 +193,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://api.fyipe.com/subscriber/:projectId/:subscriberId</span>
+                <span>https://api.fyipe.com/subscriber/:projectId/subscribe/:monitorId</span>
               </div>
             </div>
           </div>
@@ -289,6 +284,7 @@
     </div>
 
   </section>
+
   <section class="col-lg-half col-md-half dev-doc-example">
 
     <div class="sample-type type-curl">
@@ -296,7 +292,7 @@
         <h1>Example Request</h1>
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId/:subscriberId</p>
+          <p class="url">https://api.fyipe.com/subscriber/:projectId/subscribe/:monitorId</p>
           <p>Request Body</p>
           <pre><code class="language-json"><p>{
 "alertVia": ["sms", "email"],
@@ -335,10 +331,11 @@
 
 <article id="get-all-subscribers" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get all subscribers by Project<span class="requestType">GET</span></h3>
+    <h3>Get All Subscribers<span class="requestType">GET</span></h3>
     <p>
       <p> Get all subscribers by Project </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -404,8 +401,8 @@
         </li>
       </ul>
     </div>
-
   </section>
+
   <section class="col-lg-half col-md-half dev-doc-example">
 
     <div class="sample-type type-curl">
@@ -413,7 +410,7 @@
         <h1>Example Request</h1>
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId?skip=0&limit=10&api-key=XXX</p>
+          <p class="url">https://api.fyipe.com/subscriber/:projectId?skip=0&limit=5</p>
 
         </div>
 
@@ -452,7 +449,7 @@ limit:10
 
 <article id="get-all-monitor-subscribers" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get all subscribers by Project<span class="requestType">GET</span></h3>
+    <h3>Get All Monitor Subscribers<span class="requestType">GET</span></h3>
     <p>
       <p> Get all subscribers by Project </p>
     </p>
@@ -463,7 +460,7 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://api.fyipe.com/subscriber/:projectId</span>
+                <span>https://api.fyipe.com/subscriber/:projectId/monitor/:monitorId</span>
               </div>
             </div>
           </div>
@@ -538,6 +535,7 @@ limit:10
     </div>
 
   </section>
+
   <section class="col-lg-half col-md-half dev-doc-example">
 
     <div class="sample-type type-curl">
@@ -545,7 +543,7 @@ limit:10
         <h1>Example Request</h1>
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId?skip=0&limit=10&api-key=XXX</p>
+          <p class="url">https://api.fyipe.com/subscriber/:projectId/monitor/:monitorId?skip=0&limit=5</p>
 
         </div>
 
@@ -584,7 +582,7 @@ limit:10
 
 <article id="get-subscriber" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get all subscriber by Subscriber ID<span class="requestType">GET</span></h3>
+    <h3>Get Subscriber<span class="requestType">GET</span></h3>
     <p>
       <p> Get all subscribers by Subscriber ID </p>
     </p>
@@ -630,6 +628,7 @@ limit:10
     </div>
 
   </section>
+
   <section class="col-lg-half col-md-half dev-doc-example">
 
     <div class="sample-type type-curl">
@@ -637,7 +636,7 @@ limit:10
         <h1>Example Request</h1>
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId/:subscriberId?api-key=XXX</p>
+          <p class="url">https://api.fyipe.com/subscriber/:projectId/:subscriberId</p>
 
         </div>
 
@@ -671,10 +670,11 @@ limit:10
 
 <article id="delete-subscriber" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Delete a subscriber<span class="requestType">DELETE</span></h3>
+    <h3>Delete Subscriber<span class="requestType">DELETE</span></h3>
     <p>
       <p> Delete a subscriber by Subscriber ID </p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -719,7 +719,7 @@ limit:10
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
         <div class="example-code">
-          <p class="url"> https://api.fyipe.com/subscriber/:projectId/:subscriberId?api-key=XXX</p>
+          <p class="url"> https://api.fyipe.com/subscriber/:projectId/:subscriberId</p>
         </div>
 
       </div>

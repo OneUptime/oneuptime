@@ -14,7 +14,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/slack/</span>
               </div>
             </div>
           </div>
@@ -30,7 +30,7 @@
 
 <article id="slack-auth" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Slack Auth<span class="requestType">GET</span></h3>
     <p>
       <p></p>
     </p>
@@ -42,7 +42,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/slack/auth/redirect</span>
               </div>
             </div>
           </div>
@@ -80,7 +80,9 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/slack/auth/redirect?state=5e089f94b400211639928c94,Basic
+            eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM&code=xyz
+          </p>
 
           <p>Request Body</p>
           <pre>
@@ -108,7 +110,7 @@
 
 <article id="slack-teams" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Slack Teams<span class="requestType">GET</span></h3>
     <p>
       <p></p>
     </p>
@@ -120,7 +122,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/slack/:projectId/teams</span>
               </div>
             </div>
           </div>
@@ -158,7 +160,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/slack/:projectId/teams?skip=0&limit=5</p>
 
           <p>Request Body</p>
           <pre>
@@ -186,7 +188,7 @@
 
 <article id="link-slack" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Link Slack<span class="requestType">POST</span></h3>
     <p>
       <p></p>
     </p>
@@ -198,7 +200,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/slack/:projectId/link</span>
               </div>
             </div>
           </div>
@@ -236,7 +238,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/slack/:projectId/link?code=xyz</p>
 
           <p>Request Body</p>
           <pre>
@@ -264,7 +266,7 @@
 
 <article id="unlink-slack" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3><span class="requestType"></span></h3>
+    <h3>Unlink Slack<span class="requestType">DELETE</span></h3>
     <p>
       <p></p>
     </p>
@@ -276,7 +278,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span></span>
+                <span>https://api.fyipe.com/slack/:projectId/unLink/:teamId</span>
               </div>
             </div>
           </div>
@@ -314,7 +316,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url"></p>
+          <p class="url">https://api.fyipe.com/slack/:projectId/unLink/:teamId</p>
 
           <p>Request Body</p>
           <pre>
