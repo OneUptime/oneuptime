@@ -43,7 +43,7 @@ module.exports = {
 
     newUser: {
         name: 'John Smith',
-        email: 'testmail1@fyipe.com',
+        email: 'testmail2@fyipe.com',
         password:'1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',

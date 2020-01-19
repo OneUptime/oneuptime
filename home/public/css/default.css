@@ -13,7 +13,7 @@ a{
 }
 
 .text-grey{
-    color: #939da3 !important; 
+    color: #797979 !important; 
 }
 
 .header-font{
@@ -181,7 +181,7 @@ code,pre{
     }
 }
 .common-PageTitle{
-    font-weight:400;
+    font-weight:800;
     font-size:34px;
     line-height:43px;
     color:#000000
@@ -200,7 +200,7 @@ code,pre{
 @media (min-width:670px){
     .common-PageTitle{
         font-size:40px;
-        line-height:50px
+        line-height:55px
     }
 }
 .common-PageSubtitle{
@@ -219,11 +219,11 @@ code,pre{
     font-weight:400;
     font-size:21px;
     line-height:31px;
-    color:#525f7f
+    color:#000000
 }
 @media (min-width:670px){
     .common-IntroText{
-        font-size:24px;
+        font-size:19px;
         line-height:36px
     }
 }
@@ -238,11 +238,16 @@ code,pre{
     content: '\279E';
     padding-left: 1px;
 }
+
+.font16{
+    font-size:17px !important;
+}
+
 .common-BodyText{
     font-weight:400;
-    font-size:18px;
+    font-size:20px;
     line-height:26px;
-    color:#939da3
+    color:#797979
 }
 .common-UppercaseTitle{
     font-size:20px;
@@ -422,7 +427,7 @@ code,pre{
     background-color:#000000
 }
 .common-Button--default:active{
-    color:#e6ebf1;
+    color:#fbfbfb;
     background-color:#000000
 }
 .common-Button--dark{
@@ -434,7 +439,7 @@ code,pre{
     background-color:#43458b
 }
 .common-Button--dark:active{
-    color:#e6ebf1;
+    color:#fbfbfb;
     background-color:#000000
 }
 .common-Button--disabled{
@@ -1042,7 +1047,7 @@ code,pre{
     -moz-osx-font-smoothing:grayscale;
     position:absolute;
     left:0;
-    top:10px;
+    top:25px;
     right:0;
     z-index:500;
     height:50px;
@@ -1161,7 +1166,7 @@ code,pre{
     font-weight: 900;
 }
 .globalNav .colorize{
-    color:#939da3;
+    color:#797979;
     transition:color .1s ease
 }
 .globalNav .colorize.active,.globalNav .colorize:hover{
@@ -1309,7 +1314,7 @@ code,pre{
 .globalNav .linkSub{
     font-size:15px;
     line-height:22px;
-    color:#939da3;
+    color:#797979;
     margin:0px 0 0;
     display:block
 }
@@ -1320,7 +1325,7 @@ code,pre{
     color:#000000
 }
 .globalNav .linkContainer:hover .linkSub{
-    color:#424770
+    color:#000000
 }
 .globalNav .hover-fillDark,.globalNav .hover-fillLight{
     transition:fill .1s
@@ -1474,6 +1479,10 @@ code,pre{
 .globalNav .documentationGroup .linkSub{
     max-width:250px
 }
+.imageshadow{
+    box-shadow: 0px 1px 20px 8px rgba(228, 228, 228, 0.75);
+}
+
 .globalNav .documentationArticles{
     font-size:15px;
     line-height:26px;
@@ -2249,7 +2258,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     pointer-events:auto
 }
 .globalFooterNav .optionList{
-    color:#525f7f;
+    color:#000000;
     white-space:nowrap
 }
 .globalFooterNav .optionList a{
@@ -2264,7 +2273,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     color:#000000
 }
 .globalFooterNav .optionList a:active{
-    background-color:#e6ebf1
+    background-color:#fbfbfb
 }
 .globalFooterNav .optionList .selected{
     font-weight:600;
@@ -2289,7 +2298,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     font-style:normal;
     padding:2px 3px 1px;
     border-radius:4px;
-    border:1px solid #e6ebf1;
+    border:1px solid #fbfbfb;
     display:inline-block;
     vertical-align:1px;
     margin-left:8px

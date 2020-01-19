@@ -242,7 +242,7 @@ class Main extends Component {
 							'bottom': '0',
 							'left': '0',
 							'right': '0',
-							'backgroundColor': '#e6ebf1',
+							'backgroundColor': '#fbfbfb',
 							'zIndex': '999',
 							'display': 'flex',
 							'justifyContent': 'center',

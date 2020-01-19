@@ -58,7 +58,7 @@ ul.plain {
 }
 
 a { color: #6772e5; text-decoration: none; }
-a:hover { color: #32325d; }
+a:hover { color: #4c4c4c; }
 
 
 /******* Simple Bar Chart *******/
@@ -289,7 +289,7 @@ div.block-chart {
   margin-bottom: 5px;
 
   font-size: 29px;
-  color: #32325d;
+  color: #4c4c4c;
 }
 
 .largestatus .status-time {
@@ -341,7 +341,7 @@ div.block-chart {
   border-top-right-radius: 0px;
   position: relative;
   min-height: 200px;
-  background: #f6f9fc;
+  background: #f7f7f7;
 }
 
   .statistics div.inner-gradient {
@@ -380,7 +380,7 @@ div.block-chart {
 }
 
 .uptime-stat-name {
-  color: #32325d;
+  color: #4c4c4c;
   font-size: 15px;
   padding-right: 10px;
 }
@@ -399,7 +399,7 @@ div.block-chart {
 }
 
 .uptime-legend {
-  background: #f6f9fc;
+  background: #f7f7f7;
   border-top: 2px solid white;
 
   padding-top: 20px;
@@ -469,7 +469,7 @@ div.feed-header {
 }
 
   .feed-title {
-    color: #525f7f;
+    color: #000000;
     font-size: 15px;
     padding-right: 10px;
   }
@@ -508,7 +508,7 @@ div.feed-header {
     }
 
     .feed-item div.message {
-      background: #e6ebf1;
+      background: #fbfbfb;
       border-radius: 6px;
       -webkit-border-radius: 6px;
       -moz-border-radius: 6px;
@@ -529,7 +529,7 @@ div.feed-header {
         transform: rotate(45deg);
         left: -5px;
         top: 11px;
-        background: #e6ebf1;
+        background: #fbfbfb;
       }
 
 
@@ -537,11 +537,11 @@ div.feed-header {
         padding: 7px 12px;
         font-size: 14px;
         line-height: 21px;
-        color: #525f7f;
+        color: #000000;
       }
 
 div.twitter-link {
-  background: #f6f9fc;
+  background: #f7f7f7;
 
   padding: 25px 36px;
 
@@ -556,7 +556,7 @@ div.twitter-link {
   div.empty h3 {
     text-align: center;
     font-size: 16px;
-    color: #525f7f;
+    color: #000000;
     background: url(/images/twitter/big_bird.svg) 50% 0 no-repeat;
     margin-top: 20px;
     padding-top: 75px;
@@ -577,7 +577,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
     div#footer ul { padding-left: 10px; }
         div#footer li { display: inline; padding-right: 15px; }
             div#footer a { color: #8898aa; text-decoration: none; }
-            div#footer a:hover { color: #32325d; }
+            div#footer a:hover { color: #4c4c4c; }
 
             div#footer li.last { border: 0; }
 
@@ -586,7 +586,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 /******* Tipsy Tooltips ******/
 
 .tipsy { font-size: 12px; position: absolute; padding: 5px; z-index: 100000; }
-  .tipsy-inner { background-color: #32325d; color: #FFF; max-width: 200px; padding: 5px 12px 5px 12px; line-height: 19px; text-align: center; }
+  .tipsy-inner { background-color: #4c4c4c; color: #FFF; max-width: 200px; padding: 5px 12px 5px 12px; line-height: 19px; text-align: center; }
 
 /* Rounded corners */
 .tipsy-inner { border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px; }
@@ -594,13 +594,13 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 /* Uncomment for shadow */
 /*.tipsy-inner { box-shadow: 0 0 5px #000000; -webkit-box-shadow: 0 0 5px #000000; -moz-box-shadow: 0 0 5px #000000; }*/
 
-.tipsy-arrow { position: absolute; width: 0; height: 0; line-height: 0; border: 5px dashed #32325d; }
+.tipsy-arrow { position: absolute; width: 0; height: 0; line-height: 0; border: 5px dashed #4c4c4c; }
 
 /* Rules to colour arrows */
-.tipsy-arrow-n { border-bottom-color: #32325d; }
-.tipsy-arrow-s { border-top-color: #32325d; }
-.tipsy-arrow-e { border-left-color: #32325d; }
-.tipsy-arrow-w { border-right-color: #32325d; }
+.tipsy-arrow-n { border-bottom-color: #4c4c4c; }
+.tipsy-arrow-s { border-top-color: #4c4c4c; }
+.tipsy-arrow-e { border-left-color: #4c4c4c; }
+.tipsy-arrow-w { border-right-color: #4c4c4c; }
 
 .tipsy-n .tipsy-arrow { top: 0px; left: 50%; margin-left: -5px; border-bottom-style: solid; border-top: none; border-left-color: transparent; border-right-color: transparent; }
 .tipsy-nw .tipsy-arrow { top: 0; left: 10px; border-bottom-style: solid; border-top: none; border-left-color: transparent; border-right-color: transparent;}
@@ -667,10 +667,10 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 
 .more:hover{
-  color:#525f7f;
+  color:#000000;
 }
 .more:active{
-  color:#525f7f;
+  color:#000000;
   text-shadow: 0.5px 0.5px;
 }
 #notes-loader{
@@ -698,7 +698,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 .bs-Button-subscribe{
     padding: 4px 12px 2px;
-    background-color: #0080a8;
+    background-color: #000000;
     border-radius: 4px;
     border:none;
     outline: none;
@@ -731,7 +731,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   grid-template-rows: 50px auto;
   z-index: 100;
   margin-bottom: 25px;
-  background-color: #f6f9fc;
+  background-color: #f7f7f7;
 }
 .btn-group{
   display:flex;
@@ -740,9 +740,9 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   width:100%;
 }
 .btn-group .icon-container {
-  background-color: #f6f9fc; /* Green background */
-  border: 2px solid #e6ebf1; /* Green border */
-  color: #525f7f; /* White text */
+  background-color: #f7f7f7; /* Green background */
+  border: 2px solid #fbfbfb; /* Green border */
+  color: #000000; /* White text */
   padding: 6px; /* Some padding */
   cursor: pointer; /* Pointer/hand icon */
   box-sizing: border-box;
@@ -753,7 +753,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 
 .btn-group .icon-container.selected{
-  background-color: #f6f9fc;
+  background-color: #f7f7f7;
   border-bottom: none;
   color: black;
 }
@@ -829,12 +829,12 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   max-width:300px;
   word-wrap: break-word;
   box-sizing: border-box;
-  background-color: #f6f9fc;
+  background-color: #f7f7f7;
 }
 .subscribe-btn-full{
   width:100%;
   padding: 4px 5px 2px;
-  background-color: #0080a8;
+  background-color: #000000;
   border-radius: 4px;
   border:none;
   outline: none;
@@ -863,7 +863,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 .directions{
   font-size: 15px;
-  color:#525f7f;
+  color:#000000;
   margin-bottom: 10px;
 }
 .select-full{
@@ -871,13 +871,13 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   height:30px;
   border:1px solid #999999;
   border-radius: 5px;
-  color:#525f7f;
+  color:#000000;
   box-sizing: border-box;
   outline: none;
 }
 
 .small{
-  color:#525f7f;
+  color:#000000;
   font-size: 0.7em;
 }
 /* Customize the label (the container) */
@@ -889,7 +889,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   cursor: pointer;
   font-size: 14px;
   font-weight: 400;
-  color:#525f7f;
+  color:#000000;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;

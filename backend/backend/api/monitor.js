@@ -136,6 +136,15 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
             }
         }
         data.projectId = projectId;
+
+        var existingMonitor = await MonitorService.findBy({ name: data.name });
+        if (existingMonitor.length > 0) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor with that name already exists.'
+            });
+        }
+
         var monitor = await MonitorService.create(data);
         if (data.callScheduleId) {
             var schedule = await ScheduleService.findOneBy({ _id: data.callScheduleId });

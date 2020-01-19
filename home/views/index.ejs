@@ -12,16 +12,16 @@
     <link rel="stylesheet" href="/css/crm.css">
     <link rel="stylesheet" href="/css/sdlc.css">
     <link rel="stylesheet" href="/css/comparision.css">
-    
+
     <script src="/js/crm.js" type="text/javascript"></script>
     <link rel="stylesheet" href="/css/home.css">
-    
+
     <script defer src="/js/home.js"></script>
     <script src="/js/amplitude.js"></script>
     <script>
         var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
         if (!IS_DEV) {
-            amplitude.getInstance().logEvent('Home page loaded');
+            amplitude.getInstance().logEvent('Home page viewed');
         }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.2.1/js/bootstrap.bundle.min.js"
@@ -40,13 +40,16 @@
                     <div class="container-lg" style="display: flex;">
                         <div>
                             <h1 class="black main-page-title">
-                                Complete  <br/>
-                                DevOps and IT Ops<br/> 
+                                Complete <br />
+                                DevOps and IT Ops<br />
                                 platform.
                             </h1>
                             <p class="common-BodyText">
-                                Fyipe monitors your website, dashboards, API's, and more and alerts your team when downtime happens. We also give you a Status Page which keeps your customers looped in and improves transparency.
+                                Fyipe monitors your website, dashboards, API's, and more and alerts your team when
+                                downtime happens. We also give you a Status Page which keeps your customers looped in
+                                and improves transparency.
                             </p>
+                            
                             <ul>
                                 <li>
                                     <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top"
@@ -61,106 +64,97 @@
                                     </a>
                                 </li>
                             </ul>
-                            <div style="margin-top:10px">
-                                <a class="common-BodyText common-Link common-Link--arrow"
-                                    href="https://status.fyipe.com" style="width:80%;color:white;margin-top:10px;">
-                                    See Fyipe's status page.
-                                </a>
+                            
 
-                            </div>
-
+                        </div>
+                        <div style="margin-top:10px">
+                            <img src="/img/main.svg" />
                         </div>
 
                     </div>
                 </section>
             </header>
+            <section id="secondary">
+
+                <section id="customer-logos">
+                    <a href="/customers" class="container-lg">
+                        <span class="common-Button common-Button--default">See our customers</span>
+                        <ul>
+                            <li>
+                                <img style="height:40px" class="cloudboost" alt="cloudboost" src="img/CloudBoost.svg">
+                            </li>
+                            <li>
+                                <img style="height:22px" class="ironio" alt="ironio" src="img/iron-io.svg">
+                            </li>
+                            <li>
+                                <img style="height:90px" class="siemens" alt="siemens" src="img/siemens (1).svg">
+                            </li>
+                            <li>
+                                <img style="height:70px" class="hersheys" alt="hersheys" src="img/hershey-s.svg">
+                            </li>
+                            <li>
+                                <img style="height:30px" class="elasticstack" alt="elasticstack"
+                                    src="img/elastic-stack.svg">
+                            </li>
+                            <li>
+                                <img style="height:24px" class="freshsales" alt="freshsales" src="img/freshsales-1.svg">
+                            </li>
+
+                        </ul>
+                    </a>
+                </section>
+
+            </section>
 
             <% include ./sdlc %>
             <% include ./comparision-chart %>
-            
-                
-                <section id="developers-first">
-                    <div id="programming-languages"></div>
-                    <h2 class="common-UppercaseTitle">
-                        On call and
-                        alerts.
-                    </h2>
-                    <p class="common-BodyText">
-                        Have your team alerted when downtime happens. Waste no time and have your team reliabily work
-                        on the issue right away. We
-                        alert your team by Call, SMS, and Email. You can also automatically schedule who in your
-                        team receives the alert at different time of the day.
-                    </p>
 
-                    <section id="comparison">
 
-                        <div class="container-lg" style="max-width:800px">
+            <section id="developers-first">
+                <div id="programming-languages"></div>
+                <h2 class="common-UppercaseTitle">
+                    On call and
+                    alerts.
+                </h2>
+                <p class="common-BodyText">
+                    Have your team alerted when downtime happens. Waste no time and have your team reliabily work
+                    on the issue right away. We
+                    alert your team by Call, SMS, and Email. You can also automatically schedule who in your
+                    team receives the alert at different time of the day.
+                </p>
 
-                            <section>
-                                <h2 class="common-Uppercase">Your Team's schedule.</h2>
-                                <p class="common-BodyText">With Fyipe you can schedule on-call for your team with
-                                    primary and secondary on-call
-                                    team member and have them rotate week after week, or anyway you like. </p>
-                                <ul>
-                                    <li>
-                                        <span
-                                            class="label">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                                    </li>
-                                    <li>
-                                        <span class="label">
-                                            <span class="launch-marker">
-                                                <span class="launch-marker-circle"></span>
-                                                <span class="launch-marker-bar"></span>
-                                            </span>
-                                            <span class="centered-label">
-                                                Alice
-                                            </span>
-                                        </span>
-                                    </li>
-                                </ul>
-                            </section>
-                        </div>
-                    </section>
-                </section>
+                <section id="comparison">
 
-                <section id="secondary">
-                    <div class="cols container-lg">
-                      
+                    <div class="container-lg" style="max-width:800px">
 
-                       
-                    </div>
-
-                    <section id="customer-logos">
-                        <a href="/customers" class="container-lg">
-                            <span class="common-Button common-Button--default">See our customers</span>
+                        <section>
+                            <h2 class="common-Uppercase">Your Team's schedule.</h2>
+                            <p class="common-BodyText">With Fyipe you can schedule on-call for your team with
+                                primary and secondary on-call
+                                team member and have them rotate week after week, or anyway you like. </p>
                             <ul>
                                 <li>
-                                    <img style="height:40px" class="cloudboost" alt="cloudboost"
-                                        src="img/CloudBoost.svg">
+                                    <span
+                                        class="label">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                                 </li>
                                 <li>
-                                    <img style="height:22px" class="ironio" alt="ironio" src="img/iron-io.svg">
+                                    <span class="label">
+                                        <span class="launch-marker">
+                                            <span class="launch-marker-circle"></span>
+                                            <span class="launch-marker-bar"></span>
+                                        </span>
+                                        <span class="centered-label">
+                                            Alice
+                                        </span>
+                                    </span>
                                 </li>
-                                <li>
-                                    <img style="height:90px" class="siemens" alt="siemens" src="img/siemens (1).svg">
-                                </li>
-                                <li>
-                                    <img style="height:70px" class="hersheys" alt="hersheys" src="img/hershey-s.svg">
-                                </li>
-                                <li>
-                                    <img style="height:30px" class="elasticstack" alt="elasticstack"
-                                        src="img/elastic-stack.svg">
-                                </li>
-                                <li>
-                                    <img style="height:24px" class="freshsales" alt="freshsales"
-                                        src="img/freshsales-1.svg">
-                                </li>
-
                             </ul>
-                        </a>
-                    </section>
-
+                        </section>
+                    </div>
                 </section>
+            </section>
+
+            
         </main>
 
     </div>
@@ -185,7 +179,7 @@
         function setCookie(cookieName, cookieValue, expiringDate) {
             let date = new Date();
             date.setTime(date.getTime() + (expiringDate * 24 * 60 * 60 * 1000));
-            let expires = "expires="+date.toUTCString();
+            let expires = "expires=" + date.toUTCString();
             document.cookie = cookieName + "=" + cookieValue + ";" + expires + ";path=/";
             document.getElementById("cookies-notification").style.display = "none";
         }
@@ -193,13 +187,13 @@
         function getCookie(cookieName) {
             let name = cookieName + "=";
             let ca = document.cookie.split(';');
-            for(let i = 0; i < ca.length; i++) {
+            for (let i = 0; i < ca.length; i++) {
                 let c = ca[i];
                 while (c.charAt(0) == ' ') {
-                c = c.substring(1);
+                    c = c.substring(1);
                 }
                 if (c.indexOf(name) == 0) {
-                return c.substring(name.length, c.length);
+                    return c.substring(name.length, c.length);
                 }
             }
             return "";

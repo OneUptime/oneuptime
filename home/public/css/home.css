@@ -8,7 +8,7 @@ main a{
 }
 
 .grey{
-    color:#939da3
+    color:#797979
 }
 
 main h2[class^=common-Uppercase]{
@@ -519,18 +519,9 @@ main header{
 }
 #developers-first{
     position:relative;
-    padding-top:110px
+    margin-bottom:60px;
 }
-#developers-first:before{
-    content:"";
-    position:absolute;
-    z-index:-1;
-    width:100%;
-    height:180%;
-    top:0;
-    transform:skewY(-12deg);
-    background:#f9f9f9
-}
+
 #developers-first .common-UppercaseTitle{
     text-align:center;
     position:relative
@@ -976,7 +967,7 @@ main header{
     border-radius:4px 4px 0 0
 }
 #comparison section:first-child .common-Uppercase{
-    color:#525f7f;
+    color:#000000;
     background:#f4f8fb
 }
 #comparison section:last-child .common-Uppercase{
@@ -1004,7 +995,7 @@ main header{
     padding:7px 0
 }
 #comparison li:nth-child(2n+1){
-    background:rgba(228,237,245,.4)
+    background:rgba(224, 224, 224, 0.4)
 }
 #comparison .centered-label{
     display:block;
@@ -1029,7 +1020,7 @@ main header{
 }
 #comparison li:nth-child(2) .label{
     margin-left:18%;
-    background:#7795f8
+    background:#797979
 }
 #comparison li:nth-child(3) .label{
     margin-left:24%;

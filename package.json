@@ -64,6 +64,10 @@
     "./server-monitor/**/*.{js,jsx}": [
       "eslint server-monitor/lib -c server-monitor/.eslintrc.json --ignore-path server-monitor/.eslintignore",
       "git add"
+    ],
+    "./http-test-server/**/*.{js,jsx}": [
+      "eslint -c http-test-server/.eslintrc.json --ignore-path http-test-server/.eslintignore",
+      "git add"
     ]
   }
 }

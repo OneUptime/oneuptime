@@ -32,7 +32,7 @@ const createOptions = () => {
   return {
     style: {
       base: {
-        color: '#525f7f',
+        color: '#000000',
         fontFamily: 'Camphor, Segoe UI, Open Sans, sans-serif',
         fontSize: '18px',
         letterSpacing: '0.025em',

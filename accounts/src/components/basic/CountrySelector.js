@@ -8,7 +8,7 @@ let errorStyle = {
 }
 
 let selectorStyle = {
-  color: '#525f7f'
+  color: '#000000'
 }
 
 const CountrySelector =  ({ input, meta: { touched, error } }) => (
