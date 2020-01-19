@@ -54,7 +54,51 @@
       <h3></h3>
 
       <ul class="doc-item-detail-container">
-        <li data-location="header">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3></h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3></h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
@@ -85,7 +129,20 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>{
+                "allowedVariables": [
+                    "{{userName}} : User display name.",
+                    "{{monitorName}} : Name of the monitor on which incident has occured.",
+                    "{{projectName}} : Name of the project on which the incident has occured.",
+                    "{{incidentTime}} : Time at which this incident occured.",
+                    "{{incidentType}} : Type of incident.",
+                    "{{userId}} : Unique identifier for user account.",
+                    "{{projectId}} : Unique identifier for the current project."
+                ],
+                "emailType": "Subscriber Incident Created",
+                "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                "body": ""
+            }</p>
             </code>
           </pre>
         </div>
@@ -97,7 +154,24 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>{
+                "allowedVariables": [
+                    "{{userName}} : User display name.",
+                    "{{monitorName}} : Name of the monitor on which incident has occured.",
+                    "{{projectName}} : Name of the project on which the incident has occured.",
+                    "{{incidentTime}} : Time at which this incident occured.",
+                    "{{incidentType}} : Type of incident.",
+                    "{{userId}} : Unique identifier for user account.",
+                    "{{projectId}} : Unique identifier for the current project."
+                ],
+                "deleted": false,
+                "_id": "5e1a1c75ba543f2f21682050",
+                "projectId": "5e089f94b400211639928c94",
+                "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                "body": "",
+                "emailType": "Subscriber Incident Created",
+                "__v": 0
+            }</p>
             </code>
           </pre>
         </div>
@@ -115,6 +189,7 @@
 
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -129,10 +204,32 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3></h3>
+      <h3>Query Params</h3>
 
       <ul class="doc-item-detail-container">
-        <li data-location="header">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
@@ -159,13 +256,6 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">https://api.fyipe.com/emailTemplate/:projectId</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
         </div>
       </div>
 
@@ -175,7 +265,55 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>[
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "_id": "5e1a1c75ba543f2f21682050",
+                    "projectId": {
+                        "_id": "5e089f94b400211639928c94",
+                        "name": "Bello"
+                    },
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                    "body": "",
+                    "emailType": "Subscriber Incident Created"
+                },
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "emailType": "Subscriber Incident Acknowldeged",
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Acknowldeged",
+                    "body": ""
+                },
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "emailType": "Subscriber Incident Resolved",
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Resolved",
+                    "body": ""
+                }
+            ]</p>
             </code>
           </pre>
         </div>
@@ -193,6 +331,7 @@
 
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -207,10 +346,32 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3></h3>
+      <h3>Query Params</h3>
 
       <ul class="doc-item-detail-container">
-        <li data-location="header">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
@@ -237,13 +398,6 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">https://api.fyipe.com/emailTemplate/:projectId/emailTemplate/:emailTemplateId</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
         </div>
       </div>
 
@@ -253,7 +407,27 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>{
+                "allowedVariables": [
+                    "{{userName}} : User display name.",
+                    "{{monitorName}} : Name of the monitor on which incident has occured.",
+                    "{{projectName}} : Name of the project on which the incident has occured.",
+                    "{{incidentTime}} : Time at which this incident occured.",
+                    "{{incidentType}} : Type of incident.",
+                    "{{userId}} : Unique identifier for user account.",
+                    "{{projectId}} : Unique identifier for the current project."
+                ],
+                "deleted": false,
+                "_id": "5e1a1c75ba543f2f21682050",
+                "projectId": {
+                    "_id": "5e089f94b400211639928c94",
+                    "name": "Bello"
+                },
+                "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                "body": "",
+                "emailType": "Subscriber Incident Created",
+                "__v": 0
+            }</p>
             </code>
           </pre>
         </div>
@@ -271,6 +445,7 @@
 
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -285,10 +460,54 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3></h3>
+      <h3>Query Params</h3>
 
       <ul class="doc-item-detail-container">
-        <li data-location="header">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
@@ -319,7 +538,27 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>{
+                "allowedVariables": [
+                    "{{userName}} : User display name.",
+                    "{{monitorName}} : Name of the monitor on which incident has occured.",
+                    "{{projectName}} : Name of the project on which the incident has occured.",
+                    "{{incidentTime}} : Time at which this incident occured.",
+                    "{{incidentType}} : Type of incident.",
+                    "{{userId}} : Unique identifier for user account.",
+                    "{{projectId}} : Unique identifier for the current project."
+                ],
+                "deleted": false,
+                "_id": "5e1a1c75ba543f2f21682050",
+                "projectId": {
+                    "_id": "5e089f94b400211639928c94",
+                    "name": "Bello"
+                },
+                "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                "body": "",
+                "emailType": "Subscriber Incident Created",
+                "__v": 0
+            }</p>
             </code>
           </pre>
         </div>
@@ -331,7 +570,24 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>{
+                "allowedVariables": [
+                    "{{userName}} : User display name.",
+                    "{{monitorName}} : Name of the monitor on which incident has occured.",
+                    "{{projectName}} : Name of the project on which the incident has occured.",
+                    "{{incidentTime}} : Time at which this incident occured.",
+                    "{{incidentType}} : Type of incident.",
+                    "{{userId}} : Unique identifier for user account.",
+                    "{{projectId}} : Unique identifier for the current project."
+                ],
+                "deleted": false,
+                "_id": "5e1a1c75ba543f2f21682050",
+                "projectId": "5e089f94b400211639928c94",
+                "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                "body": "",
+                "emailType": "Subscriber Incident Created",
+                "__v": 0
+            }</p>
             </code>
           </pre>
         </div>
@@ -349,6 +605,7 @@
 
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -363,10 +620,32 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3></h3>
+      <h3>Query Params</h3>
 
       <ul class="doc-item-detail-container">
-        <li data-location="header">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
@@ -393,13 +672,6 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">https://api.fyipe.com/emailTemplate/:projectId/:templateId/reset</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
         </div>
       </div>
 
@@ -409,7 +681,55 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>[
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "_id": "5e1a1c75ba543f2f21682050",
+                    "projectId": {
+                        "_id": "5e089f94b400211639928c94",
+                        "name": "Bello"
+                    },
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                    "body": "",
+                    "emailType": "Subscriber Incident Created"
+                },
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "emailType": "Subscriber Incident Acknowldeged",
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Acknowldeged",
+                    "body": ""
+                },
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "emailType": "Subscriber Incident Resolved",
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Resolved",
+                    "body": ""
+                }
+            ]</p>
             </code>
           </pre>
         </div>
@@ -427,6 +747,7 @@
 
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -441,10 +762,54 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3></h3>
+      <h3>Query Params</h3>
 
       <ul class="doc-item-detail-container">
-        <li data-location="header">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
@@ -475,7 +840,50 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>[
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "emailType": "Subscriber Incident Created",
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                    "body": ""
+                },
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "emailType": "Subscriber Incident Acknowldeged",
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Acknowldeged",
+                    "body": ""
+                },
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "emailType": "Subscriber Incident Resolved",
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Resolved",
+                    "body": ""
+                }
+            ]</p>
             </code>
           </pre>
         </div>
@@ -487,7 +895,55 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>[
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "_id": "5e1a1c75ba543f2f21682050",
+                    "projectId": {
+                        "_id": "5e089f94b400211639928c94",
+                        "name": "Bello"
+                    },
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                    "body": "",
+                    "emailType": "Subscriber Incident Created"
+                },
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "emailType": "Subscriber Incident Acknowldeged",
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Acknowldeged",
+                    "body": ""
+                },
+                {
+                    "allowedVariables": [
+                        "{{userName}} : User display name.",
+                        "{{monitorName}} : Name of the monitor on which incident has occured.",
+                        "{{projectName}} : Name of the project on which the incident has occured.",
+                        "{{incidentTime}} : Time at which this incident occured.",
+                        "{{incidentType}} : Type of incident.",
+                        "{{userId}} : Unique identifier for user account.",
+                        "{{projectId}} : Unique identifier for the current project."
+                    ],
+                    "emailType": "Subscriber Incident Resolved",
+                    "subject": "{{projectName}}/{{monitorName}}: Incident Resolved",
+                    "body": ""
+                }
+            ]</p>
             </code>
           </pre>
         </div>
@@ -505,6 +961,7 @@
 
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -519,10 +976,32 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3></h3>
+      <h3>Query Params</h3>
 
       <ul class="doc-item-detail-container">
-        <li data-location="header">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
@@ -549,13 +1028,6 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">https://api.fyipe.com/emailTemplate/:projectId/emailTemplate/:emailTemplateId</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
         </div>
       </div>
 
@@ -565,7 +1037,26 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>{
+                "allowedVariables": [
+                    "{{userName}} : User display name.",
+                    "{{monitorName}} : Name of the monitor on which incident has occured.",
+                    "{{projectName}} : Name of the project on which the incident has occured.",
+                    "{{incidentTime}} : Time at which this incident occured.",
+                    "{{incidentType}} : Type of incident.",
+                    "{{userId}} : Unique identifier for user account.",
+                    "{{projectId}} : Unique identifier for the current project."
+                ],
+                "deleted": true,
+                "_id": "5e1a1c75ba543f2f21682050",
+                "projectId": "5e089f94b400211639928c94",
+                "subject": "{{projectName}}/{{monitorName}}: Incident Created",
+                "body": "",
+                "emailType": "Subscriber Incident Created",
+                "__v": 0,
+                "deletedAt": "2020-01-11T19:17:23.594Z",
+                "deletedById": "5e089f88b400211639928c92"
+            }</p>
             </code>
           </pre>
         </div>

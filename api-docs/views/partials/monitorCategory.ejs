@@ -21,10 +21,8 @@
         </li>
       </ul>
     </div>
-    <div class="attribute-parameter-container">
 
-    </div>
-
+    <div class="attribute-parameter-container"></div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -40,6 +38,7 @@
 
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -54,66 +53,61 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Body</h3>
-      <ul class="doc-item-detail-container">
-        <li data-location="body">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>API Key for the project or sub project</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="body">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>monitorCategoryName</span>
-                <span class="item-type">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Name for your monitor category.
-                </p>
-              </div>
-            </div>
-          </div>
-        </li>
+      <h3>Query Params</h3>
 
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
       </ul>
     </div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
-
     <div class="sample-type type-curl">
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
+
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">https://api.fyipe.com/monitorCategory/:projectId</p>
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p>
-{
-"api-key":"xxx",
-"monitorCategoryName":"US EAST"
-}
-              </p>
-            </code>
-          </pre>
         </div>
-
       </div>
+
       <div class="doc-example-item">
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
@@ -143,8 +137,10 @@
     <p>
       <p>Get all monitor categories by project ID.</p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -159,7 +155,8 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query String</h3>
+      <h3>Query Params</h3>
+
       <ul class="doc-item-detail-container">
         <li data-location="Query">
           <div class="cf-grid-row">
@@ -211,18 +208,69 @@
       </ul>
     </div>
 
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
-
     <div class="sample-type type-curl">
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
-        <div class="example-code">
-          <p class="url"> https://api.fyipe.com/monitorCategory/:projectId?skip=0&limit=5</p>
-        </div>
 
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitorCategory/:projectId?skip=0&limit=5</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p></p>
+            </code>
+          </pre>
+        </div>
       </div>
+
       <div class="doc-example-item">
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
@@ -266,6 +314,7 @@
 
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -280,10 +329,54 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3></h3>
+      <h3>Query Params</h3>
 
       <ul class="doc-item-detail-container">
-        <li data-location="header">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
@@ -341,8 +434,10 @@
     <p>
       <p> Delete a monitor category by ID.</p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
+
       <ul class="doc-item-detail-container">
         <li>
           <div class="cf-grid-row">
@@ -357,7 +452,8 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query String</h3>
+      <h3>Query Params</h3>
+
       <ul class="doc-item-detail-container">
         <li data-location="Query">
           <div class="cf-grid-row">
@@ -376,18 +472,41 @@
         </li>
       </ul>
     </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
-
     <div class="sample-type type-curl">
       <div id="exampleRequest" class="doc-example-item doc-example-request">
         <h1>Example Request</h1>
-        <div class="example-code">
-          <p class="url"> https://api.fyipe.com/monitorCategory/:projectId/:monitorCategoryId</p>
-        </div>
 
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitorCategory/:projectId/:monitorCategoryId</p>
+        </div>
       </div>
+
       <div class="doc-example-item">
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
