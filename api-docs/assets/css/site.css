@@ -234,7 +234,7 @@ div.navigation div.signin span {
   font-weight: bold;
   color: #333;
   text-shadow: 0 1px 0 #fff;
-  background: #f6f9fc;
+  background: #f7f7f7;
   background: transparent;
   background: -webkit-linear-gradient(white,#eff1f4);
   background: -moz-linear-gradient(white,#eff1f4);
@@ -1274,7 +1274,7 @@ a.button.grey span,button.button.grey span,strong.button.grey span,div.button.gr
   display: block;
   color: #333;
   text-shadow: 0 1px 0 #fff;
-  background: #f6f9fc;
+  background: #f7f7f7;
   background: transparent;
   background: -webkit-linear-gradient(#f7f8fa,#eff1f4);
   background: -moz-linear-gradient(#f7f8fa,#eff1f4);

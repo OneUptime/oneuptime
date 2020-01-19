@@ -18,7 +18,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
 
                     return (
                         <li key={i} style={{ margin: '5px 0px' }}>
-                            <div className="Card-root" style={{ backgroundColor: i === 0 ? '#f6f9fc' : '#ffffff' }}>
+                            <div className="Card-root" style={{ backgroundColor: i === 0 ? '#f7f7f7' : '#ffffff' }}>
                                 <div className="Box-root">
                                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                         <div className="Box-root">
@@ -32,7 +32,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f6f9fc' }}>
+                                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f7f7f7' }}>
                                         <div>
                                             <div className="bs-Fieldset-row" style={{ marginBottom: '-20px'}}>
                                                 <label className="bs-Fieldset-label"><span>Alert Via.</span></label>
@@ -214,7 +214,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                         </div>
                                     </div>
                                     <ShouldRender if={fields.length > 1}>
-                                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12" style={{ backgroundColor: '#f6f9fc' }}>
+                                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12" style={{ backgroundColor: '#f7f7f7' }}>
 
                                             <div>
                                                 <button

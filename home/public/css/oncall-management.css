@@ -968,7 +968,7 @@ main header .stripes :nth-child(5){
 #onboarding-verification .phone .screen{
     --screen-width:390px;
     --form-spacing:25px;
-    --form-separator:#e6ebf1;
+    --form-separator:#fbfbfb;
     position:relative;
     width:var(--screen-width);
     height:690px;
@@ -1772,7 +1772,7 @@ main header .stripes :nth-child(5){
 }
 #connected-accounts-view section h2{
     padding:20px;
-    border-bottom:2px solid #e6ebf1;
+    border-bottom:2px solid #fbfbfb;
     text-transform:uppercase;
     font-size:1em;
     color:#424770

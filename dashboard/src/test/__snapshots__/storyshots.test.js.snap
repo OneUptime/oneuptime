@@ -6369,7 +6369,7 @@ exports[`Storyshots Incidents IncidentStatus 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -8770,7 +8770,7 @@ exports[`Storyshots Monitor Monitor Detail 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -12863,7 +12863,7 @@ exports[`Storyshots Monitor Monitor Detail Non Admin 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -13104,7 +13104,7 @@ exports[`Storyshots Monitor NewMonitor 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -13128,7 +13128,7 @@ exports[`Storyshots Monitor NewMonitor Error 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -13152,7 +13152,7 @@ exports[`Storyshots Monitor NewMonitor Requesting 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -16132,7 +16132,7 @@ exports[`Storyshots Project DeleteCaution 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -17082,7 +17082,7 @@ exports[`Storyshots Register Card Form 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -19149,7 +19149,7 @@ exports[`Storyshots Register RegisterForm Step 2 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -20280,7 +20280,7 @@ exports[`Storyshots Schedule MonitorBox No Monitors 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -20304,7 +20304,7 @@ exports[`Storyshots Schedule MonitorBox With Monitors 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -24525,7 +24525,7 @@ exports[`Storyshots Status Page Monitors 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -24549,7 +24549,7 @@ exports[`Storyshots Status Page Setting 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -24573,7 +24573,7 @@ exports[`Storyshots Status Page Setting Requesting 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",
@@ -24597,7 +24597,7 @@ exports[`Storyshots Team OnCallAlertSetting 1`] = `
   style={
     Object {
       "alignItems": "center",
-      "backgroundColor": "#e6ebf1",
+      "backgroundColor": "#fbfbfb",
       "bottom": "0",
       "display": "flex",
       "justifyContent": "center",

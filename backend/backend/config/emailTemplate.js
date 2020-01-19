@@ -248,7 +248,7 @@ span.st-Delink.st-Delink--footer a {
         <div>
           <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href={{homeURL}}>
 
-            <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
+            <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
           </a>
         </div>
       </td>
@@ -268,7 +268,7 @@ span.st-Delink.st-Delink--footer a {
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
-      <td bgcolor="#e6ebf1" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+      <td bgcolor="#fbfbfb" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -443,7 +443,7 @@ span.st-Delink.st-Delink--footer a {
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
-      <td bgcolor="#e6ebf1" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+      <td bgcolor="#fbfbfb" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -745,7 +745,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
         <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
+          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
         </a>
       </div>
     </td>
@@ -765,7 +765,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
-    <td bgcolor="#e6ebf1" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+    <td bgcolor="#fbfbfb" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -940,7 +940,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
-    <td bgcolor="#e6ebf1" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+    <td bgcolor="#fbfbfb" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1242,7 +1242,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
         <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/bjp7o79pv4l63za/Fyipe-Logo.png?dl=0&raw=1">
+          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
         </a>
       </div>
     </td>
@@ -1262,7 +1262,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
-    <td bgcolor="#e6ebf1" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+    <td bgcolor="#fbfbfb" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1422,7 +1422,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
-    <td bgcolor="#e6ebf1" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
+    <td bgcolor="#fbfbfb" colspan="2" height="1" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; max-height: 1px; mso-line-height-rule: exactly;" width="64">

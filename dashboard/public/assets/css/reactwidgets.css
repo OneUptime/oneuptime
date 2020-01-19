@@ -96,7 +96,7 @@ input[type="radio"] {
   transition: .4s;
 }
 .btn-toggler:checked + .TogglerBtn-slider {
-  background-color: #2196F3;
+  background-color: #000000;
 }
 .btn-toggler:checked + .TogglerBtn-slider::after {
   -webkit-transform: translateX(24px);
