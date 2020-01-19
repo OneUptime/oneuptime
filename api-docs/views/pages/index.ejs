@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('../partials/head') -%>
+</head>
+
+<body class="docs">
+  <%- include('../partials/sidebar') -%>
+
+  <div class="container-docs" role="main">
+    <%- include('../partials/introduction') -%>
+
+    <%- include('../partials/authentication') -%>
+
+    <%- include('../partials/output') -%>
+
+    <%- include('../partials/error') -%>
+
+    <%- include('../partials/alert') -%>
+
+    <%- include('../partials/emailSmtp') -%>
+
+    <%- include('../partials/emailTemplate') -%>
+
+    <%- include('../partials/feedback') -%>
+
+    <%- include('../partials/file') -%>
+
+    <%- include('../partials/incident') -%>
+
+    <%- include('../partials/invoice') -%>
+
+    <%- include('../partials/lead') -%>
+
+    <%- include('../partials/monitor') -%>
+
+    <%- include('../partials/monitorCategory') -%>
+
+    <%- include('../partials/monitorCriteria') -%>
+
+    <%- include('../partials/notification') -%>
+
+    <%- include('../partials/probe') -%>
+
+    <%- include('../partials/project') -%>
+
+    <%- include('../partials/report') -%>
+
+    <%- include('../partials/schedule') -%>
+
+    <%- include('../partials/scheduledEvent') -%>
+
+    <%- include('../partials/server') -%>
+
+    <%- include('../partials/slack') -%>
+
+    <%- include('../partials/smsSmtp') -%>
+
+    <%- include('../partials/smsTemplate') -%>
+
+    <%- include('../partials/statusPage') -%>
+
+    <%- include('../partials/stripe') -%>
+
+    <%- include('../partials/subscriber') -%>
+
+    <%- include('../partials/subscriberAlert') -%>
+
+    <%- include('../partials/team') -%>
+
+    <%- include('../partials/token') -%>
+
+    <%- include('../partials/tutorial') -%>
+
+    <%- include('../partials/twilio') -%>
+
+    <%- include('../partials/user') -%>
+
+    <%- include('../partials/version') -%>
+
+    <%- include('../partials/webhook') -%>
+
+    <%- include('../partials/zapier') -%>
+
+    <script type="text/javascript">
+      var ddlArray = [];
+      var ddl = document.getElementById('navSelect');
+      if (ddl && ddl.options) {
+        for (i = 0; i < ddl.options.length; i++) {
+          ddlArray[i] = ddl.options[i].value;
+        }
+      }
+      $(function () {
+        var currentHash = "#introduction";
+        $(document).scroll(function () {
+          $('.dev-doc-item-container').each(function () {
+            var top = window.pageYOffset;
+            var distance = top - $(this).offset().top;
+            var hash = $(this).attr('id');
+            // 30 is an arbitrary padding choice,
+            // if you want a precise check then use distance===0
+            if (distance < 30 && distance > -30 && currentHash != hash) {
+              //window.location.hash = (hash);
+              history.replaceState(undefined, undefined, "#" + hash);
+              currentHash = hash;
+              var navSelect = $('#navSelect');
+              ddlArray.forEach(function (value) {
+                if (hash == value) {
+                  navSelect.val(hash);
+                }
+              });
+            }
+          });
+        });
+      });
+    </script>
+  </div>
+
+  <%- include('../partials/scripts') -%>
+</body>
+
+</html>

@@ -319,33 +319,36 @@ router.get('/:projectId/inbound/:deviceId', getUser, isAuthorized, async functio
 });
 
 var _updateDeviceMonitorPingTime = async function (req, res) {
-    var projectId = req.params.projectId;
-    var deviceId = req.params.deviceId;
+    try {
+        var projectId = req.params.projectId;
+        var deviceId = req.params.deviceId;
 
-    if (!projectId) {
-        return sendErrorResponse(req, res, {
-            code: 404,
-            message: 'Missing Project ID'
-        });
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Missing Project ID'
+            });
+        }
+
+        if (!deviceId) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Missing Device ID'
+            });
+        }
+
+        var monitor = await MonitorService.updateDeviceMonitorPingTime(projectId, deviceId);
+        if (monitor) {
+            return sendItemResponse(req, res, monitor);
+        } else {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor not found or is not associated with this project.'
+            });
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-
-    if (!deviceId) {
-        return sendErrorResponse(req, res, {
-            code: 404,
-            message: 'Missing Device ID'
-        });
-    }
-
-    var monitor = await MonitorService.updateDeviceMonitorPingTime(projectId, deviceId);
-    if (monitor) {
-        return sendEmptyResponse(req, res);
-    } else {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor not found or is not associated with this project.'
-        });
-    }
-
 };
 
 router.post('/:projectId/addseat', getUser, isAuthorized, async function (req, res) {
