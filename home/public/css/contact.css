@@ -1368,7 +1368,7 @@ td,th{
     padding-bottom:40px
 }
 .inner-col section:first-of-type{
-    border-bottom:1px solid #fbfbfb
+    border-bottom:1px solid #fdfdfd
 }
 @media (min-width:670px){
     .inner-col{
@@ -1392,7 +1392,7 @@ td,th{
         max-width:470px
     }
     .inner-col section:first-of-type{
-        border-right:1px solid #fbfbfb;
+        border-right:1px solid #fdfdfd;
         border-bottom:none
     }
 }

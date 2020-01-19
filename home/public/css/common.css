@@ -248,7 +248,7 @@
     background-color:#000000
 }
 .common-Button--default:active{
-    color:#fbfbfb;
+    color:#fdfdfd;
     background-color:#000000
 }
 .common-Button--dark{
@@ -260,7 +260,7 @@
     background-color:#43458b
 }
 .common-Button--dark:active{
-    color:#fbfbfb;
+    color:#fdfdfd;
     background-color:#000000
 }
 .common-Button--disabled{

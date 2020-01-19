@@ -508,7 +508,7 @@ div.feed-header {
     }
 
     .feed-item div.message {
-      background: #fbfbfb;
+      background: #fdfdfd;
       border-radius: 6px;
       -webkit-border-radius: 6px;
       -moz-border-radius: 6px;
@@ -529,7 +529,7 @@ div.feed-header {
         transform: rotate(45deg);
         left: -5px;
         top: 11px;
-        background: #fbfbfb;
+        background: #fdfdfd;
       }
 
 
@@ -741,7 +741,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 .btn-group .icon-container {
   background-color: #f7f7f7; /* Green background */
-  border: 2px solid #fbfbfb; /* Green border */
+  border: 2px solid #fdfdfd; /* Green border */
   color: #000000; /* White text */
   padding: 6px; /* Some padding */
   cursor: pointer; /* Pointer/hand icon */

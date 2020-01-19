@@ -255,10 +255,10 @@
     transition:background .15s ease
 }
 .Plan-button:hover{
-    background:#fbfbfb
+    background:#fdfdfd
 }
 .Plan-button:active{
-    background:#fbfbfb
+    background:#fdfdfd
 }
 .Plan-Button--enterprise{
     background:#000000;

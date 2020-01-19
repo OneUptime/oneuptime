@@ -26,7 +26,7 @@ class ErrorBoundary extends Component {
 
     if (this.state.hasError) {
       return (
-        <div id="app-loading" style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'backgroundColor': '#fbfbfb', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
+        <div id="app-loading" style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'backgroundColor': '#fdfdfd', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
           <div>An unexpected error has occured. Please reload the page to continue</div>
         </div>
       )

@@ -47,7 +47,7 @@ We are ideally suited for teams who want to monitor web apps, API's or any servi
 
 ### Integrations 
 
-Integrate with 1000+ enterprise class apps and services with [Zapier](https://zapier.com).  
+Integrate with 1000+ enterprise-class apps and services with [Zapier](https://zapier.com).  
 
 ## Logos
 

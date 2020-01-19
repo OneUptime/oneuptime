@@ -121,7 +121,7 @@
   background-color: #fff;
 }
 .Box-background--surface {
-  background-color: #fbfbfb;
+  background-color: #fdfdfd;
 }
 .Box-background--offset {
   background-color: #f7f7f7;
@@ -151,7 +151,7 @@
   background-color: #cfd7df;
 }
 .Box-background--slate8 {
-  background-color: #fbfbfb;
+  background-color: #fdfdfd;
 }
 .Box-background--slate9 {
   background-color: #f7f7f7;
@@ -452,25 +452,25 @@
   box-shadow: inset -1px -1px #cfd7df, inset 1px 1px #cfd7df;
 }
 .Box-divider--surface-top-1 {
-  box-shadow: inset 0 1px #fbfbfb;
+  box-shadow: inset 0 1px #fdfdfd;
 }
 .Box-divider--surface-bottom-1 {
-  box-shadow: inset 0 -1px #fbfbfb;
+  box-shadow: inset 0 -1px #fdfdfd;
 }
 .Box-divider--surface-left-1 {
-  box-shadow: inset 1px 0 #fbfbfb;
+  box-shadow: inset 1px 0 #fdfdfd;
 }
 .Box-divider--surface-right-1 {
-  box-shadow: inset -1px 0 #fbfbfb;
+  box-shadow: inset -1px 0 #fdfdfd;
 }
 .Box-divider--surface-vertical-1 {
-  box-shadow: inset 0 -1px #fbfbfb, inset 0 1px #fbfbfb;
+  box-shadow: inset 0 -1px #fdfdfd, inset 0 1px #fdfdfd;
 }
 .Box-divider--surface-horizontal-1 {
-  box-shadow: inset -1px 0 #fbfbfb, inset 1px 0 #fbfbfb;
+  box-shadow: inset -1px 0 #fdfdfd, inset 1px 0 #fdfdfd;
 }
 .Box-divider--surface-all-1 {
-  box-shadow: inset -1px -1px #fbfbfb, inset 1px 1px #fbfbfb;
+  box-shadow: inset -1px -1px #fdfdfd, inset 1px 1px #fdfdfd;
 }
 .Box-divider--white-top-1 {
   box-shadow: inset 0 1px #fff;
@@ -515,25 +515,25 @@
   box-shadow: inset -2px -2px #cfd7df, inset 2px 2px #cfd7df;
 }
 .Box-divider--surface-top-2 {
-  box-shadow: inset 0 2px #fbfbfb;
+  box-shadow: inset 0 2px #fdfdfd;
 }
 .Box-divider--surface-bottom-2 {
-  box-shadow: inset 0 -2px #fbfbfb;
+  box-shadow: inset 0 -2px #fdfdfd;
 }
 .Box-divider--surface-left-2 {
-  box-shadow: inset 2px 0 #fbfbfb;
+  box-shadow: inset 2px 0 #fdfdfd;
 }
 .Box-divider--surface-right-2 {
-  box-shadow: inset -2px 0 #fbfbfb;
+  box-shadow: inset -2px 0 #fdfdfd;
 }
 .Box-divider--surface-vertical-2 {
-  box-shadow: inset 0 -2px #fbfbfb, inset 0 2px #fbfbfb;
+  box-shadow: inset 0 -2px #fdfdfd, inset 0 2px #fdfdfd;
 }
 .Box-divider--surface-horizontal-2 {
-  box-shadow: inset -2px 0 #fbfbfb, inset 2px 0 #fbfbfb;
+  box-shadow: inset -2px 0 #fdfdfd, inset 2px 0 #fdfdfd;
 }
 .Box-divider--surface-all-2 {
-  box-shadow: inset -2px -2px #fbfbfb, inset 2px 2px #fbfbfb;
+  box-shadow: inset -2px -2px #fdfdfd, inset 2px 2px #fdfdfd;
 }
 .Box-divider--white-top-2 {
   box-shadow: inset 0 2px #fff;
@@ -1624,7 +1624,7 @@
 }
 .SearchableSelect-input {
   border: 1px solid #f4f4f4;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
   border-radius: 4px 4px 0 0;
   border-width: 1px 0;
   padding: 8px;
@@ -1647,7 +1647,7 @@
   padding: 8px;
 }
 .SearchableSelect-item--highlighted {
-  background-color: #fbfbfb;
+  background-color: #fdfdfd;
 }
 .Switch {
   display: -webkit-box;
@@ -4103,7 +4103,7 @@
   color: #cfd7df;
 }
 .ChartIcon--color--slate8 {
-  color: #fbfbfb;
+  color: #fdfdfd;
 }
 .ChartIcon--color--slate9 {
   color: #f7f7f7;
@@ -4476,7 +4476,7 @@
   opacity: 0.5;
 }
 .DataTable-cell {
-  box-shadow: inset 0 -1px 0 0 #fbfbfb;
+  box-shadow: inset 0 -1px 0 0 #fdfdfd;
 }
 .DataTable-row:last-child .DataTable-cell {
   box-shadow: none;
@@ -4489,7 +4489,7 @@
 }
 .DataTable-head .DataTable-row .DataTable-cell {
   background-color: #f7f7f7;
-  box-shadow: inset 0 -1px 0 0 #fbfbfb;
+  box-shadow: inset 0 -1px 0 0 #fdfdfd;
 }
 .EmptyState {
   text-align: center;
@@ -4501,11 +4501,11 @@
   cursor: pointer;
 }
 .IndentedListItem .IndentedListItem-area {
-  box-shadow: inset 20px 0 0 #fff, inset -20px 0 0 #fff, inset 0 -1px 0 #fbfbfb;
+  box-shadow: inset 20px 0 0 #fff, inset -20px 0 0 #fff, inset 0 -1px 0 #fdfdfd;
 }
 .IndentedListItem--background--offset .IndentedListItem-area {
   box-shadow: inset 20px 0 0 #f7f7f7, inset -20px 0 0 #f7f7f7,
-    inset 0 -1px 0 #fbfbfb;
+    inset 0 -1px 0 #fdfdfd;
 }
 .IndentedListItem:first-child .IndentedListItem-area {
   border-top-left-radius: 4px;
@@ -4856,7 +4856,7 @@
   position: absolute;
   top: 0;
   width: 2px;
-  background-color: #fbfbfb;
+  background-color: #fdfdfd;
 }
 .Promotion-tail:first-child {
   border-top-left-radius: 4px;

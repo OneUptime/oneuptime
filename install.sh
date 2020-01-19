@@ -1,7 +1,4 @@
 # This script runs the local development server in Docker.
-
-USER=$whoami
-
 if [[ ! $(which docker) && ! $(docker  --version) ]]
 then
   echo -e "\033[91mPlease install Docker. https://docs.docker.com/install"
@@ -16,10 +13,10 @@ sudo docker network create fyipe-network || "Netork already exists."
 # Sleep 
 sleep 5s
 
-sudo mkdir /Users/$USER/mongodb || echo 'Path already exists'
+sudo mkdir /Users/$whoami/mongodb || echo 'Path already exists'
 
 # Run Dependencies
-sudo docker run --name mongo -v /Users/$USER/mongodb:/data/db -p 27017:27017 -d mongo:3.4
+sudo docker run -v /Users/$whoami/mongodb:/data/db -p 27017:27017 -d mongo:3.4
 sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
 
 # Sleep 

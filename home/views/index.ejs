@@ -37,20 +37,19 @@
             <header>
 
                 <section id="intro">
-                    <div class="container-lg" style="display: flex;">
+                    <div class="container-lg" style="display: flex; justify-content: center;">
                         <div>
-                            <h1 class="black main-page-title">
-                                Complete <br />
-                                DevOps and IT Ops<br />
+                            <h1 class="black main-page-title" style="text-align:center">
+                                One Complete DevOps <br/>and IT Ops
                                 platform.
                             </h1>
-                            <p class="common-BodyText">
+                            <p class="common-BodyText" style="text-align:center;max-width:100%">
                                 Fyipe monitors your website, dashboards, API's, and more and alerts your team when
                                 downtime happens. We also give you a Status Page which keeps your customers looped in
                                 and improves transparency.
                             </p>
                             
-                            <ul>
+                            <ul style="margin-left: calc(50% - 150px); margin-top: 70px;">
                                 <li>
                                     <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top"
                                         data-analytics-action="create_account" data-analytics-source="header_cta">
@@ -67,9 +66,7 @@
                             
 
                         </div>
-                        <div style="margin-top:10px">
-                            <img src="/img/main.svg" />
-                        </div>
+                       
 
                     </div>
                 </section>
@@ -107,52 +104,214 @@
             </section>
 
             <% include ./sdlc %>
-            <% include ./comparision-chart %>
+            <div class="sectionBorderTop">
+                <% include ./comparision-chart %>
+            </div>
 
+            <section class="sdlc-container sectionBorderTop" style="margin-bottom:0px">
+                <div class="sdlc-description">
+              
+                  <h2 class="title-link h2">Uptime Monitoring</h2>
+              
+                  <p></p>
+                  <p>Fyipe's monitoring lets you know know exactly what is wrong with your service, at the right time, saving you critical minutes during downtime.</p>
+                  <p></p>
+                </div>
+                
+                <div style="display:flex; justify-content:center; margin-bottom:30px;">
+                    <img src="/img/status-page-dashboard.png" width="900" class="imageshadow"/>
+                </div>
+                <section class="main basics" style="padding:0px">
+                <div class="content">
+                    <ul class="columns">
+                        <li class="reliability">
+                            <h3>Monitor Anything.</h3>
+                            <p class="text-center">Monitor uptime and performance of your dashboards, API's, servers, applications, and more.</p>
+                        </li>
+                        <li class="moni">
+                            <h3>Detailed Metrics</h3>
+                            <p class="text-center">All teams get the same visibility for technical and business response orchestration, enabling better collaboration and rapid resolution. </p>
+                        </li>
+                        <li class="time">
+                            <h3>Every second check.</h3>
+                            <p class="text-center">Fyipe checks the status of the endpoint every second to make sure you get alerted as soon as any of your resources go down.</p>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </section>
 
-            <section id="developers-first">
-                <div id="programming-languages"></div>
-                <h2 class="common-UppercaseTitle">
-                    On call and
-                    alerts.
-                </h2>
-                <p class="common-BodyText">
-                    Have your team alerted when downtime happens. Waste no time and have your team reliabily work
-                    on the issue right away. We
-                    alert your team by Call, SMS, and Email. You can also automatically schedule who in your
-                    team receives the alert at different time of the day.
-                </p>
+                <div>
+              
+                   
+                
+                    <p></p>
+                    <p> <a class="common-Link--arrow black " href="/product/uptime-monitoring"> <span class="">Learn more about monitoring here.</span> </a></p>
+                    <p></p>
+                  </div>
 
-                <section id="comparison">
+              </section>
 
-                    <div class="container-lg" style="max-width:800px">
-
-                        <section>
-                            <h2 class="common-Uppercase">Your Team's schedule.</h2>
-                            <p class="common-BodyText">With Fyipe you can schedule on-call for your team with
-                                primary and secondary on-call
-                                team member and have them rotate week after week, or anyway you like. </p>
-                            <ul>
-                                <li>
-                                    <span
-                                        class="label">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                                </li>
-                                <li>
-                                    <span class="label">
-                                        <span class="launch-marker">
-                                            <span class="launch-marker-circle"></span>
-                                            <span class="launch-marker-bar"></span>
-                                        </span>
-                                        <span class="centered-label">
-                                            Alice
-                                        </span>
-                                    </span>
-                                </li>
-                            </ul>
-                        </section>
+              <section class="sdlc-container sectionBorderTop" style="margin-bottom:0px">
+                <div class="sdlc-description">
+              
+                  <h2 class="title-link h2">Status Page</h2>
+              
+                  <p></p>
+                  <p>Status Page helps you be more transparent with your customers and showcase reliability. Easily communicate real-time status to your customers, gain trust and increase revenue.</p>
+                  <p></p>
+                </div>
+                
+                <div style="display:flex; justify-content:center; margin-top:50px">
+                    <img src="/img/status-page.png" width="900" class="imageshadow"/>
+                </div>
+                <section class="main basics" style="padding:0px">
+                    <div class="content">
+                        <ul class="columns">
+                            <li class="trend">
+                                <h3>Realtime Status</h3>
+                                <p class="text-center">Show realtime status of your product or service - home page, 
+                                    websites, API, dashboards or more.</p>
+                            </li>
+                            <li class="cost">
+                                <h3>Cut Support Costs</h3>
+                                <p class="text-center">Communicate any incidents through a status page.
+                                    This saves your customers from creating a flood of support tickets. </p>
+                            </li>
+                            <li class="reli">
+                                <h3>Showcase Reliability</h3>
+                                <p class="text-center">Showcase the reliability of your platform and compliance with your SLA
+                                    and build trust with your customers.</p>
+                            </li>
+                            
+                        </ul>
+    
                     </div>
                 </section>
-            </section>
+
+                <div>
+              
+                   
+                
+                    <p></p>
+                    <p> <a class="common-Link--arrow black " href="/product/status-page"> <span class="">Learn more about status page here.</span> </a></p>
+                    <p></p>
+                  </div>
+
+              </section>
+
+              <section class="sdlc-container sectionBorderTop" style="margin-bottom:0px">
+                <div class="sdlc-description">
+              
+                  <h2 class="title-link h2">On-Call Management</h2>
+              
+                  <p></p>
+                  <p><i>Downtime happens.</i> On-Call Management lets you alert the right team at the right time saving you critical time during downtime.</p>
+                  <p></p>
+                </div>
+                
+                <div style="display:flex; justify-content:center; margin-bottom:30px;">
+                    <img src="/img/call-schedule-dashboard.png" width="900" class="imageshadow"/>
+                </div>
+
+                <section class="main basics" style="padding:0px">
+                    <div class="content">
+    
+                        <ul class="columns">
+                            <li class="rotation">
+                                <h3>Duty Rotations</h3>
+                                <p class="text-center"> Have a subset of your team "on-duty", give others a break and rotate them back to "on-duty" however you like.</p>
+                            </li>
+                            <li class="global">
+                                <h3>Have Global Teams</h3>
+                                <p class="text-center">Timezone based alerts: Alert your team in India for example when there's a day there, and alert your team in the US when you have a day here.</p>
+                            </li>
+                            <li class="sms">
+                                <h3>Any Alert Channel</h3>
+                                <p class="text-center">Alert your team by call, SMS, Email, Push Notifications and more. </p>
+                            </li>
+                            
+                        </ul>
+    
+                    </div>
+                    </section>
+
+                <div>
+              
+                   
+                
+                    <p></p>
+                    <p> <a class="common-Link--arrow black " href="/product/oncall-management"> <span class="">Learn more about on-call management here.</span> </a></p>
+                    <p></p>
+                  </div>
+
+              </section>
+
+              <div style="background-color:black;height: 600px;width:100%;">
+                <header style="padding-top: 75px;
+                text-align: center;
+                margin-bottom: 70px;">
+                    <h2 class="header" style="color:white">1500+ Enterprise Integrations and counting.</h2>
+                    <p class="common-BodyText">Fyipe integrates with over a thousand enterprise-class app and
+                        services which helps you streamline and  <br/> automate your digital ops workflow.</p>
+                </header>
+
+                <ul class="integration-list">
+                    <li>
+                        <img class="integration-logo" src="/img/slack-white.svg">
+                    </li>
+                    <li>
+                        <img class="integration-logo" src="/img/atlassian.svg" style="
+height: 70px;
+margin-top: -15px;
+">
+                    </li>
+                    <li>
+                        <img class="integration-logo" src="/img/servicenow.svg">
+                    </li>
+                </ul>
+                <ul class="integration-list" style="margin-top: 60px;">
+                    <li>
+                        <img class="integration-logo" src="/img/okta.svg" style="
+height: 30px;
+margin-left: -50px;
+">
+                    </li>
+                    <li>
+                        <img class="integration-logo" src="/img/aws-white.svg" style="
+height: 50px;
+margin-left: -80px;
+">
+                    </li>
+                    <li>
+                        <img class="integration-logo" src="/img/appdynamics.svg" style="
+height: 80px;
+">
+                    </li>
+                </ul>
+                <ul class="integration-list" style="margin-top: 40px;">
+                    <li>
+                        <img class="integration-logo" src="/img/newrelic.svg" style="
+height: 80px;
+margin-left: -60px;
+">
+                    </li>
+                    <li>
+                        <img class="integration-logo" src="/img/zendesk.svg" style="
+height: 60px;
+margin-left: -90px;
+">
+                    </li>
+                    <li>
+                        <img class="integration-logo" src="/img/azure.svg" style="
+height: 60px;
+">
+                    </li>
+                </ul>
+
+            </div>
+
+
 
             
         </main>
@@ -162,7 +321,9 @@
     <div id="cookies-notification">
         <% include ./cookie-consent %>
     </div>
-    <% include ./footer %>
+    <div class="sectionBorderTop" style="padding-top:50px">
+        <% include ./footer %>
+    </div>
     <script>
         $(document).ready(function () {
             $(function () {
