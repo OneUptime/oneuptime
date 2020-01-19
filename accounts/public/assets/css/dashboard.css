@@ -3299,7 +3299,7 @@ figure.bs-Number > figcaption {
   left: 20px;
   right: 0;
   height: 1px;
-  background-color: #fbfbfb;
+  background-color: #fdfdfd;
 }
 .bs-LinkList-item:first-child {
   padding-top: 20px;
@@ -3379,7 +3379,7 @@ figure.bs-Number > figcaption {
 }
 .bs-Menu-group {
   padding: 5px 0;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
 }
 .bs-Menu-group:last-child {
   border-bottom: 0;
@@ -3729,7 +3729,7 @@ figure.bs-Number > figcaption {
   background-color: #f0f3f5;
 }
 .bs-Notice {
-  box-shadow: inset 0 -1px 0 #fbfbfb;
+  box-shadow: inset 0 -1px 0 #fdfdfd;
 }
 .bs-Notice:first-child {
   border-top-left-radius: 4px;
@@ -3814,7 +3814,7 @@ figure.bs-Number > figcaption {
   display: table-row-group;
 }
 .bs-ObjectList-group .bs-ObjectList-row:first-child .bs-ObjectList-cell {
-  border-top: 2px solid #fbfbfb;
+  border-top: 2px solid #fdfdfd;
 }
 .bs-ObjectList-group:first-child
   .bs-ObjectList-row:first-child
@@ -3869,7 +3869,7 @@ a.bs-ObjectList-row {
   white-space: nowrap;
 }
 .bs-ObjectList-row > .bs-ObjectList-cell {
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
 }
 .bs-ObjectList-row .bs-ObjectList-cell:first-child {
   padding-left: 20px;
@@ -3998,7 +3998,7 @@ a.bs-ObjectList-row {
 .bs-ObjectList-row--divider .bs-ObjectList-cell,
 .bs-ObjectList-row--divider:first-child .bs-ObjectList-cell,
 .bs-ObjectList-row--separated .bs-ObjectList-cell {
-  border-top: 2px solid #fbfbfb;
+  border-top: 2px solid #fdfdfd;
 }
 .bs-ObjectList-row--divider .bs-ObjectList-cell,
 .bs-ObjectList-row--divider:first-child .bs-ObjectList-cell {
@@ -4119,7 +4119,7 @@ a.bs-ObjectList-row {
   white-space: nowrap;
 }
 .bs-ObjectList-rows + .bs-ObjectList-more {
-  border-top: 1px solid #fbfbfb;
+  border-top: 1px solid #fdfdfd;
 }
 .bs-ObjectList-more-action {
   display: block;
@@ -4145,7 +4145,7 @@ a.bs-ObjectList-row {
 }
 .bs-ObjectList-row--expandable {
   display: table-row-group;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
 }
 .bs-ObjectList-row--expandable:last-child {
   border-bottom: 0;
@@ -4234,7 +4234,7 @@ a.bs-ObjectList-row {
   right: 20px;
   top: 0;
   display: block;
-  border-top: 1px solid #fbfbfb;
+  border-top: 1px solid #fdfdfd;
 }
 .bs-ObjectList-cell--card:after {
   content: '';
@@ -4815,7 +4815,7 @@ a.bs-ObjectList-row {
 .bs-PageHeading--separated {
   margin: 0;
   padding: 20px;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
 }
 .bs-PageHeading--short {
   padding-bottom: 10px;
@@ -4959,7 +4959,7 @@ pre.bs-PropertyList-property {
   justify-content: flex-end;
   margin-top: 10px;
   padding: 10px 20px;
-  border-top: 1px solid #fbfbfb;
+  border-top: 1px solid #fdfdfd;
 }
 .bs-PropertyList--editor
   .bs-PropertyList-row
@@ -5492,7 +5492,7 @@ pre.bs-PropertyList-property {
   display: flex;
 }
 .bs-StatGroup .bs-Stat {
-  border-right: 1px solid #fbfbfb;
+  border-right: 1px solid #fdfdfd;
 }
 .bs-StatGroup .bs-Stat:last-child {
   border-right: 0;
@@ -5526,7 +5526,7 @@ pre.bs-PropertyList-property {
   color: #4c4c4c;
 }
 .bs-Table-row--divider .bs-Table-cell {
-  border-top: 1px solid #fbfbfb;
+  border-top: 1px solid #fdfdfd;
 }
 .bs-Table-head .bs-Table-cell,
 .bs-Table-head .bs-Table-cell.bs-is-highlighted {
@@ -5646,8 +5646,8 @@ pre.bs-PropertyList-property {
 }
 .bs-ObjectList .bs-Table-cell {
   padding: 0;
-  border-bottom: 1px solid #fbfbfb;
-  border-top: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
+  border-top: 1px solid #fdfdfd;
 }
 .bs-ObjectList + .bs-Table-row--divider {
   border-top: 0;
@@ -5672,7 +5672,7 @@ pre.bs-PropertyList-property {
 .bs-Tail--separated {
   margin: 0;
   padding: 20px;
-  border-top: 1px solid #fbfbfb;
+  border-top: 1px solid #fdfdfd;
 }
 .bs-Tail--short {
   padding-bottom: 10px;
@@ -5690,7 +5690,7 @@ pre.bs-PropertyList-property {
   border: 0;
   display: flex;
   padding: 12px 20px;
-  box-shadow: inset 0 -1px 0 #fbfbfb;
+  box-shadow: inset 0 -1px 0 #fdfdfd;
 }
 .bs-Timeline:first-child .bs-Timeline-row:first-child {
   border-top-left-radius: 4px;
@@ -6210,7 +6210,7 @@ pre.bs-PropertyList-property {
   right: 20px;
   display: block;
   height: 1px;
-  background-color: #fbfbfb;
+  background-color: #fdfdfd;
 }
 .bs-Fieldset-legend h3,
 .bs-Fieldset-legend h4,
@@ -6370,10 +6370,10 @@ pre.bs-PropertyList-property {
   flex: 100% 0 0;
 }
 .bs-Fieldset-row--toggle .bs-Fieldset-row:nth-child(2) {
-  border-top: 1px solid #fbfbfb;
+  border-top: 1px solid #fdfdfd;
 }
 .bs-Fieldset-row--toggle .bs-Fieldset-row:last-child {
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
 }
 .bs-Fieldset-row--toggle.bs-is-collapsed .bs-Fieldset-row {
   display: none;
@@ -6776,7 +6776,7 @@ pre.bs-PropertyList-property {
   .bs-TextInputExtension
   .bs-TextInputExtension-extension,
 .bs-TextInputExtension.bs-is-disabled .bs-TextInputExtension-extension {
-  background: #fbfbfb;
+  background: #fdfdfd;
   color: #8898aa;
 }
 .bs-TextInputExtension .bs-TextInput {
@@ -6848,7 +6848,7 @@ pre.bs-PropertyList-property {
   border-top-right-radius: 0;
 }
 .bs-TextInputGroup--horizontal .bs-TextInput {
-  border-right: 1px solid #fbfbfb;
+  border-right: 1px solid #fdfdfd;
 }
 .bs-TextInputGroup--horizontal .bs-TextInput:focus {
   border-right-color: transparent;
@@ -6861,7 +6861,7 @@ pre.bs-PropertyList-property {
   border-color: rgba(226, 89, 80, 0.1);
 }
 .bs-TextInputGroup--vertical .bs-TextInput {
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
 }
 .bs-TextInputGroup--vertical .bs-TextInput:focus {
   border-bottom-color: transparent;
@@ -7163,7 +7163,7 @@ pre.bs-PropertyList-property {
   padding: 15px;
   width: 260px;
   background-color: #f7f9fa;
-  border: 1px solid #fbfbfb;
+  border: 1px solid #fdfdfd;
   border-radius: 4px;
 }
 .bs-Doc-sheet {
@@ -7300,7 +7300,7 @@ pre.bs-PropertyList-property {
 }
 .bs-BD-section {
   padding: 45px;
-  border-top: 2px solid #fbfbfb;
+  border-top: 2px solid #fdfdfd;
 }
 .bs-BD-section > h2 code {
   font-size: inherit;
@@ -7314,7 +7314,7 @@ pre.bs-PropertyList-property {
 .bs-BD-section-part {
   margin-top: 30px;
   padding-top: 30px;
-  border-top: 2px solid #fbfbfb;
+  border-top: 2px solid #fdfdfd;
 }
 .bs-BD-section-part > h3 code {
   font-size: inherit;
@@ -8859,7 +8859,7 @@ html .modal-dialog-view div.modal div.modal-content p {
 html .modal-dialog-view div.modal div.modal-header {
   text-shadow: none;
   background: #f7f7f7;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
   box-shadow: none;
   height: auto;
 }
@@ -10251,7 +10251,7 @@ html.db-NewChrome .chart-view div.head span.title {
 html.db-NewChrome div.account-application-view div.status {
   background: #fff;
   border: none;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
 }
 html.db-NewChrome div.account-application-view div.status:after,
 html.db-NewChrome div.account-application-view div.status:before {
@@ -15776,10 +15776,10 @@ html.db-NewChrome div.monthly-summary-view h3 span {
   background-color: #fff;
 }
 div.monthly-summary-view h3 span {
-  background-color: #fbfbfb;
+  background-color: #fdfdfd;
 }
 div.monthly-summary-view .date-range {
-  background-color: #fbfbfb;
+  background-color: #fdfdfd;
   padding-left: 0;
 }
 div.monthly-summary-view .date-range .monthly-summary-show-more {
@@ -15984,7 +15984,7 @@ div.filter-view div.row label {
   position: relative;
   z-index: 10;
   display: block;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
   padding: 10px;
 }
 div.filter-view div.row label input {
@@ -16000,7 +16000,7 @@ div.filter-view div.row div.row-content {
   padding: 10px;
   position: relative;
   background: #f7f7f7;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
   border-top: none;
 }
 div.filter-view div.row div.row-content input[type='text'] {
@@ -16109,7 +16109,7 @@ div.filter-view div.row:last-child label {
   border: none;
 }
 div.filter-view div.row:last-child div.row-content {
-  border-top: 1px solid #fbfbfb;
+  border-top: 1px solid #fdfdfd;
   border-bottom: none;
 }
 .date-filter .timezone {
@@ -16554,7 +16554,7 @@ div.pagination div.position strong {
   z-index: 30;
   text-shadow: none;
   background: #f7f7f7;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #fdfdfd;
   box-shadow: none;
   height: auto;
 }
@@ -16835,7 +16835,7 @@ div.transfer-view > div.detail-container span.footnote {
 div.transfer-view > div.detail-container .other_transfers {
   padding: 10px;
   margin: 10px;
-  border: 1px solid #fbfbfb;
+  border: 1px solid #fdfdfd;
   font-size: 12px;
 }
 div.transfer-view > div.detail-container div.section-wrap h4 {
@@ -26540,7 +26540,7 @@ div.notice {
   font-size: 13px;
   line-height: 20px;
   border-radius: 4px;
-  background: #fbfbfb;
+  background: #fdfdfd;
   border: 1px solid #c8c8c8;
   -ms-box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.05), 0 1px 0 #fff;
   -o-box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.05), 0 1px 0 #fff;
@@ -46747,9 +46747,9 @@ html.placeholder #login p.remember label {
   width: 23px;
 }
 .code-puncher .code-minibox-group {
-  -ms-box-shadow: inset 0 9px 1px -8px #fbfbfb;
-  -o-box-shadow: inset 0 9px 1px -8px #fbfbfb;
-  box-shadow: inset 0 9px 1px -8px #fbfbfb;
+  -ms-box-shadow: inset 0 9px 1px -8px #fdfdfd;
+  -o-box-shadow: inset 0 9px 1px -8px #fdfdfd;
+  box-shadow: inset 0 9px 1px -8px #fdfdfd;
   border-radius: 5px;
   background-color: #fff;
   border: 1px solid #9d9d9d;
@@ -49521,7 +49521,7 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 .public_fixedDataTable_hasBottomBorder,
 .public_fixedDataTable_header,
 .public_fixedDataTable_main {
-  border-color: #fbfbfb;
+  border-color: #fdfdfd;
 }
 .public_fixedDataTable_header .public_fixedDataTableCell_main {
   font-weight: 700;
@@ -49533,7 +49533,7 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 }
 .public_fixedDataTable_footer .public_fixedDataTableCell_main {
   background-color: #f6f7f8;
-  border-color: #fbfbfb;
+  border-color: #fdfdfd;
 }
 .public_fixedDataTable_topShadow {
   background: 0 0
@@ -49550,7 +49550,7 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 }
 .public_fixedDataTableCell_main {
   background-color: #fff;
-  border-color: #fbfbfb;
+  border-color: #fdfdfd;
 }
 .public_fixedDataTableCell_highlighted {
   background-color: #f4f4f4;
@@ -49572,7 +49572,7 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   background-color: #f6f7f8;
 }
 .public_fixedDataTableRow_fixedColumnsDivider {
-  border-color: #fbfbfb;
+  border-color: #fdfdfd;
 }
 .public_fixedDataTableRow_columnsShadow {
   background: 0 0

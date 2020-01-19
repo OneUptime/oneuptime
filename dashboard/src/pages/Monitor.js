@@ -160,7 +160,7 @@ class DashboardView extends Component {
                                                         <ShouldRender if={!this.props.monitor.monitorsList.requesting && allMonitors.length === 0 && isNewMonitorVisible === false}>
                                                             <div
                                                                 id="app-loading"
-                                                                style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'backgroundColor': '#fbfbfb', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'flexDirection': 'column' }}
+                                                                style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'backgroundColor': '#fdfdfd', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'flexDirection': 'column' }}
                                                             >
                                                                 <div
                                                                     className="db-SideNav-icon db-SideNav-icon--atlas "
