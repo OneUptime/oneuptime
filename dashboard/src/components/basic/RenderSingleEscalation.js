@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { Field, FieldArray } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderRotationFrequency } from './RenderRotationFrequency';
+import { RenderInterval } from './RenderInterval';
 import { RenderTeams } from './RenderTeams';
 import { RenderField } from './RenderField';
 
@@ -212,10 +213,15 @@ let RenderSingleEscalation = ({
                                               { value: 'months', label: 'Month'}
                                             ]}
                                             component={RenderRotationFrequency}
-                                            rotationFrequency={rotationFrequency}
-                                            policy={policy}
                                         />
+                                        {rotationFrequency && (
+                                          <Field
+                                            name={`${policy}.rotationInterval`}
+                                            component={RenderInterval}
+                                          />
+                                        )}
                                       </div>
+
                                     </>
                                   )}
                                 </div>
