@@ -162,7 +162,7 @@ export function updateStatusPageMonitors(projectId, values) {
 	};
 }
 
-//Update private status page
+//Update private status page Main box
 
 export function updatePrivateStatusPageRequest() {
 	return {
@@ -213,7 +213,56 @@ export function updatePrivateStatusPage(projectId, values) {
 
 	};
 }
+// Update status page advanace subscriber options. 
+export function updateSubscriberOptionRequest() {
+	return {
+		type: types.UPDATE_SUBSCRIBER_OPTION_REQUEST,
+	};
+}
 
+export function updateSubscriberOptionSuccess(statusPage) {
+
+	return {
+		type: types.UPDATE_SUBSCRIBER_OPTION_SUCCESS,
+		payload: statusPage
+	};
+}
+
+export function updateSubscriberOptionError(error) {
+	return {
+		type: types.UPDATE_SUBSCRIBER_OPTION_FAILURE,
+		payload: error
+	};
+}
+
+// Calls the API to update private statuspages.
+export function updateSubscriberOption(projectId, values) {
+	return function (dispatch) {
+
+		var promise = putApi(`statusPage/${projectId}`, values);
+		dispatch(updateSubscriberOptionRequest());
+
+		promise.then(function (response) {
+			var statusPage = response.data;
+			dispatch(updateSubscriberOptionSuccess(statusPage));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(updateSubscriberOptionError(errors(error)));
+		});
+		return promise;
+
+	};
+}
 // Update status page branding
 
 export function updateStatusPageBrandingRequest() {

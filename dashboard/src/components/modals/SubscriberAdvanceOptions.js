@@ -7,7 +7,7 @@ import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import {
-    updatePrivateStatusPage
+    updateSubscriberOption
 } from '../../actions/statusPage';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
@@ -17,7 +17,7 @@ class SubscriberAdvanceOption extends React.Component {
     submitForm = (values) => {
         const { status } = this.props.statusPage;
         const { projectId } = status;
-        this.props.updatePrivateStatusPage(projectId._id || projectId, { 
+        this.props.updateSubscriberOption(projectId._id || projectId, { 
             _id: status._id,
             enableRSSFeed: values.enableRSSFeed, 
             emailNotification: values.emailNotification, 
@@ -47,7 +47,7 @@ class SubscriberAdvanceOption extends React.Component {
     }
 
     render() {
-        const { requesting, error } = this.props.privateStatusPage;
+        const { requesting, error } = this.props.subscriberOption;
         const { handleSubmit, closeModal } = this.props;
 
         return (
@@ -232,14 +232,14 @@ SubscriberAdvanceOption.displayName = 'SubscriberAdvanceOption';
 
 
 SubscriberAdvanceOption.propTypes = {
-    updatePrivateStatusPage: PropTypes.func.isRequired,
+    updateSubscriberOption: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     subscriberAdvanceOptionModalId: PropTypes.string,
     requesting: PropTypes.bool,
     error: PropTypes.object,
     statusPage: PropTypes.object,
-    privateStatusPage: PropTypes.object
+    subscriberOption: PropTypes.object
 };
 
 let NewUpdateSchedule = reduxForm({
@@ -251,7 +251,7 @@ let NewUpdateSchedule = reduxForm({
 const mapDispatchToProps = dispatch => bindActionCreators(
     {
         closeModal,
-        updatePrivateStatusPage
+        updateSubscriberOption
     }
     , dispatch);
 
@@ -259,7 +259,7 @@ const mapStateToProps = state => {
 
     let initialValues = {};
     const { statusPage, statusPage: { status } } = state;
-    const { privateStatusPage } = state.statusPage;
+    const { subscriberOption } = state.statusPage;
     const subscriberAdvanceOptionModalId = state.modal.modals[0].id;
 
     initialValues.enableRSSFeed = status.enableRSSFeed;
@@ -269,7 +269,7 @@ const mapStateToProps = state => {
 
     return {
         initialValues,
-        privateStatusPage,
+        subscriberOption,
         statusPage,
         subscriberAdvanceOptionModalId
     }
