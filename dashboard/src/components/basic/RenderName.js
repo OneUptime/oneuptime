@@ -8,7 +8,7 @@ import TimeSelector from './TimeSelector';
 
 let RenderName = ({
     memberValue, inputarray, subProjectId,
-    policyIndex, teamIndex, key,
+    policyIndex, teamIndex, nameIndex,
     fields
   }) => {
     const [timeVisible, setTimeVisible] = useState(false);
@@ -28,10 +28,10 @@ let RenderName = ({
     const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
     const showTimes = memberHasCallTimes ? (!forcedTimeHide) : timeVisible;
     return (
-        <li key={key}>
+        <li key={nameIndex}>
 
             <div className="bs-Fieldset-row">
-                <label className="bs-Fieldset-label">Team Member {key + 1}</label>
+                <label className="bs-Fieldset-label">Team Member {nameIndex + 1}</label>
                 <div className="bs-Fieldset-fields">
                     <Field
                         className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -111,7 +111,7 @@ let RenderName = ({
                         <button
                             className="bs-Button bs-DeprecatedButton"
                             type="button"
-                            onClick={() => fields.remove(key)}
+                            onClick={() => fields.remove(nameIndex)}
                         >
                             Remove Member
                         </button>
@@ -133,7 +133,7 @@ RenderName.propTypes = {
     ]).isRequired,
     policyIndex: PropTypes.number.isRequired,
     teamIndex: PropTypes.number.isRequired,
-    key: PropTypes.number.isRequired,
+    nameIndex: PropTypes.number.isRequired,
     memberValue: PropTypes.object.isRequired,
     inputarray: PropTypes.string.isRequired,
 }
