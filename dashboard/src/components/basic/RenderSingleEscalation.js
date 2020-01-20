@@ -4,6 +4,7 @@ import { Field, FieldArray } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderRotationFrequency } from './RenderRotationFrequency';
 import { RenderInterval } from './RenderInterval';
+import { RenderRotationSwitchTime } from './RenderRotationSwitchTime';
 import { RenderTeams } from './RenderTeams';
 import { RenderField } from './RenderField';
 
@@ -215,10 +216,17 @@ let RenderSingleEscalation = ({
                                             component={RenderRotationFrequency}
                                         />
                                         {rotationFrequency && (
-                                          <Field
-                                            name={`${policy}.rotationInterval`}
-                                            component={RenderInterval}
-                                          />
+                                          <>
+                                            <Field
+                                              name={`${policy}.rotationInterval`}
+                                              component={RenderInterval}
+                                            />
+
+                                            <RenderRotationSwitchTime
+                                              policy={policy}
+                                              rotationFrequency={rotationFrequency}
+                                            />
+                                          </>
                                         )}
                                       </div>
 
@@ -266,7 +274,7 @@ RenderSingleEscalation.propTypes = {
   call: PropTypes.bool.isRequired,
   sms: PropTypes.bool.isRequired,
   email: PropTypes.bool.isRequired,
-  policy: PropTypes.object.isRequired,
+  policy: PropTypes.string.isRequired,
   policyIndex: PropTypes.number.isRequired,
   rotationFrequency: PropTypes.string.isRequired,
   fields: PropTypes.oneOfType([
