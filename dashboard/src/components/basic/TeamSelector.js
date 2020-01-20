@@ -84,7 +84,7 @@ TeamSelector.propTypes = {
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     meta: PropTypes.object.isRequired,
-    members: PropTypes.array,
+    subProjectTeam: PropTypes.array,
     policyIndex: PropTypes.number.isRequired,
     form: PropTypes.object.isRequired,
     teamIndex: PropTypes.number.isRequired,

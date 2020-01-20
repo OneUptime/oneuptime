@@ -21,7 +21,7 @@ let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policy
                             policyIndex={policyIndex}
                             teamIndex={teamIndex}
                             inputarray={inputarray}
-                            nameIndex={i}
+                            key={i}
                             fields={fields}
                         />
                     )
