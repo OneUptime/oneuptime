@@ -188,11 +188,14 @@ let RenderSingleEscalation = ({
 
                               <div className="bs-Fieldset-row">
                                 {!showRotationFreq ? (
-                                  <text
-                                    className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base"
-                                    style={{ marginTop: '5px', cursor: 'pointer' }}
-                                    onClick={(() => manageVisibility(true))}
-                                  >Add Rotation Frequency</text>
+                                    <>
+                                      <label className="bs-Fieldset-label"></label>
+                                       <text
+                                        className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base"
+                                        style={{ marginTop: '5px', cursor: 'pointer' }}
+                                        onClick={(() => manageVisibility(true))}
+                                      >Add Rotation Frequency</text>
+                                    </>
                                 ) : (
                                     <>
                                       <label className="bs-Fieldset-label">Rotation Frequency</label>

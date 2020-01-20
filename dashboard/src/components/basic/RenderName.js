@@ -47,60 +47,66 @@ let RenderName = ({
             </div>                            
 
             <div className="bs-Fieldset-row">
-                <label className="bs-Fieldset-label">Time : </label>
+                
                 {!showTimes ? (
+                    <>
+                      <label className="bs-Fieldset-label"></label>
+                      <text
+                          className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base"
+                          style={{ marginTop: '5px', cursor: 'pointer' }}
+                          onClick={(() => manageVisibility(true, memberHasCallTimes))}
+                      >Add on-call duty times</text>
+                    </>
+                ) : (
+                  <>
+                    <label className="bs-Fieldset-label">Time : </label>
+                    <div className="bs-Fieldset-fields">
+                      <div className="bs-Fieldset-row" style={{paddingLeft:'0px',paddingTop:'0px'}}>
+                          <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>From</label>
+                          <div className="bs-Fieldset-fields">
+                              <Field
+                                  className="db-BusinessSettings-input TextInput bs-TextInput"
+                                  type="text"
+                                  name={`${inputarray}.startTime`}
+                                  component={TimeSelector}
+                                  placeholder="10pm"
+                                  style={{width:'250px'}}
+                              />
+                          </div>
+                      </div>
+                      <div className="bs-Fieldset-row" style={{paddingLeft:'0px'}}>
+                          <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>To</label>
+                          <div className="bs-Fieldset-fields">
+                              <Field
+                                  className="db-BusinessSettings-input TextInput bs-TextInput"
+                                  type="text"
+                                  name={`${inputarray}.endTime`}
+                                  component={TimeSelector}
+                                  placeholder="11pm"
+                                  style={{width:'250px'}}
+                              />
+                          </div>
+                      </div>
+                      <div className="bs-Fieldset-row" style={{paddingLeft:'0px'}}>
+                        <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}></label>
+                        <div className="bs-Fieldset-fields">
+                            <Field
+                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                type="text"
+                                name={`${inputarray}.timezone`}
+                                component={TimezoneSelector}
+                                style={{width:'250px'}}
+                                placeholder="CXT - Christmas"
+                            />
+                        </div>
+                    </div>
                     <text
                         className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base"
                         style={{ marginTop: '5px', cursor: 'pointer' }}
-                        onClick={(() => manageVisibility(true, memberHasCallTimes))}
-                    >Add on-call duty times</text>
-                ) : (
-                  <div className="bs-Fieldset-fields">
-                    <div className="bs-Fieldset-row" style={{paddingLeft:'0px',paddingTop:'0px'}}>
-                        <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>From</label>
-                        <div className="bs-Fieldset-fields">
-                            <Field
-                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                type="text"
-                                name={`${inputarray}.startTime`}
-                                component={TimeSelector}
-                                placeholder="10pm"
-                                style={{width:'250px'}}
-                            />
-                        </div>
-                    </div>
-                    <div className="bs-Fieldset-row" style={{paddingLeft:'0px'}}>
-                        <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}>To</label>
-                        <div className="bs-Fieldset-fields">
-                            <Field
-                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                type="text"
-                                name={`${inputarray}.endTime`}
-                                component={TimeSelector}
-                                placeholder="11pm"
-                                style={{width:'250px'}}
-                            />
-                        </div>
-                    </div>
-                    <div className="bs-Fieldset-row" style={{paddingLeft:'0px'}}>
-                      <label className="bs-Fieldset-label" style={{maxWidth:'40px'}}></label>
-                      <div className="bs-Fieldset-fields">
-                          <Field
-                              className="db-BusinessSettings-input TextInput bs-TextInput"
-                              type="text"
-                              name={`${inputarray}.timezone`}
-                              component={TimezoneSelector}
-                              style={{width:'250px'}}
-                              placeholder="CXT - Christmas"
-                          />
-                      </div>
+                        onClick={(() => manageVisibility(false, memberHasCallTimes))}
+                    >Remove on-call duty times</text>
                   </div>
-                  <text
-                      className="Text-color--blue Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base"
-                      style={{ marginTop: '5px', cursor: 'pointer' }}
-                      onClick={(() => manageVisibility(false, memberHasCallTimes))}
-                  >Remove on-call duty times</text>
-                </div>
+                </>
                 )}
             </div>
             <ShouldRender if={fields.length > 1}>
