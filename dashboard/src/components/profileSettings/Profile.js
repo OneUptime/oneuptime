@@ -678,9 +678,9 @@ export class ProfileSetting extends Component {
                       </div>
                     </div>
 										<div className='bs-Fieldset-row'>
-											<label className='bs-Fieldset-label'>Two Factor Auth</label>
+											<label className='bs-Fieldset-label'>Two Factor Authentication <br/> by Google Authenticator</label>
 											<div className='bs-Fieldset-fields'>
-												<label className="Toggler-wrap">
+												<label className="Toggler-wrap" style={{marginTop:'10px'}}>
                           <input
                             className="btn-toggler"
                             type='checkbox'

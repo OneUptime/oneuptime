@@ -13,7 +13,7 @@ const IncidentTimelineList = (props) => {
             probes.push({
                 updatedAt: incident.incident.acknowledgedAt,
                 name: incident.incident.acknowledgedBy.name,
-                status: 'Acknowledged'
+                reportedStatus: 'Acknowledged'
             });
         }
     }
@@ -22,7 +22,7 @@ const IncidentTimelineList = (props) => {
             probes.push({
                 updatedAt: incident.incident.resolvedAt,
                 name: incident.incident.resolvedBy.name,
-                status: 'Resolved'
+                reportedStatus: 'Resolved'
             });
         }
     }
@@ -114,31 +114,31 @@ const IncidentTimelineList = (props) => {
                                                         <div className="Box-root Flex-flex">
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                    {log && log.status && log.status === 'offline' ?
+                                                                    {log && log.reportedStatus && log.reportedStatus === 'offline' ?
                                                                         (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                 <span>offline</span>
                                                                             </span>
                                                                         </div>)
-                                                                        : log && log.status && log.status === 'online' ?
+                                                                        : log && log.reportedStatus && log.reportedStatus === 'online' ?
                                                                             (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                     <span>online</span>
                                                                                 </span>
                                                                             </div>)
-                                                                            : log && log.status && log.status === 'degraded' ?
+                                                                            : log && log.reportedStatus && log.reportedStatus === 'degraded' ?
                                                                                 (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                     <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                         <span>degraded</span>
                                                                                     </span>
                                                                                 </div>)
-                                                                                : log && log.status && log.status === 'Resolved' ?
+                                                                                : log && log.reportedStatus && log.reportedStatus === 'Resolved' ?
                                                                                 (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                     <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                         <span>Resolved</span>
                                                                                     </span>
                                                                                 </div>)
-                                                                                : log && log.status && log.status === 'Acknowledged' ?
+                                                                                : log && log.reportedStatus && log.reportedStatus === 'Acknowledged' ?
                                                                                     (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                             <span>Acknowledged</span>

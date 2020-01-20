@@ -13,7 +13,7 @@
   margin-bottom: 50px;
 }
 .categories-text{
-  color:#939da3;
+  color:#797979;
   cursor: pointer;
 }
 .title-link {
@@ -30,7 +30,7 @@
   display: block;
   font-size: 18px;
   line-height: 1.5;
-  color: #939da3;
+  color: #797979;
 }
 .sdlc-table-container {
   position: relative;
@@ -41,7 +41,7 @@
   position: absolute;
   right: calc(100% + 10px);
   text-align: left;
-  color: #939da3;
+  color: #797979;
   font-size: 17px;
 }
 .single-application-label {

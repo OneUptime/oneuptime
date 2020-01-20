@@ -512,7 +512,7 @@ main header .stripes :nth-child(5){
     border-radius:4px 4px 0 0
 }
 #comparison section:first-child .common-Uppercase{
-    color:#525f7f;
+    color:#000000;
     background:#f4f8fb
 }
 #comparison section:last-child .common-Uppercase{
@@ -565,7 +565,7 @@ main header .stripes :nth-child(5){
 }
 #comparison li:nth-child(2) .label{
     margin-left:18%;
-    background:#7795f8
+    background:#797979
 }
 #comparison li:nth-child(3) .label{
     margin-left:24%;
@@ -774,7 +774,7 @@ main header .stripes :nth-child(5){
     padding-left:14px;
     font-size:15px;
     line-height:22px;
-    color:#939da3;
+    color:#797979;
     will-change:opacity;
     margin-top:calc(var(--diagram-height) + 20px)
 }
@@ -968,7 +968,7 @@ main header .stripes :nth-child(5){
 #onboarding-verification .phone .screen{
     --screen-width:390px;
     --form-spacing:25px;
-    --form-separator:#e6ebf1;
+    --form-separator:#fdfdfd;
     position:relative;
     width:var(--screen-width);
     height:690px;
@@ -1172,7 +1172,7 @@ main header .stripes :nth-child(5){
     display:-ms-flexbox;
     display:flex;
     font-size:17px;
-    color:#525f7f
+    color:#000000
 }
 #hestia-flow .fake-input .space{
     width:4px
@@ -1757,7 +1757,7 @@ main header .stripes :nth-child(5){
     display:-ms-flexbox;
     display:flex;
     padding-bottom:3px;
-    color:#525f7f
+    color:#000000
 }
 #connected-accounts-subnav li+li{
     margin-left:25px
@@ -1772,7 +1772,7 @@ main header .stripes :nth-child(5){
 }
 #connected-accounts-view section h2{
     padding:20px;
-    border-bottom:2px solid #e6ebf1;
+    border-bottom:2px solid #fdfdfd;
     text-transform:uppercase;
     font-size:1em;
     color:#424770
@@ -1898,7 +1898,7 @@ main header .stripes :nth-child(5){
 }
 #international-support aside{
     font-size:15px;
-    color:#939da3;
+    color:#797979;
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
     border-radius:4px;
     margin-top:1.5em
@@ -2066,7 +2066,7 @@ main header .stripes :nth-child(5){
     position:relative;
     overflow:hidden;
     margin-top:60px;
-    background:linear-gradient(-12deg,#7795f8 50%,#000000 80%,#555abf)
+    background:linear-gradient(-12deg,#797979 50%,#000000 80%,#555abf)
 }
 #code-examples .stripes{
     z-index:0;

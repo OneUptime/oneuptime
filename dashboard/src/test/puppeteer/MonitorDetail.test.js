@@ -6,14 +6,12 @@ const { Cluster } = require('puppeteer-cluster');
 
 // user credentials
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
+let password = '1234567890';
 let monitorName = utils.generateRandomString();
 let newMonitorName = utils.generateRandomString();
 let projectName = utils.generateRandomString();
 let subscriberEmail = utils.generateRandomBusinessEmail();
 let webhookEndpoint = utils.generateRandomWebsite();
-
-let userCredentials;
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = 50000;
@@ -38,31 +36,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             };
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => {
-                const signInResponse = userCredentials;
-
-                if ((await request.url()).match(/user\/login/)) {
-                    request.respond({
-                        status: 200,
-                        contentType: 'application/json',
-                        body: JSON.stringify(signInResponse)
-                    });
-                } else {
-                    request.continue();
-                }
-            });
-            await page.on('response', async (response) => {
-                try {
-                    const res = await response.json();
-                    if (res && res.tokens) {
-                        userCredentials = res;
-                    }
-                } catch (error) { }
-            });
-
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
@@ -88,7 +61,7 @@ describe('Monitor Detail API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -100,11 +73,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             };
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -122,7 +90,7 @@ describe('Monitor Detail API', () => {
             spanElement.should.be.exactly(data.monitorName);
         });
 
-        cluster.queue({ email, password, monitorName, userCredentials });
+        cluster.queue({ email, password, monitorName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -135,7 +103,7 @@ describe('Monitor Detail API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -147,11 +115,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             };
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -173,7 +136,7 @@ describe('Monitor Detail API', () => {
             expect(countIncidents).toEqual(1);
         });
 
-        cluster.queue({ email, password, monitorName, userCredentials });
+        cluster.queue({ email, password, monitorName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -198,11 +161,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             };
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -241,7 +199,7 @@ describe('Monitor Detail API', () => {
             expect(countIncidents).toEqual(5);
         };
 
-        cluster.queue({ email, password, monitorName, userCredentials, counter: 0, limit: 5 }, paginate);
+        cluster.queue({ email, password, monitorName, counter: 0, limit: 5 }, paginate);
         await cluster.idle();
         await cluster.close();
         done();
@@ -254,7 +212,7 @@ describe('Monitor Detail API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -266,11 +224,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -300,7 +253,7 @@ describe('Monitor Detail API', () => {
             expect(createdScheduledEventName).toEqual(utils.scheduledEventName);
         });
 
-        cluster.queue({ email, password, monitorName, userCredentials });
+        cluster.queue({ email, password, monitorName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -325,11 +278,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             };
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -374,7 +322,7 @@ describe('Monitor Detail API', () => {
             expect(countScheduledEvent).toEqual(5);
         };
 
-        cluster.queue({ email, password, monitorName, userCredentials, counter: 0, limit: 5 }, paginate);
+        cluster.queue({ email, password, monitorName, counter: 0, limit: 5 }, paginate);
         await cluster.idle();
         await cluster.close();
         done();
@@ -387,7 +335,7 @@ describe('Monitor Detail API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -399,11 +347,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -427,7 +370,7 @@ describe('Monitor Detail API', () => {
             expect(createdSubscriberEmail).toEqual(data.subscriberEmail);
         });
 
-        cluster.queue({ email, password, monitorName, subscriberEmail, userCredentials });
+        cluster.queue({ email, password, monitorName, subscriberEmail });
         await cluster.idle();
         await cluster.close();
         done();
@@ -452,11 +395,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             };
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -498,7 +436,7 @@ describe('Monitor Detail API', () => {
             expect(countSubscribers).toEqual(5);
         };
 
-        cluster.queue({ email, password, monitorName, userCredentials, counter: 0, limit: 5 }, paginate);
+        cluster.queue({ email, password, monitorName, counter: 0, limit: 5 }, paginate);
         await cluster.idle();
         await cluster.close();
         done();
@@ -511,7 +449,7 @@ describe('Monitor Detail API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -523,11 +461,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -556,7 +489,7 @@ describe('Monitor Detail API', () => {
             expect(createdWebhookEndpoint).toEqual(data.webhookEndpoint);
         });
 
-        cluster.queue({ email, password, monitorName, webhookEndpoint, userCredentials });
+        cluster.queue({ email, password, monitorName, webhookEndpoint });
         await cluster.idle();
         await cluster.close();
         done();
@@ -581,11 +514,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             };
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -630,7 +558,7 @@ describe('Monitor Detail API', () => {
             expect(countWebhooks).toEqual(10);
         };
 
-        cluster.queue({ email, password, monitorName, userCredentials, counter: 0, limit: 10 }, paginate);
+        cluster.queue({ email, password, monitorName, counter: 0, limit: 10 }, paginate);
         await cluster.idle();
         await cluster.close();
         done();
@@ -641,7 +569,7 @@ describe('Monitor Detail API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -653,11 +581,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -686,7 +609,7 @@ describe('Monitor Detail API', () => {
             spanElement.should.be.exactly(data.newMonitorName);
         });
 
-        cluster.queue({ email, password, monitorName, newMonitorName, userCredentials });
+        cluster.queue({ email, password, monitorName, newMonitorName });
         await cluster.idle();
         await cluster.close();
         done();
@@ -699,7 +622,7 @@ describe('Monitor Detail API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 45000
+            timeout: 100000
         });
 
         cluster.on('taskerror', (err) => {
@@ -711,11 +634,6 @@ describe('Monitor Detail API', () => {
                 email: data.email,
                 password: data.password
             }
-            const signInResponse = data.userCredentials;
-
-            // intercept request and mock response for login
-            await page.setRequestInterception(true);
-            await page.on('request', async (request) => await init.filterRequest(request, signInResponse));
 
             await init.loginUser(user, page);
             await page.waitFor(2000);
@@ -737,7 +655,7 @@ describe('Monitor Detail API', () => {
             expect(spanElement).toEqual(null);
         });
 
-        cluster.queue({ email, password, newMonitorName, userCredentials });
+        cluster.queue({ email, password, newMonitorName });
         await cluster.idle();
         await cluster.close();
         done();

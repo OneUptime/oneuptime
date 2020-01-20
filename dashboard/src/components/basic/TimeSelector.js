@@ -9,7 +9,7 @@ import { WeekSelector } from './WeekSelector';
 const theme = createMuiTheme({
     palette: {
         primary: {
-            main: '#0080a8'
+            main: '#000000'
         },
         secondary: {
             main: '#0066ff'
@@ -30,7 +30,7 @@ const TimeSelector = ({ input, meta: { touched, error }, style, rotationFrequenc
     return (
         <span>
             <div style={{ ...style, height: '28px', marginTop: '-15px' }}>
-                
+
                 <MuiThemeProvider theme={theme}>
                   <MuiPickersUtilsProvider utils={DateFnsUtils}>
                     <ShouldRender if={!rotationFrequency || rotationFrequency === 'days'}>

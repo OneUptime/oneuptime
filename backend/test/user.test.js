@@ -34,7 +34,7 @@ describe('User API', function () {
                     request.post('/user/login').send({
                         email: data.user.email,
                         password: data.user.password
-                    }).end(function () {
+                    }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
                         done();
                     });
@@ -53,16 +53,9 @@ describe('User API', function () {
     // 'post /user/signup'
     it('should register with name, email, password, companyName, jobRole, referral, companySize, stripeToken, stripePlanId', function (done) {
         createUser(request, data.newUser, function(err, res) {
-            var newUserId = res.body.id;
             expect(res).to.have.status(200);
-            expect(res.body).include.keys('tokens');
             expect(res.body.email).to.equal(data.newUser.email);
-            ProjectService.hardDeleteBy({ _id: res.body.project._id });
-            VerificationTokenModel.findOne({ userId: newUserId }, function (err, verificationToken) {
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
-                    done();
-                });
-            });
+            done();
         });
     });
 

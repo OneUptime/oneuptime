@@ -376,7 +376,8 @@ module.exports = {
     async updateDeviceMonitorPingTime(projectId, deviceId) {
         try {
             var thisObj = this;
-            var monitor = thisObj.findOneBy({ projectId: projectId, deviceId: deviceId });
+            var monitor = await thisObj.findOneBy({ projectId: projectId, data: { deviceId: deviceId } });
+
             if (!monitor) {
                 let error = new Error('Monitor with this Device ID not found in this Project.');
                 error.code = 400;

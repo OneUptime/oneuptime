@@ -9,6 +9,7 @@ var request = chai.request.agent(app);
 var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
 var ProjectService = require('../backend/services/projectService');
+var MonitorService = require('../backend/services/monitorService');
 var ZapierService = require('../backend/services/zapierService');
 var AirtableService = require('../backend/services/airtableService');
 
@@ -27,7 +28,7 @@ describe('Zapier API', function () {
 
     before(function (done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createUser(request, userData.user, function (err, res) {
             let project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -60,11 +61,11 @@ describe('Zapier API', function () {
     after(async function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ProjectService.hardDeleteBy({ _id: projectId });
+        await MonitorService.hardDeleteBy({ _id: monitorId });
         await ZapierService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
-        request.get('/').end(function () {
-            request.close();
-        });
+        delete require.cache[require.resolve('../server')];
+        app.close();
     });
 
     it('should not subscribe to zapier when missing apiKey in query', function (done) {

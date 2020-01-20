@@ -1,0 +1,65 @@
+<script type="text/javascript">
+  var changeLocation = function (location) {
+    history.replaceState(undefined, undefined, "#" + location);
+  }
+</script>
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="assets/js/jquery.waypoints.min.js"></script>
+<script src="assets/js/highlight.min.js"></script>
+<script>
+  hljs.initHighlightingOnLoad();
+</script>
+<script src="assets/js/function.js"></script>
+<script type="text/javascript">
+  var exampleContainerWidth = $('.dev-doc-example').width();
+  var docItemContainerWidth = $('.dev-doc-item').width() + 55;
+  var languageHeader = $('#languageHeader');
+  var navigationHeader = $('#navigationHeader');
+  languageHeader.css({
+    width: exampleContainerWidth + 'px'
+  });
+  navigationHeader.css({
+    width: docItemContainerWidth + 'px'
+  });
+  languageHeader.removeClass('hide');
+  navigationHeader.removeClass('hide');
+  $(window).resize(function () {
+    setTimeout(function () {
+      exampleContainerWidth = $('.dev-doc-example').width();
+      docItemContainerWidth = $('.dev-doc-item').width() + 55;
+      navigationHeader.css({
+        width: docItemContainerWidth + 'px'
+      });
+    }, 100);
+  });
+
+  function IsJsonString(str) {
+    try {
+      JSON.parse(str);
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+  $.each($('.example-response'), function (key, value) {
+    if (IsJsonString($(value).text())) {
+      var json = JSON.stringify(eval("(" + $(value).text() + ")"), null, 4);
+      $(value).text(json);
+      hljs.highlightBlock(value);
+    }
+  });
+
+  $.each($('.doc-example-item'), function (key, value) {
+    var comment = $(value).children('.example-code').children('pre').children('code').children('h1');
+    var commentText = comment.text();
+    comment.text('#' + commentText);
+  });
+
+  $('.language-type').click(function () {
+    var languageType = $(this).attr('id');
+    $('.language-type').removeClass('active');
+    $(this).addClass('active');
+    $('.sample-type').addClass('hide');
+    $('.' + languageType).removeClass('hide');
+  });
+</script>

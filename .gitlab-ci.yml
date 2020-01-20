@@ -96,6 +96,42 @@ build_n_test_dashboard:
       - hotfix-master
       - hotfix-release
 
+##HTTP_TEST_SERVER
+lint_n_audit_http_test_server:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
+    - cd dashboard
+    - npm ci
+    - npm run lint
+    - npm run audit
+    - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
+build_n_test_http_test_server:
+  stage: BuildAndTest
+  script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker build -t fyipe-project/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
+    - sudo docker run -p 3010:3010 -d fyipe-project/http-test-server:3.0.$CI_PIPELINE_IID
+    - sudo docker ps
+    - cd http-test-server
+    - npm ci
+    - npm test
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
 ##ADMINDASHBOARD
 lint_n_audit_admin-dashboard:
   stage: BuildAndTest
@@ -593,6 +629,7 @@ deploy_production_backend:
       - hotfix-release
   environment:
     name: production
+
 
 # DEPLOYMENT STAGE - Api docs
 deploy_staging_api-docs:

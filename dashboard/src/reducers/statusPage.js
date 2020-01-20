@@ -61,6 +61,11 @@ import {
     FAVICON_CACHE_RESET,
     SWITCH_STATUSPAGE_SUCCESS,
 
+    UPDATE_SUBSCRIBER_OPTION_REQUEST,
+    UPDATE_SUBSCRIBER_OPTION_SUCCESS,
+    UPDATE_SUBSCRIBER_OPTION_FAILURE,
+    UPDATE_SUBSCRIBER_OPTION_RESET
+
 } from '../constants/statusPage';
 
 import {
@@ -114,6 +119,11 @@ const INITIAL_STATE = {
         data : null
     },
     deleteStatusPage: {
+        success: false,
+        requesting: false,
+        error: null
+    },
+    subscriberOption: {
         success: false,
         requesting: false,
         error: null
@@ -290,6 +300,40 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE
             });
 
+        // update subscriber options
+        case UPDATE_SUBSCRIBER_OPTION_REQUEST:
+            return Object.assign({}, state, {
+                subscriberOption: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case UPDATE_SUBSCRIBER_OPTION_SUCCESS:
+            status = action.payload;
+            return Object.assign({}, state, {
+                subscriberOption: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status
+            });
+
+        case UPDATE_SUBSCRIBER_OPTION_FAILURE:
+            return Object.assign({}, state, {
+                subscriberOption: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                }
+            });
+
+        case UPDATE_SUBSCRIBER_OPTION_RESET:
+            return Object.assign({}, state, {
+                ...INITIAL_STATE
+            });
         // update branding
         case UPDATE_STATUSPAGE_BRANDING_REQUEST:
             return Object.assign({}, state, {

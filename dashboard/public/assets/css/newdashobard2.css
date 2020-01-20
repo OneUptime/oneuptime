@@ -4,7 +4,7 @@
     right:0;
     top:0;
     bottom:0;
-    background:#14aad9;
+    background:#000000;
     opacity:0;
     pointer-events:none
 }
@@ -71,7 +71,7 @@
     overflow:hidden
 }
 .db-Account.db-is-selected .db-Account-nickname{
-    color:#14aad9;
+    color:#000000;
     font-weight:600
 }
 .db-Account.db-has-label .db-Account-nickname{
@@ -95,7 +95,7 @@
     opacity:1
 }
 .db-Account:hover .db-Account-nickname{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-Account-image,.db-Account-image-content,.db-Account-image:after,.db-Account-image:before{
     width:30px;
@@ -623,7 +623,7 @@ html.db-NewChrome body{
 }
 .db-Sidebar-link:hover{
     font-weight:500;
-    color:#32325d;
+    color:#4c4c4c;
     text-decoration:none
 }
 .db-Sidebar-link--popover{
@@ -633,7 +633,7 @@ html.db-NewChrome body{
 }
 .db-Sidebar-link.db-is-selected{
     font-weight:700;
-    color:#14aad9
+    color:#000000
 }
 .db-Sidebar-link.db-is-disabled,.db-Sidebar-link.db-is-disabled:hover{
     cursor:default;
@@ -895,12 +895,12 @@ html.db-NewChrome body{
     left:-11px
 }
 .db-ContentTabs-tab a:not(.db-is-selected):hover{
-    color:#32325d;
+    color:#4c4c4c;
     text-decoration:none
 }
 .db-ContentTabs-tab .db-is-selected{
     font-weight:700;
-    color:#14aad9
+    color:#000000
 }
 .db-ContentTabs-tab .db-ContentTabs-tab-link--icon-settings{
     background-size:20px 20px;
@@ -928,7 +928,7 @@ html.db-NewChrome body{
     right:81px
 }
 .db-EventDetail-webhook .db-EventDetail-webhookJSON{
-    border:1px solid #e6ebf1;
+    border:1px solid #fdfdfd;
     font-size:11px;
     line-height:18px;
     padding:4px 0 4px 8px;
@@ -962,7 +962,7 @@ html.db-NewChrome body{
     border:none;
     font-size:14px;
     line-height:16px;
-    color:#525f7f;
+    color:#000000;
     padding:12px;
     width:100%;
     background:transparent;
@@ -1019,13 +1019,13 @@ html.db-NewChrome body{
 }
 .db-FeedbackForm-successTitle{
     margin:9px auto 0;
-    color:#14aad9;
+    color:#000000;
     font-size:15px;
     font-weight:700
 }
 .db-FeedbackForm-successDescription{
     margin:3px auto 0;
-    color:#525f7f;
+    color:#000000;
     font-size:14px
 }
 .db-FeedbackForm-successSignature{
@@ -1033,7 +1033,7 @@ html.db-NewChrome body{
     bottom:15px;
     left:0;
     right:0;
-    color:#525f7f;
+    color:#000000;
     font-size:12px
 }
 .db-FeedbackInput-container{
@@ -1049,7 +1049,7 @@ html.db-NewChrome body{
     width:330px
 }
 .db-Chrome .db-FeedbackInput-container{
-    background-color:#f6f9fc;
+    background-color:#f7f7f7;
     height:30px;
     padding-top:1px
 }
@@ -1221,7 +1221,7 @@ html.db-NewChrome body{
 }
 .db-FixedPopover{
     position:absolute;
-    background:#f6f9fc;
+    background:#f7f7f7;
     box-shadow:0 0 0 1px rgba(136,152,170,.1),0 15px 35px 0 rgba(49,49,93,.1),0 5px 15px 0 rgba(0,0,0,.08);
     border-radius:4px;
     transform-origin:393px -9px
@@ -1334,7 +1334,7 @@ html.db-NewChrome body{
 }
 .db-LivemodeSwitcher.db-is-disabled:hover:not(.db-is-disabled) .db-LivemodeSwitcher-label,.db-LivemodeSwitcher.db-is-livemode:hover:not(.db-is-disabled) .db-LivemodeSwitcher-label{
     font-weight:500;
-    color:#32325d
+    color:#4c4c4c
 }
 .db-LivemodeSwitcher .db-LivemodeSwitcher-switch{
     display:inline-flex;
@@ -1419,7 +1419,7 @@ html.db-NewChrome body{
 .db-MenuItem--notHighlighted:not(:last-child):after{
     content:"";
     position:absolute;
-    background:#e6ebf1;
+    background:#fdfdfd;
     left:8px;
     right:0;
     bottom:0;
@@ -1517,7 +1517,7 @@ html.db-NewChrome body{
 }
 .db-NewShortcutsHelp-group-title{
     font-size:16px;
-    color:#525f7f;
+    color:#000000;
     font-weight:500;
     margin-bottom:5px
 }
@@ -1534,7 +1534,7 @@ html.db-NewChrome body{
     background:#ecfaff;
     border-radius:3px;
     height:20px;
-    color:#3297d3;
+    color:#000000;
     font-weight:500;
     padding:0 6px;
     display:inline-block
@@ -1567,7 +1567,7 @@ html.db-NewChrome body{
     border-radius:4px;
     font-weight:400;
     font-size:14px;
-    color:#525f7f;
+    color:#000000;
     height:30px;
     border:none;
     padding:0 7px 0 32px;
@@ -1587,7 +1587,7 @@ html.db-NewChrome body{
 .db-SearchField--tokenizable .public-DraftStyleDefault-block{
     font-size:14px;
     line-height:20px;
-    color:#32325d;
+    color:#4c4c4c;
     margin-top:3px;
     overflow:hidden;
     white-space:pre
@@ -1654,7 +1654,7 @@ html.db-NewChrome body{
     opacity:1
 }
 .db-SearchField-token{
-    color:#14aad9;
+    color:#000000;
     padding-top:1px;
     padding-bottom:1px;
     box-shadow:inset 0 -1px 0 #e1e3fa
@@ -1691,7 +1691,7 @@ html.db-NewChrome body{
     border-radius:0
 }
 .db-SearchResults.db-is-livemode .db-SearchResults-inner{
-    border-top:1px solid #e6ebf1
+    border-top:1px solid #fdfdfd
 }
 .db-SearchResults-info{
     min-height:100px;
@@ -1725,7 +1725,7 @@ html.db-NewChrome body{
     text-decoration:none
 }
 .db-SearchResults-item.db-is-selected{
-    background:#f6f9fc;
+    background:#f7f7f7;
     color:#43458b
 }
 .db-SearchResults-item:not(:last-child):not(.db-is-selected):after{
@@ -1749,7 +1749,7 @@ html.db-NewChrome body{
     text-transform:uppercase
 }
 .db-SearchResult.db-is-selected .db-SearchResult-type{
-    color:#14aad9
+    color:#000000
 }
 .db-SearchResult-header{
     margin:6px 0 7px;
@@ -1834,7 +1834,7 @@ html.db-NewChrome body{
     pointer-events:none;
     font-weight:700;
     font-size:15px;
-    color:#525f7f;
+    color:#000000;
     line-height:33px
 }
 .db-SidebarNavigationBar-title,.db-TestDataBanner{
@@ -1935,7 +1935,7 @@ html.db-NewChrome body{
 .db-TopLink-flashingTooltip{
     padding:10px 16px;
     font-size:15px;
-    color:#525f7f
+    color:#000000
 }
 .db-TopLink-tooltip-label{
     white-space:pre;
@@ -1992,7 +1992,7 @@ html.db-NewChrome body{
     font-weight:500
 }
 .db-TransferDetail-transactionsFootnote{
-    border-top:1px solid #e6ebf1;
+    border-top:1px solid #fdfdfd;
     padding:12px 20px
 }
 .db-TransferDetail-retriedTransfer{
@@ -2002,12 +2002,12 @@ html.db-NewChrome body{
     font-weight:700
 }
 .db-TransferDetail-feePopover{
-    color:#525f7f;
+    color:#000000;
     font-size:14px;
     padding:20px
 }
 .db-TransferDetail-feeAmount{
-    color:#32325d;
+    color:#4c4c4c;
     font-weight:300
 }
 .db-PayoutDetail-header{
@@ -2032,7 +2032,7 @@ html.db-NewChrome body{
     font-weight:500
 }
 .db-PayoutDetail-transactionsFootnote{
-    border-top:1px solid #e6ebf1;
+    border-top:1px solid #fdfdfd;
     padding:12px 20px
 }
 .db-PayoutDetail-retriedPayout{
@@ -2042,12 +2042,12 @@ html.db-NewChrome body{
     font-weight:700
 }
 .db-PayoutDetail-feePopover{
-    color:#525f7f;
+    color:#000000;
     font-size:14px;
     padding:20px
 }
 .db-PayoutDetail-feeAmount{
-    color:#32325d;
+    color:#4c4c4c;
     font-weight:300
 }
 .db-PayoutDetail-noticeOutcome{
@@ -2165,14 +2165,14 @@ html.db-NewChrome body{
 }
 .db-Reload-link{
     cursor:pointer;
-    color:#3297d3;
+    color:#000000;
     font-weight:500;
     display:inline-block;
     text-decoration:underline
 }
 .db-JsonDisplay{
     background-color:#fff;
-    color:#32325d;
+    color:#4c4c4c;
     font-size:13px;
     line-height:23px;
     height:auto
@@ -2186,7 +2186,7 @@ html.db-NewChrome body{
     padding-left:70px;
     padding-right:20px;
     font-family:Source Code Pro,Courier New,Courier,monospace;
-    color:#32325d
+    color:#4c4c4c
 }
 .db-JsonDisplay-line:first-child,.db-JsonDisplay-line:first-child:before{
     padding-top:8px
@@ -2219,13 +2219,13 @@ html.db-NewChrome body{
 }
 .db-JsonDisplay-boolean{
     font-weight:600;
-    color:#3297d3
+    color:#00000
 }
 .db-JsonDisplay-null{
     color:#e39f48
 }
 .db-JsonDisplay-property{
-    color:#14aad9
+    color:#000000
 }
 .db-GravatarImage{
     background-color:#fff;
@@ -2239,7 +2239,7 @@ html.db-NewChrome body{
 }
 .db-LineChart-lineChartContainer{
     position:relative;
-    background:#f6f9fc
+    background:#f7f7f7
 }
 .db-LineChart-lineChart{
     padding:18px 48px;
@@ -2319,7 +2319,7 @@ html.db-NewChrome body{
     right:0;
     top:0;
     height:1px;
-    background:#e6ebf1
+    background:#fdfdfd
 }
 .db-LineChart-xLegend.db-animate-enter,.db-LineChart-xLegend.db-animate-leave.db-animate-leave-active,.db-LineChart-yLegend.db-animate-enter,.db-LineChart-yLegend.db-animate-leave.db-animate-leave-active{
     opacity:0
@@ -2345,8 +2345,8 @@ html.db-NewChrome body{
 }
 .db-MultiEmailInput .db-MultiEmailInput-email{
     border-radius:100px;
-    background-color:#e6ebf1;
-    color:#32325d;
+    background-color:#fdfdfd;
+    color:#4c4c4c;
     padding:2px 8px
 }
 .db-MultiEmailInput .public-DraftEditorPlaceholder-root{
@@ -2360,7 +2360,7 @@ html.db-NewChrome body{
     flex-direction:row;
     justify-content:space-between;
     padding:12px 20px;
-    box-shadow:inset 20px 0 0 #f6f9fc,inset 0 -1px 0 #e6ebf1
+    box-shadow:inset 20px 0 0 #f7f7f7,inset 0 -1px 0 #fdfdfd
 }
 .db-NotificationSettings:last-child{
     box-shadow:none
@@ -2369,7 +2369,7 @@ html.db-NewChrome body{
     flex-shrink:0
 }
 .db-NotificationSettings-title{
-    color:#525f7f;
+    color:#000000;
     font-size:14px;
     font-weight:500;
     line-height:20px
@@ -2392,7 +2392,7 @@ html.db-NewChrome body{
     overflow:hidden
 }
 .db-Tabs-selectedBackground{
-    background-color:#14aad9;
+    background-color:#000000;
     background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMyIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgMTMgNSI+PHBhdGggZmlsbD0iI0Y4RkFGRCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMSA1LjA5Nkw1LjY1Ni40NEExLjUwNiAxLjUwNiAwIDAgMSA3Ljc3NC40M2w0LjY2NiA0LjY2NkgxeiIvPjwvc3ZnPg==");
     background-repeat:no-repeat;
     background-size:13px 5px;
@@ -2438,7 +2438,7 @@ html.db-NewChrome body{
     z-index:2
 }
 .db-Tab:active{
-    border-color:#14aad9;
+    border-color:#000000;
     z-index:1
 }
 .db-Tab:active:before{
@@ -2484,7 +2484,7 @@ html.db-NewChrome body{
     justify-content:center;
     text-align:center;
     z-index:12;
-    background:#e6ebf1;
+    background:#fdfdfd;
     border:4px dashed #aab7c4
 }
 .db-Copilot-container--collapsed{
@@ -2622,7 +2622,7 @@ html.db-NewChrome body{
     z-index:11;
     height:25px;
     padding:4px 7px;
-    border-bottom:1px solid #e6ebf1
+    border-bottom:1px solid #fdfdfd
 }
 .db-Copilot-clearFile{
     flex-shrink:0
@@ -2775,7 +2775,7 @@ html.db-NewChrome body{
     border:none;
     border-radius:3px;
     box-sizing:border-box;
-    color:#14aad9;
+    color:#000000;
     background:transparent
 }
 .db-DateInput::-webkit-input-placeholder{
@@ -2787,7 +2787,7 @@ html.db-NewChrome body{
     font-size:12px
 }
 .db-DateInput.db-is-selected{
-    background:#14aad9;
+    background:#000000;
     color:#fff
 }
 .db-DateInput.db-is-numeric{
@@ -2806,10 +2806,10 @@ html.db-NewChrome body{
     padding:2px
 }
 .db-DateRangeInput-end,.db-DateRangeInput-start{
-    color:#525f7f
+    color:#000000
 }
 .db-DateRangeInput.db-is-disabled{
-    background-color:#f6f9fc;
+    background-color:#f7f7f7;
     box-shadow:none
 }
 .db-DateRangeInput.db-is-disabled:hover{
@@ -2838,7 +2838,7 @@ html.db-NewChrome body{
 @media print{
     .db-DateRangeInput-input-arrow:before{
         content:"–";
-        color:#525f7f;
+        color:#000000;
         display:block;
         background:transparent;
         font-size:12px
@@ -2884,7 +2884,7 @@ html.db-NewChrome body{
     font-style:normal
 }
 .db-MoneyTransmissionReceipt-subheader{
-    background:#14aad9;
+    background:#000000;
     font-size:16px
 }
 .db-MoneyTransmissionReceipt-subheaderInner{
@@ -2913,7 +2913,7 @@ html.db-NewChrome body{
     line-height:36px
 }
 .db-MoneyTransmission-receiptTableRow{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-MoneyTransmission-receiptTable .db-MoneyTransmission-receiptTableDummyCell{
     border-bottom:0;
@@ -2924,7 +2924,7 @@ html.db-NewChrome body{
     white-space:nowrap
 }
 .db-MoneyTransmission-disclosureContainer pre{
-    background-color:#f6f9fc;
+    background-color:#f7f7f7;
     display:inline-block;
     margin-top:5px;
     padding:5px 10px
@@ -2939,7 +2939,7 @@ html.db-NewChrome body{
 }
 .db-DateFilter--selected{
     font-weight:600;
-    color:#14aad9
+    color:#000000
 }
 .db-InvisibleFileInput{
     position:absolute;
@@ -2990,7 +2990,7 @@ html.db-NewChrome body{
     justify-content:space-between
 }
 .db-Trends-title{
-    color:#525f7f;
+    color:#000000;
     margin-bottom:9px;
     font-weight:400;
     font-size:20px;
@@ -3037,11 +3037,11 @@ html.db-NewChrome body{
 }
 .db-Trends-dateFiltersOther--selected{
     font-weight:600;
-    color:#14aad9;
+    color:#000000;
     background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMyIgaGVpZ2h0PSIxMyIgdmlld0JveD0iMCAwIDEzIDEzIj48cGF0aCBmaWxsPSIjNjc3MkU1IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik02LjI5NiAxMC4wMDVhLjY5NS42OTUgMCAwIDAgLjQ5Ni0uMjAybDQuNTk2LTQuNTk2YS43MDQuNzA0IDAgMCAwLS4wMDctLjk5OC43MS43MSAwIDAgMC0xLS4wMDhMNi4yOTcgOC4yODggMi4yMDkgNC4yYS43MS43MSAwIDAgMC0uOTk4LjAwOC43MDQuNzA0IDAgMCAwLS4wMDcuOTk4bDQuNTk1IDQuNTk2YS42OTUuNjk1IDAgMCAwIC40OTcuMjAyeiIvPjwvc3ZnPg==")
 }
 .db-Trends-content{
-    background-color:#f6f9fc;
+    background-color:#f7f7f7;
     min-height:40px;
     position:relative
 }
@@ -3121,7 +3121,7 @@ html.db-NewChrome body{
 .db-Trend{
     position:relative;
     font-size:20px;
-    color:#525f7f;
+    color:#000000;
     display:flex;
     flex-direction:row;
     height:76px;
@@ -3185,7 +3185,7 @@ html.db-NewChrome body{
     white-space:nowrap
 }
 .db-Trend-colValue{
-    color:#14aad9;
+    color:#000000;
     font-weight:500
 }
 .db-Trend-colSecondary{
@@ -3195,7 +3195,7 @@ html.db-NewChrome body{
     margin-left:8px
 }
 .db-Trend-colComparison{
-    color:#3297d3
+    color:#00000
 }
 .db-Trend-colChart{
     flex-basis:50%;
@@ -3290,7 +3290,7 @@ div.db-Trend-groupChart{
 .db-HomeWelcome-headerTitle{
     font-weight:300;
     font-size:28px;
-    color:#32325d;
+    color:#4c4c4c;
     line-height:50px;
     margin:0
 }
@@ -3300,7 +3300,7 @@ div.db-Trend-groupChart{
     right:20px;
     font-weight:500;
     font-size:11px;
-    color:#14aad9;
+    color:#000000;
     text-transform:uppercase;
     padding-right:14px;
     background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48cGF0aCBmaWxsPSIjNjc3MkU1IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yLjk0My45MzJBMS40MTcgMS40MTcgMCAwIDAgLjkxOS45MTljLS41Ni41Ni0uNTUgMS40NjEuMDEzIDIuMDI0TDUuOTg5IDggLjkzMiAxMy4wNTdhMS40MTcgMS40MTcgMCAwIDAtLjAxMyAyLjAyNGMuNTYuNTYgMS40NjEuNTUgMi4wMjQtLjAxM0w4IDEwLjAxMWw1LjA1NyA1LjA1N2MuNTguNTggMS40NjkuNTY4IDIuMDI0LjAxMy41Ni0uNTYuNTUtMS40NjEtLjAxMy0yLjAyNEwxMC4wMTEgOGw1LjA1Ny01LjA1N2MuNTgtLjU4LjU2OC0xLjQ2OS4wMTMtMi4wMjRhMS40MjggMS40MjggMCAwIDAtMi4wMjQuMDEzTDggNS45ODkgMi45NDMuOTMyeiIvPjwvc3ZnPg==");
@@ -3314,8 +3314,8 @@ div.db-Trend-groupChart{
     color:#43458b
 }
 .db-HomeWelcome-content{
-    border-top:1px solid #e6ebf1;
-    background:#f6f9fc;
+    border-top:1px solid #fdfdfd;
+    background:#f7f7f7;
     padding:13px 30px
 }
 .db-HomeWelcome-item{
@@ -3330,7 +3330,7 @@ div.db-Trend-groupChart{
 .db-HomeWelcome-link{
     position:relative;
     font-size:15px;
-    color:#525f7f;
+    color:#000000;
     line-height:22px;
     padding-left:61px;
     padding-right:60px;
@@ -3340,7 +3340,7 @@ div.db-Trend-groupChart{
 }
 .db-HomeWelcome-link strong{
     font-weight:500;
-    color:#14aad9
+    color:#000000
 }
 .db-HomeWelcome-link:before{
     content:"";
@@ -3399,10 +3399,10 @@ div.db-Trend-groupChart{
 }
 .db-HomeWelcome-link:hover{
     text-decoration:none;
-    color:#32325d
+    color:#4c4c4c
 }
 .db-HomeWelcome-link:hover strong{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-Task{
     font-size:14px;
@@ -3421,7 +3421,7 @@ div.db-Trend-groupChart{
     margin-top:2px
 }
 .db-Task-text{
-    color:#525f7f
+    color:#000000
 }
 .db-Task-text strong{
     color:#424770
@@ -3430,13 +3430,13 @@ div.db-Trend-groupChart{
     position:relative;
     display:inline-block;
     white-space:nowrap;
-    color:#3297d3
+    color:#00000
 }
 .db-Task--info .db-Task-directive{
     color:inherit
 }
 .db-Task-directive strong{
-    color:#3297d3
+    color:#00000
 }
 .db-Task--info .db-Task-directive strong{
     color:inherit
@@ -3448,14 +3448,14 @@ div.db-Trend-groupChart{
     transform:inherit
 }
 .db-Task:hover .db-Task-directive{
-    color:#3297d3
+    color:#00000
 }
 .db-Task--info:hover .db-Task-directive{
     color:inherit
 }
 @media print{
     .db-Task-directive{
-        color:#525f7f;
+        color:#000000;
         list-style:disc
     }
     .db-Task-icon{
@@ -3468,10 +3468,10 @@ div.db-Trend-groupChart{
 .db-Tasks{
     position:relative;
     padding:17px 20px;
-    background-color:#f6f9fc
+    background-color:#f7f7f7
 }
 .db-HomeTasks-title{
-    color:#525f7f;
+    color:#000000;
     font-weight:400;
     font-size:20px;
     line-height:28px
@@ -3590,7 +3590,7 @@ div.db-Trend-groupChart{
     .db-DailyComparison{
         -webkit-print-color-adjust:exact;
         background-color:transparent;
-        color:#32325d
+        color:#4c4c4c
     }
     .db-DailyComparison-chartToggle,.db-DailyComparison-compareToDateHandle{
         display:none
@@ -3602,7 +3602,7 @@ div.db-Trend-groupChart{
         display:none!important
     }
     .db-DailyComparison-input,.db-DailyComparison-valueCompareTo{
-        color:#525f7f
+        color:#000000
     }
     .db-DailyComparison-charts .db-Sparkline-container.db-Sparkline-container--line{
         max-width:720px
@@ -3623,7 +3623,7 @@ div.db-Trend-groupChart{
     transition:opacity .2s ease-in-out
 }
 .db-LoadingBackground--colorSlate1{
-    background-image:linear-gradient(90deg,rgba(246,249,252,0),rgba(246,249,252,0) 25%,#f6f9fc 40%,#f6f9fc 42%,rgba(246,249,252,0) 57%)
+    background-image:linear-gradient(90deg,rgba(246,249,252,0),rgba(246,249,252,0) 25%,#f7f7f7 40%,#f7f7f7 42%,rgba(246,249,252,0) 57%)
 }
 .db-LoadingBackground--size-large{
     background-size:1000px 100%;
@@ -3653,17 +3653,17 @@ div.db-Trend-groupChart{
     }
 }
 .db-ListViewItem{
-    color:#525f7f;
+    color:#000000;
     height:100%
 }
 .db-ListViewItem--hasLink{
     cursor:pointer
 }
 .db-ListViewItem-header{
-    background-color:#f6f9fc
+    background-color:#f7f7f7
 }
 .db-ListViewItem-cell{
-    box-shadow:inset 0 -1px #e6ebf1
+    box-shadow:inset 0 -1px #fdfdfd
 }
 .db-ListViewItem-cellContent .db-ListViewItem-text{
     white-space:inherit
@@ -3695,7 +3695,7 @@ div.db-Trend-groupChart{
     padding-right:20px
 }
 .db-ListViewItem--hasLink:hover,.db-ListViewItem--hasLink:hover .db-ListViewItem-link .db-ListViewItem-text{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-ListViewItem-link{
     text-decoration:none;
@@ -3722,10 +3722,10 @@ div.db-Trend-groupChart{
     opacity:1
 }
 .db-ListViewItem--hasLink:active,.db-ListViewItem-link--sortable:active{
-    background-color:#f6f9fc
+    background-color:#f7f7f7
 }
 .db-ListViewItem-actionsSeparator{
-    background-color:#e6ebf1
+    background-color:#fdfdfd
 }
 .db-ListViewItem .db-ListViewItem-actions{
     max-height:20px;
@@ -3782,7 +3782,7 @@ div.db-Trend-groupChart{
     height:872px
 }
 .db-AnalyticsSection{
-    border:1px solid #e6ebf1;
+    border:1px solid #fdfdfd;
     border-radius:4px
 }
 .db-ShieldSection-badge--animation-enter{
@@ -3815,7 +3815,7 @@ div.db-Trend-groupChart{
 .db-UpgradeModal-heading{
     font-size:40px;
     font-weight:300;
-    color:#32325d;
+    color:#4c4c4c;
     margin-bottom:4px;
     text-align:center
 }
@@ -4255,7 +4255,7 @@ div.db-Trend-groupChart{
     flex-grow:1
 }
 .db-BusinessSettings-warning{
-    border-top:1px solid #e6ebf1
+    border-top:1px solid #fdfdfd
 }
 .db-BusinessSettings-testDataSpinner,.db-PCICompliance-contentLoading{
     display:flex;
@@ -4284,7 +4284,7 @@ div.db-Trend-groupChart{
     margin-top:20px
 }
 .db-PCICompliance-survey{
-    border-top:1px solid #e6ebf1;
+    border-top:1px solid #fdfdfd;
     padding-left:50px;
     padding-top:20px;
     list-style-type:none
@@ -4361,8 +4361,8 @@ div.db-Trend-groupChart{
     display:table-row;
     line-height:26px;
     align-items:center;
-    color:#32325d;
-    border-bottom:1px solid #e6ebf1
+    color:#4c4c4c;
+    border-bottom:1px solid #fdfdfd
 }
 .db-Role:last-child{
     border:none;
@@ -4436,7 +4436,7 @@ div.db-Trend-groupChart{
     transform:translateZ(0)
 }
 .db-RoleEditor .bs-Table-head{
-    border-bottom:1px solid #e6ebf1
+    border-bottom:1px solid #fdfdfd
 }
 .db-RoleEditor .bs-Table-head .bs-Table-cell{
     color:#6b7c93;
@@ -4449,7 +4449,7 @@ div.db-Trend-groupChart{
     background-color:#fff
 }
 .db-RoleEditor-row--subRow,.db-RoleEditor-row--subRowDark{
-    border-top:1px solid #e6ebf1
+    border-top:1px solid #fdfdfd
 }
 .db-RoleEditor-row--subRow .db-RoleEditor-descriptionColumn,.db-RoleEditor-row--subRowDark .db-RoleEditor-descriptionColumn{
     padding-left:40px
@@ -4528,7 +4528,7 @@ div.db-Trend-groupChart{
     margin:16px 20px
 }
 .db-RoleRadioListLabel-popoverHeader{
-    border-bottom:1px solid #e6ebf1;
+    border-bottom:1px solid #fdfdfd;
     margin:16px 0;
     padding:0 20px;
     padding-bottom:16px
@@ -4577,7 +4577,7 @@ div.db-Trend-groupChart{
     flex-direction:column;
     background-color:hsla(0,0%,100%,.55);
     box-shadow:0 1px 2px rgba(0,0,0,.1);
-    border:1px solid #e6ebf1;
+    border:1px solid #fdfdfd;
     border-radius:4px;
     align-items:center;
     justify-content:center;
@@ -4624,7 +4624,7 @@ div.db-Trend-groupChart{
     display:block;
     flex:1;
     content:"";
-    background-color:#525f7f;
+    background-color:#000000;
     opacity:.25;
     width:100%;
     height:1px
@@ -4663,7 +4663,7 @@ div.db-Trend-groupChart{
 .db-CustomizeEmailReceiptDesign-optionsCardIcon{
     box-shadow:inset 0 1px 2px rgba(0,0,0,.18);
     padding:4px;
-    border:1px solid #e6ebf1;
+    border:1px solid #fdfdfd;
     border-radius:50%
 }
 .db-CustomizeEmailReceiptDesign-optionsCardIcon,.db-CustomizeEmailReceiptDesign-optionsCardIconInput{
@@ -4860,12 +4860,12 @@ div.db-Trend-groupChart{
 }
 .db-VersionUsageChart-fill{
     border-width:1px 0 0;
-    border-color:#14aad9;
+    border-color:#000000;
     border-style:solid
 }
 .db-DeveloperChart-stack{
     height:100%;
-    box-shadow:inset 0 -1px #e6ebf1
+    box-shadow:inset 0 -1px #fdfdfd
 }
 .db-DeveloperChart--empty{
     height:100%;
@@ -4890,7 +4890,7 @@ div.db-Trend-groupChart{
     white-space:nowrap
 }
 .db-DeveloperChartHover-color--blue4{
-    background-color:#14aad9
+    background-color:#000000
 }
 .db-DeveloperChartHover-color--purple6{
     background-color:#f6a4eb
@@ -4913,13 +4913,13 @@ div.db-Trend-groupChart{
     grid-auto-flow:row
 }
 .db-Tiles-divider--bottomRight{
-    box-shadow:inset -1px -1px #e6ebf1
+    box-shadow:inset -1px -1px #fdfdfd
 }
 .db-Tiles-divider--bottom{
-    box-shadow:inset 0 -1px #e6ebf1
+    box-shadow:inset 0 -1px #fdfdfd
 }
 .db-Tiles-divider--right{
-    box-shadow:inset -1px 0 #e6ebf1
+    box-shadow:inset -1px 0 #fdfdfd
 }
 .db-RunkitEmbed iframe{
     position:relative;
@@ -4963,7 +4963,7 @@ div.db-Trend-groupChart{
     box-sizing:border-box;
     transition:opacity .25s ease-in-out;
     opacity:1;
-    background-color:#f6f9fc
+    background-color:#f7f7f7
 }
 .db-SigmaIndex-container--loading{
     opacity:0
@@ -4990,7 +4990,7 @@ div.db-Trend-groupChart{
     display:flex;
     justify-content:space-between;
     padding:20px 20px 20px 13px;
-    border-bottom:1px solid #e6ebf1;
+    border-bottom:1px solid #fdfdfd;
     position:relative;
     min-height:79px
 }
@@ -5038,16 +5038,16 @@ div.db-Trend-groupChart{
     display:block;
     cursor:pointer;
     font-weight:400;
-    color:#32325d;
+    color:#4c4c4c;
     font-size:14px;
     line-height:28px;
     margin-right:24px
 }
 .db-SigmaSidebar-section:hover{
-    color:#14aad9
+    color:#000000
 }
 .db-SigmaSidebar-sectionFixedContent{
-    border-top:1px solid #e6ebf1;
+    border-top:1px solid #fdfdfd;
     padding:8px 20px
 }
 .db-SigmaSidebar-tabs{
@@ -5058,13 +5058,13 @@ div.db-Trend-groupChart{
     display:block;
     cursor:pointer;
     font-weight:400;
-    color:#32325d;
+    color:#4c4c4c;
     padding:0 12px;
     font-size:14px;
     line-height:28px
 }
 .db-SigmaSidebar-tab:hover{
-    color:#14aad9
+    color:#000000
 }
 .db-SigmaSidebar-section:first-of-type,.db-SigmaSidebar-tab:first-of-type{
     padding-left:0
@@ -5074,7 +5074,7 @@ div.db-Trend-groupChart{
 }
 .db-SigmaSidebar-section.bs-is-active,.db-SigmaSidebar-tab.bs-is-active{
     font-weight:700;
-    color:#14aad9
+    color:#000000
 }
 .db-SigmaSidebar-section.bs-is-disabled,.db-SigmaSidebar-tab.bs-is-disabled{
     color:#aab7c4;
@@ -5106,10 +5106,10 @@ div.db-Trend-groupChart{
     box-shadow:0 -2px 3px 0 rgba(106,124,148,.05),0 -1px 0 0 rgba(106,124,148,.1)
 }
 .db-SigmaSidebar-footerDocsLink,.db-SigmaSidebar-footerFeedbackLink{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-SigmaSidebar-footerDocsLink:hover,.db-SigmaSidebar-footerFeedbackLink:hover{
-    color:#14aad9
+    color:#000000
 }
 .db-SigmaSidebar-footerFeedbackLink{
     font-weight:400;
@@ -5201,7 +5201,7 @@ div.db-Trend-groupChart{
 }
 .db-QueryEntry.bs-is-active{
     background-color:rgba(225,232,250,.5);
-    border-left:3px solid #14aad9
+    border-left:3px solid #000000
 }
 .db-QueryEntry-row{
     display:flex;
@@ -5216,7 +5216,7 @@ div.db-Trend-groupChart{
 }
 .db-QueryEntry-row:last-child .db-QueryEntry-content{
     padding-bottom:16px;
-    border-bottom:1px solid #e6ebf1
+    border-bottom:1px solid #fdfdfd
 }
 .db-QueryEntry-spacer{
     width:36px;
@@ -5288,7 +5288,7 @@ div.db-Trend-groupChart{
 }
 .db-QueryTemplates-query.bs-is-active{
     background-color:rgba(225,232,250,.5);
-    border-left:3px solid #14aad9
+    border-left:3px solid #000000
 }
 .db-QueryTemplates-query:hover{
     background-color:hsla(0,0%,100%,.5)
@@ -5301,7 +5301,7 @@ div.db-Trend-groupChart{
     margin-bottom:3px
 }
 .db-QueryTemplates-query:hover .db-QueryTemplates-queryTitle{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-QueryTemplates-query.bs-is-active .db-QueryTemplates-queryTitle{
     font-weight:600
@@ -5311,13 +5311,13 @@ div.db-Trend-groupChart{
     color:#6b7c93
 }
 .db-QueryTemplates-query:hover .db-QueryTemplates-queryDescription{
-    color:#525f7f
+    color:#000000
 }
 .db-QueryTemplates-queryTitle--disabled{
     color:#aab7c4
 }
 .db-QueryTemplates-advert{
-    background-color:#14aad9;
+    background-color:#000000;
     color:#fff;
     border-radius:4px;
     padding:10px 20px;
@@ -5335,7 +5335,7 @@ div.db-Trend-groupChart{
     text-transform:uppercase;
     font-size:13px;
     font-weight:500;
-    color:#525f7f
+    color:#000000
 }
 .db-SavedEntry:hover .db-TruncatedSQL{
     filter:none
@@ -5358,7 +5358,7 @@ div.db-Trend-groupChart{
     text-transform:uppercase;
     font-size:13px;
     font-weight:500;
-    color:#525f7f
+    color:#000000
 }
 .db-ScheduledQueriesListEmptyState{
     display:flex;
@@ -5443,7 +5443,7 @@ div.db-Trend-groupChart{
     padding:0 20px
 }
 .db-SchemaBrowser-tableName:hover{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-SchemaBrowser-columnAnimationContainer{
     display:flex;
@@ -5511,18 +5511,18 @@ div.db-Trend-groupChart{
     max-width:25%
 }
 .db-SchemaBrowserColumn--fk,.db-SchemaBrowserColumn--pk,.db-SchemaBrowserColumn-name--fk,.db-SchemaBrowserColumn-name--pk,.db-SchemaBrowserColumn-type--fk,.db-SchemaBrowserColumn-type--pk{
-    color:#3297d3
+    color:#00000
 }
 .db-SchemaBrowserColumn.bs-is-active{
     background-color:#e3eaff;
     font-weight:500
 }
 .db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-name{
-    color:#14aad9;
+    color:#000000;
     line-height:22px
 }
 .db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn--fk,.db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn--pk,.db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-name--fk,.db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-name--pk,.db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-type,.db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-type--fk,.db-SchemaBrowserColumn.bs-is-active .db-SchemaBrowserColumn-type--pk{
-    color:#14aad9
+    color:#000000
 }
 .db-SchemaBrowserColumnPopover-wrapper{
     padding:20px;
@@ -5679,7 +5679,7 @@ div.db-Trend-groupChart{
 }
 .db-QueryActions-runningTimer,.db-QueryActions-saveSucceededMessage{
     position:absolute;
-    color:#525f7f;
+    color:#000000;
     font-size:10px;
     margin-top:29px
 }
@@ -5735,10 +5735,10 @@ div.db-Trend-groupChart{
     background-color:#f7f9fa
 }
 .CodeMirror-hint-active,.CodeMirror-hint:nth-child(2n).CodeMirror-hint-active{
-    background-color:#e6ebf1;
+    background-color:#fdfdfd;
     border-bottom-color:#0e74c3;
     border-top-color:#369ad9;
-    color:#32325d
+    color:#4c4c4c
 }
 .db-QueryEditor-hintContainer{
     padding:5px 10px;
@@ -5794,7 +5794,7 @@ div.db-Trend-groupChart{
 }
 .db-QueryTitleEditor-title{
     font-size:20px;
-    color:#32325d
+    color:#4c4c4c
 }
 .db-QueryTitleEditor .bs-TextInput{
     flex:1
@@ -5859,7 +5859,7 @@ div.db-Trend-groupChart{
 }
 .db-ResultsActions-runningQuery{
     font-size:14px;
-    color:#525f7f
+    color:#000000
 }
 .db-ResultsActions-truncatedWarning{
     font-size:11px;
@@ -5887,7 +5887,7 @@ div.db-Trend-groupChart{
     font-size:13px
 }
 .db-ResultsHeader:hover{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-ResultsHeader-cell{
     display:flex;
@@ -5918,7 +5918,7 @@ div.db-Trend-groupChart{
     position:absolute
 }
 .db-ResultsTable--empty{
-    background:repeating-linear-gradient(180deg,#fff,#fff 35px,#e6ebf1 0,#e6ebf1 36px,#fff 0)
+    background:repeating-linear-gradient(180deg,#fff,#fff 35px,#fdfdfd 0,#fdfdfd 36px,#fff 0)
 }
 .public_fixedDataTable_header .public_fixedDataTableCell_main,.public_fixedDataTableCell_cellContent{
     font-family:Camphor,Segoe UI,Open Sans,sans-serif
@@ -5967,7 +5967,7 @@ div.db-Trend-groupChart{
     background:none
 }
 .db-ResultsTable .public_fixedDataTableRow_main.db-ResultsTable-table-row{
-    border-bottom:1px solid #e6ebf1;
+    border-bottom:1px solid #fdfdfd;
     font-size:13px
 }
 .db-ResultsTable .fixedDataTableCellLayout_columnResizerContainer{
@@ -5983,7 +5983,7 @@ div.db-Trend-groupChart{
 .db-ResultsTable .fixedDataTableCellLayout_columnResizerKnob:after{
     content:"";
     display:block;
-    background-color:#e6ebf1;
+    background-color:#fdfdfd;
     position:relative;
     width:1px;
     margin:6px auto;
@@ -6044,7 +6044,7 @@ div.db-Trend-groupChart{
 }
 .db-ActivationModal-heading{
     font-size:28px;
-    color:#32325d;
+    color:#4c4c4c;
     margin-bottom:15px;
     font-weight:700;
     margin-top:auto;
@@ -6053,7 +6053,7 @@ div.db-Trend-groupChart{
 .db-ActivationModal-title{
     font-weight:300;
     font-size:34px;
-    color:#32325d;
+    color:#4c4c4c;
     line-height:44px;
     margin-bottom:10px
 }
@@ -6112,7 +6112,7 @@ div.db-Trend-groupChart{
 .db-IntroModal-heading{
     font-size:40px;
     font-weight:300;
-    color:#32325d;
+    color:#4c4c4c;
     margin-bottom:4px;
     text-align:center
 }
@@ -6231,7 +6231,7 @@ div.db-Trend-groupChart{
     padding-bottom:4px
 }
 .db-PricingSlider-totalsCostNumber,.db-PricingSlider-totalsTransactionsNumber{
-    color:#32325d;
+    color:#4c4c4c;
     font-size:24px;
     font-weight:500
 }
@@ -6241,7 +6241,7 @@ div.db-Trend-groupChart{
     padding-top:10px
 }
 .db-PricingSlider-processingEstimate{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-PricingSlider-slider{
     height:70px;
@@ -6268,7 +6268,7 @@ div.db-Trend-groupChart{
     margin:auto
 }
 .db-PricingSlider-knob:hover{
-    background-color:#525f7f;
+    background-color:#000000;
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08)
 }
 .db-PricingSlider-labels{
@@ -6280,7 +6280,7 @@ div.db-Trend-groupChart{
 .db-PricingSlider-label{
     font-size:14px;
     line-height:22px;
-    color:#32325d;
+    color:#4c4c4c;
     position:relative;
     display:block;
     margin:auto;
@@ -6302,7 +6302,7 @@ div.db-Trend-groupChart{
 }
 .db-PricingSlider-pastMonthIndicatorLabel{
     white-space:nowrap;
-    color:#14aad9;
+    color:#000000;
     -webkit-user-select:none;
     -moz-user-select:none;
     -ms-user-select:none;
@@ -6318,7 +6318,7 @@ div.db-Trend-groupChart{
     display:block;
     width:1px;
     height:18px;
-    background-color:#32325d
+    background-color:#4c4c4c
 }
 .db-PricingSlider-rail{
     position:absolute;
@@ -6394,13 +6394,13 @@ div.db-Trend-groupChart{
 }
 .db-SigmaUpgradeModal-header{
     font-size:28px;
-    color:#32325d;
+    color:#4c4c4c;
     margin-bottom:15px
 }
 .db-SigmaUpgradeModal-subHeader{
     font-weight:600;
     font-size:16px;
-    color:#14aad9;
+    color:#000000;
     margin-bottom:10px;
     text-transform:uppercase
 }
@@ -6409,13 +6409,13 @@ div.db-Trend-groupChart{
 }
 .db-SigmaUpgradeModal-subheading{
     font-size:14px;
-    color:#32325d;
+    color:#4c4c4c;
     margin-bottom:20px
 }
 .db-SigmaUpgradeModal-divider{
     height:2px;
     width:100%;
-    background-color:#e6ebf1;
+    background-color:#fdfdfd;
     margin-bottom:20px
 }
 .db-SigmaUpgradeModal-question{
@@ -6427,18 +6427,18 @@ div.db-Trend-groupChart{
     margin-bottom:10px
 }
 .db-SigmaUpgradeModal-answer{
-    color:#32325d;
+    color:#4c4c4c;
     margin-bottom:10px;
     line-height:22px
 }
 .db-SigmaUpgradeModal-billingMessage{
-    color:#525f7f;
+    color:#000000;
     margin-bottom:10px
 }
 .db-SigmaUpgradeModal-footer{
     display:flex;
     flex-direction:row;
-    border-top:1px solid #e6ebf1;
+    border-top:1px solid #fdfdfd;
     padding:20px
 }
 .db-SigmaUpgradeModal-footerRow{
@@ -6461,7 +6461,7 @@ div.db-Trend-groupChart{
     flex-grow:1
 }
 .db-SigmaUpgradeModal-notNowButton{
-    color:#32325d;
+    color:#4c4c4c;
     font-size:16px
 }
 .db-SigmaUpgradeModal-notNowButton:before{
@@ -6493,7 +6493,7 @@ div.db-Trend-groupChart{
     font-size:20px
 }
 .db-SigmaUpgradeModal-usageNumber{
-    color:#32325d;
+    color:#4c4c4c;
     font-weight:500;
     font-size:24px
 }
@@ -6537,7 +6537,7 @@ div.db-Trend-groupChart{
 .db-StateChangedModal-header{
     font-size:24px;
     margin-bottom:10px;
-    color:#32325d
+    color:#4c4c4c
 }
 .db-StateChangedModal-content{
     background:#fff;
@@ -6545,7 +6545,7 @@ div.db-Trend-groupChart{
 }
 .db-StateChangedModal-subheading{
     font-size:14px;
-    color:#32325d;
+    color:#4c4c4c;
     margin-bottom:20px
 }
 .db-UnsavedChangesModal-doNotSaveButton{
@@ -6561,7 +6561,7 @@ div.db-Trend-groupChart{
     color:#e04c4c
 }
 .db-Banners{
-    border-bottom:1px solid #e6ebf1
+    border-bottom:1px solid #fdfdfd
 }
 .db-Banners-subscriptionActions{
     height:45px;
@@ -6627,13 +6627,13 @@ div.db-Trend-groupChart{
     cursor:pointer
 }
 .db-MonthlyRepeatDayNumberTable-day.bs-is-selected,.db-MonthlyRepeatDayNumberTable-day:hover{
-    color:#f6f9fc
+    color:#f7f7f7
 }
 .db-MonthlyRepeatDayNumberTable-day:hover{
     background-color:#7795f8
 }
 .db-MonthlyRepeatDayNumberTable-day.bs-is-selected{
-    background-color:#14aad9
+    background-color:#000000
 }
 .db-PluralFrequency{
     display:inline-block;
@@ -6668,7 +6668,7 @@ div.db-Trend-groupChart{
 .db-ScheduledQueryTimeline-heading{
     font-size:16px;
     font-weight:500;
-    color:#32325d
+    color:#4c4c4c
 }
 .db-ScheduledQueryTimeline-row{
     padding:12px 20px 12px 0
@@ -6710,11 +6710,11 @@ div.db-Trend-groupChart{
     flex-shrink:1
 }
 .db-Scheduler-footer{
-    background-color:#f6f9fc;
+    background-color:#f7f7f7;
     display:flex;
     flex-direction:column;
     padding:10px 20px;
-    border-top:1px solid #e6ebf1;
+    border-top:1px solid #fdfdfd;
     flex-shrink:0
 }
 .db-Scheduler-footerButtons{
@@ -6765,7 +6765,7 @@ div.db-Trend-groupChart{
     margin-bottom:20px
 }
 .db-Scheduler-webhookExplanation{
-    color:#525f7f;
+    color:#000000;
     font-size:12px;
     line-height:16px
 }
@@ -6776,7 +6776,7 @@ div.db-Trend-groupChart{
     cursor:pointer
 }
 .db-Scheduler-parameterNameHoverTrigger.bs-is-active code{
-    color:#525f7f
+    color:#000000
 }
 .db-Scheduler-hover{
     padding:20px;
@@ -6815,9 +6815,9 @@ div.db-Trend-groupChart{
 .db-ResizeHandle{
     cursor:row-resize;
     flex:0 0 5px;
-    background:#f6f9fc;
-    border-bottom:1px solid #e6ebf1;
-    border-top:1px solid #e6ebf1;
+    background:#f7f7f7;
+    border-bottom:1px solid #fdfdfd;
+    border-top:1px solid #fdfdfd;
     z-index:4
 }
 .db-SigmaBigError,.db-SigmaBigError-content{
@@ -6831,11 +6831,11 @@ div.db-Trend-groupChart{
 }
 .db-SigmaBigError-line{
     height:79px;
-    border-bottom:1px solid #e6ebf1
+    border-bottom:1px solid #fdfdfd
 }
 .db-SigmaBigError-message{
     font-weight:500;
-    color:#525f7f;
+    color:#000000;
     margin-top:8px
 }
 .db-SigmaDiscoveryPopover-title{
@@ -6844,8 +6844,8 @@ div.db-Trend-groupChart{
     margin-top:-4px
 }
 .db-SigmaMarkdownText code{
-    background-color:#f6f9fc;
-    border:1px solid #e6ebf1;
+    background-color:#f7f7f7;
+    border:1px solid #fdfdfd;
     color:#8898aa;
     border-radius:3px
 }
@@ -6863,7 +6863,7 @@ div.db-Trend-groupChart{
     padding-top:2px;
     font-size:13px;
     transition:all .5s;
-    background-color:#f6f9fc;
+    background-color:#f7f7f7;
     box-shadow:0 0 0 0 rgba(50,50,93,.05),0 15px 35px 0 rgba(50,50,93,.07),0 5px 15px 0 rgba(0,0,0,.08);
     border-radius:16px;
     font-size:12px;
@@ -6939,11 +6939,11 @@ div.db-Trend-groupChart{
     background-color:rgba(66,71,112,0)
 }
 .db-AnimatedValue--color-slate3{
-    color:#525f7f
+    color:#000000
 }
 .backgroundcliptext .db-AnimatedValue--color-slate3:not(.db-is-entering){
-    background-color:#525f7f;
-    background-image:linear-gradient(90deg,#525f7f,rgba(82,95,127,.5) 50%,#525f7f)
+    background-color:#000000;
+    background-image:linear-gradient(90deg,#000000,rgba(82,95,127,.5) 50%,#000000)
 }
 .db-AnimatedValue--color-slate3.db-AnimatedValue--loading:not(.db-is-entering){
     background-color:rgba(82,95,127,0)
@@ -6959,18 +6959,18 @@ div.db-Trend-groupChart{
     background-color:rgba(184,253,254,0)
 }
 .db-AnimatedValue--color-blue4{
-    color:#14aad9
+    color:#000000
 }
 .backgroundcliptext .db-AnimatedValue--color-blue4:not(.db-is-entering){
-    background-color:#14aad9;
-    background-image:linear-gradient(90deg,#14aad9,rgba(103,114,229,.5) 50%,#14aad9)
+    background-color:#000000;
+    background-image:linear-gradient(90deg,#000000,rgba(103,114,229,.5) 50%,#000000)
 }
 .db-AnimatedValue--color-blue4.db-AnimatedValue--loading:not(.db-is-entering){
     background-color:rgba(103,114,229,0)
 }
 @media print{
     .db-AnimatedValue{
-        color:#32325d!important
+        color:#4c4c4c!important
     }
     .db-AnimatedValue,.db-AnimatedValue-letter{
         background-color:transparent!important;
@@ -7053,7 +7053,7 @@ div.db-Trend-groupChart{
 }
 .db-SegmentedControlOption--selected{
     font-weight:700;
-    color:#14aad9
+    color:#000000
 }
 .db-SegmentedControlOption--selected:hover{
     color:#555abf
@@ -7066,7 +7066,7 @@ div.db-Trend-groupChart{
     font-size:36px;
     font-weight:300;
     line-height:46px;
-    color:#32325d
+    color:#4c4c4c
 }
 .db-DiscountAcceptanceModal-content{
     padding-top:0;
@@ -7082,7 +7082,7 @@ div.db-Trend-groupChart{
     margin-top:4px
 }
 .db-DiscountAcceptanceModal-tosLink{
-    color:#3297d3;
+    color:#000000;
     font-size:14px;
     font-weight:500
 }
@@ -7139,8 +7139,8 @@ div.db-Trend-groupChart{
 }
 .db-MentionEditor-mentionSuggestionsEntryFocused{
     padding:7px 10px 3px;
-    color:#f6f9fc;
-    background-color:#14aad9
+    color:#f7f7f7;
+    background-color:#000000
 }
 .db-MentionEditor-mentionSuggestionsEntryContainer{
     display:table;
@@ -7163,8 +7163,8 @@ div.db-Trend-groupChart{
 .db-MentionEditor-mentionSuggestions{
     background:#fff;
     border-radius:5px;
-    border:1px solid #e6ebf1;
-    box-shadow:0 4px 30px 0 #e6ebf1;
+    border:1px solid #fdfdfd;
+    box-shadow:0 4px 30px 0 #fdfdfd;
     box-sizing:border-box;
     cursor:pointer;
     display:flex;
@@ -7180,8 +7180,8 @@ div.db-Trend-groupChart{
     z-index:5
 }
 .db-MentionEditor-mentionSuggestions[data-help-text]:before{
-    background-color:#f6f9fc;
-    border-bottom:1px solid #e6ebf1;
+    background-color:#f7f7f7;
+    border-bottom:1px solid #fdfdfd;
     color:#8898aa;
     content:attr(data-help-text);
     cursor:auto;
@@ -7206,14 +7206,14 @@ div.db-Trend-groupChart{
 }
 @media print{
     .db-ChartGrid-line{
-        background:#525f7f
+        background:#000000
     }
 }
 .db-ChartHover{
     white-space:nowrap;
     font-weight:500;
     line-height:20px;
-    color:#14aad9;
+    color:#000000;
     padding:4px 8px 5px;
     text-align:center;
     height:27px
@@ -7250,12 +7250,12 @@ div.db-Trend-groupChart{
     r:4
 }
 .db-ChartHoverDot--size-small .db-ChartHoverDot-dot{
-    fill:#14aad9;
+    fill:#000000;
     stroke-width:1.5;
     r:2.5
 }
 .db-ChartHoverDot-line{
-    stroke:#14aad9
+    stroke:#000000
 }
 .db-GroupChartHover{
     position:relative;
@@ -7291,7 +7291,7 @@ div.db-Trend-groupChart{
     padding:0 5px
 }
 .db-GroupChartHover-rowValue{
-    background:#f6f9fc;
+    background:#f7f7f7;
     font-size:12px;
     line-height:20px;
     color:#424770;
@@ -7301,14 +7301,14 @@ div.db-Trend-groupChart{
 .db-GroupChartHover-rowCompareToValue{
     font-size:10px;
     line-height:20px;
-    color:#525f7f
+    color:#000000
 }
 .db-GroupChartHover-value{
-    color:#14aad9;
+    color:#000000;
     text-align:right
 }
 .db-GroupChartHover-compareToValue{
-    color:#3297d3
+    color:#00000
 }
 .db-GroupChartHover-disputeWarningVal{
     color:#e25950
@@ -7356,7 +7356,7 @@ div.db-Trend-groupChart{
     font-weight:500
 }
 .db-LegendValue--highlighted{
-    color:#14aad9;
+    color:#000000;
     font-weight:500
 }
 .db-LegendValue--white{
@@ -7437,18 +7437,18 @@ div.db-Trend-groupChart{
     opacity:.25
 }
 .db-Sparkline--color-blue .db-Sparkline-dot{
-    fill:#14aad9;
+    fill:#000000;
     stroke:#fff
 }
 .db-Sparkline--color-gray .db-Sparkline-main-line{
     stroke:#424770
 }
 .db-Sparkline--color-gray .db-Sparkline-fill{
-    fill:#32325d;
+    fill:#4c4c4c;
     opacity:.15
 }
 .db-Sparkline--color-gray .db-Sparkline-dot{
-    fill:#32325d;
+    fill:#4c4c4c;
     stroke:#fff
 }
 .db-Sparkline--color-lightGray .db-Sparkline-main-line{
@@ -7485,14 +7485,14 @@ div.db-Trend-groupChart{
     stroke:#fff
 }
 .db-Sparkline--color-blue4 .db-Sparkline-main-line{
-    stroke:#14aad9
+    stroke:#000000
 }
 .db-Sparkline--color-blue4 .db-Sparkline-fill{
-    fill:#14aad9;
+    fill:#000000;
     opacity:.1
 }
 .db-Sparkline--color-blue4 .db-Sparkline-dot{
-    fill:#14aad9;
+    fill:#000000;
     stroke:#fff
 }
 .db-Sparkline--color-cyan6 .db-Sparkline-main-line{
@@ -7570,14 +7570,14 @@ div.db-Trend-groupChart{
         stroke:#fff
     }
     .db-Sparkline--color-cyan .db-Sparkline-main-line{
-        stroke:#14aad9
+        stroke:#000000
     }
     .db-Sparkline--color-cyan .db-Sparkline-fill{
-        fill:#14aad9;
+        fill:#000000;
         opacity:.1
     }
     .db-Sparkline--color-cyan .db-Sparkline-dot{
-        fill:#14aad9;
+        fill:#000000;
         stroke:#fff
     }
     .db-Sparkline-dot{
@@ -7620,7 +7620,7 @@ div.db-Trend-groupChart{
 }
 .db-HorizontalAxisMarks--left,.db-HorizontalAxisMarks--middle,.db-HorizontalAxisMarks--right{
     font-size:12px;
-    fill:#525f7f;
+    fill:#000000;
     text-overflow:ellipsis;
     white-space:nowrap;
     overflow:hidden;
@@ -7638,7 +7638,7 @@ div.db-Trend-groupChart{
 }
 .db-VerticalAxisMarks--left,.db-VerticalAxisMarks--middle,.db-VerticalAxisMarks--right{
     font-size:12px;
-    fill:#525f7f;
+    fill:#000000;
     text-overflow:ellipsis;
     white-space:nowrap;
     overflow:hidden;
@@ -7672,7 +7672,7 @@ html.db-NewChrome .bs-Cloud{
     background-color:#fff
 }
 html.db-NewChrome .bs-Cloud>:last-child{
-    border-bottom:1px solid #e6ebf1
+    border-bottom:1px solid #fdfdfd
 }
 html.db-NewChrome .DayPicker-container .DayPicker--horizontal,html.db-NewChrome .DayPicker-container .transition-container{
     width:300px!important
@@ -7742,7 +7742,7 @@ html.db-NewChrome .DayPicker-container .CalendarMonth__caption{
 }
 html.db-NewChrome .DayPicker-container .CalendarMonth__day{
     border:0;
-    color:#525f7f;
+    color:#000000;
     font-size:14px;
     font-weight:500;
     display:inline-block;
@@ -7750,16 +7750,16 @@ html.db-NewChrome .DayPicker-container .CalendarMonth__day{
     margin-bottom:-1px;
     width:40px;
     height:40px;
-    border:1px solid #e6ebf1;
-    background:#f6f9fc;
+    border:1px solid #fdfdfd;
+    background:#f7f7f7;
     box-sizing:border-box;
     position:relative
 }
 html.db-NewChrome .DayPicker-container .CalendarMonth__day:active{
-    background:#f6f9fc
+    background:#f7f7f7
 }
 html.db-NewChrome .DayPicker-container .CalendarMonth__day.CalendarMonth__day--valid:active{
-    background:#e6ebf1
+    background:#fdfdfd
 }
 html.db-NewChrome .DayPicker-container .CalendarMonth__day.CalendarMonth__day--outside:active{
     background:#fff
@@ -7781,7 +7781,7 @@ html.db-NewChrome .DayPicker-container .CalendarMonth__day.CalendarMonth__day--s
     z-index:2
 }
 html.db-NewChrome .DayPicker-container .CalendarMonth__day.CalendarMonth__day--selected{
-    background:#14aad9;
+    background:#000000;
     color:#fff
 }
 html.db-NewChrome .DayPicker-container .CalendarMonth__day.CalendarMonth__day--selected-end:active,html.db-NewChrome .DayPicker-container .CalendarMonth__day.CalendarMonth__day--selected-span:active,html.db-NewChrome .DayPicker-container .CalendarMonth__day.CalendarMonth__day--selected-start:active{
@@ -7839,15 +7839,15 @@ html.db-NewChrome .bs-FilterControl-flyout-contents{
 }
 html.db-NewChrome .bs-FilterControl-flyout-header{
     align-items:center;
-    background-color:#f6f9fc;
-    border-bottom:1px solid #e6ebf1;
+    background-color:#f7f7f7;
+    border-bottom:1px solid #fdfdfd;
     display:flex;
     flex-direction:row;
     justify-content:space-between;
     padding:6px
 }
 html.db-NewChrome .bs-FilterControl-flyout-header h2{
-    color:#525f7f;
+    color:#000000;
     font-size:15px;
     font-weight:500;
     text-shadow:0 1px 0 hsla(0,0%,100%,.8)
@@ -7857,18 +7857,18 @@ html.db-NewChrome .bs-FilterControl-flyout-header .bs-Button{
     border:0;
     border-radius:4px;
     box-shadow:0 0 0 0 rgba(49,49,93,.03),0 2px 5px 0 rgba(49,49,93,.1),0 1px 2px 0 rgba(0,0,0,.08);
-    color:#525f7f;
+    color:#000000;
     font-family:Camphor,Segoe UI,Open Sans,sans-serif;
     font-size:11px;
     font-weight:500
 }
 html.db-NewChrome .bs-FilterControl-flyout-header .bs-FilterControl-flyout-header-done{
-    background:#14aad9;
+    background:#000000;
     color:#fff
 }
 html.db-NewChrome .bs-FilterControl-item-label{
-    border-bottom:1px solid #e6ebf1;
-    color:#525f7f;
+    border-bottom:1px solid #fdfdfd;
+    color:#000000;
     display:block;
     font-size:12px;
     font-weight:500;
@@ -7881,7 +7881,7 @@ html.db-NewChrome .bs-FilterControl-item-checkbox{
     margin-right:8px
 }
 html.db-NewChrome .bs-FilterControl-item-content{
-    background-color:#f6f9fc;
+    background-color:#f7f7f7;
     box-sizing:border-box;
     max-height:0;
     overflow:hidden;
@@ -7971,7 +7971,7 @@ html.db-NewChrome .bs-FilterControl-item--expanded .bs-FilterControl-item-label{
     border-bottom:0
 }
 html.db-NewChrome .bs-FilterControl-item--expanded .bs-FilterControl-item-content{
-    border-bottom:1px solid #e6ebf1;
+    border-bottom:1px solid #fdfdfd;
     max-height:110px;
     padding:10px
 }
@@ -8043,7 +8043,7 @@ html.db-NewChrome .bs-PageHeading-actions .bs-Button--export,html.db-NewChrome .
 }
 .db-ContentSection .bs-Tail--separated{
     padding:20px;
-    border-top:1px solid #e6ebf1
+    border-top:1px solid #fdfdfd
 }
 html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     padding-top:10px;
@@ -8113,8 +8113,8 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     cursor:pointer
 }
 .db-StatementTab--selected{
-    box-shadow:inset 0 4px #14aad9;
-    color:#32325d
+    box-shadow:inset 0 4px #000000;
+    color:#4c4c4c
 }
 .db-StatementTab:not(:first-child){
     box-shadow:inset 1px 0 #cfd7df
@@ -8123,13 +8123,13 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     box-shadow:inset 1px 0 #cfd7df,inset -1px 0 #cfd7df
 }
 .db-StatementTab:not(:first-child).db-StatementTab--selected{
-    box-shadow:inset 1px 0 #cfd7df,inset 0 4px #14aad9
+    box-shadow:inset 1px 0 #cfd7df,inset 0 4px #000000
 }
 .db-StatementTab:last-child.db-StatementTab--selected{
-    box-shadow:inset 1px 0 #cfd7df,inset -1px 0 #cfd7df,inset 0 4px #14aad9
+    box-shadow:inset 1px 0 #cfd7df,inset -1px 0 #cfd7df,inset 0 4px #000000
 }
 .db-StatementTab:hover .db-StatementTab-text{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-EndOfDayBalanceIndex-date{
     font-size:12px;
@@ -8448,10 +8448,10 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     cursor:pointer
 }
 .db-PlanForm-billing-type-box{
-    border:1px solid #e6ebf1;
+    border:1px solid #fdfdfd;
     border-radius:4px;
     padding:20px;
-    background-color:#f6f9fc;
+    background-color:#f7f7f7;
     margin-top:20px;
     margin-bottom:20px;
     flex-grow:1;
@@ -8807,7 +8807,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
 .db-Notification h1,.db-Notification h2,.db-Notification h3,.db-Notification h4,.db-Notification h5,.db-Notification h6{
     display:block;
     margin:0;
-    color:#32325d;
+    color:#4c4c4c;
     font-size:14px;
     font-weight:500;
     line-height:20px
@@ -8815,7 +8815,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
 .db-Notification p{
     display:block;
     margin-bottom:4px;
-    color:#525f7f;
+    color:#000000;
     font-size:14px;
     line-height:20px
 }
@@ -8823,7 +8823,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     margin-bottom:0
 }
 .db-Notification p strong{
-    color:#32325d;
+    color:#4c4c4c;
     font-weight:500
 }
 .db-Notification p em{
@@ -8852,7 +8852,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     height:28px
 }
 .db-Notifications-showMore{
-    background:#f6f9fc;
+    background:#f7f7f7;
     width:100%;
     line-height:20px
 }
@@ -8888,7 +8888,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     font-size:10px;
     font-weight:700;
     pointer-events:none;
-    border:2px solid #e6ebf1;
+    border:2px solid #fdfdfd;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -9219,7 +9219,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     overflow-y:hidden
 }
 .db-World-scrollWrapper{
-    background-color:#e6ebf1;
+    background-color:#fdfdfd;
     height:100%;
     min-width:1024px;
     position:relative;
@@ -9258,7 +9258,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     left:0
 }
 .db-World-topContent--left,.db-World-topContent--right{
-    background:linear-gradient(#e6ebf1,rgba(230,235,241,0));
+    background:linear-gradient(#fdfdfd,rgba(230,235,241,0));
     bottom:-20px;
     height:16px;
     position:absolute;
@@ -9432,7 +9432,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short{
     height:80px
 }
 .db-InvoiceAction-fyipe--slateDark{
-    background:#525f7f
+    background:#000000
 }
 .db-InvoiceAction-fyipe--slateLight{
     background:#8898aa
@@ -9604,7 +9604,7 @@ html.db-Locale--notEnUS div.dispute-evidence-view .header .dispute-formMenu{
     opacity:1
 }
 .db-DevTools-header{
-    background-color:#f6f9fc;
+    background-color:#f7f7f7;
     border-bottom-left-radius:0;
     border-bottom-right-radius:0
 }
@@ -9698,8 +9698,8 @@ html div.db-SurveyRequestNotice .Icon{
     cursor:pointer
 }
 .db-CurrencyBlock--selected{
-    box-shadow:inset 0 4px #14aad9;
-    color:#32325d
+    box-shadow:inset 0 4px #000000;
+    color:#4c4c4c
 }
 .db-CurrencyBlock:not(:first-child){
     box-shadow:inset 1px 0 #cfd7df
@@ -9708,14 +9708,14 @@ html div.db-SurveyRequestNotice .Icon{
     box-shadow:inset 1px 0 #cfd7df,inset -1px 0 #cfd7df
 }
 .db-CurrencyBlock:not(:first-child).db-CurrencyBlock--selected{
-    box-shadow:inset 1px 0 #cfd7df,inset 0 4px #14aad9
+    box-shadow:inset 1px 0 #cfd7df,inset 0 4px #000000
 }
 .db-CurrencyBlock:last-child.db-CurrencyBlock--selected{
-    box-shadow:inset 1px 0 #cfd7df,inset -1px 0 #cfd7df,inset 0 4px #14aad9
+    box-shadow:inset 1px 0 #cfd7df,inset -1px 0 #cfd7df,inset 0 4px #000000
 }
 .db-CurrencyBlock:hover .db-CurrencyBlock-amount,.db-CurrencyBlock:hover .db-CurrencyBlock-currencyCode{
-    color:#32325d
+    color:#4c4c4c
 }
 .db-CurrencySelectorSection{
-    background:#f6f9fc
+    background:#f7f7f7
 }

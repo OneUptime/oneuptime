@@ -50,7 +50,7 @@
     font-weight:400;
     font-size:21px;
     line-height:31px;
-    color:#525f7f
+    color:#000000
 }
 @media (min-width:670px){
     .common-IntroText{
@@ -68,7 +68,7 @@
     font-weight:400;
     font-size:17px;
     line-height:26px;
-    color:#939da3
+    color:#797979
 }
 .common-UppercaseTitle{
     font-size:20px;
@@ -248,7 +248,7 @@
     background-color:#000000
 }
 .common-Button--default:active{
-    color:#e6ebf1;
+    color:#fdfdfd;
     background-color:#000000
 }
 .common-Button--dark{
@@ -260,7 +260,7 @@
     background-color:#43458b
 }
 .common-Button--dark:active{
-    color:#e6ebf1;
+    color:#fdfdfd;
     background-color:#000000
 }
 .common-Button--disabled{

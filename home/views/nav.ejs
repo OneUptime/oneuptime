@@ -1,281 +1,318 @@
 <header class='globalNav'>
 
 
-        <div class="container-lg">
-            <ul class="navRoot">
+    <div class="container-lg">
+        <ul class="navRoot">
 
 
-                <li class="navSection logo">
-                    <a class="rootLink item-home colorize" href="/">
-                        <h1>
-                            <% if(!blackLogo) { %>
-                                <img src="/img/FyipeFull.svg" height="70" style="margin-top:-15px; margin-left: -12px;" alt="FyipeFull" />
-                            <% } %>
+            <li class="navSection logo">
+                <a class="rootLink item-home colorize" href="/">
+                    <h1>
+                        <% if(!blackLogo) { %>
+                        <img src="/img/FyipeFull.svg" height="70" style="margin-top:-15px; margin-left: -12px;"
+                            alt="FyipeFull" />
+                        <% } %>
 
-                            <% if(blackLogo) { %>
-                                <img src="/img/black-svg-full.svg" height="70" style="margin-top:-15px; margin-left: -12px;" alt="black-svg" />
-                            <% } %>
-                        </h1>
-                    </a>
-                </li>
+                        <% if(blackLogo) { %>
+                        <img src="/img/black-svg-full.svg" height="70" style="margin-top:-15px; margin-left: -12px;"
+                            alt="black-svg" />
+                        <% } %>
+                    </h1>
+                </a>
+            </li>
 
-                <li class="navSection primary">
-                    <a class="rootLink item-products hasDropdown colorize" data-dropdown="products">
-                        Products
-                    </a>
+            <li class="navSection primary">
+                <a class="rootLink item-products hasDropdown colorize" data-dropdown="products">
+                    Products
+                </a>
 
-                    <a data-analytics-action="pricing" data-analytics-source="global_nav" class="rootLink item-pricing colorize" href="/pricing">
-                        Pricing
-                    </a>
-                    <a class="rootLink item-developers hasDropdown colorize" data-dropdown="developers">
-                        Enterprise
-                    </a>
-                    <a class="rootLink item-company hasDropdown colorize" data-dropdown="company">
-                        Company
-                    </a>
-                </li>
+                <a data-analytics-action="pricing" data-analytics-source="global_nav"
+                    class="rootLink item-pricing colorize" href="/pricing">
+                    Pricing
+                </a>
+                <a class="rootLink item-developers hasDropdown colorize" data-dropdown="developers">
+                    Enterprise
+                </a>
+                <a class="rootLink item-company hasDropdown colorize" data-dropdown="company">
+                    Company
+                </a>
+            </li>
 
-                <li class="navSection secondary">
-                    <a class="rootLink item-support colorize" href="/support" data-analytics-action="support" data-analytics-source="global_nav">
-                        Support
-                    </a>
-                    <a class="rootLink item-dashboard colorize" data-adroll-segment='submit_two' href="#" onclick="loginUrl()" data-analytics-source="global_nav"
-                        data-analytics-action="sign_in">
-                        Sign in
-                    </a>
-                </li>
+            <li class="navSection secondary">
+                <% if(!support) { %>
+                <a class="rootLink item-support colorize" href="/support" data-analytics-action="support"
+                    data-analytics-source="global_nav">
+                    Support
+                </a>
+                <% } %>
+                <% if(support) { %>
+                <a class="rootLink item-support colorize" href="/enterprise/overview" data-analytics-action="support"
+                    data-analytics-source="global_nav">
+                    Enterprises
+                </a>
+                <% } %>
+                <a class="rootLink item-dashboard colorize" data-adroll-segment='submit_two' href="#"
+                    onclick="loginUrl()" data-analytics-source="global_nav" data-analytics-action="sign_in">
+                    Sign in
+                </a>
+            </li>
 
-                <li class="navSection mobile">
-                    <a class="rootLink item-mobileMenu colorize">
-                        <h2>Menu</h2>
-                    </a>
-                    <div class="popup">
-                        <div class="popupContainer">
-                            <a class="popupCloseButton">Close</a>
-                            <div class="mobileProducts">
-                                <h4>Products</h4>
-                                <div class="mobileProductsList">
-                                    <ul>
-                                        <li>
-                                            <a class="linkContainer item-payments" href="/product/status-page" data-analytics-action="payments" data-analytics-source="mobile_nav">
-                                                Status Page
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="linkContainer item-subscriptions" href='/product/uptime-monitoring' data-analytics-action="subscriptions" data-analytics-source="mobile_nav">
-                                                Uptime Monitoring
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="linkContainer item-connect" href='/product/oncall-management' data-analytics-action="connect" data-analytics-source="mobile_nav">
-                                               On Call Management.
-                                            </a>
-                                        </li>
-                                        
-                                    </ul>
-                                    
-                                </div>
-                            </div>
-                            <div class="mobileSecondaryNav">
+            <li class="navSection mobile">
+                <a class="rootLink item-mobileMenu colorize">
+                    <h2>Menu</h2>
+                </a>
+                <div class="popup">
+                    <div class="popupContainer">
+                        <a class="popupCloseButton">Close</a>
+                        <div class="mobileProducts">
+                            <h4>Products</h4>
+                            <div class="mobileProductsList">
                                 <ul>
                                     <li>
-                                        <a class="item-pricing" href="/pricing" data-analytics-action="pricing" data-analytics-source="mobile_nav">
-                                            Pricing
+                                        <a class="linkContainer item-payments" href="/product/status-page"
+                                            data-analytics-action="payments" data-analytics-source="mobile_nav">
+                                            Status Page
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="item-workswith" href="https://zapier.com/apps/fyipe/integrations" data-analytics-action="works-with" data-analytics-source="mobile_nav">
-                                            1000+ Integrations
+                                        <a class="linkContainer item-subscriptions" href='/product/uptime-monitoring'
+                                            data-analytics-action="subscriptions" data-analytics-source="mobile_nav">
+                                            Uptime Monitoring
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="item-gallery" href="/customers" data-analytics-action="customers" data-analytics-source="mobile_nav">
-                                            Customers
+                                        <a class="linkContainer item-connect" href='/product/oncall-management'
+                                            data-analytics-action="connect" data-analytics-source="mobile_nav">
+                                            On Call Management.
                                         </a>
                                     </li>
-                                   
+
                                 </ul>
-                                <ul>
-                                    <li>
-                                        <a class="item-about" href="https://hackerbay.io" data-analytics-source="mobile_nav" data-analytics-action="about">
-                                            About Fyipe
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="item-jobs" href="https://angel.co/hackerbayinc/jobs" data-analytics-source="mobile_nav" data-analytics-action="jobs">
-                                            Jobs
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="item-blog" href="https://medium.com/fyipe" data-analytics-source="mobile_nav" data-analytics-action="blog">
-                                            Blog
-                                        </a>
-                                    </li>
-                                </ul>
+
                             </div>
-                            <a class="mobileSignIn" data-adroll-segment='submit_two' href="#" onclick="loginUrl()" data-analytics-source="mobile_nav"
-                                data-analytics-action="sign_in">
-                                Sign in
-                            </a>
                         </div>
-                    </div>
-                </li>
-
-
-            </ul>
-        </div>
-
-
-
-        <div class="dropdownRoot">
-            <div class="dropdownBackground">
-                <div class="alternateBackground"></div>
-            </div>
-            <div class="dropdownArrow"></div>
-            <div class="dropdownContainer">
-
-                <div class="dropdownSection" data-dropdown="products">
-                    <div class="dropdownContent">
-
-                        <div class="linkGroup" style="margin-bottom:20px;">
-                            <ul class="productsGroupPrimary">
+                        <div class="mobileSecondaryNav">
+                            <ul>
                                 <li>
-                                    <a class="linkContainer item-payments" href="/product/status-page" data-analytics-action="payments" data-analytics-source="nav_dropdown">
-                                        
-                                        <div class='productLinkContent'>
-                                            <h3 class="linkTitle">Status Page</h3>
-                                            <p class="linkSub">A great looking status page for your internet business.</p>
-                                        </div>
+                                    <a class="item-pricing" href="/pricing" data-analytics-action="pricing"
+                                        data-analytics-source="mobile_nav">
+                                        Pricing
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="linkContainer item-subscriptions" href="/product/oncall-management" data-analytics-action="subscriptions" data-analytics-source="nav_dropdown">
-                                       
-                                        <div class='productLinkContent'>
-                                            <h3 class="linkTitle">On call management.</h3>
-                                            <p class="linkSub">Alerts your team during downtime.</p>
-                                        </div>
+                                    <a class="item-workswith" href="https://zapier.com/apps/fyipe/integrations"
+                                        data-analytics-action="works-with" data-analytics-source="mobile_nav">
+                                        1000+ Integrations
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="linkContainer item-connect" href="/product/uptime-monitoring" data-analytics-action="connect" data-analytics-source="nav_dropdown">
-                                        
-                                        <div class='productLinkContent'>
-                                            <h3 class="linkTitle">Uptime Monitoring</h3>
-                                            <p class="linkSub">Check downtime, response time and page speed.</p>
-                                        </div>
+                                    <a class="item-gallery" href="/customers" data-analytics-action="customers"
+                                        data-analytics-source="mobile_nav">
+                                        Customers
+                                    </a>
+                                </li>
+
+                            </ul>
+                            <ul>
+                                <li>
+                                    <a class="item-about" href="https://hackerbay.io" data-analytics-source="mobile_nav"
+                                        data-analytics-action="about">
+                                        About Fyipe
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="item-jobs" href="https://angel.co/hackerbayinc/jobs"
+                                        data-analytics-source="mobile_nav" data-analytics-action="jobs">
+                                        Jobs
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="item-blog" href="https://medium.com/fyipe"
+                                        data-analytics-source="mobile_nav" data-analytics-action="blog">
+                                        Blog
                                     </a>
                                 </li>
                             </ul>
                         </div>
-
-                        
+                        <a class="mobileSignIn" data-adroll-segment='submit_two' href="#" onclick="loginUrl()"
+                            data-analytics-source="mobile_nav" data-analytics-action="sign_in">
+                            Sign in
+                        </a>
                     </div>
                 </div>
+            </li>
 
-                <div class="dropdownSection" data-dropdown="developers">
-                    <div class="dropdownContent">
 
-                        <div class="linkGroup documentationGroup">
-                            <a class="linkContainer withIcon item-documentation" href="/enterprise/overview" data-analytics-action="documentation" data-analytics-source="nav_dropdown">
-                                <h3 class="linkTitle linkIcon">
-                                    Overview</h3>
-                                <span class="linkSub" style="margin-left: -28px;margin-top:8px;">Fyipe is Enterprise Grade Status Page &amp; on-call management platform.</span>
-                            </a>
-                            
-                        </div>
+        </ul>
+    </div>
 
-                        <ul class="linkGroup linkList developersGroup">
-                            <li>
-                                <a class="linkContainer item-apiReference" href="/enterprise/demo" data-analytics-action="api_reference" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Request Demo</h3>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="linkContainer item-apiStatus" href="/enterprise/resources" data-analytics-action="api_status" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Resources &amp; Whitepapers</h3>
-                                </a>
-                            </li>
-                            <li>
-                                    <a class="linkContainer item-openSource" href="/customers" data-analytics-action="open_source" data-analytics-source="nav_dropdown">
-                                        <h3 class="linkTitle linkIcon">
-                                            Customers</h3>
-                                    </a>
-                                </li>
-                            <li>
-                                <a class="linkContainer item-openSource" href="https://hackerbay.io" data-analytics-action="open_source" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                       Consulting</h3>
-                                </a>
-                            </li>
-                        </ul>
 
-                    </div>
-                </div>
 
-                <div class="dropdownSection" data-dropdown="company">
-                    <div class="dropdownContent">
-
-                        <ul class="linkGroup linkList companyGroup">
-                            <li>
-                                <a class="linkContainer item-about" href="https://hackerbay.io" data-analytics-action="about" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        About HackerBay</h3>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="linkContainer item-customers" href="/support" data-analytics-action="customers" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Support</h3>
-                                </a>
-                            </li>
-                            <li>
-                                    <a class="linkContainer item-customers" href="https://slack.fyipe.com" data-analytics-action="customers" data-analytics-source="nav_dropdown">
-                                        <h3 class="linkTitle linkIcon">
-                                            We're on Slack</h3>
-                                    </a>
-                                </li>
-                            <li>
-                                <a class="linkContainer item-jobs" href="https://angel.co/hackerbayinc/jobs" data-analytics-action="jobs" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Jobs</h3>
-                                </a>
-                            </li>
-                           
-                        </ul>
-
-                        <div class="linkGroup blogGroup">
-                            <a class="linkContainer withIcon item-blog" href="https://medium.com/fyipe" data-analytics-action="blog" data-analytics-source="nav_dropdown">
-                                <h3 class="linkTitle linkIcon">
-                                    From the blog</h3>
-                            </a>
-                            <ul class="blogPosts">
-                                <li>
-                                    <a href="https://medium.com/fyipe/22-best-ways-to-speed-up-your-website-today-part-1-4feb3621430a">
-                                        <span class='title new'>22 ways to speed up your website</span>
-                                        <span class='new-badge'>New</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="https://medium.com/fyipe/why-do-you-need-website-monitoring-today-6fa652bf8d72">
-                                        <span class='title '>Why do you need website monitoring?</span>
-
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="https://medium.com/fyipe/website-monitoring-internal-vs-external-5fbb5e23ccd1">
-                                        <span class='title '>Website Monitoring: Internal vs External</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
+    <div class="dropdownRoot">
+        <div class="dropdownBackground">
+            <div class="alternateBackground"></div>
         </div>
+        <div class="dropdownArrow"></div>
+        <div class="dropdownContainer">
 
-    </header>
+            <div class="dropdownSection" data-dropdown="products">
+                <div class="dropdownContent">
+
+                    <div class="linkGroup" style="margin-bottom:20px;">
+                        <ul class="productsGroupPrimary">
+                            <li>
+                                <a class="linkContainer item-payments" href="/product/status-page"
+                                    data-analytics-action="payments" data-analytics-source="nav_dropdown">
+
+                                    <div class='productLinkContent'>
+                                        <h3 class="linkTitle">Status Page</h3>
+                                        <p class="linkSub">A great looking status page for your internet business.</p>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="linkContainer item-subscriptions" href="/product/oncall-management"
+                                    data-analytics-action="subscriptions" data-analytics-source="nav_dropdown">
+
+                                    <div class='productLinkContent'>
+                                        <h3 class="linkTitle">On call management</h3>
+                                        <p class="linkSub">Alerts your team during downtime.</p>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="linkContainer item-connect" href="/product/uptime-monitoring"
+                                    data-analytics-action="connect" data-analytics-source="nav_dropdown">
+
+                                    <div class='productLinkContent'>
+                                        <h3 class="linkTitle">Uptime Monitoring</h3>
+                                        <p class="linkSub">Check downtime, response time and page speed.</p>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+
+                </div>
+            </div>
+
+            <div class="dropdownSection" data-dropdown="developers">
+                <div class="dropdownContent">
+
+                    <div class="linkGroup documentationGroup">
+                        <a class="linkContainer withIcon item-documentation" href="/enterprise/overview"
+                            data-analytics-action="documentation" data-analytics-source="nav_dropdown">
+                            <h3 class="linkTitle linkIcon">
+                                Overview</h3>
+                            <span class="linkSub" style="margin-left: -28px;margin-top:8px;">Fyipe is Enterprise Grade
+                                Status Page &amp; on-call management platform.</span>
+                        </a>
+
+                    </div>
+
+                    <ul class="linkGroup linkList developersGroup">
+                        <li>
+                            <a class="linkContainer item-apiReference" href="/enterprise/demo"
+                                data-analytics-action="api_reference" data-analytics-source="nav_dropdown">
+                                <h3 class="linkTitle linkIcon">
+                                    Request Demo</h3>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="linkContainer item-apiStatus" href="/enterprise/resources"
+                                data-analytics-action="api_status" data-analytics-source="nav_dropdown">
+                                <h3 class="linkTitle linkIcon">
+                                    Resources &amp; Whitepapers</h3>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="linkContainer item-openSource" href="/customers"
+                                data-analytics-action="open_source" data-analytics-source="nav_dropdown">
+                                <h3 class="linkTitle linkIcon">
+                                    Customers</h3>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="linkContainer item-openSource" href="https://hackerbaylabs.com"
+                                data-analytics-action="open_source" data-analytics-source="nav_dropdown">
+                                <h3 class="linkTitle linkIcon">
+                                    Consulting</h3>
+                            </a>
+                        </li>
+                    </ul>
+
+                </div>
+            </div>
+
+            <div class="dropdownSection" data-dropdown="company">
+                <div class="dropdownContent">
+
+                    <ul class="linkGroup linkList companyGroup">
+                        <li>
+                            <a class="linkContainer item-about" href="https://hackerbay.io"
+                                data-analytics-action="about" data-analytics-source="nav_dropdown">
+                                <h3 class="linkTitle linkIcon">
+                                    About HackerBay</h3>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="linkContainer item-customers" href="/support" data-analytics-action="customers"
+                                data-analytics-source="nav_dropdown">
+                                <h3 class="linkTitle linkIcon">
+                                    Support</h3>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="linkContainer item-customers" href="https://slack.fyipe.com"
+                                data-analytics-action="customers" data-analytics-source="nav_dropdown">
+                                <h3 class="linkTitle linkIcon">
+                                    We're on Slack</h3>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="linkContainer item-jobs" href="https://angel.co/hackerbayinc/jobs"
+                                data-analytics-action="jobs" data-analytics-source="nav_dropdown">
+                                <h3 class="linkTitle linkIcon">
+                                    Jobs</h3>
+                            </a>
+                        </li>
+
+                    </ul>
+
+                    <div class="linkGroup blogGroup">
+                        <a class="linkContainer withIcon item-blog" href="https://medium.com/fyipe"
+                            data-analytics-action="blog" data-analytics-source="nav_dropdown">
+                            <h3 class="linkTitle linkIcon">
+                                From the blog</h3>
+                        </a>
+                        <ul class="blogPosts">
+                            <li>
+                                <a
+                                    href="https://medium.com/fyipe/22-best-ways-to-speed-up-your-website-today-part-1-4feb3621430a">
+                                    <span class='title new'>22 ways to speed up your website</span>
+                                    <span class='new-badge'>New</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a
+                                    href="https://medium.com/fyipe/why-do-you-need-website-monitoring-today-6fa652bf8d72">
+                                    <span class='title '>Why do you need website monitoring?</span>
+
+                                </a>
+                            </li>
+                            <li>
+                                <a href="https://medium.com/fyipe/website-monitoring-internal-vs-external-5fbb5e23ccd1">
+                                    <span class='title '>Website Monitoring: Internal vs External</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</header>

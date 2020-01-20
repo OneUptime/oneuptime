@@ -63,14 +63,14 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: #e6ebf1;
+    background-color: #fdfdfd;
     z-index: 999;
     display: flex;
     justify-content: center;
     align-items: center;
     font-family: Camphor, Segoe UI, Open Sans, sans-serif;
     font-size : 14px;
-    color:#525f7f;
+    color:#000000;
     font-weight: 400;
 }
 

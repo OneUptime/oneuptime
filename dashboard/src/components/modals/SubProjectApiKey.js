@@ -32,7 +32,7 @@ class SubProjectApiKey extends Component {
                             <div className='bs-Modal-header'>
                                 <div className='bs-Modal-header-copy'>
                                     <span className='Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap'>
-                                        <span>Api Key For Sub Project {data.subProjectTitle}</span>
+                                        <span>API Key For Sub Project {data.subProjectTitle}</span>
                                     </span>
                                 </div>
                                 <div className='bs-Modal-messages'>
@@ -41,7 +41,7 @@ class SubProjectApiKey extends Component {
                                     </ShouldRender>
                                 </div>
                             </div>
-                            <div className='bs-Modal-content'>
+                            <div className='bs-Modal-content' style={{textAlign:'center'}}>
                                 <span className='Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap'>
                                     {subproject.apiKey}
                                 </span>
@@ -65,7 +65,7 @@ class SubProjectApiKey extends Component {
                                         type='button'
                                         onClick={() => this.resetSubProjectToken()}
                                         disabled={subProjectResetToken.requesting}>
-                                        {!subProjectResetToken.requesting && <span>Reset Api Key</span>}
+                                        {!subProjectResetToken.requesting && <span>Reset API Key</span>}
                                         {subProjectResetToken.requesting && <FormLoader />}
                                     </button>
                                 </div>

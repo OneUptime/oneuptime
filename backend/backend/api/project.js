@@ -471,6 +471,7 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function (req
         };
 
         let subProjects = await ProjectService.create(data);
+        subProjects = await ProjectService.findBy({_id:subProjects._id});
         return sendItemResponse(req, res, subProjects);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -608,6 +609,7 @@ router.put('/:projectId/restoreProject', getUser, isUserMasterAdmin, async funct
 // Description: Rename subproject.
 router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (req, res) {
     try {
+        const parentProjectId = req.params.projectId;
         const subProjectId = req.params.subProjectId;
         const subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
         if (!subProjectId) {
@@ -621,6 +623,14 @@ router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (r
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'SubProject Name must be present.'
+            });
+        }
+        // check if project has a sub-project with provided name
+        const count = await ProjectService.countBy({name:subProjectName,parentProjectId});
+        if (count && count > 0) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You already have a sub-project with same name.'
             });
         }
         const subProject = await ProjectService.updateOneBy({_id:subProjectId},{name:subProjectName});

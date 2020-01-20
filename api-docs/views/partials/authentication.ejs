@@ -1,0 +1,36 @@
+<div id="authentication" class="cf-grid-container dev-doc-item-container dev-doc-description-container">
+  <div class="col-lg-half col-md-half dev-doc-item">
+    <h1>Authentication</h1>
+    <p>
+      Authentication on Fyipe API is possible through Fyipe Project ID and API Key. Every project in Fyipe has it's
+      own API Project ID and API Key. You can find this on your Fyipe Dashboard under the Project Settings menu.
+      Only Project Owners and Administrators have access to Fyipe API Key.
+    </p>
+    <p>
+      There are three ways you can perform authentication. Either by passing the Project ID and API Key in request
+      headers, as query string, or as request body.
+    </p>
+  </div>
+  <div class="col-lg-half col-md-half dev-doc-example">
+    <div class="doc-example-item">
+      <h1>As Request Headers</h1>
+      <div class="example-code">
+        <p class="url">project-id: your-project-id-here</p>
+        <p class="url">api-key: your-api-key-here</p>
+      </div>
+    </div>
+
+    <div class="doc-example-item">
+      <h1>As Request Query</h1>
+      <div class="example-code">
+        <p class="url">https://api.fyipe.com/your-path?project-id=XXX&api-key=XXX</p>
+      </div>
+    </div>
+    <div class="doc-example-item">
+      <h1>As Request Body</h1>
+      <div class="example-code">
+        <p class="url">{ project-id: XXX, api-key: XXX }</p>
+      </div>
+    </div>
+  </div>
+</div>

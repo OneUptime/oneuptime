@@ -128,7 +128,7 @@ div.block-chart div.bar:last-child {
   z-index: 100000;
 }
 .tipsy-inner {
-  background-color: #32325d;
+  background-color: #4c4c4c;
   color: #fff;
   max-width: 200px;
   padding: 5px 12px 5px 12px;
@@ -151,21 +151,21 @@ div.block-chart div.bar:last-child {
   width: 0;
   height: 0;
   line-height: 0;
-  border: 5px dashed #32325d;
+  border: 5px dashed #4c4c4c;
 }
 
 /* Rules to colour arrows */
 .tipsy-arrow-n {
-  border-bottom-color: #32325d;
+  border-bottom-color: #4c4c4c;
 }
 .tipsy-arrow-s {
-  border-top-color: #32325d;
+  border-top-color: #4c4c4c;
 }
 .tipsy-arrow-e {
-  border-left-color: #32325d;
+  border-left-color: #4c4c4c;
 }
 .tipsy-arrow-w {
-  border-right-color: #32325d;
+  border-right-color: #4c4c4c;
 }
 
 .tipsy-n .tipsy-arrow {
@@ -255,9 +255,9 @@ div.block-chart div.bar:last-child {
   width: 100%;
 }
 .btn-group .icon-container {
-  background-color: #f6f9fc; /* Green background */
-  border: 2px solid #e6ebf1; /* Green border */
-  color: #525f7f; /* White text */
+  background-color: #f7f7f7; /* Green background */
+  border: 2px solid #fdfdfd; /* Green border */
+  color: #000000; /* White text */
   padding: 6px; /* Some padding */
   cursor: pointer; /* Pointer/hand icon */
   box-sizing: border-box;
@@ -268,7 +268,7 @@ div.block-chart div.bar:last-child {
 }
 
 .btn-group .icon-container.selected {
-  background-color: #f6f9fc;
+  background-color: #f7f7f7;
   border-bottom: none;
   color: black;
 }

@@ -21,7 +21,7 @@ const styles = {
     number: {
         textAlign: 'center',
         borderRadius: '20px',
-        background: '#f6f9fc',
+        background: '#f7f7f7',
         width: '100px'
     },
     incidentGrid: {
