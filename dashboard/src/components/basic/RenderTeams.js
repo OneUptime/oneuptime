@@ -4,7 +4,11 @@ import { FieldArray } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderNames } from './RenderNames';
 
-let RenderTeams = ({ fields, subProjectId, policyIndex }) => {
+let RenderTeams = ({
+  fields, subProjectId, policyIndex,
+  rotationFrequency, rotationInterval
+}) => {
+  const canAddTeams = !!rotationFrequency && !!rotationInterval;
   return (
     <ul>
       {
@@ -12,7 +16,7 @@ let RenderTeams = ({ fields, subProjectId, policyIndex }) => {
           return (
             <li key={i}>
               <div className="bs-Fieldset-row">
-                <label className="bs-Fieldset-label">Team {i + 1}</label>
+                 <label className="bs-Fieldset-label">{canAddTeams ? `Team ${i + 1}` : 'Team'}</label>
                   <div className="bs-Fieldset-row">
                     <FieldArray
                         className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -47,36 +51,46 @@ let RenderTeams = ({ fields, subProjectId, policyIndex }) => {
       }
 
       <div className="bs-Fieldset-row">
-        <label className="bs-Fieldset-label"></label>
-        <div className="bs-Fieldset-fields">
-            <div className="Box-root Flex-flex Flex-alignItems--center">
-                <div>
-                    <ShouldRender if={fields.length < 10}>
-                        <button
-                            type="button"
-                            className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                            onClick={() => fields.push({
-                              teamMember: [
-                                {
-                                    member: '',
-                                    timezone: '',
-                                    startTime: '',
-                                    endTime: ''
-                                }
-                              ],
-                            })}
-                        >
-                            Add Team
-                        </button>
-                    </ShouldRender>
-                </div>
+          <label className="bs-Fieldset-label"></label>
+          {canAddTeams ? (
+            <div className="bs-Fieldset-fields">
+              <div className="Box-root Flex-flex Flex-alignItems--center">
+                  <div>
+                      <ShouldRender if={fields.length < 10}>
+                          <button
+                              type="button"
+                              className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
+                              onClick={() => fields.push({
+                                teamMember: [
+                                  {
+                                      member: '',
+                                      timezone: '',
+                                      startTime: '',
+                                      endTime: ''
+                                  }
+                                ],
+                              })}
+                          >
+                              Add Team
+                          </button>
+                      </ShouldRender>
+                  </div>
+              </div>
+              <p className="bs-Fieldset-explanation">
+                  <span>
+                      Add teams for rotation duty.
+                  </span>
+              </p>
+          </div>
+          ): (
+            <div className="bs-Fieldset-row">
+              <div className="bs-Fieldset-explanation">
+                <h3>
+                    You need to complete rotation frequency settings to add more teams.
+                </h3>
+              </div>
             </div>
-            <p className="bs-Fieldset-explanation">
-                <span>
-                    Add teams for rotation duty.
-                </span>
-            </p>
-        </div>
+          )}
       </div>
     </ul>
   )
@@ -91,6 +105,8 @@ RenderTeams.propTypes = {
       PropTypes.object
   ]).isRequired,
   policyIndex: PropTypes.number.isRequired,
+  rotationFrequency: PropTypes.string.isRequired,
+  rotationInterval: PropTypes.number.isRequired
 }
 
 export { RenderTeams };

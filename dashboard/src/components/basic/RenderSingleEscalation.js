@@ -9,7 +9,7 @@ import { RenderField } from './RenderField';
 let RenderSingleEscalation = ({
   policy, email, sms, call,
   rotationFrequency, subProjectId,
-  policyIndex, fields
+  policyIndex, fields, rotationInterval
 }) => {
   const [rotationFreqVisible, setRotationFreqVisibility] = useState(false);
   const [forcedRotationFreqHidden, forceRotationFreqHide] = useState(false)
@@ -224,6 +224,8 @@ let RenderSingleEscalation = ({
                                       component={RenderTeams}
                                       subProjectId={subProjectId}
                                       policyIndex={policyIndex}
+                                      rotationFrequency={rotationFrequency}
+                                      rotationInterval={rotationInterval}
                                   />
                                 </div>
                             </fieldset>

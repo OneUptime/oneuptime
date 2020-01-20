@@ -11,7 +11,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
         <ul>
             {
                 fields.map((policy, i) => {
-                    const { email, sms, call, rotationFrequency } = form[i];
+                    const { email, sms, call, rotationFrequency, rotationInterval } = form[i];
 
                     return (
                         <RenderSingleEscalation
@@ -19,6 +19,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                             email={email}
                             sms={sms}
                             rotationFrequency={rotationFrequency}
+                            rotationInterval={rotationInterval}
                             policy={policy}
                             policyIndex={i}
                             key={i}
