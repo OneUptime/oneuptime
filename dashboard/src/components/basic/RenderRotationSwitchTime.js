@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types'
 import ShouldRender from '../basic/ShouldRender';
-import { Field, FieldArray } from 'redux-form';
+import { Field } from 'redux-form';
 import TimeSelector from './TimeSelector';
 import { WeekSelector } from './WeekSelector';
 

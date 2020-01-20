@@ -269,6 +269,8 @@ let RenderSingleEscalation = ({
   )
 }
 
+RenderSingleEscalation.displayName = 'RenderSingleEscalation';
+
 RenderSingleEscalation.propTypes = {
   subProjectId: PropTypes.string.isRequired,
   call: PropTypes.bool.isRequired,
@@ -276,7 +278,8 @@ RenderSingleEscalation.propTypes = {
   email: PropTypes.bool.isRequired,
   policy: PropTypes.string.isRequired,
   policyIndex: PropTypes.number.isRequired,
-  rotationFrequency: PropTypes.string.isRequired,
+  rotationFrequency: PropTypes.string,
+  rotationInterval: PropTypes.number,
   fields: PropTypes.oneOfType([
       PropTypes.array,
       PropTypes.object

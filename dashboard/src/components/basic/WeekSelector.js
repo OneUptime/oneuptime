@@ -1,16 +1,17 @@
-import clsx from "clsx";
-import format from "date-fns/format";
-import isValid from "date-fns/isValid";
-import isSameDay from "date-fns/isSameDay";
-import endOfWeek from "date-fns/endOfWeek";
+import clsx from 'clsx';
+import format from 'date-fns/format';
+import PropTypes from 'prop-types';
+import isValid from 'date-fns/isValid';
+import isSameDay from 'date-fns/isSameDay';
+import endOfWeek from 'date-fns/endOfWeek';
 import DateFnsUtils from '@date-io/date-fns';
-import React, { useState } from "react";
-import startOfWeek from "date-fns/startOfWeek";
-import isWithinInterval from "date-fns/isWithinInterval";
-import { DateTimePicker, MuiPickersUtilsProvider } from "@material-ui/pickers";
-import { createStyles } from "@material-ui/styles";
+import React, { useState } from 'react';
+import startOfWeek from 'date-fns/startOfWeek';
+import isWithinInterval from 'date-fns/isWithinInterval';
+import { DateTimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
+import { createStyles } from '@material-ui/styles';
 import { createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles';
-import { IconButton, withStyles } from "@material-ui/core";
+import { IconButton, withStyles } from '@material-ui/core';
 
 const theme = createMuiTheme({
   palette: {
@@ -36,10 +37,11 @@ let WeekSelector = ({ classes, input, style }) => {
   const formatWeekSelectLabel = (date, invalidLabel) => {
 
     return date && isValid(date)
-      ? `${format(date, "EEEE, hh:mm aaa")}`
+      ? `${format(date, 'EEEE, hh:mm aaa')}`
       : invalidLabel;
   };
 
+  // eslint-disable-next-line react/display-name
   const renderWrappedWeekDay = (date, selectedDate, dayInCurrentMonth) => {
 
     const start = startOfWeek(selectedDate);
@@ -63,7 +65,7 @@ let WeekSelector = ({ classes, input, style }) => {
     return (
       <div className={wrapperClassName}>
         <IconButton className={dayClassName}>
-          <span> {format(date, "d")} </span>
+          <span> {format(date, 'd')} </span>
         </IconButton>
       </div>
     );
@@ -89,46 +91,54 @@ let WeekSelector = ({ classes, input, style }) => {
 
 const styles = createStyles(theme => ({
   dayWrapper: {
-    position: "relative",
+    position: 'relative',
   },
   day: {
     width: 36,
     height: 36,
     fontSize: theme.typography.caption.fontSize,
-    margin: "0 2px",
-    color: "inherit",
+    margin: '0 2px',
+    color: 'inherit',
   },
   customDayHighlight: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     bottom: 0,
-    left: "2px",
-    right: "2px",
+    left: '2px',
+    right: '2px',
     border: `1px solid ${theme.palette.secondary.main}`,
-    borderRadius: "50%",
+    borderRadius: '50%',
   },
   nonCurrentMonthDay: {
     color: theme.palette.text.disabled,
   },
   highlightNonCurrentMonthDay: {
-    color: "#676767",
+    color: '#676767',
   },
   highlight: {
     background: theme.palette.primary.main,
     color: theme.palette.common.white,
   },
   firstHighlight: {
-    extend: "highlight",
-    borderTopLeftRadius: "50%",
-    borderBottomLeftRadius: "50%",
+    extend: 'highlight',
+    borderTopLeftRadius: '50%',
+    borderBottomLeftRadius: '50%',
   },
   endHighlight: {
-    extend: "highlight",
-    borderTopRightRadius: "50%",
-    borderBottomRightRadius: "50%",
+    extend: 'highlight',
+    borderTopRightRadius: '50%',
+    borderBottomRightRadius: '50%',
   },
 }));
 
 WeekSelector = withStyles(styles)(WeekSelector);
+
+WeekSelector.displayName = 'WeekSelector';
+
+WeekSelector.propTypes = {
+  input: PropTypes.object.isRequired,
+  style: PropTypes.object,
+  classes: PropTypes.object.isRequired
+};
 
 export { WeekSelector }

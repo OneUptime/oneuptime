@@ -4,7 +4,6 @@ import { TimePicker, DateTimePicker, MuiPickersUtilsProvider } from '@material-u
 import ShouldRender from '../basic/ShouldRender';
 import { createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles';
 import DateFnsUtils from '@date-io/date-fns';
-import { WeekSelector } from './WeekSelector';
 
 const theme = createMuiTheme({
     palette: {
@@ -93,7 +92,8 @@ TimeSelector.displayName = 'TimeSelector';
 TimeSelector.propTypes = {
     input: PropTypes.object.isRequired,
     style: PropTypes.object,
-    meta: PropTypes.object.isRequired
+    meta: PropTypes.object.isRequired,
+    rotationFrequency: PropTypes.string
 };
 
 export default TimeSelector;
