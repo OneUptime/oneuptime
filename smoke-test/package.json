@@ -12,7 +12,7 @@
   "dependencies": {
     "faker": "^4.1.0",
     "jest": "^24.7.1",
-    "puppeteer": "^1.17.0",
+    "puppeteer": "1.19.0",
     "should": "^13.2.3"
   }
 }
