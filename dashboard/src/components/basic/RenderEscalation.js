@@ -51,7 +51,7 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                                 rotationFrequency: '',
                                                 rotationInterval: '',
                                                 rotationSwitchTime: '',
-                                                timezone: '',
+                                                rotationTimezone: '',
                                                 team: [
                                                   {
                                                     teamMember: [],

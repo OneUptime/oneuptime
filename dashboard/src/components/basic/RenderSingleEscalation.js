@@ -231,7 +231,7 @@ let RenderSingleEscalation = ({
                                             <Field
                                               className="db-BusinessSettings-input TextInput bs-TextInput"
                                               type="text"
-                                              name={`${policy}.timezone`}
+                                              name={`${policy}.rotationTimezone`}
                                               component={TimezoneSelector}
                                               style={{width:'250px'}}
                                               placeholder="CXT - Christmas"
