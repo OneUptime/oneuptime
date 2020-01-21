@@ -5,6 +5,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { RenderRotationFrequency } from './RenderRotationFrequency';
 import { RenderInterval } from './RenderInterval';
 import { RenderRotationSwitchTime } from './RenderRotationSwitchTime';
+import TimezoneSelector  from './TimezoneSelector';
 import { RenderTeams } from './RenderTeams';
 import { RenderField } from './RenderField';
 
@@ -225,6 +226,15 @@ let RenderSingleEscalation = ({
                                             <RenderRotationSwitchTime
                                               policy={policy}
                                               rotationFrequency={rotationFrequency}
+                                            />
+
+                                            <Field
+                                              className="db-BusinessSettings-input TextInput bs-TextInput"
+                                              type="text"
+                                              name={`${policy}.timezone`}
+                                              component={TimezoneSelector}
+                                              style={{width:'250px'}}
+                                              placeholder="CXT - Christmas"
                                             />
                                           </>
                                         )}
