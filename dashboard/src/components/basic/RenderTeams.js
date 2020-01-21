@@ -14,42 +14,44 @@ let RenderTeams = ({
       {
         fields.map((team, i) => {
           return (
-            <li key={i}>
-              <div className="bs-Fieldset-row">
-                 <label className="bs-Fieldset-label">{canAddTeams ? `Team ${i + 1}` : 'Team'}</label>
+            <li key={i} className="team">
+              <hr className="team-line-demarcator" />
+              <div className="team-header-label">
+                <h3>{canAddTeams ? `Team ${i + 1}` : 'Team'}</h3>
+              </div>
+              <div >
+                <FieldArray
+                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                    name={`${team}.teamMember`}
+                    component={RenderNames}
+                    subProjectId={subProjectId}
+                    policyIndex={policyIndex}
+                    teamIndex={i}
+                />
+          
+                <ShouldRender if={fields.length > 1}>
                   <div className="bs-Fieldset-row">
-                    <FieldArray
-                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                        name={`${team}.teamMember`}
-                        component={RenderNames}
-                        subProjectId={subProjectId}
-                        policyIndex={policyIndex}
-                        teamIndex={i}
-                    />
+                      <label className="bs-Fieldset-label"></label>
+                      <div className="bs-Fieldset-fields">
+                          <div className="Box-root Flex-flex Flex-alignItems--center">
+                              <button
+                                  className="bs-Button bs-DeprecatedButton"
+                                  type="button"                                     
+                                  onClick={() => fields.remove(i)}
+                              >
+                                  Remove Team
+                              </button>
+                          </div>
+                      </div>
                   </div>
+                </ShouldRender>
+              </div>
               
-              <ShouldRender if={fields.length > 1}>
-                <div className="bs-Fieldset-row">
-                    <label className="bs-Fieldset-label"></label>
-                    <div className="bs-Fieldset-fields">
-                        <div className="Box-root Flex-flex Flex-alignItems--center">
-                            <button
-                                className="bs-Button bs-DeprecatedButton"
-                                type="button"                                     
-                                onClick={() => fields.remove(i)}
-                            >
-                                Remove Team
-                            </button>
-                        </div>
-                    </div>
-                </div>
-              </ShouldRender>
-            </div>
             </li>
           )
         })
       }
-
+      <hr className="team-line-demarcator" />
       <div className="bs-Fieldset-row">
           <label className="bs-Fieldset-label"></label>
           {canAddTeams ? (

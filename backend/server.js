@@ -7,23 +7,23 @@ var redisAdapter = require('socket.io-redis');
 var keys = require('./backend/config/keys.js');
 var bodyParser = require('body-parser');
 var cors = require('cors');
-const Agenda = require('agenda');
-const switchActiveTeam = require('./backend/services/escalationService').switchActiveTeam;
+// const Agenda = require('agenda');
+// const switchActiveTeam = require('./backend/services/escalationService').switchActiveTeam;
 //var { fork } = require('child_process');
 
 //fork('./backend/workers/cronjob.js');
 
-const agenda = new Agenda();
-agenda.database(keys.dbURL);
-agenda.define('update active team on rotation', async (job, done) => {
-    switchActiveTeam();
-    if (done) done();
-});
+// const agenda = new Agenda();
+// agenda.database(keys.dbURL);
+// agenda.define('update active team on rotation', async (job, done) => {
+//     switchActiveTeam();
+//     if (done) done();
+// });
 
-(async function() {
-    await agenda.start();
-    await agenda.every('6 hours', 'update active team on rotation');
-})();
+// (async function() {
+//     await agenda.start();
+//     await agenda.every('6 hours', 'update active team on rotation');
+// })();
 
 var { NODE_ENV } = process.env;
 

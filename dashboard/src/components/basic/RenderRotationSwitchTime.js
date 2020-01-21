@@ -12,7 +12,7 @@ const RenderRotationSwitchTime = ({
     return (
       <>
         <ShouldRender if={rotationFrequency === 'days' || rotationFrequency === 'months'}>
-          <div style={{paddingLeft:'0px', paddingTop:'5px'}}>
+          <div style={{paddingLeft:'0px', paddingTop:'5px', paddingBottom: 20, marginBottom: 10 }}>
             <Field
                 className="db-BusinessSettings-input TextInput bs-TextInput"
                 type="text"
@@ -26,7 +26,7 @@ const RenderRotationSwitchTime = ({
         </ShouldRender>
 
         <ShouldRender if={rotationFrequency === 'weeks'}>
-          <div style={{paddingLeft:'0px', paddingTop:'5px'}}>
+          <div style={{paddingLeft:'0px', paddingTop:'5px', paddingBottom: 15 }}>
             <Field
                 className="db-BusinessSettings-input TextInput bs-TextInput"
                 type="text"

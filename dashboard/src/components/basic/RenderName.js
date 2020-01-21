@@ -29,7 +29,7 @@ let RenderName = ({
     const showTimes = memberHasCallTimes ? (!forcedTimeHide) : timeVisible;
     return (
         <li key={nameIndex}>
-
+            
             <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label">Team Member {nameIndex + 1}</label>
                 <div className="bs-Fieldset-fields">
@@ -42,7 +42,7 @@ let RenderName = ({
                         subProjectId={subProjectId}
                         policyIndex={policyIndex}
                         teamIndex={teamIndex}
-                    />
+                    />                    
                 </div>
             </div>                            
 

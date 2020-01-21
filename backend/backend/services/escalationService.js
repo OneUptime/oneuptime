@@ -55,6 +55,8 @@ module.exports = {
                 emailFrequency: data.emailFrequency,
                 rotationFrequency: data.rotationFrequency,
                 rotationInterval: data.rotationInterval,
+                rotationSwitchTime: data.rotationSwitchTime,
+                rotationTimezone: data.rotationTimezone,
                 projectId: data.projectId,
                 scheduleId: data.scheduleId,
                 createdById: data.createdById,
@@ -70,7 +72,7 @@ module.exports = {
 
             escalationModel.activeTeamId = activeTeam._id;
             escalationModel.activeTeam = activeTeam;
-            escalationModel.estimatedSwitchTime = activeTeam.rotationEndTime;
+            // escalationModel.estimatedSwitchTime = activeTeam.rotationEndTime;
 
             var escalation = await escalationModel.save();
             return escalation;
@@ -217,6 +219,7 @@ function composeActiveTeam (id, teams, interval, frequency, date = new Date(), i
 }
 
 async function switchActiveTeam() {
+    // eslint-disable-next-line no-useless-catch
     try {
         const escalations = await EscalationModel.find();
         escalations.forEach(async escalation => {
