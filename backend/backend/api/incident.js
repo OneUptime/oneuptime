@@ -85,10 +85,10 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {monitorId}
 // Returns: 200: incidents, 400: Error; 500: Server Error.
-router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, async function (req, res) {
+router.post('/:projectId/monitor/:monitorId', getUser, isAuthorized, async function (req, res) {
     // include date range
     try {
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate } = req.body;
         var query = { monitorId: req.params.monitorId, projectId: req.params.projectId };
 
         if (startDate && endDate) {
@@ -97,7 +97,7 @@ router.get('/:projectId/monitor/:monitorId', getUser, isAuthorized, async functi
             query = { monitorId: req.params.monitorId, projectId: req.params.projectId, createdAt: { $gte: start, $lte: end } };
         }
 
-        var incidents = await IncidentService.findBy(query, req.query.limit || 3, req.query.skip || 0);
+        var incidents = await IncidentService.findBy(query, req.body.limit || 3, req.body.skip || 0);
         var count = await IncidentService.countBy(query);
         return sendListResponse(req, res, incidents, count);
     } catch (error) {

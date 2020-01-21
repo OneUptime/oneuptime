@@ -299,9 +299,9 @@ router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, as
 
 // Route
 // Description: Get all Monitor Logs by monitorId
-router.get('/:projectId/log/:monitorId', getUser, isAuthorized, async function (req, res) {
+router.post('/:projectId/monitorLog/:monitorId', getUser, isAuthorized, async function (req, res) {
     try {
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate } = req.body;
         var monitorId = req.params.monitorId;
         var monitorLogs = await MonitorService.getMonitorLogs(monitorId, startDate, endDate);
         return sendListResponse(req, res, monitorLogs);
