@@ -74,7 +74,7 @@ class AreaChart extends Component {
         } else {
             return (
                 <div style={noDataStyle}>
-                    {requesting ? <Loader /> : <h3>NO DATA</h3>}
+                    {requesting ? <Loader /> : <h3>We&apos;re currently in the process of collecting data for this monitor. <br/>More info will be available soon.</h3>}
                 </div>
             );
         }
