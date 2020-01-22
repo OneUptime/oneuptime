@@ -178,8 +178,9 @@ describe('Incident API', function () {
                     callFrequency: 10,
                     rotationFrequency: 'week',
                     rotationInterval: 2,
+                    rotationSwitchTime: 'Wed Jan 22 2020 09:25:15 GMT+0100 (West Africa Standard Time)',
                     call: true,
-                    sms: true,
+                    sms: false,
                     email: false,
                     team: [{
                         teamMember: [{
