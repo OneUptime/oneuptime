@@ -35,7 +35,14 @@ module.exports = {
             if(!query.deleted) query.deleted = false;
             var escalation = await EscalationModel.findOne(query)
                 .populate('projectId', 'name')
-                .populate('scheduleId', 'name');
+                .populate('scheduleId', 'name')
+                .lean();
+            if (escalation.rotationFrequency && escalation.rotationInterval) {
+                const { activeTeam, nextActiveTeam } = computeActiveTeams(escalation);
+                escalation.activeTeam = activeTeam;
+                escalation.nextActiveTeam = nextActiveTeam;
+            }
+            
             return escalation;
         } catch (error) {
             ErrorService.log('escalationService.findOneBy', error);
@@ -62,17 +69,6 @@ module.exports = {
                 createdById: data.createdById,
                 team: data.team,
             });
-
-            const activeTeam = composeActiveTeam(
-                escalationModel.team[0]._id,
-                escalationModel.team,
-                escalationModel.rotationInterval,
-                escalationModel.rotationFrequency
-            );
-
-            escalationModel.activeTeamId = activeTeam._id;
-            escalationModel.activeTeam = activeTeam;
-            // escalationModel.estimatedSwitchTime = activeTeam.rotationEndTime;
 
             var escalation = await escalationModel.save();
             return escalation;
@@ -210,66 +206,79 @@ module.exports = {
     }
 };
 
-function composeActiveTeam (id, teams, interval, frequency, date = new Date(), incrementBy = date) {
-    const activeTeam = teams.find(team => team._id === id);
-    activeTeam.rotationStartTime = date;
-    activeTeam.rotationEndTime = moment(incrementBy).add(interval, frequency);
-
-    return activeTeam;
+function computeIntervalDiffs(frequency, createdAt, currentDate) {
+    switch (frequency) {
+    case 'days':
+        return differenceInDays(currentDate, createdAt);
+    case 'weeks':
+        return differenceInWeeks(currentDate, createdAt);
+    case 'months':
+        return differenceInMonths(currentDate, createdAt);
+    }
 }
 
-async function switchActiveTeam() {
+function computeActiveTeamIndex(numberOfTeams, diffsInInterval) {
+    let diffInt = diffsInInterval % numberOfTeams;
+
+    let activeTeamIndex = 0;
+    // handle case 0%3 which gives the same result as 3%3
+    // but will mean different things for rotation purposes
+    if (diffsInInterval === 0) return activeTeamIndex;
+    if (diffInt === 0) {
+        activeTeamIndex = numberOfTeams - 1;
+    } else {
+        activeTeamIndex = diffInt - 1;
+    }
+
+    return activeTeamIndex;
+}
+
+function computeActiveTeams(escalation) {
     // eslint-disable-next-line no-useless-catch
     try {
-        const escalations = await EscalationModel.find();
-        escalations.forEach(async escalation => {
-            let {
-                estimatedSwitchTime, activeTeamId, _id,
-                team, rotationInterval, rotationFrequency,
-            } = escalation;
-      
-            const currentDate = new Date();
-            if (moment(estimatedSwitchTime).isSameOrBefore(currentDate)) {
-                const activeTeamIndex = escalation.team.findIndex(team => team._id.toString() === activeTeamId.toString());
-                let nextTeamIndex = activeTeamIndex + 1;
-                if (!escalation.team[nextTeamIndex]) {
-                    nextTeamIndex = 0;
-                }
-    
-                const nextActiveTeamId = escalation.team[nextTeamIndex]._id;
+        let {
+            team, rotationInterval, rotationFrequency,
+            rotationSwitchTime, createdAt
+        } = escalation;
+  
+        const currentDate = new Date();
+        if (rotationFrequency) {
+            const diffsInInterval = computeIntervalDiffs(rotationFrequency, createdAt, currentDate);
+            const activeTeamIndex = computeActiveTeamIndex(team.length, diffsInInterval);
+            const activeTeamRotationStartTime = moment(rotationSwitchTime).add(diffsInInterval, rotationFrequency);
+            const activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
+            const activeTeam = {
+                ...team[activeTeamIndex],
+                rotationStartTime: activeTeamRotationStartTime,
+                rotationEndTime: activeTeamRotationEndTime
+            };
+            let nextActiveTeamIndex = activeTeamIndex + 1;
 
-                const nextActiveTeam = composeActiveTeam(
-                    nextActiveTeamId,
-                    team,
-                    rotationInterval,
-                    rotationFrequency,
-                    escalation.estimatedSwitchTime
-                );
-                team.splice(nextTeamIndex, 1, nextActiveTeam);
-                team.forEach(indTeam => {
-                    if (indTeam._id.toString() !== nextActiveTeam._id.toString()) {
-                        indTeam.rotationStartTime = null;
-                        indTeam.rotationEndTime = null;
-                    }
-                });
-                await EscalationModel
-                    .findByIdAndUpdate(_id, {
-                        activeTeam: nextActiveTeam,
-                        activeTeamId: nextActiveTeam._id,
-                        team,
-                        estimatedSwitchTime: nextActiveTeam.rotationEndTime
-                    })
-                    .exec();
+            if (!team[nextActiveTeamIndex]) {
+                nextActiveTeamIndex = 0;
             }
+
+            const nextActiveTeamRotationStartTime = activeTeamRotationEndTime;
+            const nextActiveTeamRotationEndTime = moment(nextActiveTeamRotationStartTime).add(rotationInterval, rotationFrequency);
+            const nextActiveTeam = {
+                ...team[nextActiveTeamIndex],
+                rotationStartTime: nextActiveTeamRotationStartTime,
+                rotationEndTime: nextActiveTeamRotationEndTime
+            };
+
+            return { activeTeam, nextActiveTeam };
+        } else return null;
           
-        });
     } catch (err) {
         throw err;
     }
 }
 
-module.exports.switchActiveTeam = switchActiveTeam;
+module.exports.computeActiveTeams = computeActiveTeams;
 
 var EscalationModel = require('../models/escalation');
 var ErrorService = require('./errorService');
 const moment = require('moment');
+const differenceInDays = require('date-fns/differenceInDays');
+const differenceInWeeks = require('date-fns/differenceInWeeks');
+const differenceInMonths = require('date-fns/differenceInMonths');
