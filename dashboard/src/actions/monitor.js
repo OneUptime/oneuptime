@@ -255,7 +255,7 @@ export function deleteProjectMonitors(projectId) {
 export function fetchMonitorsIncidents(projectId, monitorId, skip, limit) {
     return function (dispatch) {
 
-        var promise = getApi(`incident/${projectId}/monitor/${monitorId}?limit=${limit}&skip=${skip}`);
+        var promise = postApi(`incident/${projectId}/monitor/${monitorId}`,{limit,skip});
         dispatch(fetchMonitorsIncidentsRequest(monitorId));
 
         promise.then(function (monitors) {
@@ -306,7 +306,7 @@ export function fetchMonitorsIncidentsFailure(error) {
 export function fetchMonitorsIncidentsRange(projectId, monitorId, limit, startDate, endDate) {
     return function (dispatch) {
 
-        var promise = getApi(`incident/${projectId}/monitor/${monitorId}?limit=${limit}&startDate=${startDate}&endDate=${endDate}`);
+        var promise = postApi(`incident/${projectId}/monitor/${monitorId}`,{limit,startDate,endDate});
         dispatch(fetchMonitorsIncidentsRangeRequest(monitorId));
 
         promise.then(function (monitors) {
@@ -406,7 +406,7 @@ export function fetchMonitorsSubscribersFailure(error) {
 // Fetch Monitor Logs list
 export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
-        var promise = getApi(`monitor/${projectId}/log/${monitorId}?startDate=${startDate}&endDate=${endDate}`);
+        var promise = postApi(`monitor/${projectId}/monitorLog/${monitorId}`,{startDate,endDate});
         dispatch(fetchMonitorLogsRequest());
         dispatch(updateDateRange(startDate, endDate));
 

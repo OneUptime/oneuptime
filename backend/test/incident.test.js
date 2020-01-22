@@ -76,7 +76,7 @@ describe('Incident API', function () {
 
     it('should get incidents belonging to a monitor', function (done) {
         var authorization = `Basic ${token}`;
-        request.get(`/incident/${projectId}/monitor/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
+        request.post(`/incident/${projectId}/monitor/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('data');

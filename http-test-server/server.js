@@ -10,9 +10,9 @@ if (NODE_ENV === 'local' || NODE_ENV === 'development')
 
 global.httpServerResponse = {
     statusCode: 200,
-    responseType: {values: ['json', 'html'], currentType: 'html'},
+    responseType: {values: ['json', 'html'], currentType: 'json'},
     responseTime: 0,
-    body: 'HTTP test server helps a user test responses of a page',
+    body: {status:'ok'},
 };
 
 app.use('*', function(req, res, next) {
@@ -34,15 +34,15 @@ app.use(require('./backend/api/settings'));
 app.get('/', function (req, res) {
     res.status(global.httpServerResponse.statusCode);
     setTimeout(function() {
-        res.setHeader('Content-Type', 'text/html');
+       
         if (global.httpServerResponse.responseType.currentType === 'html') {
+            res.setHeader('Content-Type', 'text/html');
             return res.send(global.httpServerResponse.body);
         } else {
             res.setHeader('Content-Type', 'application/json');
-            return res.send(JSON.stringify({
-                body: global.httpServerResponse.body
-            }));
+            return res.send(global.httpServerResponse.body);
         }
+        
     }, global.httpServerResponse.responseTime);
 });
 
