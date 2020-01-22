@@ -221,8 +221,8 @@ function computeActiveTeamIndex(numberOfTeams, diffsInInterval) {
     let diffInt = diffsInInterval % numberOfTeams;
 
     let activeTeamIndex = 0;
-    // handle case 0%3 which gives the same result as 3%3 but will mean different things
-    // for rotation purposes
+    // handle case 0%3 which gives the same result as 3%3
+    // but will mean different things for rotation purposes
     if (diffsInInterval === 0) return activeTeamIndex;
     if (diffInt === 0) {
         activeTeamIndex = numberOfTeams - 1;
@@ -236,8 +236,6 @@ function computeActiveTeamIndex(numberOfTeams, diffsInInterval) {
 function computeActiveTeams(escalation) {
     // eslint-disable-next-line no-useless-catch
     try {
-        // const escalations = await EscalationModel.find();
-        // escalations.forEach(async escalation => {
         let {
             team, rotationInterval, rotationFrequency,
             rotationSwitchTime, createdAt
@@ -271,7 +269,6 @@ function computeActiveTeams(escalation) {
             return { activeTeam, nextActiveTeam };
         } else return null;
           
-        // });
     } catch (err) {
         throw err;
     }
