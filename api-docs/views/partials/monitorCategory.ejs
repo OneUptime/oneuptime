@@ -4,8 +4,8 @@
       <h1>Monitor Category</h1>
     </b>
     <p>
-      <p>Monitor can be categorized in any way you like. Most of our customers categorize monitors by location - Eg:
-        US EAST, US WEST, EU. You can also categorize monitors by projects. </p>
+      <p>Monitor Category API can be categorized in any way you like. Most of our customers categorize monitors by
+        location - Eg: US EAST, US WEST, EU. You can also categorize monitors by projects.</p>
     </p>
     <div class="attribute-parameter-container">
       <h3>Path</h3>
@@ -33,7 +33,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Monitor Category<span class="requestType">POST</span></h3>
     <p>
-      <p>Create a monitor category in the project.</p>
+      <p>Create Monitor Category.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -53,15 +53,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -74,7 +74,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -94,7 +94,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -104,7 +104,18 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/monitorCategory/:projectId</p>
+          <p class="url">https://api.fyipe.com/monitorCategory/5e089f94b400211639928c94</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "monitorCategoryName": "US EAST"
+}
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
 
@@ -115,13 +126,14 @@
             <code class="language-json">
               <p>
 {
-"_id": "5cf0415ad79fda043a0b0916",
-"createdAt": "2019-05-30T20:47:22.581Z",
-"projectId": "5ce6a2fd2ffa26020dbe00b7",
-"createdById": "5ce6a2f52ffa26020dbe00b6",
-"name": "US EAST",
-"__v": 0
-} 
+  "deleted": false,
+  "_id": "5e1cee56e6a0421634359442",
+  "createdAt": "2020-01-13T22:25:26.028Z",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "name": "US EAST",
+  "__v": 0
+}
               </p>
             </code>
           </pre>
@@ -135,7 +147,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Monitor Categories<span class="requestType">GET</span></h3>
     <p>
-      <p>Get all monitor categories by project ID.</p>
+      <p>Get All Monitor Categories.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -162,62 +174,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type  ">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>API Key for your Fyipe Project</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="query">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
                 <span>skip</span>
-                <span class="item-type  ">integer</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Items you would like to skip. This is used for pagination.</p>
+                <p></p>
               </div>
             </div>
           </div>
         </li>
-
         <li data-location="query">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
                 <span>limit</span>
-                <span class="item-type ">integer</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Number of items you want to get from the API.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -231,15 +204,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Body</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -260,14 +233,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/monitorCategory/:projectId?skip=0&limit=5</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
+          <p class="url">https://api.fyipe.com/monitorCategory/5e089f94b400211639928c94?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -275,30 +241,28 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                      <code class="language-json">
-                        <p>
+            <code class="language-json">
+              <p>
+{
+  "data": [
     {
-      "data": [
-        {
       "name": "EU",
-      "_id": "5cef73a78b3eac1c10ec6ab2",
-      "createdAt": "2019-05-30T06:09:43.129Z"
-      },
-        {
-      "name": "US WEST",
-      "_id": "5cee7d95e194a35afba8b9aa",
-      "createdAt": "2019-05-29T12:39:49.062Z"
-      }
-      ],
-      "count": 2,
-      "skip":0,
-      "limit":10
-      }
-
-                        </p>
-  
-                      </code>
-                  </pre>
+      "_id": "5e1cee56e6a0421634359442",
+      "createdAt": "2020-01-13T22:25:26.028Z"
+    },
+    {
+      "name": "US EAST",
+      "_id": "5e1cedace6a0421634359441",
+      "createdAt": "2020-01-13T22:22:36.084Z"
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -309,7 +273,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Monitor Category<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit Monitor Category.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -329,28 +293,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -358,8 +300,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorCategoryId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -372,7 +329,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -392,7 +349,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -402,12 +359,22 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/monitorCategory/:projectId/:monitorCategoryId</p>
+          <p class="url">https://api.fyipe.com/monitorCategory/5e089f94b400211639928c94/5e1cedace6a0421634359441</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "deleted": false,
+  "_id": "5e1cedace6a0421634359441",
+  "createdAt": "2020-01-13T22:22:36.084Z",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "name": "US EAST",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -419,7 +386,17 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "deleted": false,
+  "_id": "5e1cedace6a0421634359441",
+  "createdAt": "2020-01-13T22:22:36.084Z",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "name": "US EAST",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -432,7 +409,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Monitor Category<span class="requestType">DELETE</span></h3>
     <p>
-      <p> Delete a monitor category by ID.</p>
+      <p>Delete Monitor Category.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -452,28 +429,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="Query">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type  ">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>API Key for your Fyipe Project</p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -481,8 +436,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorCategoryId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -503,7 +473,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/monitorCategory/:projectId/:monitorCategoryId</p>
+          <p class="url">https://api.fyipe.com/monitorCategory/5e089f94b400211639928c94/5e1cedace6a0421634359441</p>
         </div>
       </div>
 
@@ -514,13 +484,16 @@
             <code class="language-json">
               <p>
 {
-"_id": "5ced0a7ed05b2e0ff15e0759",
-"createdAt": "2019-05-28T10:16:30.829Z",
-"projectId": "5ce6a2fd2ffa26020dbe00b7",
-"createdById": "5ce6a2f52ffa26020dbe00b6",
-"name": "US EAST",
-"__v": 0,
-}
+  "deleted": true,
+  "_id": "5e1cedace6a0421634359441",
+  "createdAt": "2020-01-13T22:22:36.084Z",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "name": "US EAST",
+  "__v": 0,
+  "deletedAt": "2020-01-13T22:28:17.243Z",
+  "deletedById": "5e089f88b400211639928c92"
+}                
               </p>
             </code>
           </pre>

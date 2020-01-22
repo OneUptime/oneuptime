@@ -4,7 +4,7 @@
       <h1>SMS Template</h1>
     </b>
     <p>
-      <p></p>
+      <p>SMS Template API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create SMS Template<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Create SMS Template.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -52,28 +52,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -81,8 +59,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -95,7 +73,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -115,7 +93,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -125,12 +103,23 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsTemplate/:projectId</p>
+          <p class="url">https://api.fyipe.com/smsTemplate/5e089f94b400211639928c94</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "allowedVariables": [
+    "{{incidentTime}} : Time at which this incident occured.",
+    "{{monitorName}} : Name of the monitor on which incident has occured.",
+    "{{projectName}} : Name of the project on which the incident has occured.",
+    "{{incidentType}} : Type of incident."
+  ],
+  "smsType": "Subscriber Incident Created",
+  "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -142,7 +131,22 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "allowedVariables": [
+    "{{incidentTime}} : Time at which this incident occured.",
+    "{{monitorName}} : Name of the monitor on which incident has occured.",
+    "{{projectName}} : Name of the project on which the incident has occured.",
+    "{{incidentType}} : Type of incident."
+  ],
+  "deleted": false,
+  "_id": "5e1f691fecabd254a975b655",
+  "projectId": "5e089f94b400211639928c94",
+  "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.",
+  "smsType": "Subscriber Incident Created",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -155,7 +159,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All SMS Templates<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All SMS Templates.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -175,28 +179,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -204,8 +186,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -226,7 +208,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsTemplate/:projectId</p>
+          <p class="url">https://api.fyipe.com/smsTemplate/5e089f94b400211639928c94</p>
         </div>
       </div>
 
@@ -236,7 +218,40 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Created",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  },
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Acknowldeged",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  },
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Resolved",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  }
+]
+              </p>
             </code>
           </pre>
         </div>
@@ -249,7 +264,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get SMS Template<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Single SMS Template.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -269,15 +284,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -287,19 +302,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>smsTemplateId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -320,7 +328,8 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsTemplate/:projectId/smsTemplate/:smsTemplateId</p>
+          <p class="url">https://api.fyipe.com/smsTemplate/5e089f94b400211639928c94/smsTemplate/5e1f691fecabd254a975b655
+          </p>
         </div>
       </div>
 
@@ -330,7 +339,25 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "allowedVariables": [
+    "{{incidentTime}} : Time at which this incident occured.",
+    "{{monitorName}} : Name of the monitor on which incident has occured.",
+    "{{projectName}} : Name of the project on which the incident has occured.",
+    "{{incidentType}} : Type of incident."
+  ],
+  "deleted": false,
+  "_id": "5e1f691fecabd254a975b655",
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.",
+  "smsType": "Subscriber Incident Created",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -343,7 +370,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit SMS Template<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit SMS Template.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -363,28 +390,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -392,8 +397,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>smsTemplateId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -406,7 +426,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -426,7 +446,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -436,12 +456,28 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsTemplate/:projectId/smsTemplate/:smsTemplateId</p>
+          <p class="url">https://api.fyipe.com/smsTemplate/5e089f94b400211639928c94/smsTemplate/5e1f691fecabd254a975b655
+          </p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "allowedVariables": [
+    "{{incidentTime}} : Time at which this incident occured.",
+    "{{monitorName}} : Name of the monitor on which incident has occured.",
+    "{{projectName}} : Name of the project on which the incident has occured.",
+    "{{incidentType}} : Type of incident."
+  ],
+  "deleted": false,
+  "_id": "5e1f691fecabd254a975b655",
+  "projectId": "5e089f94b400211639928c94",
+  "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.",
+  "smsType": "Subscriber Incident Created",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -453,7 +489,22 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "allowedVariables": [
+    "{{incidentTime}} : Time at which this incident occured.",
+    "{{monitorName}} : Name of the monitor on which incident has occured.",
+    "{{projectName}} : Name of the project on which the incident has occured.",
+    "{{incidentType}} : Type of incident."
+  ],
+  "deleted": false,
+  "_id": "5e1f691fecabd254a975b655",
+  "projectId": "5e089f94b400211639928c94",
+  "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.",
+  "smsType": "Subscriber Incident Created",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -466,7 +517,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Reset SMS Template<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Reset SMS Template.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -486,15 +537,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -504,19 +555,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>templateId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -537,7 +581,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsTemplate/:projectId/:templateId/reset</p>
+          <p class="url">https://api.fyipe.com/smsTemplate/5e089f94b400211639928c94/5e1f691fecabd254a975b655/reset</p>
         </div>
       </div>
 
@@ -547,7 +591,45 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "_id": "5e1f691fecabd254a975b655",
+    "projectId": {
+      "_id": "5e089f94b400211639928c94",
+      "name": "Bello"
+    },
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.",
+    "smsType": "Subscriber Incident Created"
+  },
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Acknowldeged",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  },
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Resolved",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  }
+]              
+              </p>
             </code>
           </pre>
         </div>
@@ -560,7 +642,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Add Values To SMS Template<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Add Values To SMS Template.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -580,28 +662,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -609,8 +669,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -623,7 +683,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -643,7 +703,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -653,12 +713,45 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsTemplate/:projectId</p>
+          <p class="url">https://api.fyipe.com/smsTemplate/5e089f94b400211639928c94</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Created",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  },
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Acknowldeged",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  },
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Resolved",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  }
+]                
+              </p>
             </code>
           </pre>
         </div>
@@ -670,7 +763,40 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Created",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  },
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Acknowldeged",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  },
+  {
+    "allowedVariables": [
+      "{{incidentTime}} : Time at which this incident occured.",
+      "{{monitorName}} : Name of the monitor on which incident has occured.",
+      "{{projectName}} : Name of the project on which the incident has occured.",
+      "{{incidentType}} : Type of incident."
+    ],
+    "smsType": "Subscriber Incident Resolved",
+    "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor."
+  }
+]              
+              </p>
             </code>
           </pre>
         </div>
@@ -683,7 +809,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete SMS Template<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete SMS Template.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -703,15 +829,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -721,19 +847,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>smsTemplateId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -754,7 +873,8 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsTemplate/:projectId/smsTemplate/:smsTemplateId</p>
+          <p class="url">https://api.fyipe.com/smsTemplate/5e089f94b400211639928c94/smsTemplate/5e1f691fecabd254a975b655
+          </p>
         </div>
       </div>
 
@@ -764,7 +884,24 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "allowedVariables": [
+    "{{incidentTime}} : Time at which this incident occured.",
+    "{{monitorName}} : Name of the monitor on which incident has occured.",
+    "{{projectName}} : Name of the project on which the incident has occured.",
+    "{{incidentType}} : Type of incident."
+  ],
+  "deleted": false,
+  "_id": "5e1f691fecabd254a975b655",
+  "projectId": "5e089f94b400211639928c94",
+  "body": "{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.",
+  "smsType": "Subscriber Incident Created",
+  "__v": 0,
+  "deletedAt": "2020-01-11T19:17:23.594Z",
+  "deletedById": "5e089f88b400211639928c92"
+}                 
+              </p>
             </code>
           </pre>
         </div>

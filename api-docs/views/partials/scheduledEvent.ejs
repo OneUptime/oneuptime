@@ -4,7 +4,7 @@
       <h1>Scheduled Event</h1>
     </b>
     <p>
-      <p></p>
+      <p>Scheduled Event API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Scheduled Event<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Create Scheduled Event.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -52,28 +52,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -81,8 +59,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -95,7 +88,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -115,7 +108,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -125,12 +118,22 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/scheduledEvent/:projectId/:monitorId</p>
+          <p class="url">https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e08a21b25c59a1c8033c7e7</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "name": "Hello",
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "alertSubscriber": true
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -142,7 +145,28 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "_id": "5e1e2a60b1df96583e883fe2",
+  "deleted": false,
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "monitorDuringEvent": false,
+  "alertSubscriber": true,
+  "createdAt": "2020-01-14T20:53:52.379Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "name": "Hello",
+  "createdById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -155,7 +179,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Scheduled Events<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Scheduled Events.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -182,8 +206,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -204,8 +243,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -226,7 +280,8 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/scheduledEvent/:projectId/:monitorId?skip=0&limit=5</p>
+          <p class="url">
+            https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e08a21b25c59a1c8033c7e7?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -236,7 +291,51 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e1e2a60b1df96583e883fe2",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-01-14T20:53:52.379Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+      "name": "Hello",
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-01-14T20:49:47.069Z",
+      "endDate": "2020-01-15T20:49:47.069Z",
+      "description": "Hello"
+    },
+    {
+      "_id": "5e1e2a07b1df96583e883fe1",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-01-14T20:52:23.198Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+      "name": "Hello 2",
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-01-14T20:49:47.069Z",
+      "endDate": "2020-01-15T20:49:47.069Z",
+      "description": "Hello"
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -249,7 +348,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Status Page Scheduled Events<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Status Page Scheduled Events.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -276,8 +375,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -298,8 +412,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -320,7 +449,9 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/scheduledEvent/:projectId/:monitorId/statusPage?skip=0&limit=5</p>
+          <p class="url">
+            https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e08a21b25c59a1c8033c7e7/statusPage?skip=0&limit=5
+          </p>
         </div>
       </div>
 
@@ -330,7 +461,51 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e1e2a60b1df96583e883fe2",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-01-14T20:53:52.379Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+      "name": "Hello",
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-01-14T20:49:47.069Z",
+      "endDate": "2020-01-15T20:49:47.069Z",
+      "description": "Hello"
+    },
+    {
+      "_id": "5e1e2a07b1df96583e883fe1",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-01-14T20:52:23.198Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+      "name": "Hello 2",
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-01-14T20:49:47.069Z",
+      "endDate": "2020-01-15T20:49:47.069Z",
+      "description": "Hello"
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -343,7 +518,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Scheduled Event<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit Scheduled Event.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -363,28 +538,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -392,8 +545,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>eventId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -406,7 +574,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -426,7 +594,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -436,12 +604,23 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/scheduledEvent/:projectId/:eventId</p>
+          <p class="url">https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e1e2a60b1df96583e883fe2</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "name": "Hello 3",
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "monitorDuringEvent": false,
+  "alertSubscriber": true
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -453,7 +632,25 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "deleted": false,
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "monitorDuringEvent": false,
+  "alertSubscriber": true,
+  "_id": "5e1e2a60b1df96583e883fe2",
+  "createdAt": "2020-01-14T20:53:52.379Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "name": "Hello 3",
+  "createdById": "5e089f88b400211639928c92",
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -466,7 +663,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Scheduled Event<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete Scheduled Event.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -486,15 +683,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -504,19 +701,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>eventId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -537,7 +727,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/scheduledEvent/:projectId/:eventId</p>
+          <p class="url">https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e1e2a60b1df96583e883fe2</p>
         </div>
       </div>
 
@@ -547,7 +737,27 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "deleted": true,
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "monitorDuringEvent": false,
+  "alertSubscriber": true,
+  "_id": "5e1e2a60b1df96583e883fe2",
+  "createdAt": "2020-01-14T20:53:52.379Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "name": "Pello",
+  "createdById": "5e089f88b400211639928c92",
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "__v": 0,
+  "deletedAt": "2020-01-14T20:57:57.751Z",
+  "deletedById": "5e089f88b400211639928c92"
+}                
+              </p>
             </code>
           </pre>
         </div>

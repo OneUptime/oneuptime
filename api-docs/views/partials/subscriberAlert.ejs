@@ -4,7 +4,7 @@
       <h1>Subscriber Alert</h1>
     </b>
     <p>
-      <p>Subscriber Alert are alerts sent to your subscribers for monitors they have subscribed to.
+      <p>Subscriber Alert API, alerts sent to your subscribers for monitors they have subscribed to.
       </p>
     </p>
 
@@ -26,15 +26,14 @@
     <div class="attribute-parameter-container"></div>
   </section>
 
-  <section class="col-lg-half col-md-half dev-doc-example">
-  </section>
+  <section class="col-lg-half col-md-half dev-doc-example"></section>
 </article>
 
 <article id="create-subscriber-alert" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Subscriber Alert<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Create Subscriber Alert.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -54,28 +53,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -83,8 +60,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>subscriberId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -97,7 +89,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -117,7 +109,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -127,12 +119,18 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriberAlert/:projectId/:subscriberId</p>
+          <p class="url">https://api.fyipe.com/subscriberAlert/5e089f94b400211639928c94/5e0f2e717f3127159be72c9f</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertStatus": "offline",
+  "alertVia": "sms",
+  "incidentId": "5e1725db1f31a13e98acd8d9"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -144,7 +142,20 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "error": false,
+  "deleted": false,
+  "_id": "5e1b551f41127144f81447ab",
+  "createdAt": "2020-01-12T17:19:27.346Z",
+  "projectId": "5e089f94b400211639928c94",
+  "subscriberId": "5e0f2e717f3127159be72c9f",
+  "incidentId": "5e1725db1f31a13e98acd8d9",
+  "alertVia": "sms",
+  "alertStatus": "offline",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -157,7 +168,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Subscriber Alerts<span class="requestType">GET</span></h3>
     <p>
-      <p> Get all subscribers by Project </p>
+      <p>Get All Subscriber Alerts.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -184,13 +195,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type">string</span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>API Key for the project or sub project</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -205,37 +216,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Number of items you would like to return from the API.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>skip</span>
-                <span class="item-type">integer</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Number of items you would need to skip. This is used in pagination</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>monitorId (optional)</span>
-                <span class="item-type">String</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Set this value if you want to filter the results by Monitor</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -251,8 +232,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -273,7 +254,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriberAlert/:projectId?skip=0&limit=5</p>
+          <p class="url">https://api.fyipe.com/subscriberAlert/5e089f94b400211639928c94?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -281,33 +262,118 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                                  <code class="language-json">
-                                    <p>
+            <code class="language-json">
+              <p>
 {
-"subscriberAlerts" [
-"_id": "qb0c129e36753400Xfdbc46P"
-"alertVia": "call",
-"status": "success"
-"subscriber": {
-  "_id": "eb0c129e36753400Xfdbc46l"
-  "alertVia": ["sms", "email"],
-  "monitors": [{ 
-    "_id": "Ab0c129e367534000fdbc46f", 
-    "name": "Sample Monitor"
-  }],
-  "contactEmail":"my@email.com",
-  "contactPhone": "+1-510-751-0204",
-}
-}],
-count:1,
-skip:0,
-limit:10
-}
-                                    
-                                    </p>
-              
-                                  </code>
-                              </pre>
+  "data": [
+    {
+      "error": false,
+      "_id": "5e1776ec1f31a13e98acdd1e",
+      "createdAt": "2020-01-09T18:54:36.231Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "subscriberId": {
+        "_id": "5e0f2e717f3127159be72c9f",
+        "contactEmail": "nawazdhandala@hackerbay.io",
+        "contactPhone": null,
+        "contactWebhook": null
+      },
+      "incidentId": {
+        "_id": "5e1776861f31a13e98acdd1a"
+      },
+      "alertVia": "email",
+      "alertStatus": "Sent"
+    },
+    {
+      "error": false,
+      "_id": "5e1776af1f31a13e98acdd1d",
+      "createdAt": "2020-01-09T18:53:35.262Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "subscriberId": {
+        "_id": "5e0f2e717f3127159be72c9f",
+        "contactEmail": "nawazdhandala@hackerbay.io",
+        "contactPhone": null,
+        "contactWebhook": null
+      },
+      "incidentId": {
+        "_id": "5e1776861f31a13e98acdd1a"
+      },
+      "alertVia": "email",
+      "alertStatus": "Sent"
+    },
+    {
+      "error": false,
+      "_id": "5e1395f5a55da96da8d148bf",
+      "createdAt": "2020-01-06T20:17:57.981Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "subscriberId": {
+        "_id": "5e0f2e717f3127159be72c9f",
+        "contactEmail": "nawazdhandala@hackerbay.io",
+        "contactPhone": null,
+        "contactWebhook": null
+      },
+      "incidentId": {
+        "_id": "5e13933da55da96da8d1482a"
+      },
+      "alertVia": "email",
+      "alertStatus": "Sent"
+    },
+    {
+      "error": false,
+      "_id": "5e139343a55da96da8d14893",
+      "createdAt": "2020-01-06T20:06:27.277Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "subscriberId": {
+        "_id": "5e0f2e717f3127159be72c9f",
+        "contactEmail": "nawazdhandala@hackerbay.io",
+        "contactPhone": null,
+        "contactWebhook": null
+      },
+      "incidentId": {
+        "_id": "5e13933da55da96da8d1482a"
+      },
+      "alertVia": "email",
+      "alertStatus": "Sent"
+    },
+    {
+      "error": false,
+      "_id": "5e138f8578c1306cb706bda3",
+      "createdAt": "2020-01-06T19:50:29.225Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "subscriberId": {
+        "_id": "5e0f2e717f3127159be72c9f",
+        "contactEmail": "nawazdhandala@hackerbay.io",
+        "contactPhone": null,
+        "contactWebhook": null
+      },
+      "incidentId": {
+        "_id": "5e138f7f78c1306cb706bd68"
+      },
+      "alertVia": "email",
+      "alertStatus": "Sent"
+    }
+  ],
+  "count": 16,
+  "skip": 0,
+  "limit": 5
+}                                                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -318,7 +384,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Subscriber Alerts By Incident<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Subscriber Alerts By Incident.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -345,8 +411,23 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -367,8 +448,23 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -389,7 +485,9 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriberAlert/:projectId/incident/:incidentId?skip=0&limit=5</p>
+          <p class="url">
+            https://api.fyipe.com/subscriberAlert/5e089f94b400211639928c94/incident/5e1776861f31a13e98acdd1a?skip=0&limit=5
+          </p>
         </div>
       </div>
 
@@ -399,7 +497,55 @@ limit:10
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "error": false,
+      "_id": "5e1776ec1f31a13e98acdd1e",
+      "createdAt": "2020-01-09T18:54:36.231Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "subscriberId": {
+        "_id": "5e0f2e717f3127159be72c9f",
+        "contactEmail": "nawazdhandala@hackerbay.io",
+        "contactPhone": null,
+        "contactWebhook": null
+      },
+      "incidentId": {
+        "_id": "5e1776861f31a13e98acdd1a"
+      },
+      "alertVia": "email",
+      "alertStatus": "Sent"
+    },
+    {
+      "error": false,
+      "_id": "5e1776af1f31a13e98acdd1d",
+      "createdAt": "2020-01-09T18:53:35.262Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "subscriberId": {
+        "_id": "5e0f2e717f3127159be72c9f",
+        "contactEmail": "nawazdhandala@hackerbay.io",
+        "contactPhone": null,
+        "contactWebhook": null
+      },
+      "incidentId": {
+        "_id": "5e1776861f31a13e98acdd1a"
+      },
+      "alertVia": "email",
+      "alertStatus": "Sent"
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>

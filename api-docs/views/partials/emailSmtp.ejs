@@ -4,7 +4,7 @@
       <h1>Email SMTP</h1>
     </b>
     <p>
-      <p></p>
+      <p>Email SMTP API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Setup Email SMTP<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Setup Email SMTP.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -52,28 +52,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -81,8 +59,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -95,7 +73,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -115,7 +93,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -125,20 +103,22 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/emailSmtp/:projectId</p>
+          <p class="url">https://api.fyipe.com/emailSmtp/5e089f94b400211639928c94</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p>{
-                "smtpswitch": true,
-                "user": "ibukundairo@hackerbay.io",
-                "pass": "TaYo4942++",
-                "host": "mail.hackerbay.io",
-                "from": "noreply@fyipe.com",
-                "port": "587",
-                "secure": true
-            }</p>
+              <p>
+{
+  "smtpswitch": true,
+  "user": "nawazdhandala@hackerbay.io",
+  "pass": "nawazdhandala",
+  "host": "mail.hackerbay.io",
+  "from": "noreply@fyipe.com",
+  "port": "587",
+  "secure": true
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -150,22 +130,24 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p>{
-                "_id": "5e1a154c1a4dae1373eeeca2",
-                "user": "ibukundairo@hackerbay.io",
-                "pass": "TaYo4942++",
-                "host": "mail.hackerbay.io",
-                "from": "noreply@fyipe.com",
-                "port": "587",
-                "secure": true,
-                "enabled": true,
-                "projectId": {
-                    "_id": "5e089f94b400211639928c94",
-                    "name": "Bello"
-                },
-                "createdAt": "2020-01-01 15:54:48.005Z",
-                "deleted": false
-            }</p>
+              <p>
+{
+  "_id": "5e1a154c1a4dae1373eeeca2",
+  "user": "nawazdhandala@hackerbay.io",
+  "pass": "nawazdhandala",
+  "host": "mail.hackerbay.io",
+  "from": "noreply@fyipe.com",
+  "port": "587",
+  "secure": true,
+  "enabled": true,
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "createdAt": "2020-01-01 15:54:48.005Z",
+  "deleted": false
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -178,7 +160,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Email SMTP Setup<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Email SMTP Setup.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -198,28 +180,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -227,8 +187,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -249,7 +209,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/emailSmtp/:projectId</p>
+          <p class="url">https://api.fyipe.com/emailSmtp/5e089f94b400211639928c94</p>
         </div>
       </div>
 
@@ -259,22 +219,24 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p>{
-                "_id": "5e1a154c1a4dae1373eeeca2",
-                "user": "ibukundairo@hackerbay.io",
-                "pass": "TaYo4942++",
-                "host": "mail.hackerbay.io",
-                "from": "noreply@fyipe.com",
-                "port": "587",
-                "secure": true,
-                "enabled": true,
-                "projectId": {
-                    "_id": "5e089f94b400211639928c94",
-                    "name": "Bello"
-                },
-                "createdAt": "2020-01-01 15:54:48.005Z",
-                "deleted": false
-            }</p>
+              <p>
+{
+  "_id": "5e1a154c1a4dae1373eeeca2",
+  "user": "nawazdhandala@hackerbay.io",
+  "pass": "nawazdhandala",
+  "host": "mail.hackerbay.io",
+  "from": "noreply@fyipe.com",
+  "port": "587",
+  "secure": true,
+  "enabled": true,
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "createdAt": "2020-01-01 15:54:48.005Z",
+  "deleted": false
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -287,7 +249,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Email SMTP Setup<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit Email SMTP Setup.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -307,28 +269,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -336,8 +276,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>emailSmtpId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -350,7 +305,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -370,7 +325,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -380,20 +335,22 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/emailSmtp/:projectId/:emailSmtpId</p>
+          <p class="url">https://api.fyipe.com/emailSmtp/5e089f94b400211639928c94/5e1a154c1a4dae1373eeeca2</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p>{
-                "smtpswitch": true,
-                "user": "ibukundairo@hackerbay.io",
-                "pass": "TaYo4942++",
-                "host": "mail.hackerbay.io",
-                "from": "noreply@fyipe.com",
-                "port": "587",
-                "secure": true
-            }</p>
+              <p>
+{
+  "smtpswitch": true,
+  "user": "nawazdhandala@hackerbay.io",
+  "pass": "nawazdhandala",
+  "host": "mail.hackerbay.io",
+  "from": "noreply@fyipe.com",
+  "port": "587",
+  "secure": true
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -405,22 +362,24 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p>{
-                "_id": "5e1a154c1a4dae1373eeeca2",
-                "user": "ibukundairo@hackerbay.io",
-                "pass": "TaYo4942++",
-                "host": "mail.hackerbay.io",
-                "from": "noreply@fyipe.com",
-                "port": "587",
-                "secure": true,
-                "enabled": true,
-                "projectId": {
-                    "_id": "5e089f94b400211639928c94",
-                    "name": "Bello"
-                },
-                "createdAt": "2020-01-01 15:54:48.005Z",
-                "deleted": false
-            }</p>
+              <p>
+{
+  "_id": "5e1a154c1a4dae1373eeeca2",
+  "user": "nawazdhandala@hackerbay.io",
+  "pass": "nawazdhandala",
+  "host": "mail.hackerbay.io",
+  "from": "noreply@fyipe.com",
+  "port": "587",
+  "secure": true,
+  "enabled": true,
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "createdAt": "2020-01-01 15:54:48.005Z",
+  "deleted": false
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -433,7 +392,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Email SMTP Setup<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete Email SMTP Setup.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -453,15 +412,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -471,19 +430,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>emailSmtpId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -504,7 +456,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/emailSmtp/:projectId/:emailSmtpId</p>
+          <p class="url">https://api.fyipe.com/emailSmtp/5e089f94b400211639928c94/5e1a154c1a4dae1373eeeca2</p>
         </div>
       </div>
 
@@ -514,19 +466,23 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p>{
-                "_id": "5e1a154c1a4dae1373eeeca2",
-                "user": "ibukundairo@hackerbay.io",
-                "pass": "TaYo4942++",
-                "host": "mail.hackerbay.io",
-                "from": "noreply@fyipe.com",
-                "port": "587",
-                "secure": true,
-                "enabled": true,
-                "projectId": "5e089f94b400211639928c94",
-                "createdAt": "2020-01-01 15:54:48.005Z",
-                "deleted": false
-            }</p>
+              <p>
+{
+  "_id": "5e1a154c1a4dae1373eeeca2",
+  "user": "nawazdhandala@hackerbay.io",
+  "pass": "nawazdhandala",
+  "host": "mail.hackerbay.io",
+  "from": "noreply@fyipe.com",
+  "port": "587",
+  "secure": true,
+  "enabled": true,
+  "projectId": "5e089f94b400211639928c94",
+  "createdAt": "2020-01-01 15:54:48.005Z",
+  "deleted": true,
+  "deletedAt": "2020-01-11T17:36:49.978Z",
+  "deletedById": "5e089f88b400211639928c92"
+}
+              </p>
             </code>
           </pre>
         </div>

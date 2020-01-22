@@ -4,7 +4,7 @@
       <h1>Subscriber</h1>
     </b>
     <p>
-      <p>Subscribers are your customers who subscribe to alerts for your Monitors. They are alerted via SMS and
+      <p>Subscriber API, your customers who subscribe to alerts for your Monitors. They are alerted via SMS and
         Email when something unexpected happens.
       </p>
     </p>
@@ -35,7 +35,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Status Page Subscriber<span class="requestType">POST</span></h3>
     <p>
-      <p> Create a subscriber for a monitor. </p>
+      <p>Create Status Page Subscriber.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -55,28 +55,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -84,8 +62,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>statusPageId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -98,7 +91,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -179,7 +172,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -189,16 +182,25 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId/:statusPageId</p>
+          <p class="url">https://api.fyipe.com/subscriber/5e089f94b400211639928c94/5e1b877a41127144f8144b9d</p>
 
           <p>Request Body</p>
-          <pre><code class="language-json"><p>{
-"api-key":"xxx",
-"alertVia": ["sms", "email"],
-"monitorIds": ["Ab0c129e367534000fdbc46f"],
-"contactEmail":"my@email.com",
-"contactPhone": "+1-510-751-0204",
-}</p></code></pre>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "userDetails": {
+    "method": "email",
+    "email": "nawazdhandala@hackerbay.io",
+    "contactEmail": "nawazdhandala@hackerbay.io"
+  },
+  "monitors": [
+    "5e08a21b25c59a1c8033c7e7"
+  ]
+}              
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
 
@@ -206,21 +208,31 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                              <code class="language-json">
-                                <p>{
-"_id": "eb0c129e36753400Xfdbc46l"
-"alertVia": ["sms", "email"],
-"monitors": [{ 
-"_id": "Ab0c129e367534000fdbc46f", 
-"name": "Sample Monitor"
-}],
-"contactEmail":"my@email.com",
-"contactPhone": "+1-510-751-0204",
-}
-                                </p>
-          
-                              </code>
-                          </pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "_id": "5e1b990041127144f8144ce9",
+    "createdAt": "2020-01-12T22:09:04.011Z",
+    "projectId": {
+      "_id": "5e089f94b400211639928c94",
+      "name": "Bello"
+    },
+    "monitorId": {
+      "_id": "5e08a21b25c59a1c8033c7e7",
+      "name": "Google Home"
+    },
+    "statusPageId": "5e1b877a41127144f8144b9d",
+    "alertVia": "email",
+    "contactEmail": "nawazdhandala@hackerbay.io",
+    "contactPhone": null,
+    "countryCode": null,
+    "contactWebhook": null
+  }
+]              
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -231,7 +243,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Monitor Subscriber<span class="requestType">POST</span></h3>
     <p>
-      <p> Update a subscriber in the project. </p>
+      <p>Create Monitor Subscriber.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -251,28 +263,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -280,8 +270,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -294,7 +299,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -375,8 +380,7 @@
           </div>
         </li>
       </ul>
-    </div>
-
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -386,15 +390,21 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId/subscribe/:monitorId</p>
+          <p class="url">https://api.fyipe.com/subscriber/5e089f94b400211639928c94/subscribe/5e08a21b25c59a1c8033c7e7
+          </p>
 
           <p>Request Body</p>
-          <pre><code class="language-json"><p>{
-"alertVia": ["sms", "email"],
-"monitorIds": ["Ab0c129e367534000fdbc46f"],
-"contactEmail":"my@email.com",
-"contactPhone": "+1-510-751-0204",
-}</p></code></pre>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "alertVia": "email",
+  "email": "nawazdhandala@hackerbay.io",
+  "contactEmail": "nawazdhandala@hackerbay.io"
+}
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
 
@@ -402,22 +412,31 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                                <code class="language-json">
-                                  <p>{
-"_id": "Xb0c129e367534000fdbc46f"
-"alertVia": ["sms", "email"],
-"monitors": [{ 
-"_id": "Ab0c129e367534000fdbc46f", 
-"name": "Sample Monitor"
-}],
-"contactEmail":"my@email.com",
-"contactPhone": "+1-510-751-0204",
-
-}
-                                  </p>
-            
-                                </code>
-                            </pre>
+            <code class="language-json">
+              <p>
+{
+  "deleted": false,
+  "_id": "5e1b973341127144f8144ce8",
+  "createdAt": "2020-01-12T22:01:23.791Z",
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "monitorId": {
+    "_id": "5e08a21b25c59a1c8033c7e7",
+    "name": "Google Home"
+  },
+  "statusPageId": null,
+  "alertVia": "email",
+  "contactEmail": "nawazdhandala@hackerbay.io",
+  "contactPhone": null,
+  "countryCode": null,
+  "contactWebhook": null,
+  "__v": 0
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -428,7 +447,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Subscribers<span class="requestType">GET</span></h3>
     <p>
-      <p> Get all subscribers by Project </p>
+      <p>Get All Subscribers.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -455,13 +474,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type">string</span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>API Key for the project or sub project</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -476,22 +495,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Number of items you would like to return from the API.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>skip</span>
-                <span class="item-type">integer</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Number of items you would need to skip. This is used in pagination</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -507,8 +511,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -529,7 +533,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId?skip=0&limit=5</p>
+          <p class="url">https://api.fyipe.com/subscriber/5e089f94b400211639928c94?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -537,28 +541,36 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                              <code class="language-json">
-                                <p>
+            <code class="language-json">
+              <p>
 {
-"subscribers" [{
-"_id": "eb0c129e36753400Xfdbc46l"
-"alertVia": ["sms", "email"],
-"monitors": [{ 
-  _id: "Ab0c129e367534000fdbc46f", 
-  name: "Sample Monitor"
-}],
-"contactEmail":"my@email.com",
-"contactPhone": "+1-510-751-0204",
-}],
-count:1,
-skip:0,
-limit:10
-}
-                                
-                                </p>
-          
-                              </code>
-                          </pre>
+  "data": [
+    {
+      "_id": "5e0f2e717f3127159be72c9f",
+      "createdAt": "2020-01-03T12:07:13.864Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "monitorId": {
+        "_id": "5e08a21b25c59a1c8033c7e7",
+        "name": "Google Home"
+      },
+      "statusPageId": null,
+      "alertVia": "email",
+      "contactEmail": "nawazdhandala@hackerbay.io",
+      "contactPhone": null,
+      "countryCode": null,
+      "contactWebhook": null
+    }
+  ],
+  "count": 1,
+  "skip": 0,
+  "limit": 5
+}                               
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -569,7 +581,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Monitor Subscribers<span class="requestType">GET</span></h3>
     <p>
-      <p> Get all subscribers by Project </p>
+      <p>Get All Monitor Subscribers.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -596,13 +608,13 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type">string</span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>API Key for the project or sub project</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -617,37 +629,7 @@ limit:10
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Number of items you would like to return from the API.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>skip</span>
-                <span class="item-type">integer</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Number of items you would need to skip. This is used in pagination</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>monitorId (optional)</span>
-                <span class="item-type">String</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Set this value if you want to filter the results by Monitor</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -663,8 +645,23 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -685,7 +682,9 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId/monitor/:monitorId?skip=0&limit=5</p>
+          <p class="url">
+            https://api.fyipe.com/subscriber/5e089f94b400211639928c94/monitor/5e08a21b25c59a1c8033c7e7?skip=0&limit=5
+          </p>
         </div>
       </div>
 
@@ -693,28 +692,36 @@ limit:10
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                              <code class="language-json">
-                                <p>
+            <code class="language-json">
+              <p>
 {
-"subscribers" [{
-"_id": "eb0c129e36753400Xfdbc46l"
-"alertVia": ["sms", "email"],
-"monitors": [{ 
-  _id: "Ab0c129e367534000fdbc46f", 
-  name: "Sample Monitor"
-}],
-"contactEmail":"my@email.com",
-"contactPhone": "+1-510-751-0204",
-}],
-count:1,
-skip:0,
-limit:10
-}
-                                
-                                </p>
-          
-                              </code>
-                          </pre>
+  "data": [
+    {
+      "_id": "5e0f2e717f3127159be72c9f",
+      "createdAt": "2020-01-03T12:07:13.864Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "monitorId": {
+        "_id": "5e08a21b25c59a1c8033c7e7",
+        "name": "Google Home"
+      },
+      "statusPageId": null,
+      "alertVia": "email",
+      "contactEmail": "nawazdhandala@hackerbay.io",
+      "contactPhone": null,
+      "countryCode": null,
+      "contactWebhook": null
+    }
+  ],
+  "count": 1,
+  "skip": 0,
+  "limit": 5
+}                                              
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -725,7 +732,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Subscriber<span class="requestType">GET</span></h3>
     <p>
-      <p> Get all subscribers by Subscriber ID </p>
+      <p>Get Single Subscriber.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -745,28 +752,6 @@ limit:10
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>API Key for the project or sub project</p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -774,8 +759,23 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>subscriberId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -796,7 +796,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId/:subscriberId</p>
+          <p class="url">https://api.fyipe.com/subscriber/5e089f94b400211639928c94/5e0f2e717f3127159be72c9f</p>
         </div>
       </div>
 
@@ -804,23 +804,31 @@ limit:10
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                                <code class="language-json">
-                                  <p>
+            <code class="language-json">
+              <p>
 {
-"_id": "eb0c129e36753400Xfdbc46l"
-"alertVia": ["sms", "email"],
-"monitors": [{ 
-"_id": "Ab0c129e367534000fdbc46f", 
-"name": "Sample Monitor"
-}],
-"contactEmail":"my@email.com",
-"contactPhone": "+1-510-751-0204",
-}
-                                  
-                                  </p>
-            
-                                </code>
-                            </pre>
+  "deleted": false,
+  "_id": "5e0f2e717f3127159be72c9f",
+  "createdAt": "2020-01-03T12:07:13.864Z",
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "monitorId": {
+    "_id": "5e08a21b25c59a1c8033c7e7",
+    "name": "Google Home"
+  },
+  "statusPageId": null,
+  "alertVia": "email",
+  "contactEmail": "nawazdhandala@hackerbay.io",
+  "contactPhone": null,
+  "countryCode": null,
+  "contactWebhook": null,
+  "__v": 0
+}                                              
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -831,7 +839,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Subscriber<span class="requestType">DELETE</span></h3>
     <p>
-      <p> Delete a subscriber by Subscriber ID </p>
+      <p>Delete Subscriber.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -851,29 +859,6 @@ limit:10
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type  ">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>API Key for your Fyipe Project</p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -881,8 +866,23 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>subscriberId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -903,7 +903,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/subscriber/:projectId/:subscriberId</p>
+          <p class="url">https://api.fyipe.com/subscriber/5e089f94b400211639928c94/5e0f2e717f3127159be72c9f</p>
         </div>
       </div>
 
@@ -911,22 +911,27 @@ limit:10
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                                  <code class="language-json">
-                                    <p>{
-"_id": "Xb0c129e367534000fdbc46f"
-"alertVia": ["sms", "email"],
-"monitors": [{ 
-"_id": "Ab0c129e367534000fdbc46f", 
-"name": "Sample Monitor"
-}],
-"contactEmail":"my@email.com",
-"contactPhone": "+1-510-751-0204",
-
-}
-                                  </p>
-              
-                                  </code>
-                              </pre>
+            <code class="language-json">
+              <p>
+{
+  "deleted": true,
+  "_id": "5e1b973341127144f8144ce8",
+  "createdAt": "2020-01-12T22:01:23.791Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "statusPageId": null,
+  "alertVia": "email",
+  "contactEmail": "nawazdhandala@hackerbay.io",
+  "contactPhone": null,
+  "countryCode": null,
+  "contactWebhook": null,
+  "__v": 0,
+  "deletedAt": "2020-01-12T22:02:33.736Z",
+  "deletedById": "5e089f88b400211639928c92"
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@
       <h1>Notification</h1>
     </b>
     <p>
-      <p></p>
+      <p>Notification API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Notification<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Create Notification.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -52,28 +52,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -81,8 +59,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -95,7 +73,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -115,7 +93,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -125,12 +103,17 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/notification/:projectId</p>
+          <p class="url">https://api.fyipe.com/notification/5e089f94b400211639928c94</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "icon": "warning",
+  "message": "Incident Created"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -142,7 +125,19 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "read": [],
+  "deleted": false,
+  "_id": "5e1e05f7776e6f5008cfa729",
+  "createdAt": "2020-01-14T18:18:31.401Z",
+  "projectId": "5e089f94b400211639928c94",
+  "message": "Incident Created,
+  "icon": "warning",
+  "createdBy": "5e089f88b400211639928c92",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -155,7 +150,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Notifications<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Notifications.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -182,8 +177,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -204,8 +214,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -226,21 +236,84 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/notification/:projectId?skip=0&limit=5</p>
-      </div>
+          <p class="url">https://api.fyipe.com/notification/5e089f94b400211639928c94?skip=0&limit=5</p>
+        </div>
 
-      <div class="doc-example-item">
-        <h1>Example Response (200)</h1>
+        <div class="doc-example-item">
+          <h1>Example Response (200)</h1>
 
-        <div class="example-code example-response">
-          <pre>
+          <div class="example-code example-response">
+            <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "read": [
+        "5e089f88b400211639928c92"
+      ],
+      "_id": "5e1dabc1587e032fb5668291",
+      "createdAt": "2020-01-14T11:53:37.700Z",
+      "projectId": "5e089f94b400211639928c94",
+      "message": "Google Home monitor was down for less than a minute and is now resolved by Ibukun Olatayo Dairo",
+      "icon": "success",
+      "createdBy": "5e089f88b400211639928c92"
+    },
+    {
+      "read": [
+        "5e089f88b400211639928c92"
+      ],
+      "_id": "5e1dabc0587e032fb5668290",
+      "createdAt": "2020-01-14T11:53:36.158Z",
+      "projectId": "5e089f94b400211639928c94",
+      "message": "An Incident was acknowledged by undefined",
+      "icon": "acknowledge",
+      "createdBy": "5e089f88b400211639928c92"
+    },
+    {
+      "read": [
+        "5e089f88b400211639928c92"
+      ],
+      "_id": "5e1dabb4587e032fb566828f",
+      "createdAt": "2020-01-14T11:53:24.304Z",
+      "projectId": "5e089f94b400211639928c94",
+      "message": "A New Incident was created for Google Home by Ibukun Olatayo Dairo",
+      "icon": "warning",
+      "createdBy": "Ibukun Olatayo Dairo"
+    },
+    {
+      "read": [
+        "5e089f88b400211639928c92"
+      ],
+      "_id": "5e1da8ed587e032fb566810d",
+      "createdAt": "2020-01-14T11:41:33.883Z",
+      "projectId": "5e089f94b400211639928c94",
+      "message": "Ubuntu Machine monitor was down for less than a minute and is now resolved by Ibukun Olatayo Dairo",
+      "icon": "success",
+      "createdBy": "5e089f88b400211639928c92"
+    },
+    {
+      "read": [
+        "5e089f88b400211639928c92"
+      ],
+      "_id": "5e1da8eb587e032fb566810c",
+      "createdAt": "2020-01-14T11:41:31.877Z",
+      "projectId": "5e089f94b400211639928c94",
+      "message": "An Incident was acknowledged by undefined",
+      "icon": "acknowledge",
+      "createdBy": "5e089f88b400211639928c92"
+    }
+  ],
+  "count": 96,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
+          </div>
         </div>
       </div>
-    </div>
   </section>
 </article>
 
@@ -248,7 +321,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Notification<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit Notification.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -268,28 +341,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -297,8 +348,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>notificationId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -311,7 +377,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -331,7 +397,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -341,12 +407,18 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/notification/:projectId/:notificationId</p>
+          <p class="url">https://api.fyipe.com/notification/5e089f94b400211639928c94/5e1e05f7776e6f5008cfa729</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "read": [
+    "5e089f88b400211639928c92"
+  ]
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -358,7 +430,21 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "read": [
+    "5e089f88b400211639928c92"
+  ],
+  "deleted": false,
+  "_id": "5e1e05f7776e6f5008cfa729",
+  "createdAt": "2020-01-14T18:18:31.401Z",
+  "projectId": "5e089f94b400211639928c94",
+  "message": "Incident Created",
+  "icon": "warning",
+  "createdBy": "5e089f88b400211639928c92",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -371,7 +457,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Read Notification<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Read Notification.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -391,28 +477,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -420,8 +484,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>notificationId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -434,7 +513,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -454,7 +533,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -464,14 +543,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/notification/:projectId/:notificationId/read</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
+          <p class="url">https://api.fyipe.com/notification/5e089f94b400211639928c94/5e1e05f7776e6f5008cfa729/read</p>
         </div>
       </div>
 
@@ -481,7 +553,21 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "read": [
+    "5e089f88b400211639928c92"
+  ],
+  "deleted": false,
+  "_id": "5e1e05f7776e6f5008cfa729",
+  "createdAt": "2020-01-14T18:18:31.401Z",
+  "projectId": "5e089f94b400211639928c94",
+  "message": "Incident Created",
+  "icon": "warning",
+  "createdBy": "5e089f88b400211639928c92",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -494,7 +580,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Read All Notifications<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Read All Notifications.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -514,28 +600,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -543,8 +607,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -557,7 +621,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -577,7 +641,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -587,14 +651,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/notification/:projectId/readAll</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
+          <p class="url">https://api.fyipe.com/notification/5e089f94b400211639928c94/readAll</p>
         </div>
       </div>
 
@@ -604,7 +661,12 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "count": 96,
+  "read": 10
+}
+              </p>
             </code>
           </pre>
         </div>

@@ -4,7 +4,7 @@
       <h1>Slack</h1>
     </b>
     <p>
-      <p></p>
+      <p>Slack API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Slack Auth<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Slack Auth Redirect.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -59,8 +59,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>state</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -70,19 +70,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>code</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -109,7 +102,7 @@
         </div>
       </div>
 
-      <div class="doc-example-item">
+      <!-- <div class="doc-example-item">
         <h1>Example Response (200)</h1>
 
         <div class="example-code example-response">
@@ -119,7 +112,7 @@
             </code>
           </pre>
         </div>
-      </div>
+      </div> -->
     </div>
   </section>
 </article>
@@ -128,7 +121,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Slack Teams<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Slack Teams.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -155,8 +148,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -177,8 +185,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -199,11 +207,11 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/slack/:projectId/teams?skip=0&limit=5</p>
+          <p class="url">https://api.fyipe.com/slack/5e089f94b400211639928c94/teams?skip=0&limit=5</p>
         </div>
       </div>
 
-      <div class="doc-example-item">
+      <!-- <div class="doc-example-item">
         <h1>Example Response (200)</h1>
 
         <div class="example-code example-response">
@@ -213,7 +221,7 @@
             </code>
           </pre>
         </div>
-      </div>
+      </div> -->
     </div>
   </section>
 </article>
@@ -222,7 +230,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Link Slack<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Link Slack.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -249,8 +257,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>code</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -271,8 +279,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -285,7 +293,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -305,7 +313,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -315,18 +323,22 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/slack/:projectId/link?code=xyz</p>
+          <p class="url">https://api.fyipe.com/slack/5e089f94b400211639928c94/link?code=xyz</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "slug": "5e089f94b400211639928c94"
+}                
+              </p>
             </code>
           </pre>
         </div>
       </div>
 
-      <div class="doc-example-item">
+      <!-- <div class="doc-example-item">
         <h1>Example Response (200)</h1>
 
         <div class="example-code example-response">
@@ -336,7 +348,7 @@
             </code>
           </pre>
         </div>
-      </div>
+      </div> -->
     </div>
   </section>
 </article>
@@ -365,15 +377,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -383,19 +395,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>teamId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -416,11 +421,11 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/slack/:projectId/unLink/:teamId</p>
+          <p class="url">https://api.fyipe.com/slack/5e089f94b400211639928c94/unLink/xyz</p>
         </div>
       </div>
 
-      <div class="doc-example-item">
+      <!-- <div class="doc-example-item">
         <h1>Example Response (200)</h1>
 
         <div class="example-code example-response">
@@ -430,7 +435,7 @@
             </code>
           </pre>
         </div>
-      </div>
+      </div> -->
     </div>
   </section>
 </article>

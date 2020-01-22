@@ -4,7 +4,7 @@
       <h1>Monitor Criteria</h1>
     </b>
     <p>
-      <p></p>
+      <p>Monitor Criteria API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Default Criteria<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Default Criteria.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -44,50 +44,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/monitorCriteria/</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -113,7 +69,332 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "url": {
+    "up_1000": [
+      {
+        "match": "all",
+        "responseType": "statusCode",
+        "filter": "gtEqualTo",
+        "field1": "200",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "statusCode",
+        "filter": "lessThan",
+        "field1": "300",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "doesRespond",
+        "filter": "isUp",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "responseTime",
+        "filter": "ltEqualTo",
+        "field1": "5000",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "up_1000_createAlert": false,
+    "up_1000_autoAcknowledge": false,
+    "up_1000_autoResolve": false,
+    "down_1000": [
+      {
+        "match": "any",
+        "responseType": "doesRespond",
+        "filter": "isDown",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "statusCode",
+        "filter": "gtEqualTo",
+        "field1": "400",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "down_1000_createAlert": true,
+    "down_1000_autoAcknowledge": true,
+    "down_1000_autoResolve": true,
+    "degraded_1000": [
+      {
+        "match": "all",
+        "responseType": "responseTime",
+        "filter": "greaterThan",
+        "field1": "5000",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "degraded_1000_createAlert": true,
+    "degraded_1000_autoAcknowledge": true,
+    "degraded_1000_autoResolve": true,
+    "type_1000": "url"
+  },
+  "api": {
+    "up_1000": [
+      {
+        "match": "all",
+        "responseType": "statusCode",
+        "filter": "gtEqualTo",
+        "field1": "200",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "statusCode",
+        "filter": "lessThan",
+        "field1": "300",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "doesRespond",
+        "filter": "isUp",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "responseTime",
+        "filter": "ltEqualTo",
+        "field1": "5000",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "up_1000_createAlert": false,
+    "up_1000_autoAcknowledge": false,
+    "up_1000_autoResolve": false,
+    "down_1000": [
+      {
+        "match": "any",
+        "responseType": "doesRespond",
+        "filter": "isDown",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "statusCode",
+        "filter": "gtEqualTo",
+        "field1": "400",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "down_1000_createAlert": true,
+    "down_1000_autoAcknowledge": true,
+    "down_1000_autoResolve": true,
+    "degraded_1000": [
+      {
+        "match": "all",
+        "responseType": "responseTime",
+        "filter": "greaterThan",
+        "field1": "5000",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "degraded_1000_createAlert": true,
+    "degraded_1000_autoAcknowledge": true,
+    "degraded_1000_autoResolve": true,
+    "type_1000": "api"
+  },
+  "script": {
+    "up_1000": [
+      {
+        "match": "all",
+        "responseType": "executes",
+        "filter": "executesIn",
+        "field1": "5000",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "error",
+        "filter": "doesNotThrowError",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "up_1000_createAlert": false,
+    "up_1000_autoAcknowledge": false,
+    "up_1000_autoResolve": false,
+    "down_1000": [
+      {
+        "match": "any",
+        "responseType": "error",
+        "filter": "throwsError",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "executes",
+        "filter": "doesNotExecuteIn",
+        "field1": "15000",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "down_1000_createAlert": true,
+    "down_1000_autoAcknowledge": true,
+    "down_1000_autoResolve": true,
+    "degraded_1000": [
+      {
+        "match": "all",
+        "responseType": "executes",
+        "filter": "doesNotExecuteIn",
+        "field1": "5000",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "error",
+        "filter": "doesNotThrowError",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "executes",
+        "filter": "executesIn",
+        "field1": "15000",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "degraded_1000_createAlert": true,
+    "degraded_1000_autoAcknowledge": true,
+    "degraded_1000_autoResolve": true,
+    "type_1000": "script"
+  },
+  "server-monitor": {
+    "up_1000": [
+      {
+        "match": "all",
+        "responseType": "storageUsage",
+        "filter": "greaterThan",
+        "field1": "10",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "doesRespond",
+        "filter": "isUp",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "up_1000_createAlert": false,
+    "up_1000_autoAcknowledge": false,
+    "up_1000_autoResolve": false,
+    "down_1000": [
+      {
+        "match": "any",
+        "responseType": "doesRespond",
+        "filter": "isDown",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "storageUsage",
+        "filter": "lessThan",
+        "field1": "5",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "down_1000_createAlert": true,
+    "down_1000_autoAcknowledge": true,
+    "down_1000_autoResolve": true,
+    "degraded_1000": [
+      {
+        "match": "all",
+        "responseType": "storageUsage",
+        "filter": "greaterThan",
+        "field1": "5",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "doesRespond",
+        "filter": "isUp",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      },
+      {
+        "responseType": "storageUsage",
+        "filter": "lessThan",
+        "field1": "10",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "degraded_1000_createAlert": true,
+    "degraded_1000_autoAcknowledge": true,
+    "degraded_1000_autoResolve": true,
+    "type_1000": "server-monitor"
+  },
+  "default": {
+    "up_1000": [
+      {
+        "match": "",
+        "responseType": "",
+        "filter": "",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "up_1000_createAlert": false,
+    "up_1000_autoAcknowledge": false,
+    "up_1000_autoResolve": false,
+    "down_1000": [
+      {
+        "match": "",
+        "responseType": "",
+        "filter": "",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "down_1000_createAlert": true,
+    "down_1000_autoAcknowledge": true,
+    "down_1000_autoResolve": true,
+    "degraded_1000": [
+      {
+        "match": "",
+        "responseType": "",
+        "filter": "",
+        "field1": "",
+        "field2": "",
+        "field3": false
+      }
+    ],
+    "degraded_1000_createAlert": true,
+    "degraded_1000_autoAcknowledge": true,
+    "degraded_1000_autoResolve": true,
+    "type_1000": ""
+  }
+}                
+              </p>
             </code>
           </pre>
         </div>

@@ -4,7 +4,7 @@
       <h1>Schedule</h1>
     </b>
     <p>
-      <p>Schedules defines who in your team will be alerted when the incident is created. How the escalation polies
+      <p>Schedule API, defines who in your team will be alerted when the incident is created. How the escalation polies
         are created, and more. </p>
     </p>
 
@@ -34,7 +34,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Schedule<span class="requestType">POST</span></h3>
     <p>
-      <p> Create a schedule in the project. </p>
+      <p>Create Schedule.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -53,15 +53,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3></h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -74,29 +74,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
-      <h3></h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -161,7 +139,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -171,15 +149,18 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94</p>
 
           <p>Request Body</p>
-          <pre><code class="language-json"><p>{
-"api-key":"xxx",
-"name": "Sample Schedule",
-"monitorIds": ["5b521b39f1a8f6000fce3839"],
-"userIds": ["5b0c1298367534000fdbc46e"]
-}</p></code></pre>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "name": "Call Team Members"
+}  
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
 
@@ -187,37 +168,23 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                      <code class="language-json">
-                        <p>
+            <code class="language-json">
+              <p>
 {
-"users": [{
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-}],
-"monitors": [
-{
-  "_id": "5b0ed2b5ff1870000fd249c0",
-  "name": "Dashboard"
-}
-],
-"_id": "5bbe0286d2f835000fb63e91",
-"name": "Sample Schedule",
-"createdBy": {
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-},
-"project": {
-"_id": "5b0c129e367534000fdbc46f",
-"name": "CloudBoost"
-},
-"createdAt": "2018-10-10T13:45:42.206Z",
-
-}
-                        
-                        </p>
-  
-                      </code>
-                  </pre>
+  "userIds": [],
+  "monitorIds": [],
+  "escalationIds": [],
+  "deleted": false,
+  "_id": "5e1e1e25b1df96583e883f23",
+  "createdAt": "2020-01-14T20:01:41.409Z",
+  "name": "Call Team Members",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "__v": 0
+}                              
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -228,7 +195,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Schedules<span class="requestType">GET</span></h3>
     <p>
-      <p> Get all schedules by Project </p>
+      <p>Get All Schedules.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -255,13 +222,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type">string</span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>API Key for the project or sub project</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -276,22 +243,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Number of items you would like to return from the API.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>skip</span>
-                <span class="item-type">integer</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Number of items you would need to skip. This is used in pagination</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -307,8 +259,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -329,7 +281,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId?skip=0&limit=5</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -337,39 +289,60 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                      <code class="language-json">
-                        <p>
+            <code class="language-json">
+              <p>
 {
-"data" [{
-"users": [
-  {
-    "_id": "5b0c1298367534000fdbc46e",
-    "name": "Nawaz Dhandala"
-  }
-],
-"monitors": [],
-"_id": "5b49fab4d8dacb000fbfdaf7",
-"name": "Dashboard",
-"createdBy": {
-  "_id": "5b0c1298367534000fdbc46e",
-  "name": "Nawaz Dhandala"
-},
-"project": {
-  "_id": "5b0c129e367534000fdbc46f",
-  "name": "CloudBoost"
-},
-"createdAt": "2018-07-14T13:29:24.458Z",
-
-}],
-count:1,
-skip:0,
-limit:10
-}
-                        
-                        </p>
-  
-                      </code>
-                  </pre>
+  "data": [
+    {
+      "userIds": [],
+      "monitorIds": [
+        {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        }
+      ],
+      "escalationIds": [],
+      "_id": "5e1e1e25b1df96583e883f23",
+      "createdAt": "2020-01-14T20:01:41.409Z",
+      "name": "Call Team Members",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "userIds": [],
+      "monitorIds": [
+        {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        }
+      ],
+      "escalationIds": [],
+      "_id": "5e1e1d2bb1df96583e883f22",
+      "createdAt": "2020-01-14T19:57:31.646Z",
+      "name": "Call Nilanshu",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -380,7 +353,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Schedules<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Schedules.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -407,8 +380,23 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -429,8 +417,8 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -451,7 +439,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId/schedule?skip=0&limit=5</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/schedule?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -461,7 +449,57 @@ limit:10
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "userIds": [],
+      "monitorIds": [
+        {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        }
+      ],
+      "escalationIds": [],
+      "_id": "5e1e1e25b1df96583e883f23",
+      "createdAt": "2020-01-14T20:01:41.409Z",
+      "name": "Call Team Members",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "userIds": [],
+      "monitorIds": [
+        {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        }
+      ],
+      "escalationIds": [],
+      "_id": "5e1e1d2bb1df96583e883f22",
+      "createdAt": "2020-01-14T19:57:31.646Z",
+      "name": "Call Nilanshu",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -474,7 +512,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All SubProjects Schedules<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All SubProjects Schedules.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -494,28 +532,6 @@ limit:10
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -523,8 +539,8 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -545,7 +561,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId/schedules</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/schedules</p>
         </div>
       </div>
 
@@ -555,7 +571,60 @@ limit:10
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "schedules": [
+      {
+        "userIds": [],
+        "monitorIds": [
+          {
+            "_id": "5e08a21b25c59a1c8033c7e7",
+            "name": "Google Home"
+          }
+        ],
+        "escalationIds": [],
+        "_id": "5e1e1e25b1df96583e883f23",
+        "createdAt": "2020-01-14T20:01:41.409Z",
+        "name": "Call Team Members",
+        "projectId": {
+          "_id": "5e089f94b400211639928c94",
+          "name": "Bello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "userIds": [],
+        "monitorIds": [
+          {
+            "_id": "5e08a21b25c59a1c8033c7e7",
+            "name": "Google Home"
+          }
+        ],
+        "escalationIds": [],
+        "_id": "5e1e1d2bb1df96583e883f22",
+        "createdAt": "2020-01-14T19:57:31.646Z",
+        "name": "Call Nilanshu",
+        "projectId": {
+          "_id": "5e089f94b400211639928c94",
+          "name": "Bello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      }
+    ],
+    "count": 2,
+    "_id": "5e089f94b400211639928c94",
+    "skip": 0,
+    "limit": 10
+  }
+]
+              </p>
             </code>
           </pre>
         </div>
@@ -568,7 +637,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Schedule<span class="requestType">PUT</span></h3>
     <p>
-      <p> Update a schedule in the project. </p>
+      <p>Edit Schedule.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -588,28 +657,6 @@ limit:10
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -617,8 +664,23 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>scheduleId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -631,7 +693,7 @@ limit:10
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -696,7 +758,7 @@ limit:10
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -707,15 +769,21 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId/:scheduleId</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/5e1e1e25b1df96583e883f23</p>
 
           <p>Request Body</p>
-          <pre><code class="language-json"><p>{
-"api-key":"xxx",
-"name": "Sample Schedule",
-"monitorIds": ["5b521b39f1a8f6000fce3839"],
-"userIds": ["5b0c1298367534000fdbc46e"]
-}</p></code></pre>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "name": "Call Nilanshu",
+  "monitorIds": [
+    "5e08a21b25c59a1c8033c7e7"
+  ]
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
 
@@ -723,37 +791,34 @@ limit:10
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                        <code class="language-json">
-                          <p>
-{
-"users": [{
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-}],
-"monitors": [
-{
-  "_id": "5b0ed2b5ff1870000fd249c0",
-  "name": "Dashboard"
-}
-],
-"_id": "5bbe0286d2f835000fb63e91",
-"name": "Sample Schedule",
-"createdBy": {
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-},
-"project": {
-"_id": "5b0c129e367534000fdbc46f",
-"name": "CloudBoost"
-},
-"createdAt": "2018-10-10T13:45:42.206Z",
-
-}
-                          
-                          </p>
-    
-                        </code>
-                    </pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "userIds": [],
+    "monitorIds": [
+      {
+        "_id": "5e08a21b25c59a1c8033c7e7",
+        "name": "Google Home"
+      }
+    ],
+    "escalationIds": [],
+    "_id": "5e1e1e25b1df96583e883f23",
+    "createdAt": "2020-01-14T20:01:41.409Z",
+    "name": "Call Nilanshu",
+    "projectId": {
+      "_id": "5e089f94b400211639928c94",
+      "name": "Bello"
+    },
+    "createdById": {
+      "_id": "5e089f88b400211639928c92",
+      "name": "Nawaz Dhandala"
+    }
+  }
+]               
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -764,7 +829,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Schedule<span class="requestType">DELETE</span></h3>
     <p>
-      <p> Delete a schedule by Schedule ID </p>
+      <p>Delete Schedule.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -784,28 +849,6 @@ limit:10
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type  ">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>API Key for your Fyipe Project</p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -813,8 +856,23 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>scheduleId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -835,7 +893,7 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId/:scheduleId</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/5e1e1e25b1df96583e883f23</p>
         </div>
       </div>
 
@@ -843,36 +901,29 @@ limit:10
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                          <code class="language-json">
-                            <p>
+            <code class="language-json">
+              <p>
 {
-"users": [{
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-}],
-"monitors": [
-{
-  "_id": "5b0ed2b5ff1870000fd249c0",
-  "name": "Dashboard"
-}
-],
-"_id": "5bbe0286d2f835000fb63e91",
-"name": "Sample Schedule",
-"createdBy": {
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-},
-"project": {
-"_id": "5b0c129e367534000fdbc46f",
-"name": "CloudBoost"
-},
-"createdAt": "2018-10-10T13:45:42.206Z",
-
-}
-                            </p>
-      
-                          </code>
-                      </pre>
+  "userIds": [],
+  "monitorIds": [
+    "5e08a21b25c59a1c8033c7e7"
+  ],
+  "escalationIds": [
+    "5e1e2355b1df96583e883f2b"
+  ],
+  "deleted": true,
+  "_id": "5e1e1e25b1df96583e883f23",
+  "createdAt": "2020-01-14T20:01:41.409Z",
+  "name": "Call Nilanshu",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "__v": 0,
+  "deletedAt": "2020-01-14T20:24:35.106Z",
+  "deletedById": "5e089f88b400211639928c92"
+}                   
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -883,7 +934,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Add Escalation<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Add Schedule Escalation.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -903,28 +954,6 @@ limit:10
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -932,8 +961,23 @@ limit:10
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>scheduleId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -946,7 +990,7 @@ limit:10
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -966,7 +1010,7 @@ limit:10
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -976,12 +1020,37 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId/:scheduleId/addEscalation</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/5e1e1e25b1df96583e883f23/addEscalation
+          </p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "callFrequency": "10",
+    "smsFrequency": "10",
+    "emailFrequency": "10",
+    "email": true,
+    "sms": true,
+    "call": false,
+    "team": [
+      {
+        "teamMember": [
+          {
+            "member": "5e089f88b400211639928c92",
+            "timezone": "Africa/Algiers",
+            "startTime": "Tue Jan 14 2020 09:00:06 GMT+0100 (West Africa Standard Time)",
+            "endTime": "Tue Jan 14 2020 17:00:06 GMT+0100 (West Africa Standard Time)"
+          }
+        ]
+      }
+    ],
+    "rotationFrequency": "day"
+  }
+]
+              </p>
             </code>
           </pre>
         </div>
@@ -993,7 +1062,42 @@ limit:10
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "call": false,
+    "email": true,
+    "sms": true,
+    "_id": "5e1e2355b1df96583e883f2b",
+    "team": [
+      {
+        "teamMember": [
+          {
+            "_id": "5e1e2355b1df96583e883f2d",
+            "member": "5e089f88b400211639928c92",
+            "startTime": "Tue Jan 14 2020 09:00:06 GMT+0100 (West Africa Standard Time)",
+            "endTime": "Tue Jan 14 2020 17:00:06 GMT+0100 (West Africa Standard Time)",
+            "timezone": "Africa/Algiers"
+          }
+        ],
+        "_id": "5e1e2355b1df96583e883f2c"
+      }
+    ],
+    "createdAt": "2020-01-14T20:23:49.525Z",
+    "callFrequency": "10",
+    "smsFrequency": "10",
+    "emailFrequency": "10",
+    "rotationFrequency": "day",
+    "rotationInterval": null,
+    "projectId": {
+      "_id": "5e089f94b400211639928c94",
+      "name": "Bello"
+    },
+    "scheduleId": null,
+    "createdById": "5e089f88b400211639928c92"
+  }
+]              
+              </p>
             </code>
           </pre>
         </div>
@@ -1006,7 +1110,7 @@ limit:10
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Escalation<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Schedule Escalation.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1026,15 +1130,15 @@ limit:10
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -1044,19 +1148,12 @@ limit:10
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>scheduleId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -1077,7 +1174,8 @@ limit:10
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/schedule/:projectId/:scheduleId/getescalation</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/5e1e1e25b1df96583e883f23/getescalation
+          </p>
         </div>
       </div>
 
@@ -1087,7 +1185,45 @@ limit:10
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "call": false,
+      "email": true,
+      "sms": true,
+      "_id": "5e1e2355b1df96583e883f2b",
+      "team": [
+        {
+          "teamMember": [
+            {
+              "_id": "5e1e2355b1df96583e883f2d",
+              "member": "5e089f88b400211639928c92",
+              "startTime": "Tue Jan 14 2020 09:00:06 GMT+0100 (West Africa Standard Time)",
+              "endTime": "Tue Jan 14 2020 17:00:06 GMT+0100 (West Africa Standard Time)",
+              "timezone": "Africa/Algiers"
+            }
+          ],
+          "_id": "5e1e2355b1df96583e883f2c"
+        }
+      ],
+      "createdAt": "2020-01-14T20:23:49.525Z",
+      "callFrequency": "10",
+      "smsFrequency": "10",
+      "emailFrequency": "10",
+      "rotationFrequency": "day",
+      "rotationInterval": null,
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "scheduleId": null,
+      "createdById": "5e089f88b400211639928c92"
+    }
+  ],
+  "count": 1
+}                
+              </p>
             </code>
           </pre>
         </div>
