@@ -99,12 +99,40 @@ router.get('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner,
 });
 
 router.post('/webHook/pi', async function (req, res) {
-    var paymentIntentData = req.body.data.object;
-    if (paymentIntentData.description === 'Recharge balance') {
-        var status = await StripeService.updateBalance(paymentIntentData);
-        return sendItemResponse(req, res, status);
+    try {
+        var paymentIntentData, status;
+        if (process.env.NODE_ENV === 'production') {
+            const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
+            const endpointSecret = process.env.WEBHOOK_SECRET;
+            const signatureHeader = req.headers['stripe-signature'];
+            let event = stripe.webhooks.constructEvent(req.body, signatureHeader, endpointSecret);
+            switch (event.type) {
+            case 'payment_intent.succeeded':
+                paymentIntentData = event.data.object;
+                if (paymentIntentData.description === 'Recharge balance') {
+                    status = await StripeService.updateBalance(paymentIntentData);
+                    return sendItemResponse(req, res, status);
+                }
+                return sendItemResponse(req, res, false);
+            default: return sendErrorResponse(req, res, {
+                message: 'Invalid event',
+                code: 400
+            });
+            }
+        } else {
+            paymentIntentData = req.body.data.object;
+            if (paymentIntentData.description === 'Recharge balance') {
+                status = await StripeService.updateBalance(paymentIntentData);
+                return sendItemResponse(req, res, status);
+            }
+            return sendItemResponse(req, res, false);
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, {
+            message: error.message,
+            code: 400
+        });
     }
-    return sendItemResponse(req, res, false);
 });
 
 router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async function (req, res) {

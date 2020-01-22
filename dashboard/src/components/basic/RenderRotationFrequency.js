@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types'
 import Select from 'react-select-fyipe';
-import { Field } from 'redux-form';
-import { RenderInterval } from './RenderInterval';
 
 const RenderRotationFrequency = ({
     input, placeholder, className,
     disabled, style, meta,
     options = [{ value: '', label: 'Select' }],
-    message, id, policy, rotationFrequency
+    message, id,
   }) => {
     const filteredOpt = useRef();
     filteredOpt.current = options.filter(opt => opt.value === input.value);
@@ -46,16 +44,9 @@ const RenderRotationFrequency = ({
                     isDisabled={disabled || false}
                     options={options.filter(opt => opt.show !== undefined ? opt.show : true)}
                 />
-                {rotationFrequency && (
-                  <Field
-                    name={`${policy}.rotationInterval`}
-                    component={RenderInterval}
-                  />
-                )}
               </span>
-                
-
             </div>
+
             {message && message.length && <><span style={{ marginLeft: '5px' }}>{message}</span><br /></>}
             {
                 meta.touched && meta.error &&
@@ -87,8 +78,6 @@ RenderRotationFrequency.propTypes = {
     options: PropTypes.array.isRequired,
     message: PropTypes.string,
     id: PropTypes.string,
-    policy: PropTypes.any.isRequired,
-    rotationFrequency: PropTypes.string.isRequired,
 }
 
 export { RenderRotationFrequency }

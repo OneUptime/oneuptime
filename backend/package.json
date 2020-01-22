@@ -1,16 +1,16 @@
 {
   "name": "fyipe-backend",
-  "version": "3.0.1295",
+  "version": "3.0.1357",
   "private": true,
   "dependencies": {
     "@slack/client": "^4.12.0",
-    "agenda": "^2.3.0",
     "airtable": "^0.7.2",
     "axios": "^0.18.1",
     "bcrypt": "^3.0.0",
     "body-parser": "^1.19.0",
     "cors": "^2.8.4",
     "cross-env": "^6.0.3",
+    "date-fns": "^2.9.0",
     "dompurify": "^2.0.7",
     "ejs": "^2.6.2",
     "eslint": "^4.19.1",

@@ -51026,3 +51026,32 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   background-color: inherit;
   color: #000000;
 }
+
+.team-header-label {
+  margin: auto;
+  width: 70px;
+  /* display: flex;
+  flex: 0 0 55%;
+  align-items: flex-start;
+  flex-direction: column; */
+}
+
+.team-header-label > h3 {
+  text-align: center;
+  margin-left: -167px;
+  width: 70px;
+  font-weight: bold;
+  background-color: white;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  font-size: 14px;
+  margin-top: 15px;
+  margin-bottom: 5px;
+  border: 0.5px solid #B4B3B3;
+  border-radius: 5px;
+}
+
+.team-line-demarcator {
+  margin-left: 15%;
+  margin-right: 10%;
+}

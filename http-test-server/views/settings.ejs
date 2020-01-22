@@ -42,7 +42,7 @@
 								</p>
 								<p class="text">
 									<label for="body">Response Body</label>
-									<textarea type="body" name="body" id="body" placeholder="Response Time" required value="<%= data.body %>" style="font-size: 14px; color: #525f7f;"><%= data.body %></textarea>
+									<textarea type="body" name="body" id="body" placeholder="Response Time" required value="<%= data.body %>" style="font-size: 14px; color: #525f7f;"><%= typeof data.body === "object" ? JSON.stringify(data.body) : data.body %></textarea>
 								</p>
 								<p class="submit">
 									<button type="submit" class="button blue medium" id="save-btn"><span>Save</span></button>
