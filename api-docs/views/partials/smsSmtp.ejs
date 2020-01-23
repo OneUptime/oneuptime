@@ -4,7 +4,7 @@
       <h1>SMS SMTP</h1>
     </b>
     <p>
-      <p></p>
+      <p>SMS SMTP API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Setup SMS SMTP<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Setup SMS SMTP.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -52,28 +52,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -81,8 +59,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -95,7 +73,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -115,7 +93,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -125,12 +103,19 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsSmtp/:projectId</p>
+          <p class="url">https://api.fyipe.com/smsSmtp/5e089f94b400211639928c94</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "smssmtpswitch": true,
+  "accountSid": "AC0a2295b7745a7ddc57fc73e77f9b72a0",
+  "authToken": "09336be1b05ab5b2c1a6870202d9b769",
+  "phoneNumber": "14143958232"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -142,7 +127,19 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "enabled": true,
+  "deleted": false,
+  "_id": "5e1f65e0823e774e4a3aaf52",
+  "createdAt": "2020-01-15T19:20:00.335Z",
+  "projectId": "5e089f94b400211639928c94",
+  "accountSid": "AC0a2295b7745a7ddc57fc73e77f9b72a0",
+  "authToken": "09336be1b05ab5b2c1a6870202d9b769",
+  "phoneNumber": "14143958232",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -155,7 +152,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get SMS SMTP Setup<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get SMS SMTP Setup.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -175,28 +172,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -204,8 +179,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -226,7 +201,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsSmtp/:projectId</p>
+          <p class="url">https://api.fyipe.com/smsSmtp/5e089f94b400211639928c94</p>
         </div>
       </div>
 
@@ -236,7 +211,22 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "_id": "5e1f65e0823e774e4a3aaf52",
+  "enabled": true,
+  "deleted": false,
+  "createdAt": "2020-01-15T19:20:00.335Z",
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "accountSid": "AC0a2295b7745a7ddc57fc73e77f9b72a0",
+  "authToken": "09336be1b05ab5b2c1a6870202d9b769",
+  "phoneNumber": "14143958232",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -249,7 +239,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit SMS SMTP Setup<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit SMS SMTP Setup.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -269,28 +259,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -298,8 +266,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>smsSmtpId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -312,7 +295,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -332,7 +315,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -342,12 +325,19 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsSmtp/:projectId/:smsSmtpId</p>
+          <p class="url">https://api.fyipe.com/smsSmtp/5e089f94b400211639928c94/5e1f65e0823e774e4a3aaf52</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "smssmtpswitch": true,
+  "accountSid": "AC0a2295b7745a7ddc57fc73e77f9b72a0",
+  "authToken": "09336be1b05ab5b2c1a6870202d9b769",
+  "phoneNumber": "14143958232"
+}                 
+              </p>
             </code>
           </pre>
         </div>
@@ -359,7 +349,19 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "_id": "5e1f65e0823e774e4a3aaf52",
+  "enabled": true,
+  "deleted": false,
+  "createdAt": "2020-01-15T19:20:00.335Z",
+  "projectId": "5e089f94b400211639928c94",
+  "accountSid": "AC0a2295b7745a7ddc57fc73e77f9b72a0",
+  "authToken": "09336be1b05ab5b2c1a6870202d9b769",
+  "phoneNumber": "14143958232",
+  "__v": 0
+}                  
+              </p>
             </code>
           </pre>
         </div>
@@ -372,7 +374,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete SMS SMTP Setup<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete SMS SMTP Setup.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -392,15 +394,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -410,19 +412,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>smsSmtpId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -443,7 +438,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/smsSmtp/:projectId/:smsSmtpId</p>
+          <p class="url">https://api.fyipe.com/smsSmtp/5e089f94b400211639928c94/5e1f65e0823e774e4a3aaf52</p>
         </div>
       </div>
 
@@ -453,7 +448,21 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "_id": "5e1f65e0823e774e4a3aaf52",
+  "enabled": true,
+  "deleted": true,
+  "createdAt": "2020-01-15T19:20:00.335Z",
+  "projectId": "5e089f94b400211639928c94",
+  "accountSid": "AC0a2295b7745a7ddc57fc73e77f9b72a0",
+  "authToken": "09336be1b05ab5b2c1a6870202d9b769",
+  "phoneNumber": "14143958232",
+  "__v": 0,
+  "deletedAt": "2020-01-14T20:57:57.751Z",
+  "deletedById": "5e089f88b400211639928c92"
+}                
+              </p>
             </code>
           </pre>
         </div>

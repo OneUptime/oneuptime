@@ -4,7 +4,7 @@
       <h1>Lead</h1>
     </b>
     <p>
-      <p></p>
+      <p>Lead API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Lead<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Create Lead.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -51,51 +51,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -115,7 +71,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -130,7 +86,18 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "type": "demo",
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "phone": "+18158486068",
+  "website": "https://fyipe.me",
+  "companySize": "10",
+  "country": "United States",
+  "message": "Hello"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -142,7 +109,22 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "deleted": false,
+  "_id": "5e1a4abeba543f2f2168213d",
+  "createdAt": "2020-01-11T22:22:54.142Z",
+  "type": "demo",
+  "email": "nawazdhandala@hackerbay.io",
+  "phone": "+18158486068",
+  "website": "https://fyipe.me",
+  "companySize": "10",
+  "country": "United States",
+  "message": "Hello"
+  "whitepaperName": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>

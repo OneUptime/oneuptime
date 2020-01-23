@@ -4,7 +4,7 @@
       <h1>Report</h1>
     </b>
     <p>
-      <p></p>
+      <p>Report API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Active Members<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Active Members.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -59,8 +59,53 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>startDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>endDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -81,8 +126,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -104,7 +149,7 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">
-            https://api.fyipe.com/reports/:projectId/active-members?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&skip=0&limit=5
+            https://api.fyipe.com/reports/5e089f94b400211639928c94/active-members?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&skip=0&limit=5
           </p>
         </div>
       </div>
@@ -115,7 +160,22 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "memberId": "5e089f88b400211639928c92",
+      "memberName": "Nawaz Dhandala",
+      "incidents": 30,
+      "averageAcknowledgeTime": 663502.1,
+      "averageResolved": 663502.1
+    }
+  ],
+  "count": 1,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -128,7 +188,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Active Monitors<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Active Monitors.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -155,8 +215,53 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>startDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>endDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -177,8 +282,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -200,7 +305,7 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">
-            https://api.fyipe.com/reports/:projectId/active-monitors?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&skip=0&limit=5
+            https://api.fyipe.com/reports/5e089f94b400211639928c94/active-monitors?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&skip=0&limit=5
           </p>
         </div>
       </div>
@@ -211,7 +316,29 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "monitorId": "5e0a4b1678caf04fd1fedcbe",
+      "monitorName": "Ubuntu Machine",
+      "incidents": 6,
+      "averageAcknowledgeTime": 2162461,
+      "averageResolved": 2162461
+    },
+    {
+      "monitorId": "5e139b39a55da96da8d14968",
+      "monitorName": "Mello",
+      "incidents": 4,
+      "averageAcknowledgeTime": 111149.75,
+      "averageResolved": 111149.75
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -224,7 +351,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Average Resolved<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Average Resolved.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -251,8 +378,38 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>startDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>endDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>filter</span>
+                <span class="item-type">'day' | 'month' | 'week' | 'year'</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -273,8 +430,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -296,7 +453,7 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">
-            https://api.fyipe.com/reports/:projectId/average-resolved?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&filter=month
+            https://api.fyipe.com/reports/5e089f94b400211639928c94/average-resolved?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&filter=month
           </p>
         </div>
       </div>
@@ -307,7 +464,23 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "incidents": 13,
+      "averageResolved": 127,
+      "month": "Dec 2019"
+    },
+    {
+      "incidents": 17,
+      "averageResolved": 1074,
+      "month": "Jan 2020"
+    }
+  ],
+  "count": 2
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -320,7 +493,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Incidents Count<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Incidents Count.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -347,8 +520,38 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>startDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>endDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>filter</span>
+                <span class="item-type">'day' | 'month' | 'week' | 'year'</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -369,8 +572,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -392,7 +595,7 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">
-            https://api.fyipe.com/reports/:projectId/incidents?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&filter=month
+            https://api.fyipe.com/reports/5e089f94b400211639928c94/incidents?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100&filter=month
           </p>
         </div>
       </div>
@@ -403,7 +606,21 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "incidents": 13,
+      "month": "Dec 2019"
+    },
+    {
+      "incidents": 17,
+      "month": "Jan 2020"
+    }
+  ],
+  "count": 2
+}                
+              </p>
             </code>
           </pre>
         </div>

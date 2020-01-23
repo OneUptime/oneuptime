@@ -4,7 +4,7 @@
       <h1>Feedback</h1>
     </b>
     <p>
-      <p></p>
+      <p>Feedback API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Feedback<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Create Feedback.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -52,28 +52,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -81,8 +59,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -95,7 +73,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -115,7 +93,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -125,15 +103,17 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/feedback/:projectId</p>
+          <p class="url">https://api.fyipe.com/feedback/5e089f94b400211639928c94</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p>{
-                "page": "Monitors",
-                "feedback": "This is good!"
-              }</p>
+              <p>
+{
+  "page": "Monitors",
+  "feedback": "This is good!"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -145,81 +125,53 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p>{
-                "deleted": false,
-                "_id": "5e1a2327ba543f2f21682052",
-                "createdAt": "2020-01-11T19:33:59.114Z",
-                "message": "This is good!",
-                "page": "Monitors",
-                "projectId": "5e089f94b400211639928c94",
-                "createdById": "5e089f88b400211639928c92",
-                "__v": 0,
-                "project": {
-                    "alertOptions": {
-                        "billingUS": true,
-                        "billingNonUSCountries": false,
-                        "billingRiskCountries": false
-                    },
-                    "seats": "1",
-                    "deleted": false,
-                    "alertEnable": false,
-                    "balance": 0,
-                    "isBlocked": false,
-                    "_id": "5e089f94b400211639928c94",
-                    "users": [
-                        {
-                            "_id": "5e162dc41b8ae81859214992",
-                            "userId": "5e162d9f1b8ae8185921498f",
-                            "role": "Administrator"
-                        },
-                        {
-                            "_id": "5e089f94b400211639928c95",
-                            "userId": "5e089f88b400211639928c92",
-                            "role": "Owner"
-                        }
-                    ],
-                    "createdAt": "2019-12-29T12:44:04.136Z",
-                    "adminNotes": null,
-                    "name": "Bello",
-                    "slug": "Unnamed-Project-80749",
-                    "apiKey": "e54745d0-2a38-11ea-8f76-230d53e24ee9",
-                    "stripePlanId": "plan_EgTJMZULfh6THW",
-                    "stripeSubscriptionId": "sub_GRux0tCuJaBA28",
-                    "parentProjectId": null,
-                    "__v": 0
-                },
-                "createdBy": {
-                    "isVerified": true,
-                    "onCallAlert": null,
-                    "disabled": false,
-                    "paymentFailedDate": null,
-                    "isBlocked": false,
-                    "deleted": false,
-                    "alertPhoneNumber": "",
-                    "_id": "5e089f88b400211639928c92",
-                    "createdAt": "2019-12-29T12:43:52.563Z",
-                    "lastActive": "2020-01-11T19:33:59.070Z",
-                    "adminNotes": null,
-                    "name": "Ibukun Dairo",
-                    "email": "ibukundairo@hackerbay.io",
-                    "password": "$2b$10$8vVrZElP4zupjsA16lE4/.S6Dc4bTUMEw3tBtgNFfxHQqObiD57PG",
-                    "companyName": "Hackerbay",
-                    "companyRole": null,
-                    "companySize": null,
-                    "referral": null,
-                    "companyPhoneNumber": "2348158486068",
-                    "profilePic": null,
-                    "jwtRefreshToken": "zlqDZkE3IrW5PkAIaxYGrX8sTLmiakmOB9tGffbtDLobs8VKrgpgs8IFm8tcbuEOHAhWYsOZILoAVPtjXbpDc2juVZWjYcosXyz545tBAOT3NlupM73UZx5WdgkcCJRyUdXmBU4tK4toLRP196zaEhSpAIk1pwWRv15TUg6roMWhHj6gSyvvvwdcQAxGAelAF0qPyzrl30r81d0dxCaSQFJkXcpiZ8jj05o3YnGrtDxuKJM6ngnlbQJ05CkUdUeI",
-                    "stripeCustomerId": "cus_GRuxpXIUgqLVg7",
-                    "resetPasswordToken": null,
-                    "resetPasswordExpires": null,
-                    "timezone": "",
-                    "coupon": null,
-                    "tempEmail": null,
-                    "__v": 0
-                },
-                "airtableId": "recQrQwOexmoh8Srl"
-            }</p>
+              <p>
+{
+  "deleted": false,
+  "_id": "5e1a2327ba543f2f21682052",
+  "createdAt": "2020-01-11T19:33:59.114Z",
+  "message": "This is good!",
+  "page": "Monitors",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "__v": 0,
+  "project": {
+    "alertOptions": {
+      "billingUS": true,
+      "billingNonUSCountries": false,
+      "billingRiskCountries": false
+    },
+    "seats": "1",
+    "deleted": false,
+    "alertEnable": false,
+    "balance": 0,
+    "isBlocked": false,
+    "_id": "5e089f94b400211639928c94",
+    "users": [
+      {
+        "_id": "5e162dc41b8ae81859214992",
+        "userId": "5e162d9f1b8ae8185921498f",
+        "role": "Administrator"
+      },
+      {
+        "_id": "5e089f94b400211639928c95",
+        "userId": "5e089f88b400211639928c92",
+        "role": "Owner"
+      }
+    ],
+    "createdAt": "2019-12-29T12:44:04.136Z",
+    "adminNotes": null,
+    "name": "Bello",
+    "slug": "Unnamed-Project-80749",
+    "apiKey": "e54745d0-2a38-11ea-8f76-230d53e24ee9",
+    "stripePlanId": "plan_EgTJMZULfh6THW",
+    "stripeSubscriptionId": "sub_GRux0tCuJaBA28",
+    "parentProjectId": null,
+    "__v": 0
+  },
+  "airtableId": "recQrQwOexmoh8Srl"
+}                
+              </p>
             </code>
           </pre>
         </div>

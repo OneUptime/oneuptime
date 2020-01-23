@@ -4,7 +4,7 @@
       <h1>WebHook</h1>
     </b>
     <p>
-      <p></p>
+      <p>WebHook API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create WebHook<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Create WebHook.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -52,28 +52,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -81,8 +59,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -95,7 +73,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -115,7 +93,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -125,12 +103,22 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/webhook/:projectId/create</p>
+          <p class="url">https://api.fyipe.com/webhook/5e089f94b400211639928c94/create</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "endpoint": "https://fyipe.com",
+  "endpointType": "get",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "type": "webhook",
+  "incidentCreated": true,
+  "incidentResolved": false,
+  "incidentAcknowledged": false
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -142,7 +130,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "notificationOptions": {
+    "incidentCreated": true,
+    "incidentAcknowledged": false,
+    "incidentResolved": false
+  },
+  "deleted": false,
+  "_id": "5e1cf554e6a0421634359491",
+  "monitorId": {
+    "_id": "5e08a21b25c59a1c8033c7e7",
+    "name": "Google Home"
+  },
+  "createdAt": "2020-01-13T22:55:16.682Z",
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "createdById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "data": {
+    "userId": "5e089f88b400211639928c92",
+    "endpoint": "https://fyipe.com",
+    "endpointType": "get",
+    "monitorId": "5e08a21b25c59a1c8033c7e7"
+  },
+  "integrationType": "webhook",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -155,7 +174,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All WebHooks<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All WebHooks.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -182,8 +201,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -204,8 +238,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -226,7 +260,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/webhook/:projectId/hooks?skip=0&limit=5</p>
+          <p class="url">https://api.fyipe.com/webhook/5e089f94b400211639928c94/hooks?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -236,7 +270,44 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "notificationOptions": {
+        "incidentCreated": true,
+        "incidentAcknowledged": false,
+        "incidentResolved": false
+      },
+      "_id": "5e0fd2f97f3127159be74863",
+      "monitorId": {
+        "_id": "5e0a4b1678caf04fd1fedcbe",
+        "name": "Ubuntu Machine"
+        "name": "Ubuntu Machine"
+      },
+      "createdAt": "2020-01-03T23:49:13.864Z",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "data": {
+        "userId": "5e089f88b400211639928c92",
+        "endpoint": "https://fyipe.com",
+        "endpointType": "get",
+        "monitorId": "5e0a4b1678caf04fd1fedcbe"
+      },
+      "integrationType": "webhook"
+    }
+  ],
+  "count": 1,
+  "skip": 0,
+  "limit": 5
+}                     
+              </p>
             </code>
           </pre>
         </div>
@@ -249,7 +320,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit WebHook<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit WebHook.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -269,28 +340,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -298,8 +347,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>integrationId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -312,7 +376,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -332,7 +396,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -342,12 +406,22 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/webhook/:projectId/:integrationId</p>
+          <p class="url">https://api.fyipe.com/webhook/5e089f94b400211639928c94/5e0fd2f97f3127159be74863</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "endpoint": "https://fyipe.com",
+  "monitorId": "5e0a4b1678caf04fd1fedcbe",
+  "endpointType": "get",
+  "type": "webhook",
+  "incidentCreated": true,
+  "incidentResolved": false,
+  "incidentAcknowledged": false
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -359,7 +433,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "notificationOptions": {
+    "incidentCreated": true,
+    "incidentAcknowledged": false,
+    "incidentResolved": false
+  },
+  "deleted": false,
+  "_id": "5e0fd2f97f3127159be74863",
+  "monitorId": {
+    "_id": "5e0a4b1678caf04fd1fedcbe",
+    "name": "Ubuntu Machine"
+  },
+  "createdAt": "2020-01-03T23:49:13.864Z",
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "createdById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "data": {
+    "userId": "5e089f88b400211639928c92",
+    "endpoint": "https://fyipe.com",
+    "endpointType": "get",
+    "monitorId": "5e0a4b1678caf04fd1fedcbe"
+  },
+  "integrationType": "webhook",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -372,7 +477,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete WebHook<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete WebHook.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -392,15 +497,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -410,19 +515,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>integrationId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -443,7 +541,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/webhook/:projectId/delete/:integrationId</p>
+          <p class="url">https://api.fyipe.com/webhook/5e089f94b400211639928c94/delete/5e1cf554e6a0421634359491</p>
         </div>
       </div>
 
@@ -453,7 +551,31 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "notificationOptions": {
+    "incidentCreated": true,
+    "incidentAcknowledged": false,
+    "incidentResolved": false
+  },
+  "deleted": true,
+  "_id": "5e1cf554e6a0421634359491",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "createdAt": "2020-01-13T22:55:16.682Z",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "data": {
+    "userId": "5e089f88b400211639928c92",
+    "endpoint": "https://fyipe.com",
+    "endpointType": "get",
+    "monitorId": "5e08a21b25c59a1c8033c7e7"
+  },
+  "integrationType": "webhook",
+  "__v": 0,
+  "deletedAt": "2020-01-14T20:57:57.751Z",
+  "deletedById": "5e089f88b400211639928c92"
+}                
+              </p>
             </code>
           </pre>
         </div>

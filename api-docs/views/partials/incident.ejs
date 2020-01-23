@@ -4,7 +4,8 @@
       <h1>Incident</h1>
     </b>
     <p>
-      <p>Inidents are created when your monitor goes down. Incidents alerts team members which are responsible for
+      <p>Inident API, incidents are created when your monitor goes down. Incidents alerts team members which are
+        responsible for
         that monitor. Team members can Acknowledge the incident and when the issue is fixed, resolve it. </p>
     </p>
     <div class="attribute-parameter-container">
@@ -33,8 +34,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Incident<span class="requestType">POST</span></h3>
     <p>
-      <p> Create an incident for a monitor. If an unresolved incident exists, then it is returne and no new
-        incident is created. </p>
+      <p>Create Incident.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -54,28 +54,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -83,8 +61,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -97,7 +90,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -132,7 +125,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -142,13 +135,20 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId/:monitorId</p>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94/5e08a21b25c59a1c8033c7e7</p>
 
           <p>Request Body</p>
-          <pre><code class="language-json"><p>{
-"api-key":"xxx",
-"monitorId": "5b521b39f1a8f6000fce3839"
-}</p></code></pre>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "monitorId": "5e1633101b8ae81859214adf",
+  "projectId": "5e089f94b400211639928c94",
+  "incidentType": "offline"
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
 
@@ -156,29 +156,41 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                        <code class="language-json">
-                          <p>{
-"acknowledged": false,
-"resolved": false,
-"internalNote": "",
-"investigationNote": "",
-"_id": "5bf698dad2f835000fb63fb6",
-"createdAt": "2018-11-22T11:54:02.716Z",
-"project": {
-"_id": "5bd722c156f172000f33a2cc",
-"name": "Sample Project"
-},
-"subProjectId": "xf3cf7a6c6cc5a000fc523be",
-"monitor": {
-"_id": "5b521b39f1a8f6000fce3839",
-"name": "cloudboost",
-},
-"createdBy": {
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-}
-}</p></code>
-                    </pre>
+            <code class="language-json">
+              <p>
+{
+  "acknowledged": false,
+  "acknowledgedByZapier": false,
+  "resolved": false,
+  "resolvedByZapier": false,
+  "internalNote": "",
+  "investigationNote": "",
+  "createdByZapier": false,
+  "notClosedBy": [
+    "5e1b7f0f41127144f8144abb",
+    "5e162d9f1b8ae8185921498f",
+    "5e089f88b400211639928c92"
+  ],
+  "manuallyCreated": true,
+  "deleted": false,
+  "_id": "5e1ce11ee6a04216343592bb",
+  "probes": [],
+  "createdAt": "2020-01-13T21:29:02.315Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": {
+    "_id": "5e08a21b25c59a1c8033c7e7",
+    "name": "Google Home"
+  },
+  "createdById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "incidentType": "offline",
+  "__v": 0
+}                  
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -189,7 +201,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Incidents<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Incidents.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -216,8 +228,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -238,8 +265,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -260,7 +287,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId/incident?skip=0&limit=5</p>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94/incident?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -270,7 +297,187 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "acknowledged": false,
+      "acknowledgedByZapier": false,
+      "resolved": false,
+      "resolvedByZapier": false,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [
+        "5e1b7f0f41127144f8144abb",
+        "5e162d9f1b8ae8185921498f",
+        "5e089f88b400211639928c92"
+      ],
+      "manuallyCreated": true,
+      "_id": "5e1c5713bc3b9e1ec8cbde31",
+      "probes": [],
+      "createdAt": "2020-01-13T11:40:03.720Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": {
+        "_id": "5e139b39a55da96da8d14968",
+        "name": "Mello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "incidentType": "offline"
+    },
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [
+        "5e162d9f1b8ae8185921498f"
+      ],
+      "manuallyCreated": true,
+      "_id": "5e1776861f31a13e98acdd1a",
+      "probes": [],
+      "createdAt": "2020-01-09T18:52:54.432Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": {
+        "_id": "5e08a21b25c59a1c8033c7e7",
+        "name": "Google Home"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "incidentType": "offline",
+      "acknowledgedAt": "2020-01-09T18:53:04.687Z",
+      "acknowledgedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-09T18:53:04.687Z",
+      "resolvedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [
+        "5e162d9f1b8ae8185921498f"
+      ],
+      "manuallyCreated": true,
+      "_id": "5e1775f61f31a13e98acdc56",
+      "probes": [],
+      "createdAt": "2020-01-09T18:50:30.836Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": {
+        "_id": "5e0a4b1678caf04fd1fedcbe",
+        "name": "Ubuntu Machine"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "incidentType": "offline",
+      "acknowledgedAt": "2020-01-09T18:51:29.600Z",
+      "acknowledgedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-09T18:51:29.600Z",
+      "resolvedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [
+        "5e162d9f1b8ae8185921498f"
+      ],
+      "manuallyCreated": true,
+      "_id": "5e1725db1f31a13e98acd8d9",
+      "probes": [],
+      "createdAt": "2020-01-09T13:08:43.790Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": {
+        "_id": "5e1633101b8ae81859214adf",
+        "name": "Cello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "incidentType": "offline",
+      "acknowledgedAt": "2020-01-09T13:10:42.766Z",
+      "acknowledgedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-09T13:10:42.766Z",
+      "resolvedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [
+        "5e162d9f1b8ae8185921498f"
+      ],
+      "manuallyCreated": true,
+      "_id": "5e1724591f31a13e98acd8d5",
+      "probes": [],
+      "createdAt": "2020-01-09T13:02:17.254Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": {
+        "_id": "5e1633101b8ae81859214adf",
+        "name": "Cello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "incidentType": "offline",
+      "acknowledgedAt": "2020-01-09T13:07:50.158Z",
+      "acknowledgedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-09T13:07:50.158Z",
+      "resolvedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    }
+  ],
+  "count": 15,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -283,7 +490,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All SubProjects Incidents<span class="requestType">GET</span></h3>
     <p>
-      <p> Get the log of all incidents by Project. </p>
+      <p>Get All SubProjects Incidents.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -303,58 +510,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type  ">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>API Key for your Fyipe Project</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>limit</span>
-                <span class="item-type  ">integer</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Number of items you need from the API.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>skip</span>
-                <span class="item-type  ">integer</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Number of items you want to skip. This is used for pagination.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -362,8 +517,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -384,7 +539,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId</p>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94</p>
         </div>
       </div>
 
@@ -392,62 +547,363 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                        <code class="language-json">
-                          <p>{
-"data":
+            <code class="language-json">
+              <p>
 [
-{
-  "acknowledged": false,
-  "resolved": false,
-  "internalNote": "",
-  "investigationNote": "",
-  "_id": "5bf698dad2f835000fb63fb6",
-  "createdAt": "2018-11-22T11:54:02.716Z",
-  "project": {
-    "_id": "5bd722c156f172000f33a2cc",
-    "name": "Sample Project"
-  },
-  "subProjectId": "xf3cf7a6c6cc5a000fc523be",
-  "monitor": {
-    "_id": "5b521b39f1a8f6000fce3839",
-    "name": "cloudboost",
-  },
-  "createdBy": {
-    "_id": "5b0c1298367534000fdbc46e",
-    "name": "Nawaz Dhandala"
-  },
-  
-},
-{
-  "acknowledged": false,
-  "resolved": false,
-  "internalNote": "",
-  "investigationNote": "",
-  "_id": "5bf698dad2f835000fb63fb6",
-  "createdAt": "2018-11-22T11:54:02.716Z",
-  "project": {
-    "_id": "5bd722c156f172000f33a2cc",
-    "name": "Sample Project"
-  },
-  "subProjectId": "xf3cf7a6c6cc5a000fc523be",
-  "monitor": {
-    "_id": "5b521b39f1a8f6000fce3839",
-    "name": "cloudboost",
-  },
-  "createdBy": {
-    "_id": "5b0c1298367534000fdbc46e",
-    "name": "Nawaz Dhandala"
-  },
-  
-}
-],
-"count":2,
-"skip":"0",
-"limit":"10"
-}</p>
-    
-                        </code>
-                    </pre>
+  {
+    "incidents": [
+      {
+        "acknowledged": false,
+        "acknowledgedByZapier": false,
+        "resolved": false,
+        "resolvedByZapier": false,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [
+          "5e1b7f0f41127144f8144abb",
+          "5e162d9f1b8ae8185921498f",
+          "5e089f88b400211639928c92"
+        ],
+        "manuallyCreated": true,
+        "_id": "5e1c5713bc3b9e1ec8cbde31",
+        "probes": [],
+        "createdAt": "2020-01-13T11:40:03.720Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e139b39a55da96da8d14968",
+          "name": "Mello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "offline"
+      },
+      {
+        "acknowledged": true,
+        "acknowledgedByZapier": null,
+        "resolved": true,
+        "resolvedByZapier": null,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [
+          "5e162d9f1b8ae8185921498f"
+        ],
+        "manuallyCreated": true,
+        "_id": "5e1776861f31a13e98acdd1a",
+        "probes": [],
+        "createdAt": "2020-01-09T18:52:54.432Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "offline",
+        "acknowledgedAt": "2020-01-09T18:53:04.687Z",
+        "acknowledgedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "resolvedAt": "2020-01-09T18:53:04.687Z",
+        "resolvedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "acknowledged": true,
+        "acknowledgedByZapier": null,
+        "resolved": true,
+        "resolvedByZapier": null,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [
+          "5e162d9f1b8ae8185921498f"
+        ],
+        "manuallyCreated": true,
+        "_id": "5e1775f61f31a13e98acdc56",
+        "probes": [],
+        "createdAt": "2020-01-09T18:50:30.836Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e0a4b1678caf04fd1fedcbe",
+          "name": "Ubuntu Machine"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "offline",
+        "acknowledgedAt": "2020-01-09T18:51:29.600Z",
+        "acknowledgedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "resolvedAt": "2020-01-09T18:51:29.600Z",
+        "resolvedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "acknowledged": true,
+        "acknowledgedByZapier": null,
+        "resolved": true,
+        "resolvedByZapier": null,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [
+          "5e162d9f1b8ae8185921498f"
+        ],
+        "manuallyCreated": true,
+        "_id": "5e1725db1f31a13e98acd8d9",
+        "probes": [],
+        "createdAt": "2020-01-09T13:08:43.790Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e1633101b8ae81859214adf",
+          "name": "Cello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "offline",
+        "acknowledgedAt": "2020-01-09T13:10:42.766Z",
+        "acknowledgedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "resolvedAt": "2020-01-09T13:10:42.766Z",
+        "resolvedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "acknowledged": true,
+        "acknowledgedByZapier": null,
+        "resolved": true,
+        "resolvedByZapier": null,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [
+          "5e162d9f1b8ae8185921498f"
+        ],
+        "manuallyCreated": true,
+        "_id": "5e1724591f31a13e98acd8d5",
+        "probes": [],
+        "createdAt": "2020-01-09T13:02:17.254Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e1633101b8ae81859214adf",
+          "name": "Cello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "offline",
+        "acknowledgedAt": "2020-01-09T13:07:50.158Z",
+        "acknowledgedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "resolvedAt": "2020-01-09T13:07:50.158Z",
+        "resolvedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "acknowledged": true,
+        "acknowledgedByZapier": null,
+        "resolved": true,
+        "resolvedByZapier": null,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [],
+        "manuallyCreated": true,
+        "_id": "5e139e7da55da96da8d14c89",
+        "probes": [],
+        "createdAt": "2020-01-06T20:54:21.094Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e139b39a55da96da8d14968",
+          "name": "Mello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "offline",
+        "acknowledgedAt": "2020-01-06T20:59:54.863Z",
+        "acknowledgedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "resolvedAt": "2020-01-06T20:59:54.863Z",
+        "resolvedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "acknowledged": true,
+        "acknowledgedByZapier": null,
+        "resolved": true,
+        "resolvedByZapier": null,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [],
+        "manuallyCreated": true,
+        "_id": "5e139dfda55da96da8d14a39",
+        "probes": [],
+        "createdAt": "2020-01-06T20:52:13.716Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e139b39a55da96da8d14968",
+          "name": "Mello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "offline",
+        "acknowledgedAt": "2020-01-06T20:52:45.271Z",
+        "acknowledgedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "resolvedAt": "2020-01-06T20:52:45.271Z",
+        "resolvedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "acknowledged": true,
+        "acknowledgedByZapier": null,
+        "resolved": true,
+        "resolvedByZapier": null,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [],
+        "manuallyCreated": true,
+        "_id": "5e139de1a55da96da8d14a35",
+        "probes": [],
+        "createdAt": "2020-01-06T20:51:45.020Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e139b39a55da96da8d14968",
+          "name": "Mello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "degraded",
+        "acknowledgedAt": "2020-01-06T20:52:05.487Z",
+        "acknowledgedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "resolvedAt": "2020-01-06T20:52:05.487Z",
+        "resolvedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "acknowledged": true,
+        "acknowledgedByZapier": null,
+        "resolved": true,
+        "resolvedByZapier": null,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [],
+        "manuallyCreated": true,
+        "_id": "5e139ca5a55da96da8d1496d",
+        "probes": [],
+        "createdAt": "2020-01-06T20:46:29.468Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e139b39a55da96da8d14968",
+          "name": "Mello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "offline",
+        "acknowledgedAt": "2020-01-06T20:47:28.276Z",
+        "acknowledgedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "resolvedAt": "2020-01-06T20:47:28.276Z",
+        "resolvedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "acknowledged": true,
+        "acknowledgedByZapier": null,
+        "resolved": true,
+        "resolvedByZapier": null,
+        "internalNote": "",
+        "investigationNote": "",
+        "createdByZapier": false,
+        "notClosedBy": [],
+        "manuallyCreated": true,
+        "_id": "5e0e813b93751013e43f7490",
+        "probes": [],
+        "createdAt": "2020-01-02T23:48:11.307Z",
+        "projectId": "5e089f94b400211639928c94",
+        "monitorId": {
+          "_id": "5e0a4b1678caf04fd1fedcbe",
+          "name": "Ubuntu Machine"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "incidentType": "degraded",
+        "acknowledgedAt": "2020-01-03T00:28:52.559Z",
+        "acknowledgedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        },
+        "resolvedAt": "2020-01-03T00:28:52.559Z",
+        "resolvedBy": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      }
+    ],
+    "count": 15,
+    "_id": "5e089f94b400211639928c94",
+    "skip": 0,
+    "limit": 10
+  }
+]
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -458,7 +914,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Monitor Incidents<span class="requestType">GET</span></h3>
     <p>
-      <p> Get the log of all incidents by Monitor. </p>
+      <p>Get All Monitor Incidents.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -485,13 +941,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type  ">string</span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>API Key for your Fyipe Project</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -501,27 +957,12 @@
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
                 <span>limit</span>
-                <span class="item-type  ">integer</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Number of items you need from the API.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>skip</span>
-                <span class="item-type  ">integer</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Number of items you want to skip. This is used for pagination.</p>
+                <p></p>
               </div>
             </div>
           </div>
@@ -537,8 +978,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -560,7 +1016,7 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">
-            https://api.fyipe.com/incident/:projectId/monitor/:monitorId?skip=0&limit=5</p>
+            https://api.fyipe.com/incident/5e089f94b400211639928c94/monitor/5e08a21b25c59a1c8033c7e7?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -568,62 +1024,54 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                        <code class="language-json">
-                          <p>{
-"data":
-[
+            <code class="language-json">
+              <p>
 {
-  "acknowledged": false,
-  "resolved": false,
-  "internalNote": "",
-  "investigationNote": "",
-  "_id": "5bf698dad2f835000fb63fb6",
-  "createdAt": "2018-11-22T11:54:02.716Z",
-  "project": {
-    "_id": "5bd722c156f172000f33a2cc",
-    "name": "Sample Project"
-  },
-  "subProjectId": "xf3cf7a6c6cc5a000fc523be",
-  "monitor": {
-    "_id": "5b521b39f1a8f6000fce3839",
-    "name": "cloudboost",
-  },
-  "createdBy": {
-    "_id": "5b0c1298367534000fdbc46e",
-    "name": "Nawaz Dhandala"
-  },
-  
-},
-{
-  "acknowledged": false,
-  "resolved": false,
-  "internalNote": "",
-  "investigationNote": "",
-  "_id": "5bf698dad2f835000fb63fb6",
-  "createdAt": "2018-11-22T11:54:02.716Z",
-  "project": {
-    "_id": "5bd722c156f172000f33a2cc",
-    "name": "Sample Project"
-  },
-  "subProjectId": "xf3cf7a6c6cc5a000fc523be",
-  "monitor": {
-    "_id": "5b521b39f1a8f6000fce3839",
-    "name": "cloudboost",
-  },
-  "createdBy": {
-    "_id": "5b0c1298367534000fdbc46e",
-    "name": "Nawaz Dhandala"
-  },
-  
-}
-],
-"count":2,
-"skip":"0",
-"limit":"10"
-}</p>
-    
-                        </code>
-                    </pre>
+  "data": [
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [
+        "5e162d9f1b8ae8185921498f"
+      ],
+      "manuallyCreated": true,
+      "_id": "5e1776861f31a13e98acdd1a",
+      "probes": [],
+      "createdAt": "2020-01-09T18:52:54.432Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": {
+        "_id": "5e08a21b25c59a1c8033c7e7",
+        "name": "Google Home"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "incidentType": "offline",
+      "acknowledgedAt": "2020-01-09T18:53:04.687Z",
+      "acknowledgedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-09T18:53:04.687Z",
+      "resolvedBy": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    }
+  ],
+  "count": 1,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -634,7 +1082,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Unresolved Incidents<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Unresolved Incidents.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -654,28 +1102,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -683,8 +1109,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -705,7 +1131,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId/unresolvedincidents</p>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94/unresolvedincidents</p>
         </div>
       </div>
 
@@ -715,7 +1141,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "acknowledged": false,
+    "acknowledgedByZapier": false,
+    "resolved": false,
+    "resolvedByZapier": false,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdByZapier": false,
+    "notClosedBy": [
+      "5e1b7f0f41127144f8144abb",
+      "5e162d9f1b8ae8185921498f",
+      "5e089f88b400211639928c92"
+    ],
+    "manuallyCreated": true,
+    "_id": "5e1c5713bc3b9e1ec8cbde31",
+    "probes": [],
+    "createdAt": "2020-01-13T11:40:03.720Z",
+    "projectId": "5e089f94b400211639928c94",
+    "monitorId": {
+      "_id": "5e139b39a55da96da8d14968",
+      "name": "Mello"
+    },
+    "createdById": {
+      "_id": "5e089f88b400211639928c92",
+      "name": "Nawaz Dhandala"
+    },
+    "incidentType": "offline"
+  }
+]              
+              </p>
             </code>
           </pre>
         </div>
@@ -728,7 +1185,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Incident<span class="requestType">GET</span></h3>
     <p>
-      <p> Get the incident by Incident ID. </p>
+      <p>Get Single Incident.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -748,29 +1205,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type  ">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>API Key for your Fyipe Project</p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -778,8 +1212,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -800,7 +1249,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId/incident/:incidentId</p>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94/incident/5e1ce11ee6a04216343592bb</p>
         </div>
       </div>
 
@@ -808,31 +1257,49 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                        <code class="language-json">
-                          <p>{
-"acknowledged": false,
-"resolved": false,
-"internalNote": "",
-"investigationNote": "",
-"_id": "5bf698dad2f835000fb63fb6",
-"createdAt": "2018-11-22T11:54:02.716Z",
-"project": { 
-  "_id": "5bd722c156f172000f33a2cc",
-  "name": "Sample Project"
-},
-"subProjectId": "xf3cf7a6c6cc5a000fc523be",
-"monitor": {
-"_id": "5b521b39f1a8f6000fce3839",
-"name": "cloudboost",
-},
-"createdBy": {
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-},
-}</p>
-    
-                        </code>
-                    </pre>
+            <code class="language-json">
+              <p>
+{
+  "acknowledged": true,
+  "acknowledgedByZapier": null,
+  "resolved": true,
+  "resolvedByZapier": null,
+  "internalNote": "",
+  "investigationNote": "",
+  "createdByZapier": false,
+  "notClosedBy": [
+    "5e162d9f1b8ae8185921498f"
+  ],
+  "manuallyCreated": true,
+  "deleted": false,
+  "_id": "5e1725db1f31a13e98acd8d9",
+  "probes": [],
+  "createdAt": "2020-01-09T13:08:43.790Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": {
+    "_id": "5e1633101b8ae81859214adf",
+    "name": "Cello"
+  },
+  "createdById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "incidentType": "offline",
+  "__v": 0,
+  "acknowledgedAt": "2020-01-09T13:10:42.766Z",
+  "acknowledgedBy": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "resolvedAt": "2020-01-09T13:10:42.766Z",
+  "resolvedBy": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  }
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -843,7 +1310,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Incident<span class="requestType">PUT</span></h3>
     <p>
-      <p> Update an incident (acknowledge it, resolve it, or post investigation notes or internal notes) </p>
+      <p>Edit Incident.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -863,28 +1330,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -892,8 +1337,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -906,7 +1366,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -987,7 +1447,7 @@
         </li>
 
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -997,13 +1457,19 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId/incident/:incidentId</p>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94/incident/5e1ce11ee6a04216343592bb</p>
 
           <p>Request Body</p>
-          <pre><code class="language-json"><p>{
-"api-key":"xxx",
-"acknowledged": true
-}</p></code></pre>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "investigationNote": "Test",
+  "internalNote": "Test"
+}                   
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
 
@@ -1011,51 +1477,49 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                        <code class="language-json">
-                          <p>
+            <code class="language-json">
+              <p>
 {
-"acknowledged": true,
-"resolved": false,
-"internalNote": "",
-"investigationNote": "",
-"_id": "5bf698dad2f835000fb63fb6",
-"createdAt": "2018-11-22T11:54:02.716Z",
-"project": {
-"_id": "5bd722c156f172000f33a2cc",
-"name": "Sample Project"
-},
-"subProjectId": "xf3cf7a6c6cc5a000fc523be",
-"monitor": {
-"_id": "5b521b39f1a8f6000fce3839",
-"createdAt": "2018-07-20T17:26:17.087Z",
-"pollTime": "2018-10-28T07:35:28.736Z",
-"updateTime": "2018-10-28T00:00:18.320Z",
-"createdBy": "5b0c1298367534000fdbc46e",
-"name": "cloudboost",
-"type": "url",
-"data": {
-  "url": "https://cloudboost.io/"
-},
-"project": {  
-  "_id": "5bd722c156f172000f33a2cc",
-  "name": "Sample Project"
-}
-},
-"createdBy": {
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-},
-"acknowledgedBy":{
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-},
-"acknowledgedAt": "2018-11-22T11:54:02.716Z", 
-}
-                          
-                          </p>
-    
-                        </code>
-                    </pre>
+  "acknowledged": true,
+  "acknowledgedByZapier": null,
+  "resolved": true,
+  "resolvedByZapier": null,
+  "internalNote": "Test",
+  "investigationNote": "Test",
+  "createdByZapier": false,
+  "notClosedBy": [
+    "5e162d9f1b8ae8185921498f"
+  ],
+  "manuallyCreated": true,
+  "deleted": false,
+  "_id": "5e1725db1f31a13e98acd8d9",
+  "probes": [],
+  "createdAt": "2020-01-09T13:08:43.790Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": {
+    "_id": "5e1633101b8ae81859214adf",
+    "name": "Cello"
+  },
+  "createdById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "incidentType": "offline",
+  "__v": 0,
+  "acknowledgedAt": "2020-01-09T13:10:42.766Z",
+  "acknowledgedBy": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "resolvedAt": "2020-01-09T13:10:42.766Z",
+  "resolvedBy": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  }
+}                                         
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -1066,7 +1530,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Incident<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete Incident.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1086,15 +1550,15 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -1104,19 +1568,12 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>incidentId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -1137,7 +1594,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId/:incidentId</p>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94/5e1ce11ee6a04216343592bb</p>
         </div>
       </div>
 
@@ -1147,7 +1604,35 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "acknowledged": true,
+  "acknowledgedByZapier": null,
+  "resolved": true,
+  "resolvedByZapier": null,
+  "internalNote": "",
+  "investigationNote": "",
+  "createdByZapier": false,
+  "notClosedBy": [
+    "5e1b7f0f41127144f8144abb",
+    "5e162d9f1b8ae8185921498f"
+  ],
+  "manuallyCreated": true,
+  "deleted": false,
+  "_id": "5e1ce11ee6a04216343592bb",
+  "probes": [],
+  "createdAt": "2020-01-13T21:29:02.315Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "createdById": "5e089f88b400211639928c92",
+  "incidentType": "offline",
+  "__v": 0,
+  "acknowledgedAt": "2020-01-13T21:34:12.600Z",
+  "acknowledgedBy": "5e089f88b400211639928c92",
+  "resolvedAt": "2020-01-13T21:34:34.186Z",
+  "resolvedBy": "5e089f88b400211639928c92"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1160,7 +1645,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Acknowledge Incident<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Acknowledge Incident.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1180,28 +1665,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -1209,8 +1672,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -1223,7 +1701,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -1243,7 +1721,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -1253,14 +1731,8 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId/acknowledge/:incidentId</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94/acknowledge/5e1ce11ee6a04216343592bb
+          </p>
         </div>
       </div>
 
@@ -1270,7 +1742,43 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "acknowledged": true,
+  "acknowledgedByZapier": null,
+  "resolved": false,
+  "resolvedByZapier": false,
+  "internalNote": "",
+  "investigationNote": "",
+  "createdByZapier": false,
+  "notClosedBy": [
+    "5e1b7f0f41127144f8144abb",
+    "5e162d9f1b8ae8185921498f",
+    "5e089f88b400211639928c92"
+  ],
+  "manuallyCreated": true,
+  "deleted": false,
+  "_id": "5e1ce11ee6a04216343592bb",
+  "probes": [],
+  "createdAt": "2020-01-13T21:29:02.315Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": {
+    "_id": "5e08a21b25c59a1c8033c7e7",
+    "name": "Google Home"
+  },
+  "createdById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "incidentType": "offline",
+  "__v": 0,
+  "acknowledgedAt": "2020-01-13T21:34:12.600Z",
+  "acknowledgedBy": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  }
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1283,7 +1791,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Resolve Incident<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Resolve Incident.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1303,28 +1811,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -1332,8 +1818,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -1346,7 +1847,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -1366,7 +1867,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -1376,14 +1877,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId/resolve/:incidentId</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94/resolve/5e1ce11ee6a04216343592bb</p>
         </div>
       </div>
 
@@ -1393,7 +1887,48 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "acknowledged": true,
+  "acknowledgedByZapier": null,
+  "resolved": true,
+  "resolvedByZapier": null,
+  "internalNote": "",
+  "investigationNote": "",
+  "createdByZapier": false,
+  "notClosedBy": [
+    "5e1b7f0f41127144f8144abb",
+    "5e162d9f1b8ae8185921498f",
+    "5e089f88b400211639928c92"
+  ],
+  "manuallyCreated": true,
+  "deleted": false,
+  "_id": "5e1ce11ee6a04216343592bb",
+  "probes": [],
+  "createdAt": "2020-01-13T21:29:02.315Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": {
+    "_id": "5e08a21b25c59a1c8033c7e7",
+    "name": "Google Home"
+  },
+  "createdById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "incidentType": "offline",
+  "__v": 0,
+  "acknowledgedAt": "2020-01-13T21:34:12.600Z",
+  "acknowledgedBy": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "resolvedAt": "2020-01-13T21:34:34.186Z",
+  "resolvedBy": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  }
+}                    
+              </p>
             </code>
           </pre>
         </div>
@@ -1406,7 +1941,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Close Incident<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Close Incident.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1426,28 +1961,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -1455,8 +1968,23 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -1469,7 +1997,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -1489,7 +2017,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -1499,14 +2027,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/incident/:projectId/close/:incidentId</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
+          <p class="url">https://api.fyipe.com/incident/5e089f94b400211639928c94/close/5e1ce11ee6a04216343592bb</p>
         </div>
       </div>
 
@@ -1516,7 +2037,36 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "acknowledged": true,
+  "acknowledgedByZapier": null,
+  "resolved": true,
+  "resolvedByZapier": null,
+  "internalNote": "",
+  "investigationNote": "",
+  "createdByZapier": false,
+  "notClosedBy": [
+    "5e1b7f0f41127144f8144abb",
+    "5e162d9f1b8ae8185921498f",
+    "5e089f88b400211639928c92"
+  ],
+  "manuallyCreated": true,
+  "deleted": false,
+  "_id": "5e1ce11ee6a04216343592bb",
+  "probes": [],
+  "createdAt": "2020-01-13T21:29:02.315Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "createdById": "5e089f88b400211639928c92",
+  "incidentType": "offline",
+  "__v": 0,
+  "acknowledgedAt": "2020-01-13T21:34:12.600Z",
+  "acknowledgedBy": "5e089f88b400211639928c92",
+  "resolvedAt": "2020-01-13T21:34:34.186Z",
+  "resolvedBy": "5e089f88b400211639928c92"
+}                
+              </p>
             </code>
           </pre>
         </div>
