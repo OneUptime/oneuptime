@@ -12,7 +12,7 @@ var monitorLogByHourSchema = new Schema({
         type: Date,
         default: Date.now,
     },
-    intervalDate: Date,
+    intervalDate: String,
     avgResponseTime: Number,
     avgCpuLoad: Number,
     avgMemoryUsed: Number,

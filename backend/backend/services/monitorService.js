@@ -399,56 +399,27 @@ module.exports = {
             const end = moment(endDate).toDate();
             const interval = (moment(endDate)).diff(moment(startDate), 'days');
 
-            let dateFormat, outputFormat;
+            let monitorLogs;
             if (interval > 30) {
-                dateFormat = '%Y-%U';
-                outputFormat = 'wo [week of] YYYY';
+                monitorLogs = await MonitorLogByWeekModel.aggregate([
+                    { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
+                    { $sort: { 'createdAt': -1 } },
+                    { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
+                ]);
             } else if (interval > 2) {
-                dateFormat = '%Y-%m-%d';
-                outputFormat = 'MMM Do YYYY';
+                monitorLogs = await MonitorLogByDayModel.aggregate([
+                    { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
+                    { $sort: { 'createdAt': -1 } },
+                    { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
+                ]);
             } else {
-                dateFormat = '%Y-%m-%dT%H';
-                outputFormat = 'MMM Do YYYY, h A';
+                monitorLogs = await MonitorLogByHourModel.aggregate([
+                    { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
+                    { $sort: { 'createdAt': -1 } },
+                    { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
+                ]);
             }
 
-            var monitorData = await MonitorLogModel.aggregate([
-                { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
-                { $sort: { 'createdAt': -1 } },
-                {
-                    $group: {
-                        _id: {
-                            probeId: '$probeId',
-                            createdAt: { $dateToString: { format: dateFormat, date: '$createdAt' } }
-                        },
-                        monitorId: { $first: '$monitorId' },
-                        probeId: { $first: '$probeId' },
-                        responseTime: { $first: '$responseTime' },
-                        responseStatus: { $first: '$responseStatus' },
-                        status: { $first: '$status' },
-                        data: { $first: '$data' },
-                        createdAt: { $first: '$createdAt' },
-                        avgResponseTime: { $avg: '$responseTime' },
-                        avgCpuLoad: { $avg: '$data.cpuLoad' },
-                        avgMemoryUsed: { $avg: '$data.memoryUsed' },
-                        avgStorageUsed: { $avg: '$data.storageUsed' },
-                        avgMainTemp: { $avg: '$data.mainTemp' },
-                        count: { $sum: 1 }
-                    }
-                },
-                { $sort: { 'createdAt': -1 } },
-                { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
-            ]);
-            var monitorLogs = monitorData && monitorData.length > 0 ? monitorData.map(probeData => {
-                return {
-                    ...probeData,
-                    logs: probeData.logs && probeData.logs.length > 0 ? probeData.logs.map(logData => {
-                        return {
-                            ...logData,
-                            intervalDate: moment(logData.createdAt).format(outputFormat)
-                        };
-                    }) : []
-                };
-            }) : [];
             return monitorLogs;
         } catch (error) {
             ErrorService.log('monitorService.getMonitorLogs', error);
@@ -605,6 +576,9 @@ module.exports = {
 
 var MonitorModel = require('../models/monitor');
 var MonitorLogModel = require('../models/monitorLog');
+let MonitorLogByHourModel = require('../models/monitorLogByHour');
+let MonitorLogByDayModel = require('../models/monitorLogByDay');
+let MonitorLogByWeekModel = require('../models/monitorLogByWeek');
 var MonitorCategoryService = require('../services/monitorCategoryService');
 var MonitorCriteriaService = require('../services/monitorCriteriaService');
 var Plans = require('./../config/plans');

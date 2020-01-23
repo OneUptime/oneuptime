@@ -151,16 +151,7 @@ module.exports = {
 
     createMonitorLog: async function (data) {
         try {
-            let Log = new MonitorLogModel();
-            let LogHour = new MonitorLogByHourModel();
-            let LogDay = new MonitorLogByDayModel();
-            let LogWeek = new MonitorLogByWeekModel();
-
-            Log.monitorId = data.monitorId;
-            Log.probeId = data.probeId;
-            Log.responseTime = data.responseTime;
-            Log.responseStatus = data.responseStatus;
-            Log.data = data.data ? {
+            let logData = data.data ? {
                 cpuLoad: data.data.load.currentload,
                 avgCpuLoad: data.data.load.avgload,
                 cpuCores: data.data.load.cpus.length,
@@ -173,45 +164,145 @@ module.exports = {
                 mainTemp: data.data.temperature.main,
                 maxTemp: data.data.temperature.max
             } : null;
+
+            let Log = new MonitorLogModel();
+            let LogHour = new MonitorLogByHourModel();
+            let LogDay = new MonitorLogByDayModel();
+            let LogWeek = new MonitorLogByWeekModel();
+
+            Log.monitorId = data.monitorId;
+            Log.probeId = data.probeId;
+            Log.responseTime = data.responseTime;
+            Log.responseStatus = data.responseStatus;
             Log.status = data.status;
+            Log.data = logData;
 
             var savedLog = await Log.save();
-            // intervalDate: moment(logData.createdAt).format(outputFormat)
-            var logByHour = await LogHour.findOne({ intervalDate: '' });
+
+            var intervalHourDate = moment(new Date()).format('MMM Do YYYY, h A');
+            var logByHour = await MonitorLogByHourModel.findOne({ probeId: data.probeId, monitorId: data.monitorId, intervalDate: intervalHourDate });
+
             if (logByHour) {
-                await LogHour.findOneAndUpdate({},
+                let count = logByHour.count || 1;
+                let newCount = count + 1;
+                await MonitorLogByHourModel.findOneAndUpdate({ _id: logByHour._id },
                     {
                         $set: {
-
+                            responseTime: data.responseTime,
+                            responseStatus: data.responseStatus,
+                            status: data.status,
+                            data: logData,
+                            avgResponseTime: data.responseTime ? (((logByHour.avgResponseTime || 0) * count) + (data.responseTime || 0)) / newCount : null,
+                            avgCpuLoad: logData ? (((logByHour.avgCpuLoad || 0) * count) + (logData.cpuLoad || 0)) / newCount : null,
+                            avgMemoryUsed: logData ? (((logByHour.avgMemoryUsed || 0) * count) + (logData.memoryUsed || 0)) / newCount : null,
+                            avgStorageUsed: logData ? (((logByHour.avgStorageUsed || 0) * count) + (logData.storageUsed || 0)) / newCount : null,
+                            avgMainTemp: logData ? (((logByHour.avgMainTemp || 0) * count) + (logData.mainTemp || 0)) / newCount : null,
+                            count: newCount
                         }
                     },
                     {
                         new: true
                     });
+            } else {
+                LogHour.monitorId = data.monitorId;
+                LogHour.probeId = data.probeId;
+                LogHour.responseTime = data.responseTime;
+                LogHour.responseStatus = data.responseStatus;
+                LogHour.status = data.status;
+                LogHour.data = logData;
+                LogHour.intervalDate = intervalHourDate;
+                LogHour.avgResponseTime = data.responseTime;
+                LogHour.avgCpuLoad = logData ? logData.cpuLoad : null;
+                LogHour.avgMemoryUsed = logData ? logData.memoryUsed : null;
+                LogHour.avgStorageUsed = logData ? logData.storageUsed : null;
+                LogHour.avgMainTemp = logData ? logData.mainTemp : null;
+                LogHour.count = 1;
+
+                await LogHour.save();
             }
-            var logByDay = await LogDay.findOne({ intervalDate: '' });
+
+            var intervalDayDate = moment(new Date()).format('MMM Do YYYY');
+            var logByDay = await MonitorLogByDayModel.findOne({ probeId: data.probeId, monitorId: data.monitorId, intervalDate: intervalDayDate });
+
             if (logByDay) {
-                await LogDay.findOneAndUpdate({},
+                let count = logByDay.count || 1;
+                let newCount = count + 1;
+                await MonitorLogByDayModel.findOneAndUpdate({ _id: logByDay._id },
                     {
                         $set: {
-
+                            responseTime: data.responseTime,
+                            responseStatus: data.responseStatus,
+                            status: data.status,
+                            data: logData,
+                            avgResponseTime: data.responseTime ? (((logByDay.avgResponseTime || 0) * count) + (data.responseTime || 0)) / newCount : null,
+                            avgCpuLoad: logData ? (((logByDay.avgCpuLoad || 0) * count) + (logData.cpuLoad || 0)) / newCount : null,
+                            avgMemoryUsed: logData ? (((logByDay.avgMemoryUsed || 0) * count) + (logData.memoryUsed || 0)) / newCount : null,
+                            avgStorageUsed: logData ? (((logByDay.avgStorageUsed || 0) * count) + (logData.storageUsed || 0)) / newCount : null,
+                            avgMainTemp: logData ? (((logByDay.avgMainTemp || 0) * count) + (logData.mainTemp || 0)) / newCount : null,
+                            count: newCount
                         }
                     },
                     {
                         new: true
                     });
+            } else {
+                LogDay.monitorId = data.monitorId;
+                LogDay.probeId = data.probeId;
+                LogDay.responseTime = data.responseTime;
+                LogDay.responseStatus = data.responseStatus;
+                LogDay.status = data.status;
+                LogDay.data = logData;
+                LogDay.intervalDate = intervalDayDate;
+                LogDay.avgResponseTime = data.responseTime;
+                LogDay.avgCpuLoad = logData ? logData.cpuLoad : null;
+                LogDay.avgMemoryUsed = logData ? logData.memoryUsed : null;
+                LogDay.avgStorageUsed = logData ? logData.storageUsed : null;
+                LogDay.avgMainTemp = logData ? logData.mainTemp : null;
+                LogDay.count = 1;
+
+                await LogDay.save();
             }
-            var logByWeek = await LogWeek.findOne({ intervalDate: '' });
+
+            var intervalWeekDate = moment(new Date()).format('wo [week of] YYYY');
+            var logByWeek = await MonitorLogByWeekModel.findOne({ probeId: data.probeId, monitorId: data.monitorId, intervalDate: intervalWeekDate });
+
             if (logByWeek) {
-                await LogWeek.findOneAndUpdate({},
+                let count = logByWeek.count || 1;
+                let newCount = count + 1;
+                await MonitorLogByWeekModel.findOneAndUpdate({ _id: logByWeek._id },
                     {
                         $set: {
-
+                            responseTime: data.responseTime,
+                            responseStatus: data.responseStatus,
+                            status: data.status,
+                            data: logData,
+                            avgResponseTime: data.responseTime ? (((logByWeek.avgResponseTime || 0) * count) + (data.responseTime || 0)) / newCount : null,
+                            avgCpuLoad: logData ? (((logByWeek.avgCpuLoad || 0) * count) + (logData.cpuLoad || 0)) / newCount : null,
+                            avgMemoryUsed: logData ? (((logByWeek.avgMemoryUsed || 0) * count) + (logData.memoryUsed || 0)) / newCount : null,
+                            avgStorageUsed: logData ? (((logByWeek.avgStorageUsed || 0) * count) + (logData.storageUsed || 0)) / newCount : null,
+                            avgMainTemp: logData ? (((logByWeek.avgMainTemp || 0) * count) + (logData.mainTemp || 0)) / newCount : null,
+                            count: newCount
                         }
                     },
                     {
                         new: true
                     });
+            } else {
+                LogWeek.monitorId = data.monitorId;
+                LogWeek.probeId = data.probeId;
+                LogWeek.responseTime = data.responseTime;
+                LogWeek.responseStatus = data.responseStatus;
+                LogWeek.status = data.status;
+                LogWeek.data = logData;
+                LogWeek.intervalDate = intervalWeekDate;
+                LogWeek.avgResponseTime = data.responseTime;
+                LogWeek.avgCpuLoad = logData ? logData.cpuLoad : null;
+                LogWeek.avgMemoryUsed = logData ? logData.memoryUsed : null;
+                LogWeek.avgStorageUsed = logData ? logData.storageUsed : null;
+                LogWeek.avgMainTemp = logData ? logData.mainTemp : null;
+                LogWeek.count = 1;
+
+                await LogWeek.save();
             }
 
             await MonitorService.sendResponseTime(savedLog);
