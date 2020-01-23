@@ -400,24 +400,17 @@ module.exports = {
             const interval = (moment(endDate)).diff(moment(startDate), 'days');
 
             let monitorLogs;
+            let aggregateLogs = [
+                { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
+                { $sort: { 'createdAt': -1 } },
+                { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
+            ];
             if (interval > 30) {
-                monitorLogs = await MonitorLogByWeekModel.aggregate([
-                    { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
-                    { $sort: { 'createdAt': -1 } },
-                    { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
-                ]);
+                monitorLogs = await MonitorLogByWeekModel.aggregate(aggregateLogs);
             } else if (interval > 2) {
-                monitorLogs = await MonitorLogByDayModel.aggregate([
-                    { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
-                    { $sort: { 'createdAt': -1 } },
-                    { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
-                ]);
+                monitorLogs = await MonitorLogByDayModel.aggregate(aggregateLogs);
             } else {
-                monitorLogs = await MonitorLogByHourModel.aggregate([
-                    { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
-                    { $sort: { 'createdAt': -1 } },
-                    { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
-                ]);
+                monitorLogs = await MonitorLogByHourModel.aggregate(aggregateLogs);
             }
 
             return monitorLogs;
