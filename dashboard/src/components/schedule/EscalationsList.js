@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import { EscalationSingle } from '../basic/EscalationSingle';
 
 const EscalationsList = ({ escalationData, subProjectId }) => {
-  console.log('escalation', escalationData)
   return (
     <div className="Box-root Margin-bottom--12">
       <div className="bs-ContentSection Card-root Card-shadow--medium">
