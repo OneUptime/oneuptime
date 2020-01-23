@@ -4,7 +4,7 @@
       <h1>Twilio</h1>
     </b>
     <p>
-      <p></p>
+      <p>Twilio API.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Voice Incident<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Voice Incident.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -59,8 +59,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>accessToken</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -70,19 +70,57 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorName</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentType</span>
+                <span class="item-type">'online' | 'offline' | 'degraded'</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -115,7 +153,15 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+<Response>
+  <Gather numDigits="1" input="dtmf" action="https://staging-api.fyipe.com/twilio/voice/incident/action?projectId=5e089f94b400211639928c94&amp;incidentId=5e1ce0f3e6a04216343592b9&amp;accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM" timeout="15">
+    <Say voice="alice">This is an alert from Fyipe. Your monitor Cello is offline. Press one to acknowledge or two to resolve.</Say>
+  </Gather>
+  <Say voice="alice">No response received. This call will end.</Say>
+  <Hangup />
+</Response>                
+              </p>
             </code>
           </pre>
         </div>
@@ -128,7 +174,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Voice Status<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Voice Status.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -155,8 +201,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>accessToken</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -166,19 +212,87 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>monitorName</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>CallStatus</span>
+                <span class="item-type">'failed' | 'busy' | 'no-answer'</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>To</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>redialCount</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -211,7 +325,11 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "status": "call redial success"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -224,7 +342,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Voice Incident Action<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Voice Incident Action.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -251,8 +369,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>accessToken</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -262,19 +380,27 @@
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -287,7 +413,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -307,7 +433,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -324,7 +450,11 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "Digits": "1"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -336,7 +466,15 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+<Response>
+  <Gather numDigits="1" input="dtmf" action="https://staging-api.fyipe.com/twilio/voice/incident/action?projectId=5e089f94b400211639928c94&amp;incidentId=5e1ce0f3e6a04216343592b9&amp;accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM" timeout="15">
+    <Say voice="alice">The incident status has been acknowledged. Press 2 to resolve this incident</Say>
+  </Gather>
+  <Say voice="alice">No response received. This call will end.</Say>
+  <Hangup />
+</Response>                
+              </p>
             </code>
           </pre>
         </div>
@@ -349,7 +487,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Incoming SMS<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Incoming SMS.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -368,51 +506,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -432,7 +526,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -447,7 +541,13 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "Body": "Hello",
+  "From": "2348158486068",
+  "To": "2348158486068"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -459,7 +559,11 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "status": "two incidents available, action not possible"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -472,7 +576,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Send Verification Token SMS<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Send Verification Token SMS.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -499,8 +603,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -513,29 +617,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -555,7 +637,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -570,7 +652,11 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "to": "2348158486068"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -582,7 +668,31 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "sid": "VEb0a22780c5f5241be72f196cdeed040e",
+  "serviceSid": "VA0832f242a8d417136df936f3e12af8c1",
+  "accountSid": "AC0a2295b7745a7ddc57fc73e77f9b72a0",
+  "to": "+2348158486068",
+  "channel": "sms",
+  "status": "pending",
+  "valid": false,
+  "lookup": {
+    "carrier": {
+      "mobile_country_code": "621",
+      "type": "mobile",
+      "error_code": null,
+      "mobile_network_code": "50",
+      "name": "Globacom Ltd"
+    }
+  },
+  "amount": null,
+  "payee": null,
+  "dateCreated": "2020-01-14T21:36:59.000Z",
+  "dateUpdated": "2020-01-14T21:36:59.000Z",
+  "url": "https://verify.twilio.com/v2/Services/VA0832f242a8d417136df936f3e12af8c1/Verifications/VEb0a22780c5f5241be72f196cdeed040e"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -595,7 +705,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>SMS Verify<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>SMS Verify.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -622,8 +732,8 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
@@ -636,29 +746,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -678,7 +766,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -693,7 +781,12 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "to": "2348158486068",
+  "code": "495227"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -705,7 +798,21 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "sid": "VEb0a22780c5f5241be72f196cdeed040e",
+  "serviceSid": "VA0832f242a8d417136df936f3e12af8c1",
+  "accountSid": "AC0a2295b7745a7ddc57fc73e77f9b72a0",
+  "to": "+2348158486068",
+  "channel": "sms",
+  "status": "approved",
+  "valid": true,
+  "amount": null,
+  "payee": null,
+  "dateCreated": "2020-01-14T21:36:59.000Z",
+  "dateUpdated": "2020-01-14T21:37:56.000Z"
+}                
+              </p>
             </code>
           </pre>
         </div>
