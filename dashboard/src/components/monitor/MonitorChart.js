@@ -257,14 +257,6 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                         :
                         <>
                             <div className="db-Trend-colInformation">
-                                <div className="db-Trend-rowTitle" title="Response Time">
-                                    <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
-                                </div>
-                            </div>
-                            <div className="db-Trend-colInformation">
                                 <div className="db-Trend-rowTitle" title="Monitor Status">
                                     <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
                                 </div>
@@ -280,6 +272,16 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                                     <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
                                 </div>
                             </div>
+                            <ShouldRender if={data && data.length > 0}>
+                                <div className="db-Trend-colInformation">
+                                    <div className="db-Trend-rowTitle" title="Response Time">
+                                        <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
+                                    </div>
+                                </div>
+                            </ShouldRender>
                         </>
                     }
                 </div>
@@ -319,14 +321,6 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
             <span></span>
             <div className="db-Trend-colInformation">
                 <div className="db-Trend-rowTitle" title="Gross volume">
-                    <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
-                </div>
-                <div className="db-Trend-row">
-                    <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
-                </div>
-            </div>
-            <div className="db-Trend-colInformation">
-                <div className="db-Trend-rowTitle" title="Gross volume">
                     <div className="db-Trend-title"><span className="chart-font">Monitor Status</span></div>
                 </div>
                 <div className="db-Trend-row">
@@ -341,6 +335,16 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                     <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{uptime} %</span></span></div>
                 </div>
             </div>
+            <ShouldRender if={block && block.length > 0}>
+                <div className="db-Trend-colInformation">
+                    <div className="db-Trend-rowTitle" title="Gross volume">
+                        <div className="db-Trend-title"><span className="chart-font">Response Time</span></div>
+                    </div>
+                    <div className="db-Trend-row">
+                        <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
+                    </div>
+                </div>
+            </ShouldRender>
             <div className="block-chart-main">
                 <div className="block-chart">
                     {block}
