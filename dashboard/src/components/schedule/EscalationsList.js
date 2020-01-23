@@ -1,9 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import { EscalationSingle } from '../basic/EscalationSingle';
 
-const EscalationsList = ({ escalationData }) => {
-  // console.log('escalation', escalationData)
+const EscalationsList = ({ escalationData, subProjectId }) => {
+  console.log('escalation', escalationData)
   return (
     <div className="Box-root Margin-bottom--12">
       <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -20,12 +21,25 @@ const EscalationsList = ({ escalationData }) => {
               <fieldset data-test="RetrySettings-failedAndExpiring" className="bs-Fieldset">
                 <div className="bs-Fieldset-rows">
                   {escalationData && escalationData.length ? (
-                    <div style={{ textAlign: 'center', padding: '10px' }}>
-                      <span>Escalations Avail</span>
+                    <div style={{ padding: '10px' }}>
+                      {escalationData.map((escalation, i) => (
+                        <>
+                          <EscalationSingle
+                            escalation={escalation}
+                            key={i}
+                            policyIndex={i}
+                            subProjectId={subProjectId}
+                          />
+                          {escalationData.length > 1 && (
+                            <hr style={{ marginLeft: '5%', marginRight: '15%', marginTop: 15, marginBottom: 5}}/>
+                          )}
+                        </>
+                      ))}
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '10px' }}>
                       <h3>You have not created any escalation policies.</h3>
+                      <span>Please create at least one to view active teams.</span>
                     </div>
                   )}
                 </div>
@@ -41,7 +55,8 @@ const EscalationsList = ({ escalationData }) => {
 EscalationsList.displayName = 'EscalationsList';
 
 EscalationsList.propTypes = {
-  escalationData: PropTypes.array.isRequired
+  escalationData: PropTypes.array.isRequired,
+  subProjectId: PropTypes.string.isRequired,
 }
 
 const mapStateToProps = state => {

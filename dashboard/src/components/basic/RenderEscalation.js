@@ -42,8 +42,8 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                         onClick={() => fields.push(
                                             { 
-                                                callFrequency: '10',
-                                                smsFrequency: '10',
+                                                callFrequency: '',
+                                                smsFrequency: '',
                                                 emailFrequency: '10',
                                                 email: true,
                                                 sms: false,

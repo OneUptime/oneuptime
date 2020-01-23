@@ -24,7 +24,7 @@ class Schedule extends Component {
     
                                                 <RenameScheduleBox />
 
-                                                <EscalationsList />
+                                                <EscalationsList subProjectId={subProjectId} />
     
                                                 <MonitorBox />
                                                 

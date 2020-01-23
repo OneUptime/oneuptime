@@ -120,10 +120,10 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
         for(let value of req.body){
             let storagevalue = {};
             let tempTeam = [];
-            if(!value.callFrequency){
+            if(!value.emailFrequency){
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Call Frequency is required'
+                    message: 'Email Frequency is required'
                 });
             }
 
