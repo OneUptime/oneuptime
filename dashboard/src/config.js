@@ -15,7 +15,7 @@ let developmentEnv = false;
 
 export function env(value) {
     var { _env } = window;
-    return _env[`REACT_APP_${value}`] || process.env[`REACT_APP_${value}`] ;
+    return (_env && _env[`REACT_APP_${value}`]) || process.env[`REACT_APP_${value}`];
 }
 
 if (!isServer) {
