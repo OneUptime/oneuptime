@@ -271,3 +271,162 @@
     }
     
 }
+@media screen and (max-width:420px){
+    ul.columns>li{
+        margin-bottom: 110px;
+        margin-left: -20px;
+    }
+    section.basics .columns .moni:before,
+    section.basics .columns .trend:before,
+    section.basics .columns .cost:before,
+    section.basics .columns .reli:before,
+    section.basics .columns .rotation:before,
+    section.basics .columns .global:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .reliability:before,
+    section.basics .columns .time:before {
+        position: absolute;
+        top: -80px;
+        padding-left: 210px;
+        width: 65px;
+        height: 65px;
+    }
+    .comparision-others {
+        font-size: 8px;
+    }
+    .fyipe-versus{
+        margin-top: 15px;
+        left: 140px;
+    }
+    .fyipe-list-text>h3, .comparision-fyipe>h3, .list-text>h3, .comparision-others>h3 {
+        top: -40px;
+    }
+}
+@media screen and (max-width:400px){
+    ul.columns>li{
+        margin-bottom: 110px;
+        margin-left: -65px;
+    }
+    #intro h1 {
+        font-weight: 300;
+    }
+    
+    section.basics .columns .moni:before,
+    section.basics .columns .trend:before,
+    section.basics .columns .cost:before,
+    section.basics .columns .reli:before,
+    section.basics .columns .rotation:before,
+    section.basics .columns .global:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .reliability:before,
+    section.basics .columns .time:before {
+        padding-left: 240px;
+    }
+}
+
+@media screen and (max-width:440px){
+    ul.columns>li{
+        margin-bottom: 110px;
+        margin-left: -65px;
+    }
+    #intro h1 {
+        font-weight: 300;
+    }
+    section.basics .columns .moni:before,
+    section.basics .columns .trend:before,
+    section.basics .columns .cost:before,
+    section.basics .columns .reli:before,
+    section.basics .columns .rotation:before,
+    section.basics .columns .global:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .reliability:before,
+    section.basics .columns .time:before {
+        padding-left: 270px;
+    }
+    .list-container {
+        margin-top: 15px !important;
+    }
+}
+@media screen and (max-width:380px){
+    section.basics .columns .moni:before,
+    section.basics .columns .trend:before,
+    section.basics .columns .cost:before,
+    section.basics .columns .reli:before,
+    section.basics .columns .rotation:before,
+    section.basics .columns .global:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .reliability:before,
+    section.basics .columns .time:before {
+        padding-left: 240px;
+    }
+    .fyipe-versus{
+        margin-top: 15px;
+        left: 130px;
+    }
+}
+@media screen and (max-width:340px){
+    .fyipe-versus{
+        margin-top: -10px;
+        left: 100px;
+    }
+    .fyipe-listing {
+        height: 70%;
+        font-size: 8.5px;
+        margin-bottom: 20px;
+    }
+    .comparision-others {
+        margin-top: -25px;
+    }
+    .fyipe-list-img {
+        margin-left: 4px;
+    }
+    .fyipe-list-text {
+        padding: 20px 10px 20px 5px;
+    }
+}
+@media screen and (max-width:370px){
+    .fyipe-versus{
+        margin-top: -10px;
+        left: 120px;
+    }
+    .fyipe-listing {
+        height: 70%;
+        font-size: 8.5px;
+        margin-bottom: 20px;
+    }
+    .comparision-others {
+        margin-top: -18px;
+    }
+}
+@media screen and (max-width:330px){
+    section.basics .columns .moni:before,
+    section.basics .columns .trend:before,
+    section.basics .columns .cost:before,
+    section.basics .columns .reli:before,
+    section.basics .columns .rotation:before,
+    section.basics .columns .global:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .reliability:before,
+    section.basics .columns .time:before {
+        padding-left: 200px;
+    }
+    ul.columns>li{
+        margin-bottom: 110px;
+        margin-left: -70px;
+    }
+    #intro h1 {
+        font-weight: 300;
+    }
+    .fyipe-versus{
+        margin-top: -12px;
+        left: 100px;
+    }
+    .fyipe-listing {
+        height: 68%;
+        font-size: 8.5px;
+        margin-bottom: 20px;
+    }
+    .comparision-others {
+        margin-top: -20px;
+    }
+}
