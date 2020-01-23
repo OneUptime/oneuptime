@@ -9,7 +9,6 @@ let RenderActiveTeamMembers = ({ team, subProjectTeam, rotationFrequency }) => {
   if (team && subProjectTeam) {
     rotationTeam = composeProjectTeam(team.teamMember, subProjectTeam.teamMembers);
   }
-  console.log('tesm', team, typeof new Date(team.rotationStartTime), typeof team.rotationStartTime)
   return (
     <div style={{ marginLeft: '2%' }}>
       {rotationFrequency && (
