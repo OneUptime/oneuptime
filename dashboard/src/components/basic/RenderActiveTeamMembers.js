@@ -57,16 +57,15 @@ const mapStateToProps = (state, props) => {
 }
 
 function composeDateFormat(rotationFrequency, date){
-  console.log('date', date)
   if(!rotationFrequency)
-    return format(date, 'do, h:mm:ss aaa')
+    return format(date, 'do, h:mm aaa')
   switch(rotationFrequency) {
     case 'months':
-      return format(date, 'EEE, do LLL: h:mm:ss aaa');
+      return format(date, 'EEE, do LLL: h:mm aaa');
     case 'weeks':
-      return format(date, 'EEEE, h:mm:ss aaa');
+      return format(date, 'EEEE do, h:mm aaa');
     case 'days':
-      return format(date, 'do, h:mm:ss aaa')
+      return format(date, 'do, h:mm aaa')
   }
 }
 
