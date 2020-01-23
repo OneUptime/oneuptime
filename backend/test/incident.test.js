@@ -76,7 +76,7 @@ describe('Incident API', function () {
 
     it('should get incidents belonging to a monitor', function (done) {
         var authorization = `Basic ${token}`;
-        request.get(`/incident/${projectId}/monitor/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
+        request.post(`/incident/${projectId}/monitor/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('data');
@@ -176,10 +176,11 @@ describe('Incident API', function () {
             var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
                 .send([{
                     callFrequency: 10,
-                    rotationFrequency: 'week',
+                    rotationFrequency: 'weeks',
                     rotationInterval: 2,
+                    rotationSwitchTime: 'Wed Jan 22 2020 09:25:15 GMT+0100 (West Africa Standard Time)',
                     call: true,
-                    sms: true,
+                    sms: false,
                     email: false,
                     team: [{
                         teamMember: [{

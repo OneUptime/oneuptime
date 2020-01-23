@@ -2,8 +2,6 @@ var mongoose = require('../config/db');
 
 var Schema = mongoose.Schema;
 const teamSchema = new Schema({
-    rotationStartTime: { type: String, default: null },
-    rotationEndTime: { type: String, default: null },
     teamMember: [
         {
             startTime: String,
@@ -16,14 +14,13 @@ const teamSchema = new Schema({
 
 var escalationSchema = new Schema({
     projectId: { type: String, ref: 'Project', alias: 'project', default: null },
-    activeTeamId: String,
-    activeTeam: teamSchema,
-    estimatedSwitchTime: String,
     callFrequency: { type: String, default: null },
     emailFrequency: { type: String, default: null },
     smsFrequency: { type: String, default: null },
     rotationFrequency: { type: String, default: null },
     rotationInterval: { type: Number, default: null },
+    rotationSwitchTime: String,
+    rotationTimezone: String,
     call: {type: Boolean, default: false},
     email: {type: Boolean, default: false},
     sms: {type: Boolean, default: false},

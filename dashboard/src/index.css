@@ -9,10 +9,7 @@ body {
 }
 
 .renderFrequencyInput {
-  margin-left: 280px;
-  padding: 5px;
+  margin-top: 15px;
   border-radius: 5px;
-  border: 0px;
-  display: inline;
   -moz-appearance:textfield;
 }

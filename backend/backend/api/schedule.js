@@ -138,6 +138,8 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             storagevalue.emailFrequency = value.emailFrequency;
             storagevalue.rotationFrequency = value.rotationFrequency;
             storagevalue.rotationInterval = value.rotationInterval;
+            storagevalue.rotationSwitchTime = value.rotationSwitchTime;
+            storagevalue.rotationTimezone = value.rotationTimezone;
             storagevalue.email = value.email;
             storagevalue.call = value.call;
             storagevalue.sms = value.sms;

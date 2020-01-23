@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.1295",
+  "version": "3.0.1365",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
@@ -14,6 +14,7 @@
     "browserslist": "^4.6.1",
     "card-validator": "^6.2.0",
     "clipboard": "^2.0.1",
+    "clsx": "^1.0.4",
     "components": "^0.1.0",
     "connected-react-router": "^4.5.0",
     "date-fns": "^2.8.1",

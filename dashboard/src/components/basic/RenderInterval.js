@@ -11,7 +11,7 @@ let RenderInterval = ({ input: { onChange, value }}) => {
     <input
       type="number"
       placeholder="Interval"
-      className="renderFrequencyInput"
+      className="db-BusinessSettings-input TextInput bs-TextInput renderFrequencyInput"
       min="0"
       onChange={handleChange}
       value={value}
