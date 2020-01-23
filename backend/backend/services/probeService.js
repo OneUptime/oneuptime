@@ -152,34 +152,70 @@ module.exports = {
     createMonitorLog: async function (data) {
         try {
             let Log = new MonitorLogModel();
+            let LogHour = new MonitorLogByHourModel();
+            let LogDay = new MonitorLogByDayModel();
+            let LogWeek = new MonitorLogByWeekModel();
+
             Log.monitorId = data.monitorId;
             Log.probeId = data.probeId;
             Log.responseTime = data.responseTime;
             Log.responseStatus = data.responseStatus;
-            Log.data = data.data;
+            Log.data = data.data ? {
+                cpuLoad: data.data.load.currentload,
+                avgCpuLoad: data.data.load.avgload,
+                cpuCores: data.data.load.cpus.length,
+                memoryUsed: data.data.memory.used,
+                totalMemory: data.data.memory.total,
+                swapUsed: data.data.memory.swapused,
+                storageUsed: data.data.disk.used,
+                totalStorage: data.data.disk.size,
+                storageUsage: data.data.disk.use,
+                mainTemp: data.data.temperature.main,
+                maxTemp: data.data.temperature.max
+            } : null;
             Log.status = data.status;
 
             var savedLog = await Log.save();
-            savedLog = savedLog.toObject();
-            var logData = {
-                ...savedLog,
-                data: savedLog.data ? {
-                    cpuLoad: savedLog.data.load.currentload,
-                    avgCpuLoad: savedLog.data.load.avgload,
-                    cpuCores: savedLog.data.load.cpus.length,
-                    memoryUsed: savedLog.data.memory.used,
-                    totalMemory: savedLog.data.memory.total,
-                    swapUsed: savedLog.data.memory.swapused,
-                    storageUsed: savedLog.data.disk.used,
-                    totalStorage: savedLog.data.disk.size,
-                    storageUsage: savedLog.data.disk.use,
-                    mainTemp: savedLog.data.temperature.main,
-                    maxTemp: savedLog.data.temperature.max
-                } : null
-            };
+            // intervalDate: moment(logData.createdAt).format(outputFormat)
+            var logByHour = await LogHour.findOne({ intervalDate: '' });
+            if (logByHour) {
+                await LogHour.findOneAndUpdate({},
+                    {
+                        $set: {
 
-            await MonitorService.sendResponseTime(logData);
-            await MonitorService.sendMonitorLog(logData);
+                        }
+                    },
+                    {
+                        new: true
+                    });
+            }
+            var logByDay = await LogDay.findOne({ intervalDate: '' });
+            if (logByDay) {
+                await LogDay.findOneAndUpdate({},
+                    {
+                        $set: {
+
+                        }
+                    },
+                    {
+                        new: true
+                    });
+            }
+            var logByWeek = await LogWeek.findOne({ intervalDate: '' });
+            if (logByWeek) {
+                await LogWeek.findOneAndUpdate({},
+                    {
+                        $set: {
+
+                        }
+                    },
+                    {
+                        new: true
+                    });
+            }
+
+            await MonitorService.sendResponseTime(savedLog);
+            await MonitorService.sendMonitorLog(savedLog);
 
             if (data.probeId && data.monitorId) await this.sendProbe(data.probeId, data.monitorId);
 
@@ -315,7 +351,7 @@ module.exports = {
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
                                 status: true,
-                                reportedStatus:data.status
+                                reportedStatus: data.status
                             })
                         });
                     });
@@ -340,7 +376,7 @@ module.exports = {
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
                                 status: true,
-                                reportedStatus:data.status
+                                reportedStatus: data.status
                             })
                         });
                     });
@@ -365,7 +401,7 @@ module.exports = {
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
                                 status: true,
-                                reportedStatus:data.status
+                                reportedStatus: data.status
                             })
                         });
                     });
@@ -417,7 +453,7 @@ module.exports = {
                         probeId: data.probeId,
                         updatedAt: Date.now(),
                         status: false,
-                        reportedStatus:data.status
+                        reportedStatus: data.status
                     }])
                 });
                 incidentsV2.push(newIncident);
@@ -1100,6 +1136,9 @@ const checkOr = async (payload, con, statusCode, body) => {
 
 let ProbeModel = require('../models/probe');
 let MonitorLogModel = require('../models/monitorLog');
+let MonitorLogByHourModel = require('../models/monitorLogByHour');
+let MonitorLogByDayModel = require('../models/monitorLogByDay');
+let MonitorLogByWeekModel = require('../models/monitorLogByWeek');
 let MonitorStatusModel = require('../models/monitorStatus');
 var RealTimeService = require('./realTimeService');
 let ErrorService = require('./errorService');

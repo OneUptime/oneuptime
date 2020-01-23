@@ -20,4 +20,4 @@ var monitorLogByDaySchema = new Schema({
     avgMainTemp: Number,
     count: Number
 });
-module.exports = mongoose.model('MonitorLog', monitorLogByDaySchema);
+module.exports = mongoose.model('MonitorLogByDay', monitorLogByDaySchema);

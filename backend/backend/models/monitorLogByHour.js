@@ -20,4 +20,4 @@ var monitorLogByHourSchema = new Schema({
     avgMainTemp: Number,
     count: Number
 });
-module.exports = mongoose.model('MonitorLog', monitorLogByHourSchema);
+module.exports = mongoose.model('MonitorLogByHour', monitorLogByHourSchema);

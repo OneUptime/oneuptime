@@ -428,10 +428,10 @@ module.exports = {
                         data: { $first: '$data' },
                         createdAt: { $first: '$createdAt' },
                         avgResponseTime: { $avg: '$responseTime' },
-                        avgCpuLoad: { $avg: '$data.load.currentload' },
-                        avgMemoryUsed: { $avg: '$data.memory.used' },
-                        avgStorageUsed: { $avg: '$data.disk.used' },
-                        avgMainTemp: { $avg: '$data.temperature.main' },
+                        avgCpuLoad: { $avg: '$data.cpuLoad' },
+                        avgMemoryUsed: { $avg: '$data.memoryUsed' },
+                        avgStorageUsed: { $avg: '$data.storageUsed' },
+                        avgMainTemp: { $avg: '$data.mainTemp' },
                         count: { $sum: 1 }
                     }
                 },
@@ -444,19 +444,6 @@ module.exports = {
                     logs: probeData.logs && probeData.logs.length > 0 ? probeData.logs.map(logData => {
                         return {
                             ...logData,
-                            data: logData.data ? {
-                                cpuLoad: logData.data.load.currentload,
-                                avgCpuLoad: logData.data.load.avgload,
-                                cpuCores: logData.data.load.cpus.length,
-                                memoryUsed: logData.data.memory.used,
-                                totalMemory: logData.data.memory.total,
-                                swapUsed: logData.data.memory.swapused,
-                                storageUsed: logData.data.disk.used,
-                                totalStorage: logData.data.disk.size,
-                                storageUsage: logData.data.disk.use,
-                                mainTemp: logData.data.temperature.main,
-                                maxTemp: logData.data.temperature.max
-                            } : null,
                             intervalDate: moment(logData.createdAt).format(outputFormat)
                         };
                     }) : []
