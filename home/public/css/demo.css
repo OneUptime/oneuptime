@@ -96,6 +96,11 @@ section.ctas .cta .icon-column{
         padding-bottom:0
     }
 }
+@media (max-width:420px){
+    section.ctas .cta .icon-column{
+        min-width: 55px;
+    }
+}
 section.ctas .cta .copy-column{
     -ms-flex-positive:2;
     flex-grow:2;

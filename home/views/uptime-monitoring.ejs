@@ -8,11 +8,14 @@
     <meta name="description"
         content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
     <% include ./head %>
-    <link rel="stylesheet" href="/css/shared-site.css">
-    <link rel="stylesheet" href="/css/home.css">
-    <link rel="stylesheet" href="/css/products.css">
-    <script src="/js/amplitude.js"></script>
-    <script>
+    <link rel="preload" href="/css/shared-site.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/shared-site.css"></noscript>
+    <link rel="preload" href="/css/home.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/home.css"></noscript>
+    <link rel="preload" href="/css/products.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/products.css"></noscript>
+    <script src="/js/amplitude.js" async></script>
+    <script async>
         var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
         if (!IS_DEV) {
             amplitude.getInstance().logEvent('Uptime Monitoring page viewed');
@@ -165,7 +168,7 @@
 
                 
                
-                <div style="background-color:black;height: 600px;width:100%;">
+                <div style="background-color:black;height: 600px;width:100%;" class="enterprise-section">
                     <header style="padding-top:75px">
                         <h2 class="header" style="color:white">1500+ Enterprise Integrations and counting.</h2>
                         <p class="common-BodyText">Fyipe integrates with over a thousand enterprise-class app and
@@ -174,16 +177,16 @@
 
                     <ul class="integration-list">
                         <li>
-                            <img class="integration-logo" src="/img/slack-white.svg">
+                            <img class="integration-logo" src="/img/slack-white.svg" alt="Slack logo">
                         </li>
                         <li>
                             <img class="integration-logo" src="/img/atlassian.svg" style="
     height: 70px;
     margin-top: -15px;
-">
+" alt="Atlassian logo">
                         </li>
                         <li>
-                            <img class="integration-logo" src="/img/servicenow.svg">
+                            <img class="integration-logo" src="/img/servicenow.svg" alt="Service now logo">
                         </li>
                     </ul>
                     <ul class="integration-list" style="margin-top: 60px;">
@@ -191,18 +194,18 @@
                             <img class="integration-logo" src="/img/okta.svg" style="
     height: 30px;
     margin-left: -50px;
-">
+" alt="Okta logo">
                         </li>
                         <li>
                             <img class="integration-logo" src="/img/aws-white.svg" style="
     height: 50px;
     margin-left: -80px;
-">
+" alt="AWS logo">
                         </li>
                         <li>
                             <img class="integration-logo" src="/img/appdynamics.svg" style="
     height: 80px;
-">
+" alt="App dynamics logo">
                         </li>
                     </ul>
                     <ul class="integration-list" style="margin-top: 40px;">
@@ -210,18 +213,18 @@
                             <img class="integration-logo" src="/img/newrelic.svg" style="
     height: 80px;
     margin-left: -60px;
-">
+" alt="New relic logo">
                         </li>
                         <li>
                             <img class="integration-logo" src="/img/zendesk.svg" style="
     height: 60px;
     margin-left: -90px;
-">
+" alt="Zendesk logo">
                         </li>
                         <li>
                             <img class="integration-logo" src="/img/azure.svg" style="
     height: 60px;
-">
+" alt="Azure logo">
                         </li>
                     </ul>
 

@@ -34,6 +34,10 @@ spec:
               value: "http://backend.app.local:3002"
             - name: DOMAIN
               value: ".app.local"
+            - name: STRIPE_PUBLIC_KEY
+              value: "pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv"
+            - name: AMPLITUDE_PUBLIC_KEY
+              value: "cb70632f45c1ca7fe6180812c0d6494a"
           ports:
             - containerPort: 3000
               hostPort: 3000
@@ -90,6 +94,10 @@ spec:
               value: "http://dashboard.app.local:3000"
             - name: DOMAIN
               value: ".app.local"
+            - name: STRIPE_PUBLIC_KEY
+              value: "pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv"
+            - name: AMPLITUDE_PUBLIC_KEY
+              value: "cb70632f45c1ca7fe6180812c0d6494a"
           ports:
             - containerPort: 3003
               hostPort: 3003

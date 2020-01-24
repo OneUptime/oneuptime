@@ -10,12 +10,11 @@ let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
-let publicStripeKey = 'pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv';
 let developmentEnv = false;
 
-function env(value) {
+export function env(value) {
     var { _env } = window;
-    return _env[`REACT_APP_${value}`];
+    return (_env && _env[`REACT_APP_${value}`]) || process.env[`REACT_APP_${value}`];
 }
 
 if (!isServer) {
@@ -44,8 +43,6 @@ export const DASHBOARD_URL = dashboardUrl;
 export const DOMAIN_URL = domain;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
-
-export const PUBLIC_STRIPE_KEY = publicStripeKey;
 
 export const IS_DEV = developmentEnv;
 

@@ -10,7 +10,9 @@ var env = {
   REACT_APP_HOST: process.env.HOST,
   REACT_APP_ACCOUNTS_HOST: process.env.ACCOUNTS_HOST,
   REACT_APP_BACKEND_HOST: process.env.BACKEND_HOST,
-  REACT_APP_DOMAIN: process.env.DOMAIN
+  REACT_APP_DOMAIN: process.env.DOMAIN,
+  REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
+  REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY
 }
 
 fs.writeFileSync('.env', envfile.stringifySync(env));

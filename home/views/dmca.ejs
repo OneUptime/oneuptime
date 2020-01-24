@@ -4,8 +4,8 @@
 
     <p>The Digital Millennium Copyright Act established a process for addressing claims of copyright infringement that
         we have implemented for Fyipe services</p>
-    <script src="/js/amplitude.js"></script>
-    <script>
+    <script src="/js/amplitude.js" async></script>
+    <script async>
         var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
         if (!IS_DEV) {
             amplitude.getInstance().logEvent('DMCA page viewed');
