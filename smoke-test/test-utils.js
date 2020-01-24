@@ -31,7 +31,7 @@ function generatePassword() {
     return Math.random().toString(36).substring(7);
 }
 function generateRandomString() {
-    return faker.lorem.word();
+    return Math.random().toString(36).substring(8);
 }
 
 module.exports = {
