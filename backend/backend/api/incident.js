@@ -71,6 +71,13 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
                 });
             }
         }
+        var oldIncidents = await IncidentService.countBy({projectId: projectId, monitorId: monitorId,incidentType,resolved:false,deleted:false});
+        if(oldIncidents && oldIncidents > 0){
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: `An unresolved incident of type ${incidentType} already exists.`
+            });
+        }
         // Call the IncidentService
         var incident = await IncidentService.create({ projectId: projectId, monitorId: monitorId, createdById: userId, manuallyCreated: true, incidentType });
         return sendItemResponse(req, res, incident);
