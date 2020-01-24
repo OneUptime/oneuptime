@@ -16,14 +16,15 @@ module.exports = {
             monitors = monitors.data;
             await Promise.all(monitors.map(monitor => {
                 if (monitor.type === 'api') {
-                    ApiMonitors.ping(monitor);
+                    return ApiMonitors.ping(monitor);
                 }
                 else if (monitor.type === 'url') {
-                    UrlMonitors.ping(monitor);
+                    return UrlMonitors.ping(monitor);
                 }
                 else if (monitor.type === 'device') {
-                    DeviceMonitors.ping(monitor);
+                    return DeviceMonitors.ping(monitor);
                 }
+                return;
             }));
         } catch (error) {
             ErrorService.log('getApi', error);
