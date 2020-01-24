@@ -34,10 +34,11 @@ CustomTooltip.propTypes = {
 class AreaChart extends Component {
     parseValue(data, name, display, symbol) {
         switch (name) {
-            case 'load': return display ? `${formatDecimal(data.avgCpuLoad || 0, 2)} ${symbol || '%'}` : data.avgCpuLoad || 0;
-            case 'memory': return display ? `${formatBytes(data.avgMemoryUsed || 0)} ${symbol || ''}` : data.avgMemoryUsed || 0;
-            case 'disk': return display ? `${formatBytes(data.avgStorageUsed || 0)} ${symbol || ''}` : data.avgStorageUsed || 0;
-            case 'temperature': return display ? `${Math.round(data.avgMainTemp || 0)} ${symbol || '°C'}` : data.avgMainTemp || 0;
+            case 'load': return display ? `${formatDecimal(data.maxCpuLoad || 0, 2)} ${symbol || '%'}` : data.maxCpuLoad || 0;
+            case 'memory': return display ? `${formatBytes(data.maxMemoryUsed || 0)} ${symbol || ''}` : data.maxMemoryUsed || 0;
+            case 'disk': return display ? `${formatBytes(data.maxStorageUsed || 0)} ${symbol || ''}` : data.maxStorageUsed || 0;
+            case 'temperature': return display ? `${Math.round(data.maxMainTemp || 0)} ${symbol || '°C'}` : data.maxMainTemp || 0;
+            case 'response time': return display ? `${Math.round(data.maxResponseTime || 0)} ${symbol || 'ms'}` : data.maxResponseTime || 0;
             default: return display ? `${data || 0} ${symbol || ''}` : data || 0;
         }
     }
@@ -50,31 +51,41 @@ class AreaChart extends Component {
         const { type, data, name, symbol, requesting } = this.props;
 
         if (data && data.length > 0) {
-            const _data = (type === 'server-monitor' ? data.flatMap(a => {
-                return { name: a.intervalDate, v: this.parseValue(a, name), display: this.parseValue(a, name, true, symbol) };
-            }) : type === 'manual' ? data.map(a => {
-                return { name: this.parseDate(a.date), v: -this.parseValue(a.downTime), display: this.parseValue(a.downTime, null, true, symbol) };
+            const processedData = (type === 'manual' ? data.map(a => {
+                return {
+                    name: this.parseDate(a.date),
+                    v: -this.parseValue(a.downTime),
+                    display: this.parseValue(a.downTime, null, true, symbol)
+                };
             }) : data.map(a => {
                 return {
                     name: a.intervalDate || this.parseDate(a.createdAt),
-                    v: this.parseValue(Math.round(a.avgResponseTime || 0)),
-                    display: this.parseValue(Math.round(a.avgResponseTime || 0), null, true, symbol)
+                    v: this.parseValue(a, name),
+                    display: this.parseValue(a, name, true, symbol)
                 };
             })).reverse();
 
             return (
                 <ResponsiveContainer width="100%" height={75}>
-                    <Chart data={_data}>
+                    <Chart data={processedData}>
                         <Tooltip content={<CustomTooltip />} />
                         <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                        <Area type="linear" isAnimationActive={false} name={_.startCase(_.toLower(`average ${name}`))} dataKey="v" stroke="#000000" strokeWidth={1.5} fill="#e2e1f2" />
+                        <Area
+                            type="linear"
+                            isAnimationActive={false}
+                            name={_.startCase(_.toLower(`${type === 'manual' ? 'average' : 'max'} ${name}`))}
+                            dataKey="v"
+                            stroke="#000000"
+                            strokeWidth={1.5}
+                            fill="#e2e1f2"
+                        />
                     </Chart>
                 </ResponsiveContainer>
             );
         } else {
             return (
                 <div style={noDataStyle}>
-                    {requesting ? <Loader /> : <h3>We&apos;re currently in the process of collecting data for this monitor. <br/>More info will be available soon.</h3>}
+                    {requesting ? <Loader /> : <h3>We&apos;re currently in the process of collecting data for this monitor. <br />More info will be available soon.</h3>}
                 </div>
             );
         }
