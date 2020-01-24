@@ -1,6 +1,7 @@
 var amplitude = require('amplitude-js');
+var { env } = require('./config');
 
-amplitude.init('f4a9057be8a560a55f75c74420490a5e', null, { includeReferrer: true });
+amplitude.init(env('AMPLITUDE_PUBLIC_KEY'), null, { includeReferrer: true });
 
 export var setUserId = function (userId) {
     amplitude.setUserId(userId);

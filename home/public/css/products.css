@@ -72,6 +72,12 @@ ul.columns>li{
         margin:0 0 25px
     }
 }
+@media screen and (max-width:379px){
+    ul.columns>li{
+        margin:0 0 25px;
+        margin-left: -50px;
+    }
+}
 ul.columns>li:last-child{
     margin-bottom:0;
     margin-right:0
@@ -138,7 +144,8 @@ section.marquee{
 }
 @media screen and (max-width:479px){
     section.marquee{
-        height:320px
+        height:320px;
+        margin-bottom: 90px;
     }
 }
 section.marquee #bubble-overlay{
@@ -162,7 +169,8 @@ section.marquee #bubble-overlay header{
 @media screen and (max-width:479px){
     section.marquee #bubble-overlay header{
         padding:140px 20px 30px;
-        text-align:center
+        text-align:center;
+        margin-top: 28px;
     }
 }
 section.marquee #bubble-overlay header:before{
@@ -2066,5 +2074,156 @@ strong.new:before{
     .globalFooterCTA .container-lg{
         padding-left:20px;
         padding-right:20px
+    }
+}
+@media screen and (max-width:430px){
+    ul.columns>li{
+        margin-bottom: 110px;
+        margin-left: -60px;
+    }
+    section.basics .columns .revenue:before,
+    section.basics .columns .downtime:before,
+    section.basics .columns .reli:before,
+    section.basics .columns .moni:before,
+    section.basics .columns .cost:before,
+    section.basics .columns .analytics:before,
+    section.basics .columns .monitor:before,
+    section.basics .columns .trend:before,
+    section.basics .columns .note:before,
+    section.basics .columns .security:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .notification1:before,
+    section.basics .columns .paint:before,
+    section.basics .columns .brand:before,
+    section.basics .columns .htmlcss:before,
+    section.basics .columns .teams:before,
+    section.basics .columns .informed:before,
+    section.basics .columns .dash:before,
+    section.basics .columns .chat:before,
+    section.basics .columns .risk:before,
+    section.basics .columns .global1:before,
+    section.basics .columns .rotation:before,
+    section.basics .columns .global:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .vacation:before,
+    section.basics .columns .rootcause:before,
+    section.basics .columns .time:before,
+    section.basics .columns .customerexperience:before,
+    section.basics .columns .callcenter:before,
+    section.basics .columns .reliability:before,
+    section.basics .columns .perfectsoftware:before {
+        position: absolute;
+        top: -80px;
+        padding-left: 320px;
+        width: 65px;
+        height: 65px;
+    }
+    ul.columns>li.sms,
+    ul.columns>li.teams,
+    ul.columns>li.reliability,
+    ul.columns>li.paint {
+        margin-top: 25px;
+    }
+    ul.columns>li.trend {
+        margin-top: -55px;
+    }
+    ul.columns>li.soc,
+    ul.columns>li.ccpa,
+    ul.columns>li.pci,
+    ul.columns>li.gdpr,
+    ul.columns>li.iso {
+        margin-bottom: 5px;
+    }
+    section.basics .columns .iso:before,
+    section.basics .columns .ccpa:before,
+    section.basics .columns .pci:before,
+    section.basics .columns .gdpr:before,
+    section.basics .columns .soc:before {
+        background-image: none;
+    }
+    .integration-list {
+        margin-left: 5px;
+    }
+}
+@media screen and (max-width:380px){
+    section.basics .columns .revenue:before,
+    section.basics .columns .downtime:before,
+    section.basics .columns .reli:before,
+    section.basics .columns .moni:before,
+    section.basics .columns .cost:before,
+    section.basics .columns .analytics:before,
+    section.basics .columns .monitor:before,
+    section.basics .columns .trend:before,
+    section.basics .columns .note:before,
+    section.basics .columns .security:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .notification1:before,
+    section.basics .columns .paint:before,
+    section.basics .columns .brand:before,
+    section.basics .columns .htmlcss:before,
+    section.basics .columns .teams:before,
+    section.basics .columns .informed:before,
+    section.basics .columns .dash:before,
+    section.basics .columns .chat:before,
+    section.basics .columns .risk:before,
+    section.basics .columns .global1:before,
+    section.basics .columns .rotation:before,
+    section.basics .columns .global:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .vacation:before,
+    section.basics .columns .rootcause:before,
+    section.basics .columns .time:before,
+    section.basics .columns .customerexperience:before,
+    section.basics .columns .callcenter:before,
+    section.basics .columns .reliability:before,
+    section.basics .columns .perfectsoftware:before {
+        padding-left: 280px;
+    }
+}
+@media screen and (max-width:330px){
+    section.basics .columns .revenue:before,
+    section.basics .columns .downtime:before,
+    section.basics .columns .reli:before,
+    section.basics .columns .moni:before,
+    section.basics .columns .cost:before,
+    section.basics .columns .analytics:before,
+    section.basics .columns .monitor:before,
+    section.basics .columns .trend:before,
+    section.basics .columns .note:before,
+    section.basics .columns .security:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .notification1:before,
+    section.basics .columns .paint:before,
+    section.basics .columns .brand:before,
+    section.basics .columns .htmlcss:before,
+    section.basics .columns .teams:before,
+    section.basics .columns .informed:before,
+    section.basics .columns .dash:before,
+    section.basics .columns .chat:before,
+    section.basics .columns .risk:before,
+    section.basics .columns .global1:before,
+    section.basics .columns .rotation:before,
+    section.basics .columns .global:before,
+    section.basics .columns .sms:before,
+    section.basics .columns .vacation:before,
+    section.basics .columns .rootcause:before,
+    section.basics .columns .time:before,
+    section.basics .columns .customerexperience:before,
+    section.basics .columns .callcenter:before,
+    section.basics .columns .reliability:before,
+    section.basics .columns .perfectsoftware:before {
+        padding-left: 220px;
+    }
+}
+@media screen and (max-width: 429px) {
+    section.marquee #bubble-overlay header h1 {
+        margin-top: -120px;
+    }
+    ul.columns>li:last-child {
+        margin-bottom: 15px
+    }
+    section.basics .split .left {
+        margin-top: -200px;
+        text-align: center;
     }
 }

@@ -9,11 +9,14 @@
     <meta name="description"
         content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
     <% include ./head %>
-    <link rel="stylesheet" href="/css/local-nav.css">
-    <link rel="stylesheet" href="/css/flexbox-grid.css">
-    <link rel="stylesheet" href="/css/customers.css">
-    <script src="/js/amplitude.js"></script>
-    <script>
+    <link rel="preload" href="/css/local-nav.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/local-nav.css"></noscript>
+    <link rel="preload" href="/css/flexbox-grid.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/flexbox-grid.css"></noscript>
+    <link rel="preload" href="/css/customers.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/customers.css"></noscript>
+    <script src="/js/amplitude.js" async></script>
+    <script async>
         var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
         if (!IS_DEV) {
             amplitude.getInstance().logEvent('Customers page viewed');

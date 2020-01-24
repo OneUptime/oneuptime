@@ -6,18 +6,22 @@
   <meta name="description"
     content="Les tarifs de fyipe sont simple et transparents et facturés à l'utilisation. Il n'y a pas de frais d'installation, pas de frais mensuels, et pas non plus de frais cachés. Vous n'êtes liés par aucun engagement.">
   <% include ./head %>
-  <script src="/js/amplitude.js"></script>
-  <script>
+  <script src="/js/amplitude.js" async></script>
+  <script async>
     var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
     if (!IS_DEV) {
       amplitude.getInstance().logEvent('Pricing page viewed');
     }
   </script>
   <noscript id="deferred-styles">
-    <link rel="stylesheet" href="/css/flexbox-grid.css">
-    <link rel="stylesheet" href="/css/pricing.css">
-    <link rel="stylesheet" href="/css/switch.css">
-    <link rel="stylesheet" href="/css/comparision.css">
+    <link rel="preload" href="/css/flexbox-grid.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/flexbox-grid.css"></noscript>
+    <link rel="preload" href="/css/pricing.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/pricing.css"></noscript>
+    <link rel="preload" href="/css/switch.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/switch.css"></noscript>
+    <link rel="preload" href="/css/comparision.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/comparision.css"></noscript>
   </noscript>
 </head>
 
@@ -469,12 +473,12 @@
   </script>
   <!--     linkedin code    -->
 
-  <script type="text/javascript">
+  <script type="text/javascript" async>
     _linkedin_partner_id = "706292";
     window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
     window._linkedin_data_partner_ids.push(_linkedin_partner_id);
   </script>
-  <script type="text/javascript">
+  <script type="text/javascript" async>
     (function () {
       var s = document.getElementsByTagName("script")[0];
       var b = document.createElement("script");

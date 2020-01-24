@@ -37,7 +37,7 @@ class LoginPage extends React.Component {
 	render() {
 		const { login } = this.props;
 
-		if (login.success) {
+		if (login.success && !login.user.tokens) {
 			history.push('/user-auth/token');
 		}
 
