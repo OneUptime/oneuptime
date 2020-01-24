@@ -16,6 +16,7 @@ import {
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
+import { env } from '../../config';
 
 export class AlertAdvanceOption extends Component {
 
@@ -394,7 +395,7 @@ const AlertAdvanceOptionFormStripe = injectStripe(connect(mapStateToProps, mapDi
 export default class AlertAdvanceOptionWithCheckout extends Component {
     render() {
         return (
-            <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
+            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
                 <Elements>
                     <AlertAdvanceOptionFormStripe />
                 </Elements>

@@ -13,6 +13,7 @@ import { closeModal } from '../../actions/modal';
 import { addCardFailed, addCardSuccess, addCardRequest } from '../../actions/card';
 import { connect } from 'react-redux';
 import { postApi, deleteApi, getApi } from '../../api';
+import { env } from '../../config';
 
 const createOptions = (fontSize, padding) => {
     return {
@@ -201,7 +202,7 @@ class AddCard extends React.Component {
     render() {
         const { elementFontSize } = this.state;
         return (
-            <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
+            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
                 <div className="Checkout">
                     <Elements>
                         <CardForm fontSize={elementFontSize} />

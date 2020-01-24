@@ -1111,3 +1111,25 @@ main header{
 .flex-Box{
     display: flex;
 }
+@media screen and (max-width:330px){
+    #intro h1 {
+        font-weight: 300;
+        font-size: 60px !important;
+    }
+    #intro li:last-child {
+        display: block;
+    }
+}
+@media screen and (max-width:420px){
+    #intro li:last-child {
+        margin-top: 15px;
+        display: block;
+        margin-left: -20px;
+    }
+    #intro ul {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-right: calc(50% - 150px);
+    }
+}

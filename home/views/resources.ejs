@@ -28,8 +28,8 @@
 
   <script defer src="/js/default.js"></script>
   <script defer src="/js/resources.js"></script>
-  <script src="/js/amplitude.js"></script>
-  <script>
+  <script src="/js/amplitude.js" async></script>
+  <script async>
     var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
     if (!IS_DEV) {
       amplitude.getInstance().logEvent('Resource page viewed');
