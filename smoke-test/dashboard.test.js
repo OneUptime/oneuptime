@@ -40,9 +40,9 @@ describe('Monitor API', () => {
         await page.click('#url');
         await page.type('#url', 'https://google.com');
         await page.click('button[type=submit]');
-        await page.waitFor(5000);
+        await page.waitFor(10000);
         let spanElement;
-        spanElement = await page.$('span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap');
+        spanElement = await page.$(`#monitor_title_${monitorName}`);
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly(monitorName);
