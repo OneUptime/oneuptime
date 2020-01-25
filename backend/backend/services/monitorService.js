@@ -399,18 +399,25 @@ module.exports = {
             const end = moment(endDate).toDate();
             const interval = (moment(endDate)).diff(moment(startDate), 'days');
 
+            const monitor = await this.findOneBy({ _id: monitorId });
+            const newMonitor = (moment(endDate)).diff(moment(monitor.createdAt), 'days') < 2;
+
             let monitorLogs;
             let aggregateLogs = [
                 { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $sort: { 'createdAt': -1 } },
                 { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
             ];
-            if (interval > 30) {
+            if (interval > 30 && !newMonitor) {
                 monitorLogs = await MonitorLogByWeekModel.aggregate(aggregateLogs);
-            } else if (interval > 2) {
+            } else if (interval > 2 && !newMonitor) {
                 monitorLogs = await MonitorLogByDayModel.aggregate(aggregateLogs);
             } else {
-                monitorLogs = await MonitorLogByHourModel.aggregate(aggregateLogs);
+                if ((moment(endDate)).diff(moment(monitor.createdAt), 'minutes') > 60) {
+                    monitorLogs = await MonitorLogByHourModel.aggregate(aggregateLogs);
+                } else {
+                    monitorLogs = await MonitorLogModel.aggregate(aggregateLogs);
+                }
             }
 
             return monitorLogs;
