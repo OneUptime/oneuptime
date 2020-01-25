@@ -49,6 +49,7 @@
 <link rel="icon" href="/img/Fyipe-Icon.png">
 <link rel="image_src" type="image/png" href="/img/Fyipe-full-logo.png">
 <link rel="canonical" href="/">
+<link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://hotjar.com">
 <meta property="og:title" content="Fyipe - Status Page, monitoring and on-call made simple.">
 <meta property="og:url" content="/">
@@ -127,6 +128,17 @@
         'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '244894116420899');
     fbq('track', 'PageView');
+</script>
+<script defer>
+    if('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js', {scope: '.'})
+            .then(function(registration) {
+                console.log('Service Worker Registered');
+            })
+            .catch(function(err) {
+                console.log('Error: Service Worker because Registered: ', err);
+            })
+    }
 </script>
 <noscript><img height="1" width="1" style="display:none"
         src="https://www.facebook.com/tr?id=244894116420899&ev=PageView&noscript=1" /></noscript>
