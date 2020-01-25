@@ -66,7 +66,7 @@ module.exports = {
                         if (data.headers && data.headers.length) monitor.headers = data.headers;
                     }
                     var savedMonitor = await monitor.save();
-                    var fetchedMonitor = await IncidentService.getMonitorsWithIncidentsBy({
+                    var fetchedMonitor = await ProbeService.getMonitorsWithMonitorStatusBy({
                         query: { _id: savedMonitor._id },
                         skip: 0,
                         limit: 0
@@ -99,7 +99,7 @@ module.exports = {
                     new: true
                 })
                 .populate('projectId', 'name');
-            monitor = await IncidentService.getMonitorsWithIncidentsBy({
+            monitor = await ProbeService.getMonitorsWithProbeStatusBy({
                 query: { _id: monitor._id },
                 skip: 0,
                 limit: 0
@@ -323,7 +323,7 @@ module.exports = {
         if (typeof limit === 'string') limit = parseInt(limit);
         var _this = this;
         let subProjectMonitors = await Promise.all(subProjectIds.map(async (id) => {
-            let monitors = await IncidentService.getMonitorsWithIncidentsBy({
+            let monitors = await ProbeService.getMonitorsWithMonitorStatusBy({
                 query: { projectId: id },
                 skip,
                 limit
@@ -580,6 +580,7 @@ var NotificationService = require('./notificationService');
 var ProjectService = require('./projectService');
 var PaymentService = require('./paymentService');
 var IncidentService = require('../services/incidentService');
+var ProbeService = require('../services/probeService');
 var AlertService = require('../services/alertService');
 var StatusPageService = require('../services/statusPageService');
 var ScheduleService = require('../services/scheduleService');

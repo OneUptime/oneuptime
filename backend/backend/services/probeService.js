@@ -651,15 +651,29 @@ module.exports = {
         }
     },
 
-    getLogs: async function (query) {
+    getMonitorsWithMonitorStatusBy: async function (query) {
         try {
-            if (!query) {
-                query = {};
+            var _this = this;
+            var newmonitors = [];
+            var monitors = await MonitorService.findBy(query.query, query.limit, query.skip);
+
+            if (monitors.length) {
+                await Promise.all(monitors.map(async (element) => {
+                    if (element && element._doc) {
+                        element = element._doc;
+                    }
+
+                    element.probes = await _this.getMonitorData(element._id || element.id);
+
+                    newmonitors.push(element);
+                }));
+                return newmonitors;
+
+            } else {
+                return [];
             }
-            var log = await MonitorStatusModel.find(query).sort({ createdAt: -1 });
-            return log;
         } catch (error) {
-            ErrorService.log('probeService.getLogs', error);
+            ErrorService.log('probeService.getMonitorsWithMonitorStatusBy', error);
             throw error;
         }
     },
@@ -689,6 +703,19 @@ module.exports = {
             return newProbes;
         } catch (error) {
             ErrorService.log('probeService.getMonitorData', error);
+            throw error;
+        }
+    },
+
+    getLogs: async function (query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            var log = await MonitorStatusModel.find(query).sort({ createdAt: -1 });
+            return log;
+        } catch (error) {
+            ErrorService.log('probeService.getLogs', error);
             throw error;
         }
     },
