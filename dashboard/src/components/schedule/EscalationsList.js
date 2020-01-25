@@ -6,37 +6,28 @@ import { EscalationSingle } from '../basic/EscalationSingle';
 const EscalationsList = ({ escalationData, subProjectId }) => {
   return (
     escalationData.length ? (
-      <>
-        <div className="Box-root Margin-bottom--12">
-          <div className="bs-ContentSection Card-root Card-shadow--medium">
-            <div className="Box-root">
-              <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                <div className="Box-root">
-                  <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                      <span>Escalation Active Teams</span>
-                  </span>
-                </div>
+      <div className="Box-root Margin-bottom--12">
+        <div className="bs-ContentSection Card-root Card-shadow--medium">
+          <div className="Box-root">
+            <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+              <div className="Box-root">
+                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                    <span>Escalation Active Teams</span>
+                </span>
               </div>
             </div>
-            {escalationData.map((escalation, i) => (
-          <EscalationSingle
-            escalation={escalation}
-            key={i}
-            policyIndex={i}
-            subProjectId={subProjectId}
-          />
-        ))} {escalationData.map((escalation, i) => (
-          <EscalationSingle
-            escalation={escalation}
-            key={i}
-            policyIndex={i}
-            subProjectId={subProjectId}
-          />
-        ))}
           </div>
+          {escalationData.map((escalation, i) => (
+            <EscalationSingle
+              escalation={escalation}
+              key={i}
+              policyIndex={i}
+              subProjectId={subProjectId}
+            />
+          ))}
         </div>
+      </div>
        
-      </>
     ) : (
       <></>
     )
