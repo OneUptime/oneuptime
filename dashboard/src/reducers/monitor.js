@@ -445,17 +445,23 @@ export default function monitor(state = INITIAL_STATE, action) {
                             if (monitor._id === action.payload.monitorId) {
                                 const data = Object.assign({}, action.payload.data);
                                 const interval = (moment(state.monitorsList.endDate)).diff(moment(state.monitorsList.startDate), 'days');
+                                const newMonitor = (moment(state.monitorsList.endDate)).diff(moment(monitor.createdAt), 'days') < 2;
 
                                 let dateFormat, outputFormat;
-                                if (interval > 30) {
+                                if (interval > 30 && !newMonitor) {
                                     dateFormat = 'weeks'
                                     outputFormat = 'wo [week of] YYYY';
-                                } else if (interval > 2) {
+                                } else if (interval > 2 && !newMonitor) {
                                     dateFormat = 'days';
                                     outputFormat = 'MMM Do YYYY';
                                 } else {
-                                    dateFormat = 'hours';
-                                    outputFormat = 'MMM Do YYYY, h A';
+                                    if ((moment(state.monitorsList.endDate)).diff(moment(monitor.createdAt), 'minutes') > 60) {
+                                        dateFormat = 'hours';
+                                        outputFormat = 'MMM Do YYYY, h A';
+                                    } else {
+                                        dateFormat = 'minutes';
+                                        outputFormat = 'MMM Do YYYY, h:mm:ss A';
+                                    }
                                 }
 
                                 let logData = {
