@@ -34,11 +34,11 @@ CustomTooltip.propTypes = {
 class AreaChart extends Component {
     parseValue(data, name, display, symbol) {
         switch (name) {
-            case 'load': return display ? `${formatDecimal(data.maxCpuLoad || 0, 2)} ${symbol || '%'}` : data.maxCpuLoad || 0;
-            case 'memory': return display ? `${formatBytes(data.maxMemoryUsed || 0)} ${symbol || ''}` : data.maxMemoryUsed || 0;
-            case 'disk': return display ? `${formatBytes(data.maxStorageUsed || 0)} ${symbol || ''}` : data.maxStorageUsed || 0;
-            case 'temperature': return display ? `${Math.round(data.maxMainTemp || 0)} ${symbol || '°C'}` : data.maxMainTemp || 0;
-            case 'response time': return display ? `${Math.round(data.maxResponseTime || 0)} ${symbol || 'ms'}` : data.maxResponseTime || 0;
+            case 'load': return display ? `${formatDecimal(data.maxCpuLoad || data.cpuLoad || 0, 2)} ${symbol || '%'}` : data.maxCpuLoad || data.cpuLoad || 0;
+            case 'memory': return display ? `${formatBytes(data.maxMemoryUsed || data.memoryUsed || 0)} ${symbol || ''}` : data.maxMemoryUsed || data.memoryUsed || 0;
+            case 'disk': return display ? `${formatBytes(data.maxStorageUsed || data.storageUsed || 0)} ${symbol || ''}` : data.maxStorageUsed || data.storageUsed || 0;
+            case 'temperature': return display ? `${Math.round(data.maxMainTemp || data.mainTemp || 0)} ${symbol || '°C'}` : data.maxMainTemp || data.mainTemp || 0;
+            case 'response time': return display ? `${Math.round(data.maxResponseTime || data.responseTime || 0)} ${symbol || 'ms'}` : data.maxResponseTime || data.responseTime || 0;
             default: return display ? `${data || 0} ${symbol || ''}` : data || 0;
         }
     }
