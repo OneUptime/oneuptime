@@ -4,19 +4,21 @@ import { connect } from 'react-redux';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
 
-let RenderActiveTeamMembers = ({ team, subProjectTeam, rotationFrequency }) => {
+let RenderActiveTeamMembers = ({ team, subProjectTeam, rotationFrequency, rotationSwitchTime, activeTeam }) => {
   let rotationTeam = [];
   if (team && subProjectTeam) {
     rotationTeam = composeProjectTeam(team.teamMember, subProjectTeam.teamMembers);
   }
   return (
-    <div style={{ marginLeft: '2%' }}>
-      {rotationFrequency && (
+    <div>
+      {(rotationFrequency && rotationSwitchTime) && (
         <>
-          <div>
-            <span style={{ fontSize: 12 }}>Start Time:&nbsp;</span>
-            <span style={{ fontSize: 11 }}>{composeDateFormat(rotationFrequency, parseISO(team.rotationStartTime))}</span>
-          </div>
+          {!activeTeam ? (
+            <div>
+              <span style={{ fontSize: 12 }}>Start Time:&nbsp;</span>
+              <span style={{ fontSize: 11 }}>{composeDateFormat(rotationFrequency, parseISO(team.rotationStartTime))}</span>
+            </div>
+          ): (<div style={{ height: 8 }} />)}
           <div>
             <span style={{ fontSize: 12 }}>End Time:&nbsp;</span>
             <span style={{ fontSize: 11 }}>{composeDateFormat(rotationFrequency, parseISO(team.rotationEndTime))}</span>
@@ -24,7 +26,7 @@ let RenderActiveTeamMembers = ({ team, subProjectTeam, rotationFrequency }) => {
         </>
       )}
       <h4>Members:</h4>
-      <div style={{ marginLeft: '2%' }}>
+      <div>
         {rotationTeam.length && rotationTeam.map((member, index) => {
           const { name } = member;
           return (
@@ -93,6 +95,8 @@ RenderActiveTeamMembers.propTypes = {
   team: PropTypes.object.isRequired,
   subProjectTeam: PropTypes.object.isRequired,
   rotationFrequency: PropTypes.string,
+  rotationSwitchTime: PropTypes.string,
+  activeTeam: PropTypes.bool,
 }
 
 export { RenderActiveTeamMembers };

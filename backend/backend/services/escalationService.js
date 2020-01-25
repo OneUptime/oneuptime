@@ -206,7 +206,8 @@ module.exports = {
     }
 };
 
-function computeIntervalDiffs(frequency, createdAt, currentDate) {
+function computeIntervalDiffs(frequency, createdAt, currentDate, rotationSwitchTime) {
+    if (moment(currentDate).isAfter(rotationSwitchTime)) return 0;
     switch (frequency) {
     case 'days':
         return differenceInDays(currentDate, createdAt);
@@ -217,7 +218,7 @@ function computeIntervalDiffs(frequency, createdAt, currentDate) {
     }
 }
 
-function computeActiveTeamIndex(numberOfTeams, diffsInInterval) {
+function computeActiveTeamIndex(numberOfTeams, diffsInInterval, rotationSwitchTime) {
     let diffInt = diffsInInterval % numberOfTeams;
 
     let activeTeamIndex = 0;
@@ -238,15 +239,17 @@ function computeActiveTeams(escalation) {
     try {
         let {
             team, rotationInterval, rotationFrequency,
-            rotationSwitchTime, createdAt
+            rotationSwitchTime, createdAt,
         } = escalation;
   
         const currentDate = new Date();
         if (rotationFrequency) {
-            const diffsInInterval = computeIntervalDiffs(rotationFrequency, createdAt, currentDate);
+            const diffsInInterval = computeIntervalDiffs(rotationFrequency, createdAt, currentDate, rotationSwitchTime);
             const activeTeamIndex = computeActiveTeamIndex(team.length, diffsInInterval);
-            const activeTeamRotationStartTime = moment(rotationSwitchTime).add(diffsInInterval, rotationFrequency);
-            const activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
+           
+            let activeTeamRotationStartTime = moment(rotationSwitchTime).add(diffsInInterval, rotationFrequency);
+
+            let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
             const activeTeam = {
                 ...team[activeTeamIndex],
                 rotationStartTime: activeTeamRotationStartTime,

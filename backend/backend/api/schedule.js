@@ -133,6 +133,35 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                     message: 'At least one type of alert is required'
                 });
             }
+
+            if (value.rotationFrequency && !value.rotationInterval) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'You must specify rotation interval'
+                });
+            }
+
+            if ((value.rotationFrequency && value.rotationInterval) && !value.rotationSwitchTime) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'You must specify rotation switch time'
+                });
+            }
+
+            if ((value.rotationFrequency && value.rotationInterval) && (value.rotationSwitchTime && !value.rotationTimezone)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'You must specify timezones for rotations.'
+                });
+            }
+
+            if (value.rotationFrequency && !(value.team.length > 1)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'You need more than one team for rotations.'
+                });
+            }
+
             storagevalue.callFrequency = value.callFrequency;
             storagevalue.smsFrequency = value.smsFrequency;
             storagevalue.emailFrequency = value.emailFrequency;
@@ -152,6 +181,12 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             for (let team  of value.team) {
                 let rotationData = {};
                 let teamMember = [];
+                if (!team.teamMember.length) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Team Members are required'
+                    });
+                }
 
                 for (let TM of team.teamMember) {
                     let data = {};

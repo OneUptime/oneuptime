@@ -5,48 +5,61 @@ import { RenderActiveTeamMembers } from './RenderActiveTeamMembers'
 
 const EscalationSingle = ({ escalation, policyIndex, subProjectId }) => {
   return (
-    <div style={{ marginLeft: '5%'}}>
-      <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-        <span>Escalation Policy {policyIndex + 1}</span>
-        <RenderAlertOptions
-          call={escalation.call}
-          sms={escalation.sms}
-          email={escalation.email}
-        />
-        {escalation.activeTeam ? (
-          <div style={{ display: 'flex', marginTop: 10 }}>
-            <div style={{ marginLeft: '2%', width: '45%' }}>
-              <h4>Active Team:</h4>
-              <RenderActiveTeamMembers
-                team={escalation.activeTeam}
-                subProjectId={subProjectId}
-                rotationFrequency={escalation.rotationFrequency}
+    <li style={{ margin: '5px 0px' }}>
+      <div className="Card-root" style={{ backgroundColor: policyIndex === 0 ? '#f6f9fc' : '#ffffff' }}>
+        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+          <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+            <span>Escalation Policy {policyIndex + 1}</span>
+          </span>
+        </div>
+        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f6f9fc' }}>
+          <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+            <fieldset className="bs-Fieldset Padding-horizontal--20">
+              <RenderAlertOptions
+                call={escalation.call}
+                sms={escalation.sms}
+                email={escalation.email}
               />
-            </div>
-            {escalation.nextActiveTeam && (
-              <div style={{ width: '45%' }}>
-                <h4>Next Active Team:</h4>
-                <RenderActiveTeamMembers
-                  team={escalation.nextActiveTeam}
-                  subProjectId={subProjectId}
-                  rotationFrequency={escalation.rotationFrequency}
-                />
-              </div>
-            )}
+              {escalation.activeTeam ? (
+                <div style={{ display: 'flex', marginTop: 10 }}>
+                  <div style={{ width: '47%' }}>
+                    <h4>Active Team:</h4>
+                    <RenderActiveTeamMembers
+                      team={escalation.activeTeam}
+                      subProjectId={subProjectId}
+                      rotationFrequency={escalation.rotationFrequency}
+                      rotationSwitchTime={escalation.rotationSwitchTime}
+                      activeTeam
+                    />
+                  </div>
+                  {escalation.nextActiveTeam && (
+                    <div style={{ width: '47%' }}>
+                      <h4>Next Active Team:</h4>
+                      <RenderActiveTeamMembers
+                        team={escalation.nextActiveTeam}
+                        subProjectId={subProjectId}
+                        rotationFrequency={escalation.rotationFrequency}
+                        rotationSwitchTime={escalation.rotationSwitchTime}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', marginTop: 10 }}>
+                  <div style={{ width: '45%' }}>
+                    <h4>Team:</h4>
+                    <RenderActiveTeamMembers
+                      team={escalation.team[0]}
+                      subProjectId={subProjectId}
+                    />
+                  </div>
+                </div>
+              )}
+            </fieldset>
           </div>
-        ) : (
-          <div style={{ display: 'flex', marginTop: 10 }}>
-            <div style={{ marginLeft: '2%', width: '45%' }}>
-              <h4>Team:</h4>
-              <RenderActiveTeamMembers
-                team={escalation.team[0]}
-                subProjectId={subProjectId}
-              />
-            </div>
-          </div>
-        )}
-      </span>
-    </div>
+        </div>
+      </div>
+    </li>
   )
 }
 
