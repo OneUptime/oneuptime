@@ -32,33 +32,25 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 // Returns: response status page, error message
 
 router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    var data = req.body;
-    data.projectId = req.params.projectId;
-
-    // Sanitize
-    if (!data.monitorIds) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor ids are required.'
-        });
-    }
-
-    if (!Array.isArray(data.monitorIds)) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Monitor IDs are not stored in an array.'
-        });
-    }
-
-    var existingStatusPage = await StatusPageService.findOneBy({ name: data.name, projectId: data.projectId });
-    if (existingStatusPage) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'StatusPage with that name already exists.',
-        });
-    }
-
     try {
+        var data = req.body;
+        data.projectId = req.params.projectId;
+
+        // Sanitize
+        if (!data.monitorIds) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor ids are required.'
+            });
+        }
+
+        if (!Array.isArray(data.monitorIds)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor IDs are not stored in an array.'
+            });
+        }
+
         // Call the StatusPageService.
         var statusPage = await StatusPageService.create(data);
         return sendItemResponse(req, res, statusPage);
@@ -203,14 +195,6 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
         }
 
         try {
-            // Call the StatusPageService.
-            var existingStatusPage = await StatusPageService.findOneBy({ name: data.name, projectId: data.projectId });
-            if (existingStatusPage && existingStatusPage._id.toString() !== data._id) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'StatusPage with that name already exists.',
-                });
-            }
             var statusPage = await StatusPageService.updateOneBy({ _id: data._id }, data);
             return sendItemResponse(req, res, statusPage);
         } catch (error) {

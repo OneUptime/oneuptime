@@ -62,17 +62,9 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
                 message: 'Project ID  is not of string type.'
             });
         }
-        // Find existing category with the name a user provided.
-        var existingMonitorCategory = await MonitorCategoryService.findBy({ name: monitorCategoryName, projectId });
-        if (existingMonitorCategory.length > 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'A monitor category with that name already exists.'
-            });
-        }
 
         // Call the MonitorCategoryService
-        var monitorCategory = await MonitorCategoryService.create(projectId, userId, monitorCategoryName);
+        var monitorCategory = await MonitorCategoryService.create({ projectId, userId, name: monitorCategoryName });
         return sendItemResponse(req, res, monitorCategory);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -163,19 +155,11 @@ router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin,
                 message: 'Project ID is not of string type.'
             });
         }
-        // Find existing category with the name a user provided.
-        var existingMonitorCategory = await MonitorCategoryService.findBy({ name, projectId });
-        if (existingMonitorCategory.length > 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'A monitor category with that name already exists.'
-            });
-        }
 
         // Call the MonitorCategoryService
         var updatedMonitorCategory = await MonitorCategoryService.updateOneBy(
             { projectId, _id: monitorCategoryId },
-            { name },
+            { name, projectId }
         );
         return sendItemResponse(req, res, updatedMonitorCategory);
     } catch (error) {

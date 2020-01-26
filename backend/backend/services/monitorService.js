@@ -7,6 +7,13 @@ module.exports = {
         try {
             var _this = this;
             var subProject = null;
+            var existingMonitor = await _this.findBy({ name: data.name, projectId: data.projectId });
+            if (existingMonitor.length > 0) {
+                let error = new Error('Monitor with that name already exists.');
+                error.code = 400;
+                ErrorService.log('monitorService.create', error);
+                throw error;
+            }
             var project = await ProjectService.findOneBy({ _id: data.projectId });
             if (project.parentProjectId) {
                 subProject = project;

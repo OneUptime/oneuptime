@@ -1,12 +1,19 @@
 
 module.exports = {
 
-    create: async function (projectId, createdById, name) {
+    create: async function (data) {
         try {
+            var existingMonitorCategory = await this.findBy({ name: data.name, projectId: data.projectId });
+            if (existingMonitorCategory.length > 0) {
+                let error = new Error('A monitor category with that name already exists.');
+                error.code = 400;
+                ErrorService.log('monitorCategoryService.create', error);
+                throw error;
+            }
             var monitorCategory = new MonitorCategoryModel();
-            monitorCategory.projectId = projectId;
-            monitorCategory.createdById = createdById;
-            monitorCategory.name = name;
+            monitorCategory.projectId = data.projectId;
+            monitorCategory.createdById = data.createdById;
+            monitorCategory.name = data.name;
             monitorCategory = await monitorCategory.save();
             return monitorCategory;
         } catch (error) {
@@ -76,13 +83,20 @@ module.exports = {
     },
     updateOneBy: async function (query, data) {
         try {
+            var existingMonitorCategory = await this.findBy({ name: data.name, projectId: data.projectId });
+            if (existingMonitorCategory.length > 0) {
+                let error = new Error('A monitor category with that name already exists.');
+                error.code = 400;
+                ErrorService.log('monitorCategoryService.updateOneBy', error);
+                throw error;
+            }
             if (!query) {
                 query = {};
             }
             var monitorCategory;
             monitorCategory = await MonitorCategoryModel.findOneAndUpdate(query, {
                 $set: data
-            },{
+            }, {
                 new: true
             });
             return monitorCategory;
