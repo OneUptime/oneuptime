@@ -155,7 +155,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 });
             }
 
-            if (value.rotationFrequency && !(value.team.length > 1)) {
+            if (value.rotationFrequency && (value.team.length <= 1)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'You need more than one team for rotations.'
@@ -181,7 +181,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             for (let team  of value.team) {
                 let rotationData = {};
                 let teamMember = [];
-                if (!team.teamMember.length) {
+                if (!team.teamMember || team.teamMember.length === 0) {
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message: 'Team Members are required'

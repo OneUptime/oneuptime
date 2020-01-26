@@ -218,7 +218,7 @@ function computeIntervalDiffs(frequency, createdAt, currentDate, rotationSwitchT
     }
 }
 
-function composeDateFormat(rotationFrequency, date, timezone){
+function formatDate(rotationFrequency, date, timezone){
     if(!rotationFrequency)
         return moment(date).tz(timezone).format('Do, hh:mm a');
     switch(rotationFrequency) {
@@ -266,8 +266,8 @@ function computeActiveTeams(escalation) {
             
             const activeTeam = {
                 ...team[activeTeamIndex],
-                rotationStartTime: composeDateFormat(rotationFrequency, activeTeamRotationStartTime, rotationTimezone),
-                rotationEndTime: composeDateFormat(rotationFrequency, activeTeamRotationEndTime, rotationTimezone)
+                rotationStartTime: formatDate(rotationFrequency, activeTeamRotationStartTime, rotationTimezone),
+                rotationEndTime: formatDate(rotationFrequency, activeTeamRotationEndTime, rotationTimezone)
             };
             let nextActiveTeamIndex = activeTeamIndex + 1;
 
@@ -279,8 +279,8 @@ function computeActiveTeams(escalation) {
             const nextActiveTeamRotationEndTime = moment(nextActiveTeamRotationStartTime).add(rotationInterval, rotationFrequency);
             const nextActiveTeam = {
                 ...team[nextActiveTeamIndex],
-                rotationStartTime: composeDateFormat(rotationFrequency, nextActiveTeamRotationStartTime, rotationTimezone),
-                rotationEndTime: composeDateFormat(rotationFrequency, nextActiveTeamRotationEndTime, rotationTimezone), 
+                rotationStartTime: formatDate(rotationFrequency, nextActiveTeamRotationStartTime, rotationTimezone),
+                rotationEndTime: formatDate(rotationFrequency, nextActiveTeamRotationEndTime, rotationTimezone), 
             };
 
             return { activeTeam, nextActiveTeam };
