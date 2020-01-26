@@ -343,8 +343,12 @@ module.exports = {
             const monitor = await this.findOneBy({ _id: monitorId });
             const isNewMonitor = (moment(endDate)).diff(moment(monitor.createdAt), 'days') < 2;
 
-            const probes = await ProbeService.findLogProbesBy({ monitorId });
-            let probeLogs = [];
+            let probes, probeLogs = [];
+            if (monitor.type === 'server-monitor') {
+                probes = [undefined];
+            } else {
+                probes = await ProbeService.findBy({});
+            }
 
             for (const probe of probes) {
                 let query = (typeof probe !== 'undefined') ? {
@@ -365,7 +369,9 @@ module.exports = {
                     }
                 }
 
-                probeLogs.push({ _id: typeof probe !== 'undefined' ? probe._id : null, logs: monitorLogs });
+                if (monitorLogs && monitorLogs.length > 0) {
+                    probeLogs.push({ _id: typeof probe !== 'undefined' ? probe._id : null, logs: monitorLogs });
+                }
             }
 
             return probeLogs;

@@ -110,20 +110,6 @@ module.exports = {
         }
     },
 
-    async findLogProbesBy(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            var probes = await MonitorLogService.findBy(query);
-            probes = [...new Set(probes.map(item => item.probeId))];
-            return probes;
-        } catch (error) {
-            ErrorService.log('ProbeService.findLogProbesBy', error);
-            throw error;
-        }
-    },
-
     countBy: async function (query) {
         try {
             if (!query) {
