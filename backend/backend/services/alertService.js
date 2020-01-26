@@ -196,7 +196,7 @@ module.exports = {
                                 var escalation = await EscalationService.findOneBy({ _id: escalationId });
                                 if (escalation) {
                                     // handle both schedules with rotations and schedules without rotations
-                                    const activeTeam = escalation.activeTeam ? escalation.activeTeam : escalation.team[0];
+                                    const activeTeam = escalation.activeTeamForAlerts ? escalation.activeTeamForAlerts : escalation.team[0];
                                     
                                     activeTeam.teamMember.forEach(async (teamMember) => {
                                         const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);

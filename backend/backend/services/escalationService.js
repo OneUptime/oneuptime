@@ -38,9 +38,10 @@ module.exports = {
                 .populate('scheduleId', 'name')
                 .lean();
             if (escalation.rotationFrequency && escalation.rotationInterval) {
-                const { activeTeam, nextActiveTeam } = computeActiveTeams(escalation);
+                const { activeTeam, nextActiveTeam, activeTeamForAlerts } = computeActiveTeams(escalation);
                 escalation.activeTeam = activeTeam;
                 escalation.nextActiveTeam = nextActiveTeam;
+                escalation.activeTeamForAlerts = activeTeamForAlerts;
             }
             
             return escalation;
@@ -218,6 +219,8 @@ function computeIntervalDiffs(frequency, createdAt, currentDate, rotationSwitchT
     }
 }
 
+// format date into human readable formats according to display type needed
+// then add timezone adjustment
 function formatDate(rotationFrequency, date, timezone){
     if(!rotationFrequency)
         return moment(date).tz(timezone).format('Do, hh:mm a');
@@ -269,6 +272,13 @@ function computeActiveTeams(escalation) {
                 rotationStartTime: formatDate(rotationFrequency, activeTeamRotationStartTime, rotationTimezone),
                 rotationEndTime: formatDate(rotationFrequency, activeTeamRotationEndTime, rotationTimezone)
             };
+
+            // separate object containing unformatted times + w/o timezone for alert service
+            const activeTeamForAlerts = {
+                ...team[activeTeamIndex],
+                rotationStartTime: activeTeamRotationStartTime,
+                rotationEndTime: activeTeamRotationEndTime
+            };
             let nextActiveTeamIndex = activeTeamIndex + 1;
 
             if (!team[nextActiveTeamIndex]) {
@@ -283,7 +293,7 @@ function computeActiveTeams(escalation) {
                 rotationEndTime: formatDate(rotationFrequency, nextActiveTeamRotationEndTime, rotationTimezone), 
             };
 
-            return { activeTeam, nextActiveTeam };
+            return { activeTeam, nextActiveTeam, activeTeamForAlerts };
         } else return null;
           
     } catch (err) {
