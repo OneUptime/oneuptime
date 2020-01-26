@@ -11,37 +11,32 @@ let RenderActiveTeamMembers = ({ team, subProjectTeam, rotationFrequency, rotati
   return (
     <div>
       {(rotationFrequency && rotationSwitchTime) && (
-        <>
+        <div style={{ marginBottom: 5 }}>
           {!activeTeam ? (
             <div>
-              <span style={{ fontSize: 12 }}>Start Time:&nbsp;</span>
-              <span style={{ fontSize: 11 }}>{team.rotationStartTime}</span>
+              <span className="Text-color--inherit Text-fontSize--12 Text-typeface--base">Start Time:&nbsp;&nbsp;</span>
+              <span className="Text-color--inherit Text-fontSize--11 Text-typeface--base">{team.rotationStartTime}</span>
             </div>
           ): (<div style={{ height: 8 }} />)}
           <div>
-            <span style={{ fontSize: 12 }}>End Time:&nbsp;</span>
-            <span style={{ fontSize: 11 }}>{team.rotationEndTime}</span>
+            <span className="Text-color--inherit Text-fontSize--12 Text-typeface--base">End Time:&nbsp;&nbsp;</span>
+            <span className="Text-color--inherit Text-fontSize--11 Text-typeface--base">{team.rotationEndTime}</span>
           </div>
-        </>
+        </div>
       )}
-      <h4>Members:</h4>
-      <div>
+      <span className="Text-color--inherit Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--22 Text-typeface--base Text-wrap--wrap Margin-top--5">
+          <span>Members:&nbsp;&nbsp;</span>
+      </span>
+      <span>
         {rotationTeam.length && rotationTeam.map((member, index) => {
           const { name } = member;
           return (
-            <div key={index}
-              style={{
-                backgroundColor: 'white',
-                padding: '3px 10px',
-                margin: '5px 0',
-                width: '50%',
-                borderRadius: 5,
-              }}>
-              <h5>{name}</h5>
-            </div>
+            <span key={index} className="Text-color--inherit Text-display--inline Text-fontSize--12 Text-fontWeight--light Text-lineHeight--22 Text-typeface--base Text-wrap--wrap Margin-top--5">
+              {name}.&nbsp;&nbsp;
+            </span>
           )
         })}
-      </div>
+      </span>
     </div>
   )
 }

@@ -4,14 +4,15 @@ import PropTypes from 'prop-types';
 const RenderAlertOptions = ({ call, sms, email }) => {
   return (
     <div style={{ display: 'flex' }}>
-      <h4 style={{ marginTop: 5, marginRight: 15 }}>Alert Options:</h4>
+      <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--22 Text-typeface--base Text-wrap--wrap Margin-top--5">
+          <span>Alert Options:</span>
+      </span>
       {email && (
         <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
-        <div className="Box-root" style={{ height: '5px' }}></div>
         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
             <label className="Checkbox">
-                <div style={{ marginTop: -2}} className="Checkbox-label Box-root Margin-left--8">
-                    <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                <div className="Checkbox-label Box-root Margin-left--8">
+                    <span className="Text-color--default Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <span>Email</span>
                     </span>
                 </div>
@@ -21,11 +22,10 @@ const RenderAlertOptions = ({ call, sms, email }) => {
       )}
     {sms && (
       <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
-          <div className="Box-root" style={{ height: '5px' }}></div>
           <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
               <label className="Checkbox">
-                  <div style={{ marginTop: -2}} className="Checkbox-label Box-root Margin-left--8">
-                      <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                  <div className="Checkbox-label Box-root Margin-left--8">
+                      <span className="Text-color--default Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                           <span>SMS</span>
                       </span>
                   </div>
@@ -35,11 +35,10 @@ const RenderAlertOptions = ({ call, sms, email }) => {
     )}
     {call && (
       <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
-          <div className="Box-root" style={{ height: '5px' }}></div>
           <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
               <label className="Checkbox">
-                  <div style={{ marginTop: -2}} className="Checkbox-label Box-root Margin-left--8">
-                      <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                  <div className="Checkbox-label Box-root Margin-left--8">
+                      <span className="Text-color--default Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                           <span>Call</span>
                       </span>
                   </div>

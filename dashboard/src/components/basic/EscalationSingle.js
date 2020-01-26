@@ -23,7 +23,9 @@ const EscalationSingle = ({ escalation, policyIndex, subProjectId }) => {
               {escalation.activeTeam ? (
                 <div style={{ display: 'flex', marginTop: 10 }}>
                   <div style={{ width: '47%' }}>
-                    <h4>Active Team:</h4>
+                    <span className="Text-color--inherit Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                        <span>Active Team:</span>
+                    </span>
                     <RenderActiveTeamMembers
                       team={escalation.activeTeam}
                       subProjectId={subProjectId}
@@ -35,7 +37,9 @@ const EscalationSingle = ({ escalation, policyIndex, subProjectId }) => {
                   </div>
                   {escalation.nextActiveTeam && (
                     <div style={{ width: '47%' }}>
-                      <h4>Next Active Team:</h4>
+                      <span className="Text-color--inherit Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                          <span>Next Active Team:</span>
+                      </span>
                       <RenderActiveTeamMembers
                         team={escalation.nextActiveTeam}
                         subProjectId={subProjectId}
@@ -48,7 +52,9 @@ const EscalationSingle = ({ escalation, policyIndex, subProjectId }) => {
               ) : (
                 <div style={{ display: 'flex', marginTop: 10 }}>
                   <div style={{ width: '45%' }}>
-                    <h4>Team:</h4>
+                    <span className="Text-color--inherit Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                        <span>Active Team:</span>
+                    </span>
                     <RenderActiveTeamMembers
                       team={escalation.team[0]}
                       subProjectId={subProjectId}
