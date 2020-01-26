@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { EscalationSingle } from '../basic/EscalationSingle';
+import { EscalationSingle } from './EscalationSingle';
 
 const EscalationsList = ({ escalationData, subProjectId }) => {
   return (

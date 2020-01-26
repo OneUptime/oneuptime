@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { RenderSingleEscalation } from './RenderSingleEscalation';
+import { RenderSingleEscalation } from '../basic/RenderSingleEscalation';
 
 let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, form }) => {
  

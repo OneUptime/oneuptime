@@ -5,7 +5,7 @@ import { reduxForm, FieldArray } from 'redux-form';
 import { withRouter } from 'react-router';
 import { getEscalation, addEscalation } from '../../actions/schedule';
 import { subProjectTeamLoading } from '../../actions/team';
-import { RenderEscalation } from '../basic/RenderEscalation';
+import { RenderEscalation } from './RenderEscalation';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
