@@ -397,10 +397,10 @@ module.exports = {
         try {
             const start = moment(startDate).toDate();
             const end = moment(endDate).toDate();
-            const interval = (moment(endDate)).diff(moment(startDate), 'days');
+            const intervalInDays = (moment(endDate)).diff(moment(startDate), 'days');
 
             const monitor = await this.findOneBy({ _id: monitorId });
-            const newMonitor = (moment(endDate)).diff(moment(monitor.createdAt), 'days') < 2;
+            const isNewMonitor = (moment(endDate)).diff(moment(monitor.createdAt), 'days') < 2;
 
             let monitorLogs;
             let aggregateLogs = [
@@ -408,9 +408,9 @@ module.exports = {
                 { $sort: { 'createdAt': -1 } },
                 { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
             ];
-            if (interval > 30 && !newMonitor) {
+            if (intervalInDays > 30 && !isNewMonitor) {
                 monitorLogs = await MonitorLogByWeekModel.aggregate(aggregateLogs);
-            } else if (interval > 2 && !newMonitor) {
+            } else if (intervalInDays > 2 && !isNewMonitor) {
                 monitorLogs = await MonitorLogByDayModel.aggregate(aggregateLogs);
             } else {
                 if ((moment(endDate)).diff(moment(monitor.createdAt), 'minutes') > 60) {

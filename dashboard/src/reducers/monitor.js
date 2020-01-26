@@ -444,14 +444,14 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
                             if (monitor._id === action.payload.monitorId) {
                                 const data = Object.assign({}, action.payload.data);
-                                const interval = (moment(state.monitorsList.endDate)).diff(moment(state.monitorsList.startDate), 'days');
-                                const newMonitor = (moment(state.monitorsList.endDate)).diff(moment(monitor.createdAt), 'days') < 2;
+                                const intervalInDays = (moment(state.monitorsList.endDate)).diff(moment(state.monitorsList.startDate), 'days');
+                                const isNewMonitor = (moment(state.monitorsList.endDate)).diff(moment(monitor.createdAt), 'days') < 2;
 
                                 let dateFormat, outputFormat;
-                                if (interval > 30 && !newMonitor) {
+                                if (intervalInDays > 30 && !isNewMonitor) {
                                     dateFormat = 'weeks'
                                     outputFormat = 'wo [week of] YYYY';
-                                } else if (interval > 2 && !newMonitor) {
+                                } else if (intervalInDays > 2 && !isNewMonitor) {
                                     dateFormat = 'days';
                                     outputFormat = 'MMM Do YYYY';
                                 } else {
