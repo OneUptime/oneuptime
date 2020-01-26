@@ -218,6 +218,19 @@ function computeIntervalDiffs(frequency, createdAt, currentDate, rotationSwitchT
     }
 }
 
+function composeDateFormat(rotationFrequency, date, timezone){
+    if(!rotationFrequency)
+        return moment(date).tz(timezone).format('Do, hh:mm a');
+    switch(rotationFrequency) {
+    case 'months':
+        return moment(date).tz(timezone).format('ddd, Do MMM: hh:mm a');
+    case 'weeks':
+        return moment(date).tz(timezone).format('dddd Do, hh:mm a');
+    case 'days':
+        return moment(date).tz(timezone).format('Do, hh:mm a');
+    }
+}
+
 function computeActiveTeamIndex(numberOfTeams, diffsInInterval, rotationSwitchTime) {
     let diffInt = diffsInInterval % numberOfTeams;
 
@@ -239,7 +252,7 @@ function computeActiveTeams(escalation) {
     try {
         let {
             team, rotationInterval, rotationFrequency,
-            rotationSwitchTime, createdAt,
+            rotationSwitchTime, createdAt, rotationTimezone
         } = escalation;
   
         const currentDate = new Date();
@@ -250,10 +263,11 @@ function computeActiveTeams(escalation) {
             let activeTeamRotationStartTime = moment(rotationSwitchTime).add(diffsInInterval, rotationFrequency);
 
             let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
+            
             const activeTeam = {
                 ...team[activeTeamIndex],
-                rotationStartTime: activeTeamRotationStartTime,
-                rotationEndTime: activeTeamRotationEndTime
+                rotationStartTime: composeDateFormat(rotationFrequency, activeTeamRotationStartTime, rotationTimezone),
+                rotationEndTime: composeDateFormat(rotationFrequency, activeTeamRotationEndTime, rotationTimezone)
             };
             let nextActiveTeamIndex = activeTeamIndex + 1;
 
@@ -265,8 +279,8 @@ function computeActiveTeams(escalation) {
             const nextActiveTeamRotationEndTime = moment(nextActiveTeamRotationStartTime).add(rotationInterval, rotationFrequency);
             const nextActiveTeam = {
                 ...team[nextActiveTeamIndex],
-                rotationStartTime: nextActiveTeamRotationStartTime,
-                rotationEndTime: nextActiveTeamRotationEndTime
+                rotationStartTime: composeDateFormat(rotationFrequency, nextActiveTeamRotationStartTime, rotationTimezone),
+                rotationEndTime: composeDateFormat(rotationFrequency, nextActiveTeamRotationEndTime, rotationTimezone), 
             };
 
             return { activeTeam, nextActiveTeam };

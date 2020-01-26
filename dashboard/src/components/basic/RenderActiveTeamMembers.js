@@ -1,14 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import format from 'date-fns/format';
-import parseISO from 'date-fns/parseISO';
 
 let RenderActiveTeamMembers = ({ team, subProjectTeam, rotationFrequency, rotationSwitchTime, activeTeam }) => {
   let rotationTeam = [];
   if (team && subProjectTeam) {
     rotationTeam = composeProjectTeam(team.teamMember, subProjectTeam.teamMembers);
   }
+
   return (
     <div>
       {(rotationFrequency && rotationSwitchTime) && (
@@ -16,12 +15,12 @@ let RenderActiveTeamMembers = ({ team, subProjectTeam, rotationFrequency, rotati
           {!activeTeam ? (
             <div>
               <span style={{ fontSize: 12 }}>Start Time:&nbsp;</span>
-              <span style={{ fontSize: 11 }}>{composeDateFormat(rotationFrequency, parseISO(team.rotationStartTime))}</span>
+              <span style={{ fontSize: 11 }}>{team.rotationStartTime}</span>
             </div>
           ): (<div style={{ height: 8 }} />)}
           <div>
             <span style={{ fontSize: 12 }}>End Time:&nbsp;</span>
-            <span style={{ fontSize: 11 }}>{composeDateFormat(rotationFrequency, parseISO(team.rotationEndTime))}</span>
+            <span style={{ fontSize: 11 }}>{team.rotationEndTime}</span>
           </div>
         </>
       )}
@@ -55,19 +54,6 @@ const mapStateToProps = (state, props) => {
   const subProjectTeams = state.team.subProjectTeamMembers;
   const subProjectTeam = subProjectTeams.find(team => team._id === subProjectId);
   return { subProjectTeam }
-}
-
-function composeDateFormat(rotationFrequency, date){
-  if(!rotationFrequency)
-    return format(date, 'do, h:mm aaa')
-  switch(rotationFrequency) {
-    case 'months':
-      return format(date, 'EEE, do LLL: h:mm aaa');
-    case 'weeks':
-      return format(date, 'EEEE do, h:mm aaa');
-    case 'days':
-      return format(date, 'do, h:mm aaa')
-  }
 }
 
 function composeProjectTeam(team, subProjectTeam) {

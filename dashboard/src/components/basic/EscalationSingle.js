@@ -30,6 +30,7 @@ const EscalationSingle = ({ escalation, policyIndex, subProjectId }) => {
                       rotationFrequency={escalation.rotationFrequency}
                       rotationSwitchTime={escalation.rotationSwitchTime}
                       activeTeam
+                      timezone={escalation.rotationTimezone}
                     />
                   </div>
                   {escalation.nextActiveTeam && (
