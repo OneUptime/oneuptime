@@ -474,28 +474,30 @@ export default function monitor(state = INITIAL_STATE, action) {
                                     intervalDate: moment(data.createdAt).format(outputFormat)
                                 };
 
-                                monitor.logs = monitor.logs && monitor.logs.length > 0 ? monitor.logs.map(probeLogs => {
-                                    let probeId = probeLogs._id;
+                                monitor.logs = monitor.logs && monitor.logs.length > 0 ? (
+                                    monitor.logs.map(a => a._id).includes(logData.probeId) ? monitor.logs.map(probeLogs => {
+                                        let probeId = probeLogs._id;
 
-                                    if (probeId === logData.probeId || (!probeId && !logData.probeId)) {
-                                        if (probeLogs.logs && probeLogs.logs.length > 0
-                                            && moment(probeLogs.logs[0].createdAt).isSame(moment(logData.createdAt), dateFormat)) {
-                                            let currentLog = probeLogs.logs[0];
+                                        if (probeId === logData.probeId || (!probeId && !logData.probeId)) {
+                                            if (probeLogs.logs && probeLogs.logs.length > 0
+                                                && moment(probeLogs.logs[0].createdAt).isSame(moment(logData.createdAt), dateFormat)) {
+                                                let currentLog = probeLogs.logs[0];
 
-                                            logData.maxResponseTime = data.responseTime > currentLog.maxResponseTime ? data.responseTime : currentLog.maxResponseTime;
-                                            logData.maxCpuLoad = data.cpuLoad > currentLog.maxCpuLoad ? data.cpuLoad : currentLog.maxCpuLoad;
-                                            logData.maxMemoryUsed = data.memoryUsed > currentLog.maxMemoryUsed ? data.memoryUsed : currentLog.maxMemoryUsed;
-                                            logData.maxStorageUsed = data.storageUsed > currentLog.maxStorageUsed ? data.storageUsed : currentLog.maxStorageUsed;
-                                            logData.maxMainTemp = data.mainTemp > currentLog.maxMainTemp ? data.mainTemp : currentLog.maxMainTemp;
+                                                logData.maxResponseTime = data.responseTime > currentLog.maxResponseTime ? data.responseTime : currentLog.maxResponseTime;
+                                                logData.maxCpuLoad = data.cpuLoad > currentLog.maxCpuLoad ? data.cpuLoad : currentLog.maxCpuLoad;
+                                                logData.maxMemoryUsed = data.memoryUsed > currentLog.maxMemoryUsed ? data.memoryUsed : currentLog.maxMemoryUsed;
+                                                logData.maxStorageUsed = data.storageUsed > currentLog.maxStorageUsed ? data.storageUsed : currentLog.maxStorageUsed;
+                                                logData.maxMainTemp = data.mainTemp > currentLog.maxMainTemp ? data.mainTemp : currentLog.maxMainTemp;
 
-                                            return { _id: probeId, logs: [logData, ...(probeLogs.logs.slice(1))] };
+                                                return { _id: probeId, logs: [logData, ...(probeLogs.logs.slice(1))] };
+                                            } else {
+                                                return { _id: probeId, logs: [logData, ...probeLogs.logs] };
+                                            }
                                         } else {
-                                            return { _id: probeId, logs: [logData, ...probeLogs.logs] };
+                                            return probeLogs;
                                         }
-                                    } else {
-                                        return probeLogs;
-                                    }
-                                }) : [{ _id: logData.probeId, logs: [logData] }];
+                                    }) : [...monitor.logs, { _id: logData.probeId, logs: [logData] }]
+                                ) : [{ _id: logData.probeId, logs: [logData] }];
 
                                 return monitor;
                             } else {

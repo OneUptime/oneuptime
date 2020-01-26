@@ -6,6 +6,7 @@
 
 var express = require('express');
 var MonitorService = require('../services/monitorService');
+var MonitorLogService = require('../services/monitorLogService');
 var NotificationService = require('../services/notificationService');
 var RealTimeService = require('../services/realTimeService');
 var ScheduleService = require('../services/scheduleService');
@@ -239,9 +240,9 @@ router.post('/:projectId/monitorLogs/:monitorId', getUser, isAuthorized, async f
         if (startDate && endDate) query.createdAt = { $gte: startDate, $lte: endDate };
 
         // Call the MonitorService.
-        var monitorLogs = await MonitorService.findLogsBy(query, limit || 0, skip || 0);
-        var count = await MonitorService.countLogsBy(query);
-        var probes = await MonitorService.findLogProbesBy({ monitorId });
+        var monitorLogs = await MonitorLogService.findBy(query, limit || 0, skip || 0);
+        var count = await MonitorLogService.countBy(query);
+        var probes = await ProbeService.findLogProbesBy({ monitorId });
         return sendListResponse(req, res, { monitorLogs, probes }, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
