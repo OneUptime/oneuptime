@@ -137,7 +137,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
         }
         data.projectId = projectId;
 
-        var existingMonitor = await MonitorService.findBy({ name: data.name });
+        var existingMonitor = await MonitorService.findBy({ name: data.name, projectId });
         if (existingMonitor.length > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,

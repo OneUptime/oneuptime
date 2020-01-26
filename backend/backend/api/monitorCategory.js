@@ -63,7 +63,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
             });
         }
         // Find existing category with the name a user provided.
-        var existingMonitorCategory = await MonitorCategoryService.findBy({ name: monitorCategoryName });
+        var existingMonitorCategory = await MonitorCategoryService.findBy({ name: monitorCategoryName, projectId });
         if (existingMonitorCategory.length > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -164,7 +164,7 @@ router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin,
             });
         }
         // Find existing category with the name a user provided.
-        var existingMonitorCategory = await MonitorCategoryService.findBy({ name });
+        var existingMonitorCategory = await MonitorCategoryService.findBy({ name, projectId });
         if (existingMonitorCategory.length > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
