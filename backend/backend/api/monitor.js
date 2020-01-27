@@ -263,7 +263,7 @@ router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, asyn
 router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
         var monitorId = req.params.monitorId || req.body._id;
-        var data = req.body.data;
+        var data = req.body;
         data.monitorId = monitorId;
 
         var monitor = await MonitorService.findOneBy({ _id: monitorId });

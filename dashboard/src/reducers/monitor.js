@@ -82,7 +82,7 @@ const INITIAL_STATE = {
     fetchMonitorsIncidentRequest: false,
     fetchMonitorsIncidentsRangeRequest: false,
     activeProbe: 0,
-    fetchMonitorLogsRequest: true,
+    fetchMonitorLogsRequest: false,
     fetchMonitorCriteriaRequest: false,
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
@@ -475,7 +475,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                                 };
 
                                 monitor.logs = monitor.logs && monitor.logs.length > 0 ? (
-                                    monitor.logs.map(a => a._id).includes(logData.probeId) ? monitor.logs.map(probeLogs => {
+                                    monitor.logs.map(a => a._id).includes(logData.probeId) || !logData.probeId ? monitor.logs.map(probeLogs => {
                                         let probeId = probeLogs._id;
 
                                         if (probeId === logData.probeId || (!probeId && !logData.probeId)) {
@@ -496,8 +496,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                                         } else {
                                             return probeLogs;
                                         }
-                                    }) : [...monitor.logs, { _id: logData.probeId, logs: [logData] }]
-                                ) : [{ _id: logData.probeId, logs: [logData] }];
+                                    }) : [...monitor.logs, { _id: logData.probeId || null, logs: [logData] }]
+                                ) : [{ _id: logData.probeId || null, logs: [logData] }];
 
                                 return monitor;
                             } else {
@@ -800,7 +800,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                                 return {
                                     ...monitor,
                                     incidents: incidents,
-                                    incidentsRange: [action.payload, ...monitor.incidentsRange],
+                                    incidentsRange: monitor.incidentsRange && monitor.incidentsRange.length > 0 ?
+                                        [action.payload, ...monitor.incidentsRange] : [action.payload],
                                     count: monitor.count + 1
                                 };
                             } else {

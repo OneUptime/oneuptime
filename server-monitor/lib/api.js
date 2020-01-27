@@ -31,26 +31,23 @@ const ping = (projectId, monitorId, apiKey, interval = '* * * * *') => {
       si.currentLoad(),
       si.mem(),
       si.fsSize(),
-      si.networkStats(),
-      si.cpuTemperature(),
-      si.cpu(),
-      si.users(),
-      si.networkConnections(),
-      si.vboxInfo()
+      si.cpuTemperature()
     ])
       .then(data => ({
-        load: data[0],
-        memory: data[1],
-        disk: data[2] && data[2].length > 0 ? data[2][0] : data[2],
-        traffic: data[3],
-        temperature: data[4],
-        resources: data[5],
-        users: data[6],
-        network: data[7],
-        vbox: data[8]
+        cpuLoad: data[0].currentload,
+        avgCpuLoad: data[0].avgload,
+        cpuCores: data[0].cpus.length,
+        memoryUsed: data[1].used,
+        totalMemory: data[1].total,
+        swapUsed: data[1].swapused,
+        storageUsed: data[2] && data[2].length > 0 ? data[2][0].used : data[2].used,
+        totalStorage: data[2] && data[2].length > 0 ? data[2][0].size : data[2].size,
+        storageUsage: data[2] && data[2].length > 0 ? data[2][0].use : data[2].use,
+        mainTemp: data[3].main,
+        maxTemp: data[3].max,
       }))
       .then(data => {
-        post(`monitor/${projectId}/log/${monitorId}`, { data }, apiKey, () => {
+        post(`monitor/${projectId}/log/${monitorId}`, data, apiKey, () => {
           logger.info(`${monitorId} - System Information uploaded`);
         });
       })
