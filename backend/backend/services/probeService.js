@@ -566,81 +566,81 @@ const checkAnd = async (payload, con, statusCode, body) => {
         }
         else if (con[i] && con[i].responseType === 'cpuLoad') {
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (!(con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload > con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad > con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
-                if (!(con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload < con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad < con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
-                if (!(con[i] && con[i].field1 && payload.load && payload.load.currentload && con[i].field2 && payload.load.currentload > con[i].field1 && payload.load.currentload < con[i].field2)) {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && con[i].field2 && payload.cpuLoad > con[i].field1 && payload.cpuLoad < con[i].field2)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (!(con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload == con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad == con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
-                if (!(con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload != con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad != con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
-                if (!(con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload >= con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad >= con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
-                if (!(con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload <= con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad <= con[i].field1)) {
                     validity = false;
                 }
             }
         }
         else if (con[i] && con[i].responseType === 'memoryUsage') {
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (!(con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used > con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed > con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
-                if (!(con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used < con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed < con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
-                if (!(con[i] && con[i].field1 && payload.memory && payload.memory.used && con[i].field2 && payload.memory.used > con[i].field1 && payload.memory.used < con[i].field2)) {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && con[i].field2 && payload.memoryUsed > con[i].field1 && payload.memoryUsed < con[i].field2)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (!(con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used == con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed == con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
-                if (!(con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used != con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed != con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
-                if (!(con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used >= con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed >= con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
-                if (!(con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used <= con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed <= con[i].field1)) {
                     validity = false;
                 }
             }
         }
         else if (con[i] && con[i].responseType === 'storageUsage') {
-            let size = parseInt(payload.disk.size);
-            let used = parseInt(payload.disk.used);
+            let size = parseInt(payload.totalStorage || 0);
+            let used = parseInt(payload.storageUsed || 0);
             let free = (size - used) / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (!(con[i] && con[i].field1 && free > con[i].field1)) {
@@ -680,37 +680,37 @@ const checkAnd = async (payload, con, statusCode, body) => {
         }
         else if (con[i] && con[i].responseType === 'temperature') {
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (!(con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main > con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp > con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
-                if (!(con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main < con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp < con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
-                if (!(con[i] && con[i].field1 && payload.temperature && payload.temperature.main && con[i].field2 && payload.temperature.main > con[i].field1 && payload.temperature.main < con[i].field2)) {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && con[i].field2 && payload.mainTemp > con[i].field1 && payload.mainTemp < con[i].field2)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (!(con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main == con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp == con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
-                if (!(con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main != con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp != con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
-                if (!(con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main >= con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp >= con[i].field1)) {
                     validity = false;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
-                if (!(con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main <= con[i].field1)) {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp <= con[i].field1)) {
                     validity = false;
                 }
             }
@@ -848,81 +848,81 @@ const checkOr = async (payload, con, statusCode, body) => {
         }
         else if (con[i] && con[i].responseType === 'cpuLoad') {
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload > con[i].field1) {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad > con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
-                if (con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload < con[i].field1) {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad < con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
-                if (con[i] && con[i].field1 && payload.load && payload.load.currentload && con[i].field2 && payload.load.currentload > con[i].field1 && payload.load.currentload < con[i].field2) {
+                if (con[i] && con[i].field1 && payload.cpuLoad && con[i].field2 && payload.cpuLoad > con[i].field1 && payload.cpuLoad < con[i].field2) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload == con[i].field1) {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad == con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
-                if (con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload != con[i].field1) {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad != con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
-                if (con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload >= con[i].field1) {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad >= con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
-                if (con[i] && con[i].field1 && payload.load && payload.load.currentload && payload.load.currentload <= con[i].field1) {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad <= con[i].field1) {
                     validity = true;
                 }
             }
         }
         else if (con[i] && con[i].responseType === 'memoryUsage') {
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used > con[i].field1) {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed > con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
-                if (con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used < con[i].field1) {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed < con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
-                if (con[i] && con[i].field1 && payload.memory && payload.memory.used && con[i].field2 && payload.memory.used > con[i].field1 && payload.memory.used < con[i].field2) {
+                if (con[i] && con[i].field1 && payload.memoryUsed && con[i].field2 && payload.memoryUsed > con[i].field1 && payload.memoryUsed < con[i].field2) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used == con[i].field1) {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed == con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
-                if (con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used != con[i].field1) {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed != con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
-                if (con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used >= con[i].field1) {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed >= con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
-                if (con[i] && con[i].field1 && payload.memory && payload.memory.used && payload.memory.used <= con[i].field1) {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed <= con[i].field1) {
                     validity = true;
                 }
             }
         }
         else if (con[i] && con[i].responseType === 'storageUsage') {
-            let size = parseInt(payload.disk.size);
-            let used = parseInt(payload.disk.used);
+            let size = parseInt(payload.totalStorage || 0);
+            let used = parseInt(payload.storageUsed || 0);
             let free = (size - used) / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (con[i] && con[i].field1 && free > con[i].field1) {
@@ -962,37 +962,37 @@ const checkOr = async (payload, con, statusCode, body) => {
         }
         else if (con[i] && con[i].responseType === 'temperature') {
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main > con[i].field1) {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp > con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
-                if (con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main < con[i].field1) {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp < con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
-                if (con[i] && con[i].field1 && payload.temperature && payload.temperature.main && con[i].field2 && payload.temperature.main > con[i].field1 && payload.temperature.main < con[i].field2) {
+                if (con[i] && con[i].field1 && payload.mainTemp && con[i].field2 && payload.mainTemp > con[i].field1 && payload.mainTemp < con[i].field2) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main == con[i].field1) {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp == con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
-                if (con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main != con[i].field1) {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp != con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
-                if (con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main >= con[i].field1) {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp >= con[i].field1) {
                     validity = true;
                 }
             }
             else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
-                if (con[i] && con[i].field1 && payload.temperature && payload.temperature.main && payload.temperature.main <= con[i].field1) {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp <= con[i].field1) {
                     validity = true;
                 }
             }

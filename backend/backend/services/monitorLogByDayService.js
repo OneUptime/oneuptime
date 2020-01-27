@@ -8,26 +8,22 @@ module.exports = {
             LogDay.status = data.status;
             LogDay.responseTime = data.responseTime;
             LogDay.responseStatus = data.responseStatus;
-
-            if (data.data) {
-                LogDay.cpuLoad = data.data.load.currentload;
-                LogDay.avgCpuLoad = data.data.load.avgload;
-                LogDay.cpuCores = data.data.load.cpus.length;
-                LogDay.memoryUsed = data.data.memory.used;
-                LogDay.totalMemory = data.data.memory.total;
-                LogDay.swapUsed = data.data.memory.swapused;
-                LogDay.storageUsed = data.data.disk.used;
-                LogDay.totalStorage = data.data.disk.size;
-                LogDay.storageUsage = data.data.disk.use;
-                LogDay.mainTemp = data.data.temperature.main;
-                LogDay.maxTemp = data.data.temperature.max;
-                LogDay.maxCpuLoad = data.data.load.currentload;
-                LogDay.maxMemoryUsed = data.data.memory.used;
-                LogDay.maxStorageUsed = data.data.disk.used;
-                LogDay.maxMainTemp = data.data.temperature.main;
-            }
-
+            LogDay.cpuLoad = data.cpuLoad;
+            LogDay.avgCpuLoad = data.avgCpuLoad;
+            LogDay.cpuCores = data.cpuCores;
+            LogDay.memoryUsed = data.memoryUsed;
+            LogDay.totalMemory = data.totalMemory;
+            LogDay.swapUsed = data.swapUsed;
+            LogDay.storageUsed = data.storageUsed;
+            LogDay.totalStorage = data.totalStorage;
+            LogDay.storageUsage = data.storageUsage;
+            LogDay.mainTemp = data.mainTemp;
+            LogDay.maxTemp = data.maxTemp;
             LogDay.maxResponseTime = data.responseTime;
+            LogDay.maxCpuLoad = data.cpuLoad;
+            LogDay.maxMemoryUsed = data.memoryUsed;
+            LogDay.maxStorageUsed = data.storageUsed;
+            LogDay.maxMainTemp = data.mainTemp;
             LogDay.intervalDate = data.intervalDate;
 
             var savedLogDay = await LogDay.save();

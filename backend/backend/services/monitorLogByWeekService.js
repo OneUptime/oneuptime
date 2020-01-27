@@ -8,26 +8,22 @@ module.exports = {
             LogWeek.status = data.status;
             LogWeek.responseTime = data.responseTime;
             LogWeek.responseStatus = data.responseStatus;
-
-            if (data.data) {
-                LogWeek.cpuLoad = data.data.load.currentload;
-                LogWeek.avgCpuLoad = data.data.load.avgload;
-                LogWeek.cpuCores = data.data.load.cpus.length;
-                LogWeek.memoryUsed = data.data.memory.used;
-                LogWeek.totalMemory = data.data.memory.total;
-                LogWeek.swapUsed = data.data.memory.swapused;
-                LogWeek.storageUsed = data.data.disk.used;
-                LogWeek.totalStorage = data.data.disk.size;
-                LogWeek.storageUsage = data.data.disk.use;
-                LogWeek.mainTemp = data.data.temperature.main;
-                LogWeek.maxTemp = data.data.temperature.max;
-                LogWeek.maxCpuLoad = data.data.load.currentload;
-                LogWeek.maxMemoryUsed = data.data.memory.used;
-                LogWeek.maxStorageUsed = data.data.disk.used;
-                LogWeek.maxMainTemp = data.data.temperature.main;
-            }
-
+            LogWeek.cpuLoad = data.cpuLoad;
+            LogWeek.avgCpuLoad = data.avgCpuLoad;
+            LogWeek.cpuCores = data.cpuCores;
+            LogWeek.memoryUsed = data.memoryUsed;
+            LogWeek.totalMemory = data.totalMemory;
+            LogWeek.swapUsed = data.swapUsed;
+            LogWeek.storageUsed = data.storageUsed;
+            LogWeek.totalStorage = data.totalStorage;
+            LogWeek.storageUsage = data.storageUsage;
+            LogWeek.mainTemp = data.mainTemp;
+            LogWeek.maxTemp = data.maxTemp;
             LogWeek.maxResponseTime = data.responseTime;
+            LogWeek.maxCpuLoad = data.cpuLoad;
+            LogWeek.maxMemoryUsed = data.memoryUsed;
+            LogWeek.maxStorageUsed = data.storageUsed;
+            LogWeek.maxMainTemp = data.mainTemp;
             LogWeek.intervalDate = data.intervalDate;
 
             var savedLogWeek = await LogWeek.save();

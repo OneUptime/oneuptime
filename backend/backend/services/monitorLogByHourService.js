@@ -8,26 +8,22 @@ module.exports = {
             LogHour.status = data.status;
             LogHour.responseTime = data.responseTime;
             LogHour.responseStatus = data.responseStatus;
-
-            if (data.data) {
-                LogHour.cpuLoad = data.data.load.currentload;
-                LogHour.avgCpuLoad = data.data.load.avgload;
-                LogHour.cpuCores = data.data.load.cpus.length;
-                LogHour.memoryUsed = data.data.memory.used;
-                LogHour.totalMemory = data.data.memory.total;
-                LogHour.swapUsed = data.data.memory.swapused;
-                LogHour.storageUsed = data.data.disk.used;
-                LogHour.totalStorage = data.data.disk.size;
-                LogHour.storageUsage = data.data.disk.use;
-                LogHour.mainTemp = data.data.temperature.main;
-                LogHour.maxTemp = data.data.temperature.max;
-                LogHour.maxCpuLoad = data.data.load.currentload;
-                LogHour.maxMemoryUsed = data.data.memory.used;
-                LogHour.maxStorageUsed = data.data.disk.used;
-                LogHour.maxMainTemp = data.data.temperature.main;
-            }
-
+            LogHour.cpuLoad = data.cpuLoad;
+            LogHour.avgCpuLoad = data.avgCpuLoad;
+            LogHour.cpuCores = data.cpuCores;
+            LogHour.memoryUsed = data.memoryUsed;
+            LogHour.totalMemory = data.totalMemory;
+            LogHour.swapUsed = data.swapUsed;
+            LogHour.storageUsed = data.storageUsed;
+            LogHour.totalStorage = data.totalStorage;
+            LogHour.storageUsage = data.storageUsage;
+            LogHour.mainTemp = data.mainTemp;
+            LogHour.maxTemp = data.maxTemp;
             LogHour.maxResponseTime = data.responseTime;
+            LogHour.maxCpuLoad = data.cpuLoad;
+            LogHour.maxMemoryUsed = data.memoryUsed;
+            LogHour.maxStorageUsed = data.storageUsed;
+            LogHour.maxMainTemp = data.mainTemp;
             LogHour.intervalDate = data.intervalDate;
 
             var savedLogHour = await LogHour.save();

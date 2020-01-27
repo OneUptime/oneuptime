@@ -263,15 +263,14 @@ router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, asyn
 router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
         var monitorId = req.params.monitorId || req.body._id;
-        var data = {
-            monitorId,
-            data: req.body.data
-        };
+        var data = req.body.data;
+        data.monitorId = monitorId;
+
         var monitor = await MonitorService.findOneBy({ _id: monitorId });
 
-        let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(data.data, null, monitor.criteria.up) : false);
-        let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(data.data, null, monitor.criteria.degraded) : false);
-        let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(data.data, null, monitor.criteria.down) : false);
+        let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(data, null, monitor.criteria.up) : false);
+        let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(data, null, monitor.criteria.degraded) : false);
+        let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(data, null, monitor.criteria.down) : false);
 
         if (validDown) {
             data.status = 'offline';
