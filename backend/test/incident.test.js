@@ -179,6 +179,7 @@ describe('Incident API', function () {
                     rotationFrequency: 'weeks',
                     rotationInterval: 2,
                     rotationSwitchTime: 'Wed Jan 22 2020 09:25:15 GMT+0100 (West Africa Standard Time)',
+                    rotationTimezone: 'Africa/Abidjan',
                     call: false,
                     sms: false,
                     email: true,
