@@ -178,21 +178,11 @@ describe.only('Incident API', function () {
                     emailFrequency: 10,
                     callFrequency: 10,
                     smsFrequency: 10,
-                    rotationFrequency: 'weeks',
-                    rotationInterval: 2,
-                    rotationSwitchTime: 'Mon, 17 Jan 2020 09:35:34 GMT',
-                    rotationTimezone: 'America/Anguilla',
                     call: true,
                     sms: true,
                     email: true,
                     team: [{
                         teamMember: [{
-                            member: userId,
-                            startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
-                            endTime: 'Tue Dec 17 2019 22:55:26 GMT+0000',
-                            timezone: 'UTC(GMT +00:00)'
-                        },
-                        {
                             member: userId,
                             startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
                             endTime: 'Tue Dec 17 2019 22:55:26 GMT+0000',
