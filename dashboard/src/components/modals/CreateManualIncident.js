@@ -5,29 +5,41 @@ import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { createNewIncident } from '../../actions/incident';
+import { createNewIncident, createIncidentReset } from '../../actions/incident';
 import { closeModal } from '../../actions/modal';
 import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
 
 
 class CreateManualIncident extends Component {
+	constructor(props) {
+		super(props);
+		this.state = {
+			incidentType: '',
+		}
+	}
 
 	submitForm = (values) => {
-		const { createNewIncident, createIncidentModalId, closeModal } = this.props;
+		const { createNewIncident, createIncidentModalId, closeModal, createIncidentReset } = this.props;
 		const { projectId, monitorId } = this.props.data;
-		createNewIncident(projectId, monitorId, values.incidentType)
-			.then(() => {
-				closeModal({
-					id: createIncidentModalId
-				});
+		this.setState({ incidentType: values.incidentType });
+		createNewIncident(
+			projectId,
+			monitorId,
+			values.incidentType
+		).then(() => {
+			createIncidentReset();
+			closeModal({
+				id: createIncidentModalId
 			});
+		});
 	}
 
 	handleKeyBoard = (e) => {
-		const { createIncidentModalId, closeModal } = this.props;
+		const { createIncidentModalId, closeModal, createIncidentReset } = this.props;
 		switch (e.key) {
 			case 'Escape':
+				createIncidentReset();
 				return closeModal({
 					id: createIncidentModalId
 				});
@@ -39,7 +51,9 @@ class CreateManualIncident extends Component {
 	render() {
 		const {
 			handleSubmit,
+			newIncident
 		} = this.props;
+		var sameError = newIncident && newIncident.error && newIncident.error === `An unresolved incident of type ${this.state.incidentType} already exists.` ? true : false;
 		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
 				<div className="bs-BIM">
@@ -57,31 +71,36 @@ class CreateManualIncident extends Component {
 								<div className="bs-Modal-block bs-u-paddingless">
 
 									<div className="bs-Modal-content">
-										<div className="bs-Fieldset-row">
-											<label className="bs-Fieldset-label">Incident type</label>
-											<div className="bs-Fieldset-fields">
-												<Field className="db-select-nw"
-													component={RenderSelect}
-													name="incidentType"
-													id="incidentType"
-													placeholder="Incident type"
-													disabled={this.props.newIncident.requesting}
-													validate={ValidateField.select}
-													options={[
-														{ value: '', label: 'Select type' },
-														{ value: 'online', label: 'Online' },
-														{ value: 'offline', label: 'Offline' },
-														{ value: 'degraded', label: 'Degraded' }
-													]}
-												/>
+										<ShouldRender if={!sameError}>
+											<div className="bs-Fieldset-row">
+												<label className="bs-Fieldset-label">Incident type</label>
+												<div className="bs-Fieldset-fields">
+													<Field className="db-select-nw"
+														component={RenderSelect}
+														name="incidentType"
+														id="incidentType"
+														placeholder="Incident type"
+														disabled={this.props.newIncident.requesting}
+														validate={ValidateField.select}
+														options={[
+															{ value: '', label: 'Select type' },
+															{ value: 'online', label: 'Online' },
+															{ value: 'offline', label: 'Offline' },
+															{ value: 'degraded', label: 'Degraded' }
+														]}
+													/>
+												</div>
 											</div>
-										</div>
+										</ShouldRender>
+										<ShouldRender if={sameError}>
+											<span>An unresolved incident of type {this.state.incidentType} already exists. Please resolve earlier incidents of type {this.state.incidentType} to create a new incident.</span>
+										</ShouldRender>
 									</div>
 								</div>
 							</div>
 							<div className="bs-Modal-footer">
 								<div className="bs-Modal-footer-actions">
-									<ShouldRender if={this.props.newIncident && this.props.newIncident.error}>
+									<ShouldRender if={newIncident && newIncident.error && !sameError}>
 										<div className="bs-Tail-copy">
 											<div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
 												<div className="Box-root Margin-right--8">
@@ -96,20 +115,28 @@ class CreateManualIncident extends Component {
 									</ShouldRender>
 									<button className="bs-Button bs-DeprecatedButton"
 										onClick={() => {
+											this.props.createIncidentReset();
 											this.props.closeModal({
 												id: this.props.createIncidentModalId
 											})
 										}}>
-										<span>Cancel</span>
+										<ShouldRender if={!sameError}>
+											<span>Cancel</span>
+										</ShouldRender>
+										<ShouldRender if={sameError}>
+											<span>OK</span>
+										</ShouldRender>
 									</button>
-									<button
-										id="createIncident"
-										className="bs-Button bs-DeprecatedButton bs-Button--blue"
-										disabled={this.props.newIncident && this.props.newIncident.requesting}
-										type="submit">
-										{this.props.newIncident && !this.props.newIncident.requesting && <span>Create</span>}
-										{this.props.newIncident && this.props.newIncident.requesting && <FormLoader />}
-									</button>
+									<ShouldRender if={!sameError}>
+										<button
+											id="createIncident"
+											className="bs-Button bs-DeprecatedButton bs-Button--blue"
+											disabled={newIncident && newIncident.requesting}
+											type="submit">
+											{newIncident && !newIncident.requesting && <span>Create</span>}
+											{newIncident && newIncident.requesting && <FormLoader />}
+										</button>
+									</ShouldRender>
 								</div>
 							</div>
 						</form>
@@ -130,7 +157,8 @@ let CreateManualIncidentForm = reduxForm({
 const mapDispatchToProps = (dispatch) => {
 	return bindActionCreators({
 		createNewIncident,
-		closeModal
+		closeModal,
+		createIncidentReset
 	}, dispatch)
 }
 
@@ -142,13 +170,14 @@ function mapStateToProps(state) {
 }
 
 CreateManualIncident.propTypes = {
-	newIncident: PropTypes.object,
-	createIncidentModalId: PropTypes.string,
-	monitorId: PropTypes.string,
-	createNewIncident: PropTypes.func.isRequired,
 	closeModal: PropTypes.func.isRequired,
+	createIncidentModalId: PropTypes.string,
+	createIncidentReset: PropTypes.func.isRequired,
+	createNewIncident: PropTypes.func.isRequired,
+	data: PropTypes.object,
 	handleSubmit: PropTypes.func.isRequired,
-	data: PropTypes.object
+	monitorId: PropTypes.string,
+	newIncident: PropTypes.object
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(CreateManualIncidentForm);

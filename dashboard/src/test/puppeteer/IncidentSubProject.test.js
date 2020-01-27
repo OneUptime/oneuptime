@@ -35,7 +35,7 @@ describe('Incident API With SubProjects', () => {
             throw err;
         });
 
-        // Register user 
+        // Register user
         await cluster.task(async ({ page, data }) => {
             const user = {
                 email: data.email,
@@ -351,4 +351,4 @@ describe('Incident API With SubProjects', () => {
 
     }, 200000);
 
-});     
+});
