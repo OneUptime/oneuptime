@@ -53,7 +53,7 @@ const EscalationSingle = ({ escalation, policyIndex, subProjectId }) => {
                 <div style={{ display: 'flex', marginTop: 10 }}>
                   <div style={{ width: '45%' }}>
                     <span className="Text-color--inherit Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        <span>Active Team:</span>
+                        <span>Team:</span>
                     </span>
                     <RenderActiveTeamMembers
                       team={escalation.team[0]}
