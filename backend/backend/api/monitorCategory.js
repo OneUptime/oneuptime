@@ -159,7 +159,7 @@ router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin,
         // Call the MonitorCategoryService
         var updatedMonitorCategory = await MonitorCategoryService.updateOneBy(
             { projectId, _id: monitorCategoryId },
-            { name, projectId }
+            { name, projectId, _id: monitorCategoryId }
         );
         return sendItemResponse(req, res, updatedMonitorCategory);
     } catch (error) {

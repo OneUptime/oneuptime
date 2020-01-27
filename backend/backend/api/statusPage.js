@@ -195,7 +195,10 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
         }
 
         try {
-            var statusPage = await StatusPageService.updateOneBy({ _id: data._id }, data);
+            var statusPage = await StatusPageService.updateOneBy(
+                { projectId: data.projectId, _id: data._id },
+                data
+            );
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error);

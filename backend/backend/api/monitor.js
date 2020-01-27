@@ -234,8 +234,7 @@ router.post('/:projectId/monitorLogs/:monitorId', getUser, isAuthorized, async f
         // Call the MonitorService.
         var monitorLogs = await MonitorLogService.findBy(query, limit || 0, skip || 0);
         var count = await MonitorLogService.countBy(query);
-        var probes = await ProbeService.findBy({});
-        return sendListResponse(req, res, { monitorLogs, probes }, count);
+        return sendListResponse(req, res, monitorLogs, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

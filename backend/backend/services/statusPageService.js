@@ -35,8 +35,8 @@ module.exports = {
 
     create: async function (data) {
         try {
-            var existingStatusPage = await this.findOneBy({ name: data.name, projectId: data.projectId });
-            if (existingStatusPage) {
+            var existingStatusPage = await this.findBy({ name: data.name, projectId: data.projectId });
+            if (existingStatusPage && existingStatusPage.length > 0) {
                 let error = new Error('StatusPage with that name already exists.');
                 error.code = 400;
                 ErrorService.log('statusPageService.create', error);
@@ -156,8 +156,12 @@ module.exports = {
 
     updateOneBy: async function (query, data) {
         try {
-            var existingStatusPage = await this.findOneBy({ name: data.name, projectId: data.projectId });
-            if (existingStatusPage && existingStatusPage._id.toString() !== data._id) {
+            var existingStatusPage = await this.findBy({
+                name: data.name,
+                projectId: data.projectId,
+                _id: { $not: { $eq: data._id } }
+            });
+            if (existingStatusPage && existingStatusPage.length > 0) {
                 let error = new Error('StatusPage with that name already exists.');
                 error.code = 400;
                 ErrorService.log('statusPageService.updateOneBy', error);
@@ -172,11 +176,11 @@ module.exports = {
             }, {
                 new: true
             });
+            return updatedStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.updateOneBy', error);
             throw error;
         }
-        return updatedStatusPage;
     },
 
     updateBy: async function (query, data) {

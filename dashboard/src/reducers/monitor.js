@@ -884,7 +884,6 @@ export default function monitor(state = INITIAL_STATE, action) {
                     ...state.monitorLogs,
                     [action.payload.monitorId]: {
                         logs: action.payload.logs,
-                        probes: action.payload.probes,
                         error: null,
                         requesting: false,
                         success: false,

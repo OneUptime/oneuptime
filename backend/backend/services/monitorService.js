@@ -8,7 +8,7 @@ module.exports = {
             var _this = this;
             var subProject = null;
             var existingMonitor = await _this.findBy({ name: data.name, projectId: data.projectId });
-            if (existingMonitor.length > 0) {
+            if (existingMonitor && existingMonitor.length > 0) {
                 let error = new Error('Monitor with that name already exists.');
                 error.code = 400;
                 ErrorService.log('monitorService.create', error);
