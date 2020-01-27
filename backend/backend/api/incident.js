@@ -34,6 +34,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
         var projectId = req.params.projectId;
         var incidentType = req.body.incidentType;
         var userId = req.user ? req.user.id : null;
+        var oldIncidents = null;
 
         if (!monitorId) {
             return sendErrorResponse(req, res, {
@@ -70,8 +71,9 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
                     message: 'Invalid incident type.'
                 });
             }
+            oldIncidents = await IncidentService.countBy({projectId: projectId, monitorId: monitorId,incidentType,resolved:false,deleted:false});
         }
-        var oldIncidents = await IncidentService.countBy({projectId: projectId, monitorId: monitorId,incidentType,resolved:false,deleted:false});
+
         if(oldIncidents && oldIncidents > 0){
             return sendErrorResponse(req, res, {
                 code: 400,
