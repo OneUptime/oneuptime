@@ -445,57 +445,57 @@ export default function monitor(state = INITIAL_STATE, action) {
                             if (monitor._id === action.payload.monitorId) {
                                 const data = Object.assign({}, action.payload.data);
                                 const interval = (moment(state.monitorsList.endDate)).diff(moment(state.monitorsList.startDate), 'days');
+                                const newMonitor = (moment(state.monitorsList.endDate)).diff(moment(monitor.createdAt), 'days') < 2;
 
                                 let dateFormat, outputFormat;
-                                if (interval > 30) {
+                                if (interval > 30 && !newMonitor) {
                                     dateFormat = 'weeks'
                                     outputFormat = 'wo [week of] YYYY';
-                                } else if (interval > 2) {
+                                } else if (interval > 2 && !newMonitor) {
                                     dateFormat = 'days';
                                     outputFormat = 'MMM Do YYYY';
                                 } else {
-                                    dateFormat = 'hours';
-                                    outputFormat = 'MMM Do YYYY, h A';
+                                    if ((moment(state.monitorsList.endDate)).diff(moment(monitor.createdAt), 'minutes') > 60) {
+                                        dateFormat = 'hours';
+                                        outputFormat = 'MMM Do YYYY, h A';
+                                    } else {
+                                        dateFormat = 'minutes';
+                                        outputFormat = 'MMM Do YYYY, h:mm:ss A';
+                                    }
                                 }
 
                                 let logData = {
                                     ...data,
-                                    avgResponseTime: data.responseTime,
-                                    avgCpuLoad: data.data ? data.data.cpuLoad : null,
-                                    avgMemoryUsed: data.data ? data.data.memoryUsed : null,
-                                    avgStorageUsed: data.data ? data.data.storageUsed : null,
-                                    avgMainTemp: data.data ? data.data.mainTemp : null,
-                                    count: 1,
+                                    maxResponseTime: data.responseTime,
+                                    maxCpuLoad: data.cpuLoad,
+                                    maxMemoryUsed: data.memoryUsed,
+                                    maxStorageUsed: data.storageUsed,
+                                    maxMainTemp: data.mainTemp,
                                     intervalDate: moment(data.createdAt).format(outputFormat)
                                 };
 
                                 monitor.logs = monitor.logs && monitor.logs.length > 0 ? monitor.logs.map(probeLogs => {
-                                    if (probeLogs._id === logData.probeId || (!probeLogs._id && !logData.probeId)) {
+                                    let probeId = probeLogs._id;
+
+                                    if (probeId === logData.probeId || (!probeId && !logData.probeId)) {
                                         if (probeLogs.logs && probeLogs.logs.length > 0
                                             && moment(probeLogs.logs[0].createdAt).isSame(moment(logData.createdAt), dateFormat)) {
                                             let currentLog = probeLogs.logs[0];
-                                            let currentLogCount = currentLog.count || 1;
-                                            let count = currentLogCount + logData.count;
 
-                                            logData = {
-                                                ...data,
-                                                avgResponseTime: currentLog.avgResponseTime && data.responseTime ? ((currentLog.avgResponseTime * currentLogCount) + data.responseTime) / count : null,
-                                                avgCpuLoad: currentLog.avgCpuLoad && data.data && data.data.cpuLoad ? ((currentLog.avgCpuLoad * currentLogCount) + data.data.cpuLoad) / count : null,
-                                                avgMemoryUsed: currentLog.avgMemoryUsed && data.data && data.data.memoryUsed ? ((currentLog.avgMemoryUsed * currentLogCount) + data.data.memoryUsed) / count : null,
-                                                avgStorageUsed: currentLog.avgStorageUsed && data.data && data.data.storageUsed ? ((currentLog.avgStorageUsed * currentLogCount) + data.data.storageUsed) / count : null,
-                                                avgMainTemp: currentLog.avgMainTemp && data.data && data.data.mainTemp ? ((currentLog.avgMainTemp * currentLogCount) + data.data.mainTemp) / count : null,
-                                                count,
-                                                intervalDate: currentLog.intervalDate ? currentLog.intervalDate : null
-                                            };
+                                            logData.maxResponseTime = data.responseTime > currentLog.maxResponseTime ? data.responseTime : currentLog.maxResponseTime;
+                                            logData.maxCpuLoad = data.cpuLoad > currentLog.maxCpuLoad ? data.cpuLoad : currentLog.maxCpuLoad;
+                                            logData.maxMemoryUsed = data.memoryUsed > currentLog.maxMemoryUsed ? data.memoryUsed : currentLog.maxMemoryUsed;
+                                            logData.maxStorageUsed = data.storageUsed > currentLog.maxStorageUsed ? data.storageUsed : currentLog.maxStorageUsed;
+                                            logData.maxMainTemp = data.mainTemp > currentLog.maxMainTemp ? data.mainTemp : currentLog.maxMainTemp;
 
-                                            return { _id: probeLogs._id, logs: [logData, ...(probeLogs.logs.slice(1))] };
+                                            return { _id: probeId, logs: [logData, ...(probeLogs.logs.slice(1))] };
                                         } else {
-                                            return { _id: probeLogs._id, logs: [logData, ...probeLogs.logs] };
+                                            return { _id: probeId, logs: [logData, ...probeLogs.logs] };
                                         }
                                     } else {
                                         return probeLogs;
                                     }
-                                }) : (logData.probeId ? [{ _id: logData.probeId, logs: [logData] }] : [{ _id: null, logs: [logData] }]);
+                                }) : [{ _id: logData.probeId, logs: [logData] }];
 
                                 return monitor;
                             } else {

@@ -152,34 +152,221 @@ module.exports = {
     createMonitorLog: async function (data) {
         try {
             let Log = new MonitorLogModel();
+            let LogHour = new MonitorLogByHourModel();
+            let LogDay = new MonitorLogByDayModel();
+            let LogWeek = new MonitorLogByWeekModel();
+
             Log.monitorId = data.monitorId;
             Log.probeId = data.probeId;
+            Log.status = data.status;
             Log.responseTime = data.responseTime;
             Log.responseStatus = data.responseStatus;
-            Log.data = data.data;
-            Log.status = data.status;
+
+            if (data.data) {
+                Log.cpuLoad = data.data.load.currentload;
+                Log.avgCpuLoad = data.data.load.avgload;
+                Log.cpuCores = data.data.load.cpus.length;
+                Log.memoryUsed = data.data.memory.used;
+                Log.totalMemory = data.data.memory.total;
+                Log.swapUsed = data.data.memory.swapused;
+                Log.storageUsed = data.data.disk.used;
+                Log.totalStorage = data.data.disk.size;
+                Log.storageUsage = data.data.disk.use;
+                Log.mainTemp = data.data.temperature.main;
+                Log.maxTemp = data.data.temperature.max;
+            }
 
             var savedLog = await Log.save();
-            savedLog = savedLog.toObject();
-            var logData = {
-                ...savedLog,
-                data: savedLog.data ? {
-                    cpuLoad: savedLog.data.load.currentload,
-                    avgCpuLoad: savedLog.data.load.avgload,
-                    cpuCores: savedLog.data.load.cpus.length,
-                    memoryUsed: savedLog.data.memory.used,
-                    totalMemory: savedLog.data.memory.total,
-                    swapUsed: savedLog.data.memory.swapused,
-                    storageUsed: savedLog.data.disk.used,
-                    totalStorage: savedLog.data.disk.size,
-                    storageUsage: savedLog.data.disk.use,
-                    mainTemp: savedLog.data.temperature.main,
-                    maxTemp: savedLog.data.temperature.max
-                } : null
-            };
 
-            await MonitorService.sendResponseTime(logData);
-            await MonitorService.sendMonitorLog(logData);
+            var now = new Date();
+            var intervalHourDate = moment(now).format('MMM Do YYYY, h A');
+            var logByHour = await MonitorLogByHourModel.findOne({ probeId: data.probeId, monitorId: data.monitorId, intervalDate: intervalHourDate });
+
+            if (logByHour) {
+                let hourData = {
+                    status: data.status,
+                    responseTime: data.responseTime,
+                    responseStatus: data.responseStatus,
+                    createdAt: Date.now(),
+                    maxResponseTime: data.responseTime > logByHour.maxResponseTime ? data.responseTime : logByHour.maxResponseTime,
+                };
+
+                if (data.data) {
+                    hourData.cpuLoad = data.data.load.currentload;
+                    hourData.avgCpuLoad = data.data.load.avgload;
+                    hourData.cpuCores = data.data.load.cpus.length;
+                    hourData.memoryUsed = data.data.memory.used;
+                    hourData.totalMemory = data.data.memory.total;
+                    hourData.swapUsed = data.data.memory.swapused;
+                    hourData.storageUsed = data.data.disk.used;
+                    hourData.totalStorage = data.data.disk.size;
+                    hourData.storageUsage = data.data.disk.use;
+                    hourData.mainTemp = data.data.temperature.main;
+                    hourData.maxTemp = data.data.temperature.max;
+                    hourData.maxCpuLoad = data.data.load.currentload > logByHour.maxCpuLoad ? data.data.load.currentload : logByHour.maxCpuLoad;
+                    hourData.maxMemoryUsed = data.data.memory.used > logByHour.maxMemoryUsed ? data.data.memory.used : logByHour.maxMemoryUsed;
+                    hourData.maxStorageUsed = data.data.disk.used > logByHour.maxStorageUsed ? data.data.disk.used : logByHour.maxStorageUsed;
+                    hourData.maxMainTemp = data.data.temperature.main > logByHour.maxMainTemp ? data.data.temperature.main : logByHour.maxMainTemp;
+                }
+
+                await MonitorLogByHourModel.findOneAndUpdate({ _id: logByHour._id }, { $set: hourData }, { new: true });
+            } else {
+                LogHour.monitorId = data.monitorId;
+                LogHour.probeId = data.probeId;
+                LogHour.status = data.status;
+                LogHour.responseTime = data.responseTime;
+                LogHour.responseStatus = data.responseStatus;
+
+                if (data.data) {
+                    LogHour.cpuLoad = data.data.load.currentload;
+                    LogHour.avgCpuLoad = data.data.load.avgload;
+                    LogHour.cpuCores = data.data.load.cpus.length;
+                    LogHour.memoryUsed = data.data.memory.used;
+                    LogHour.totalMemory = data.data.memory.total;
+                    LogHour.swapUsed = data.data.memory.swapused;
+                    LogHour.storageUsed = data.data.disk.used;
+                    LogHour.totalStorage = data.data.disk.size;
+                    LogHour.storageUsage = data.data.disk.use;
+                    LogHour.mainTemp = data.data.temperature.main;
+                    LogHour.maxTemp = data.data.temperature.max;
+                    LogHour.maxCpuLoad = data.data.load.currentload;
+                    LogHour.maxMemoryUsed = data.data.memory.used;
+                    LogHour.maxStorageUsed = data.data.disk.used;
+                    LogHour.maxMainTemp = data.data.temperature.main;
+                }
+
+                LogHour.maxResponseTime = data.responseTime;
+                LogHour.intervalDate = intervalHourDate;
+
+                await LogHour.save();
+            }
+
+            var intervalDayDate = moment(now).format('MMM Do YYYY');
+            var logByDay = await MonitorLogByDayModel.findOne({ probeId: data.probeId, monitorId: data.monitorId, intervalDate: intervalDayDate });
+
+            if (logByDay) {
+                let dayData = {
+                    status: data.status,
+                    responseTime: data.responseTime,
+                    responseStatus: data.responseStatus,
+                    createdAt: Date.now(),
+                    maxResponseTime: data.responseTime > logByDay.maxResponseTime ? data.responseTime : logByDay.maxResponseTime,
+                };
+
+                if (data.data) {
+                    dayData.cpuLoad = data.data.load.currentload;
+                    dayData.avgCpuLoad = data.data.load.avgload;
+                    dayData.cpuCores = data.data.load.cpus.length;
+                    dayData.memoryUsed = data.data.memory.used;
+                    dayData.totalMemory = data.data.memory.total;
+                    dayData.swapUsed = data.data.memory.swapused;
+                    dayData.storageUsed = data.data.disk.used;
+                    dayData.totalStorage = data.data.disk.size;
+                    dayData.storageUsage = data.data.disk.use;
+                    dayData.mainTemp = data.data.temperature.main;
+                    dayData.maxTemp = data.data.temperature.max;
+                    dayData.maxCpuLoad = data.data.load.currentload > logByDay.maxCpuLoad ? data.data.load.currentload : logByDay.maxCpuLoad;
+                    dayData.maxMemoryUsed = data.data.memory.used > logByDay.maxMemoryUsed ? data.data.memory.used : logByDay.maxMemoryUsed;
+                    dayData.maxStorageUsed = data.data.disk.used > logByDay.maxStorageUsed ? data.data.disk.used : logByDay.maxStorageUsed;
+                    dayData.maxMainTemp = data.data.temperature.main > logByDay.maxMainTemp ? data.data.temperature.main : logByDay.maxMainTemp;
+                }
+
+                await MonitorLogByDayModel.findOneAndUpdate({ _id: logByDay._id }, { $set: dayData }, { new: true });
+            } else {
+                LogDay.monitorId = data.monitorId;
+                LogDay.probeId = data.probeId;
+                LogDay.status = data.status;
+                LogDay.responseTime = data.responseTime;
+                LogDay.responseStatus = data.responseStatus;
+
+                if (data.data) {
+                    LogDay.cpuLoad = data.data.load.currentload;
+                    LogDay.avgCpuLoad = data.data.load.avgload;
+                    LogDay.cpuCores = data.data.load.cpus.length;
+                    LogDay.memoryUsed = data.data.memory.used;
+                    LogDay.totalMemory = data.data.memory.total;
+                    LogDay.swapUsed = data.data.memory.swapused;
+                    LogDay.storageUsed = data.data.disk.used;
+                    LogDay.totalStorage = data.data.disk.size;
+                    LogDay.storageUsage = data.data.disk.use;
+                    LogDay.mainTemp = data.data.temperature.main;
+                    LogDay.maxTemp = data.data.temperature.max;
+                    LogDay.maxCpuLoad = data.data.load.currentload;
+                    LogDay.maxMemoryUsed = data.data.memory.used;
+                    LogDay.maxStorageUsed = data.data.disk.used;
+                    LogDay.maxMainTemp = data.data.temperature.main;
+                }
+
+                LogDay.maxResponseTime = data.responseTime;
+                LogDay.intervalDate = intervalDayDate;
+
+                await LogDay.save();
+            }
+
+            var intervalWeekDate = moment(now).format('wo [week of] YYYY');
+            var logByWeek = await MonitorLogByWeekModel.findOne({ probeId: data.probeId, monitorId: data.monitorId, intervalDate: intervalWeekDate });
+
+            if (logByWeek) {
+                let weekData = {
+                    status: data.status,
+                    responseTime: data.responseTime,
+                    responseStatus: data.responseStatus,
+                    createdAt: Date.now(),
+                    maxResponseTime: data.responseTime > logByWeek.maxResponseTime ? data.responseTime : logByWeek.maxResponseTime,
+                };
+
+                if (data.data) {
+                    weekData.cpuLoad = data.data.load.currentload;
+                    weekData.avgCpuLoad = data.data.load.avgload;
+                    weekData.cpuCores = data.data.load.cpus.length;
+                    weekData.memoryUsed = data.data.memory.used;
+                    weekData.totalMemory = data.data.memory.total;
+                    weekData.swapUsed = data.data.memory.swapused;
+                    weekData.storageUsed = data.data.disk.used;
+                    weekData.totalStorage = data.data.disk.size;
+                    weekData.storageUsage = data.data.disk.use;
+                    weekData.mainTemp = data.data.temperature.main;
+                    weekData.maxTemp = data.data.temperature.max;
+                    weekData.maxCpuLoad = data.data.load.currentload > logByWeek.maxCpuLoad ? data.data.load.currentload : logByWeek.maxCpuLoad;
+                    weekData.maxMemoryUsed = data.data.memory.used > logByWeek.maxMemoryUsed ? data.data.memory.used : logByWeek.maxMemoryUsed;
+                    weekData.maxStorageUsed = data.data.disk.used > logByWeek.maxStorageUsed ? data.data.disk.used : logByWeek.maxStorageUsed;
+                    weekData.maxMainTemp = data.data.temperature.main > logByWeek.maxMainTemp ? data.data.temperature.main : logByWeek.maxMainTemp;
+                }
+
+                await MonitorLogByWeekModel.findOneAndUpdate({ _id: logByWeek._id }, { $set: weekData }, { new: true });
+            } else {
+                LogWeek.monitorId = data.monitorId;
+                LogWeek.probeId = data.probeId;
+                LogWeek.status = data.status;
+                LogWeek.responseTime = data.responseTime;
+                LogWeek.responseStatus = data.responseStatus;
+
+                if (data.data) {
+                    LogWeek.cpuLoad = data.data.load.currentload;
+                    LogWeek.avgCpuLoad = data.data.load.avgload;
+                    LogWeek.cpuCores = data.data.load.cpus.length;
+                    LogWeek.memoryUsed = data.data.memory.used;
+                    LogWeek.totalMemory = data.data.memory.total;
+                    LogWeek.swapUsed = data.data.memory.swapused;
+                    LogWeek.storageUsed = data.data.disk.used;
+                    LogWeek.totalStorage = data.data.disk.size;
+                    LogWeek.storageUsage = data.data.disk.use;
+                    LogWeek.mainTemp = data.data.temperature.main;
+                    LogWeek.maxTemp = data.data.temperature.max;
+                    LogWeek.maxCpuLoad = data.data.load.currentload;
+                    LogWeek.maxMemoryUsed = data.data.memory.used;
+                    LogWeek.maxStorageUsed = data.data.disk.used;
+                    LogWeek.maxMainTemp = data.data.temperature.main;
+                }
+
+                LogWeek.maxResponseTime = data.responseTime;
+                LogWeek.intervalDate = intervalWeekDate;
+
+                await LogWeek.save();
+            }
+
+            await MonitorService.sendResponseTime(savedLog);
+            await MonitorService.sendMonitorLog(savedLog);
 
             if (data.probeId && data.monitorId) await this.sendProbe(data.probeId, data.monitorId);
 
@@ -315,7 +502,7 @@ module.exports = {
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
                                 status: true,
-                                reportedStatus:data.status
+                                reportedStatus: data.status
                             })
                         });
                     });
@@ -340,7 +527,7 @@ module.exports = {
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
                                 status: true,
-                                reportedStatus:data.status
+                                reportedStatus: data.status
                             })
                         });
                     });
@@ -365,7 +552,7 @@ module.exports = {
                                 probeId: data.probeId,
                                 updatedAt: Date.now(),
                                 status: true,
-                                reportedStatus:data.status
+                                reportedStatus: data.status
                             })
                         });
                     });
@@ -417,7 +604,7 @@ module.exports = {
                         probeId: data.probeId,
                         updatedAt: Date.now(),
                         status: false,
-                        reportedStatus:data.status
+                        reportedStatus: data.status
                     }])
                 });
                 incidentsV2.push(newIncident);
@@ -697,8 +884,8 @@ const checkAnd = async (payload, con, statusCode, body) => {
             }
         }
         else if (con[i] && con[i].responseType === 'storageUsage') {
-            let size = payload.disk && payload.disk[0] && payload.disk[0].size ? parseInt(payload.disk[0].size) : 0;
-            let used = payload.disk && payload.disk[0] && payload.disk[0].used ? parseInt(payload.disk[0].used) : 0;
+            let size = parseInt(payload.disk.size);
+            let used = parseInt(payload.disk.used);
             let free = (size - used) / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (!(con[i] && con[i].field1 && free > con[i].field1)) {
@@ -979,8 +1166,8 @@ const checkOr = async (payload, con, statusCode, body) => {
             }
         }
         else if (con[i] && con[i].responseType === 'storageUsage') {
-            let size = payload.disk && payload.disk[0] && payload.disk[0].size ? parseInt(payload.disk[0].size) : 0;
-            let used = payload.disk && payload.disk[0] && payload.disk[0].used ? parseInt(payload.disk[0].used) : 0;
+            let size = parseInt(payload.disk.size);
+            let used = parseInt(payload.disk.used);
             let free = (size - used) / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (con[i] && con[i].field1 && free > con[i].field1) {
@@ -1100,6 +1287,9 @@ const checkOr = async (payload, con, statusCode, body) => {
 
 let ProbeModel = require('../models/probe');
 let MonitorLogModel = require('../models/monitorLog');
+let MonitorLogByHourModel = require('../models/monitorLogByHour');
+let MonitorLogByDayModel = require('../models/monitorLogByDay');
+let MonitorLogByWeekModel = require('../models/monitorLogByWeek');
 let MonitorStatusModel = require('../models/monitorStatus');
 var RealTimeService = require('./realTimeService');
 let ErrorService = require('./errorService');
