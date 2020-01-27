@@ -18,6 +18,7 @@ import {
 	Elements,
 	injectStripe,
 } from 'react-stripe-elements';
+import { env } from '../../config';
 
 function validate(values) {
 
@@ -265,7 +266,7 @@ class ProjectFormWithCheckout extends React.Component {
 	render() {
 		const { elementFontSize } = this.state;
 		return (
-			<StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
+            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
 				<div className="Checkout">
 					<Elements>
 						<ProjectFormStripe fontSize={elementFontSize} {...this.props} />

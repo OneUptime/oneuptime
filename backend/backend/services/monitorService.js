@@ -399,69 +399,27 @@ module.exports = {
             const end = moment(endDate).toDate();
             const interval = (moment(endDate)).diff(moment(startDate), 'days');
 
-            let dateFormat, outputFormat;
-            if (interval > 30) {
-                dateFormat = '%Y-%U';
-                outputFormat = 'wo [week of] YYYY';
-            } else if (interval > 2) {
-                dateFormat = '%Y-%m-%d';
-                outputFormat = 'MMM Do YYYY';
-            } else {
-                dateFormat = '%Y-%m-%dT%H';
-                outputFormat = 'MMM Do YYYY, h A';
-            }
+            const monitor = await this.findOneBy({ _id: monitorId });
+            const newMonitor = (moment(endDate)).diff(moment(monitor.createdAt), 'days') < 2;
 
-            var monitorData = await MonitorLogModel.aggregate([
+            let monitorLogs;
+            let aggregateLogs = [
                 { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $sort: { 'createdAt': -1 } },
-                {
-                    $group: {
-                        _id: {
-                            probeId: '$probeId',
-                            createdAt: { $dateToString: { format: dateFormat, date: '$createdAt' } }
-                        },
-                        monitorId: { $first: '$monitorId' },
-                        probeId: { $first: '$probeId' },
-                        responseTime: { $first: '$responseTime' },
-                        responseStatus: { $first: '$responseStatus' },
-                        status: { $first: '$status' },
-                        data: { $first: '$data' },
-                        createdAt: { $first: '$createdAt' },
-                        avgResponseTime: { $avg: '$responseTime' },
-                        avgCpuLoad: { $avg: '$data.load.currentload' },
-                        avgMemoryUsed: { $avg: '$data.memory.used' },
-                        avgStorageUsed: { $avg: '$data.disk.used' },
-                        avgMainTemp: { $avg: '$data.temperature.main' },
-                        count: { $sum: 1 }
-                    }
-                },
-                { $sort: { 'createdAt': -1 } },
                 { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
-            ]);
-            var monitorLogs = monitorData && monitorData.length > 0 ? monitorData.map(probeData => {
-                return {
-                    ...probeData,
-                    logs: probeData.logs && probeData.logs.length > 0 ? probeData.logs.map(logData => {
-                        return {
-                            ...logData,
-                            data: logData.data ? {
-                                cpuLoad: logData.data.load.currentload,
-                                avgCpuLoad: logData.data.load.avgload,
-                                cpuCores: logData.data.load.cpus.length,
-                                memoryUsed: logData.data.memory.used,
-                                totalMemory: logData.data.memory.total,
-                                swapUsed: logData.data.memory.swapused,
-                                storageUsed: logData.data.disk.used,
-                                totalStorage: logData.data.disk.size,
-                                storageUsage: logData.data.disk.use,
-                                mainTemp: logData.data.temperature.main,
-                                maxTemp: logData.data.temperature.max
-                            } : null,
-                            intervalDate: moment(logData.createdAt).format(outputFormat)
-                        };
-                    }) : []
-                };
-            }) : [];
+            ];
+            if (interval > 30 && !newMonitor) {
+                monitorLogs = await MonitorLogByWeekModel.aggregate(aggregateLogs);
+            } else if (interval > 2 && !newMonitor) {
+                monitorLogs = await MonitorLogByDayModel.aggregate(aggregateLogs);
+            } else {
+                if ((moment(endDate)).diff(moment(monitor.createdAt), 'minutes') > 60) {
+                    monitorLogs = await MonitorLogByHourModel.aggregate(aggregateLogs);
+                } else {
+                    monitorLogs = await MonitorLogModel.aggregate(aggregateLogs);
+                }
+            }
+
             return monitorLogs;
         } catch (error) {
             ErrorService.log('monitorService.getMonitorLogs', error);
@@ -618,6 +576,9 @@ module.exports = {
 
 var MonitorModel = require('../models/monitor');
 var MonitorLogModel = require('../models/monitorLog');
+let MonitorLogByHourModel = require('../models/monitorLogByHour');
+let MonitorLogByDayModel = require('../models/monitorLogByDay');
+let MonitorLogByWeekModel = require('../models/monitorLogByWeek');
 var MonitorCategoryService = require('../services/monitorCategoryService');
 var MonitorCriteriaService = require('../services/monitorCriteriaService');
 var Plans = require('./../config/plans');

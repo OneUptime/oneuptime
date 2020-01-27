@@ -8,23 +8,27 @@
     <meta name="description"
         content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
     <% include ./head %>
+    
+    <link rel="preload" href="/css/crm.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/crm.css"></noscript>
+    <link rel="preload" href="/css/sdlc.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/sdlc.css"></noscript>
+    <link rel="preload" href="/css/comparision.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/comparision.css"></noscript>
 
-    <link rel="stylesheet" href="/css/crm.css">
-    <link rel="stylesheet" href="/css/sdlc.css">
-    <link rel="stylesheet" href="/css/comparision.css">
-
-    <script src="/js/crm.js" type="text/javascript"></script>
-    <link rel="stylesheet" href="/css/home.css">
+    <script src="/js/crm.js" type="text/javascript" async></script>
+    <link rel="preload" href="/css/home.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/home.css"></noscript>
 
     <script defer src="/js/home.js"></script>
-    <script src="/js/amplitude.js"></script>
+    <script src="/js/amplitude.js" async></script>
     <script>
         var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
         if (!IS_DEV) {
             amplitude.getInstance().logEvent('Home page viewed');
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.2.1/js/bootstrap.bundle.min.js"
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.bundle.min.js"
         type="text/javascript"></script>
 </head>
 
@@ -163,7 +167,7 @@
                 </div>
                 
                 <div style="display:flex; justify-content:center; margin-top:50px">
-                    <img src="/img/status-page.png" width="900" class="imageshadow"/>
+                    <img src="/img/status-page.png" width="900" class="imageshadow" alt="Status page" id="status-page"/>
                 </div>
                 <section class="main basics" style="padding:0px">
                     <div class="content">
@@ -211,7 +215,7 @@
                 </div>
                 
                 <div style="display:flex; justify-content:center; margin-bottom:30px;">
-                    <img src="/img/call-schedule-dashboard.png" width="900" class="imageshadow"/>
+                    <img src="/img/call-schedule-dashboard.png" width="900" class="imageshadow" alt="Call schedule dashboard" id="status-page"/>
                 </div>
 
                 <section class="main basics" style="padding:0px">
@@ -247,7 +251,7 @@
 
               </section>
 
-              <div style="background-color:black;height: 600px;width:100%;">
+              <div style="background-color:black;height: 600px;width:100%;" class="enterprise-section">
                 <header style="padding-top: 75px;
                 text-align: center;
                 margin-bottom: 70px;">
@@ -258,16 +262,16 @@
 
                 <ul class="integration-list">
                     <li>
-                        <img class="integration-logo" src="/img/slack-white.svg">
+                        <img class="integration-logo" src="/img/slack-white.svg" alt="Slack logo">
                     </li>
                     <li>
                         <img class="integration-logo" src="/img/atlassian.svg" style="
 height: 70px;
 margin-top: -15px;
-">
+" alt="Atlassian logo">
                     </li>
                     <li>
-                        <img class="integration-logo" src="/img/servicenow.svg">
+                        <img class="integration-logo" src="/img/servicenow.svg" alt="Service now logo">
                     </li>
                 </ul>
                 <ul class="integration-list" style="margin-top: 60px;">
@@ -275,18 +279,18 @@ margin-top: -15px;
                         <img class="integration-logo" src="/img/okta.svg" style="
 height: 30px;
 margin-left: -50px;
-">
+" alt="Okta logo">
                     </li>
                     <li>
                         <img class="integration-logo" src="/img/aws-white.svg" style="
 height: 50px;
 margin-left: -80px;
-">
+" alt="AWS logo">
                     </li>
                     <li>
                         <img class="integration-logo" src="/img/appdynamics.svg" style="
 height: 80px;
-">
+" alt="App dynamics logo">
                     </li>
                 </ul>
                 <ul class="integration-list" style="margin-top: 40px;">
@@ -294,18 +298,18 @@ height: 80px;
                         <img class="integration-logo" src="/img/newrelic.svg" style="
 height: 80px;
 margin-left: -60px;
-">
+" alt="New relic logo">
                     </li>
                     <li>
                         <img class="integration-logo" src="/img/zendesk.svg" style="
 height: 60px;
 margin-left: -90px;
-">
+" alt="Zendesk logo">
                     </li>
                     <li>
                         <img class="integration-logo" src="/img/azure.svg" style="
 height: 60px;
-">
+" alt="Azure logo">
                     </li>
                 </ul>
 
@@ -324,7 +328,7 @@ height: 60px;
     <div class="sectionBorderTop" style="padding-top:50px">
         <% include ./footer %>
     </div>
-    <script>
+    <script defer type="text/javascript">
         $(document).ready(function () {
             $(function () {
                 $('[data-toggle="tooltip"]').tooltip()
@@ -363,12 +367,12 @@ height: 60px;
 
     <!--     linkedin code    -->
 
-    <script type="text/javascript">
+    <script type="text/javascript" async>
         _linkedin_partner_id = "706292";
         window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
         window._linkedin_data_partner_ids.push(_linkedin_partner_id);
     </script>
-    <script type="text/javascript">
+    <script type="text/javascript" async>
         (function () {
             var s = document.getElementsByTagName("script")[0];
             var b = document.createElement("script");

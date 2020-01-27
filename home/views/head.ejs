@@ -1,6 +1,6 @@
 <!-- Global site tag (gtag.js) - Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-115085157-1"></script>
-<script>
+<script async>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
@@ -11,7 +11,7 @@
 
 
 <!-- Optimize Plugin -->
-<script>
+<script async>
     (function (i, s, o, g, r, a, m) {
         i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
             (i[r].q = i[r].q || []).push(arguments)
@@ -29,7 +29,7 @@
         opacity: 0 !important
     }
 </style>
-<script>(function (a, s, y, n, c, h, i, d, e) {
+<script async>(function (a, s, y, n, c, h, i, d, e) {
         s.className += ' ' + y; h.start = 1 * new Date;
         h.end = i = function () { s.className = s.className.replace(RegExp(' ?' + y), '') };
         (a[n] = a[n] || []).hide = h; setTimeout(function () { i(); h.end = null }, c); h.timeout = c;
@@ -49,13 +49,15 @@
 <link rel="icon" href="/img/Fyipe-Icon.png">
 <link rel="image_src" type="image/png" href="/img/Fyipe-full-logo.png">
 <link rel="canonical" href="/">
+<link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://hotjar.com">
 <meta property="og:title" content="Fyipe - Status Page, monitoring and on-call made simple.">
 <meta property="og:url" content="/">
 <meta property="og:description"
     content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime. ">
 <meta property="og:image" content="/img/Fyipe-full-logo.png">
-<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700i,900,900i&display=swap" rel="stylesheet">
+<link rel="preload" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700i,900,900i&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700i,900,900i&display=swap"></noscript>
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="/img/Fyipe-Icon.png">
 <meta name="twitter:site" content="@fyipeinc">
@@ -64,13 +66,31 @@
     content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
 
 
-<link rel="stylesheet" href="/css/default.css">
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<script defer src="/js/default.js"></script>
+<link rel="preload" href="/css/default.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/default.css"></noscript>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script async src="/js/default.js"></script>
 <script defer src="/js/switchUrl.js"></script>
+<link rel="preconnect" href="https://script.hotjar.com">
+<link rel="preconnect" href="https://vars.hotjar.com">
+<link rel="preconnect" href="https://vc.hotjar.io">
+<link rel="preconnect" href="https://stats.g.doubleclick.net">
+<link rel="preconnect" href="https://px.ads.linkedin.com">
+<link rel="preconnect" href="https://www.linkedin.com">
+<link rel="preconnect" href="https://snap.licdn.com">
+<link rel="preconnect" href="https://cdn.amplitude.com">
+<link rel="preconnect" href="https://static.hotjar.com">
+<link rel="preconnect" href="https://p.adsymptotic.com">
+<link rel="preconnect" href="https://www.google.com">
+<link rel="preconnect" href="http://hn.inspectlet.com">
+<link rel="preconnect" href="https://connect.facebook.net">
+<link rel="preconnect" href="https://www.facebook.com">
+<link rel="preconnect" href="http://cdn.inspectlet.com">
+<link rel="preconnect" href="https://in.hotjar.com">
+<link rel="preconnect" href="https://www.google-analytics.com">
 
 <!-- Google Tag Manager -->
-<script>(function (w, d, s, l, i) {
+<script defer>(function (w, d, s, l, i) {
         w[l] = w[l] || []; w[l].push({
             'gtm.start':
                 new Date().getTime(), event: 'gtm.js'
@@ -81,7 +101,7 @@
 <!-- End Google Tag Manager -->
 
 <!-- Hotjar Tracking Code for fyipe.com -->
-<script>
+<script async>
     (function (h, o, t, j, a, r) {
         h.hj = h.hj || function () { (h.hj.q = h.hj.q || []).push(arguments) };
         h._hjSettings = { hjid: 801593, hjsv: 6 };
@@ -94,7 +114,7 @@
 <!-- Hotjar Tracking Code for fyipe.com end-->
 
 <!-- Facebook Pixel Code -->
-<script>
+<script async>
     !function (f, b, e, v, n, t, s) {
         if (f.fbq) return; n = f.fbq = function () {
             n.callMethod ?
@@ -108,6 +128,17 @@
         'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '244894116420899');
     fbq('track', 'PageView');
+</script>
+<script defer>
+    if('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js', {scope: '.'})
+            .then(function(registration) {
+                console.log('Service Worker Registered');
+            })
+            .catch(function(err) {
+                console.log('Error: Service Worker because Registered: ', err);
+            })
+    }
 </script>
 <noscript><img height="1" width="1" style="display:none"
         src="https://www.facebook.com/tr?id=244894116420899&ev=PageView&noscript=1" /></noscript>

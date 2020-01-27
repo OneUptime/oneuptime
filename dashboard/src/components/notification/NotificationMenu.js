@@ -14,7 +14,7 @@ import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { IS_DEV, env } from '../../config';
 
 class NotificationMenu extends Component {
 
@@ -183,7 +183,7 @@ const NotificationMenuStripe = injectStripe(connect(mapStateToProps, mapDispatch
 export default class NotificationWithCheckout extends Component {
     render() {
         return (
-            <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
+            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
                 <Elements>
                     <NotificationMenuStripe />
                 </Elements>
