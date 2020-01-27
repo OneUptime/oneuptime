@@ -6,6 +6,7 @@
 
 var express = require('express');
 var MonitorService = require('../services/monitorService');
+var MonitorLogService = require('../services/monitorLogService');
 var NotificationService = require('../services/notificationService');
 var RealTimeService = require('../services/realTimeService');
 var ScheduleService = require('../services/scheduleService');
@@ -137,14 +138,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
         }
         data.projectId = projectId;
 
-        var existingMonitor = await MonitorService.findBy({ name: data.name });
-        if (existingMonitor.length > 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor with that name already exists.'
-            });
-        }
-
         var monitor = await MonitorService.create(data);
         if (data.callScheduleId) {
             var schedule = await ScheduleService.findOneBy({ _id: data.callScheduleId });
@@ -239,10 +232,9 @@ router.post('/:projectId/monitorLogs/:monitorId', getUser, isAuthorized, async f
         if (startDate && endDate) query.createdAt = { $gte: startDate, $lte: endDate };
 
         // Call the MonitorService.
-        var monitorLogs = await MonitorService.findLogsBy(query, limit || 0, skip || 0);
-        var count = await MonitorService.countLogsBy(query);
-        var probes = await MonitorService.findLogProbesBy({ monitorId });
-        return sendListResponse(req, res, { monitorLogs, probes }, count);
+        var monitorLogs = await MonitorLogService.findBy(query, limit || 0, skip || 0);
+        var count = await MonitorLogService.countBy(query);
+        return sendListResponse(req, res, monitorLogs, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -270,15 +262,14 @@ router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, asyn
 router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
         var monitorId = req.params.monitorId || req.body._id;
-        var data = {
-            monitorId,
-            data: req.body.data
-        };
+        var data = req.body;
+        data.monitorId = monitorId;
+
         var monitor = await MonitorService.findOneBy({ _id: monitorId });
 
-        let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(data.data, null, monitor.criteria.up) : false);
-        let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(data.data, null, monitor.criteria.degraded) : false);
-        let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(data.data, null, monitor.criteria.down) : false);
+        let validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(data, null, monitor.criteria.up) : false);
+        let validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(data, null, monitor.criteria.degraded) : false);
+        let validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(data, null, monitor.criteria.down) : false);
 
         if (validDown) {
             data.status = 'offline';

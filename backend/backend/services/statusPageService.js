@@ -35,6 +35,13 @@ module.exports = {
 
     create: async function (data) {
         try {
+            var existingStatusPage = await this.findBy({ name: data.name, projectId: data.projectId });
+            if (existingStatusPage && existingStatusPage.length > 0) {
+                let error = new Error('StatusPage with that name already exists.');
+                error.code = 400;
+                ErrorService.log('statusPageService.create', error);
+                throw error;
+            }
             var statusPageModel = new StatusPageModel();
             statusPageModel.projectId = data.projectId || null;
             statusPageModel.domain = data.domain || null;
@@ -149,21 +156,31 @@ module.exports = {
 
     updateOneBy: async function (query, data) {
         try {
+            var existingStatusPage = await this.findBy({
+                name: data.name,
+                projectId: data.projectId,
+                _id: { $not: { $eq: data._id } }
+            });
+            if (existingStatusPage && existingStatusPage.length > 0) {
+                let error = new Error('StatusPage with that name already exists.');
+                error.code = 400;
+                ErrorService.log('statusPageService.updateOneBy', error);
+                throw error;
+            }
             if (!query) {
                 query = {};
             }
-
             if (!query.deleted) query.deleted = false;
             var updatedStatusPage = await StatusPageModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
+            return updatedStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.updateOneBy', error);
             throw error;
         }
-        return updatedStatusPage;
     },
 
     updateBy: async function (query, data) {
@@ -266,7 +283,7 @@ module.exports = {
                     ErrorService.log('statusPageService.getStatus', error);
                     throw error;
                 }
-                var monitorIds = statusPage.monitorIds.map( monitorId => monitorId._id.toString());
+                var monitorIds = statusPage.monitorIds.map(monitorId => monitorId._id.toString());
                 var projectId = statusPage.projectId._id;
                 var subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
                 var subProjectIds = subProjects ? subProjects.map(project => project._id) : null;

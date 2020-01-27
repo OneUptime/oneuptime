@@ -82,7 +82,7 @@ const INITIAL_STATE = {
     fetchMonitorsIncidentRequest: false,
     fetchMonitorsIncidentsRangeRequest: false,
     activeProbe: 0,
-    fetchMonitorLogsRequest: true,
+    fetchMonitorLogsRequest: false,
     fetchMonitorCriteriaRequest: false,
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
@@ -444,14 +444,14 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
                             if (monitor._id === action.payload.monitorId) {
                                 const data = Object.assign({}, action.payload.data);
-                                const interval = (moment(state.monitorsList.endDate)).diff(moment(state.monitorsList.startDate), 'days');
-                                const newMonitor = (moment(state.monitorsList.endDate)).diff(moment(monitor.createdAt), 'days') < 2;
+                                const intervalInDays = (moment(state.monitorsList.endDate)).diff(moment(state.monitorsList.startDate), 'days');
+                                const isNewMonitor = (moment(state.monitorsList.endDate)).diff(moment(monitor.createdAt), 'days') < 2;
 
                                 let dateFormat, outputFormat;
-                                if (interval > 30 && !newMonitor) {
+                                if (intervalInDays > 30 && !isNewMonitor) {
                                     dateFormat = 'weeks'
                                     outputFormat = 'wo [week of] YYYY';
-                                } else if (interval > 2 && !newMonitor) {
+                                } else if (intervalInDays > 2 && !isNewMonitor) {
                                     dateFormat = 'days';
                                     outputFormat = 'MMM Do YYYY';
                                 } else {
@@ -474,28 +474,30 @@ export default function monitor(state = INITIAL_STATE, action) {
                                     intervalDate: moment(data.createdAt).format(outputFormat)
                                 };
 
-                                monitor.logs = monitor.logs && monitor.logs.length > 0 ? monitor.logs.map(probeLogs => {
-                                    let probeId = probeLogs._id;
+                                monitor.logs = monitor.logs && monitor.logs.length > 0 ? (
+                                    monitor.logs.map(a => a._id).includes(logData.probeId) || !logData.probeId ? monitor.logs.map(probeLogs => {
+                                        let probeId = probeLogs._id;
 
-                                    if (probeId === logData.probeId || (!probeId && !logData.probeId)) {
-                                        if (probeLogs.logs && probeLogs.logs.length > 0
-                                            && moment(probeLogs.logs[0].createdAt).isSame(moment(logData.createdAt), dateFormat)) {
-                                            let currentLog = probeLogs.logs[0];
+                                        if (probeId === logData.probeId || (!probeId && !logData.probeId)) {
+                                            if (probeLogs.logs && probeLogs.logs.length > 0
+                                                && moment(probeLogs.logs[0].createdAt).isSame(moment(logData.createdAt), dateFormat)) {
+                                                let currentLog = probeLogs.logs[0];
 
-                                            logData.maxResponseTime = data.responseTime > currentLog.maxResponseTime ? data.responseTime : currentLog.maxResponseTime;
-                                            logData.maxCpuLoad = data.cpuLoad > currentLog.maxCpuLoad ? data.cpuLoad : currentLog.maxCpuLoad;
-                                            logData.maxMemoryUsed = data.memoryUsed > currentLog.maxMemoryUsed ? data.memoryUsed : currentLog.maxMemoryUsed;
-                                            logData.maxStorageUsed = data.storageUsed > currentLog.maxStorageUsed ? data.storageUsed : currentLog.maxStorageUsed;
-                                            logData.maxMainTemp = data.mainTemp > currentLog.maxMainTemp ? data.mainTemp : currentLog.maxMainTemp;
+                                                logData.maxResponseTime = data.responseTime > currentLog.maxResponseTime ? data.responseTime : currentLog.maxResponseTime;
+                                                logData.maxCpuLoad = data.cpuLoad > currentLog.maxCpuLoad ? data.cpuLoad : currentLog.maxCpuLoad;
+                                                logData.maxMemoryUsed = data.memoryUsed > currentLog.maxMemoryUsed ? data.memoryUsed : currentLog.maxMemoryUsed;
+                                                logData.maxStorageUsed = data.storageUsed > currentLog.maxStorageUsed ? data.storageUsed : currentLog.maxStorageUsed;
+                                                logData.maxMainTemp = data.mainTemp > currentLog.maxMainTemp ? data.mainTemp : currentLog.maxMainTemp;
 
-                                            return { _id: probeId, logs: [logData, ...(probeLogs.logs.slice(1))] };
+                                                return { _id: probeId, logs: [logData, ...(probeLogs.logs.slice(1))] };
+                                            } else {
+                                                return { _id: probeId, logs: [logData, ...probeLogs.logs] };
+                                            }
                                         } else {
-                                            return { _id: probeId, logs: [logData, ...probeLogs.logs] };
+                                            return probeLogs;
                                         }
-                                    } else {
-                                        return probeLogs;
-                                    }
-                                }) : [{ _id: logData.probeId, logs: [logData] }];
+                                    }) : [...monitor.logs, { _id: logData.probeId || null, logs: [logData] }]
+                                ) : [{ _id: logData.probeId || null, logs: [logData] }];
 
                                 return monitor;
                             } else {
@@ -798,7 +800,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                                 return {
                                     ...monitor,
                                     incidents: incidents,
-                                    incidentsRange: [action.payload, ...monitor.incidentsRange],
+                                    incidentsRange: monitor.incidentsRange && monitor.incidentsRange.length > 0 ?
+                                        [action.payload, ...monitor.incidentsRange] : [action.payload],
                                     count: monitor.count + 1
                                 };
                             } else {
@@ -881,7 +884,6 @@ export default function monitor(state = INITIAL_STATE, action) {
                     ...state.monitorLogs,
                     [action.payload.monitorId]: {
                         logs: action.payload.logs,
-                        probes: action.payload.probes,
                         error: null,
                         requesting: false,
                         success: false,
