@@ -17,8 +17,29 @@ services:
   backend:
     ports:
       - "3002:3002"
-    env_file: ./backend/.env.development
     build: ./backend
+    environment: 
+      - MAIL_USER=noreply@fyipe.com
+      - MAIL_PASSWORD=gBote8sHiWpbxGEJo9Puv8cevW
+      - MAIL_RECIPIENT=testmail@fyipe.com
+      - MAIL_RECIPIENT_PASSWORD=66WEPsk4FJCqUnbCFeZrFYCRWg
+      - MAIL_SERVER_SMTP=mail.hackerbay.io
+      - MAIL_PORT_SMTP=587
+      - MAIL_SERVER_IMAP=mail.hackerbay.io
+      - MAIL_PORT_IMAP=993
+      - MAIL_FROM=noreply@fyipe.com
+      - MAIL_SECURE=false
+      - EMAIL_VERIFY_TIME=3600
+      - BACKEND_HOST=http://localhost:3002
+      - ACCOUNTS_HOST=http://localhost:3003
+      - DASHBOARD_HOST=http://localhost:3000
+      - HOME_HOST=http://localhost:1444
+      - NODE_ENV=development
+      - WINDOWMS=216000
+      - MAX=5000
+      - RATE_LIMITING_ENABLED=false
+      - MONGO_URL=mongodb://mongo:27017/fyipedb
+      - REDIS_HOST=redis
     depends_on:
       - mongo
       - redis
