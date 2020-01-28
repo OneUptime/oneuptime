@@ -52,7 +52,7 @@ const composableComponent = (ComposedComponent) => {
                     >
 
                         <div className="modal_container" style={modalContainerStyle}>
-                            <ComposedComponent closeThisDialog={this.onClose} confirmThisDialog={this.onConfirm} />
+                            <ComposedComponent closeThisDialog={this.onClose} confirmThisDialog={this.onConfirm} title={this.props.title} body={this.props.body} />
                         </div>
                     </div>
                 </div>

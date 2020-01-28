@@ -179,7 +179,7 @@ export class MonitorDetail extends Component {
                                     </ShouldRender>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                         {url && <span>
-                                            Monitor for &nbsp;
+                                            Currently Monitoring &nbsp;
                                         <a href={url}>{url}</a>
                                         </span>}
                                     </span>

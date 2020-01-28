@@ -26,8 +26,8 @@ const RenderSelect = ({ input, placeholder, className, disabled, style, meta, op
     };
 
     return (
-        <span>
-            <div style={{ ...style, height: '28px' }}>
+        <span style={{ height: '28px', width:'250px',...style }}>
+            <div>
                 <Select
                     name={input.name}
                     value={value}

@@ -25,7 +25,7 @@ import 'brace/mode/javascript';
 import 'brace/theme/github';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
-
+import Tooltip from '../basic/Tooltip';
 const selector = formValueSelector('NewMonitor');
 
 class NewMonitor extends Component {
@@ -320,30 +320,38 @@ class NewMonitor extends Component {
                                                 <ShouldRender if={!this.props.edit}>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Monitor Type</label>
-                                                        <div className="bs-Fieldset-fields" style={{ maxWidth: 500 }}>
-                                                            <Field className="db-select-nw"
-                                                                component={RenderSelect}
-                                                                name={`type_${this.props.index}`}
-                                                                id="type"
-                                                                placeholder="Monitor Type"
-                                                                disabled={requesting}
-                                                                onChange={(e, v) => this.changeBox(e, v)}
-                                                                validate={ValidateField.select}
-                                                                options={[
-                                                                    { value: '', label: 'Select monitor type' },
-                                                                    { value: 'url', label: 'Website' },
-                                                                    { value: 'device', label: 'IoT Device' },
-                                                                    { value: 'manual', label: 'Manual' },
-                                                                    { value: 'api', label: 'API' },
-                                                                    { value: 'script', label: 'Script' },
-                                                                    { value: 'server-monitor', label: 'Server' }
-                                                                ]}
-                                                                style={{ height: '28px' }}
-                                                            />
+
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span class="flex">
+                                                                <Field className="db-select-nw"
+                                                                    component={RenderSelect}
+                                                                    name={`type_${this.props.index}`}
+                                                                    id="type"
+                                                                    placeholder="Monitor Type"
+                                                                    disabled={requesting}
+                                                                    onChange={(e, v) => this.changeBox(e, v)}
+                                                                    validate={ValidateField.select}
+                                                                    options={[
+                                                                        { value: '', label: 'Select monitor type' },
+                                                                        { value: 'url', label: 'Website' },
+                                                                        { value: 'device', label: 'IoT Device' },
+                                                                        { value: 'manual', label: 'Manual' },
+                                                                        { value: 'api', label: 'API' },
+                                                                        { value: 'script', label: 'Script' },
+                                                                        { value: 'server-monitor', label: 'Server' }
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="Sample" >
+                                                                    This is a new content <br />
+                                                                    New content
+                                                                </Tooltip>
+                                                            </span>
                                                             <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ marginTop: 10 }}>
                                                                 <span>{this.monitorTypeDescription[[this.state.type]]}</span>
                                                             </span>
                                                         </div>
+
+
                                                     </div>
                                                 </ShouldRender>
                                                 <ShouldRender if={subProjects && subProjects.length > 0}>
