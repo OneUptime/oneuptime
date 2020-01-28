@@ -217,10 +217,10 @@ span.st-Delink.st-Delink--footer a {
 
     </style>
   </head>
-  <body class="st-Email" bgcolor="f6f9fc" style="border: 0; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; min-width: 100%; width: 100%;" override="fix">
+  <body class="st-Email" bgcolor="f7f7f7" style="border: 0; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; min-width: 100%; width: 100%;" override="fix">
 
     <!-- Background -->
-    <table class="st-Background" bgcolor="f6f9fc" border="0" cellpadding="0" cellspacing="0" width="100%" style="border: 0; margin: 0; padding: 0;">
+    <table class="st-Background" bgcolor="f7f7f7" border="0" cellpadding="0" cellspacing="0" width="100%" style="border: 0; margin: 0; padding: 0;">
       <tbody>
         <tr>
           <td style="border: 0; margin: 0; padding: 0;">
@@ -715,10 +715,10 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
 
   </style>
 </head>
-<body class="st-Email" bgcolor="f6f9fc" style="border: 0; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; min-width: 100%; width: 100%;" override="fix">
+<body class="st-Email" bgcolor="f7f7f7" style="border: 0; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; min-width: 100%; width: 100%;" override="fix">
 
   <!-- Background -->
-  <table class="st-Background" bgcolor="f6f9fc" border="0" cellpadding="0" cellspacing="0" width="100%" style="border: 0; margin: 0; padding: 0;">
+  <table class="st-Background" bgcolor="f7f7f7" border="0" cellpadding="0" cellspacing="0" width="100%" style="border: 0; margin: 0; padding: 0;">
     <tbody>
       <tr>
         <td style="border: 0; margin: 0; padding: 0;">
@@ -1212,10 +1212,10 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
 
   </style>
 </head>
-<body class="st-Email" bgcolor="f6f9fc" style="border: 0; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; min-width: 100%; width: 100%;" override="fix">
+<body class="st-Email" bgcolor="f7f7f7" style="border: 0; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; min-width: 100%; width: 100%;" override="fix">
 
   <!-- Background -->
-  <table class="st-Background" bgcolor="f6f9fc" border="0" cellpadding="0" cellspacing="0" width="100%" style="border: 0; margin: 0; padding: 0;">
+  <table class="st-Background" bgcolor="f7f7f7" border="0" cellpadding="0" cellspacing="0" width="100%" style="border: 0; margin: 0; padding: 0;">
     <tbody>
       <tr>
         <td style="border: 0; margin: 0; padding: 0;">

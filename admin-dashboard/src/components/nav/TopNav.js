@@ -86,8 +86,7 @@ class TopContent extends Component {
 						</div>
 					</div>
 				</div>
-				<span className="db-World-topContent--left" />
-				<span className="db-World-topContent--right" />
+				
 			</div>
 		)
 	}
