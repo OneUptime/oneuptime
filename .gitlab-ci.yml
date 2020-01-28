@@ -13,6 +13,7 @@ stages:
   - RollbackIfDeploymentFail
   - SmokeTest
   - RollbackIfSmokeTestFail
+  - CleanUp
 
 #BACKEND
 lint_n_audit_backend:
@@ -1493,3 +1494,11 @@ production_rollback_probe:
   only:
     refs:
       - release
+
+cleanup:
+  stage: CleanUp
+  script:
+    - sudo docker system prune -a --force
+  only:
+    refs:
+      - master

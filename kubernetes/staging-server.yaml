@@ -270,6 +270,53 @@ spec:
     app: home
   type: LoadBalancer
 ---
+# Fyipe Admin dashboard
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-dashboard
+  labels:
+    app: admin-dashboard
+spec:
+  selector:
+    matchLabels:
+      app: admin-dashboard
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: admin-dashboard
+    spec:
+      containers:
+        - image: registry.gitlab.com/fyipe-project/admin-dashboard:master
+          name: admin-dashboard
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FYIPE_HOSTED
+              value: "true"
+          ports:
+            - containerPort: 3100
+              hostPort: 3100
+              name: admin-dashboard
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: admin-dashboard
+  name: admin-dashboard
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3100
+  selector:
+    app: admin-dashboard
+  type: LoadBalancer
+---
 # Slack
 apiVersion: apps/v1
 kind: Deployment
