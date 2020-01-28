@@ -149,44 +149,6 @@ module.exports = {
         }
     },
 
-    createMonitorStatus: async function (data) {
-        try {
-            let MonitorStatus = new MonitorStatusModel();
-            MonitorStatus.monitorId = data.monitorId;
-            MonitorStatus.probeId = data.probeId;
-            MonitorStatus.responseTime = data.responseTime;
-            MonitorStatus.status = data.status;
-            if (data.startTime) {
-                MonitorStatus.startTime = data.startTime;
-            }
-            if (data.endTime) {
-                MonitorStatus.endTime = data.endTime;
-            }
-            if (data.createdAt) {
-                MonitorStatus.createdAt = data.createdAt;
-            }
-            var savedMonitorStatus = await MonitorStatus.save();
-            return savedMonitorStatus;
-        } catch (error) {
-            ErrorService.log('ProbeService.createMonitorStatus', error);
-            throw error;
-        }
-    },
-
-    updateMonitorStatus: async function (monitorStatusId) {
-        try {
-            var MonitorStatus = await MonitorStatusModel.findOneAndUpdate({ _id: monitorStatusId },
-                { $set: { endTime: Date.now() } },
-                {
-                    new: true
-                });
-            return MonitorStatus;
-        } catch (error) {
-            ErrorService.log('ProbeService.updateMonitorStatus', error);
-            throw error;
-        }
-    },
-
     sendProbe: async function (probeId, monitorId) {
         try {
             var probe = await this.findOneBy({ _id: probeId });
@@ -204,14 +166,12 @@ module.exports = {
         try {
             var _this = this;
             var mon, autoAcknowledge, autoResolve, incidentIds;
-            var statuses = await MonitorStatusModel.find({ monitorId: data.monitorId, probeId: data.probeId })
-                .sort([['createdAt', -1]])
-                .limit(1);
+            var statuses = await MonitorStatusService.findBy({ monitorId: data.monitorId, probeId: data.probeId }, 1, 0);
             var log = await MonitorLogService.create(data);
             var lastStatus = statuses && statuses[0] && statuses[0].status ? statuses[0].status : null;
             var lastStatusId = statuses && statuses[0] && statuses[0]._id ? statuses[0]._id : null;
             if (!lastStatus) {
-                await _this.createMonitorStatus(data);
+                await MonitorStatusService.createMonitorStatus(data);
                 let tempMon = await _this.incidentCreateOrUpdate(data, lastStatus);
                 mon = tempMon.mon;
                 incidentIds = tempMon.incidentIds;
@@ -221,9 +181,9 @@ module.exports = {
             }
             else if (lastStatus && lastStatus !== data.status) {
                 if (lastStatusId) {
-                    await _this.updateMonitorStatus(lastStatusId);
+                    await MonitorStatusService.updateOneBy({ _id: lastStatusId }, { endTime: Date.now() });
                 }
-                await _this.createMonitorStatus(data);
+                await MonitorStatusService.createMonitorStatus(data);
                 let tempMon = await _this.incidentCreateOrUpdate(data, lastStatus);
                 mon = tempMon.mon;
                 incidentIds = tempMon.incidentIds;
@@ -237,6 +197,17 @@ module.exports = {
             return log;
         } catch (error) {
             ErrorService.log('ProbeService.setTime', error);
+            throw error;
+        }
+    },
+
+    getTime: async function (data) {
+        try {
+            var date = new Date();
+            var log = await MonitorLogService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId, createdAt: { $lt: data.date || date } });
+            return log;
+        } catch (error) {
+            ErrorService.log('probeService.getTime', error);
             throw error;
         }
     },
@@ -391,86 +362,6 @@ module.exports = {
             return {};
         } catch (error) {
             ErrorService.log('ProbeService.incidentResolveOrAcknowledge', error);
-            throw error;
-        }
-    },
-
-    getTime: async function (data) {
-        try {
-            var date = new Date();
-            var log = await MonitorLogService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId, createdAt: { $lt: data.date || date } });
-            return log;
-        } catch (error) {
-            ErrorService.log('probeService.getTime', error);
-            throw error;
-        }
-    },
-
-    getMonitorsWithMonitorStatusBy: async function (query) {
-        try {
-            var _this = this;
-            var newmonitors = [];
-            var monitors = await MonitorService.findBy(query.query, query.limit, query.skip);
-
-            if (monitors.length) {
-                await Promise.all(monitors.map(async (element) => {
-                    if (element && element._doc) {
-                        element = element._doc;
-                    }
-
-                    element.probes = await _this.getMonitorData(element._id || element.id);
-
-                    newmonitors.push(element);
-                }));
-                return newmonitors;
-
-            } else {
-                return [];
-            }
-        } catch (error) {
-            ErrorService.log('probeService.getMonitorsWithMonitorStatusBy', error);
-            throw error;
-        }
-    },
-
-    getMonitorData: async function (monitorId) {
-        try {
-            var _this = this;
-            var probes = await _this.findBy({});
-            var targetDate = moment(Date.now()).subtract(90, 'days').startOf('day');
-            var newProbes = Promise.all(probes.map(async (probe) => {
-                probe = probe.toObject();
-                var probeStatus = await _this.getLogs({
-                    probeId: probe._id, monitorId: monitorId,
-                    $or: [
-                        { 'startTime': { $gt: targetDate } }, { $or: [{ 'endTime': { $gt: targetDate } }, { 'endTime': null }] }
-                    ]
-                });
-                var latestLog = await MonitorLogModel
-                    .find({ probeId: probe._id, monitorId: monitorId })
-                    .sort({ createdAt: -1 })
-                    .limit(1);
-                probe.probeStatus = probeStatus;
-                probe.status = latestLog && latestLog[0] && latestLog[0].status ? latestLog[0].status : '';
-                probe.responseTime = latestLog && latestLog[0] && latestLog[0].responseTime ? latestLog[0].responseTime : '';
-                return probe;
-            }));
-            return newProbes;
-        } catch (error) {
-            ErrorService.log('probeService.getMonitorData', error);
-            throw error;
-        }
-    },
-
-    getLogs: async function (query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            var log = await MonitorStatusModel.find(query).sort({ createdAt: -1 });
-            return log;
-        } catch (error) {
-            ErrorService.log('probeService.getLogs', error);
             throw error;
         }
     },
@@ -1068,12 +959,10 @@ const checkOr = async (payload, con, statusCode, body) => {
 };
 
 let ProbeModel = require('../models/probe');
-let MonitorLogModel = require('../models/monitorLog');
-let MonitorStatusModel = require('../models/monitorStatus');
-var RealTimeService = require('./realTimeService');
+let RealTimeService = require('./realTimeService');
 let ErrorService = require('./errorService');
 let uuidv1 = require('uuid/v1');
-var moment = require('moment');
 let MonitorService = require('./monitorService');
+let MonitorStatusService = require('./monitorStatusService');
 let MonitorLogService = require('./monitorLogService');
 let IncidentService = require('./incidentService');

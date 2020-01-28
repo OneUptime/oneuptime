@@ -37,8 +37,7 @@ module.exports = {
                 error.code = 400;
                 ErrorService.log('monitorService.create', error);
                 throw error;
-            }
-            else {
+            } else {
                 if (count < (projectSeats * 5)) {
                     var monitor = new MonitorModel();
                     monitor.name = data.name;
@@ -73,14 +72,9 @@ module.exports = {
                         if (data.headers && data.headers.length) monitor.headers = data.headers;
                     }
                     var savedMonitor = await monitor.save();
-                    var fetchedMonitor = await ProbeService.getMonitorsWithMonitorStatusBy({
-                        query: { _id: savedMonitor._id },
-                        skip: 0,
-                        limit: 0
-                    });
-                    return fetchedMonitor;
-                }
-                else {
+
+                    return savedMonitor;
+                } else {
                     let error = new Error('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
                     error.code = 400;
                     ErrorService.log('monitorService.create', error);
@@ -106,12 +100,9 @@ module.exports = {
                     new: true
                 })
                 .populate('projectId', 'name');
-            monitor = await ProbeService.getMonitorsWithProbeStatusBy({
-                query: { _id: monitor._id },
-                skip: 0,
-                limit: 0
-            });
+
             await RealTimeService.monitorEdit(monitor);
+
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.updateOneBy', error);
@@ -266,16 +257,13 @@ module.exports = {
         }
     },
 
-    async getMonitors(subProjectIds, skip, limit) {
-        if (typeof skip === 'string') skip = parseInt(skip);
+    async getMonitors(subProjectIds, limit, skip) {
         if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof skip === 'string') skip = parseInt(skip);
         var _this = this;
+
         let subProjectMonitors = await Promise.all(subProjectIds.map(async (id) => {
-            let monitors = await ProbeService.getMonitorsWithMonitorStatusBy({
-                query: { projectId: id },
-                skip,
-                limit
-            });
+            let monitors = await _this.findBy({ projectId: id }, limit, skip);
             let count = await _this.countBy({ projectId: id });
             return { monitors, count, _id: id, skip, limit };
         }));

@@ -184,7 +184,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
     try {
         var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Call the MonitorService.
-        var monitors = await MonitorService.getMonitors(subProjectIds, req.query.skip || 0, req.query.limit || 0);
+        var monitors = await MonitorService.getMonitors(subProjectIds, req.query.limit || 0, req.query.skip || 0);
         return sendItemResponse(req, res, monitors);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -232,7 +232,7 @@ router.post('/:projectId/monitorLogs/:monitorId', getUser, isAuthorized, async f
         if (startDate && endDate) query.createdAt = { $gte: startDate, $lte: endDate };
 
         // Call the MonitorService.
-        var monitorLogs = await MonitorLogService.findBy(query, limit || 0, skip || 0);
+        var monitorLogs = await MonitorLogService.findBy(query, limit || 10, skip || 0);
         var count = await MonitorLogService.countBy(query);
         return sendListResponse(req, res, monitorLogs, count);
     } catch (error) {

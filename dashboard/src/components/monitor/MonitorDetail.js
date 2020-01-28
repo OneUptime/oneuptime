@@ -104,9 +104,13 @@ export class MonitorDetail extends Component {
     }
 
     filterProbeData = (monitor, probe) => {
-        const data = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(probeLogs => {
-            return probeLogs._id === null || probeLogs._id === probe._id
-        }) : [];
+        const data = monitor.logs && monitor.logs.length > 0 ?
+            probe ?
+                monitor.logs.filter(probeLogs => {
+                    return probeLogs._id === null || probeLogs._id === probe._id
+                })
+                : monitor.logs
+            : [];
         const probeData = data && data.length > 0 ? data[0].logs : [];
 
         return probeData && probeData.length > 0 ? probeData.filter(
@@ -123,7 +127,7 @@ export class MonitorDetail extends Component {
         const { createIncidentModalId, startDate, endDate } = this.state;
         const { monitor, create, monitorState, activeProbe, currentProject, probes, activeIncident } = this.props;
 
-        const probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
+        const probe = monitor && probes && probes.length > 0 ? probes[probes.length < 2 ? 0 : activeProbe] : null;
         const probeData = this.filterProbeData(monitor, probe);
 
         const status = getMonitorStatus(monitor.incidentsRange || monitor.incidents, probeData);
@@ -171,7 +175,7 @@ export class MonitorDetail extends Component {
                                     <ShouldRender if={monitor && monitor.type}>
                                         {
                                             monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'script' ?
-                                                <ShouldRender if={monitor.probes && !monitor.probes.length > 0}>
+                                                <ShouldRender if={probes && !probes.length > 0}>
                                                     <span className="Text-fontSize--14">This monitor cannot be monitored because there are are 0 probes. You can view probes <Link to={probeUrl}>here</Link></span>
                                                 </ShouldRender>
                                                 : ''
@@ -235,10 +239,10 @@ export class MonitorDetail extends Component {
                         </div>
                     </div>
                 </div>
-                <ShouldRender if={monitor && monitor.probes && monitor.probes.length > 1}>
+                <ShouldRender if={monitor && probes && probes.length > 1}>
                     <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                         <div className="btn-group">
-                            {monitor && monitor.probes.map((location, index) => {
+                            {monitor && probes.map((location, index) => {
                                 let probeData = this.filterProbeData(monitor, location);
                                 let status = getMonitorStatus(monitor.incidentsRange || monitor.incidents, probeData);
                                 let probe = probes.filter(probe => probe._id === location._id);
@@ -264,8 +268,8 @@ export class MonitorDetail extends Component {
                 {monitor && monitor.type ?
                     monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'script' ?
                         <div>
-                            <ShouldRender if={monitor.probes && monitor.probes.length > 0}>
-                                {monitor && monitor.probes && monitor.probes.length < 2 ?
+                            <ShouldRender if={probes && probes.length > 0}>
+                                {monitor && probes && probes.length < 2 ?
                                     <MonitorChart start={startDate} end={endDate} key={uuid.v4()} monitor={monitor} data={probeData} status={status} />
                                     : ''
                                 }
@@ -290,13 +294,13 @@ export class MonitorDetail extends Component {
                                     </div>
                                 </div>
                             </ShouldRender>
-                            <ShouldRender if={monitor.probes && !monitor.probes.length > 0}>
+                            <ShouldRender if={probes && !probes.length > 0}>
                                 <div className="Margin-bottom--12"></div>
                             </ShouldRender>
                         </div>
                         :
                         <div>
-                            {monitor && monitor.probes && monitor.probes.length < 2 ?
+                            {monitor && probes && probes.length < 2 ?
                                 <MonitorChart start={startDate} end={endDate} key={uuid.v4()} monitor={monitor} data={probeData} status={status} />
                                 :
                                 ''

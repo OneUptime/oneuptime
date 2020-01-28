@@ -85,9 +85,13 @@ export class MonitorViewHeader extends Component {
     }
 
     filterProbeData = (monitor, probe) => {
-        const data = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(probeLogs => {
-            return probeLogs._id === null || probeLogs._id === probe._id
-        }) : [];
+        const data = monitor.logs && monitor.logs.length > 0 ?
+            probe ?
+                monitor.logs.filter(probeLogs => {
+                    return probeLogs._id === null || probeLogs._id === probe._id
+                })
+                : monitor.logs
+            : [];
         const probeData = data && data.length > 0 ? data[0].logs : [];
 
         return probeData && probeData.length > 0 ? probeData.filter(
@@ -107,7 +111,7 @@ export class MonitorViewHeader extends Component {
         const subProjectId = monitor.projectId._id || monitor.projectId;
         const subProject = subProjects.find(subProject => subProject._id === subProjectId);
 
-        const probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
+        const probe = monitor && probes && probes.length > 0 ? probes[probes.length < 2 ? 0 : activeProbe] : null;
         const probeData = this.filterProbeData(monitor, probe);
 
         const status = getMonitorStatus(monitor.incidentsRange || monitor.incidents, probeData);
@@ -164,10 +168,10 @@ export class MonitorViewHeader extends Component {
                             </div>
                         </div>
                     </div>
-                    <ShouldRender if={monitor && monitor.probes && monitor.probes.length > 1}>
+                    <ShouldRender if={monitor && probes && probes.length > 1}>
                         <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                             <div className="btn-group">
-                                {monitor && monitor.probes.map((location, index) => {
+                                {monitor && probes.map((location, index) => {
                                     let probeData = this.filterProbeData(monitor, location);
                                     let status = getMonitorStatus(monitor.incidentsRange || monitor.incidents, probeData);
                                     let probe = probes.filter(probe => probe._id === location._id);
@@ -189,7 +193,7 @@ export class MonitorViewHeader extends Component {
                         </ShouldRender>
                         <MonitorChart start={startDate} end={endDate} key={uuid.v4()} monitor={monitor} data={probeData} status={status} showAll={true} />
                     </ShouldRender>
-                    {monitor && monitor.probes && monitor.probes.length < 2 ?
+                    {monitor && probes && probes.length < 2 ?
                         <MonitorChart start={startDate} end={endDate} key={uuid.v4()} monitor={monitor} data={probeData} status={status} showAll={true} />
                         : ''
                     }<br />
