@@ -30,7 +30,7 @@ describe('Monitor Detail API', () => {
             throw err;
         });
 
-        // Register user 
+        // Register user
         await cluster.task(async ({ page, data }) => {
             const user = {
                 email: data.email,
@@ -169,15 +169,6 @@ describe('Monitor Detail API', () => {
             await page.click(moreButtonSelector);
             await page.waitFor(2000);
 
-            for (let i = 0; i < 5; i++) {
-                await page.waitForSelector(`#createIncident_${data.monitorName}`);
-                await page.click(`#createIncident_${data.monitorName}`);
-                await page.waitForSelector('#createIncident');
-                await init.selectByText('#incidentType', 'Offline', page);
-                await page.click('#createIncident');
-                await page.waitFor(2000);
-            }
-
             const nextSelector = await page.$('#btnNext');
 
             await nextSelector.click();
@@ -196,7 +187,7 @@ describe('Monitor Detail API', () => {
             incidentRows = await page.$$('tr.incidentListItem');
             countIncidents = incidentRows.length;
 
-            expect(countIncidents).toEqual(5);
+            expect(countIncidents).toEqual(1);
         };
 
         cluster.queue({ email, password, monitorName, counter: 0, limit: 5 }, paginate);

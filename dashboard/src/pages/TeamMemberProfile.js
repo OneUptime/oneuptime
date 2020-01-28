@@ -71,7 +71,7 @@ function TeamMemberProfile({ requesting, error, teamMember, projectId, match, ge
                                                                                 </div>
                                                                             </ShouldRender>
 
-                                                                            <ShouldRender if={teamMember.email}>
+                                                                            <ShouldRender if={teamMember.email && teamMember.email !== 'undefined'}>
                                                                                 <div className='bs-Fieldset-row'>
                                                                                     <label className='bs-Fieldset-label'>Email</label>
                                                                                     <div className='bs-Fieldset-fields'>
@@ -80,7 +80,7 @@ function TeamMemberProfile({ requesting, error, teamMember, projectId, match, ge
                                                                                 </div>
                                                                             </ShouldRender>
 
-                                                                            <ShouldRender if={teamMember.companyPhoneNumber}>
+                                                                            <ShouldRender if={teamMember.companyPhoneNumber && teamMember.companyPhoneNumber !== 'undefined'}>
                                                                                 <div className='bs-Fieldset-row'>
                                                                                     <label className='bs-Fieldset-label'>Phone</label>
                                                                                     <div className='bs-Fieldset-fields'>
@@ -98,7 +98,7 @@ function TeamMemberProfile({ requesting, error, teamMember, projectId, match, ge
                                                                                 </div>
                                                                             </ShouldRender>
 
-                                                                            <ShouldRender if={teamMember.timezone}>
+                                                                            <ShouldRender if={teamMember.timezone && teamMember.timezone !== 'undefined'}>
                                                                                 <div className='bs-Fieldset-row'>
                                                                                     <label className='bs-Fieldset-label'>Timezone</label>
                                                                                     <div className='bs-Fieldset-fields'>

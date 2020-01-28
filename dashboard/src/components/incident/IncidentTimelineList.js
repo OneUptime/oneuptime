@@ -4,6 +4,7 @@ import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
+import { history } from '../../store';
 
 const IncidentTimelineList = (props) => {
     var { incident, skip, limit, prevClicked, nextClicked } = props;
@@ -13,6 +14,7 @@ const IncidentTimelineList = (props) => {
             probes.push({
                 updatedAt: incident.incident.acknowledgedAt,
                 name: incident.incident.acknowledgedBy.name,
+                id: incident.incident.acknowledgedBy._id,
                 reportedStatus: 'Acknowledged'
             });
         }
@@ -22,6 +24,7 @@ const IncidentTimelineList = (props) => {
             probes.push({
                 updatedAt: incident.incident.resolvedAt,
                 name: incident.incident.resolvedBy.name,
+                id: incident.incident.resolvedBy._id,
                 reportedStatus: 'Resolved'
             });
         }
@@ -80,7 +83,11 @@ const IncidentTimelineList = (props) => {
                                                             <span>{log.probeId.probeName ? log.probeId.probeName : 'Unknown Probe'}</span>
                                                         </div>
                                                         :
-                                                        <div className="Box-root Margin-right--16">
+                                                        <div
+                                                            className="Box-root Margin-right--16"
+                                                            style={{ cursor: 'pointer' }}
+                                                            onClick={() => { history.push('/profile/' + log.id) }}
+                                                        >
                                                             <img src='/assets/img/profile-user.svg' style={{ display: 'inline-block', height: '20px', width: '20px', borderRadius: '50%', margin: '5px 10px -4px 0px'}} alt="" />
                                                             <span>{log.name ? log.name : 'Unknown User'}</span>
                                                         </div>

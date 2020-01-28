@@ -10,6 +10,7 @@ import {
   getActiveMembersRequest,
   getActiveMembersSuccess
 } from '../../actions/reports';
+import { history } from '../../store';
 
 class MembersList extends Component {
   constructor(props) {
@@ -164,6 +165,8 @@ class MembersList extends Component {
                 <tr
                   className="Table-row db-ListViewItem bs-ActionsParent"
                   key={memberId}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => { history.push('/profile/' + memberId) }}
                 >
                   <td
                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
