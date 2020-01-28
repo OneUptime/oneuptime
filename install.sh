@@ -8,43 +8,9 @@ fi
 sudo chmod +x ./uninstall.sh
 sudo ./uninstall.sh
 
-sudo docker network create fyipe-network || "Netork already exists."
-
 # Sleep 
 sleep 5s
 
-sudo mkdir /Users/$whoami/mongodb || echo 'Path already exists'
-
-# Run Dependencies
-sudo docker run -v /Users/$whoami/mongodb:/data/db -p 27017:27017 -d mongo:3.4
-sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-
-# Sleep 
-sleep 5s
-
-# Run Backend
-sudo docker build -t fyipe-project/backend:latest ./backend
-sudo docker run --name backend --net=host -p 3002:3002 --env-file=./backend/.env.development -d fyipe-project/backend:latest #port is not needed because of nethost
-
-# Run Accounts
-sudo docker build -t fyipe-project/accounts:latest ./accounts
-sudo docker run --name accounts -p 3003:3003 -d fyipe-project/accounts:latest
-
-#Run Dashboard
-sudo docker build -t fyipe-project/dashboard:latest ./dashboard
-sudo docker run --name dashboard -p 3000:3000 -d fyipe-project/dashboard:latest
-
-# Run home
-sudo docker build -t fyipe-project/home:latest ./home
-sudo docker run --name home -p 1444:1444 -d fyipe-project/home:latest
-
-# Run Status Page
-sudo docker build -t fyipe-project/status-page:latest ./status-page
-sudo docker run --name status-page -p 3006:3006 -d fyipe-project/status-page:latest
-
-# Run Admin Dashboard
-sudo docker build -t fyipe-project/admin-dashboard:latest ./admin-dashboard
-sudo docker run --name admin-dashboard -p 3100:3100 -d fyipe-project/admin-dashboard:latestcd
 
 # Run Probes 1
 sudo docker build -t fyipe-project/probe:latest ./probe

@@ -1,0 +1,94 @@
+version: "3.7"
+services:
+  
+  mongo:
+      image: mongo:3.4
+      ports:
+        - "27017:27017"
+      volumes:
+        - mongodata:/data/db
+
+  redis:
+    image: redis:5.0.7
+    ports:
+      - "6379:6379"
+    command: redis-server
+
+  backend:
+    ports:
+      - "3002:3002"
+    env_file: ./backend/.env.development
+    build: ./backend
+    depends_on:
+      - mongo
+      - redis
+
+  accounts:
+    ports:
+      - "3003:3003"
+    build: ./accounts
+    depends_on:
+      - backend
+
+  dashboard:
+    ports:
+      - "3000:3000"
+    build: ./dashboard
+    depends_on:
+      - backend
+
+  home:
+    ports:
+      - "1444:1444"
+    build: ./home
+  
+  status-page:
+    ports:
+      - "3006:3006"
+    build: ./status-page
+    depends_on:
+      - backend
+      - accounts
+      - dashboard
+
+  admin-dashboard:
+    ports:
+      - "3100:3100"
+    build: ./dashboard
+    depends_on:
+      - backend
+      - accounts
+  
+  http-test-server:
+    ports:
+      - "3010:3010"
+    build: ./http-test-server
+
+  probe1:
+    ports:
+      - "3019:3019"
+    build: ./probe
+    environment:
+      - PORT=3019
+      - SERVER_URL=http://backend:3002
+      - PROBE_NAME=Probe 1
+      - PROBE_KEY=test-key
+    depends_on:
+      - backend
+
+  probe2:
+    ports:
+      - "3020:3020"
+    build: ./probe
+    environment:
+      - PORT=3020
+      - SERVER_URL=http://backend:3002
+      - PROBE_NAME=Probe 2
+      - PROBE_KEY=test-key
+    depends_on:
+      - backend
+  
+volumes:
+  mongodata:
+  
+    
