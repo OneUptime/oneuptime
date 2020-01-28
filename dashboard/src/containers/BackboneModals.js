@@ -10,17 +10,13 @@ export class Modals extends Component {
 		const modals = this.props.modals.map((item, i) => {
 			const ModalComponent = Modal(item.content);
 			return (
-			//  Modal(item.content)({
-			// 	item,
-			// 	zIndex: i,
-			// 	key: i,
-			// 	onClose: item => this.props.closeModal(item)
-			// })
 			<ModalComponent
 				item={item}
 				key={i}
 				zIndex={i}
 				onClose={item => this.props.closeModal(item)}
+				title={item.title}
+				body={item.body}
 			/>
 		)});
 		return <div id="backboneModals">{modals}</div>;

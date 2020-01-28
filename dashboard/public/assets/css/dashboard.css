@@ -51058,3 +51058,7 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   height: 1px;
   border: 0;
 }
+
+.flex{
+  display: flex;
+}
