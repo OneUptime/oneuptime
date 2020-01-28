@@ -1,0 +1,115 @@
+version: "3.7"
+services:
+  
+  mongo:
+      image: mongo:3.4
+      ports:
+        - "27017:27017"
+      volumes:
+        - mongodata:/data/db
+
+  redis:
+    image: redis:5.0.7
+    ports:
+      - "6379:6379"
+    command: redis-server
+
+  backend:
+    ports:
+      - "3002:3002"
+    build: ./backend
+    environment: 
+      - MAIL_USER=noreply@fyipe.com
+      - MAIL_PASSWORD=gBote8sHiWpbxGEJo9Puv8cevW
+      - MAIL_RECIPIENT=testmail@fyipe.com
+      - MAIL_RECIPIENT_PASSWORD=66WEPsk4FJCqUnbCFeZrFYCRWg
+      - MAIL_SERVER_SMTP=mail.hackerbay.io
+      - MAIL_PORT_SMTP=587
+      - MAIL_SERVER_IMAP=mail.hackerbay.io
+      - MAIL_PORT_IMAP=993
+      - MAIL_FROM=noreply@fyipe.com
+      - MAIL_SECURE=false
+      - EMAIL_VERIFY_TIME=3600
+      - BACKEND_HOST=http://localhost:3002
+      - ACCOUNTS_HOST=http://localhost:3003
+      - DASHBOARD_HOST=http://localhost:3000
+      - HOME_HOST=http://localhost:1444
+      - NODE_ENV=development
+      - WINDOWMS=216000
+      - MAX=5000
+      - RATE_LIMITING_ENABLED=false
+      - MONGO_URL=mongodb://mongo:27017/fyipedb
+      - REDIS_HOST=redis
+    depends_on:
+      - mongo
+      - redis
+
+  accounts:
+    ports:
+      - "3003:3003"
+    build: ./accounts
+    depends_on:
+      - backend
+
+  dashboard:
+    ports:
+      - "3000:3000"
+    build: ./dashboard
+    depends_on:
+      - backend
+
+  home:
+    ports:
+      - "1444:1444"
+    build: ./home
+  
+  status-page:
+    ports:
+      - "3006:3006"
+    build: ./status-page
+    depends_on:
+      - backend
+      - accounts
+      - dashboard
+
+  admin-dashboard:
+    ports:
+      - "3100:3100"
+    build: ./dashboard
+    depends_on:
+      - backend
+      - accounts
+  
+  http-test-server:
+    ports:
+      - "3010:3010"
+    build: ./http-test-server
+
+  probe1:
+    ports:
+      - "3019:3019"
+    build: ./probe
+    environment:
+      - PORT=3019
+      - SERVER_URL=http://backend:3002
+      - PROBE_NAME=Probe 1
+      - PROBE_KEY=test-key
+    depends_on:
+      - backend
+
+  probe2:
+    ports:
+      - "3020:3020"
+    build: ./probe
+    environment:
+      - PORT=3020
+      - SERVER_URL=http://backend:3002
+      - PROBE_NAME=Probe 2
+      - PROBE_KEY=test-key
+    depends_on:
+      - backend
+  
+volumes:
+  mongodata:
+  
+    
