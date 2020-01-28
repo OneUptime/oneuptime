@@ -30,7 +30,7 @@ var token, userId, airtableId, projectId, monitorId, incidentId, monitor = {
     data: { url: 'http://www.tests.org' }
 };
 
-describe.only('Incident API', function () {
+describe('Incident API', function () {
     this.timeout(120000);
     before(function (done) {
         this.timeout(60000);
@@ -199,6 +199,8 @@ describe.only('Incident API', function () {
                 });
             }
         }
+        /* eslint-disable no-console */
+        console.log(alert);
         expect(alert).to.be.an('object');
         expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
     });
@@ -227,7 +229,7 @@ describe.only('Incident API', function () {
             incidentId: createdIncident.body._id
         });
         expect(alert).to.be.an('object');
-        expect(alert.alertStatus).to.be.equal('success');
+        expect(alert.alertStatus).to.be.equal('Success');
     });
     it('should create an alert charge when an alert is sent to a user.', async function () {
         request.get(`alert/${projectId}/alert/charges`, function (err, res) {
