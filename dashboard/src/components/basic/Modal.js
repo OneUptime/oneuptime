@@ -74,7 +74,7 @@ Modal.propTypes = {
 	closeButtonLabel: PropTypes.string,
 	affirmativeButtonLabel: PropTypes.string,
 	children: PropTypes.object,
-	isLoading: PropTypes.boolean,
+	isLoading: PropTypes.bool,
 }
 
 const mapStateToProps = () => {
