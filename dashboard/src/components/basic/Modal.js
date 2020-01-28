@@ -43,7 +43,7 @@ class Modal extends Component {
 									{this.props.closeThisDialog && <button className="bs-Button bs-DeprecatedButton bs-Button--grey" type="button" onClick={
 										this.props.closeThisDialog
 									}>
-										<span>{closeButtonLabel || "Close"}</span>
+										<span>{closeButtonLabel || 'Close'}</span>
 									</button>}
 									{this.props.confirmThisDialog && <button
 										id="deleteMonitor"
@@ -69,17 +69,21 @@ Modal.displayName = 'Modal'
 
 Modal.propTypes = {
 	confirmThisDialog: PropTypes.func,
-	closeModal: PropTypes.func,
-	children: PropTypes.object
+	closeThisDialog: PropTypes.func,
+	title: PropTypes.string,
+	closeButtonLabel: PropTypes.string,
+	affirmativeButtonLabel: PropTypes.string,
+	children: PropTypes.object,
+	isLoading: PropTypes.boolean,
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = () => {
 	return {
 
 	}
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = () => {
 	return {};
 };
 

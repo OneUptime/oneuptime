@@ -91,7 +91,7 @@
     "start": "node index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "jest": "jest --runInBand",
-    "lint:fix": "eslint . --fix"
+    "fix-lint": "eslint . --fix"
   },
   "devDependencies": {
     "axios-mock-adapter": "^1.15.0",

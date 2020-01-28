@@ -322,7 +322,7 @@ class NewMonitor extends Component {
                                                         <label className="bs-Fieldset-label">Monitor Type</label>
 
                                                         <div className="bs-Fieldset-fields">
-                                                            <span class="flex">
+                                                            <span className="flex">
                                                                 <Field className="db-select-nw"
                                                                     component={RenderSelect}
                                                                     name={`type_${this.props.index}`}

@@ -19,8 +19,8 @@ class Tooltip extends Component {
 
     render() {
         return (
-            <div style={{padding:"5px", paddingLeft:"7px", paddingRight:"7px"}}>
-                <img src='/assets/img/question.svg' style={{ height: '18px', width: '18px', cursor:"pointer" }} alt="" onClick={this.handleClick.bind(this)} />
+            <div style={{padding:'5px', paddingLeft:'7px', paddingRight:'7px'}}>
+                <img src='/assets/img/question.svg' style={{ height: '18px', width: '18px', cursor:'pointer' }} alt="" onClick={this.handleClick} />
             </div>
         );
     }
@@ -30,10 +30,12 @@ Tooltip.displayName = 'Tooltip'
 
 Tooltip.propTypes = {
     title: PropTypes.string,
-    content: PropTypes.string,
+    openModal: PropTypes.func, 
+    body: PropTypes.string,
+    children: PropTypes.object,
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = () => {
     return {
 
     }

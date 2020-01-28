@@ -64,7 +64,9 @@ const composableComponent = (ComposedComponent) => {
         item: PropTypes.object.isRequired,
         onClose:PropTypes.func.isRequired,
         extraClasses: PropTypes.string,
-        zIndex: PropTypes.number.isRequired
+        zIndex: PropTypes.number.isRequired,
+        title: PropTypes.string,
+        body: PropTypes.object,
     }
 
     Modal.displayName = 'Modal'
