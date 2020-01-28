@@ -1493,7 +1493,7 @@ production_rollback_probe:
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
   only:
     refs:
-        - release
+      - release
 
 cleanup:
   stage: CleanUp
