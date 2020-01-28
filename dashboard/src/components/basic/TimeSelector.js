@@ -21,7 +21,7 @@ const TimeSelector = ({ input, meta: { touched, error }, style, rotationFrequenc
     const handleChange = (option) => {
         setValue(option);
         if (input.onChange) {
-            input.onChange(option.toString());
+            input.onChange(new Date(option).toUTCString());
         }
     };
 

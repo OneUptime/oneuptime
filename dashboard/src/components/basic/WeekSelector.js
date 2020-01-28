@@ -30,7 +30,7 @@ let WeekSelector = ({ classes, input, style }) => {
   const handleChange = (option) => {
     selectDate(option);
     if (input.onChange) {
-      input.onChange(option.toString());
+      input.onChange(new Date(option).toUTCString());
     }
   }
 

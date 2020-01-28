@@ -175,13 +175,12 @@ describe('Incident API', function () {
         if (selectMonitor) {
             var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
                 .send([{
+                    emailFrequency: 10,
                     callFrequency: 10,
-                    rotationFrequency: 'weeks',
-                    rotationInterval: 2,
-                    rotationSwitchTime: 'Wed Jan 22 2020 09:25:15 GMT+0100 (West Africa Standard Time)',
+                    smsFrequency: 10,
                     call: true,
-                    sms: false,
-                    email: false,
+                    sms: true,
+                    email: true,
                     team: [{
                         teamMember: [{
                             member: userId,
@@ -200,6 +199,8 @@ describe('Incident API', function () {
                 });
             }
         }
+        /* eslint-disable no-console */
+        console.log(alert);
         expect(alert).to.be.an('object');
         expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
     });
@@ -228,7 +229,7 @@ describe('Incident API', function () {
             incidentId: createdIncident.body._id
         });
         expect(alert).to.be.an('object');
-        expect(alert.alertStatus).to.be.equal('success');
+        expect(alert.alertStatus).to.be.equal('Success');
     });
     it('should create an alert charge when an alert is sent to a user.', async function () {
         request.get(`alert/${projectId}/alert/charges`, function (err, res) {
