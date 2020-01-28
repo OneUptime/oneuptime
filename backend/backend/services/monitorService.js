@@ -73,7 +73,7 @@ module.exports = {
                     }
                     var savedMonitor = await monitor.save();
 
-                    return savedMonitor;
+                    return [savedMonitor];
                 } else {
                     let error = new Error('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
                     error.code = 400;
@@ -101,9 +101,9 @@ module.exports = {
                 })
                 .populate('projectId', 'name');
 
-            await RealTimeService.monitorEdit(monitor);
+            await RealTimeService.monitorEdit([monitor]);
 
-            return monitor;
+            return [monitor];
         } catch (error) {
             ErrorService.log('monitorService.updateOneBy', error);
             throw error;
