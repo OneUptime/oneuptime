@@ -110,6 +110,8 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
             statusColor = 'blue'
     }
 
+    let isCurrentlyNotMonitoring = (lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) || !lastAlive;
+
     let monitorInfo;
     if (type === 'server-monitor') {
         monitorInfo = <Fragment>
@@ -143,7 +145,9 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart type={type} data={data} name={'load'} />
+                    <ShouldRender if={!isCurrentlyNotMonitoring}>
+                        <AreaChart type={type} data={data} name={'load'} />
+                    </ShouldRender>
                 </div>
             </div>
             <div className="db-Trend">
@@ -176,7 +180,9 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart type={type} data={data} name={'memory'} />
+                    <ShouldRender if={!isCurrentlyNotMonitoring}>
+                        <AreaChart type={type} data={data} name={'memory'} />
+                    </ShouldRender>
                 </div>
             </div>
             <div className="db-Trend">
@@ -209,7 +215,9 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <AreaChart type={type} data={data} name={'disk'} />
+                    <ShouldRender if={!isCurrentlyNotMonitoring}>
+                        <AreaChart type={type} data={data} name={'disk'} />
+                    </ShouldRender>
                 </div>
             </div>
             <ShouldRender if={showAll}>
@@ -236,7 +244,9 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                         </div>
                     </div>
                     <div className="block-chart-main line-chart">
-                        <AreaChart type={type} data={data} name={'temperature'} />
+                        <ShouldRender if={!isCurrentlyNotMonitoring}>
+                            <AreaChart type={type} data={data} name={'temperature'} />
+                        </ShouldRender>
                     </div>
                 </div>
             </ShouldRender>
@@ -245,7 +255,7 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
         monitorInfo = <div className="db-Trend">
             <div className="block-chart-side line-chart">
                 <div className="db-TrendRow">
-                    {(lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) || !lastAlive ?
+                    {isCurrentlyNotMonitoring ?
                         <div className="db-Trend-colInformation probe-offline">
                             <div className="db-Trend-rowTitle" title="Currently not monitoring">
                                 <div className="db-Trend-title"><strong><span className="chart-font">Currently not monitoring</span></strong></div>
@@ -287,7 +297,9 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                 </div>
             </div>
             <div className="block-chart-main line-chart">
-                <AreaChart type={type} data={data} name={'response time'} symbol="ms" />
+                <ShouldRender if={!isCurrentlyNotMonitoring}>
+                    <AreaChart type={type} data={data} name={'response time'} symbol="ms" />
+                </ShouldRender>
             </div>
         </div>
     } else if (type === 'manual') {
@@ -313,7 +325,9 @@ export function MonitorChart({ start, end, monitor, data, status, showAll, activ
                 </div>
             </div>
             <div className="block-chart-main line-chart">
-                <AreaChart type={type} data={timeBlock} name={'downtime'} symbol="secs" />
+                <ShouldRender if={!isCurrentlyNotMonitoring}>
+                    <AreaChart type={type} data={timeBlock} name={'downtime'} symbol="secs" />
+                </ShouldRender>
             </div>
         </div>
     } else {

@@ -36,7 +36,7 @@ const pingfetch = async (url) => {
     var resp = null;
     var res = null;
     try {
-        var response = await fetch(url, { timeout: 10000 });
+        var response = await fetch(url, { timeout: 30000 });
         var data = await response.text();
         resp = { status: response.status, body: data };
     } catch (error) {

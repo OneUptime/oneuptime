@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { RenderSingleEscalation } from './RenderSingleEscalation';
+import { RenderSingleEscalation } from '../basic/RenderSingleEscalation';
 
 let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, form }) => {
  
@@ -42,8 +42,8 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                         onClick={() => fields.push(
                                             { 
-                                                callFrequency: '10',
-                                                smsFrequency: '10',
+                                                callFrequency: '',
+                                                smsFrequency: '',
                                                 emailFrequency: '10',
                                                 email: true,
                                                 sms: false,

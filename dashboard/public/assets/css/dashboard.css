@@ -51052,6 +51052,13 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 }
 
 .team-line-demarcator {
-  margin-left: 15%;
-  margin-right: 10%;
+  margin-left: 28%;
+  margin-right: 43%;
+  background-color: #DDDDDD;
+  height: 1px;
+  border: 0;
+}
+
+.flex{
+  display: flex;
 }

@@ -43,7 +43,7 @@ var pingfetch = async (url, method, body, headers) => {
             method: method,
             body: body,
             headers: headers,
-            timeout: 10000
+            timeout: 30000
         });
         var data = await response.json();
         resp = { status: response.status, body: data };

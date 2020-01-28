@@ -9,6 +9,7 @@
     "dev": "cross-env NODE_ENV=development nodemon server.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "lint": "eslint .",
+    "fix-lint": "eslint . --fix",
     "test": "jest --runInBand test"
   },
   "keywords": [],

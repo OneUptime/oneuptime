@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.1430",
+  "version": "3.0.1442",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
@@ -91,7 +91,7 @@
     "start": "node index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "jest": "jest --runInBand",
-    "lint:fix": "eslint . --fix"
+    "fix-lint": "eslint . --fix"
   },
   "devDependencies": {
     "axios-mock-adapter": "^1.15.0",
