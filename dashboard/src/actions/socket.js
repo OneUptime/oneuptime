@@ -81,15 +81,6 @@ export function incidentcreatedbysocket(incident) {
     };
 }
 
-export function updateresponsetime(time) {
-    return function (dispatch) {
-        dispatch({
-            type: 'UPDATE_RESPONSE_TIME',
-            payload: time
-        });
-    };
-}
-
 export function addnotifications(notification) {
     return function (dispatch) {
         dispatch({

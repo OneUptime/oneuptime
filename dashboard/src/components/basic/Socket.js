@@ -10,8 +10,7 @@ import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import {
     incidentresolvedbysocket, incidentacknowledgedbysocket, deletemonitorbysocket,
-    updatemonitorbysocket, createmonitorbysocket, incidentcreatedbysocket,
-    updateresponsetime, updatemonitorlogbysocket, updateprobebysocket, addnotifications, teamMemberRoleUpdate, teamMemberCreate, teamMemberDelete
+    updatemonitorbysocket, createmonitorbysocket, incidentcreatedbysocket, updatemonitorlogbysocket, updateprobebysocket, addnotifications, teamMemberRoleUpdate, teamMemberCreate, teamMemberDelete
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 
@@ -121,9 +120,6 @@ class SocketApp extends Component {
                         if (isUserInSubProject) thisObj.props.incidentcreatedbysocket(data);
                     }
                 }
-            });
-            this.socket.on(`updateResponseTime-${this.props.project._id}`, function (data) {
-                thisObj.props.updateresponsetime(data);
             });
             this.socket.on(`updateMonitorLog-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
@@ -240,7 +236,6 @@ let mapDispatchToProps = dispatch => (
         updatemonitorbysocket,
         createmonitorbysocket,
         incidentcreatedbysocket,
-        updateresponsetime,
         updatemonitorlogbysocket,
         updateprobebysocket,
         addnotifications,

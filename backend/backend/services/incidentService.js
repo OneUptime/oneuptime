@@ -42,17 +42,24 @@ module.exports = {
 
             if (monitorCount > 0) {
                 var incident = new IncidentModel();
+
                 incident.projectId = data.projectId || null;
                 incident.monitorId = data.monitorId || null;
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
+
                 if (data.incidentType) {
                     incident.incidentType = data.incidentType;
-                    MonitorStatusService.create({
-                        status: data.incidentType,
-                        monitorId: data.monitorId
+
+                    await MonitorStatusService.create({
+                        monitorId: data.monitorId,
+                        probeId: data.probeId,
+                        responseTime: data.responseTime,
+                        manuallyCreated: data.manuallyCreated,
+                        status: data.incidentType
                     });
                 }
+
                 if (data.probeId) {
                     incident.probes = [{
                         probeId: data.probeId,
@@ -61,12 +68,9 @@ module.exports = {
                         reportedStatus: data.incidentType
                     }];
                 }
-                if (data.manuallyCreated) {
-                    incident.manuallyCreated = true;
-                }
-                else {
-                    incident.manuallyCreated = false;
-                }
+
+                incident.manuallyCreated = data.manuallyCreated || false;
+
                 incident = await incident.save();
                 incident = await _this.findOneBy({ _id: incident._id });
                 await _this._sendIncidentCreatedAlert(incident);
@@ -76,7 +80,6 @@ module.exports = {
                 let error = new Error('Monitor is not present.');
                 ErrorService.log('incidentService.create', error);
                 error.code = 400;
-
                 throw error;
             }
         } catch (error) {
@@ -287,6 +290,15 @@ module.exports = {
 
             incident = await _this.updateOneBy({ _id: incidentId }, data);
             incident = await _this.findOneBy({ _id: incident._id });
+
+            var previousMonitorStatus = await MonitorStatusService.findOneBy({ monitorId: incident.monitorId._id, status: incident.incidentType });
+            if (previousMonitorStatus) {
+                await MonitorStatusService.updateOneBy({
+                    _id: previousMonitorStatus._id
+                }, {
+                    endTime: Date.now()
+                });
+            }
 
             await _this.sendIncidentResolvedNotification(incident, name);
             await RealTimeService.incidentResolved(incident);

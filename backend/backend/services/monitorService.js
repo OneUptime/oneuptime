@@ -376,18 +376,6 @@ module.exports = {
         }
     },
 
-    async sendResponseTime(monitorsData) {
-        try {
-            var monitor = await MonitorModel.findOne({ _id: monitorsData.monitorId, deleted: false });
-            if (monitor) {
-                await RealTimeService.updateResponseTime(monitorsData, monitor.projectId);
-            }
-        } catch (error) {
-            ErrorService.log('monitorService.sendResponseTime', error);
-            throw error;
-        }
-    },
-
     async sendMonitorLog(data) {
         try {
             var monitor = await MonitorModel.findOne({ _id: data.monitorId, deleted: false });

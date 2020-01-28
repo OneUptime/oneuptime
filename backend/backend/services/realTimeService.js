@@ -73,18 +73,6 @@ module.exports = {
         }
     },
 
-    updateResponseTime: async (data, projectId) => {
-        try {
-            var project = await ProjectService.findOneBy({ _id: projectId });
-
-            projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-            io.emit(`updateResponseTime-${projectId}`, data);
-        } catch (error) {
-            ErrorService.log('realTimeService.updateResponseTime', error);
-            throw error;
-        }
-    },
-
     updateMonitorLog: async (data, monitorId, projectId) => {
         try {
             var project = await ProjectService.findOneBy({ _id: projectId });

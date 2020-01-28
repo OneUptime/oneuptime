@@ -71,17 +71,17 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
                     message: 'Invalid incident type.'
                 });
             }
-            oldIncidentsCount = await IncidentService.countBy({projectId: projectId, monitorId: monitorId,incidentType,resolved:false,deleted:false});
+            oldIncidentsCount = await IncidentService.countBy({ projectId, monitorId, incidentType, resolved: false, deleted: false });
         }
 
-        if(oldIncidentsCount && oldIncidentsCount > 0){
+        if (oldIncidentsCount && oldIncidentsCount > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: `An unresolved incident of type ${incidentType} already exists.`
             });
         }
         // Call the IncidentService
-        var incident = await IncidentService.create({ projectId: projectId, monitorId: monitorId, createdById: userId, manuallyCreated: true, incidentType });
+        var incident = await IncidentService.create({ projectId, monitorId, createdById: userId, manuallyCreated: true, incidentType });
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);

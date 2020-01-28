@@ -814,25 +814,6 @@ export default function monitor(state = INITIAL_STATE, action) {
 
             });
 
-        case 'UPDATE_RESPONSE_TIME':
-            return Object.assign({}, state, {
-                monitorsList: {
-                    ...state.monitorsList,
-                    monitors: state.monitorsList.monitors.map(monitor => {
-                        if (monitor._id === action.payload.monitorId) {
-                            return {
-                                ...monitor,
-                                responseTime: action.payload.time,
-                                status: action.payload.status
-                            };
-                        } else {
-                            return monitor;
-                        }
-                    }),
-                },
-
-            });
-
         case ADD_SEAT_SUCCESS:
             return Object.assign({}, state, {
                 addseat: {

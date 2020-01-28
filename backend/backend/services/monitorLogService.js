@@ -84,7 +84,6 @@ module.exports = {
                 MonitorLogByWeekService.create({ ...data, intervalDate: intervalWeekDate });
             }
 
-            await MonitorService.sendResponseTime(savedLog);
             await MonitorService.sendMonitorLog(savedLog);
 
             if (data.probeId && data.monitorId) await probeService.sendProbe(data.probeId, data.monitorId);

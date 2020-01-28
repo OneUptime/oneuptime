@@ -171,8 +171,7 @@ module.exports = {
             var lastStatus = statuses && statuses[0] && statuses[0].status ? statuses[0].status : null;
             var lastStatusId = statuses && statuses[0] && statuses[0]._id ? statuses[0]._id : null;
             if (!lastStatus) {
-                await MonitorStatusService.createMonitorStatus(data);
-                let tempMon = await _this.incidentCreateOrUpdate(data, lastStatus);
+                let tempMon = await _this.incidentCreateOrUpdate(data);
                 mon = tempMon.mon;
                 incidentIds = tempMon.incidentIds;
                 autoAcknowledge = lastStatus && lastStatus === 'degraded' ? mon.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? mon.criteria.down.autoAcknowledge : false;
@@ -183,8 +182,7 @@ module.exports = {
                 if (lastStatusId) {
                     await MonitorStatusService.updateOneBy({ _id: lastStatusId }, { endTime: Date.now() });
                 }
-                await MonitorStatusService.createMonitorStatus(data);
-                let tempMon = await _this.incidentCreateOrUpdate(data, lastStatus);
+                let tempMon = await _this.incidentCreateOrUpdate(data);
                 mon = tempMon.mon;
                 incidentIds = tempMon.incidentIds;
                 autoAcknowledge = lastStatus && lastStatus === 'degraded' ? mon.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? mon.criteria.down.autoAcknowledge : false;
@@ -239,7 +237,8 @@ module.exports = {
                         monitorId: data.monitorId,
                         createdById: null,
                         incidentType: 'online',
-                        probeId: data.probeId
+                        probeId: data.probeId,
+                        responseTime: data.responseTime
                     })];
                 }
             }
@@ -264,7 +263,8 @@ module.exports = {
                         monitorId: data.monitorId,
                         createdById: null,
                         incidentType: 'degraded',
-                        probeId: data.probeId
+                        probeId: data.probeId,
+                        responseTime: data.responseTime
                     })];
                 }
             }
@@ -289,7 +289,8 @@ module.exports = {
                         monitorId: data.monitorId,
                         createdById: null,
                         incidentType: 'offline',
-                        probeId: data.probeId
+                        probeId: data.probeId,
+                        responseTime: data.responseTime
                     })];
                 }
             }

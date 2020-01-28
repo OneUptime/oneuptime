@@ -1,36 +1,36 @@
 module.exports = {
 
     create: async function (data) {
-        //find previous object of this and see if the status differs
-        var previousMonitorStatus = await this.findOneBy({ monitorId: data.monitorId });
-        if (!previousMonitorStatus || (previousMonitorStatus && previousMonitorStatus.status !== data.status)) {
+        try {
             var monitorStatus = new MonitorStatusModel();
+
             monitorStatus.monitorId = data.monitorId;
             monitorStatus.probeId = data.probeId || null;
             monitorStatus.responseTime = data.responseTime || null;
-            monitorStatus.manuallyCreated = true;
+            monitorStatus.manuallyCreated = data.manuallyCreated || false;
             monitorStatus.status = data.status;
-            monitorStatus = monitorStatus.save();
-            if (previousMonitorStatus) {
-                this.updateOneBy({
-                    _id: previousMonitorStatus._id
-                }, {
-                    endTime: Date.now()
-                });
-            }
+
+            var savedMonitorStatus = monitorStatus.save();
+
+            return savedMonitorStatus;
+        } catch (error) {
+            ErrorService.log('MonitorStatusService.create', error);
+            throw error;
         }
     },
 
     updateOneBy: async function (query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
         try {
-            var updatedMonitorStatus = await MonitorStatusModel.findOneAndUpdate(query, {
-                $set: data
-            });
+            if (!query) {
+                query = {};
+            }
+
+            var updatedMonitorStatus = await MonitorStatusModel.findOneAndUpdate(query,
+                { $set: data },
+                {
+                    new: true
+                });
+
             return updatedMonitorStatus;
         } catch (error) {
             ErrorService.log('MonitorStatusService.updateOneBy', error);
@@ -99,30 +99,6 @@ module.exports = {
             return monitorStatus;
         } catch (error) {
             ErrorService.log('MonitorStatusService.findOneBy', error);
-            throw error;
-        }
-    },
-
-    createMonitorStatus: async function (data) {
-        try {
-            let MonitorStatus = new MonitorStatusModel();
-            MonitorStatus.monitorId = data.monitorId;
-            MonitorStatus.probeId = data.probeId;
-            MonitorStatus.responseTime = data.responseTime;
-            MonitorStatus.status = data.status;
-            if (data.startTime) {
-                MonitorStatus.startTime = data.startTime;
-            }
-            if (data.endTime) {
-                MonitorStatus.endTime = data.endTime;
-            }
-            if (data.createdAt) {
-                MonitorStatus.createdAt = data.createdAt;
-            }
-            var savedMonitorStatus = await MonitorStatus.save();
-            return savedMonitorStatus;
-        } catch (error) {
-            ErrorService.log('monitorStatusService.createMonitorStatus', error);
             throw error;
         }
     },
