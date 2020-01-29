@@ -67,8 +67,8 @@ services:
     ports:
       - "3100:3100"
     env_file: 
-      - ./admin-dashboard/.env
-    build: ./dashboard
+      - ./admin-dashboard/.env.development
+    build: ./admin-dashboard
     depends_on:
       - backend
       - accounts
