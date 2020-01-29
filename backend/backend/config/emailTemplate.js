@@ -1,5 +1,5 @@
 module.exports = [{
-    allowedVariables: ['{{userName}} : User display name.', '{{monitorName}} : Name of the monitor on which incident has occured.', '{{projectName}} : Name of the project on which the incident has occured.', '{{incidentTime}} : Time at which this incident occured.', '{{incidentType}} : Type of incident.', '{{userId}} : Unique identifier for user account.', '{{projectId}} : Unique identifier for the current project.'],
+    allowedVariables: ['{{userName}} : User display name.', '{{monitorName}} : Name of the monitor on which incident has occured.', '{{projectName}} : Name of the project on which the incident has occured.', '{{incidentTime}} : Time at which this incident occured.', '{{incidentType}} : Type of incident.', '{{userId}} : Unique identifier for user account.', '{{projectId}} : Unique identifier for the current project.', '{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they\'re opened.'],
     emailType: 'Subscriber Incident Created',
     subject: '{{projectName}}/{{monitorName}}: Incident Created',
     body: `
@@ -469,6 +469,14 @@ span.st-Delink.st-Delink--footer a {
       </td>
     </tr>
     <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Spacer st-Spacer--emailEnd" height="64" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <img border="0" style="height:1px; width:1px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="{{trackEmailAsViewedUrl}}">
+      </td>
+    </tr>
+    <tr>
       <td class="st-Spacer st-Spacer--emailEnd" colspan="3" height="64" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
@@ -497,7 +505,7 @@ span.st-Delink.st-Delink--footer a {
 `
 },
 {
-    allowedVariables: ['{{userName}} : User display name.', '{{monitorName}} : Name of the monitor on which incident has occured.', '{{projectName}} : Name of the project on which the incident has occured.', '{{incidentTime}} : Time at which this incident occured.', '{{incidentType}} : Type of incident.', '{{userId}} : Unique identifier for user account.', '{{projectId}} : Unique identifier for the current project.'],
+    allowedVariables: ['{{userName}} : User display name.', '{{monitorName}} : Name of the monitor on which incident has occured.', '{{projectName}} : Name of the project on which the incident has occured.', '{{incidentTime}} : Time at which this incident occured.', '{{incidentType}} : Type of incident.', '{{userId}} : Unique identifier for user account.', '{{projectId}} : Unique identifier for the current project.', '{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they\'re opened.'],
     emailType: 'Subscriber Incident Acknowldeged',
     subject: '{{projectName}}/{{monitorName}}: Incident Acknowldeged',
     body: `
@@ -966,6 +974,14 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
   </tr>
   <tr>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+    <td class="st-Spacer st-Spacer--emailEnd" height="64" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+      <img border="0" style="height:1px; width:1px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="{{trackEmailAsViewedUrl}}">
+    </td>
+  </tr>
+  <tr>
     <td class="st-Spacer st-Spacer--emailEnd" colspan="3" height="64" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
@@ -994,7 +1010,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
 `
 },
 {
-    allowedVariables: ['{{userName}} : User display name.', '{{monitorName}} : Name of the monitor on which incident has occured.', '{{projectName}} : Name of the project on which the incident has occured.', '{{incidentTime}} : Time at which this incident occured.', '{{incidentType}} : Type of incident.', '{{userId}} : Unique identifier for user account.', '{{projectId}} : Unique identifier for the current project.'],
+    allowedVariables: ['{{userName}} : User display name.', '{{monitorName}} : Name of the monitor on which incident has occured.', '{{projectName}} : Name of the project on which the incident has occured.', '{{incidentTime}} : Time at which this incident occured.', '{{incidentType}} : Type of incident.', '{{userId}} : Unique identifier for user account.', '{{projectId}} : Unique identifier for the current project.', '{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they\'re opened.'],
     emailType: 'Subscriber Incident Resolved',
     subject: '{{projectName}}/{{monitorName}}: Incident Resolved',
     body: `
@@ -1445,6 +1461,14 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
       <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+    <td class="st-Spacer st-Spacer--emailEnd" height="64" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+      <img border="0" style="height:1px; width:1px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="{{trackEmailAsViewedUrl}}">
     </td>
   </tr>
   <tr>
