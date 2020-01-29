@@ -485,7 +485,7 @@ class NewMonitor extends Component {
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <button className="button-as-anchor" onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</button>
+                                                            <button className="button-as-anchor" onClick={() => this.openAdvance()}> Advance Options.</button>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
