@@ -166,22 +166,11 @@ module.exports = {
         try {
             var _this = this;
             var mon, autoAcknowledge, autoResolve, incidentIds;
-            var statuses = await MonitorStatusService.findBy({ monitorId: data.monitorId, probeId: data.probeId }, 1, 0);
+            var monitorStatus = await MonitorStatusService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId });
             var log = await MonitorLogService.create(data);
-            var lastStatus = statuses && statuses[0] && statuses[0].status ? statuses[0].status : null;
-            var lastStatusId = statuses && statuses[0] && statuses[0]._id ? statuses[0]._id : null;
-            if (!lastStatus) {
-                let tempMon = await _this.incidentCreateOrUpdate(data);
-                mon = tempMon.mon;
-                incidentIds = tempMon.incidentIds;
-                autoAcknowledge = lastStatus && lastStatus === 'degraded' ? mon.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? mon.criteria.down.autoAcknowledge : false;
-                autoResolve = lastStatus === 'degraded' ? mon.criteria.degraded.autoResolve : lastStatus === 'offline' ? mon.criteria.down.autoResolve : false;
-                await _this.incidentResolveOrAcknowledge(data, lastStatus, autoAcknowledge, autoResolve);
-            }
-            else if (lastStatus && lastStatus !== data.status) {
-                if (lastStatusId) {
-                    await MonitorStatusService.updateOneBy({ _id: lastStatusId }, { endTime: Date.now() });
-                }
+            var lastStatus = monitorStatus && monitorStatus.status ? monitorStatus.status : null;
+            if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
+                await MonitorStatusService.create(data);
                 let tempMon = await _this.incidentCreateOrUpdate(data);
                 mon = tempMon.mon;
                 incidentIds = tempMon.incidentIds;
@@ -357,6 +346,9 @@ module.exports = {
                     }
                     if (autoResolve) {
                         await IncidentService.resolve(v2._id, null, 'fyipe');
+                        v2.probes.map(async probe => {
+                            await MonitorStatusService.create({ monitorId: v2.monitorId, probeId: probe.probeId, status: 'online' });
+                        });
                     }
                 }
             });

@@ -47,18 +47,8 @@ module.exports = {
                 incident.monitorId = data.monitorId || null;
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
-
-                if (data.incidentType) {
-                    incident.incidentType = data.incidentType;
-
-                    await MonitorStatusService.create({
-                        monitorId: data.monitorId,
-                        probeId: data.probeId,
-                        responseTime: data.responseTime,
-                        manuallyCreated: data.manuallyCreated,
-                        status: data.incidentType
-                    });
-                }
+                incident.incidentType = data.incidentType;
+                incident.manuallyCreated = data.manuallyCreated || false;
 
                 if (data.probeId) {
                     incident.probes = [{
@@ -68,8 +58,6 @@ module.exports = {
                         reportedStatus: data.incidentType
                     }];
                 }
-
-                incident.manuallyCreated = data.manuallyCreated || false;
 
                 incident = await incident.save();
                 incident = await _this.findOneBy({ _id: incident._id });
@@ -291,15 +279,6 @@ module.exports = {
             incident = await _this.updateOneBy({ _id: incidentId }, data);
             incident = await _this.findOneBy({ _id: incident._id });
 
-            var previousMonitorStatus = await MonitorStatusService.findOneBy({ monitorId: incident.monitorId._id, status: incident.incidentType });
-            if (previousMonitorStatus) {
-                await MonitorStatusService.updateOneBy({
-                    _id: previousMonitorStatus._id
-                }, {
-                    endTime: Date.now()
-                });
-            }
-
             await _this.sendIncidentResolvedNotification(incident, name);
             await RealTimeService.incidentResolved(incident);
             await ZapierService.pushToZapier('incident_resolve', incident);
@@ -441,4 +420,3 @@ var SlackService = require('./slackService');
 var ZapierService = require('./zapierService');
 var ProjectService = require('../services/projectService');
 var ErrorService = require('../services/errorService');
-var MonitorStatusService = require('../services/monitorStatusService');

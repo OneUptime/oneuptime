@@ -2,17 +2,28 @@ module.exports = {
 
     create: async function (data) {
         try {
-            var monitorStatus = new MonitorStatusModel();
+            var previousMonitorStatus = await this.findOneBy({ monitorId: data.monitorId, probeId: data.probeId });
+            if (!previousMonitorStatus || (previousMonitorStatus && previousMonitorStatus.status !== data.status)) {
+                if (previousMonitorStatus) {
+                    await this.updateOneBy({
+                        _id: previousMonitorStatus._id
+                    }, {
+                        endTime: Date.now()
+                    });
+                }
 
-            monitorStatus.monitorId = data.monitorId;
-            monitorStatus.probeId = data.probeId || null;
-            monitorStatus.responseTime = data.responseTime || null;
-            monitorStatus.manuallyCreated = data.manuallyCreated || false;
-            monitorStatus.status = data.status;
+                var monitorStatus = new MonitorStatusModel();
 
-            var savedMonitorStatus = monitorStatus.save();
+                monitorStatus.monitorId = data.monitorId;
+                monitorStatus.probeId = data.probeId || null;
+                monitorStatus.responseTime = data.responseTime || null;
+                monitorStatus.manuallyCreated = data.manuallyCreated || false;
+                monitorStatus.status = data.status;
 
-            return savedMonitorStatus;
+                var savedMonitorStatus = monitorStatus.save();
+
+                return savedMonitorStatus;
+            }
         } catch (error) {
             ErrorService.log('MonitorStatusService.create', error);
             throw error;

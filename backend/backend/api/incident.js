@@ -7,6 +7,7 @@
 var express = require('express');
 var moment = require('moment');
 var IncidentService = require('../services/incidentService');
+var MonitorStatusService = require('../services/monitorStatusService');
 
 var router = express.Router();
 
@@ -82,6 +83,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req
         }
         // Call the IncidentService
         var incident = await IncidentService.create({ projectId, monitorId, createdById: userId, manuallyCreated: true, incidentType });
+        await MonitorStatusService.create({ monitorId, manuallyCreated: true, status: incidentType });
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -186,6 +188,13 @@ router.post('/:projectId/resolve/:incidentId', getUser, isAuthorized, async func
         var userId = req.user ? req.user.id : null;
         // Call the IncidentService
         var incident = await IncidentService.resolve(req.params.incidentId, userId);
+        if (incident.probes && incident.probes.length > 0) {
+            incident.probes.map(async probe => {
+                await MonitorStatusService.create({ monitorId: incident.monitorId._id, probeId: probe.probeId._id, status: 'online' });
+            });
+        } else {
+            await MonitorStatusService.create({ monitorId: incident.monitorId._id, status: 'online' });
+        }
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
