@@ -15,7 +15,7 @@ let RenderInterval = ({ input: { onChange, value }}) => {
       min="0"
       onChange={handleChange}
       value={value}
-      style={{width:"250px"}}
+      style={{width:'250px'}}
     />
   )
 }

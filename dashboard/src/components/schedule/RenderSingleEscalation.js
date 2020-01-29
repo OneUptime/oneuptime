@@ -16,16 +16,11 @@ let RenderSingleEscalation = ({
     policyIndex, fields, rotationInterval
 }) => {
     const [rotationFreqVisible, setRotationFreqVisibility] = useState(false);
-    const [forcedRotationFreqHidden, forceRotationFreqHide] = useState(false)
 
     const manageRotationVisibility = (visibilityVal) => {
         setRotationFreqVisibility(visibilityVal);
-        if (rotationFreqVisible && visibilityVal) {
-            forceRotationFreqHide(false);
-        }
     }
 
-    const showRotationFreq = rotationFrequency ? (!forcedRotationFreqHidden) : rotationFreqVisible;
     return (
         <li key={policyIndex} style={{ margin: '5px 0px' }}>
             <div className="Card-root" style={{ backgroundColor: policyIndex === 0 ? '#f7f7f7' : '#ffffff' }}>
@@ -173,7 +168,7 @@ let RenderSingleEscalation = ({
                                         </div>
                                     )}
 
-                                    {!showRotationFreq && (<div className="bs-Fieldset-row">
+                                    {!rotationFreqVisible && (<div className="bs-Fieldset-row">
                                         <>
                                             <label className="bs-Fieldset-label"></label>
                                             <div className="bs-Fieldset-fields">
@@ -185,7 +180,7 @@ let RenderSingleEscalation = ({
                                     </div>)}
 
 
-                                    {showRotationFreq && (<div className="bs-Fieldset-row">
+                                    {rotationFreqVisible && (<div className="bs-Fieldset-row">
                                         <>
                                             <label className="bs-Fieldset-label">Rotate Teams by</label>
                                             <div className="bs-Fieldset-fields">
@@ -206,15 +201,15 @@ let RenderSingleEscalation = ({
                                                     <Tooltip title="On-Call Rotations" >
                                                         <div>
                                                             <p> <b>What are on-call rotations?</b></p>
-                                                            <p> We've written a blog detailing just that and also best-practices <a className="underline" href="https://blog.fyipe.com/how-to-create-an-on-call-schedule-that-doesnt-suck/">here.</a>  </p>
+                                                            <p> We&#39;ve written a blog detailing just that and also best-practices <a className="underline" href="https://blog.fyipe.com/how-to-create-an-on-call-schedule-that-doesnt-suck/">here.</a>  </p>
                                                         </div>
 
-                                                        <div style={{ marginTop: "5px" }}>
+                                                        <div style={{ marginTop: '5px' }}>
                                                             <p> <b>What are daily / weekly / monthly rotations?</b></p>
                                                             <p> How often would you like the active team (who is on-call duty) to switch? Do you want the switch to happen every X days, X weeks or X months? </p>
                                                         </div>
 
-                                                        <div style={{ marginTop: "5px" }}>
+                                                        <div style={{ marginTop: '5px' }}>
                                                             <p> <b>What do you recommend?</b></p>
                                                             <p> We usually see 1 week rotations work the best for most organizations. </p>
                                                         </div>
@@ -228,7 +223,7 @@ let RenderSingleEscalation = ({
                                         </>
                                     </div>)}
 
-                                    {showRotationFreq && rotationFrequency && (<div className="bs-Fieldset-row">
+                                    {rotationFreqVisible && rotationFrequency && (<div className="bs-Fieldset-row">
 
                                         <>
                                             <label className="bs-Fieldset-label">Rotation Interval</label>
@@ -244,9 +239,9 @@ let RenderSingleEscalation = ({
                                                             <p> How often would you like the active team (who is on-call duty) to switch? Do you want the switch to happen every X days, X weeks or X months? </p>
                                                         </div>
 
-                                                        <div style={{ marginTop: "5px" }}>
-                                                            <p> <b>I'm confused. Can I learn more?</b></p>
-                                                            <p> We've written a blog detailing more info and also best-practices <a className="underline" href="https://blog.fyipe.com/how-to-create-an-on-call-schedule-that-doesnt-suck/">here.</a> If you're still confused, please email us at support@fyipe.com and we'll get back to you as soon as possible. </p>
+                                                        <div style={{ marginTop: '5px' }}>
+                                                            <p> <b>I&#39;m confused. Can I learn more?</b></p>
+                                                            <p> We&#39;ve written a blog detailing more info and also best-practices <a className="underline" href="https://blog.fyipe.com/how-to-create-an-on-call-schedule-that-doesnt-suck/">here.</a> If you&#39;re still confused, please email us at support@fyipe.com and we&#39;ll get back to you as soon as possible. </p>
                                                         </div>
 
                                                     </Tooltip>
@@ -257,7 +252,7 @@ let RenderSingleEscalation = ({
 
                                     </div>)}
 
-                                    {showRotationFreq && rotationFrequency && (<div className="bs-Fieldset-row">
+                                    {rotationFreqVisible && rotationFrequency && (<div className="bs-Fieldset-row">
 
                                         <>
                                             <label className="bs-Fieldset-label">First rotation happens on</label>
@@ -272,7 +267,7 @@ let RenderSingleEscalation = ({
 
                                     </div>)}
 
-                                    {showRotationFreq && rotationFrequency && (<div className="bs-Fieldset-row">
+                                    {rotationFreqVisible && rotationFrequency && (<div className="bs-Fieldset-row">
 
                                         <>
                                             <label className="bs-Fieldset-label">Rotation Timezone</label>
@@ -291,7 +286,7 @@ let RenderSingleEscalation = ({
 
                                     </div>)}
 
-                                    {showRotationFreq && (<div className="bs-Fieldset-row">
+                                    {rotationFreqVisible && (<div className="bs-Fieldset-row">
                                         <>
                                             <label className="bs-Fieldset-label"></label>
                                             <div className="bs-Fieldset-fields">

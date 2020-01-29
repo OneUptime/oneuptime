@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types'
 import { Field } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
-import TimezoneSelector from './TimezoneSelector';
-import TeamSelector from './TeamSelector';
-import TimeSelector from './TimeSelector';
+import TimezoneSelector from '../basic/TimezoneSelector';
+import TeamSelector from '../basic/TeamSelector';
+import TimeSelector from '../basic/TimeSelector';
 
 let RenderName = ({
     memberValue, inputarray, subProjectId,

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types'
 import { FieldArray } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
-import { RenderNames } from '../basic/RenderNames';
+import { RenderNames } from './RenderNames';
 
 let RenderTeams = ({
   fields, subProjectId, policyIndex,
