@@ -18,26 +18,9 @@ services:
     ports:
       - "3002:3002"
     build: ./backend
+    env_file: 
+      - ./backend/.env
     environment: 
-      - MAIL_USER=noreply@fyipe.com
-      - MAIL_PASSWORD=gBote8sHiWpbxGEJo9Puv8cevW
-      - MAIL_RECIPIENT=testmail@fyipe.com
-      - MAIL_RECIPIENT_PASSWORD=66WEPsk4FJCqUnbCFeZrFYCRWg
-      - MAIL_SERVER_SMTP=mail.hackerbay.io
-      - MAIL_PORT_SMTP=587
-      - MAIL_SERVER_IMAP=mail.hackerbay.io
-      - MAIL_PORT_IMAP=993
-      - MAIL_FROM=noreply@fyipe.com
-      - MAIL_SECURE=false
-      - EMAIL_VERIFY_TIME=3600
-      - BACKEND_HOST=http://localhost:3002
-      - ACCOUNTS_HOST=http://localhost:3003
-      - DASHBOARD_HOST=http://localhost:3000
-      - HOME_HOST=http://localhost:1444
-      - NODE_ENV=development
-      - WINDOWMS=216000
-      - MAX=5000
-      - RATE_LIMITING_ENABLED=false
       - MONGO_URL=mongodb://mongo:27017/fyipedb
       - REDIS_HOST=redis
     depends_on:
@@ -48,6 +31,8 @@ services:
     ports:
       - "3003:3003"
     build: ./accounts
+    env_file: 
+      - ./accounts/.env
     depends_on:
       - backend
 
@@ -55,18 +40,24 @@ services:
     ports:
       - "3000:3000"
     build: ./dashboard
+    env_file: 
+      - ./dashboard/.env
     depends_on:
       - backend
 
   home:
     ports:
       - "1444:1444"
+    env_file: 
+      - ./home/.env
     build: ./home
   
   status-page:
     ports:
       - "3006:3006"
     build: ./status-page
+    env_file: 
+      - ./status-page/.env
     depends_on:
       - backend
       - accounts
@@ -75,7 +66,9 @@ services:
   admin-dashboard:
     ports:
       - "3100:3100"
-    build: ./dashboard
+    env_file: 
+      - ./admin-dashboard/.env.development
+    build: ./admin-dashboard
     depends_on:
       - backend
       - accounts
@@ -83,12 +76,16 @@ services:
   http-test-server:
     ports:
       - "3010:3010"
+    env_file: 
+      - ./http-test-server/.env
     build: ./http-test-server
 
   probe1:
     ports:
       - "3019:3019"
     build: ./probe
+    env_file: 
+      - ./probe/.env
     environment:
       - PORT=3019
       - SERVER_URL=http://backend:3002
@@ -101,6 +98,8 @@ services:
     ports:
       - "3020:3020"
     build: ./probe
+    env_file: 
+      - ./probe/.env
     environment:
       - PORT=3020
       - SERVER_URL=http://backend:3002

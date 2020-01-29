@@ -3,11 +3,11 @@ import PropTypes from 'prop-types'
 import { Field, FieldArray } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderRotationFrequency } from './RenderRotationFrequency';
-import { RenderInterval } from './RenderInterval';
+import { RenderInterval } from '../basic/RenderInterval';
 import { RenderRotationSwitchTime } from './RenderRotationSwitchTime';
-import TimezoneSelector  from './TimezoneSelector';
+import TimezoneSelector  from '../basic/TimezoneSelector';
 import { RenderTeams } from './RenderTeams';
-import { RenderField } from './RenderField';
+import { RenderField } from '../basic/RenderField';
 
 let RenderSingleEscalation = ({
   policy, email, sms, call,
@@ -29,7 +29,7 @@ let RenderSingleEscalation = ({
     <li key={policyIndex} style={{ margin: '5px 0px' }}>
         <div className="Card-root" style={{ backgroundColor: policyIndex === 0 ? '#f7f7f7' : '#ffffff' }}>
             <div className="Box-root">
-                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                {fields.length > 1 && <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                             <span>Escalation Policy {policyIndex + 1}</span>
@@ -40,11 +40,11 @@ let RenderSingleEscalation = ({
                             </span>
                         </p>
                     </div>
-                </div>
+                </div>}
                 <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f7f7f7' }}>
                     <div>
                         <div className="bs-Fieldset-row" style={{ marginBottom: '-20px'}}>
-                            <label className="bs-Fieldset-label"><span>Alert Via.</span></label>
+                            <label className="bs-Fieldset-label"><span>Alert Members by</span></label>
                             <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
                                 <div className="Box-root" style={{ height: '5px' }}></div>
                                 <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
@@ -69,15 +69,7 @@ let RenderSingleEscalation = ({
                                     </label>
                                 </div>
                             </div>
-                            <div className="Box-root Padding-left--24">
-                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                    <div className="Box-root">
-                                        <div className="Box-root">
-
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                           
                             <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
                                 <div className="Box-root" style={{ height: '5px' }}></div>
                                 <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
@@ -102,15 +94,7 @@ let RenderSingleEscalation = ({
                                     </label>
                                 </div>
                             </div>
-                            <div className="Box-root Padding-left--24">
-                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                    <div className="Box-root">
-                                        <div className="Box-root">
-
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            
                             <div className="bs-Fieldset-fields" style={{ maxWidth: '100px' }}>
                                 <div className="Box-root" style={{ height: '5px' }}></div>
                                 <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">

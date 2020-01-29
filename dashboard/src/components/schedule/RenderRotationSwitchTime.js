@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types'
 import ShouldRender from '../basic/ShouldRender';
 import { Field } from 'redux-form';
-import TimeSelector from './TimeSelector';
-import { WeekSelector } from './WeekSelector';
+import TimeSelector from '../basic/TimeSelector';
+import { WeekSelector } from '../basic/WeekSelector';
 
 const RenderRotationSwitchTime = ({
   policy, rotationFrequency
