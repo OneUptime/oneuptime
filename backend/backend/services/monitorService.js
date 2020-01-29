@@ -72,8 +72,8 @@ module.exports = {
                         if (data.headers && data.headers.length) monitor.headers = data.headers;
                     }
                     var savedMonitor = await monitor.save();
-
-                    return [savedMonitor];
+                    monitor = await _this.findOneBy({ _id: savedMonitor._id });
+                    return [monitor];
                 } else {
                     let error = new Error('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
                     error.code = 400;
