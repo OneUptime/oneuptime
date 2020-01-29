@@ -61,7 +61,7 @@ export class RenameScheduleBox extends Component {
                                 </span>
                                 <p>
                                     <RenderIfSubProjectAdmin>
-                                        <span>Use the field below to rename the schedule.</span>
+                                        <span>Use the field below to name the schedule.</span>
                                     </RenderIfSubProjectAdmin>
                                     <RenderIfSubProjectMember>
                                         <span>Basic information about this schedule.</span>

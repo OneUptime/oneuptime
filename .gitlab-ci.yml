@@ -81,7 +81,7 @@ build_n_test_dashboard:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
     - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
@@ -228,7 +228,7 @@ build_n_test_statuspage:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/status-page:3.0.$CI_PIPELINE_IID ./status-page
     - sudo docker run -p 3006:3006 -d fyipe-project/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker ps
@@ -279,7 +279,7 @@ desktop_lighthouse_accounts:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
     - sudo docker run -e REACT_APP_PUBLIC_STRIPE_KEY=pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
@@ -309,7 +309,7 @@ mobile_lighthouse_accounts:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
     - sudo docker run -e REACT_APP_PUBLIC_STRIPE_KEY=pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
@@ -338,7 +338,7 @@ build_n_test_accounts:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/accounts:3.0.$CI_PIPELINE_IID ./accounts
     - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipe-project/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipe-project/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
@@ -516,7 +516,7 @@ build_n_test_server-monitor:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:3.4
     - sudo docker run --name redis -p 6379:6379 -d redis redis-server
     - sudo docker build -t fyipe-project/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./backend/.env.development --net=host -d fyipe-project/backend:3.0.$CI_PIPELINE_IID
     - sudo docker ps
     - cd server-monitor
     - npm ci
