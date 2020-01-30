@@ -23,7 +23,7 @@ export const selectedMenu = (data) => {
 	};
 }
 
-export const userData = (data) =>{
+export const userData = (data) => {
 	return {
 		type: USER_DATA,
 		payload: data
@@ -82,7 +82,7 @@ export const subscribeUser = (userDetails, monitors, projectId, statusPageId) =>
 			if (error && error.message) {
 				error = error.message;
 			}
-			if(error.length > 100){
+			if (error.length > 100) {
 				error = 'Network Error';
 			}
 

@@ -456,7 +456,6 @@ export function fetchMonitorStatusesFailure(error) {
     };
 }
 
-
 // Fetch Monitor Criteria
 export function fetchMonitorCriteria() {
 

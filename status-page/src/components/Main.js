@@ -11,31 +11,37 @@ import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPage, getStatusPageIndividualNote, selectedProbe } from '../actions/status';
+import { getStatusPage, fetchMonitorStatuses, getStatusPageIndividualNote, selectedProbe } from '../actions/status';
+import { getProbes } from '../actions/probe';
+
 
 class Main extends Component {
 
 	componentDidMount() {
-
-		let projectId;
-		let url;
-
 		if (window.location.search.substring(1) && window.location.search.substring(1) === 'embedded=true') {
 			document.getElementsByTagName('html')[0].style.background = 'none transparent';
 		}
+
+		let projectId, url;
 		if (window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('fyipeapp.com') > 0) {
 			projectId = window.location.host.split('.')[0];
 			url = 'null';
-		}
-		else {
+		} else {
 			projectId = 'null';
 			url = window.location.host;
 		}
+
+		this.props.getProbes(projectId, 0, 10).then(() => {
+			this.selectbutton(this.props.activeProbe)
+		});
+
 		this.props.getStatusPage(projectId, url).then(() => {
-			const probes  = this.props.monitorState && this.props.monitorState[0].probes;
-			this.selectbutton(probes[0]._id)
-		})
-		.catch(err => {
+			this.props.monitorState.map(monitor => {
+				const endDate = moment(Date.now());
+				const startDate = moment(Date.now()).subtract(90, 'days');
+				this.props.fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+			});
+		}).catch(err => {
 			if (err.message === 'Request failed with status code 401') {
 				const { loginRequired } = this.props.login;
 				if (loginRequired) {
@@ -92,19 +98,21 @@ class Main extends Component {
 		}
 	}
 
-	selectbutton = (data) => {
-		this.props.selectedProbe(data);
+	selectbutton = (index) => {
+		this.props.selectedProbe(index);
 	}
+
 	renderError = () => {
 		let { error } = this.props.status;
-		if(error === 'Input data schema mismatch.') {
+		if (error === 'Input data schema mismatch.') {
 			return 'StatusPage Not present';
 		} else if (error === 'Project Not present') {
 			return 'Invalid Project.';
 		} else return error;
 	}
+
 	render() {
-		const probes  = this.props.monitorState && this.props.monitorState[0].probes;
+		const probes = this.props.probes || [];
 		const date = new Date();
 		let view = false;
 		let status = '';
@@ -115,8 +123,7 @@ class Main extends Component {
 		let error = this.renderError();
 
 		if (this.props.statusData && this.props.statusData.monitorIds) {
-
-			serviceStatus = getServiceStatus(this.props.monitorState);
+			serviceStatus = getServiceStatus(this.props.monitorState, probes);
 			isGroupedByMonitorCategory = this.props.statusData.isGroupedByMonitorCategory;
 
 			if (serviceStatus === 'all') {
@@ -182,17 +189,17 @@ class Main extends Component {
 								</div>
 							</div>
 							<div className="btn-group">
-									{probes.map((probe, index) => 
+								{probes.map((probe, index) =>
 									(<button
-										onClick={() => this.selectbutton(probe._id)}
+										onClick={() => this.selectbutton(index)}
 										key={`probes-btn${index}`}
 										id={`probes-btn${index}`}
-										className={this.props.activeProbe === probe._id ? 'icon-container selected' : 'icon-container'}>
-										<span style={ probe.status === 'online' ? greenBackground : probe.status === 'degraded' ? yellowBackground: redBackground}></span>
+										className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+										<span style={probe.status === 'online' ? greenBackground : probe.status === 'degraded' ? yellowBackground : redBackground}></span>
 										<span>{probe.probeName}</span>
 									</button>)
-									)}
-								</div>
+								)}
+							</div>
 							<div className="statistics">
 								<div className="inner-gradient"></div>
 								<div className="uptime-graphs box-inner">
@@ -273,11 +280,14 @@ const mapStateToProps = (state) => ({
 	statusData: state.status.statusPage,
 	login: state.login,
 	activeProbe: state.status.activeProbe,
-	monitorState: state.status.statusPage.monitorsData
+	monitorState: state.status.statusPage.monitorsData,
+	probes: state.probe.probes
 });
 
 const mapDispatchToProps = (dispatch) => bindActionCreators({
 	getStatusPage,
+	fetchMonitorStatuses,
+	getProbes,
 	getStatusPageIndividualNote,
 	selectedProbe
 }, dispatch);
@@ -286,10 +296,13 @@ Main.propTypes = {
 	statusData: PropTypes.object,
 	status: PropTypes.object,
 	getStatusPage: PropTypes.func,
+	fetchMonitorStatuses: PropTypes.func,
+	getProbes: PropTypes.func,
 	login: PropTypes.object.isRequired,
-	monitorState: PropTypes.object,
+	monitorState: PropTypes.array,
 	selectedProbe: PropTypes.func,
-	activeProbe: PropTypes.string
+	activeProbe: PropTypes.number,
+	probes: PropTypes.array
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

@@ -7,6 +7,8 @@
 
 var express = require('express');
 var StatusPageService = require('../services/statusPageService');
+var MonitorService = require('../services/monitorService');
+var ProbeService = require('../services/probeService');
 
 var router = express.Router();
 var UtilService = require('../services/utilService');
@@ -374,6 +376,31 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function (
         let notes = response.investigationNotes;
         let count = response.count;
         return sendListResponse(req, res, notes, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: Get all Monitor Statuses by monitorId
+router.post('/:projectId/:monitorId/statuses', checkUser, async function (req, res) {
+    try {
+        const { startDate, endDate } = req.body;
+        var monitorId = req.params.monitorId;
+        var monitorLogs = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
+        return sendListResponse(req, res, monitorLogs);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/probes', checkUser, async function (req, res) {
+    try {
+        let skip = req.query.skip || 0;
+        let limit = req.query.limit || 0;
+        let probe = await ProbeService.findBy({}, limit, skip);
+        let count = await ProbeService.countBy({});
+        return sendListResponse(req, res, probe, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
