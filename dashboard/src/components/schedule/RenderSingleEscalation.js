@@ -123,15 +123,22 @@ let RenderSingleEscalation = ({
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">Number of Call Reminders</label>
                                             <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    type="text"
-                                                    name={`${policy}.callFrequency`}
-                                                    component={RenderField}
-                                                    style={{ width: '250px' }}
-                                                    defaultValue="3"
-                                                    subProjectId={subProjectId}
-                                                />
+                                                <span className="flex">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        name={`${policy}.callFrequency`}
+                                                        component={RenderField}
+                                                        style={{ width: '250px' }}
+                                                        defaultValue="3"
+                                                        subProjectId={subProjectId}
+                                                    />
+                                                    <Tooltip title="Call Reminders" >
+                                                        <div>
+                                                            <p> How many times do you want your team to be alerted by Call if they do not respond. After X reminders Fyipe will escalates this incident to another team. </p>
+                                                        </div>
+                                                    </Tooltip>
+                                                </span>
                                             </div>
                                         </div>
                                     )}
@@ -139,15 +146,22 @@ let RenderSingleEscalation = ({
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">Number of SMS Reminders</label>
                                             <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    type="text"
-                                                    name={`${policy}.smsFrequency`}
-                                                    component={RenderField}
-                                                    style={{ width: '250px' }}
-                                                    defaultValue="3"
-                                                    subProjectId={subProjectId}
-                                                />
+                                                <span className="flex">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        name={`${policy}.smsFrequency`}
+                                                        component={RenderField}
+                                                        style={{ width: '250px' }}
+                                                        defaultValue="3"
+                                                        subProjectId={subProjectId}
+                                                    />
+                                                    <Tooltip title="SMS Reminders" >
+                                                        <div>
+                                                            <p> How many times do you want your team to be alerted by SMS if they do not respond. After X reminders Fyipe will escalates this incident to another team </p>
+                                                        </div>
+                                                    </Tooltip>
+                                                </span>
                                             </div>
                                         </div>
                                     )}
@@ -155,15 +169,22 @@ let RenderSingleEscalation = ({
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">Number of Email Reminders</label>
                                             <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    type="text"
-                                                    name={`${policy}.emailFrequency`}
-                                                    component={RenderField}
-                                                    style={{ width: '250px' }}
-                                                    defaultValue="3"
-                                                    subProjectId={subProjectId}
-                                                />
+                                                <span className="flex">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        name={`${policy}.emailFrequency`}
+                                                        component={RenderField}
+                                                        style={{ width: '250px' }}
+                                                        defaultValue="3"
+                                                        subProjectId={subProjectId}
+                                                    />
+                                                    <Tooltip title="Email Reminders" >
+                                                        <div>
+                                                            <p> How many times do you want your team to be alerted by Email if they do not respond. After X reminders Fyipe will escalates this incident to another team. </p>
+                                                        </div>
+                                                    </Tooltip>
+                                                </span>
                                             </div>
                                         </div>
                                     )}

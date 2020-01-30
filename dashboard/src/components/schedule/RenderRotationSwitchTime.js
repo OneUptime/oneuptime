@@ -24,7 +24,7 @@ const RenderRotationSwitchTime = ({
         </div>
       </ShouldRender>
       <ShouldRender if={rotationFrequency === 'days'}>
-        <div style={{ paddingLeft: '0px', paddingTop: '5px', paddingBottom: 20, marginBottom: 10 }}>
+        <div>
           <Field
             className="db-BusinessSettings-input TextInput bs-TextInput"
             type="text"
