@@ -123,15 +123,22 @@ let RenderSingleEscalation = ({
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">Number of Call Reminders</label>
                                             <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    type="text"
-                                                    name={`${policy}.callFrequency`}
-                                                    component={RenderField}
-                                                    style={{ width: '250px' }}
-                                                    defaultValue="3"
-                                                    subProjectId={subProjectId}
-                                                />
+                                                <span className="flex">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        name={`${policy}.callFrequency`}
+                                                        component={RenderField}
+                                                        style={{ width: '250px' }}
+                                                        defaultValue="3"
+                                                        subProjectId={subProjectId}
+                                                    />
+                                                    <Tooltip title="Call Reminders" >
+                                                        <div>
+                                                            <p> How many times do you want your team to be alerted by Call if they do not respond. After X reminders Fyipe will escalates this incident to another team. </p>
+                                                        </div>
+                                                    </Tooltip>
+                                                </span>
                                             </div>
                                         </div>
                                     )}
@@ -139,15 +146,22 @@ let RenderSingleEscalation = ({
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">Number of SMS Reminders</label>
                                             <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    type="text"
-                                                    name={`${policy}.smsFrequency`}
-                                                    component={RenderField}
-                                                    style={{ width: '250px' }}
-                                                    defaultValue="3"
-                                                    subProjectId={subProjectId}
-                                                />
+                                                <span className="flex">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        name={`${policy}.smsFrequency`}
+                                                        component={RenderField}
+                                                        style={{ width: '250px' }}
+                                                        defaultValue="3"
+                                                        subProjectId={subProjectId}
+                                                    />
+                                                    <Tooltip title="SMS Reminders" >
+                                                        <div>
+                                                            <p> How many times do you want your team to be alerted by SMS if they do not respond. After X reminders Fyipe will escalates this incident to another team </p>
+                                                        </div>
+                                                    </Tooltip>
+                                                </span>
                                             </div>
                                         </div>
                                     )}
@@ -155,15 +169,22 @@ let RenderSingleEscalation = ({
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">Number of Email Reminders</label>
                                             <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    type="text"
-                                                    name={`${policy}.emailFrequency`}
-                                                    component={RenderField}
-                                                    style={{ width: '250px' }}
-                                                    defaultValue="3"
-                                                    subProjectId={subProjectId}
-                                                />
+                                                <span className="flex">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        name={`${policy}.emailFrequency`}
+                                                        component={RenderField}
+                                                        style={{ width: '250px' }}
+                                                        defaultValue="3"
+                                                        subProjectId={subProjectId}
+                                                    />
+                                                    <Tooltip title="Email Reminders" >
+                                                        <div>
+                                                            <p> How many times do you want your team to be alerted by Email if they do not respond. After X reminders Fyipe will escalates this incident to another team. </p>
+                                                        </div>
+                                                    </Tooltip>
+                                                </span>
                                             </div>
                                         </div>
                                     )}
@@ -174,7 +195,7 @@ let RenderSingleEscalation = ({
                                             <div className="bs-Fieldset-fields">
                                                 <button className="button-as-anchor"
                                                     onClick={(() => manageRotationVisibility(true))}
-                                                >Advance: Enable Team Rotation</button>
+                                                >Advanced: Enable Team Rotation</button>
                                             </div>
                                         </>
                                     </div>)}
@@ -257,10 +278,24 @@ let RenderSingleEscalation = ({
                                         <>
                                             <label className="bs-Fieldset-label">First rotation happens on</label>
                                             <div className="bs-Fieldset-fields">
-                                                <RenderRotationSwitchTime
-                                                    policy={policy}
-                                                    rotationFrequency={rotationFrequency}
-                                                />
+                                                <span className="flex">
+                                                    <RenderRotationSwitchTime
+                                                        policy={policy}
+                                                        rotationFrequency={rotationFrequency}
+                                                    />
+                                                    <Tooltip title="First Rotation On" >
+                                                        <div>
+                                                            <p> <b>What is First rotation happens on?</b></p>
+                                                            <p> This is the time when your first on-call team (Team 1) switches from being active to inactive team for on-call duty. </p>
+                                                        </div>
+
+                                                        <div style={{ marginTop: '5px' }}>
+                                                            <p> <b>Here&#39;s an example.</b></p>
+                                                            <p> Lets assume today is Jan 1st, 12:00 PM. Assume we have two teams in Rotation Schedule - Team 1 and Team 2. We&#39;ve configured to Rotate teams by Week with Rotation Interval as 1 Week. Let&#39;s say we configured First Rotation On at 7st Jan, 2020 at 9:00 AM. With these parameters, <br /><br /> Team 1 will be on call schedule from Jan 1st, 2020 12:00 PM to  7st Jan, 2020 9:00 AM. <br />Team 2 will be on-call schedule from 7st Jan, 2020 9:00 AM to 14th Jan, 2020 9:00 AM (Exactly a week from First Rotate on) <br />Team 1 will be back to on-call schedule on 14th Jan, 2020 9:00 AM to 21st Jan, 2020 at 9:00 PM and so on.</p>
+                                                        </div>
+
+                                                    </Tooltip>
+                                                </span>
                                             </div>
 
                                         </>
@@ -272,14 +307,21 @@ let RenderSingleEscalation = ({
                                         <>
                                             <label className="bs-Fieldset-label">Rotation Timezone</label>
                                             <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    type="text"
-                                                    name={`${policy}.rotationTimezone`}
-                                                    component={TimezoneSelector}
-                                                    style={{ width: '250px' }}
-                                                    placeholder="CXT - Christmas"
-                                                />
+                                                <span className="flex">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        name={`${policy}.rotationTimezone`}
+                                                        component={TimezoneSelector}
+                                                        style={{ width: '250px' }}
+                                                        placeholder="CXT - Christmas"
+                                                    />
+                                                    <Tooltip title="First Rotation On Timezone" >
+                                                        <div>
+                                                            <p> Which timezone is &#39;First Rotatation happens on&#39; in?</p>
+                                                        </div>
+                                                    </Tooltip>
+                                                </span>
                                             </div>
 
                                         </>
