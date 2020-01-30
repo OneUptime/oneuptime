@@ -387,8 +387,8 @@ router.post('/:projectId/:monitorId/statuses', checkUser, async function (req, r
     try {
         const { startDate, endDate } = req.body;
         var monitorId = req.params.monitorId;
-        var monitorLogs = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
-        return sendListResponse(req, res, monitorLogs);
+        var monitorStatuses = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
+        return sendListResponse(req, res, monitorStatuses);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -398,9 +398,9 @@ router.get('/:projectId/probes', checkUser, async function (req, res) {
     try {
         let skip = req.query.skip || 0;
         let limit = req.query.limit || 0;
-        let probe = await ProbeService.findBy({}, limit, skip);
+        let probes = await ProbeService.findBy({}, limit, skip);
         let count = await ProbeService.countBy({});
-        return sendListResponse(req, res, probe, count);
+        return sendListResponse(req, res, probes, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

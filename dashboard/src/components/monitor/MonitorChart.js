@@ -15,7 +15,7 @@ const calculateTime = (statuses, start, range) => {
 
     let dayStart = moment(start).startOf('day');
 
-    let reversedStatuses = statuses.reverse();
+    let reversedStatuses = statuses.slice().reverse();
 
     for (let i = 0; i < range; i++) {
         let dayStartIn = dayStart;
@@ -39,6 +39,7 @@ const calculateTime = (statuses, start, range) => {
 
                 if (monitorStatus.status === 'offline') {
                     timeObj.downTime = timeObj.downTime + end.diff(start, 'seconds');
+                    timeObj.date = monitorStatus.endTime;
                 }
                 if (monitorStatus.status === 'degraded') {
                     timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'seconds');
@@ -46,8 +47,6 @@ const calculateTime = (statuses, start, range) => {
                 if (monitorStatus.status === 'online') {
                     timeObj.upTime = timeObj.upTime + end.diff(start, 'seconds');
                 }
-
-                timeObj.date = monitorStatus.endTime;
             }
         });
 

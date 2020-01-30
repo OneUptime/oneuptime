@@ -22,7 +22,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { selectedProbe } from '../../actions/monitor';
 import { openModal, closeModal } from '../../actions/modal';
 import { history } from '../../store';
-import { getMonitorStatus } from '../../config';
+import { getMonitorStatus, filterProbeData } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
@@ -89,38 +89,6 @@ export class MonitorViewHeader extends Component {
         }
     }
 
-    filterProbeData = (monitor, probe) => {
-        const monitorLogs = monitor.logs;
-        const monitorStatuses = monitor.statuses;
-
-        const start = moment(new Date(this.state.startDate));
-        const end = moment(new Date(this.state.endDate));
-
-        const probesLog = monitorLogs && monitorLogs.length > 0 ?
-            probe ? monitorLogs.filter(probeLogs => {
-                return probeLogs._id === null || probeLogs._id === probe._id
-            }) : monitorLogs
-            : [];
-        let logs = probesLog && probesLog[0] && probesLog[0].logs && probesLog[0].logs.length > 0 ?
-            probesLog[0].logs : [];
-        logs = logs && logs.length > 0 ? logs.filter(
-            log => moment(new Date(log.createdAt)).isBetween(start, end, 'day', '[]')
-        ) : [];
-
-        const probesStatus = monitorStatuses && monitorStatuses.length > 0 ?
-            probe ? monitorStatuses.filter(probeStatuses => {
-                return probeStatuses._id === null || probeStatuses._id === probe._id
-            }) : monitorStatuses
-            : [];
-        let statuses = probesStatus && probesStatus[0] && probesStatus[0].statuses && probesStatus[0].statuses.length > 0 ?
-            probesStatus[0].statuses : [];
-        statuses = statuses && statuses.length > 0 ? statuses.filter(
-            status => moment(new Date(status.createdAt)).isBetween(start, end, 'day', '[]')
-        ) : [];
-
-        return { logs, statuses };
-    }
-
     render() {
         const { deleteModalId, startDate, endDate } = this.state;
         const { monitor, subProjects, monitorState, activeProbe, currentProject, probes } = this.props;
@@ -129,7 +97,7 @@ export class MonitorViewHeader extends Component {
         const subProject = subProjects.find(subProject => subProject._id === subProjectId);
 
         const probe = monitor && probes && probes.length > 0 ? probes[probes.length < 2 ? 0 : activeProbe] : null;
-        const { logs, statuses } = this.filterProbeData(monitor, probe);
+        const { logs, statuses } = filterProbeData(monitor, probe, startDate, endDate);
 
         const status = getMonitorStatus(monitor.incidents, logs);
 
@@ -189,7 +157,7 @@ export class MonitorViewHeader extends Component {
                         <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                             <div className="btn-group">
                                 {monitor && probes.map((location, index) => {
-                                    let { logs } = this.filterProbeData(monitor, location);
+                                    let { logs } = filterProbeData(monitor, location, startDate, endDate);
                                     let status = getMonitorStatus(monitor.incidents, logs);
                                     let probe = probes.filter(probe => probe._id === location._id);
                                     let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;

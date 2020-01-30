@@ -30,7 +30,7 @@ if (!isServer) {
         dashboardUrl = env('HOST');
         accountsUrl = env('ACCOUNTS_HOST');
         domain = env('DOMAIN');
-        if (apiUrl.indexOf('staging')  > -1 || apiUrl.indexOf('app.local') > -1) {
+        if (apiUrl.indexOf('staging') > -1 || apiUrl.indexOf('app.local') > -1) {
             developmentEnv = true;
         }
     }
@@ -547,4 +547,36 @@ export const getMonitorStatus = (incidents, logs) => {
     let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'online'));
 
     return statusCompare || 'online';
+};
+
+export const filterProbeData = (monitor, probe, startDate, endDate) => {
+    const monitorLogs = monitor.logs;
+    const monitorStatuses = monitor.statuses;
+
+    const start = moment(new Date(startDate));
+    const end = moment(new Date(endDate));
+
+    const probesLog = monitorLogs && monitorLogs.length > 0 ?
+        probe ? monitorLogs.filter(probeLogs => {
+            return probeLogs._id === null || probeLogs._id === probe._id
+        }) : monitorLogs
+        : [];
+    let logs = probesLog && probesLog[0] && probesLog[0].logs && probesLog[0].logs.length > 0 ?
+        probesLog[0].logs : [];
+    logs = logs && logs.length > 0 ? logs.filter(
+        log => moment(new Date(log.createdAt)).isBetween(start, end, 'day', '[]')
+    ) : [];
+
+    const probesStatus = monitorStatuses && monitorStatuses.length > 0 ?
+        probe ? monitorStatuses.filter(probeStatuses => {
+            return probeStatuses._id === null || probeStatuses._id === probe._id
+        }) : monitorStatuses
+        : [];
+    let statuses = probesStatus && probesStatus[0] && probesStatus[0].statuses && probesStatus[0].statuses.length > 0 ?
+        probesStatus[0].statuses : [];
+    statuses = statuses && statuses.length > 0 ? statuses.filter(
+        status => moment(new Date(status.createdAt)).isBetween(start, end, 'day', '[]')
+    ) : [];
+
+    return { logs, statuses };
 };

@@ -49,11 +49,11 @@ export function updatemonitorlogbysocket(log) {
     };
 }
 
-export function updatemonitorstatusbysocket(log) {
+export function updatemonitorstatusbysocket(status) {
     return function (dispatch) {
         dispatch({
             type: 'UPDATE_MONITOR_STATUS',
-            payload: log
+            payload: status
         });
     };
 }

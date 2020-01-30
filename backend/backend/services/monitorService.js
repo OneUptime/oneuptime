@@ -258,16 +258,21 @@ module.exports = {
     },
 
     async getMonitors(subProjectIds, limit, skip) {
-        if (typeof limit === 'string') limit = parseInt(limit);
-        if (typeof skip === 'string') skip = parseInt(skip);
-        var _this = this;
+        try {
+            if (typeof limit === 'string') limit = parseInt(limit);
+            if (typeof skip === 'string') skip = parseInt(skip);
+            var _this = this;
 
-        let subProjectMonitors = await Promise.all(subProjectIds.map(async (id) => {
-            let monitors = await _this.findBy({ projectId: id }, limit, skip);
-            let count = await _this.countBy({ projectId: id });
-            return { monitors, count, _id: id, skip, limit };
-        }));
-        return subProjectMonitors;
+            let subProjectMonitors = await Promise.all(subProjectIds.map(async (id) => {
+                let monitors = await _this.findBy({ projectId: id }, limit, skip);
+                let count = await _this.countBy({ projectId: id });
+                return { monitors, count, _id: id, skip, limit };
+            }));
+            return subProjectMonitors;
+        } catch (error) {
+            ErrorService.log('monitorService.getMonitors', error);
+            throw error;
+        }
     },
 
     async getProbeMonitors(date) {
@@ -346,9 +351,10 @@ module.exports = {
             }
 
             for (const probe of probes) {
-                let query = (typeof probe !== 'undefined') ? {
-                    probeId: probe._id, monitorId, createdAt: { $gte: start, $lte: end }
-                } : { monitorId, createdAt: { $gte: start, $lte: end } };
+                let query = { monitorId, createdAt: { $gte: start, $lte: end } };
+                if (typeof probe !== 'undefined') {
+                    query.probeId = probe._id;
+                }
 
                 let monitorLogs;
 
@@ -390,9 +396,16 @@ module.exports = {
             }
 
             for (const probe of probes) {
-                let query = (typeof probe !== 'undefined') ? {
-                    probeId: probe._id, monitorId, createdAt: { $gte: start, $lte: end }
-                } : { monitorId, createdAt: { $gte: start, $lte: end } };
+                let query = {
+                    monitorId,
+                    $or: [
+                        { startTime: { $gte: start, $lte: end } },
+                        { $or: [{ endTime: { $gte: start, $lte: end } }, { endTime: null }] }
+                    ]
+                };
+                if (typeof probe !== 'undefined') {
+                    query.probeId = probe._id;
+                }
 
                 let monitorStatuses = await MonitorStatusService.findBy(query);
 
@@ -423,7 +436,6 @@ module.exports = {
     async sendMonitorStatus(data) {
         try {
             var monitor = await MonitorModel.findOne({ _id: data.monitorId, deleted: false });
-
             if (monitor) {
                 await RealTimeService.updateMonitorStatus(data, monitor._id, monitor.projectId);
             }

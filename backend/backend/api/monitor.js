@@ -23,7 +23,6 @@ const {
 var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 var sendItemResponse = require('../middlewares/response').sendItemResponse;
 var sendListResponse = require('../middlewares/response').sendListResponse;
-var sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 
 // Route
 // Description: Adding / Updating a new monitor to the project.
@@ -307,8 +306,8 @@ router.post('/:projectId/statuses/:monitorId', getUser, isAuthorized, async func
     try {
         const { startDate, endDate } = req.body;
         var monitorId = req.params.monitorId;
-        var monitorLogs = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
-        return sendListResponse(req, res, monitorLogs);
+        var monitorStatuses = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
+        return sendListResponse(req, res, monitorStatuses);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
