@@ -36,7 +36,7 @@ class Main extends Component {
 		});
 
 		this.props.getStatusPage(projectId, url).then(() => {
-			this.props.monitorState.map(monitor => {
+			this.props.monitorState.forEach(monitor => {
 				const endDate = moment(Date.now());
 				const startDate = moment(Date.now()).subtract(90, 'days');
 				this.props.fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);

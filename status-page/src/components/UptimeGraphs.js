@@ -79,7 +79,7 @@ class UptimeGraphs extends Component {
 
     let block = [];
     for (let i = 0; i < range; i++) {
-      block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
+      block.unshift(<BlockChart monitorId={monitor._id} time={timeBlock[i]} key={i} id={i} />);
     }
 
     let status = {};
