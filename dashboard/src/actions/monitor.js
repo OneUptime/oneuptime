@@ -403,7 +403,7 @@ export function fetchMonitorsSubscribersFailure(error) {
     };
 }
 
-// Fetch Monitor Logs list
+// Fetch Monitor Logs
 export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
         var promise = postApi(`monitor/${projectId}/monitorLog/${monitorId}`, { startDate, endDate });
@@ -455,6 +455,54 @@ export function fetchMonitorLogsSuccess(monitorLogs) {
 export function fetchMonitorLogsFailure(error) {
     return {
         type: types.FETCH_MONITOR_LOGS_FAILURE,
+        payload: error
+    };
+}
+
+// Fetch Monitor Statuses list
+export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
+    return function (dispatch) {
+        var promise = postApi(`monitor/${projectId}/statuses/${monitorId}`, { startDate, endDate });
+        dispatch(fetchMonitorStatusesRequest());
+
+        promise.then(function (monitorStatuses) {
+            dispatch(fetchMonitorStatusesSuccess({ projectId, monitorId, statuses: monitorStatuses.data }));
+        }, function (error) {
+            if (error && error.response && error.response.data) {
+                error = error.response.data;
+            }
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            }
+            else {
+                error = 'Network Error';
+            }
+            dispatch(fetchMonitorStatusesFailure(errors(error)));
+        });
+
+        return promise;
+    };
+}
+
+export function fetchMonitorStatusesRequest() {
+    return {
+        type: types.FETCH_MONITOR_STATUSES_REQUEST,
+    };
+}
+
+export function fetchMonitorStatusesSuccess(monitorStatuses) {
+    return {
+        type: types.FETCH_MONITOR_STATUSES_SUCCESS,
+        payload: monitorStatuses
+    };
+}
+
+export function fetchMonitorStatusesFailure(error) {
+    return {
+        type: types.FETCH_MONITOR_STATUSES_FAILURE,
         payload: error
     };
 }

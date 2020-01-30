@@ -376,6 +376,38 @@ module.exports = {
         }
     },
 
+    async getMonitorStatuses(monitorId, startDate, endDate) {
+        try {
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).toDate();
+            const monitor = await this.findOneBy({ _id: monitorId });
+
+            let probes, probeStatuses = [];
+            if (monitor.type === 'server-monitor' || monitor.type === 'manual') {
+                probes = [undefined];
+            } else {
+                probes = await ProbeService.findBy({});
+            }
+
+            for (const probe of probes) {
+                let query = (typeof probe !== 'undefined') ? {
+                    probeId: probe._id, monitorId, createdAt: { $gte: start, $lte: end }
+                } : { monitorId, createdAt: { $gte: start, $lte: end } };
+
+                let monitorStatuses = await MonitorStatusService.findBy(query);
+
+                if (monitorStatuses && monitorStatuses.length > 0) {
+                    probeStatuses.push({ _id: typeof probe !== 'undefined' ? probe._id : null, statuses: monitorStatuses });
+                }
+            }
+
+            return probeStatuses;
+        } catch (error) {
+            ErrorService.log('monitorService.getMonitorStatuses', error);
+            throw error;
+        }
+    },
+
     async sendMonitorLog(data) {
         try {
             var monitor = await MonitorModel.findOne({ _id: data.monitorId, deleted: false });
@@ -513,6 +545,7 @@ module.exports = {
 
 var MonitorModel = require('../models/monitor');
 var ProbeService = require('./probeService');
+var MonitorStatusService = require('./monitorStatusService');
 var MonitorLogService = require('./monitorLogService');
 let MonitorLogByHourService = require('./monitorLogByHourService');
 let MonitorLogByDayService = require('./monitorLogByDayService');

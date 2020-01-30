@@ -30,6 +30,9 @@ import {
     FETCH_MONITOR_LOGS_REQUEST,
     FETCH_MONITOR_LOGS_SUCCESS,
     FETCH_MONITOR_LOGS_FAILURE,
+    FETCH_MONITOR_STATUSES_REQUEST,
+    FETCH_MONITOR_STATUSES_SUCCESS,
+    FETCH_MONITOR_STATUSES_FAILURE,
     FETCH_MONITOR_CRITERIA_REQUEST,
     FETCH_MONITOR_CRITERIA_SUCCESS,
     FETCH_MONITOR_CRITERIA_FAILURE,
@@ -83,6 +86,7 @@ const INITIAL_STATE = {
     fetchMonitorsIncidentsRangeRequest: false,
     activeProbe: 0,
     fetchMonitorLogsRequest: false,
+    fetchMonitorStatusesRequest: false,
     fetchMonitorCriteriaRequest: false,
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
@@ -422,6 +426,44 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: false,
                 },
                 fetchMonitorLogsRequest: false
+            });
+
+        case FETCH_MONITOR_STATUSES_REQUEST:
+            return Object.assign({}, state, {
+                fetchMonitorStatusesRequest: true
+            });
+
+        case FETCH_MONITOR_STATUSES_SUCCESS:
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.monitorsList.monitors.map(monitor => {
+                        monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
+                            if (monitor._id === action.payload.monitorId) {
+                                monitor.statuses = action.payload.statuses.data;
+                                return monitor
+                            } else {
+                                return monitor;
+                            }
+                        }) : monitor.monitors;
+                        return monitor;
+                    })
+                },
+                fetchMonitorStatusesRequest: false
+            });
+
+        case FETCH_MONITOR_STATUSES_FAILURE:
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                fetchMonitorStatusesRequest: false
             });
 
         case 'UPDATE_DATE_RANGE':

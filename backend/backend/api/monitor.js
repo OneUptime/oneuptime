@@ -301,6 +301,19 @@ router.post('/:projectId/monitorLog/:monitorId', getUser, isAuthorized, async fu
     }
 });
 
+// Route
+// Description: Get all Monitor Statuses by monitorId
+router.post('/:projectId/statuses/:monitorId', getUser, isAuthorized, async function (req, res) {
+    try {
+        const { startDate, endDate } = req.body;
+        var monitorId = req.params.monitorId;
+        var monitorLogs = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
+        return sendListResponse(req, res, monitorLogs);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.post('/:projectId/inbound/:deviceId', getUser, isAuthorized, async function (req, res) {
     return await _updateDeviceMonitorPingTime(req, res);
 });

@@ -37,6 +37,7 @@ class DashboardView extends Component {
 
     ready = () => {
         const projectId = this.props.currentProject ? this.props.currentProject._id : null;
+        this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
         this.props.fetchMonitors(projectId).then(() => {
             this.props.monitor.monitorsList.monitors.forEach((subProject) => {
                 if (subProject.monitors.length > 0) {
@@ -47,7 +48,6 @@ class DashboardView extends Component {
             });
         });
         this.props.fetchTutorial();
-        this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
     }
 
     render() {

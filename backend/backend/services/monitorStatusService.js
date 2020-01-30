@@ -55,7 +55,6 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
             var updatedData = await MonitorStatusModel.updateMany(query, {
                 $set: data
             });
@@ -85,7 +84,6 @@ module.exports = {
                 query = {};
             }
 
-            query.deleted = false;
             var monitorStatus = await MonitorStatusModel.find(query)
                 .sort({ createdAt: -1 })
                 .limit(limit)
@@ -112,37 +110,8 @@ module.exports = {
             ErrorService.log('MonitorStatusService.findOneBy', error);
             throw error;
         }
-    },
-
-    getMonitorStatus: async function (monitorId, startDate, endDate) {
-        try {
-            var _this = this;
-            var probes = await ProbeService.findBy({});
-            var targetDate = moment(Date.now()).subtract(90, 'days').startOf('day');
-            var newProbes = Promise.all(probes.map(async (probe) => {
-                probe = probe.toObject();
-                var probeStatus = await _this.findBy({
-                    probeId: probe._id, monitorId: monitorId,
-                    $or: [
-                        { 'startTime': { $gt: targetDate } }, { $or: [{ 'endTime': { $gt: targetDate } }, { 'endTime': null }] }
-                    ]
-                });
-                var latestLog = await MonitorLogService.findBy({ probeId: probe._id, monitorId: monitorId }, 1, 0);
-                probe.probeStatus = probeStatus;
-                probe.status = latestLog && latestLog[0] && latestLog[0].status ? latestLog[0].status : '';
-                probe.responseTime = latestLog && latestLog[0] && latestLog[0].responseTime ? latestLog[0].responseTime : '';
-                return probe;
-            }));
-            return newProbes;
-        } catch (error) {
-            ErrorService.log('monitorStatusService.getMonitorStatus', error);
-            throw error;
-        }
-    },
+    }
 };
 
 var MonitorStatusModel = require('../models/monitorStatus');
-var MonitorLogService = require('./monitorLogService');
-var ProbeService = require('./probeService');
 var ErrorService = require('../services/errorService');
-var moment = require('moment');
