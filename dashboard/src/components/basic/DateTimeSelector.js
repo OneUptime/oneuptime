@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { TimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
 import { createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles';
+import { DateTimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
 import DateFnsUtils from '@date-io/date-fns';
 
 const theme = createMuiTheme({
@@ -15,7 +15,7 @@ const theme = createMuiTheme({
     }
 })
 
-const TimeSelector = ({ input, meta: { touched, error }, style }) => {
+const DateTimeSelector = ({ input, meta: { touched, error }, style }) => {
     const [value, setValue] = useState(input.value);
     const handleChange = (option) => {
         setValue(option);
@@ -27,12 +27,12 @@ const TimeSelector = ({ input, meta: { touched, error }, style }) => {
 
     return (
         <span>
-            <div style={{ ...style, height: '28px', marginTop: '-15px' }}>
+            <div style={{ ...style, width:'250px', height: '28px', marginTop: '-15px' }}>
 
                 <MuiThemeProvider theme={theme}>
                   <MuiPickersUtilsProvider utils={DateFnsUtils}>
                     
-                      <TimePicker
+                      <DateTimePicker
                           name={input.name}
                           margin="normal"
                           id="time-picker"
@@ -44,7 +44,7 @@ const TimeSelector = ({ input, meta: { touched, error }, style }) => {
                           KeyboardButtonProps={{
                             'aria-label': 'change time',
                           }}
-                          emptyLabel="Select Time"
+                          emptyLabel="Select Date"
                           initialFocusedDate={null}
                       />
                     
@@ -68,12 +68,12 @@ const TimeSelector = ({ input, meta: { touched, error }, style }) => {
     );
 };
 
-TimeSelector.displayName = 'TimeSelector';
+DateTimeSelector.displayName = 'TimeSelector';
 
-TimeSelector.propTypes = {
+DateTimeSelector.propTypes = {
     input: PropTypes.object.isRequired,
     style: PropTypes.object,
     meta: PropTypes.object.isRequired
 };
 
-export default TimeSelector;
+export default DateTimeSelector;

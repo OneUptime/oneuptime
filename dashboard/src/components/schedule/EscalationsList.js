@@ -5,7 +5,7 @@ import { EscalationSingle } from './EscalationSingle';
 
 const EscalationsList = ({ escalationData, subProjectId }) => {
   return (
-    escalationData.length ? (
+    escalationData.length >0 ? (
       <div className="Box-root Margin-bottom--12">
         <div className="bs-ContentSection Card-root Card-shadow--medium">
           <div className="Box-root">
