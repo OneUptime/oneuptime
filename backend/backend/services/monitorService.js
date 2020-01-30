@@ -420,6 +420,19 @@ module.exports = {
         }
     },
 
+    async sendMonitorStatus(data) {
+        try {
+            var monitor = await MonitorModel.findOne({ _id: data.monitorId, deleted: false });
+
+            if (monitor) {
+                await RealTimeService.updateMonitorStatus(data, monitor._id, monitor.projectId);
+            }
+        } catch (error) {
+            ErrorService.log('monitorService.sendMonitorStatus', error);
+            throw error;
+        }
+    },
+
     addSeat: async function (query) {
         try {
             var project = await ProjectService.findOneBy(query);

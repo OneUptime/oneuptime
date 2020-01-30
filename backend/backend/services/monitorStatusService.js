@@ -20,7 +20,9 @@ module.exports = {
                 monitorStatus.manuallyCreated = data.manuallyCreated || false;
                 monitorStatus.status = data.status;
 
-                var savedMonitorStatus = monitorStatus.save();
+                var savedMonitorStatus = await monitorStatus.save();
+
+                await MonitorService.sendMonitorStatus(savedMonitorStatus);
 
                 return savedMonitorStatus;
             }
@@ -114,4 +116,5 @@ module.exports = {
 };
 
 var MonitorStatusModel = require('../models/monitorStatus');
+var MonitorService = require('../services/monitorService');
 var ErrorService = require('../services/errorService');

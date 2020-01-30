@@ -10,7 +10,9 @@ import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import {
     incidentresolvedbysocket, incidentacknowledgedbysocket, deletemonitorbysocket,
-    updatemonitorbysocket, createmonitorbysocket, incidentcreatedbysocket, updatemonitorlogbysocket, updateprobebysocket, addnotifications, teamMemberRoleUpdate, teamMemberCreate, teamMemberDelete
+    updatemonitorbysocket, createmonitorbysocket, incidentcreatedbysocket,
+    updatemonitorlogbysocket, updatemonitorstatusbysocket, updateprobebysocket,
+    addnotifications, teamMemberRoleUpdate, teamMemberCreate, teamMemberDelete
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 
@@ -131,6 +133,16 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.updatemonitorlogbysocket(data);
                 }
             });
+            this.socket.on(`updateMonitorStatus-${this.props.project._id}`, function (data) {
+                const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
+                if (isUserInProject) {
+                    thisObj.props.updatemonitorstatusbysocket(data);
+                } else {
+                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
+                    const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
+                    if (isUserInSubProject) thisObj.props.updatemonitorstatusbysocket(data);
+                }
+            });
             this.socket.on(`updateProbe-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
@@ -237,6 +249,7 @@ let mapDispatchToProps = dispatch => (
         createmonitorbysocket,
         incidentcreatedbysocket,
         updatemonitorlogbysocket,
+        updatemonitorstatusbysocket,
         updateprobebysocket,
         addnotifications,
         teamMemberRoleUpdate,

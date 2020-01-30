@@ -301,57 +301,6 @@ export function fetchMonitorsIncidentsFailure(error) {
     };
 }
 
-// Fetch incidents of monitors by date range and limit to 10
-// props -> { projectId, monitorId, limit, startDate, endDate }
-export function fetchMonitorsIncidentsRange(projectId, monitorId, limit, startDate, endDate) {
-    return function (dispatch) {
-
-        var promise = postApi(`incident/${projectId}/monitor/${monitorId}`, { limit, startDate, endDate });
-        dispatch(fetchMonitorsIncidentsRangeRequest(monitorId));
-
-        promise.then(function (monitors) {
-            dispatch(fetchMonitorsIncidentsRangeSuccess({ projectId, monitorId, incidents: monitors.data }));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(fetchMonitorsIncidentsRangeFailure(errors(error)));
-        });
-
-        return promise;
-
-    };
-
-}
-
-export function fetchMonitorsIncidentsRangeSuccess(incidents) {
-    return {
-        type: types.FETCH_MONITORS_INCIDENTS_RANGE_SUCCESS,
-        payload: incidents
-    };
-}
-
-export function fetchMonitorsIncidentsRangeRequest(monitorId) {
-    return {
-        type: types.FETCH_MONITORS_INCIDENTS_RANGE_REQUEST,
-        payload: monitorId
-    };
-}
-
-export function fetchMonitorsIncidentsRangeFailure(error) {
-    return {
-        type: types.FETCH_MONITORS_INCIDENTS_RANGE_FAILURE,
-        payload: error
-    };
-}
-
 //Fetch Subscribers of monitors
 export function fetchMonitorsSubscribers(projectId, monitorId, skip, limit) {
     return function (dispatch) {
