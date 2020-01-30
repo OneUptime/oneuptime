@@ -11,7 +11,7 @@ import { FormLoader } from '../basic/Loader';
 import AddSeats from '../modals/AddSeats';
 import { openModal, closeModal } from '../../actions/modal';
 import { fetchMonitorCriteria, fetchMonitorsIncidents, fetchMonitorsSubscribers } from '../../actions/monitor';
-//import { showUpgradeForm } from '../../actions/project';
+import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import SubProjectSelector from '../basic/SubProjectSelector';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
@@ -78,12 +78,12 @@ class NewMonitor extends Component {
         return errors;
     }
 
-    /*  componentDidUpdate() {
-          const { monitor } = this.props
-          if (monitor.newMonitor.error === 'You can\'t add any more monitors. Please upgrade plan.') {
-              this.showUpgradeForm()
-          }
-      }*/
+    componentDidUpdate() {
+        const { monitor } = this.props
+        if (monitor.newMonitor.error === 'You can\'t add any more monitors. Please upgrade plan.') {
+            this.props.showUpgradeForm()
+        }
+    }
 
     submitForm = (values) => {
         var thisObj = this;
@@ -223,11 +223,11 @@ class NewMonitor extends Component {
     }
 
     monitorTypeDescription = {
-        'url': 'Monitor any resources (Websites, API, Servers, IoT Devices and more) constantly and notify your team when they do not behave the way you want.',
+        'url': 'Monitor your website and get notified when it goes down or performs poorly.',
         'device': 'Monitor IoT devices constantly and notify your team when they do not behave the way you want.',
         'manual': (<>Manual monitors do not monitor any resource. You can change monitor status by using <a href="https://docs.fyipe.com">Fyipe’s API</a>. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.</>),
         'api': (<>Monitor <a href="https://en.wikipedia.org/wiki/Representational_state_transfer">REST</a> endpoints constantly and notify your team when they do not behave the way you want.</>),
-        'script': 'Run custom script when monitor status changes.',
+        'script': 'Run custom JavaScript script and alerts you when script fails.',
         'server-monitor': 'Monitor servers constantly and notify your team when they do not behave the way you want.',
     }
 
@@ -264,7 +264,7 @@ class NewMonitor extends Component {
                                 <p>
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
-                                            Monitor any resource like API&apos;s, Websites, Servers, Containers, IoT device or more.
+                                        Monitor any resources (Websites, API, Servers, IoT Devices and more) constantly and notify your team when they do not behave the way you want.
                                         </span>
                                     </ShouldRender>
                                     <ShouldRender if={this.props.edit}>
@@ -341,9 +341,42 @@ class NewMonitor extends Component {
                                                                         { value: 'server-monitor', label: 'Server' }
                                                                     ]}
                                                                 />
-                                                                <Tooltip title="Sample" >
-                                                                    This is a new content <br />
-                                                                    New content
+                                                                <Tooltip title="Monitor Types" >
+                                                                    <div>
+                                                                        <p> <b>What are monitors?</b></p>
+                                                                        <p> Monitors lets you monitor any reosurces you have like API&#39;s, Websites, Servers, Containers, IoT device or more. </p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>Website Monitors</b></p>
+                                                                        <p> Monitor your website and get notified when it goes down or performs poorly.</p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>IoT Device</b></p>
+                                                                        <p> Monitor IoT devices constantly and notify your team when they do not behave the way you want. </p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>Manual Monitors</b></p>
+                                                                        <p> <>Manual monitors do not monitor any resource. You can change monitor status by using <a href="https://docs.fyipe.com">Fyipe’s API</a>. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.</> </p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>API Monitor</b></p>
+                                                                        <p> <>Monitor <a href="https://en.wikipedia.org/wiki/Representational_state_transfer">REST</a> endpoints constantly and notify your team when they do not behave the way you want.</> </p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>Script Monitor</b></p>
+                                                                        <p> Run custom JavaScript script and alerts you when script fails.</p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>Server Monitor</b></p>
+                                                                        <p> Monitor servers constantly and notify your team when they do not behave the way you want.</p>
+                                                                    </div>
+                                                                    
                                                                 </Tooltip>
                                                             </span>
                                                             <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ marginTop: 10 }}>
@@ -485,7 +518,7 @@ class NewMonitor extends Component {
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <button className="button-as-anchor" onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</button>
+                                                            <button className="button-as-anchor" onClick={() => this.openAdvance()}> Advance Options.</button>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -582,7 +615,8 @@ const mapDispatchToProps = dispatch => bindActionCreators(
         fetchMonitorsIncidents,
         fetchMonitorsSubscribers,
         fetchSchedules,
-        scheduleSuccess
+        scheduleSuccess,
+        showUpgradeForm
     }
     , dispatch);
 
@@ -648,7 +682,8 @@ NewMonitor.propTypes = {
     schedules: PropTypes.array,
     monitorId: PropTypes.string,
     setMonitorCriteria: PropTypes.func,
-    fetchMonitorCriteria: PropTypes.func
+    fetchMonitorCriteria: PropTypes.func,
+    showUpgradeForm: PropTypes.func
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

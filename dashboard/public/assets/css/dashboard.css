@@ -51020,8 +51020,8 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   margin: 0; 
   padding: 0; 
   font: inherit; 
-  text-decoration: none; 
-  cursor: pointer; 
+  text-decoration: underline; 
+  cursor: pointer !important; 
   text-align: inherit;
   background-color: inherit;
   color: #000000;
@@ -51061,4 +51061,8 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 
 .flex{
   display: flex;
+}
+
+.underline{
+  text-decoration:underline !important;
 }
