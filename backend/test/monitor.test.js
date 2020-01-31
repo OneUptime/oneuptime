@@ -109,9 +109,9 @@ describe('Monitor API', function () {
             type: 'url',
             data: { url: 'http://www.tests.org' }
         }).end(function (err, res) {
-            monitorId = res.body[0]._id;
+            monitorId = res.body._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal('New Monitor 3');
+            expect(res.body.name).to.be.equal('New Monitor 3');
             done();
         });
     });
@@ -143,9 +143,9 @@ describe('Monitor API', function () {
                 callScheduleId: scheduleId,
                 data: { url: 'http://www.tests.org' }
             }).end(function (err, res) {
-                monitorId = res.body[0]._id;
+                monitorId = res.body._id;
                 expect(res).to.have.status(200);
-                expect(res.body[0].name).to.be.equal('New Monitor 5');
+                expect(res.body.name).to.be.equal('New Monitor 5');
                 request.get(`/schedule/${projectId}`).set('Authorization', authorization).end(function (err, res) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
@@ -172,14 +172,14 @@ describe('Monitor API', function () {
                 callScheduleId: scheduleId,
                 data: { url: 'http://www.tests.org' }
             }).end(function (err, res) {
-                monitorId = res.body[0]._id;
+                monitorId = res.body._id;
                 request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
                     name: 'New Monitor 7',
                     type: 'url',
                     callScheduleId: scheduleId,
                     data: { url: 'http://www.tests.org' }
                 }).end(function (err, res) {
-                    monitorId = res.body[0]._id;
+                    monitorId = res.body._id;
                     request.get(`/schedule/${projectId}`).set('Authorization', authorization).end(function (err, res) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
@@ -204,7 +204,7 @@ describe('Monitor API', function () {
             }
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body[0]._id).to.be.equal(monitorId);
+            expect(res.body._id).to.be.equal(monitorId);
             done();
         });
     });
@@ -280,10 +280,10 @@ describe('Monitor API with monitor Category', function () {
             data: { url: 'http://www.tests.org' },
             monitorCategoryId: monitorCategoryId
         }).end(function (err, res) {
-            monitorId = res.body[0]._id;
+            monitorId = res.body._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal('New Monitor 8');
-            expect(res.body[0].monitorCategoryId).to.be.equal(monitorCategoryId);
+            expect(res.body.name).to.be.equal('New Monitor 8');
+            expect(res.body.monitorCategoryId).to.be.equal(monitorCategoryId);
             done();
         });
     });
@@ -376,9 +376,9 @@ describe('Monitor API with Sub-Projects', function () {
             type: 'url',
             data: { url: 'http://www.tests.org' }
         }).end(function (err, res) {
-            monitorId = res.body[0]._id;
+            monitorId = res.body._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal('New Monitor 11');
+            expect(res.body.name).to.be.equal('New Monitor 11');
             done();
         });
     });
@@ -390,9 +390,9 @@ describe('Monitor API with Sub-Projects', function () {
             type: 'url',
             data: { url: 'http://www.tests.org' }
         }).end(function (err, res) {
-            subProjectMonitorId = res.body[0]._id;
+            subProjectMonitorId = res.body._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal('New Monitor 12');
+            expect(res.body.name).to.be.equal('New Monitor 12');
             done();
         });
     });
@@ -516,9 +516,9 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
             type: 'url',
             data: { url: 'http://www.tests.org' }
         }).end(function (err, res) {
-            monitorId = res.body[0]._id;
+            monitorId = res.body._id;
             expect(res).to.have.status(200);
-            expect(res.body[0].name).to.be.equal('New Monitor 15');
+            expect(res.body.name).to.be.equal('New Monitor 15');
             done();
         });
     });

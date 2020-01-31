@@ -287,7 +287,7 @@ module.exports = {
                 var projectId = statusPage.projectId._id;
                 var subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
                 var subProjectIds = subProjects ? subProjects.map(project => project._id) : null;
-                var monitors = await MonitorService.getMonitors(subProjectIds, 0, 0);
+                var monitors = await MonitorService.getMonitorsBySubprojects(subProjectIds, 0, 0);
                 var filteredMonitorData = monitors.map((subProject) => {
                     return subProject.monitors.filter((monitor => monitorIds.includes(monitor._id.toString())));
                 });

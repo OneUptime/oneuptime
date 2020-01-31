@@ -15,8 +15,8 @@ module.exports = {
 
     sendMonitorCreated: async (monitor) => {
         try {
-            var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
+            var project = await ProjectService.findOneBy({ _id: monitor.projectId._id });
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId._id;
 
             io.emit(`createMonitor-${projectId}`, monitor);
         } catch (error) {
@@ -73,24 +73,24 @@ module.exports = {
         }
     },
 
-    updateMonitorLog: async (data, monitorId, projectId) => {
+    updateMonitorLog: async (data, projectId) => {
         try {
             var project = await ProjectService.findOneBy({ _id: projectId });
             var parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
-            io.emit(`updateMonitorLog-${parentProjectId}`, { projectId, monitorId, data });
+            io.emit(`updateMonitorLog-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
         } catch (error) {
             ErrorService.log('realTimeService.updateMonitorLog', error);
             throw error;
         }
     },
 
-    updateMonitorStatus: async (data, monitorId, projectId) => {
+    updateMonitorStatus: async (data, projectId) => {
         try {
             var project = await ProjectService.findOneBy({ _id: projectId });
             var parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
-            io.emit(`updateMonitorStatus-${parentProjectId}`, { projectId, monitorId, data });
+            io.emit(`updateMonitorStatus-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
         } catch (error) {
             ErrorService.log('realTimeService.updateMonitorStatus', error);
             throw error;

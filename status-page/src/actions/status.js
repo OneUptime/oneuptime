@@ -243,7 +243,7 @@ export const FETCH_MONITOR_STATUSES_FAILURE = 'FETCH_MONITOR_STATUSES_FAILURE';
 // Fetch Monitor Statuses list
 export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
 	return function (dispatch) {
-		var promise = postApi(`statusPage/${projectId}/${monitorId}/statuses`, { startDate, endDate });
+		var promise = postApi(`statusPage/${projectId}/${monitorId}/monitorStatuses`, { startDate, endDate });
 		dispatch(fetchMonitorStatusesRequest());
 
 		promise.then(function (monitorStatuses) {

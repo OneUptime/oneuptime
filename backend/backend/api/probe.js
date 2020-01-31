@@ -16,7 +16,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 var getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 
-router.post('/', getUser,isAuthorizedAdmin, async function (req, res) {
+router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         let data = req.body;
         let probe = await ProbeService.create(data);
@@ -26,11 +26,11 @@ router.post('/', getUser,isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.get('/', getUser,isAuthorizedAdmin, async function (req, res) {
+router.get('/', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         let skip = req.query.skip || 0;
         let limit = req.query.limit || 0;
-        let probe = await ProbeService.findBy({},limit,skip);
+        let probe = await ProbeService.findBy({}, limit, skip);
         let count = await ProbeService.countBy({});
         return sendListResponse(req, res, probe, count);
     } catch (error) {
@@ -38,7 +38,7 @@ router.get('/', getUser,isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.put('/:id', getUser,isAuthorizedAdmin, async function (req, res) {
+router.put('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         let data = req.body;
         let probe = await ProbeService.updateOneBy({ _id: req.params.id }, data);
@@ -48,7 +48,7 @@ router.put('/:id', getUser,isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.delete('/:id', getUser,isAuthorizedAdmin, async function (req, res) {
+router.delete('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         let probe = await ProbeService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, probe);
@@ -101,8 +101,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response
         data.status = status;
         data.probeId = req.probe && req.probe.id ? req.probe.id : null;
         data.monitorId = req.params.monitorId;
-        let probe = await ProbeService.setTime(data);
-        return sendItemResponse(req, response, probe);
+        let log = await ProbeService.saveMonitorLog(data);
+        return sendItemResponse(req, response, log);
     } catch (error) {
         return sendErrorResponse(req, response, error);
     }
@@ -113,8 +113,8 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) 
         let data = req.body;
         data.probeId = req.probe.id;
         data.monitorId = req.params.monitorId;
-        let probe = await ProbeService.setTime(data);
-        return sendItemResponse(req, res, probe);
+        let log = await ProbeService.saveMonitorLog(data);
+        return sendItemResponse(req, res, log);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -125,8 +125,8 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) 
         let data = req.body;
         data.probeId = req.probe.id;
         data.monitorId = req.params.monitorId;
-        let probe = await ProbeService.getTime(data);
-        return sendItemResponse(req, res, probe);
+        let log = await ProbeService.getMonitorLog(data);
+        return sendItemResponse(req, res, log);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

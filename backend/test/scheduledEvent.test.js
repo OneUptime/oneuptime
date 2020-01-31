@@ -65,7 +65,7 @@ describe('Scheduled event API', function () {
                             type: 'url',
                             data: { url: 'http://www.tests.org' }
                         }).end(function (err, res) {
-                            monitorId = res.body[0]._id;
+                            monitorId = res.body._id;
                             done();
                         });
                     });
@@ -540,7 +540,7 @@ describe('Scheduled events APIs for status page', function () {
                 type: 'url',
                 data: { url: 'http://www.tests.org' }
             });
-        monitorId = monitorRequest.body[0]._id;
+        monitorId = monitorRequest.body._id;
 
         await request.post(`/scheduledEvent/${projectId}/${monitorId}`)
             .set('Authorization', authorization).send(scheduledEvent);

@@ -142,9 +142,9 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
             var schedule = await ScheduleService.findOneBy({ _id: data.callScheduleId });
             var monitors = schedule.monitorIds;
             if (monitors.length > 0) {
-                monitors.push({ _id: monitor[0]._id, name: monitor[0].name });
+                monitors.push({ _id: monitor._id, name: monitor.name });
             } else {
-                monitors = Array(monitor[0]._id);
+                monitors = Array(monitor._id);
             }
             var scheduleData = {
                 projectId: projectId,
@@ -152,7 +152,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
             };
             await ScheduleService.updateOneBy({ _id: data.callScheduleId }, scheduleData);
         }
-        await NotificationService.create(monitor.projectId, `A New Monitor was Created with name ${monitor.name} by ${req.user.name}`, req.user.id, 'monitoraddremove');
+        await NotificationService.create(monitor.projectId._id, `A New Monitor was Created with name ${monitor.name} by ${req.user.name}`, req.user.id, 'monitoraddremove');
         await RealTimeService.sendMonitorCreated(monitor);
         return sendItemResponse(req, res, monitor);
     } catch (error) {
@@ -183,7 +183,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
     try {
         var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Call the MonitorService.
-        var monitors = await MonitorService.getMonitors(subProjectIds, req.query.limit || 0, req.query.skip || 0);
+        var monitors = await MonitorService.getMonitorsBySubprojects(subProjectIds, req.query.limit || 0, req.query.skip || 0);
         return sendItemResponse(req, res, monitors);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -280,7 +280,7 @@ router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, as
             data.status = 'unknown';
         }
 
-        let log = await ProbeService.setTime(data);
+        let log = await ProbeService.saveMonitorLog(data);
         return sendItemResponse(req, res, log);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -302,7 +302,7 @@ router.post('/:projectId/monitorLog/:monitorId', getUser, isAuthorized, async fu
 
 // Route
 // Description: Get all Monitor Statuses by monitorId
-router.post('/:projectId/statuses/:monitorId', getUser, isAuthorized, async function (req, res) {
+router.post('/:projectId/monitorStatuses/:monitorId', getUser, isAuthorized, async function (req, res) {
     try {
         const { startDate, endDate } = req.body;
         var monitorId = req.params.monitorId;

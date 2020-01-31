@@ -82,7 +82,7 @@ class SocketApp extends Component {
                         thisObj.props.createmonitorbysocket(data);
                     }
                 } else {
-                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
+                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId._id);
                     const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
                     if (data.createdById !== User.getUserId()) {
                         if (isUserInSubProject) thisObj.props.createmonitorbysocket(data);
@@ -94,7 +94,7 @@ class SocketApp extends Component {
                 if (isUserInProject) {
                     thisObj.props.updatemonitorbysocket(data);
                 } else {
-                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
+                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId._id);
                     const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
                     if (isUserInSubProject) thisObj.props.updatemonitorbysocket(data);
                 }

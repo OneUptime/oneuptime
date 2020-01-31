@@ -4,6 +4,9 @@ module.exports = {
         try {
             var previousMonitorStatus = await this.findOneBy({ monitorId: data.monitorId, probeId: data.probeId });
             if (!previousMonitorStatus || (previousMonitorStatus && previousMonitorStatus.status !== data.status)) {
+                // check if monitor has a previous status
+                // check if previous status is different from the current status
+                // if different, end the previous status and create a new monitor status
                 if (previousMonitorStatus) {
                     await this.updateOneBy({
                         _id: previousMonitorStatus._id
@@ -16,13 +19,12 @@ module.exports = {
 
                 monitorStatus.monitorId = data.monitorId;
                 monitorStatus.probeId = data.probeId || null;
-                monitorStatus.responseTime = data.responseTime || null;
                 monitorStatus.manuallyCreated = data.manuallyCreated || false;
                 monitorStatus.status = data.status;
 
                 var savedMonitorStatus = await monitorStatus.save();
 
-                await MonitorService.sendMonitorStatus(savedMonitorStatus);
+                await this.sendMonitorStatus(savedMonitorStatus);
 
                 return savedMonitorStatus;
             }
@@ -112,9 +114,22 @@ module.exports = {
             ErrorService.log('MonitorStatusService.findOneBy', error);
             throw error;
         }
-    }
+    },
+
+    async sendMonitorStatus(data) {
+        try {
+            var monitor = await MonitorService.findOneBy({ _id: data.monitorId });
+            if (monitor) {
+                await RealTimeService.updateMonitorStatus(data, monitor.projectId._id);
+            }
+        } catch (error) {
+            ErrorService.log('MonitorStatusService.sendMonitorStatus', error);
+            throw error;
+        }
+    },
 };
 
 var MonitorStatusModel = require('../models/monitorStatus');
 var MonitorService = require('../services/monitorService');
+var RealTimeService = require('./realTimeService');
 var ErrorService = require('../services/errorService');

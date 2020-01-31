@@ -73,7 +73,7 @@ export function createMonitor(projectId, values) {
         dispatch(createMonitorRequest());
 
         promise.then(function (monitor) {
-            dispatch(createMonitorSuccess(monitor.data && monitor.data.length ? monitor.data[0] : monitor.data));
+            dispatch(createMonitorSuccess(monitor.data));
         }, function (error) {
             if (error && error.response && error.response.data) {
                 error = error.response.data;
@@ -133,7 +133,7 @@ export function editMonitor(projectId, values) {
         dispatch(editMonitorRequest());
 
         promise.then(function (monitor) {
-            dispatch(editMonitorSuccess(monitor.data && monitor.data.length ? monitor.data[0] : monitor.data));
+            dispatch(editMonitorSuccess(monitor.data));
         }, function (error) {
             if (error && error.response && error.response.data) {
                 error = error.response.data;
@@ -411,7 +411,7 @@ export function fetchMonitorLogsFailure(error) {
 // Fetch Monitor Statuses list
 export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
-        var promise = postApi(`monitor/${projectId}/statuses/${monitorId}`, { startDate, endDate });
+        var promise = postApi(`monitor/${projectId}/monitorStatuses/${monitorId}`, { startDate, endDate });
         dispatch(fetchMonitorStatusesRequest());
 
         promise.then(function (monitorStatuses) {

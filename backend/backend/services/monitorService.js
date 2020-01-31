@@ -73,7 +73,7 @@ module.exports = {
                     }
                     var savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
-                    return [monitor];
+                    return monitor;
                 } else {
                     let error = new Error('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
                     error.code = 400;
@@ -101,9 +101,9 @@ module.exports = {
                 })
                 .populate('projectId', 'name');
 
-            await RealTimeService.monitorEdit([monitor]);
+            await RealTimeService.monitorEdit(monitor);
 
-            return [monitor];
+            return monitor;
         } catch (error) {
             ErrorService.log('monitorService.updateOneBy', error);
             throw error;
@@ -257,7 +257,7 @@ module.exports = {
         }
     },
 
-    async getMonitors(subProjectIds, limit, skip) {
+    async getMonitorsBySubprojects(subProjectIds, limit, skip) {
         try {
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
@@ -270,7 +270,7 @@ module.exports = {
             }));
             return subProjectMonitors;
         } catch (error) {
-            ErrorService.log('monitorService.getMonitors', error);
+            ErrorService.log('monitorService.getMonitorsBySubprojects', error);
             throw error;
         }
     },
@@ -300,14 +300,10 @@ module.exports = {
         try {
             var newdate = new Date();
             var thisObj = this;
-            var monitors = await thisObj.updateOneBy({
-                _id: id, deleted: false
+            var monitor = await thisObj.updateOneBy({
+                _id: id
             }, { $set: { 'lastPingTime': newdate } }, { multi: false });
-            if (monitors.length > 0) {
-                return (monitors[0]);
-            } else {
-                return (null);
-            }
+            return monitor;
         } catch (error) {
             ErrorService.log('monitorService.updateMonitorPingTime', error);
             throw error;
@@ -417,30 +413,6 @@ module.exports = {
             return probeStatuses;
         } catch (error) {
             ErrorService.log('monitorService.getMonitorStatuses', error);
-            throw error;
-        }
-    },
-
-    async sendMonitorLog(data) {
-        try {
-            var monitor = await MonitorModel.findOne({ _id: data.monitorId, deleted: false });
-            if (monitor) {
-                await RealTimeService.updateMonitorLog(data, monitor._id, monitor.projectId);
-            }
-        } catch (error) {
-            ErrorService.log('monitorService.sendMonitorLog', error);
-            throw error;
-        }
-    },
-
-    async sendMonitorStatus(data) {
-        try {
-            var monitor = await MonitorModel.findOne({ _id: data.monitorId, deleted: false });
-            if (monitor) {
-                await RealTimeService.updateMonitorStatus(data, monitor._id, monitor.projectId);
-            }
-        } catch (error) {
-            ErrorService.log('monitorService.sendMonitorStatus', error);
             throw error;
         }
     },

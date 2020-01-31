@@ -383,7 +383,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function (
 
 // Route
 // Description: Get all Monitor Statuses by monitorId
-router.post('/:projectId/:monitorId/statuses', checkUser, async function (req, res) {
+router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function (req, res) {
     try {
         const { startDate, endDate } = req.body;
         var monitorId = req.params.monitorId;

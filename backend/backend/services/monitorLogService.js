@@ -84,7 +84,7 @@ module.exports = {
                 MonitorLogByWeekService.create({ ...data, intervalDate: intervalWeekDate });
             }
 
-            await MonitorService.sendMonitorLog(savedLog);
+            await this.sendMonitorLog(savedLog);
 
             if (data.probeId && data.monitorId) await probeService.sendProbe(data.probeId, data.monitorId);
 
@@ -174,6 +174,18 @@ module.exports = {
             ErrorService.log('monitorLogService.countBy', error);
             throw error;
         }
+    },
+
+    async sendMonitorLog(data) {
+        try {
+            var monitor = await MonitorService.findOneBy({ _id: data.monitorId });
+            if (monitor) {
+                await RealTimeService.updateMonitorLog(data, monitor.projectId._id);
+            }
+        } catch (error) {
+            ErrorService.log('monitorLogService.sendMonitorLog', error);
+            throw error;
+        }
     }
 };
 
@@ -182,6 +194,7 @@ var MonitorLogByHourService = require('../services/monitorLogByHourService');
 var MonitorLogByDayService = require('../services/monitorLogByDayService');
 var MonitorLogByWeekService = require('../services/monitorLogByWeekService');
 var MonitorService = require('../services/monitorService');
+var RealTimeService = require('./realTimeService');
 var probeService = require('../services/probeService');
 var ErrorService = require('../services/errorService');
 var moment = require('moment');
