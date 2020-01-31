@@ -51037,26 +51037,27 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 }
 
 .team-header-label > h3 {
-  text-align: center;
-  margin-left: -167px;
-  width: 70px;
-  font-weight: bold;
-  background-color: white;
-  padding-top: 2px;
-  padding-bottom: 2px;
-  font-size: 14px;
-  margin-top: 15px;
-  margin-bottom: 5px;
-  border: 0.5px solid #B4B3B3;
-  border-radius: 5px;
+    text-align: center;
+    margin-left: -60px;
+    width: 70px;
+    font-weight: bold;
+    background-color: white;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 14px;
+    margin-bottom: 5px;
+    border: 0.5px solid #B4B3B3;
+    border-radius: 5px;
+    margin-top: -21px;
 }
 
 .team-line-demarcator {
-  margin-left: 28%;
-  margin-right: 43%;
-  background-color: #DDDDDD;
-  height: 1px;
-  border: 0;
+    margin-left: 32%;
+    margin-right: 42%;
+    background-color: #DDDDDD;
+    height: 1px;
+    border: 0;
+    margin-top:50px;
 }
 
 .flex{
