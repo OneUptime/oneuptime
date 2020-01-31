@@ -40,7 +40,7 @@ if (userData !== undefined) {
 			'Email': userData.email
 		});
 		logEvent('Logged in successfully', { 'id': userData.id });
-	}	
+	}
 }
 cookies.remove('data', { domain: DOMAIN_URL });
 
@@ -83,7 +83,7 @@ const App = () => (
 App.displayName = 'App'
 
 function mapStateToProps(state) {
-	return state.login;
+	return { ...state.login };
 }
 
 export default connect(mapStateToProps)(App);
