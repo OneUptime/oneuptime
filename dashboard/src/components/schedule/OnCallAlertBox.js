@@ -24,26 +24,35 @@ function validate(values) {
             let escalationArrayErrors = [];
             if (values.OnCallAlertBox[i]) {
                 if (values.OnCallAlertBox[i].callFrequency === '') {
-                    repeatErrors.callFrequency = 'Please enter call frequency.';
+                    repeatErrors.callFrequency = 'Please enter how many reminders to send';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (!Validate.number(values.OnCallAlertBox[i].callFrequency)) {
-                    repeatErrors.callFrequency = 'Call Frequency is not a number.';
+                    repeatErrors.callFrequency = 'This should be a number.';
+                    alertArrayErrors[i] = repeatErrors;
+                }else if(values.OnCallAlertBox[i].callFrequency <= 0){
+                    repeatErrors.callFrequency = 'This should be greater than 0.';
                     alertArrayErrors[i] = repeatErrors;
                 }
 
                 if (values.OnCallAlertBox[i].smsFrequency === '') {
-                    repeatErrors.smsFrequency = 'Please enter SMS frequency.';
+                    repeatErrors.smsFrequency = 'Please enter how many reminders to send';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (!Validate.number(values.OnCallAlertBox[i].smsFrequency)) {
-                    repeatErrors.smsFrequency = 'SMS Frequency is not a number.';
+                    repeatErrors.smsFrequency = 'This should be a number.';
+                    alertArrayErrors[i] = repeatErrors;
+                }else if(values.OnCallAlertBox[i].smsFrequency <= 0){
+                    repeatErrors.smsFrequency = 'This should be greater than 0';
                     alertArrayErrors[i] = repeatErrors;
                 }
 
                 if (values.OnCallAlertBox[i].emailFrequency === '') {
-                    repeatErrors.emailFrequency = 'Please enter email frequency.';
+                    repeatErrors.emailFrequency = 'Please enter how many reminders to send.';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (!Validate.number(values.OnCallAlertBox[i].emailFrequency)) {
-                    repeatErrors.emailFrequency = 'Email Frequency is not a number.';
+                    repeatErrors.emailFrequency = 'This should be a number.';
+                    alertArrayErrors[i] = repeatErrors;
+                }else if(values.OnCallAlertBox[i].emailFrequency <= 0){
+                    repeatErrors.emailFrequency = 'This should be greater than 0';
                     alertArrayErrors[i] = repeatErrors;
                 }
             }
@@ -109,9 +118,9 @@ export class OnCallAlertBox extends Component {
                                             className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                             onClick={() => this.props.pushArray('OnCallAlertBox', 'OnCallAlertBox',
                                                 { 
-                                                    callFrequency: '',
-                                                    smsFrequency: '',
-                                                    emailFrequency: '10',
+                                                    callFrequency: '3',
+                                                    smsFrequency: '3',
+                                                    emailFrequency: '3',
                                                     email: true,
                                                     sms: false,
                                                     call: false,
@@ -213,11 +222,11 @@ const mapStateToProps = (state, props) => {
     const { scheduleId } = props.match.params;
     const { subProjectId } = props.match.params;
 
-    let OnCallAlertBox = escalationData && escalationData.length ? escalationData : [
+    let OnCallAlertBox = escalationData && escalationData.length > 0 ? escalationData : [
         {
-            callFrequency: '10',
-            smsFrequency: '10',
-            emailFrequency: '10',
+            callFrequency: '3',
+            smsFrequency: '3',
+            emailFrequency: '3',
             email: true,
             sms: false,
             call: false,

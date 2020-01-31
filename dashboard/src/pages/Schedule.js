@@ -5,8 +5,8 @@ import MonitorBox from '../components/schedule/MonitorBox';
 import RenameScheduleBox from '../components/schedule/RenameScheduleBox';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import OnCallAlertBox from '../components/schedule/OnCallAlertBox';
-import EscalationsList from '../components/schedule/EscalationsList';
 import PropTypes from 'prop-types';
+import { RenderEscalationSummary } from '../components/schedule/RenderEscalationSummary';
 
 class Schedule extends Component {
     render(){
@@ -23,14 +23,15 @@ class Schedule extends Component {
                                             <div>
     
                                                 <RenameScheduleBox />
-
-                                                <EscalationsList subProjectId={subProjectId} />
     
                                                 <MonitorBox />
+
+                                                <RenderEscalationSummary />
                                                 
                                                 <div className="Box-root Margin-bottom--12">
                                                     <OnCallAlertBox />
                                                 </div>
+
                                                 <RenderIfSubProjectAdmin subProjectId={subProjectId}>
                                                     <DeleteBox />
                                                 </RenderIfSubProjectAdmin>

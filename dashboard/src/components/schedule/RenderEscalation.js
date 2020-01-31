@@ -5,10 +5,12 @@ import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSingleEscalation } from './RenderSingleEscalation';
 
+
 let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, form }) => {
- 
+
     return (
         <ul>
+            
             {
                 fields.map((policy, i) => {
                     const { email, sms, call, rotationFrequency, rotationInterval } = form[i];
@@ -36,11 +38,11 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                     <div className="bs-Fieldset-fields">
                         <div className="Box-root Flex-flex Flex-alignItems--center">
                             <div>
-            
-                                    <ShouldRender if={submitFailed && error}>
-                                        <span>{error}</span>
-                                    </ShouldRender>
-                                
+
+                                <ShouldRender if={submitFailed && error}>
+                                    <span>{error}</span>
+                                </ShouldRender>
+
                             </div>
                         </div>
                     </div>
@@ -57,7 +59,7 @@ const selector = formValueSelector('OnCallAlertBox');
 RenderEscalation = connect(state => {
     const form = selector(state, 'OnCallAlertBox')
     return {
-      form
+        form
     }
 })(RenderEscalation)
 

@@ -6,13 +6,13 @@ import { RenderActiveTeamMembers } from '../basic/RenderActiveTeamMembers'
 const EscalationSingle = ({ escalation, policyIndex, subProjectId }) => {
   return (
     <li style={{ margin: '5px 0px' }}>
-      <div className="Card-root" style={{ backgroundColor: policyIndex === 0 ? '#f6f9fc' : '#ffffff' }}>
+      <div className="Card-root" style={{ backgroundColor: policyIndex === 0 ? '#f7f7f7' : '#ffffff' }}>
         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
           <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
             <span>Escalation Policy {policyIndex + 1}</span>
           </span>
         </div>
-        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f6f9fc' }}>
+        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f7f7f7' }}>
           <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
             <fieldset className="bs-Fieldset Padding-horizontal--20">
               <RenderAlertOptions

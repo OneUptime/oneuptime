@@ -139,7 +139,12 @@ let RenderMember = ({
                     <label className="bs-Fieldset-label"></label>
                     <div className="bs-Fieldset-fields">
                         <button className="button-as-anchor"
-                            onClick={(() => manageVisibility(false, memberHasCallTimes))}
+                            onClick={() => {
+                                memberValue.startTime = null;
+                                memberValue.endTime = null;
+                                memberValue.timezone = null;
+                                manageVisibility(false, memberHasCallTimes)
+                            }}
                         >Remove on-call duty times</button>
                     </div>
                 </div>

@@ -116,49 +116,67 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
         let userId = req.user ? req.user.id : null;
         let scheduleId = req.params.scheduleId;
         let escalationData = [];
-
+        var escalationPolicyCount = 0;
         for(let value of req.body){
+
+            escalationPolicyCount ++;
             let storagevalue = {};
             let tempTeam = [];
-            if(!value.emailFrequency){
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Email Frequency is required'
-                });
-            }
 
+        
             if(!value.email && !value.call && !value.sms){
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'At least one type of alert is required'
+                    message: 'Please select how should Fyipe alert your team - SMS, Email OR Call'+ (req.body.length> 1 ?' in Escalation Policy '+escalationPolicyCount : '')
+                });
+            }
+
+            if(value.email && !value.emailFrequency){
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Number of Email Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
+                });
+            }
+
+            if(value.call && !value.callFrequency){
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Number of Call Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
+                });
+            }
+
+            if(value.sms && !value.smsFrequency){
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Number of SMS Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
             if (value.rotationFrequency && !value.rotationInterval) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'You must specify rotation interval'
+                    message: 'Please specify Rotation Interval '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
             if ((value.rotationFrequency && value.rotationInterval) && !value.rotationSwitchTime) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'You must specify rotation switch time'
+                    message: 'Please specify "First rotation happens on" '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
             if ((value.rotationFrequency && value.rotationInterval) && (value.rotationSwitchTime && !value.rotationTimezone)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'You must specify timezones for rotations.'
+                    message: 'You must specify timezone for "First rotation happens on" '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
             if (value.rotationFrequency && (value.team.length <= 1)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'You need more than one team for rotations.'
+                    message: 'You need more than one team for rotations '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
@@ -184,7 +202,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 if (!team.teamMember || team.teamMember.length === 0) {
                     return sendErrorResponse(req, res, {
                         code: 400,
-                        message: 'Team Members are required'
+                        message: 'Team Members are required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                     });
                 }
 
@@ -193,9 +211,18 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                     if (!TM.member) {
                         return sendErrorResponse(req, res, {
                             code: 400,
-                            message: 'Team Members is required'
+                            message: 'Please add team members to your on-call schedule '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                         });
                     }
+
+                    //if any of these values are notspecified, then.
+                    if((!TM.startTime || !TM.endTime || !TM.timezone) && (TM.startTime || TM.endTime || TM.timezone)){
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'On-Call Start Time, On-Call End Time, and Timezone are required if you select to add "On-call duty times" for a team member'+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
+                        });
+                    }
+
                     data.member = TM.member;
                     data.startTime = TM.startTime;
                     data.endTime = TM.endTime;

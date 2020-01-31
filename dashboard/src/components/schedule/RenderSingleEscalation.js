@@ -11,9 +11,15 @@ import { RenderField } from '../basic/RenderField';
 import Tooltip from '../basic/Tooltip';
 
 let RenderSingleEscalation = ({
-    policy, email, sms, call,
-    rotationFrequency, subProjectId,
-    policyIndex, fields, rotationInterval
+    policy, 
+    email, 
+    sms, 
+    call,
+    rotationFrequency, 
+    subProjectId,
+    policyIndex, 
+    fields, 
+    rotationInterval
 }) => {
     const [rotationFreqVisible, setRotationFreqVisibility] = useState(false);
 
@@ -23,7 +29,7 @@ let RenderSingleEscalation = ({
 
     return (
         <li key={policyIndex} style={{ margin: '5px 0px' }}>
-            <div className="Card-root" style={{ backgroundColor: policyIndex === 0 ? '#f7f7f7' : '#ffffff' }}>
+            <div className="Card-root" style={{ backgroundColor: '#ffffff' }}>
                 <div className="Box-root">
                     {fields.length > 1 && <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
@@ -32,7 +38,7 @@ let RenderSingleEscalation = ({
                             </span>
                             <p>
                                 <span>
-
+        
                                 </span>
                             </p>
                         </div>
@@ -333,7 +339,19 @@ let RenderSingleEscalation = ({
                                             <label className="bs-Fieldset-label"></label>
                                             <div className="bs-Fieldset-fields">
                                                 <button className="button-as-anchor"
-                                                    onClick={(() => manageRotationVisibility(false))}
+                                                    onClick={() => {
+                                                        //remove rotation data from the object. 
+                                                        var obj = fields.get(policyIndex);
+                                                        obj.rotationInterval = null;
+                                                        obj.rotationFrequency = null;
+                                                        obj.rotationSwitchTime = null;
+                                                        obj.rotationTimezone = null;
+                                                        //just have one on-call team if there's no rotation.
+                                                        obj.team = obj.team[0] ? [obj.team[0]] : [];
+                                                        fields.remove(policyIndex);
+                                                        fields.insert(policyIndex, obj);
+                                                        manageRotationVisibility(false)
+                                                    }}
                                                 >Disable Team Rotation</button>
                                             </div>
                                         </>
