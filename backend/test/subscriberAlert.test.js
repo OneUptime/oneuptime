@@ -30,7 +30,7 @@ describe('Subcriber Alert API', function () {
 
     before(function (done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createUser(request, userData.user, function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -44,7 +44,7 @@ describe('Subcriber Alert API', function () {
                         token = res.body.tokens.jwtAccessToken;
                         var authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-                            monitorId = res.body[0]._id;
+                            monitorId = res.body._id;
                             request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization)
                                 .send(incidentData).end((err, res) => {
                                     incidentId = res.body._id;

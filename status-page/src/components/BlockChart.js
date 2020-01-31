@@ -14,7 +14,7 @@ class BlockChart extends Component {
     requestnotes = (need, date) => {
         if (this.props.time) {
             if (need) {
-                this.props.getStatusPageIndividualNote(this.props.statusData.projectId._id, this.props.time.monitorId, date, this.props.monitorName, need);
+                this.props.getStatusPageIndividualNote(this.props.statusData.projectId._id, this.props.monitorId, date, this.props.monitorName, need);
             }
             else {
                 this.props.notmonitoredDays(date, this.props.monitorName, 'No incidents yet');
@@ -82,6 +82,7 @@ BlockChart.propTypes = {
     getStatusPageIndividualNote: PropTypes.func,
     notmonitoredDays: PropTypes.func,
     monitorName: PropTypes.any,
+    monitorId: PropTypes.any,
     emptytime: PropTypes.any
 }
 

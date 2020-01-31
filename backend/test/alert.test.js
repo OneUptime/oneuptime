@@ -1,4 +1,3 @@
-
 /* eslint-disable */
 process.env.PORT = 3020;
 process.env.NODE_ENV = "development";
@@ -48,9 +47,9 @@ describe('Alert API', function () {
                         token = res.body.tokens.jwtAccessToken;
                         var authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-                            monitorId = res.body[0]._id;
+                            monitorId = res.body._id;
                             expect(res).to.have.status(200);
-                            expect(res.body[0].name).to.be.equal(monitor.name);
+                            expect(res.body.name).to.be.equal(monitor.name);
                             done();
                         });
                     });

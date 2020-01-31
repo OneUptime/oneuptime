@@ -8,68 +8,67 @@ import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
 
-const calculateTime = (incidents, start, range, activeProbe) => {
+const calculateTime = (statuses, start, range) => {
     let timeBlock = [];
-    let dayStart = moment(start).startOf('day');
     let totalUptime = 0;
     let totalTime = 0;
+
+    let dayStart = moment(start).startOf('day');
+
+    let reversedStatuses = statuses.slice().reverse();
+
     for (let i = 0; i < range; i++) {
         let dayStartIn = dayStart;
         let dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
+
         let timeObj = {
             date: dayStart.toString(),
             downTime: 0,
             upTime: 0,
             degradedTime: 0
         };
-        incidents.reverse().forEach(incident => {
-            const probes = incident.probes;
-            const activeProbeCheck = probes && probes.length === 0 ? true :
-                (probes && probes.length > 0 ? (probes.filter(
-                    probe => probe && probe.probeId && activeProbe && probe.probeId._id === activeProbe._id
-                ).length > 0 ? true : false)
-                    : false
-                );
-            if (activeProbeCheck) {
-                let start;
-                let end;
-                if (incident.resolvedAt === null) {
-                    incident.resolvedAt = Date.now();
+
+        reversedStatuses.forEach(monitorStatus => {
+            if (monitorStatus.endTime === null) {
+                monitorStatus.endTime = Date.now();
+            }
+
+            if (moment(monitorStatus.startTime).isBefore(dayEnd) && moment(monitorStatus.endTime).isAfter(dayStartIn)) {
+                let start = moment(monitorStatus.startTime).isBefore(dayStartIn) ? dayStartIn : moment(monitorStatus.startTime);
+                let end = moment(monitorStatus.endTime).isAfter(dayEnd) ? dayEnd : moment(monitorStatus.endTime);
+
+                if (monitorStatus.status === 'offline') {
+                    timeObj.downTime = timeObj.downTime + end.diff(start, 'seconds');
+                    timeObj.date = monitorStatus.endTime;
                 }
-                if (moment(incident.createdAt).isBefore(dayEnd) && moment(incident.resolvedAt).isAfter(dayStartIn)) {
-                    start = moment(incident.createdAt).isBefore(dayStartIn) ? dayStartIn : moment(incident.createdAt);
-                    end = moment(incident.resolvedAt).isAfter(dayEnd) ? dayEnd : moment(incident.resolvedAt);
-                    if (incident.incidentType === 'offline') {
-                        timeObj.downTime = timeObj.downTime + end.diff(start, 'seconds');
-                    }
-                    if (incident.incidentType === 'degraded') {
-                        timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'seconds');
-                    }
-                    if (incident.incidentType === 'online') {
-                        timeObj.upTime = timeObj.upTime + end.diff(start, 'seconds');
-                    }
-                    timeObj.date = incident.resolvedAt;
+                if (monitorStatus.status === 'degraded') {
+                    timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'seconds');
+                }
+                if (monitorStatus.status === 'online') {
+                    timeObj.upTime = timeObj.upTime + end.diff(start, 'seconds');
                 }
             }
         });
+
         totalUptime = totalUptime + timeObj.upTime;
         totalTime = totalTime + timeObj.upTime + timeObj.degradedTime + timeObj.downTime;
+
         timeBlock.push(Object.assign({}, timeObj));
+
         dayStart = dayStart.subtract(1, 'days');
     }
+
     return { timeBlock, uptimePercent: (totalUptime / totalTime * 100) };
 };
 
-export function MonitorChart({ start, end, monitor, data, status, showAll, activeProbe, probes }) {
+export function MonitorChart({ start, end, monitor, data, statuses, status, showAll, activeProbe, probes }) {
     const [now, setNow] = useState(Date.now());
 
-    const activeProbeObj = (probes && probes.length > 0 && probes[activeProbe || 0] ? probes[activeProbe || 0] : null);
+    const activeProbeObj = probes && probes.length > 0 && probes[activeProbe || 0] ? probes[activeProbe || 0] : null;
     const lastAlive = activeProbeObj && activeProbeObj.lastAlive ? activeProbeObj.lastAlive : null;
 
     const range = moment(end).diff(moment(start), 'days');
-    const { timeBlock, uptimePercent } = monitor.incidentsRange && monitor.incidentsRange.length > 0 ? calculateTime(monitor.incidentsRange, end, range, activeProbeObj)
-        : monitor.incidents && monitor.incidents.length > 0 ? calculateTime(monitor.incidents, end, range, activeProbeObj)
-            : calculateTime([], end, range, activeProbeObj);
+    const { timeBlock, uptimePercent } = statuses && statuses.length > 0 ? calculateTime(statuses, end, range) : calculateTime([], end, range);
 
     const type = monitor.type;
     const checkLogs = data && data.length > 0;
@@ -383,6 +382,7 @@ MonitorChart.propTypes = {
     end: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     monitor: PropTypes.object,
     data: PropTypes.array,
+    statuses: PropTypes.array,
     status: PropTypes.string,
     showAll: PropTypes.bool,
     activeProbe: PropTypes.number,

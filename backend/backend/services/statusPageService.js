@@ -287,9 +287,11 @@ module.exports = {
                 var projectId = statusPage.projectId._id;
                 var subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
                 var subProjectIds = subProjects ? subProjects.map(project => project._id) : null;
-                var monitors = await MonitorService.getMonitors(subProjectIds, 0, 0);
-                var filteredMonitorData = monitors[0].monitors.filter((monitor => monitorIds.includes(monitor._id.toString())));
-                statusPage.monitorsData = filteredMonitorData;
+                var monitors = await MonitorService.getMonitorsBySubprojects(subProjectIds, 0, 0);
+                var filteredMonitorData = monitors.map((subProject) => {
+                    return subProject.monitors.filter((monitor => monitorIds.includes(monitor._id.toString())));
+                });
+                statusPage.monitorsData = _.flatten(filteredMonitorData);
             }
             else {
                 let error = new Error('StatusPage Not present');
@@ -419,3 +421,4 @@ var MonitorService = require('./monitorService');
 var ErrorService = require('./errorService');
 var SubscriberService = require('./subscriberService');
 var ProjectService = require('./projectService');
+var _ = require('lodash');

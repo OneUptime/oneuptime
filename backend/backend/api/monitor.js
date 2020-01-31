@@ -23,7 +23,6 @@ const {
 var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 var sendItemResponse = require('../middlewares/response').sendItemResponse;
 var sendListResponse = require('../middlewares/response').sendListResponse;
-var sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 
 // Route
 // Description: Adding / Updating a new monitor to the project.
@@ -143,9 +142,9 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
             var schedule = await ScheduleService.findOneBy({ _id: data.callScheduleId });
             var monitors = schedule.monitorIds;
             if (monitors.length > 0) {
-                monitors.push({ _id: monitor[0]._id, name: monitor[0].name });
+                monitors.push({ _id: monitor._id, name: monitor.name });
             } else {
-                monitors = Array(monitor[0]._id);
+                monitors = Array(monitor._id);
             }
             var scheduleData = {
                 projectId: projectId,
@@ -153,7 +152,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
             };
             await ScheduleService.updateOneBy({ _id: data.callScheduleId }, scheduleData);
         }
-        await NotificationService.create(monitor.projectId, `A New Monitor was Created with name ${monitor.name} by ${req.user.name}`, req.user.id, 'monitoraddremove');
+        await NotificationService.create(monitor.projectId._id, `A New Monitor was Created with name ${monitor.name} by ${req.user.name}`, req.user.id, 'monitoraddremove');
         await RealTimeService.sendMonitorCreated(monitor);
         return sendItemResponse(req, res, monitor);
     } catch (error) {
@@ -184,7 +183,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
     try {
         var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Call the MonitorService.
-        var monitors = await MonitorService.getMonitors(subProjectIds, req.query.skip || 0, req.query.limit || 0);
+        var monitors = await MonitorService.getMonitorsBySubprojects(subProjectIds, req.query.limit || 0, req.query.skip || 0);
         return sendItemResponse(req, res, monitors);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -232,7 +231,7 @@ router.post('/:projectId/monitorLogs/:monitorId', getUser, isAuthorized, async f
         if (startDate && endDate) query.createdAt = { $gte: startDate, $lte: endDate };
 
         // Call the MonitorService.
-        var monitorLogs = await MonitorLogService.findBy(query, limit || 0, skip || 0);
+        var monitorLogs = await MonitorLogService.findBy(query, limit || 10, skip || 0);
         var count = await MonitorLogService.countBy(query);
         return sendListResponse(req, res, monitorLogs, count);
     } catch (error) {
@@ -281,7 +280,7 @@ router.post('/:projectId/log/:monitorId', getUser, isAuthorized, isUserAdmin, as
             data.status = 'unknown';
         }
 
-        let log = await ProbeService.setTime(data);
+        let log = await ProbeService.saveMonitorLog(data);
         return sendItemResponse(req, res, log);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -296,6 +295,19 @@ router.post('/:projectId/monitorLog/:monitorId', getUser, isAuthorized, async fu
         var monitorId = req.params.monitorId;
         var monitorLogs = await MonitorService.getMonitorLogs(monitorId, startDate, endDate);
         return sendListResponse(req, res, monitorLogs);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: Get all Monitor Statuses by monitorId
+router.post('/:projectId/monitorStatuses/:monitorId', getUser, isAuthorized, async function (req, res) {
+    try {
+        const { startDate, endDate } = req.body;
+        var monitorId = req.params.monitorId;
+        var monitorStatuses = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
+        return sendListResponse(req, res, monitorStatuses);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
