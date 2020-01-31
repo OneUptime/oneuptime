@@ -83,7 +83,7 @@ const App = () => (
 App.displayName = 'App'
 
 function mapStateToProps(state) {
-	return { ...state.login };
+	return state.login;
 }
 
 export default connect(mapStateToProps)(App);
