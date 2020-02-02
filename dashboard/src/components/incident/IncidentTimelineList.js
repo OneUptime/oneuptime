@@ -88,7 +88,7 @@ const IncidentTimelineList = (props) => {
                                                             style={{ cursor: 'pointer' }}
                                                             onClick={() => { history.push('/profile/' + log.id) }}
                                                         >
-                                                            <img src='/assets/img/profile-user.svg' style={{ display: 'inline-block', height: '20px', width: '20px', borderRadius: '50%', margin: '5px 10px -4px 0px'}} alt="" />
+                                                            <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
                                                             <span>{log.name ? log.name : 'Unknown User'}</span>
                                                         </div>
                                                     }

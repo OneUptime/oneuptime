@@ -11,7 +11,8 @@ import { RenderField } from '../basic/RenderField';
 import Tooltip from '../basic/Tooltip';
 
 let RenderEscalationSummary = ({
-    fields
+    fields,
+    onEditClicked
 }) => {
 
     return (
@@ -24,13 +25,29 @@ let RenderEscalationSummary = ({
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span> Call Schedule and Escalation Policy</span>
+                                    <span> Call Schedule and Escalation Policy Summary</span>
                                 </span>
                                 <p>
                                     Define your call schedule here. Alert your backup on-call team if your primary on-call team does not respond to alerts.
                         </p>
                             </div>
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                <div className="Box-root">
+
+                                    <button
+                                        type="button"
+                                        className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--edit"
+                                        onClick={() => { return onEditClicked ? onEditClicked() : null }}
+                                    >
+                                        Edit Call Schedule
+
+                                    </button>
+
+                                </div>
+                            </div>
                         </div>
+
+
                     </div>
                     <div className="bs-ContentSection-content Box-root">
 
@@ -52,35 +69,43 @@ let RenderEscalationSummary = ({
                         </div>
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f7f7f7' }}>
                             <div>
-
-
+                                <div className="bs-Fieldset-row">
+                                    
+                                    <div className="bs-Fieldset-fields">
+                                        <div className="team-header-label">
+                                            <h3 style={{
+                                                width: "250px",
+                                                marginLeft: "140px",
+                                                marginTop: "20px"
+                                            }}> <span className="greendot"></span> {`On Active Duty: Team 1`}</h3>
+                                        </div>
+                                    </div>
+                                </div>
 
 
                                 <div className="bs-Fieldset-row">
-
-                                    <div className="bs-Fieldset-fields">
-                                        <div className="team-header-label">
-                                            <h3>{`On Active Duty: Team 1`}</h3>
+                                    <label className="bs-Fieldset-label"><b>Team Members</b></label>
+                                    <div className="bs-Fieldset-fields labelfield" style={{marginTop:"-1px"}}>
+                                        <div className="Box-root Margin-right--16 pointer">
+                                            <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
+                                            <span>Samantha Smith</span>
+                                        </div>
+                                        <div className="Box-root Margin-right--16 pointer">
+                                            <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
+                                            <span>Samantha Smith</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="bs-Fieldset-row">
-                                    <label className="bs-Fieldset-label">Team Members</label>
-                                    <div className="bs-Fieldset-fields">
-                                        Nawaz Dhandala, Samantha Smith.
-                                        </div>
-                                </div>
-
-                                <div className="bs-Fieldset-row">
-                                    <label className="bs-Fieldset-label">On-Call Duty End Time</label>
-                                    <div className="bs-Fieldset-fields">
+                                    <label className="bs-Fieldset-label"><b>On-Call Duty End Time</b></label>
+                                    <div className="bs-Fieldset-fields labelfield">
                                         Jan 29, 2020. 11:00 AM (Timezone)
                                         </div>
                                 </div>
                                 <div className="bs-Fieldset-row">
-                                    <label className="bs-Fieldset-label">Note: </label>
-                                    <div className="bs-Fieldset-fields">
+                                    <label className="bs-Fieldset-label"><b>Note:</b> </label>
+                                    <div className="bs-Fieldset-fields labelfield">
                                         If the current active team does not respond, then the incident will be escalated to Escalation Policy 2 <br />
 
                                     </div>
@@ -89,28 +114,49 @@ let RenderEscalationSummary = ({
 
                                 </div>
                                 <div className="bs-Fieldset-row">
-                                    <label className="bs-Fieldset-label"><b>Next Team scheduled to be on duty</b></label>
+                                    
                                     <div className="bs-Fieldset-fields">
-                                        Team 2
+                                        <div className="team-header-label">
+                                            <h3 style={{
+                                                width: "250px",
+                                                marginLeft: "140px",
+                                                marginTop: "20px"
+                                            }}> <span className="yellowdot"></span> {`Next Team Scheduled: Team 2`}</h3>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="bs-Fieldset-row">
+                                    <label className="bs-Fieldset-label"><b>Team Members</b></label>
+                                    <div className="bs-Fieldset-fields labelfield" style={{marginTop:"-1px"}} >
+                                        <div className="Box-root Margin-right--16 pointer">
+                                            <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
+                                            <span>Samantha Smith</span>
+                                        </div>
+                                        <div className="Box-root Margin-right--16 pointer" >
+                                            <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
+                                            <span>Samantha Smith</span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="bs-Fieldset-row">
-                                    <label className="bs-Fieldset-label">Team Members</label>
-                                    <div className="bs-Fieldset-fields">
-                                        Nawaz Dhandala, Samantha Smith.
-                                        </div>
-                                </div>
-                                <div className="bs-Fieldset-row">
-                                    <label className="bs-Fieldset-label">On-Call Duty Start Time</label>
-                                    <div className="bs-Fieldset-fields">
+                                    <label className="bs-Fieldset-label"><b>On-Call Duty Start Time</b></label>
+                                    <div className="bs-Fieldset-fields labelfield">
                                         Jan 29, 2020. 11:00 AM (Timezone)
                                         </div>
                                 </div>
                                 <div className="bs-Fieldset-row">
-                                    <label className="bs-Fieldset-label">On-Call Duty End Time</label>
-                                    <div className="bs-Fieldset-fields">
+                                    <label className="bs-Fieldset-label"><b>On-Call Duty End Time</b></label>
+                                    <div className="bs-Fieldset-fields labelfield">
                                         Jan 29, 2020. 11:00 AM (Timezone)
                                         </div>
+                                </div>
+                                <div className="bs-Fieldset-row">
+                                    <label className="bs-Fieldset-label"><b>Note:</b> </label>
+                                    <div className="bs-Fieldset-fields labelfield">
+                                        If the current active team does not respond, then the incident will be escalated to Escalation Policy 2 <br />
+
+                                    </div>
                                 </div>
 
 
@@ -132,7 +178,7 @@ let RenderEscalationSummary = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
 
     )
 }

@@ -9,8 +9,17 @@ import PropTypes from 'prop-types';
 import { RenderEscalationSummary } from '../components/schedule/RenderEscalationSummary';
 
 class Schedule extends Component {
-    render(){
+    constructor(props) {
+        super(props);
+        this.state = {editSchedule: false};
+
+    }
+    
+    render() {
+        const { editSchedule } = this.state;
+
         const { subProjectId } = this.props.match.params;
+
         return (
             <Dashboard>
                 <div className="Box-root">
@@ -21,21 +30,25 @@ class Schedule extends Component {
                                     <span>
                                         <div>
                                             <div>
-    
+
                                                 <RenameScheduleBox />
-    
+
                                                 <MonitorBox />
 
-                                                <RenderEscalationSummary />
-                                                
-                                                <div className="Box-root Margin-bottom--12">
-                                                    <OnCallAlertBox />
-                                                </div>
+                                                {!editSchedule && <RenderEscalationSummary onEditClicked={() => {
+                                                    this.setState({ editSchedule: true })
+                                                }} />}
+
+
+                                                {editSchedule && <OnCallAlertBox afterSave={() => {
+                                                    this.setState({ editSchedule: false })
+                                                }} />}
+
 
                                                 <RenderIfSubProjectAdmin subProjectId={subProjectId}>
                                                     <DeleteBox />
                                                 </RenderIfSubProjectAdmin>
-    
+
                                             </div>
                                         </div>
                                     </span>
