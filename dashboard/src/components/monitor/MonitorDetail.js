@@ -42,14 +42,6 @@ export class MonitorDetail extends Component {
         this.selectbutton = this.selectbutton.bind(this);
     }
 
-    componentDidMount() {
-        const { fetchMonitorLogs, fetchMonitorStatuses, monitor } = this.props;
-        const { startDate, endDate } = this.state;
-
-        fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
-        fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
-    }
-
     handleDateChange = (startDate, endDate) => {
         this.setState({ startDate, endDate });
 

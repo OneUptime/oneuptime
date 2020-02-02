@@ -378,8 +378,8 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
 MonitorChart.displayName = 'MonitorChart';
 
 MonitorChart.propTypes = {
-    start: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
-    end: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    start: PropTypes.oneOfType([PropTypes.string, PropTypes.object, PropTypes.instanceOf(Date)]),
+    end: PropTypes.oneOfType([PropTypes.string, PropTypes.object, PropTypes.instanceOf(Date)]),
     monitor: PropTypes.object,
     data: PropTypes.array,
     statuses: PropTypes.array,

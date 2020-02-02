@@ -40,7 +40,7 @@ if (userData !== undefined) {
 			'Email': userData.email
 		});
 		logEvent('Logged in successfully', { 'id': userData.id });
-	}	
+	}
 }
 cookies.remove('data', { domain: DOMAIN_URL });
 

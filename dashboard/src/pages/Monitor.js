@@ -12,7 +12,7 @@ import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMemb
 import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
-import { fetchMonitorsIncidents, fetchMonitors } from '../actions/monitor';
+import { fetchMonitorLogs, fetchMonitorsIncidents, fetchMonitorStatuses, fetchMonitors } from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
@@ -42,7 +42,9 @@ class DashboardView extends Component {
             this.props.monitor.monitorsList.monitors.forEach((subProject) => {
                 if (subProject.monitors.length > 0) {
                     subProject.monitors.forEach((monitor) => {
+                        this.props.fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, this.props.startDate, this.props.endDate);
                         this.props.fetchMonitorsIncidents(monitor.projectId._id || monitor.projectId, monitor._id, 0, 3);
+                        this.props.fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, this.props.startDate, this.props.endDate);
                     });
                 }
             });
@@ -196,7 +198,9 @@ class DashboardView extends Component {
 const mapDispatchToProps = (dispatch) => {
     return bindActionCreators({
         destroy,
+        fetchMonitorLogs,
         fetchMonitorsIncidents,
+        fetchMonitorStatuses,
         fetchMonitors,
         loadPage,
         fetchTutorial,
@@ -213,28 +217,15 @@ const mapStateToProps = state => {
     subProjectNames && subProjectNames.sort();
     subProjects = subProjectNames && subProjectNames.map(name => subProjects.find(subProject => subProject.name === name))
 
-    const initialValues = {
-        name_1000: '',
-        url_1000: '',
-        deviceId_1000: ''
-    };
-
-    monitor.monitorsList.monitors.forEach((subProjectMonitors) => {
-        subProjectMonitors && subProjectMonitors.monitors.forEach((monitor) => {
-            initialValues[`name_${monitor._id}`] = monitor.name;
-            initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
-            initialValues[`deviceId_${monitor._id}`] = monitor.data && monitor.data.deviceId;
-        });
-    });
-
     return {
         monitor,
-        initialValues,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,
         subProjects,
-        monitorTutorial: state.tutorial.monitor
+        monitorTutorial: state.tutorial.monitor,
+        startDate: state.monitor.monitorsList.startDate,
+        endDate: state.monitor.monitorsList.endDate
     };
 };
 
@@ -265,12 +256,16 @@ DashboardView.propTypes = {
     ),
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
+    fetchMonitorLogs: PropTypes.func,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
+    fetchMonitorStatuses: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     monitorTutorial: PropTypes.object,
     fetchTutorial: PropTypes.func,
     getProbes: PropTypes.func,
+    startDate: PropTypes.object,
+    endDate: PropTypes.object
 };
 
 DashboardView.displayName = 'DashboardView';
