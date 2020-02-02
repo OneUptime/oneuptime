@@ -16,7 +16,7 @@ let RenderEscalationSummary = ({
 }) => {
 
     return (
-        <div class="Box-root Margin-bottom--12">
+        <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
 
@@ -74,10 +74,10 @@ let RenderEscalationSummary = ({
                                     <div className="bs-Fieldset-fields">
                                         <div className="team-header-label">
                                             <h3 style={{
-                                                width: "250px",
-                                                marginLeft: "140px",
-                                                marginTop: "20px"
-                                            }}> <span className="greendot"></span> {`On Active Duty: Team 1`}</h3>
+                                                width: '250px',
+                                                marginLeft: '140px',
+                                                marginTop: '20px'
+                                            }}> <span className="greendot"></span> {'On Active Duty: Team 1'}</h3>
                                         </div>
                                     </div>
                                 </div>
@@ -85,7 +85,7 @@ let RenderEscalationSummary = ({
 
                                 <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label"><b>Team Members</b></label>
-                                    <div className="bs-Fieldset-fields labelfield" style={{marginTop:"-1px"}}>
+                                    <div className="bs-Fieldset-fields labelfield" style={{marginTop:'-1px'}}>
                                         <div className="Box-root Margin-right--16 pointer">
                                             <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
                                             <span>Samantha Smith</span>
@@ -118,17 +118,17 @@ let RenderEscalationSummary = ({
                                     <div className="bs-Fieldset-fields">
                                         <div className="team-header-label">
                                             <h3 style={{
-                                                width: "250px",
-                                                marginLeft: "140px",
-                                                marginTop: "20px"
-                                            }}> <span className="yellowdot"></span> {`Next Team Scheduled: Team 2`}</h3>
+                                                width: '250px',
+                                                marginLeft: '140px',
+                                                marginTop: '20px'
+                                            }}> <span className="yellowdot"></span> {'Next Team Scheduled: Team 2'}</h3>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label"><b>Team Members</b></label>
-                                    <div className="bs-Fieldset-fields labelfield" style={{marginTop:"-1px"}} >
+                                    <div className="bs-Fieldset-fields labelfield" style={{marginTop:'-1px'}} >
                                         <div className="Box-root Margin-right--16 pointer">
                                             <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
                                             <span>Samantha Smith</span>
