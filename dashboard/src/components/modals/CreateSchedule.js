@@ -21,7 +21,10 @@ function validate(values) {
     const errors = {};
 
     if (!values.name) {
-        errors.name = 'Event name is required'
+        errors.name = 'Event name is required';
+    }
+    if (!values.description) {
+        errors.description = 'Event description is required';
     }
     return errors;
 }
