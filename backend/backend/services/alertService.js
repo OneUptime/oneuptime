@@ -198,7 +198,7 @@ module.exports = {
                                     // handle both schedules with rotations and schedules without rotations
                                     const activeTeam = escalation.activeTeamForAlerts ? escalation.activeTeamForAlerts : escalation.team[0];
 
-                                    activeTeam.teamMember.forEach(async (teamMember) => {
+                                    activeTeam.teamMembers.forEach(async (teamMember) => {
                                         const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
                                         if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) {
                                             var user = await UserService.findOneBy({ _id: teamMember.member });
@@ -402,7 +402,7 @@ module.exports = {
                 var escalation = await EscalationService.findOneBy({ _id: value._id });
                 let callFrequency = parseInt(escalation.callFrequency);
 
-                for (let teamMember of escalation.teamMember) {
+                for (let teamMember of escalation.teamMembers) {
                     const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
                     if (currentTime >= startTime && currentTime <= endTime) {
                         // time difference in hours

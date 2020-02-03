@@ -4,7 +4,6 @@
  *
  */
 
-
 let express = require('express');
 let ScheduleService = require('../services/scheduleService');
 

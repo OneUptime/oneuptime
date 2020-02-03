@@ -6,7 +6,7 @@ import RenameScheduleBox from '../components/schedule/RenameScheduleBox';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import OnCallAlertBox from '../components/schedule/OnCallAlertBox';
 import PropTypes from 'prop-types';
-import { RenderEscalationSummary } from '../components/schedule/RenderEscalationSummary';
+import RenderEscalationSummary from '../components/schedule/RenderEscalationSummary';
 
 class Schedule extends Component {
     constructor(props) {

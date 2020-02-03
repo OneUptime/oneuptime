@@ -1,17 +1,18 @@
 module.exports = {
-    findBy: async function(query, limit, skip){
+
+    findBy: async function (query, limit, skip) {
         try {
-            if(!skip) skip=0;
+            if (!skip) skip = 0;
 
-            if(!limit) limit=0;
+            if (!limit) limit = 0;
 
-            if(typeof(skip) === 'string') skip = parseInt(skip);
+            if (typeof (skip) === 'string') skip = parseInt(skip);
 
-            if(typeof(limit) === 'string') limit = parseInt(limit);
+            if (typeof (limit) === 'string') limit = parseInt(limit);
 
-            if(!query) query = {};
+            if (!query) query = {};
 
-            if(!query.deleted) query.deleted = false;
+            if (!query.deleted) query.deleted = false;
             var escalations = await EscalationModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
@@ -32,7 +33,7 @@ module.exports = {
                 query = {};
             }
 
-            if(!query.deleted) query.deleted = false;
+            if (!query.deleted) query.deleted = false;
             var escalation = await EscalationModel.findOne(query)
                 .populate('projectId', 'name')
                 .populate('scheduleId', 'name')
@@ -43,7 +44,7 @@ module.exports = {
                 escalation.nextActiveTeam = nextActiveTeam;
                 escalation.activeTeamForAlerts = activeTeamForAlerts;
             }
-            
+
             return escalation;
         } catch (error) {
             ErrorService.log('escalationService.findOneBy', error);
@@ -82,7 +83,7 @@ module.exports = {
     countBy: async function (query) {
 
         try {
-            if(!query){
+            if (!query) {
                 query = {};
             }
 
@@ -95,7 +96,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function(query, userId){
+    deleteBy: async function (query, userId) {
         try {
             var escalation = await EscalationModel.findOneAndUpdate(query, {
                 $set: {
@@ -150,14 +151,14 @@ module.exports = {
         }
     },
 
-    removeEscalationMember: async function(projectId, memberId){
+    removeEscalationMember: async function (projectId, memberId) {
         try {
             var _this = this;
-            var escalations = await _this.findBy({projectId});
+            var escalations = await _this.findBy({ projectId });
 
             if (escalations && escalations.length > 0) {
-                await Promise.all(escalations.map(async(escalation)=>{
-                    var teamMembers = escalation.teamMember.filter(member => member.member.toString() !== memberId.toString());
+                await Promise.all(escalations.map(async (escalation) => {
+                    var teamMembers = escalation.teamMembers.filter(member => member.member.toString() !== memberId.toString());
                     await _this.updateOneBy({ _id: escalation._id }, { teamMember: teamMembers });
                 }));
             }
@@ -167,7 +168,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function(query){
+    hardDeleteBy: async function (query) {
         try {
             await EscalationModel.deleteMany(query);
             return 'Escalation(s) removed successfully';
@@ -219,20 +220,6 @@ function computeIntervalDiffs(frequency, createdAt, currentDate, rotationSwitchT
     }
 }
 
-// format date into human readable formats according to display type needed
-// then add timezone adjustment
-function formatDate(rotationFrequency, date, timezone){
-    if(!rotationFrequency)
-        return moment(date).tz(timezone).format('Do, hh:mm a');
-    switch(rotationFrequency) {
-    case 'months':
-        return moment(date).tz(timezone).format('ddd, Do MMM: hh:mm a');
-    case 'weeks':
-        return moment(date).tz(timezone).format('dddd Do, hh:mm a');
-    case 'days':
-        return moment(date).tz(timezone).format('Do, hh:mm a');
-    }
-}
 
 function computeActiveTeamIndex(numberOfTeams, diffsInInterval, rotationSwitchTime) {
     let diffInt = diffsInInterval % numberOfTeams;
@@ -257,30 +244,24 @@ function computeActiveTeams(escalation) {
             team, rotationInterval, rotationFrequency,
             rotationSwitchTime, createdAt, rotationTimezone
         } = escalation;
-  
+
         const currentDate = new Date();
         if (rotationFrequency) {
             const diffsInInterval = computeIntervalDiffs(rotationFrequency, createdAt, currentDate, rotationSwitchTime);
             const activeTeamIndex = computeActiveTeamIndex(team.length, diffsInInterval);
-           
-            let activeTeamRotationStartTime = moment(createdAt).add(diffsInInterval, rotationFrequency);
-            // console.log('diffs interval', diffsInInterval);
-            // console.log('start time', activeTeamRotationStartTime);
-            let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
-            // console.log('end time time', activeTeamRotationStartTime);
-            // console.log('index', activeTeamIndex);
-            const activeTeam = {
-                ...team[activeTeamIndex],
-                rotationStartTime: formatDate(rotationFrequency, activeTeamRotationStartTime, rotationTimezone),
-                rotationEndTime: formatDate(rotationFrequency, activeTeamRotationEndTime, rotationTimezone)
-            };
 
-            // separate object containing unformatted times + w/o timezone for alert service
-            const activeTeamForAlerts = {
-                ...team[activeTeamIndex],
+            let activeTeamRotationStartTime = moment(createdAt).add(diffsInInterval, rotationFrequency);
+
+            let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
+
+            const activeTeam = {
+                _id: team[activeTeamIndex]._id,
+                teamMembers: team[activeTeamIndex].teamMember,
                 rotationStartTime: activeTeamRotationStartTime,
                 rotationEndTime: activeTeamRotationEndTime
             };
+
+
             let nextActiveTeamIndex = activeTeamIndex + 1;
 
             if (!team[nextActiveTeamIndex]) {
@@ -290,14 +271,15 @@ function computeActiveTeams(escalation) {
             const nextActiveTeamRotationStartTime = activeTeamRotationEndTime;
             const nextActiveTeamRotationEndTime = moment(nextActiveTeamRotationStartTime).add(rotationInterval, rotationFrequency);
             const nextActiveTeam = {
-                ...team[nextActiveTeamIndex],
-                rotationStartTime: formatDate(rotationFrequency, nextActiveTeamRotationStartTime, rotationTimezone),
-                rotationEndTime: formatDate(rotationFrequency, nextActiveTeamRotationEndTime, rotationTimezone), 
+                _id: team[nextActiveTeamIndex]._id,
+                teamMembers: team[nextActiveTeamIndex].teamMember,
+                rotationStartTime: nextActiveTeamRotationStartTime,
+                rotationEndTime: nextActiveTeamRotationEndTime,
             };
 
-            return { activeTeam, nextActiveTeam, activeTeamForAlerts };
+            return { activeTeam, nextActiveTeam };
         } else return null;
-          
+
     } catch (err) {
         throw err;
     }

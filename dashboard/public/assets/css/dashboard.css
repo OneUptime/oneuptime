@@ -51083,6 +51083,11 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   display: flex;
 }
 
+.flex-center{
+  display: flex;
+  justify-content:center;
+}
+
 .underline{
   text-decoration:underline !important;
 }

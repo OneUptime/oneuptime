@@ -60,7 +60,8 @@
     "dev": "cross-env NODE_ENV=development nodemon server.js",
     "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "fix-lint": "eslint . --fix"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.2",
