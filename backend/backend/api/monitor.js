@@ -5,6 +5,7 @@
  */
 
 var express = require('express');
+var UserService = require('../services/userService');
 var MonitorService = require('../services/monitorService');
 var MonitorLogService = require('../services/monitorLogService');
 var NotificationService = require('../services/notificationService');
@@ -152,7 +153,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
             };
             await ScheduleService.updateOneBy({ _id: data.callScheduleId }, scheduleData);
         }
-        await NotificationService.create(monitor.projectId._id, `A New Monitor was Created with name ${monitor.name} by ${req.user.name}`, req.user.id, 'monitoraddremove');
+
+        var user = await UserService.findOneBy({ _id: req.user.id });
+
+        await NotificationService.create(monitor.projectId._id, `A New Monitor was Created with name ${monitor.name} by ${user.name}`, user._id, 'monitoraddremove');
         await RealTimeService.sendMonitorCreated(monitor);
         return sendItemResponse(req, res, monitor);
     } catch (error) {
