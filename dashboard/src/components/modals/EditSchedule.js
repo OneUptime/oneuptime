@@ -23,6 +23,9 @@ function validate(values) {
     if (!values.name) {
         errors.name = 'Event name is required'
     }
+    if (!values.description) {
+        errors.description = 'Event description is required';
+    }
     return errors;
 }
 
@@ -88,7 +91,7 @@ class UpdateSchedule extends React.Component {
 
     render() {
         const { startDate, startDateCleared, endDate, endDateCleared } = this.state;
-        const { requesting, error} = this.props;
+        const { requesting, error } = this.props;
 
         const valueStartDate = !startDateCleared && startDate ? startDate.format('MMMM Do YYYY, h:mm a') : '';
         const valueEndDate = !endDateCleared && endDate ? endDate.format('MMMM Do YYYY, h:mm a') : '';
@@ -150,7 +153,7 @@ class UpdateSchedule extends React.Component {
                                                                     onChange={this.handleChangeStartDate}
                                                                     showTimePicker={true}
                                                                     closeOnSelectDay={true}>
-                                                                    <input type="text" value={valueStartDate} style={{width:200}}/>
+                                                                    <input type="text" value={valueStartDate} style={{ width: 200 }} />
                                                                 </DatetimePickerTrigger>
                                                             </div>
                                                         </div>
@@ -170,7 +173,7 @@ class UpdateSchedule extends React.Component {
                                                                     onChange={this.handleChangeEndDate}
                                                                     showTimePicker={true}
                                                                     closeOnSelectDay={true}>
-                                                                    <input type="text" value={valueEndDate}  style={{width:200}} />
+                                                                    <input type="text" value={valueEndDate} style={{ width: 200 }} />
                                                                 </DatetimePickerTrigger>
                                                             </div>
                                                         </div>
@@ -384,7 +387,7 @@ const mapStateToProps = state => {
     let scheduledEventToBeUpdated = state.modal.modals[0].event;
     let initialValues = {};
 
-    if (scheduledEventToBeUpdated){
+    if (scheduledEventToBeUpdated) {
         initialValues.name = scheduledEventToBeUpdated.name;
         initialValues.startDate = scheduledEventToBeUpdated.startDate;
         initialValues.endDate = scheduledEventToBeUpdated.endDate;
@@ -396,8 +399,8 @@ const mapStateToProps = state => {
         initialValues._id = scheduledEventToBeUpdated._id
     }
 
-   
-   return  {
+
+    return {
         currentProject: state.project.currentProject,
         updatedScheduledEvent: state.scheduledEvent.updatedScheduledEvent,
         error: state.scheduledEvent.updatedScheduledEvent.error,
