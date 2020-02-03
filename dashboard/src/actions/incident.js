@@ -35,7 +35,7 @@ export const resetProjectIncidents = () => {
 export function getProjectIncidents(projectId, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    
+
     return function (dispatch) {
         var promise = null;
         if (skip >= 0 && limit >= 0){
@@ -97,7 +97,7 @@ export const resetIncidents = () => {
 
 // Gets project Incidents
 export function getIncidents(projectId) {
-    
+
     return function (dispatch) {
         const promise = getApi(`incident/${projectId}`);
         dispatch(incidentsRequest(promise));
@@ -151,6 +151,12 @@ export const resetCreateIncident = () => {
     };
 };
 
+export const createIncidentReset = () => {
+    return function (dispatch) {
+        dispatch(resetCreateIncident());
+    };
+};
+
 // Calls the API to create new incident.
 export function createNewIncident(projectId, monitorId, incidentType) {
     return function (dispatch) {
@@ -168,6 +174,7 @@ export function createNewIncident(projectId, monitorId, incidentType) {
                 type: 'ADD_NEW_INCIDENT_TO_MONITORS',
                 payload: createIncident.data
             });
+            return {createIncident};
         }, function (error) {
             if (error && error.response && error.response.data)
                 error = error.response.data;
@@ -181,6 +188,7 @@ export function createNewIncident(projectId, monitorId, incidentType) {
                 error = 'Network Error';
             }
             dispatch(createIncidentError(errors(error)));
+            return {error};
         });
 
         return promise;

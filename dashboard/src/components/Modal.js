@@ -52,7 +52,7 @@ const composableComponent = (ComposedComponent) => {
                     >
 
                         <div className="modal_container" style={modalContainerStyle}>
-                            <ComposedComponent closeThisDialog={this.onClose} confirmThisDialog={this.onConfirm} />
+                            <ComposedComponent closeThisDialog={this.onClose} confirmThisDialog={this.onConfirm} title={this.props.title} body={this.props.body} />
                         </div>
                     </div>
                 </div>
@@ -64,7 +64,9 @@ const composableComponent = (ComposedComponent) => {
         item: PropTypes.object.isRequired,
         onClose:PropTypes.func.isRequired,
         extraClasses: PropTypes.string,
-        zIndex: PropTypes.number.isRequired
+        zIndex: PropTypes.number.isRequired,
+        title: PropTypes.string,
+        body: PropTypes.object,
     }
 
     Modal.displayName = 'Modal'

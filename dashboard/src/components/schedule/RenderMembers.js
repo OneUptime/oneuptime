@@ -3,9 +3,9 @@ import PropTypes from 'prop-types'
 import { connect } from 'react-redux';
 import { formValueSelector } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
-import { RenderName } from './RenderName';
+import { RenderMember } from './RenderMember';
 
-let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex, teamIndex, form }) => {
+let RenderMembers = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex, teamIndex, form }) => {
     const policyRotation = form[policyIndex].team[teamIndex];
 
     return (
@@ -15,7 +15,7 @@ let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policy
                     const memberValue = policyRotation.teamMember[i];
                     
                     return (
-                        <RenderName
+                        <RenderMember
                             memberValue={memberValue}
                             subProjectId={subProjectId}
                             policyIndex={policyIndex}
@@ -47,7 +47,7 @@ let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policy
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                         onClick={() => fields.push({ member: '', timezone: '', startTime: '', endTime: '' })}
                                     >
-                                        Add Member
+                                        Add Team Member
                                     </button>
                                     <ShouldRender if={submitFailed && error}>
                                         <span>{error}</span>
@@ -57,7 +57,7 @@ let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policy
                         </div>
                         <p className="bs-Fieldset-explanation">
                             <span>
-                                Add Names and respective alert medium and time to contact.
+                                Add more team members to this on-call team.
                             </span>
                         </p>
                     </div>
@@ -67,9 +67,9 @@ let RenderNames = ({ fields, meta: { error, submitFailed }, subProjectId, policy
     )
 }
 
-RenderNames.displayName = 'RenderNames'
+RenderMembers.displayName = 'RenderMembers'
 
-RenderNames.propTypes = {
+RenderMembers.propTypes = {
     subProjectId: PropTypes.string.isRequired,
     meta: PropTypes.object.isRequired,
     fields: PropTypes.oneOfType([
@@ -90,6 +90,6 @@ function mapStateToProps(state) {
     }
 }
 
-RenderNames = connect(mapStateToProps)(RenderNames);
+RenderMembers = connect(mapStateToProps)(RenderMembers);
 
-export { RenderNames }
+export { RenderMembers }

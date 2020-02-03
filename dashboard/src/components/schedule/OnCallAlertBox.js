@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { reduxForm, FieldArray } from 'redux-form';
+import { reduxForm, FieldArray, arrayPush } from 'redux-form';
 import { withRouter } from 'react-router';
 import { getEscalation, addEscalation } from '../../actions/schedule';
 import { subProjectTeamLoading } from '../../actions/team';
-import { RenderEscalation } from '../basic/RenderEscalation';
+import { RenderEscalation } from './RenderEscalation';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -32,16 +32,16 @@ function validate(values) {
                 }
 
                 if (values.OnCallAlertBox[i].smsFrequency === '') {
-                  repeatErrors.smsFrequency = 'Please enter SMS frequency.';
-                  alertArrayErrors[i] = repeatErrors;
+                    repeatErrors.smsFrequency = 'Please enter SMS frequency.';
+                    alertArrayErrors[i] = repeatErrors;
                 } else if (!Validate.number(values.OnCallAlertBox[i].smsFrequency)) {
                     repeatErrors.smsFrequency = 'SMS Frequency is not a number.';
                     alertArrayErrors[i] = repeatErrors;
                 }
 
                 if (values.OnCallAlertBox[i].emailFrequency === '') {
-                  repeatErrors.emailFrequency = 'Please enter email frequency.';
-                  alertArrayErrors[i] = repeatErrors;
+                    repeatErrors.emailFrequency = 'Please enter email frequency.';
+                    alertArrayErrors[i] = repeatErrors;
                 } else if (!Validate.number(values.OnCallAlertBox[i].emailFrequency)) {
                     repeatErrors.emailFrequency = 'Email Frequency is not a number.';
                     alertArrayErrors[i] = repeatErrors;
@@ -78,9 +78,9 @@ export class OnCallAlertBox extends Component {
     submitForm = (values) => {
         const { subProjectId, scheduleId } = this.props;
         this.props.addEscalation(subProjectId, scheduleId, values);
-         if (!IS_DEV) {
-             logEvent('Links Updated', values);
-         }
+        if (!IS_DEV) {
+            logEvent('Links Updated', values);
+        }
     }
 
     render() {
@@ -89,16 +89,50 @@ export class OnCallAlertBox extends Component {
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
-                    <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root">
-                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Escalation Policy</span>
-                            </span>
-                            <p>
-                                <span>
-                                    This section belongs to customizing your Escalation Policy.
+
+                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+
+                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span> Call Schedule and Escalation Policy</span>
                                 </span>
-                            </p>
+                                <p> 
+                                    Define your call schedule here. Alert your backup on-call team if your primary on-call team does not respond to alerts.
+                                </p>
+                            </div>
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                <div className="Box-root">
+                                    
+                                        <button
+                                            type="button"
+                                            className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
+                                            onClick={() => this.props.pushArray('OnCallAlertBox', 'OnCallAlertBox',
+                                                { 
+                                                    callFrequency: '',
+                                                    smsFrequency: '',
+                                                    emailFrequency: '10',
+                                                    email: true,
+                                                    sms: false,
+                                                    call: false,
+                                                    rotationFrequency: '',
+                                                    rotationInterval: '',
+                                                    rotationSwitchTime: '',
+                                                    rotationTimezone: '',
+                                                    team: [
+                                                      {
+                                                        teamMember: [],
+                                                      }
+                                                    ]
+                                                }
+                                            )}
+                                        >
+                                            Add Escalation Policy
+
+                                    </button>
+                                    
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <form onSubmit={handleSubmit(this.submitForm)} >
@@ -107,16 +141,13 @@ export class OnCallAlertBox extends Component {
                                 <div className="bs-Fieldset-wrapper Box-root">
                                     <fieldset className="bs-Fieldset" style={{ paddingTop: '0px' }}>
                                         <div className="bs-Fieldset-rows">
-
                                             <FieldArray name="OnCallAlertBox" component={RenderEscalation} subProjectId={this.props.subProjectId} />
-
                                         </div>
                                     </fieldset>
                                 </div>
                             </div>
                         </div>
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-
                             <div className="bs-Tail-copy">
                                 <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
                                     <ShouldRender if={this.props.escalationPolicy.error}>
@@ -134,7 +165,6 @@ export class OnCallAlertBox extends Component {
                             </div>
 
                             <div>
-                                
                                 <button
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                     disabled={this.props.escalationPolicy.requesting}
@@ -156,6 +186,7 @@ OnCallAlertBox.displayName = 'OnCallAlertBox'
 
 OnCallAlertBox.propTypes = {
     getEscalation: PropTypes.func.isRequired,
+    pushArray: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     addEscalation: PropTypes.func.isRequired,
     escalationPolicy: PropTypes.object.isRequired,
@@ -165,16 +196,17 @@ OnCallAlertBox.propTypes = {
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
+    // NOTE: pushArray / arrayPush MUST be aliased or it will not work. https://justinnoel.dev/2018/09/22/adding-to-redux-form-fieldarray/
     {
-        getEscalation, addEscalation, subProjectTeamLoading,
+        getEscalation, addEscalation, subProjectTeamLoading, pushArray: arrayPush 
     }, dispatch
 )
 
 const mapStateToProps = (state, props) => {
-   /* state.schedule.escalationData && state.schedule.escalationData.length ?
-    state.schedule.escalationData.map((value)=>{
-        return {escalation: [value]};
-    }) : */
+    /* state.schedule.escalationData && state.schedule.escalationData.length ?
+     state.schedule.escalationData.map((value)=>{
+         return {escalation: [value]};
+     }) : */
     const { escalationData } = state.schedule;
 
     const { projectId } = props.match.params;
@@ -182,7 +214,7 @@ const mapStateToProps = (state, props) => {
     const { subProjectId } = props.match.params;
 
     let OnCallAlertBox = escalationData && escalationData.length ? escalationData : [
-        { 
+        {
             callFrequency: '10',
             smsFrequency: '10',
             emailFrequency: '10',
@@ -190,16 +222,16 @@ const mapStateToProps = (state, props) => {
             sms: false,
             call: false,
             team: [
-              {
-                teamMember: [
-                  {
-                      member: '',
-                      timezone: '',
-                      startTime: '',
-                      endTime: ''
-                  }
-                ]
-              }
+                {
+                    teamMember: [
+                        {
+                            member: '',
+                            timezone: '',
+                            startTime: '',
+                            endTime: ''
+                        }
+                    ]
+                }
             ]
         }
     ];

@@ -7,6 +7,8 @@
 
 var express = require('express');
 var SubscriberAlertService = require('../services/subscriberAlertService');
+var path = require('path');
+var fs = require('fs');
 
 var router = express.Router();
 
@@ -42,6 +44,24 @@ router.post('/:projectId/:subscriberId', async (req, res)=>{
     }
 
 
+});
+
+// Mark alert as viewed
+router.get('/:projectId/:alertId/viewed', async function (req, res) {
+    try {
+        const alertId = req.params.alertId;
+        const projectId = req.params.projectId;
+
+        await SubscriberAlertService.updateOneBy({ _id: alertId, projectId: projectId }, {alertStatus: 'Viewed'});
+        var filePath = path.join(__dirname, '..', '..', 'views', 'img', 'Fyipe-Logo.png');
+        var img = fs.readFileSync(filePath);
+
+        res.set('Content-Type', 'image/png');
+        res.status(200);
+        res.end(img, 'binary');
+    } catch(error) {
+        return sendErrorResponse(req, res, error);
+    }
 });
 
 // get subscribers alerts by projectId

@@ -36,36 +36,11 @@ let RenderEscalation = ({ fields, meta: { error, submitFailed }, subProjectId, f
                     <div className="bs-Fieldset-fields">
                         <div className="Box-root Flex-flex Flex-alignItems--center">
                             <div>
-                                <ShouldRender if={fields.length < 10}>
-                                    <button
-                                        type="button"
-                                        className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                        onClick={() => fields.push(
-                                            { 
-                                                callFrequency: '10',
-                                                smsFrequency: '10',
-                                                emailFrequency: '10',
-                                                email: true,
-                                                sms: false,
-                                                call: false,
-                                                rotationFrequency: '',
-                                                rotationInterval: '',
-                                                rotationSwitchTime: '',
-                                                rotationTimezone: '',
-                                                team: [
-                                                  {
-                                                    teamMember: [],
-                                                  }
-                                                ]
-                                            }
-                                        )}
-                                    >
-                                        Add Escalation Policy
-                                    </button>
+            
                                     <ShouldRender if={submitFailed && error}>
                                         <span>{error}</span>
                                     </ShouldRender>
-                                </ShouldRender>
+                                
                             </div>
                         </div>
                     </div>

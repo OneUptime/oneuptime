@@ -121,8 +121,8 @@ const mapDispatchToProps = dispatch => ({
 ResolveTime.propTypes = {
     getResolveTime: PropTypes.func,
     filter: PropTypes.string,
-    startDate: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
-    endDate: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
+    startDate: PropTypes.object,
+    endDate: PropTypes.object,
     currentProject: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
     resolveTimeReports: PropTypes.object
 };

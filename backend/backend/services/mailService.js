@@ -505,7 +505,7 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentCreatedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate) {
+    sendIncidentCreatedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, trackEmailAsViewedUrl) {
         try {
             var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Created');
             let data = {
@@ -514,6 +514,7 @@ module.exports = {
                 userName,
                 userId,
                 projectName,
+                trackEmailAsViewedUrl,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
             };
@@ -545,7 +546,7 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentAcknowledgedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate) {
+    sendIncidentAcknowledgedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, trackEmailAsViewedUrl) {
         try {
             var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Acknowldeged');
             let data = {
@@ -554,6 +555,7 @@ module.exports = {
                 userName,
                 userId,
                 projectName,
+                trackEmailAsViewedUrl,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
             };
@@ -585,7 +587,7 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentResolvedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate) {
+    sendIncidentResolvedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, trackEmailAsViewedUrl) {
         try {
             var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Resolved');
             let data = {
@@ -594,6 +596,7 @@ module.exports = {
                 userName,
                 userId,
                 projectName,
+                trackEmailAsViewedUrl,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
             };

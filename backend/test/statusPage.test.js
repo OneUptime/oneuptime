@@ -31,7 +31,7 @@ describe('Status API', function () {
 
     before(function (done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createUser(request, userData.user, function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -49,7 +49,7 @@ describe('Status API', function () {
                                 monitorCategoryId = res.body._id;
                                 monitor.monitorCategoryId = monitorCategoryId;
                                 request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-                                    monitorId = res.body[0]._id;
+                                    monitorId = res.body._id;
                                     done();
                                 });
                             });
@@ -193,7 +193,7 @@ describe('StatusPage API with Sub-Projects', function () {
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({ subProjectName: 'New SubProject' }).end(function (err, res) {
             subProjectId = res.body[0]._id;
             // sign up second user (subproject user)
-            createUser(request, userData.newUser, function(err, res) {
+            createUser(request, userData.newUser, function (err, res) {
                 subProjectUserId = res.body.id;
                 VerificationTokenModel.findOne({ userId: subProjectUserId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -223,7 +223,7 @@ describe('StatusPage API with Sub-Projects', function () {
     });
 
     it('should not create a statupage for user not present in project', function (done) {
-        createUser(request, userData.anotherUser, function(err, res) {
+        createUser(request, userData.anotherUser, function (err, res) {
             VerificationTokenModel.findOne({ userId: res.body.id }, function (err, res) {
                 request.get(`/user/confirmation/${res.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({

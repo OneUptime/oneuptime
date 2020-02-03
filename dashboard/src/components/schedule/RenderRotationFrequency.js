@@ -32,7 +32,7 @@ const RenderRotationFrequency = ({
 
     return (
         <span>
-            <div style={{ ...style, height: '28px' }}>
+            <div style={{ height: '28px',  width:'250px', ...style }}>
               <span>
                 <Select
                     name={input.name}

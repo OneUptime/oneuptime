@@ -7,6 +7,13 @@ module.exports = {
         try {
             var _this = this;
             var subProject = null;
+            var existingMonitor = await _this.findBy({ name: data.name, projectId: data.projectId });
+            if (existingMonitor && existingMonitor.length > 0) {
+                let error = new Error('Monitor with that name already exists.');
+                error.code = 400;
+                ErrorService.log('monitorService.create', error);
+                throw error;
+            }
             var project = await ProjectService.findOneBy({ _id: data.projectId });
             if (project.parentProjectId) {
                 subProject = project;
@@ -30,8 +37,7 @@ module.exports = {
                 error.code = 400;
                 ErrorService.log('monitorService.create', error);
                 throw error;
-            }
-            else {
+            } else {
                 if (count < (projectSeats * 5)) {
                     var monitor = new MonitorModel();
                     monitor.name = data.name;
@@ -66,14 +72,9 @@ module.exports = {
                         if (data.headers && data.headers.length) monitor.headers = data.headers;
                     }
                     var savedMonitor = await monitor.save();
-                    var fetchedMonitor = await IncidentService.getMonitorsWithIncidentsBy({
-                        query: { _id: savedMonitor._id },
-                        skip: 0,
-                        limit: 0
-                    });
-                    return fetchedMonitor;
-                }
-                else {
+                    monitor = await _this.findOneBy({ _id: savedMonitor._id });
+                    return monitor;
+                } else {
                     let error = new Error('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
                     error.code = 400;
                     ErrorService.log('monitorService.create', error);
@@ -99,12 +100,9 @@ module.exports = {
                     new: true
                 })
                 .populate('projectId', 'name');
-            monitor = await IncidentService.getMonitorsWithIncidentsBy({
-                query: { _id: monitor._id },
-                skip: 0,
-                limit: 0
-            });
+
             await RealTimeService.monitorEdit(monitor);
+
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.updateOneBy', error);
@@ -165,52 +163,6 @@ module.exports = {
         }
     },
 
-    async findLogsBy(query, limit, skip) {
-        try {
-            if (!skip) skip = 0;
-
-            if (!limit) limit = 10;
-
-            if (typeof (skip) === 'string') {
-                skip = parseInt(skip);
-            }
-
-            if (typeof (limit) === 'string') {
-                limit = parseInt(limit);
-            }
-
-            if (!query) {
-                query = {};
-            }
-            var monitors = await MonitorLogModel.find(query)
-                .sort([['createdAt', -1]])
-                .limit(limit)
-                .skip(skip)
-                .populate('monitorId', 'name')
-                .populate('probeId', 'probeName');
-            return monitors;
-        } catch (error) {
-            ErrorService.log('monitorService.findLogsBy', error);
-            throw error;
-        }
-    },
-
-    async findLogProbesBy(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            var probes = await MonitorLogModel.find(query)
-                .sort([['createdAt', -1]])
-                .populate('probeId', 'probeName');
-            probes = [...new Set(probes.map(item => item.probeId))];
-            return probes;
-        } catch (error) {
-            ErrorService.log('monitorService.findLogProbesBy', error);
-            throw error;
-        }
-    },
-
     async findOneBy(query) {
         try {
             if (!query) {
@@ -223,19 +175,6 @@ module.exports = {
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
-            throw error;
-        }
-    },
-
-    async countLogsBy(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            var count = await MonitorLogModel.count(query);
-            return count;
-        } catch (error) {
-            ErrorService.log('monitorService.countLogsBy', error);
             throw error;
         }
     },
@@ -318,20 +257,22 @@ module.exports = {
         }
     },
 
-    async getMonitors(subProjectIds, skip, limit) {
-        if (typeof skip === 'string') skip = parseInt(skip);
-        if (typeof limit === 'string') limit = parseInt(limit);
-        var _this = this;
-        let subProjectMonitors = await Promise.all(subProjectIds.map(async (id) => {
-            let monitors = await IncidentService.getMonitorsWithIncidentsBy({
-                query: { projectId: id },
-                skip,
-                limit
-            });
-            let count = await _this.countBy({ projectId: id });
-            return { monitors, count, _id: id, skip, limit };
-        }));
-        return subProjectMonitors;
+    async getMonitorsBySubprojects(subProjectIds, limit, skip) {
+        try {
+            if (typeof limit === 'string') limit = parseInt(limit);
+            if (typeof skip === 'string') skip = parseInt(skip);
+            var _this = this;
+
+            let subProjectMonitors = await Promise.all(subProjectIds.map(async (id) => {
+                let monitors = await _this.findBy({ projectId: id }, limit, skip);
+                let count = await _this.countBy({ projectId: id });
+                return { monitors, count, _id: id, skip, limit };
+            }));
+            return subProjectMonitors;
+        } catch (error) {
+            ErrorService.log('monitorService.getMonitorsBySubprojects', error);
+            throw error;
+        }
     },
 
     async getProbeMonitors(date) {
@@ -359,14 +300,10 @@ module.exports = {
         try {
             var newdate = new Date();
             var thisObj = this;
-            var monitors = await thisObj.updateOneBy({
-                _id: id, deleted: false
+            var monitor = await thisObj.updateOneBy({
+                _id: id
             }, { $set: { 'lastPingTime': newdate } }, { multi: false });
-            if (monitors.length > 0) {
-                return (monitors[0]);
-            } else {
-                return (null);
-            }
+            return monitor;
         } catch (error) {
             ErrorService.log('monitorService.updateMonitorPingTime', error);
             throw error;
@@ -397,56 +334,85 @@ module.exports = {
         try {
             const start = moment(startDate).toDate();
             const end = moment(endDate).toDate();
-            const interval = (moment(endDate)).diff(moment(startDate), 'days');
+            const intervalInDays = (moment(endDate)).diff(moment(startDate), 'days');
 
             const monitor = await this.findOneBy({ _id: monitorId });
-            const newMonitor = (moment(endDate)).diff(moment(monitor.createdAt), 'days') < 2;
+            const isNewMonitor = (moment(endDate)).diff(moment(monitor.createdAt), 'days') < 2;
 
-            let monitorLogs;
-            let aggregateLogs = [
-                { $match: { $and: [{ monitorId }, { createdAt: { $gte: start, $lte: end } }] } },
-                { $sort: { 'createdAt': -1 } },
-                { $group: { _id: '$probeId', logs: { $push: '$$ROOT' } } }
-            ];
-            if (interval > 30 && !newMonitor) {
-                monitorLogs = await MonitorLogByWeekModel.aggregate(aggregateLogs);
-            } else if (interval > 2 && !newMonitor) {
-                monitorLogs = await MonitorLogByDayModel.aggregate(aggregateLogs);
+            let probes, probeLogs = [];
+            if (monitor.type === 'server-monitor') {
+                probes = [undefined];
             } else {
-                if ((moment(endDate)).diff(moment(monitor.createdAt), 'minutes') > 60) {
-                    monitorLogs = await MonitorLogByHourModel.aggregate(aggregateLogs);
+                probes = await ProbeService.findBy({});
+            }
+
+            for (const probe of probes) {
+                let query = { monitorId, createdAt: { $gte: start, $lte: end } };
+                if (typeof probe !== 'undefined') {
+                    query.probeId = probe._id;
+                }
+
+                let monitorLogs;
+
+                if (intervalInDays > 30 && !isNewMonitor) {
+                    monitorLogs = await MonitorLogByWeekService.findBy(query);
+                } else if (intervalInDays > 2 && !isNewMonitor) {
+                    monitorLogs = await MonitorLogByDayService.findBy(query);
                 } else {
-                    monitorLogs = await MonitorLogModel.aggregate(aggregateLogs);
+                    if ((moment(endDate)).diff(moment(monitor.createdAt), 'minutes') > 60) {
+                        monitorLogs = await MonitorLogByHourService.findBy(query);
+                    } else {
+                        monitorLogs = await MonitorLogService.findBy(query);
+                    }
+                }
+
+                if (monitorLogs && monitorLogs.length > 0) {
+                    probeLogs.push({ _id: typeof probe !== 'undefined' ? probe._id : null, logs: monitorLogs });
                 }
             }
 
-            return monitorLogs;
+            return probeLogs;
         } catch (error) {
             ErrorService.log('monitorService.getMonitorLogs', error);
             throw error;
         }
     },
 
-    async sendResponseTime(monitorsData) {
+    async getMonitorStatuses(monitorId, startDate, endDate) {
         try {
-            var monitor = await MonitorModel.findOne({ _id: monitorsData.monitorId, deleted: false });
-            if (monitor) {
-                await RealTimeService.updateResponseTime(monitorsData, monitor.projectId);
-            }
-        } catch (error) {
-            ErrorService.log('monitorService.sendResponseTime', error);
-            throw error;
-        }
-    },
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).toDate();
+            const monitor = await this.findOneBy({ _id: monitorId });
 
-    async sendMonitorLog(data) {
-        try {
-            var monitor = await MonitorModel.findOne({ _id: data.monitorId, deleted: false });
-            if (monitor) {
-                await RealTimeService.updateMonitorLog(data, monitor._id, monitor.projectId);
+            let probes, probeStatuses = [];
+            if (monitor.type === 'server-monitor' || monitor.type === 'manual') {
+                probes = [undefined];
+            } else {
+                probes = await ProbeService.findBy({});
             }
+
+            for (const probe of probes) {
+                let query = {
+                    monitorId,
+                    $or: [
+                        { startTime: { $gte: start, $lte: end } },
+                        { $or: [{ endTime: { $gte: start, $lte: end } }, { endTime: null }] }
+                    ]
+                };
+                if (typeof probe !== 'undefined') {
+                    query.probeId = probe._id;
+                }
+
+                let monitorStatuses = await MonitorStatusService.findBy(query);
+
+                if (monitorStatuses && monitorStatuses.length > 0) {
+                    probeStatuses.push({ _id: typeof probe !== 'undefined' ? probe._id : null, statuses: monitorStatuses });
+                }
+            }
+
+            return probeStatuses;
         } catch (error) {
-            ErrorService.log('monitorService.sendMonitorLog', error);
+            ErrorService.log('monitorService.getMonitorStatuses', error);
             throw error;
         }
     },
@@ -575,23 +541,25 @@ module.exports = {
 };
 
 var MonitorModel = require('../models/monitor');
-var MonitorLogModel = require('../models/monitorLog');
-let MonitorLogByHourModel = require('../models/monitorLogByHour');
-let MonitorLogByDayModel = require('../models/monitorLogByDay');
-let MonitorLogByWeekModel = require('../models/monitorLogByWeek');
-var MonitorCategoryService = require('../services/monitorCategoryService');
-var MonitorCriteriaService = require('../services/monitorCriteriaService');
+var ProbeService = require('./probeService');
+var MonitorStatusService = require('./monitorStatusService');
+var MonitorLogService = require('./monitorLogService');
+let MonitorLogByHourService = require('./monitorLogByHourService');
+let MonitorLogByDayService = require('./monitorLogByDayService');
+let MonitorLogByWeekService = require('./monitorLogByWeekService');
+var MonitorCategoryService = require('./monitorCategoryService');
+var MonitorCriteriaService = require('./monitorCriteriaService');
 var Plans = require('./../config/plans');
 var RealTimeService = require('./realTimeService');
 var NotificationService = require('./notificationService');
 var ProjectService = require('./projectService');
 var PaymentService = require('./paymentService');
-var IncidentService = require('../services/incidentService');
-var AlertService = require('../services/alertService');
-var StatusPageService = require('../services/statusPageService');
-var ScheduleService = require('../services/scheduleService');
-var IntegrationService = require('../services/integrationService');
-var TeamService = require('../services/teamService');
-var ErrorService = require('../services/errorService');
+var IncidentService = require('./incidentService');
+var AlertService = require('./alertService');
+var StatusPageService = require('./statusPageService');
+var ScheduleService = require('./scheduleService');
+var IntegrationService = require('./integrationService');
+var TeamService = require('./teamService');
+var ErrorService = require('./errorService');
 var moment = require('moment');
 var _ = require('lodash');

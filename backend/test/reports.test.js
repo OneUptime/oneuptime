@@ -47,7 +47,7 @@ describe('Reports API', function () {
                         token = res.body.tokens.jwtAccessToken;
                         var authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
-                            monitorId = res.body[0]._id;
+                            monitorId = res.body._id;
                             done();
                         });
                     });

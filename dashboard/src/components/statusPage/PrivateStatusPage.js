@@ -30,10 +30,10 @@ export class PrivateStatusPage extends Component {
         const { status } = this.props.statusPage;
         const { projectId } = status;
 
-        this.props.updatePrivateStatusPage(projectId._id || projectId, { 
+        this.props.updatePrivateStatusPage(projectId._id || projectId, {
             _id: status._id,
-            isPrivate: values.isPrivate, 
-            isSubscriberEnabled: values.isSubscriberEnabled, 
+            isPrivate: values.isPrivate,
+            isSubscriberEnabled: values.isSubscriberEnabled,
             isGroupedByMonitorCategory: values.isGroupedByMonitorCategory,
             showScheduledEvents: values.showScheduledEvents,
         })
@@ -89,7 +89,7 @@ export class PrivateStatusPage extends Component {
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'padding-left': '5px' }}>
+                                                            <div className="Box-root" style={{ paddingLeft: '5px' }}>
                                                                 <label><span>Group Monitor by Categories</span></label>
                                                                 <p className="bs-Fieldset-explanation"><span>Group monitor on public  status page by categories.
 																				</span></p>
@@ -119,7 +119,7 @@ export class PrivateStatusPage extends Component {
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'padding-left': '5px' }}>
+                                                            <div className="Box-root" style={{ paddingLeft: '5px' }}>
                                                                 <label><span>Private Status Page</span></label>
                                                                 <p className="bs-Fieldset-explanation"><span>Making the status page private will only make it visible to your internal team.
 																				</span></p>
@@ -148,7 +148,7 @@ export class PrivateStatusPage extends Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'padding-left': '5px' }}>
+                                                            <div className="Box-root" style={{ paddingLeft: '5px' }}>
                                                                 <label><span>Show Scheduled events</span></label>
                                                                 <p className="bs-Fieldset-explanation"><span> Enable this to allow your users to see scheduled events like Database migration, Scheduled downtime, etc.
 																				</span></p>
@@ -157,7 +157,7 @@ export class PrivateStatusPage extends Component {
 
                                                     </div>
                                                 </div>
-                                            </div>                                            
+                                            </div>
 
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label" style={{ flex: '25% 0 0' }}><span></span></label>
@@ -178,7 +178,7 @@ export class PrivateStatusPage extends Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'padding-left': '5px' }}>
+                                                            <div className="Box-root" style={{ paddingLeft: '5px' }}>
                                                                 <label><span>Enable Subscribers</span></label>
                                                                 <p className="bs-Fieldset-explanation"><span>Enabling this will allow your users to subscribe and get notifications for your incidents.
 																				</span></p>

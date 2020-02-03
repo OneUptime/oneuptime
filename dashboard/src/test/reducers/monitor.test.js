@@ -616,38 +616,4 @@ describe('Monitors Reducers',()=>{
         expect(reducer(initialState,{type:'ADD_NEW_INCIDENT_TO_MONITORS', payload:payload})).toEqual(expected)
 
     });
-
-    it('should handle UPDATE_RESPONSE_TIME,filter monitors to []', () => {
-        const payload = {monitorId:'test UPDATE_RESPONSE_TIME',_id:'test UPDATE_RESPONSE_TIME',time:'some date',status:'some status'}
-
-        initialState.monitorsList.monitors = [{_id:'test UPDATE_RESPONSE_TIME',monitorId:'test UPDATE_RESPONSE_TIME'}]
-
-        const expected = {
-            ...initialState,
-            monitorsList: {
-                ...initialState.monitorsList,
-                monitors:  [{_id:'test UPDATE_RESPONSE_TIME',monitorId:'test UPDATE_RESPONSE_TIME',responseTime:'some date',status:'some status'}]
-            },
-        }
-        expect(reducer(initialState,{type:'UPDATE_RESPONSE_TIME', payload:payload})).toEqual(expected)
-
-    });
-
-    it('should handle UPDATE_RESPONSE_TIME,filter monitors to []', () => {
-        const payload = {monitorId:'_test UPDATE_RESPONSE_TIME',_id:'test UPDATE_RESPONSE_TIME',time:'some date',status:'some status'}
-
-        initialState.monitorsList.monitors = [{_id:'test UPDATE_RESPONSE_TIME',monitorId:'test UPDATE_RESPONSE_TIME'}]
-
-        const expected = {
-            ...initialState,
-            monitorsList: {
-                ...initialState.monitorsList,
-                monitors:  [{_id:'test UPDATE_RESPONSE_TIME',monitorId:'test UPDATE_RESPONSE_TIME',}]
-            },
-        }
-        expect(reducer(initialState,{type:'UPDATE_RESPONSE_TIME', payload:payload})).toEqual(expected)
-
-    });
-
-
 });

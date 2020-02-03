@@ -11,7 +11,8 @@ import { openModal, closeModal } from '../../actions/modal';
 import {
     incidentresolvedbysocket, incidentacknowledgedbysocket, deletemonitorbysocket,
     updatemonitorbysocket, createmonitorbysocket, incidentcreatedbysocket,
-    updateresponsetime, updatemonitorlogbysocket, updateprobebysocket, addnotifications, teamMemberRoleUpdate, teamMemberCreate, teamMemberDelete
+    updatemonitorlogbysocket, updatemonitorstatusbysocket, updateprobebysocket,
+    addnotifications, teamMemberRoleUpdate, teamMemberCreate, teamMemberDelete
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 
@@ -81,7 +82,7 @@ class SocketApp extends Component {
                         thisObj.props.createmonitorbysocket(data);
                     }
                 } else {
-                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
+                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId._id);
                     const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
                     if (data.createdById !== User.getUserId()) {
                         if (isUserInSubProject) thisObj.props.createmonitorbysocket(data);
@@ -93,7 +94,7 @@ class SocketApp extends Component {
                 if (isUserInProject) {
                     thisObj.props.updatemonitorbysocket(data);
                 } else {
-                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
+                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId._id);
                     const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
                     if (isUserInSubProject) thisObj.props.updatemonitorbysocket(data);
                 }
@@ -122,9 +123,6 @@ class SocketApp extends Component {
                     }
                 }
             });
-            this.socket.on(`updateResponseTime-${this.props.project._id}`, function (data) {
-                thisObj.props.updateresponsetime(data);
-            });
             this.socket.on(`updateMonitorLog-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
@@ -133,6 +131,16 @@ class SocketApp extends Component {
                     const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
                     const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
                     if (isUserInSubProject) thisObj.props.updatemonitorlogbysocket(data);
+                }
+            });
+            this.socket.on(`updateMonitorStatus-${this.props.project._id}`, function (data) {
+                const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
+                if (isUserInProject) {
+                    thisObj.props.updatemonitorstatusbysocket(data);
+                } else {
+                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
+                    const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
+                    if (isUserInSubProject) thisObj.props.updatemonitorstatusbysocket(data);
                 }
             });
             this.socket.on(`updateProbe-${this.props.project._id}`, function (data) {
@@ -240,8 +248,8 @@ let mapDispatchToProps = dispatch => (
         updatemonitorbysocket,
         createmonitorbysocket,
         incidentcreatedbysocket,
-        updateresponsetime,
         updatemonitorlogbysocket,
+        updatemonitorstatusbysocket,
         updateprobebysocket,
         addnotifications,
         teamMemberRoleUpdate,

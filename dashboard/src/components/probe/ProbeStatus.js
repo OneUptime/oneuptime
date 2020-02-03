@@ -35,7 +35,7 @@ function ProbeStatus({ lastAlive }) {
 ProbeStatus.displayName = 'ProbeStatus';
 
 ProbeStatus.propTypes = {
-    lastAlive: PropTypes.instanceOf(Date)
+    lastAlive: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string, PropTypes.object])
 };
 
 export default ProbeStatus;

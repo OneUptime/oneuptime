@@ -5,7 +5,13 @@ import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
 import uuid from 'uuid';
 import DateRangeWrapper from './DateRangeWrapper';
-import { editMonitorSwitch, selectedProbe, fetchMonitorLogs, fetchMonitorsIncidents, fetchMonitorsIncidentsRange } from '../../actions/monitor';
+import {
+    editMonitorSwitch,
+    selectedProbe,
+    fetchMonitorLogs,
+    fetchMonitorStatuses,
+    fetchMonitorsIncidents
+} from '../../actions/monitor';
 import { openModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import moment from 'moment';
@@ -20,7 +26,7 @@ import { Link } from 'react-router-dom';
 import MonitorChart from './MonitorChart';
 import StatusIndicator from './StatusIndicator';
 import ProbeBar from './ProbeBar';
-import { getMonitorStatus } from '../../config';
+import { getMonitorStatus, filterProbeData } from '../../config';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
 
@@ -36,21 +42,13 @@ export class MonitorDetail extends Component {
         this.selectbutton = this.selectbutton.bind(this);
     }
 
-    componentDidMount() {
-        const { fetchMonitorLogs, fetchMonitorsIncidentsRange, monitor } = this.props;
-        const { startDate, endDate } = this.state;
-
-        fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
-        fetchMonitorsIncidentsRange(monitor.projectId._id || monitor.projectId, monitor._id, 100, startDate, endDate);
-    }
-
     handleDateChange = (startDate, endDate) => {
         this.setState({ startDate, endDate });
 
-        const { fetchMonitorLogs, fetchMonitorsIncidentsRange, monitor } = this.props;
+        const { fetchMonitorLogs, fetchMonitorStatuses, monitor } = this.props;
 
         fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
-        fetchMonitorsIncidentsRange(monitor.projectId._id || monitor.projectId, monitor._id, 100, startDate, endDate);
+        fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
     }
 
     selectbutton = (data) => {
@@ -103,30 +101,14 @@ export class MonitorDetail extends Component {
         return string.replace('-', ' ');
     }
 
-    filterProbeData = (monitor, probe) => {
-        const data = monitor.logs && monitor.logs.length > 0 ? monitor.logs.filter(probeLogs => {
-            return probeLogs._id === null || probeLogs._id === probe._id
-        }) : [];
-        const probeData = data && data.length > 0 ? data[0].logs : [];
-
-        return probeData && probeData.length > 0 ? probeData.filter(
-            log => moment(new Date(log.createdAt)).isBetween(
-                new Date(this.state.startDate),
-                new Date(this.state.endDate),
-                'day',
-                '[]'
-            )
-        ) : [];
-    }
-
     render() {
         const { createIncidentModalId, startDate, endDate } = this.state;
         const { monitor, create, monitorState, activeProbe, currentProject, probes, activeIncident } = this.props;
 
-        const probe = monitor && monitor.probes && monitor.probes.length > 0 ? monitor.probes[monitor.probes.length < 2 ? 0 : activeProbe] : null;
-        const probeData = this.filterProbeData(monitor, probe);
+        const probe = monitor && probes && probes.length > 0 ? probes[probes.length < 2 ? 0 : activeProbe] : null;
+        const { logs, statuses } = filterProbeData(monitor, probe, startDate, endDate);
 
-        const status = getMonitorStatus(monitor.incidentsRange || monitor.incidents, probeData);
+        const status = getMonitorStatus(monitor.incidents, logs);
 
         const creating = create || false;
 
@@ -171,7 +153,7 @@ export class MonitorDetail extends Component {
                                     <ShouldRender if={monitor && monitor.type}>
                                         {
                                             monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'script' ?
-                                                <ShouldRender if={monitor.probes && !monitor.probes.length > 0}>
+                                                <ShouldRender if={probes && !probes.length > 0}>
                                                     <span className="Text-fontSize--14">This monitor cannot be monitored because there are are 0 probes. You can view probes <Link to={probeUrl}>here</Link></span>
                                                 </ShouldRender>
                                                 : ''
@@ -179,7 +161,7 @@ export class MonitorDetail extends Component {
                                     </ShouldRender>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                         {url && <span>
-                                            Monitor for &nbsp;
+                                            Currently Monitoring &nbsp;
                                         <a href={url}>{url}</a>
                                         </span>}
                                     </span>
@@ -235,12 +217,12 @@ export class MonitorDetail extends Component {
                         </div>
                     </div>
                 </div>
-                <ShouldRender if={monitor && monitor.probes && monitor.probes.length > 1}>
+                <ShouldRender if={monitor && probes && probes.length > 1}>
                     <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                         <div className="btn-group">
-                            {monitor && monitor.probes.map((location, index) => {
-                                let probeData = this.filterProbeData(monitor, location);
-                                let status = getMonitorStatus(monitor.incidentsRange || monitor.incidents, probeData);
+                            {monitor && probes.map((location, index) => {
+                                let { logs } = filterProbeData(monitor, location, startDate, endDate);
+                                let status = getMonitorStatus(monitor.incidents, logs);
                                 let probe = probes.filter(probe => probe._id === location._id);
                                 let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
 
@@ -258,15 +240,31 @@ export class MonitorDetail extends Component {
                             })}
                         </div>
                     </ShouldRender>
-                    <MonitorChart start={startDate} end={endDate} key={uuid.v4()} monitor={monitor} data={probeData} status={status} />
+                    <MonitorChart
+                        start={startDate}
+                        end={endDate}
+                        key={uuid.v4()}
+                        monitor={monitor}
+                        data={logs}
+                        statuses={statuses}
+                        status={status}
+                    />
                 </ShouldRender>
 
                 {monitor && monitor.type ?
                     monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'script' ?
                         <div>
-                            <ShouldRender if={monitor.probes && monitor.probes.length > 0}>
-                                {monitor && monitor.probes && monitor.probes.length < 2 ?
-                                    <MonitorChart start={startDate} end={endDate} key={uuid.v4()} monitor={monitor} data={probeData} status={status} />
+                            <ShouldRender if={probes && probes.length > 0}>
+                                {monitor && probes && probes.length < 2 ?
+                                    <MonitorChart
+                                        start={startDate}
+                                        end={endDate}
+                                        key={uuid.v4()}
+                                        monitor={monitor}
+                                        data={logs}
+                                        statuses={statuses}
+                                        status={status}
+                                    />
                                     : ''
                                 }
                                 <div className="db-RadarRulesLists-page">
@@ -290,14 +288,22 @@ export class MonitorDetail extends Component {
                                     </div>
                                 </div>
                             </ShouldRender>
-                            <ShouldRender if={monitor.probes && !monitor.probes.length > 0}>
+                            <ShouldRender if={probes && !probes.length > 0}>
                                 <div className="Margin-bottom--12"></div>
                             </ShouldRender>
                         </div>
                         :
                         <div>
-                            {monitor && monitor.probes && monitor.probes.length < 2 ?
-                                <MonitorChart start={startDate} end={endDate} key={uuid.v4()} monitor={monitor} data={probeData} status={status} />
+                            {monitor && probes && probes.length < 2 ?
+                                <MonitorChart
+                                    start={startDate}
+                                    end={endDate}
+                                    key={uuid.v4()}
+                                    monitor={monitor}
+                                    data={logs}
+                                    statuses={statuses}
+                                    status={status}
+                                />
                                 :
                                 ''
                             }
@@ -336,8 +342,8 @@ const mapDispatchToProps = (dispatch) => {
         editMonitorSwitch,
         openModal,
         fetchMonitorsIncidents,
-        fetchMonitorsIncidentsRange,
         fetchMonitorLogs,
+        fetchMonitorStatuses,
         createNewIncident,
         selectedProbe,
     }, dispatch)
@@ -359,8 +365,8 @@ MonitorDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
     monitor: PropTypes.object.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
-    fetchMonitorsIncidentsRange: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,
+    fetchMonitorStatuses: PropTypes.func.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
     index: PropTypes.string,

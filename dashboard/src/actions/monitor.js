@@ -73,7 +73,7 @@ export function createMonitor(projectId, values) {
         dispatch(createMonitorRequest());
 
         promise.then(function (monitor) {
-            dispatch(createMonitorSuccess(monitor.data && monitor.data.length ? monitor.data[0] : monitor.data));
+            dispatch(createMonitorSuccess(monitor.data));
         }, function (error) {
             if (error && error.response && error.response.data) {
                 error = error.response.data;
@@ -133,7 +133,7 @@ export function editMonitor(projectId, values) {
         dispatch(editMonitorRequest());
 
         promise.then(function (monitor) {
-            dispatch(editMonitorSuccess(monitor.data && monitor.data.length ? monitor.data[0] : monitor.data));
+            dispatch(editMonitorSuccess(monitor.data));
         }, function (error) {
             if (error && error.response && error.response.data) {
                 error = error.response.data;
@@ -255,7 +255,7 @@ export function deleteProjectMonitors(projectId) {
 export function fetchMonitorsIncidents(projectId, monitorId, skip, limit) {
     return function (dispatch) {
 
-        var promise = postApi(`incident/${projectId}/monitor/${monitorId}`,{limit,skip});
+        var promise = postApi(`incident/${projectId}/monitor/${monitorId}`, { limit, skip });
         dispatch(fetchMonitorsIncidentsRequest(monitorId));
 
         promise.then(function (monitors) {
@@ -297,57 +297,6 @@ export function fetchMonitorsIncidentsRequest(monitorId) {
 export function fetchMonitorsIncidentsFailure(error) {
     return {
         type: types.FETCH_MONITORS_INCIDENT_FAILURE,
-        payload: error
-    };
-}
-
-// Fetch incidents of monitors by date range and limit to 10
-// props -> { projectId, monitorId, limit, startDate, endDate }
-export function fetchMonitorsIncidentsRange(projectId, monitorId, limit, startDate, endDate) {
-    return function (dispatch) {
-
-        var promise = postApi(`incident/${projectId}/monitor/${monitorId}`,{limit,startDate,endDate});
-        dispatch(fetchMonitorsIncidentsRangeRequest(monitorId));
-
-        promise.then(function (monitors) {
-            dispatch(fetchMonitorsIncidentsRangeSuccess({ projectId, monitorId, incidents: monitors.data }));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(fetchMonitorsIncidentsRangeFailure(errors(error)));
-        });
-
-        return promise;
-
-    };
-
-}
-
-export function fetchMonitorsIncidentsRangeSuccess(incidents) {
-    return {
-        type: types.FETCH_MONITORS_INCIDENTS_RANGE_SUCCESS,
-        payload: incidents
-    };
-}
-
-export function fetchMonitorsIncidentsRangeRequest(monitorId) {
-    return {
-        type: types.FETCH_MONITORS_INCIDENTS_RANGE_REQUEST,
-        payload: monitorId
-    };
-}
-
-export function fetchMonitorsIncidentsRangeFailure(error) {
-    return {
-        type: types.FETCH_MONITORS_INCIDENTS_RANGE_FAILURE,
         payload: error
     };
 }
@@ -403,10 +352,10 @@ export function fetchMonitorsSubscribersFailure(error) {
     };
 }
 
-// Fetch Monitor Logs list
+// Fetch Monitor Logs
 export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
-        var promise = postApi(`monitor/${projectId}/monitorLog/${monitorId}`,{startDate,endDate});
+        var promise = postApi(`monitor/${projectId}/monitorLog/${monitorId}`, { startDate, endDate });
         dispatch(fetchMonitorLogsRequest());
         dispatch(updateDateRange(startDate, endDate));
 
@@ -459,6 +408,53 @@ export function fetchMonitorLogsFailure(error) {
     };
 }
 
+// Fetch Monitor Statuses list
+export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
+    return function (dispatch) {
+        var promise = postApi(`monitor/${projectId}/monitorStatuses/${monitorId}`, { startDate, endDate });
+        dispatch(fetchMonitorStatusesRequest());
+
+        promise.then(function (monitorStatuses) {
+            dispatch(fetchMonitorStatusesSuccess({ projectId, monitorId, statuses: monitorStatuses.data }));
+        }, function (error) {
+            if (error && error.response && error.response.data) {
+                error = error.response.data;
+            }
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            }
+            else {
+                error = 'Network Error';
+            }
+            dispatch(fetchMonitorStatusesFailure(errors(error)));
+        });
+
+        return promise;
+    };
+}
+
+export function fetchMonitorStatusesRequest() {
+    return {
+        type: types.FETCH_MONITOR_STATUSES_REQUEST,
+    };
+}
+
+export function fetchMonitorStatusesSuccess(monitorStatuses) {
+    return {
+        type: types.FETCH_MONITOR_STATUSES_SUCCESS,
+        payload: monitorStatuses
+    };
+}
+
+export function fetchMonitorStatusesFailure(error) {
+    return {
+        type: types.FETCH_MONITOR_STATUSES_FAILURE,
+        payload: error
+    };
+}
 
 // Fetch Monitor Criteria
 export function fetchMonitorCriteria() {
@@ -526,14 +522,14 @@ export function setMonitorCriteria(monitorName, monitorCategory, monitorSubProje
 }
 
 //Fetch Logs of monitors
-export function getMonitorLogs(projectId, monitorId, skip, limit,startDate,endDate,probeValue,incidentId) {
+export function getMonitorLogs(projectId, monitorId, skip, limit, startDate, endDate, probeValue, incidentId) {
     return function (dispatch) {
 
-        var promise = postApi(`monitor/${projectId}/monitorLogs/${monitorId}`,{skip, limit,startDate,endDate,probeValue,incidentId: incidentId ? incidentId: null});
-        dispatch(getMonitorLogsRequest({monitorId}));
+        var promise = postApi(`monitor/${projectId}/monitorLogs/${monitorId}`, { skip, limit, startDate, endDate, probeValue, incidentId: incidentId ? incidentId : null });
+        dispatch(getMonitorLogsRequest({ monitorId }));
 
         promise.then(function (monitors) {
-            dispatch(getMonitorLogsSuccess({ monitorId,logs:monitors.data.data.monitorLogs,skip, limit, count: monitors.data.count, probes:monitors.data.data.probes}));
+            dispatch(getMonitorLogsSuccess({ monitorId, logs: monitors.data.data, skip, limit, count: monitors.data.count }));
         }, function (error) {
             if (error && error.response && error.response.data)
                 error = error.response.data;
@@ -545,7 +541,7 @@ export function getMonitorLogs(projectId, monitorId, skip, limit,startDate,endDa
             } else {
                 error = 'Network Error';
             }
-            dispatch(getMonitorLogsFailure({monitorId,error:errors(error)}));
+            dispatch(getMonitorLogsFailure({ monitorId, error: errors(error) }));
         });
         return promise;
     };
