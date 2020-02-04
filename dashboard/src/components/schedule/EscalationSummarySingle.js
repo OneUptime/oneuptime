@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types'
 import ShouldRender from '../basic/ShouldRender';
+import moment from 'moment';
 
 let EscalationSummarySingle = ({
     isActiveTeam,
     isNextActiveTeam,
     teamMemberList,
-    escalation
+    escalation,
+    hasNextEscalationPolicy,
+    currentEscalationPolicyCount
 }) => {
-    
+
     var data = isActiveTeam ? escalation.activeTeam : escalation.nextActiveTeam;
     if (data)
         var teamMembers = data.teamMembers;
@@ -63,23 +66,58 @@ let EscalationSummarySingle = ({
                 </div>
             </div>
 
-            {!isActiveTeam && <div className="bs-Fieldset-row">
+            {!isActiveTeam && data && data.rotationStartTime && <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label"><b>On-Call Duty Start Time</b></label>
                 <div className="bs-Fieldset-fields labelfield">
-                    {data && data.rotationStartTime ? data.rotationStartTime : ''}
+                    {data && data.rotationStartTime ? moment(data.rotationStartTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a') : ''}
                 </div>
             </div>}
-            <div className="bs-Fieldset-row">
+
+            {data && data.rotationEndTime && <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label"><b>On-Call Duty End Time</b></label>
                 <div className="bs-Fieldset-fields labelfield">
-                    {data && data.rotationEndTime ? data.rotationEndTime : ''}
+                    {data && data.rotationEndTime ? moment(data.rotationEndTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a') : ''}
                 </div>
-            </div>
+            </div>}
 
-            {isActiveTeam && <div className="bs-Fieldset-row">
+            {data && !data.rotationEndTime && <div className="bs-Fieldset-row">
+                <label className="bs-Fieldset-label"><b>On-Call Duty End Time</b></label>
+                <div className="bs-Fieldset-fields labelfield">
+                    {"This is the only team in this escalation policy."} <br /> {"It'll always be active."}
+                </div>
+            </div>}
+
+            {<div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label"><b>Note:</b> </label>
                 <div className="bs-Fieldset-fields labelfield">
-                    If the current active team does not respond, then the incident will be escalated to Escalation Policy 2 <br />
+                    {hasNextEscalationPolicy && isActiveTeam && <span>If the current active team does not respond, then the incident will be escalated to Escalation Policy {currentEscalationPolicyCount+1} <br /><br /></span>} 
+                    {teamMembers && teamMembers.filter((member) => {
+                        return member.startTime && member.startTime !== '' && member.endTime && member.endTime !== ''
+                    }).length>0 && <span> Team Memmbers: <br/><br/> </span> }
+                    {teamMembers && teamMembers.filter((member) => {
+                        return member.startTime && member.startTime !== '' && member.endTime && member.endTime !== ''
+                    }).map((member) => {
+                        var membersFromList = teamMemberList.filter((memberFromList) => {
+                            return memberFromList.userId === member.member;
+                        })
+
+                        if (membersFromList.length > 0) {
+                            var membersFromList = membersFromList[0];
+                        }
+
+                        return (<div className="Box-root Margin-right--16 pointer">
+                            <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
+                            <span>{membersFromList.name}</span>
+                            <span> <br/><br/> Will only be active from { moment(member.startTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a')} and {moment(member.endTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a')}. <br/><br/>If there's no team member on-duty when this member is not on-duty the incident is at the risk of being {hasNextEscalationPolicy ? 'escalated' : 'ignored'}. <br/> <br/></span>
+                        </div>)
+
+                    })}
+
+                    {escalation.call && <span>{escalation.callFrequency}  Call reminders, </span>} {escalation.sms && <span>{escalation.smsFrequency}  SMS reminders, </span>} {escalation.email && <span>{escalation.emailFrequency}  Email reminders, </span>} <span>will be sent to each member of this team if they do not respond. <br/></span> 
+                   
+                    {hasNextEscalationPolicy && <span><br/>If they do not respond. The inident will be escalated to escalation policy {currentEscalationPolicyCount+1} <br/></span> }
+                    {!hasNextEscalationPolicy && <span> <br/>If they do not respond. Then the incident is at the risk of being ignored. <br/></span>}
+
                 </div>
             </div>}
         </>

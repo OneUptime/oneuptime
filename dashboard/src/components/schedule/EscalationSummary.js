@@ -10,7 +10,7 @@ import { teamLoading } from '../../actions/team';
 import { ListLoader } from '../basic/Loader'
 import EscalationSummarySingle from './EscalationSummarySingle'
 
-export class RenderEscalationSummary extends Component {
+export class EscalationSummary extends Component {
 
     constructor(props) {
         super(props)
@@ -104,14 +104,14 @@ export class RenderEscalationSummary extends Component {
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f7f7f7' }}>
                                         <div>
-                                            <EscalationSummarySingle isActiveTeam={true} teamMemberList={teamMembers} escalation={escalation} />
+                                            {escalation && escalation.activeTeam && <EscalationSummarySingle isActiveTeam={true} teamMemberList={teamMembers} escalation={escalation} hasNextEscalationPolicy={!!escalationData[i+1]} currentEscalationPolicyCount={i+1} />}
 
                                             <div className="bs-Fieldset-row">
 
                                             </div>
-                                        
-                                            <EscalationSummarySingle isNextActiveTeam={true} teamMemberList={teamMembers} escalation={escalation} />
-                                            
+
+                                            {escalation && escalation.nextActiveTeam && <EscalationSummarySingle isNextActiveTeam={true} teamMemberList={teamMembers} escalation={escalation} hasNextEscalationPolicy={!!escalationData[i+1]} currentEscalationPolicyCount={i+1} />}
+
                                         </div>
                                     </div>
 
@@ -160,9 +160,9 @@ export class RenderEscalationSummary extends Component {
     }
 }
 
-RenderEscalationSummary.displayName = 'RenderEscalationSummary';
+EscalationSummary.displayName = 'EscalationSummary';
 
-RenderEscalationSummary.propTypes = {
+EscalationSummary.propTypes = {
     getEscalation: PropTypes.func.isRequired,
     subProjectTeamLoading: PropTypes.func.isRequired,
 }
@@ -193,4 +193,4 @@ const mapStateToProps = (state, props) => {
     }
 }
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(RenderEscalationSummary));
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(EscalationSummary));

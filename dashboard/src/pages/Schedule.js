@@ -6,7 +6,7 @@ import RenameScheduleBox from '../components/schedule/RenameScheduleBox';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import OnCallAlertBox from '../components/schedule/OnCallAlertBox';
 import PropTypes from 'prop-types';
-import RenderEscalationSummary from '../components/schedule/RenderEscalationSummary';
+import EscalationSummary from '../components/schedule/EscalationSummary';
 
 class Schedule extends Component {
     constructor(props) {
@@ -35,7 +35,7 @@ class Schedule extends Component {
 
                                                 <MonitorBox />
 
-                                                {!editSchedule && <RenderEscalationSummary onEditClicked={() => {
+                                                {!editSchedule && <EscalationSummary onEditClicked={() => {
                                                     this.setState({ editSchedule: true })
                                                 }} />}
 

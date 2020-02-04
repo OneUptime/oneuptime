@@ -14,9 +14,9 @@ const teamSchema = new Schema({
 
 var escalationSchema = new Schema({
     projectId: { type: String, ref: 'Project', alias: 'project', default: null },
-    callFrequency: { type: String, default: null },
-    emailFrequency: { type: String, default: null },
-    smsFrequency: { type: String, default: null },
+    callFrequency: { type: Number, default: null },
+    emailFrequency: { type: Number, default: null },
+    smsFrequency: { type: Number, default: null },
     rotationFrequency: { type: String, default: null },
     rotationInterval: { type: Number, default: null },
     rotationSwitchTime: String,

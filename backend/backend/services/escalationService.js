@@ -38,12 +38,10 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('scheduleId', 'name')
                 .lean();
-            if (escalation.rotationFrequency && escalation.rotationInterval) {
-                const { activeTeam, nextActiveTeam, activeTeamForAlerts } = computeActiveTeams(escalation);
-                escalation.activeTeam = activeTeam;
-                escalation.nextActiveTeam = nextActiveTeam;
-                escalation.activeTeamForAlerts = activeTeamForAlerts;
-            }
+
+            const { activeTeam, nextActiveTeam } = computeActiveTeams(escalation);
+            escalation.activeTeam = activeTeam;
+            escalation.nextActiveTeam = nextActiveTeam;
 
             return escalation;
         } catch (error) {
@@ -211,12 +209,12 @@ module.exports = {
 function computeIntervalDiffs(frequency, createdAt, currentDate, rotationSwitchTime) {
     // if (moment(currentDate).isAfter(rotationSwitchTime)) return 0;
     switch (frequency) {
-    case 'days':
-        return differenceInDays(currentDate, createdAt);
-    case 'weeks':
-        return differenceInWeeks(currentDate, createdAt);
-    case 'months':
-        return differenceInMonths(currentDate, createdAt);
+        case 'days':
+            return differenceInDays(currentDate, createdAt);
+        case 'weeks':
+            return differenceInWeeks(currentDate, createdAt);
+        case 'months':
+            return differenceInMonths(currentDate, createdAt);
     }
 }
 
@@ -246,7 +244,7 @@ function computeActiveTeams(escalation) {
         } = escalation;
 
         const currentDate = new Date();
-        if (rotationFrequency) {
+        if (rotationFrequency && rotationFrequency != "") {
             const diffsInInterval = computeIntervalDiffs(rotationFrequency, createdAt, currentDate, rotationSwitchTime);
             const activeTeamIndex = computeActiveTeamIndex(team.length, diffsInInterval);
 
@@ -278,7 +276,17 @@ function computeActiveTeams(escalation) {
             };
 
             return { activeTeam, nextActiveTeam };
-        } else return null;
+        } else {
+            return {
+                activeTeam: {
+                    _id: team[0]._id,
+                    teamMembers: team[0].teamMember,
+                    rotationStartTime: null,
+                    rotationEndTime: null
+                },
+                nextActiveTeam: null
+            }
+        }
 
     } catch (err) {
         throw err;
