@@ -60,7 +60,7 @@ const calculateTime = (statuses, start, range) => {
 
 class UptimeGraphs extends Component {
   render() {
-    const { monitorState, monitor, probes, activeProbe } = this.props;
+    const { monitorState, monitor, probes, activeProbe, colors } = this.props;
     const now = Date.now();
     const range = 90;
 
@@ -111,15 +111,20 @@ class UptimeGraphs extends Component {
         backgroundColor: 'rgb(250, 117, 90)'
       }// "red-status";
     }
+    if (colors) {
+      var subheading = {
+        color: `rgba(${ colors.subheading.r }, ${ colors.subheading.g }, ${ colors.subheading.b }, ${ colors.subheading.a })`
+      }
+    }
 
     return (
       <div className="uptime-graph-section dashboard-uptime-graph" id={this.props.id}>
         <div className="uptime-graph-header clearfix">
           <span style={status}></span>
-          <span className="uptime-stat-name">{monitor.name}</span>
+          <span className="uptime-stat-name" style={subheading}>{monitor.name}</span>
           <span className="url" style={{ paddingLeft: '0px' }}>{monitor && monitor.data && monitor.data.url ? <a style={{ color: '#8898aa', textDecoration: 'none', paddingLeft: '0px' }}
             href={monitor.data.url} target="_blank" rel="noopener noreferrer">{monitor.data.url}</a> : <span style={{ color: '#8898aa', textDecoration: 'none', paddingLeft: '0px' }}>{monitor.type === 'manual' ? '' : monitor.type}</span>}</span>
-          <span className="percentage"><em>{uptime}%</em> uptime for the last {upDays > 90 ? 90 : upDays} day{upDays > 1 ? 's' : ''}</span>
+          <span className="percentage" style={subheading}><em>{uptime}%</em> uptime for the last {upDays > 90 ? 90 : upDays} day{upDays > 1 ? 's' : ''}</span>
         </div>
         <div className="block-chart">
           {block}
@@ -135,12 +140,14 @@ function mapStateToProps(state) {
   return {
     monitorState: state.status.statusPage.monitorsData,
     activeProbe: state.status.activeProbe,
-    probes: state.probe.probes
+    probes: state.probe.probes,
+    colors: state.status.statusPage.colors,
   };
 }
 
 UptimeGraphs.propTypes = {
   monitor: PropTypes.object,
+  colors: PropTypes.object,
   id: PropTypes.string,
   activeProbe: PropTypes.number,
   monitorState: PropTypes.array,
