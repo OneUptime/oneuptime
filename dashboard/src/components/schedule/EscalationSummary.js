@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { withRouter } from 'react-router';
-import ShouldRender from '../basic/ShouldRender';
 import { subProjectTeamLoading } from '../../actions/team';
 import { getEscalation } from '../../actions/schedule';
 import { teamLoading } from '../../actions/team';
@@ -38,7 +37,6 @@ export class EscalationSummary extends Component {
     render() {
         var {
             onEditClicked,
-            schedule,
             escalationData,
             teamMembers
         } = this.props;
@@ -84,7 +82,7 @@ export class EscalationSummary extends Component {
                             escalationData &&
                             escalationData.length > 0 &&
                             escalationData.map((escalation, i) => {
-                                return (<div className="bs-ContentSection-content Box-root">
+                                return (<div key={escalation.id} className="bs-ContentSection-content Box-root">
 
                                     <div className="Card-root" style={{ backgroundColor: '#ffffff' }}>
                                         <div className="Box-root">
@@ -165,6 +163,12 @@ EscalationSummary.displayName = 'EscalationSummary';
 EscalationSummary.propTypes = {
     getEscalation: PropTypes.func.isRequired,
     subProjectTeamLoading: PropTypes.func.isRequired,
+    subProjectId: PropTypes.string.isRequired,
+    scheduleId: PropTypes.string.isRequired,
+    teamLoading: PropTypes.func.isRequired,
+    onEditClicked: PropTypes.func.isRequired,
+    escalationData: PropTypes.array.isRequired,
+    teamMembers: PropTypes.array.isRequired
 }
 
 const mapDispatchToProps = dispatch => (

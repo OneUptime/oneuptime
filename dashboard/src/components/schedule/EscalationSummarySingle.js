@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import PropTypes from 'prop-types'
-import ShouldRender from '../basic/ShouldRender';
+import React from 'react';
 import moment from 'moment';
+import PropTypes from 'prop-types';
 
 let EscalationSummarySingle = ({
     isActiveTeam,
@@ -54,11 +53,11 @@ let EscalationSummarySingle = ({
                         })
 
                         if (membersFromList.length > 0) {
-                            var membersFromList = membersFromList[0];
+                            membersFromList = membersFromList[0];
                         }
 
-                        return (<div className="Box-root Margin-right--16 pointer">
-                            <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
+                        return (<div key={membersFromList.id} className="Box-root Margin-right--16 pointer">
+                            <img src='/assets/img/profile-user.svg' key={membersFromList._id} className="userIcon" alt="" />
                             <span>{membersFromList.name}</span>
                         </div>)
                     })}
@@ -83,7 +82,7 @@ let EscalationSummarySingle = ({
             {data && !data.rotationEndTime && <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label"><b>On-Call Duty End Time</b></label>
                 <div className="bs-Fieldset-fields labelfield">
-                    {"This is the only team in this escalation policy."} <br /> {"It'll always be active."}
+                    {'This is the only team in this escalation policy.'} <br /> {'It\'ll always be active.'}
                 </div>
             </div>}
 
@@ -102,13 +101,13 @@ let EscalationSummarySingle = ({
                         })
 
                         if (membersFromList.length > 0) {
-                            var membersFromList = membersFromList[0];
+                            membersFromList = membersFromList[0];
                         }
 
-                        return (<div className="Box-root Margin-right--16 pointer">
+                        return (<div key={membersFromList._id} className="Box-root Margin-right--16 pointer">
                             <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
                             <span>{membersFromList.name}</span>
-                            <span> <br/><br/> Will only be active from { moment(member.startTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a')} and {moment(member.endTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a')}. <br/><br/>If there's no team member on-duty when this member is not on-duty the incident is at the risk of being {hasNextEscalationPolicy ? 'escalated' : 'ignored'}. <br/> <br/></span>
+                            <span> <br/><br/> Will only be active from { moment(member.startTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a')} and {moment(member.endTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a')}. <br/><br/>If there&#39;s no team member on-duty when this member is not on-duty the incident is at the risk of being {hasNextEscalationPolicy ? 'escalated' : 'ignored'}. <br/> <br/></span>
                         </div>)
 
                     })}
@@ -127,7 +126,12 @@ let EscalationSummarySingle = ({
 EscalationSummarySingle.displayName = 'EscalationSummarySingle';
 
 EscalationSummarySingle.propTypes = {
-
+    isActiveTeam: PropTypes.bool.isRequired,
+    isNextActiveTeam: PropTypes.bool.isRequired,
+    teamMemberList: PropTypes.array.isRequired,
+    escalation: PropTypes.object.isRequired,
+    hasNextEscalationPolicy: PropTypes.bool.isRequired,
+    currentEscalationPolicyCount: PropTypes.number.isRequired
 }
 
 export default EscalationSummarySingle 

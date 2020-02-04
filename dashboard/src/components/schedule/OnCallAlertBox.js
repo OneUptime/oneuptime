@@ -199,6 +199,7 @@ OnCallAlertBox.displayName = 'OnCallAlertBox'
 
 OnCallAlertBox.propTypes = {
     getEscalation: PropTypes.func.isRequired,
+    afterSave: PropTypes.func.isRequired,
     pushArray: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     addEscalation: PropTypes.func.isRequired,
