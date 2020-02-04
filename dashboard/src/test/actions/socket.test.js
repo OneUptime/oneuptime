@@ -99,16 +99,6 @@ describe('actions', () => {
 })
 
 describe('actions', () => {
-    it('should create an action of type UPDATE_RESPONSE_TIME', () => {
-        let dispatch = (dispatched) => {
-            expect(dispatched.type).toEqual('UPDATE_RESPONSE_TIME')
-            expect(dispatched.payload).toEqual(new Date(2018,5,5))
-        }
-        let action = actions.updateresponsetime(new Date(2018,5,5))(dispatch)
-    })
-})
-
-describe('actions', () => {
     it('should create an action of type ADD_NOTIFICATION_BY_SOCKET', () => {
         let dispatch = (dispatched) => {
             expect(dispatched.type).toEqual('ADD_NOTIFICATION_BY_SOCKET')

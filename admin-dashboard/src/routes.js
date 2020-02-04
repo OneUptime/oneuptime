@@ -33,13 +33,13 @@ export const groups = [
 			{
 				title: 'Projects',
 				path: '/projects',
-				icon: 'atlas',
+				icon: 'projects',
 				component: Projects,
 				visible: true,
 				subRoutes: [{
 					title: 'Project',
 					path: '/projects/:projectId',
-					icon: 'atlas',
+					icon: 'projects',
 					component: Project,
 					visible: true,
 					subRoutes: [],
@@ -50,7 +50,7 @@ export const groups = [
 			{
 				title: 'Probes',
 				path: '/probes',
-				icon: 'atlas',
+				icon: 'probes',
 				component: Probes,
 				visible: true,
 				subRoutes: [],

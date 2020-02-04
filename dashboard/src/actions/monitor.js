@@ -73,7 +73,7 @@ export function createMonitor(projectId, values) {
         dispatch(createMonitorRequest());
 
         promise.then(function (monitor) {
-            dispatch(createMonitorSuccess(monitor.data && monitor.data.length ? monitor.data[0] : monitor.data));
+            dispatch(createMonitorSuccess(monitor.data));
         }, function (error) {
             if (error && error.response && error.response.data) {
                 error = error.response.data;
@@ -133,7 +133,7 @@ export function editMonitor(projectId, values) {
         dispatch(editMonitorRequest());
 
         promise.then(function (monitor) {
-            dispatch(editMonitorSuccess(monitor.data && monitor.data.length ? monitor.data[0] : monitor.data));
+            dispatch(editMonitorSuccess(monitor.data));
         }, function (error) {
             if (error && error.response && error.response.data) {
                 error = error.response.data;
@@ -301,57 +301,6 @@ export function fetchMonitorsIncidentsFailure(error) {
     };
 }
 
-// Fetch incidents of monitors by date range and limit to 10
-// props -> { projectId, monitorId, limit, startDate, endDate }
-export function fetchMonitorsIncidentsRange(projectId, monitorId, limit, startDate, endDate) {
-    return function (dispatch) {
-
-        var promise = postApi(`incident/${projectId}/monitor/${monitorId}`, { limit, startDate, endDate });
-        dispatch(fetchMonitorsIncidentsRangeRequest(monitorId));
-
-        promise.then(function (monitors) {
-            dispatch(fetchMonitorsIncidentsRangeSuccess({ projectId, monitorId, incidents: monitors.data }));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(fetchMonitorsIncidentsRangeFailure(errors(error)));
-        });
-
-        return promise;
-
-    };
-
-}
-
-export function fetchMonitorsIncidentsRangeSuccess(incidents) {
-    return {
-        type: types.FETCH_MONITORS_INCIDENTS_RANGE_SUCCESS,
-        payload: incidents
-    };
-}
-
-export function fetchMonitorsIncidentsRangeRequest(monitorId) {
-    return {
-        type: types.FETCH_MONITORS_INCIDENTS_RANGE_REQUEST,
-        payload: monitorId
-    };
-}
-
-export function fetchMonitorsIncidentsRangeFailure(error) {
-    return {
-        type: types.FETCH_MONITORS_INCIDENTS_RANGE_FAILURE,
-        payload: error
-    };
-}
-
 //Fetch Subscribers of monitors
 export function fetchMonitorsSubscribers(projectId, monitorId, skip, limit) {
     return function (dispatch) {
@@ -403,7 +352,7 @@ export function fetchMonitorsSubscribersFailure(error) {
     };
 }
 
-// Fetch Monitor Logs list
+// Fetch Monitor Logs
 export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
         var promise = postApi(`monitor/${projectId}/monitorLog/${monitorId}`, { startDate, endDate });
@@ -459,6 +408,53 @@ export function fetchMonitorLogsFailure(error) {
     };
 }
 
+// Fetch Monitor Statuses list
+export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
+    return function (dispatch) {
+        var promise = postApi(`monitor/${projectId}/monitorStatuses/${monitorId}`, { startDate, endDate });
+        dispatch(fetchMonitorStatusesRequest());
+
+        promise.then(function (monitorStatuses) {
+            dispatch(fetchMonitorStatusesSuccess({ projectId, monitorId, statuses: monitorStatuses.data }));
+        }, function (error) {
+            if (error && error.response && error.response.data) {
+                error = error.response.data;
+            }
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            }
+            else {
+                error = 'Network Error';
+            }
+            dispatch(fetchMonitorStatusesFailure(errors(error)));
+        });
+
+        return promise;
+    };
+}
+
+export function fetchMonitorStatusesRequest() {
+    return {
+        type: types.FETCH_MONITOR_STATUSES_REQUEST,
+    };
+}
+
+export function fetchMonitorStatusesSuccess(monitorStatuses) {
+    return {
+        type: types.FETCH_MONITOR_STATUSES_SUCCESS,
+        payload: monitorStatuses
+    };
+}
+
+export function fetchMonitorStatusesFailure(error) {
+    return {
+        type: types.FETCH_MONITOR_STATUSES_FAILURE,
+        payload: error
+    };
+}
 
 // Fetch Monitor Criteria
 export function fetchMonitorCriteria() {

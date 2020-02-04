@@ -7,6 +7,8 @@
 
 var express = require('express');
 var StatusPageService = require('../services/statusPageService');
+var MonitorService = require('../services/monitorService');
+var ProbeService = require('../services/probeService');
 
 var router = express.Router();
 var UtilService = require('../services/utilService');
@@ -74,6 +76,9 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
             maxCount: 1
         }, {
             name: 'logo',
+            maxCount: 1
+        }, {
+            name: 'banner',
             maxCount: 1
         }
     ]);
@@ -176,11 +181,16 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
             statusPage = await StatusPageService.findOneBy({ _id: data._id });
             let imagesPath = {
                 faviconPath: statusPage.faviconPath,
-                logoPath: statusPage.logoPath
+                logoPath: statusPage.logoPath,
+                bannerPath: statusPage.bannerPath,
             };
             if (Object.keys(files).length === 0 && Object.keys(imagesPath).length !== 0) {
                 data.faviconPath = imagesPath.faviconPath;
                 data.logoPath = imagesPath.logoPath;
+                data.bannerPath = imagesPath.bannerPath;
+                if (data.favicon === '') { data.faviconPath = null; }
+                if (data.logo === '') { data.logoPath = null; }
+                if (data.banner === '') { data.bannerPath = null; }
             }
             else {
                 if (files && files.favicon && files.favicon[0].filename) {
@@ -191,7 +201,13 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
                 if (files && files.logo && files.logo[0].filename) {
                     data.logoPath = files.logo[0].filename;
                 }
+                if (files && files.banner && files.banner[0].filename) {
+                    data.bannerPath = files.banner[0].filename;
+                }
             }
+        }
+        if (data.colors) {
+            data.colors = JSON.parse(data.colors);
         }
 
         try {
@@ -374,6 +390,31 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function (
         let notes = response.investigationNotes;
         let count = response.count;
         return sendListResponse(req, res, notes, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: Get all Monitor Statuses by monitorId
+router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function (req, res) {
+    try {
+        const { startDate, endDate } = req.body;
+        var monitorId = req.params.monitorId;
+        var monitorStatuses = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
+        return sendListResponse(req, res, monitorStatuses);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/probes', checkUser, async function (req, res) {
+    try {
+        let skip = req.query.skip || 0;
+        let limit = req.query.limit || 0;
+        let probes = await ProbeService.findBy({}, limit, skip);
+        let count = await ProbeService.countBy({});
+        return sendListResponse(req, res, probes, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

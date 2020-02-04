@@ -61,6 +61,11 @@ import {
     FAVICON_CACHE_RESET,
     SWITCH_STATUSPAGE_SUCCESS,
 
+    BANNER_CACHE_INSERT,
+    BANNER_CACHE_RESET,
+
+    SET_STATUS_PAGE_COLORS,
+
     UPDATE_SUBSCRIBER_OPTION_REQUEST,
     UPDATE_SUBSCRIBER_OPTION_SUCCESS,
     UPDATE_SUBSCRIBER_OPTION_FAILURE,
@@ -115,6 +120,10 @@ const INITIAL_STATE = {
     logocache:{
         data : null
     },
+    bannercache:{
+        data : null
+    },
+    colors: {},
     faviconcache:{
         data : null
     },
@@ -542,6 +551,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case SWITCH_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 status: action.payload || {},
+                colors: action.payload.colors
             });
 
         case DELETE_PROJECT_STATUSPAGES:
@@ -619,6 +629,26 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     data:null
                 }
             });
+
+        case BANNER_CACHE_INSERT:
+            return Object.assign({}, state, {
+                bannercache:{
+                    data : action.payload
+                }
+            });
+        
+        case BANNER_CACHE_RESET:
+            return Object.assign({}, state, {
+                bannercache:{
+                    data:null
+                }
+            });
+        
+        case SET_STATUS_PAGE_COLORS:
+            return Object.assign({}, state, {
+                colors: action.payload
+            });
+        
         case PAGINATE_NEXT:
 			return {
 				...state,

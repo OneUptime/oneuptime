@@ -299,8 +299,8 @@ MembersList.displayName = 'MembersList';
 MembersList.propTypes = {
   getActiveMembers: PropTypes.func,
   activeMembers: PropTypes.object,
-  startDate: PropTypes.string,
-  endDate: PropTypes.string,
+  startDate: PropTypes.object,
+  endDate: PropTypes.object,
   currentProject: PropTypes.oneOfType([PropTypes.object, PropTypes.string])
 };
 

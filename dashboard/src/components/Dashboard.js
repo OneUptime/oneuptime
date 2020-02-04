@@ -42,11 +42,11 @@ export class DashboardApp extends Component {
         const { project, match, ready, getProjects } = this.props;
 
         if (project.projects && project.projects.projects && project.projects.projects.length === 0 && !project.projects.requesting) {
-
-            getProjects(match.params.projectId || null).then(() => ready && ready());
-
+            getProjects(match.params.projectId || null).then(() => {
+                ready && ready()
+            });
         } else {
-            this.props.ready && this.props.ready();
+            ready && ready();
         }
     }
 

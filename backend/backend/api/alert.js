@@ -7,6 +7,8 @@
 var express = require('express');
 var alertService = require('../services/alertService');
 var alertChargeService = require('../services/alertChargeService');
+var path = require('path');
+var fs = require('fs');
 
 var router = express.Router();
 const {
@@ -65,6 +67,23 @@ router.get('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
         return sendListResponse(req, res, alerts,  count);
     } catch(error) {
         return sendErrorResponse( req, res, error);
+    }
+});
+
+// Mark alert as viewed
+router.get('/:projectId/:alertId/viewed', async function (req, res) {
+    try {
+        const alertId = req.params.alertId;
+        const projectId = req.params.projectId;
+        await alertService.updateOneBy({ _id: alertId, projectId: projectId }, {alertStatus: 'Viewed'});
+        var filePath = path.join(__dirname, '..', '..', 'views', 'img', 'Fyipe-Logo.png');
+        var img = fs.readFileSync(filePath);
+
+        res.set('Content-Type', 'image/png');
+        res.status(200);
+        res.end(img, 'binary');
+    } catch(error) {
+        return sendErrorResponse(req, res, error);
     }
 });
 

@@ -4,7 +4,6 @@ var Schema = mongoose.Schema;
 var monitorStatusSchema = new Schema({
     monitorId: { type: String, ref: 'Monitor' }, //which monitor does this belong to.
     probeId: { type: String, ref: 'Probe' }, //which probe does this belong to.
-    responseTime: Number, // Time taken for ping
     status: String,
     manuallyCreated: {
         type: Boolean,

@@ -49,6 +49,15 @@ export function updatemonitorlogbysocket(log) {
     };
 }
 
+export function updatemonitorstatusbysocket(status) {
+    return function (dispatch) {
+        dispatch({
+            type: 'UPDATE_MONITOR_STATUS',
+            payload: status
+        });
+    };
+}
+
 export function updateprobebysocket(probe) {
     return function (dispatch) {
         dispatch({
@@ -77,15 +86,6 @@ export function incidentcreatedbysocket(incident) {
         dispatch({
             type: 'ADD_NEW_INCIDENT_TO_MONITORS',
             payload: incident
-        });
-    };
-}
-
-export function updateresponsetime(time) {
-    return function (dispatch) {
-        dispatch({
-            type: 'UPDATE_RESPONSE_TIME',
-            payload: time
         });
     };
 }

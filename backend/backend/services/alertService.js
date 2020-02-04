@@ -356,14 +356,16 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             if (subscriber.alertVia == AlertType.Email) {
                 var emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType: templateType });
+                const subscriberAlert = await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.Email, alertStatus: 'Sent' });
+                const alertId = subscriberAlert._id;
+                var trackEmailAsViewedUrl = `${BACKEND_HOST}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
                 if (templateType === 'Subscriber Incident Acknowldeged') {
-                    await MailService.sendIncidentAcknowledgedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate);
+                    await MailService.sendIncidentAcknowledgedMailToSubscriber(date, subscriber.monitorName, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, trackEmailAsViewedUrl);
                 } else if (templateType === 'Subscriber Incident Resolved') {
-                    await MailService.sendIncidentResolvedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate);
+                    await MailService.sendIncidentResolvedMailToSubscriber(date, subscriber.monitorName, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, trackEmailAsViewedUrl);
                 } else {
-                    await MailService.sendIncidentCreatedMailToSubscriber(date, subscriber.monitorId.name, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate);
+                    await MailService.sendIncidentCreatedMailToSubscriber(date, subscriber.monitorName, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, trackEmailAsViewedUrl);
                 }
-                await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.Email, alertStatus: 'Sent' });
             } else if (subscriber.alertVia == AlertType.SMS) {
                 var countryCode = await _this.mapCountryShortNameToCountryCode(subscriber.countryCode);
                 let contactPhone = subscriber.contactPhone;
@@ -373,11 +375,11 @@ module.exports = {
                 var sendResult;
                 var smsTemplate = await SmsTemplateService.findOneBy({ projectId: incident.projectId, smsType: templateType });
                 if (templateType === 'Subscriber Incident Acknowldeged') {
-                    sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name, incident.projectId);
+                    sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(date, subscriber.monitorName, contactPhone, smsTemplate, incident, project.name,incident.projectId);
                 } else if (templateType === 'Subscriber Incident Resolved') {
-                    sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name, incident.projectId);
+                    sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(date, subscriber.monitorName, contactPhone, smsTemplate, incident, project.name,incident.projectId);
                 } else {
-                    sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(date, subscriber.monitorId.name, contactPhone, smsTemplate, incident, project.name, incident.projectId);
+                    sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(date, subscriber.monitorName, contactPhone, smsTemplate, incident, project.name,incident.projectId);
                 }
                 if (sendResult && sendResult.code && sendResult.code === 400) {
                     await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.SMS, alertStatus: null, error: true, errorMessage: sendResult.message });
@@ -583,6 +585,7 @@ let jwt = require('jsonwebtoken');
 const baseApiUrl = require('../config/baseApiUrl');
 let { getAlertChargeAmount, getCountryType } = require('../config/alertType');
 var moment = require('moment');
+var { BACKEND_HOST } = process.env;
 var { twilioAlertLimit } = require('../config/twilio');
 var SmsCountService = require('./smsCountService');
 const momentTz = require('moment-timezone');

@@ -49,13 +49,13 @@ describe('Server Monitor', function () {
           request.post('/user/login').send({
             email: user.email,
             password: user.password
-          }).end(function(err, res) {
+          }).end(function (err, res) {
             token = res.body.tokens.jwtAccessToken;
             request.post(`/monitor/${projectId}`).set('Authorization', `Basic ${token}`).send(monitor).end(function (err, res) {
               expect(res).to.have.status(200);
-              expect(res.body).to.be.an('array');
-              expect(res.body[0]).to.have.property('_id');
-              monitorId = res.body[0]._id;
+              expect(res.body).to.be.an('object');
+              expect(res.body).to.have.property('_id');
+              monitorId = res.body._id;
               done();
             });
           });

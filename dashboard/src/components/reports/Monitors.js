@@ -237,8 +237,8 @@ Monitors.displayName = 'Monitors';
 
 Monitors.propTypes = {
   getActiveMonitors: PropTypes.func,
-  startDate: PropTypes.string,
-  endDate: PropTypes.string,
+  startDate: PropTypes.object,
+  endDate: PropTypes.object,
   activeMonitors: PropTypes.object,
   currentProject: PropTypes.oneOfType([PropTypes.object, PropTypes.string])
 };

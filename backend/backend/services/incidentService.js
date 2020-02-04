@@ -15,7 +15,7 @@ module.exports = {
                 query = {};
             }
 
-            if(!query.deleted) query.deleted = false;
+            if (!query.deleted) query.deleted = false;
             var incidents = await IncidentModel.find(query)
                 .limit(limit)
                 .skip(skip)
@@ -42,31 +42,23 @@ module.exports = {
 
             if (monitorCount > 0) {
                 var incident = new IncidentModel();
+
                 incident.projectId = data.projectId || null;
                 incident.monitorId = data.monitorId || null;
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
-                if (data.incidentType) {
-                    incident.incidentType = data.incidentType;
-                    MonitorStatusService.create({
-                        status: data.incidentType,
-                        monitorId: data.monitorId
-                    });
-                }
+                incident.incidentType = data.incidentType;
+                incident.manuallyCreated = data.manuallyCreated || false;
+
                 if (data.probeId) {
                     incident.probes = [{
                         probeId: data.probeId,
                         updatedAt: Date.now(),
                         status: true,
-                        reportedStatus:data.incidentType
+                        reportedStatus: data.incidentType
                     }];
                 }
-                if (data.manuallyCreated) {
-                    incident.manuallyCreated = true;
-                }
-                else {
-                    incident.manuallyCreated = false;
-                }
+
                 incident = await incident.save();
                 incident = await _this.findOneBy({ _id: incident._id });
                 await _this._sendIncidentCreatedAlert(incident);
@@ -76,7 +68,6 @@ module.exports = {
                 let error = new Error('Monitor is not present.');
                 ErrorService.log('incidentService.create', error);
                 error.code = 400;
-
                 throw error;
             }
         } catch (error) {
@@ -86,12 +77,12 @@ module.exports = {
     },
 
     countBy: async function (query) {
-        try{
+        try {
             if (!query) {
                 query = {};
             }
 
-            if(!query.deleted) query.deleted = false;
+            if (!query.deleted) query.deleted = false;
             var count = await IncidentModel.count(query);
             return count;
         } catch (error) {
@@ -375,45 +366,6 @@ module.exports = {
         }
     },
 
-    getMonitorsWithIncidentsBy: async function (query) {
-        try {
-            var thisObj = this;
-            var newmonitors = [];
-            var limit = 3;
-            var monitors = await MonitorService.findBy(query.query, query.limit, query.skip);
-
-            if (monitors.length) {
-                await Promise.all(monitors.map(async (element) => {
-                    if (element && element._doc) {
-                        element = element._doc;
-                    }
-                    var count = await thisObj.countBy({ monitorId: element._id });
-
-                    if (count && count._doc) {
-                        count = count._doc;
-                    }
-                    var inc = await thisObj.findBy({ monitorId: element._id }, limit);
-                    if (inc && inc._doc) {
-                        inc = inc._doc;
-                    }
-                    element.probes = await ProbeService.getMonitorData(element._id || element.id);
-                    element.count = count;
-                    element.incidents = inc;
-                    element.skip = 0;
-                    element.limit = 3;
-                    newmonitors.push(element);
-                }));
-                return newmonitors;
-
-            } else {
-                return [];
-            }
-        } catch (error) {
-            ErrorService.log('incidentService.getMonitorsWithIncidentsBy', error);
-            throw error;
-        }
-    },
-
     hardDeleteBy: async function (query) {
         try {
             await IncidentModel.deleteMany(query);
@@ -467,6 +419,4 @@ var WebHookService = require('./webHookService');
 var SlackService = require('./slackService');
 var ZapierService = require('./zapierService');
 var ProjectService = require('../services/projectService');
-var ProbeService = require('../services/probeService');
 var ErrorService = require('../services/errorService');
-var MonitorStatusService = require('../services/monitorStatusService');

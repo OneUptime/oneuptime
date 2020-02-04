@@ -11,7 +11,10 @@ import {
     STATUSPAGE_NOTES_RESET,
     INDIVIDUAL_NOTES_ENABLE,
     INDIVIDUAL_NOTES_DISABLE,
-    SELECT_PROBE
+    SELECT_PROBE,
+    FETCH_MONITOR_STATUSES_REQUEST,
+    FETCH_MONITOR_STATUSES_SUCCESS,
+    FETCH_MONITOR_STATUSES_FAILURE,
 } from '../actions/status';
 
 const INITIAL_STATE = {
@@ -25,11 +28,11 @@ const INITIAL_STATE = {
         skip: 0
     },
     requestingmore: false,
+    requestingstatuses: false,
     individualnote: null,
     notesmessage: null,
     activeProbe: 0
 };
-
 
 export default (state = INITIAL_STATE, action) => {
     switch (action.type) {
@@ -46,7 +49,6 @@ export default (state = INITIAL_STATE, action) => {
                 error: action.payload,
                 requesting: false
             });
-
 
         case STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
@@ -75,7 +77,6 @@ export default (state = INITIAL_STATE, action) => {
                     count: state.notes.count
                 }
             });
-
 
         case STATUSPAGE_NOTES_REQUEST:
             return Object.assign({}, state, {
@@ -142,8 +143,69 @@ export default (state = INITIAL_STATE, action) => {
             return Object.assign({}, state, {
                 activeProbe: action.payload
             });
-            
-        default:
-            return state;
+
+        case FETCH_MONITOR_STATUSES_REQUEST:
+            return Object.assign({}, state, {
+                requestingstatuses: true
+            });
+
+        case FETCH_MONITOR_STATUSES_SUCCESS:
+            return Object.assign({}, state, {
+                statusPage: {
+                    ...state.statusPage,
+
+                    monitorsData: state.statusPage.monitorsData.map(monitor => {
+                        if (monitor._id === action.payload.monitorId) {
+                            monitor.statuses = action.payload.statuses.data;
+                        }
+                        return monitor;
+                    })
+                },
+                requestingstatuses: false
+            });
+
+        case FETCH_MONITOR_STATUSES_FAILURE:
+            return Object.assign({}, state, {
+                statusPage: {
+                    ...state.statusPage,
+
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                requestingstatuses: false
+            });
+
+        case 'UPDATE_MONITOR_STATUS':
+            return Object.assign({}, state, {
+                statusPage: {
+                    ...state.statusPage,
+
+                    monitorsData: state.statusPage.monitorsData.map(monitor => {
+                        if (monitor._id === action.payload.monitorId) {
+                            const data = Object.assign({}, action.payload.data);
+
+                            monitor.statuses = monitor.statuses && monitor.statuses.length > 0 ? (
+                                monitor.statuses.map(a => a._id).includes(data.probeId) || !data.probeId ? monitor.statuses.map(probeStatuses => {
+                                    let probeId = probeStatuses._id;
+
+                                    if (probeId === data.probeId || (!probeId && !data.probeId)) {
+                                        let previousStatus = probeStatuses.statuses[0];
+                                        previousStatus.endTime = Date.now();
+
+                                        return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
+                                    } else {
+                                        return probeStatuses;
+                                    }
+                                }) : [...monitor.statuses, { _id: data.probeId || null, statuses: [data] }]
+                            ) : [{ _id: data.probeId || null, statuses: [data] }];
+                        }
+                        return monitor;
+                    })
+                },
+                requestingstatuses: false
+            });
+
+        default: return state;
     }
 }

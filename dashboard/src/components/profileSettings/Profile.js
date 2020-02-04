@@ -842,7 +842,7 @@ ProfileSetting.propTypes = {
   sendVerificationSMSRequesting: PropTypes.bool,
   setAlertPhoneNumber: PropTypes.func.isRequired,
   setFileInputKey: PropTypes.func.isRequired,
-  setInitAlertEmail: PropTypes.string,
+  setInitAlertEmail: PropTypes.func,
   setInitPhoneVerification: PropTypes.func.isRequired,
   setInitPhoneVerificationNumber: PropTypes.func.isRequired,
   setInitialAlertPhoneNumber: PropTypes.func.isRequired,

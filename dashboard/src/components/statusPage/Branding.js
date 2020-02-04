@@ -8,6 +8,7 @@ import {
     updateStatusPageBranding, updateStatusPageBrandingRequest, updateStatusPageBrandingSuccess,
     updateStatusPageBrandingError, createLogoCache, createFaviconCache,
     resetLogoCache, resetFaviconCache, fetchProjectStatusPage,
+    createBannerCache, resetBannerCache, setStatusPageColors
 } from '../../actions/statusPage';
 import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
@@ -18,6 +19,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
+import { SketchPicker } from 'react-color';
 
 //Client side validation
 function validate(values) {
@@ -42,6 +44,28 @@ function validate(values) {
 }
 
 export class Branding extends Component {
+    state = {
+        displayColorPicker: false,
+        currentColorPicker: '',
+    };
+
+    handleClick = (e) => {
+        this.setState({
+            displayColorPicker: !this.state.displayColorPicker,
+            currentColorPicker: e.currentTarget.id,
+        });
+    };
+
+    handleClose = () => {
+        this.setState({ displayColorPicker: false, currentColorPicker: '' });
+    };
+
+    handleChange = (color) => {
+        const { currentColorPicker } = this.state;
+        let newColors = this.props.colors;
+        newColors = {...newColors, [currentColorPicker]: color.rgb};
+        this.props.setStatusPageColors(newColors);
+    };
 
     changelogo = (e) => {
         e.preventDefault();
@@ -62,6 +86,21 @@ export class Branding extends Component {
         }
     }
 
+    updloadBannerHandler = (e) => {
+        e.preventDefault();
+        let reader = new FileReader();
+        let file = e.target.files[0];
+
+        reader.onloadend = () => {
+            this.props.createBannerCache(reader.result);
+        }
+        try {
+            reader.readAsDataURL(file)
+        } catch (error) { return }
+
+        if (!IS_DEV) logEvent('New Banner Selected');
+    } 
+
     changefavicon = (e) => {
         e.preventDefault();
 
@@ -81,15 +120,36 @@ export class Branding extends Component {
         }
     }
 
+    removeImageHandler = (e) => {
+        const values = {};
+        var { _id, projectId } = this.props.statusPage.status;
+        projectId = projectId ? projectId._id || projectId : null;
+        if(_id) values._id = _id;
+        const { reset, resetLogoCache, resetFaviconCache, resetBannerCache } = this.props;
+        if (e.currentTarget.id === 'removeFavicon') { values.favicon = '' }
+        if (e.currentTarget.id === 'removeBanner') { values.banner = '' }
+        if (e.currentTarget.id === 'removeLogo') { values.logo = '' }
+        this.props.updateStatusPageBranding(projectId, values).then(() => {
+            this.props.fetchProjectStatusPage(projectId, true, 0, 10);
+            resetLogoCache();
+            resetFaviconCache();
+            resetBannerCache();
+            reset();
+        }, function () {});
+        if (!IS_DEV) logEvent('Updating status page Branding', values);
+    }
+
     submitForm = (values) => {
         var { _id, projectId } = this.props.statusPage.status
         projectId = projectId ? projectId._id || projectId : null;
         if(_id) values._id = _id;
-        const { reset, resetLogoCache, resetFaviconCache } = this.props;
+        const { reset, resetLogoCache, resetFaviconCache, resetBannerCache, colors } = this.props;
+        values.colors = colors;
         this.props.updateStatusPageBranding(projectId, values).then( ()=> {
             this.props.fetchProjectStatusPage(projectId, true, 0, 10);
             resetLogoCache();
             resetFaviconCache();
+            resetBannerCache();
             reset();
         }, function () {
 
@@ -103,13 +163,19 @@ export class Branding extends Component {
         const { handleSubmit } = this.props;
         var faviconImage = <span />;
         var logoImage = <span />;
+        var bannerImage = <span />;
         var logoUrl = this.props.logourl ? this.props.logourl : this.props.statusPage.status && this.props.statusPage.status.logoPath ? `${API_URL}/file/${this.props.statusPage.status.logoPath}` : '';
         var faviconUrl = this.props.faviconurl ? this.props.faviconurl : this.props.statusPage.status && this.props.statusPage.status.faviconPath ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}` : '';
+        var bannerUrl = this.props.bannerurl ? this.props.bannerurl : this.props.statusPage.status && this.props.statusPage.status.bannerPath ? `${API_URL}/file/${this.props.statusPage.status.bannerPath}` : '';
+        var colors = this.props.colors && Object.keys(this.props.colors).length > 0 ? this.props.colors : null;
         if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.faviconPath) || this.props.faviconurl) {
             faviconImage = <img src={faviconUrl} alt="" className="image-small-circle" />;
         }
-        if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.logoPath) || this.props.faviconurl) {
+        if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.logoPath) || this.props.logourl) {
             logoImage = <img src={logoUrl} alt="" className="image-small-circle" />;
+        }
+        if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.bannerPath) || this.props.bannerurl) {
+            bannerImage = <img src={bannerUrl} alt="" style={{maxWidth: '74px', maxHeight: '60px'}}/>;
         }
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -163,11 +229,11 @@ export class Branding extends Component {
                                                 <div className="bs-Fieldset-fields">
                                                     <div className="Box-root Flex-flex Flex-alignItems--center"><div>
                                                         <label className="bs-Button bs-DeprecatedButton bs-FileUploadButton" type="button" >
-                                                            <ShouldRender if={!this.props.statusPage.status.logoPath}>
+                                                            <ShouldRender if={!this.props.statusPage.status.faviconPath}>
                                                                 <span className="bs-Button--icon bs-Button--new"></span>
                                                                 <span>Upload favicon</span>
                                                             </ShouldRender>
-                                                            <ShouldRender if={this.props.statusPage.status.logoPath}>
+                                                            <ShouldRender if={this.props.statusPage.status.faviconPath}>
                                                                 <span className="bs-Button--icon bs-Button--edit"></span>
                                                                 <span>Change favicon</span>
                                                             </ShouldRender>
@@ -179,7 +245,21 @@ export class Branding extends Component {
                                                                     onChange={this.changefavicon}
                                                                     accept="image/jpeg, image/jpg, image/png"
                                                                 />
-                                                            </div></label></div></div>
+                                                            </div>
+                                                        </label>
+                                                        <ShouldRender if={this.props.statusPage.status.faviconPath}>
+                                                            <label
+                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                name="favicon"
+                                                                id="removeFavicon"
+                                                                onClick={this.removeImageHandler}
+                                                                type="button"
+                                                            >
+                                                                <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                <span>Remove Favicon</span>
+                                                            </label>
+                                                        </ShouldRender>
+                                                        </div></div>
                                                     <p className="bs-Fieldset-explanation"><span>Upload 64x64 favicon.
                                                     </span></p>
                                                     <ShouldRender if={this.props.statusPage.status.faviconPath || this.props.faviconurl}>
@@ -210,12 +290,132 @@ export class Branding extends Component {
                                                                 />
                                                             </div>
                                                         </label>
+                                                        <ShouldRender if={this.props.statusPage.status.logoPath}>
+                                                            <label
+                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                name="logo"
+                                                                id="removeLogo"
+                                                                onClick={this.removeImageHandler}
+                                                                type="button"
+                                                            >
+                                                                <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                <span>Remove Logo</span>
+                                                            </label>
+                                                        </ShouldRender>
                                                     </div>
                                                     </div>
                                                     <p className="bs-Fieldset-explanation"><span>Upload a square 400x400 logo.</span></p>
                                                     <ShouldRender if={this.props.statusPage.status.logoPath || this.props.logourl}>
                                                         {logoImage}
                                                     </ShouldRender>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Banner</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <div className="Box-root Flex-flex Flex-alignItems--center"><div>
+                                                        <label className="bs-Button bs-DeprecatedButton bs-FileUploadButton" type="button" >
+                                                            <ShouldRender if={!this.props.statusPage.status.bannerPath}>
+                                                                <span className="bs-Button--icon bs-Button--new"></span>
+                                                                <span>Upload Banner</span>
+                                                            </ShouldRender>
+                                                            <ShouldRender if={this.props.statusPage.status.bannerPath}>
+                                                                <span className="bs-Button--icon bs-Button--edit"></span>
+                                                                <span>Change Banner</span>
+                                                            </ShouldRender>
+                                                            <div className="bs-FileUploadButton-inputWrap">
+                                                                <Field className="bs-FileUploadButton-input"
+                                                                    component={UploadFile}
+                                                                    name="banner"
+                                                                    id="banner"
+                                                                    onChange={this.updloadBannerHandler}
+                                                                    accept="image/jpeg, image/jpg, image/png"
+                                                                />
+                                                            </div>
+                                                        </label>
+                                                        <ShouldRender if={this.props.statusPage.status.bannerPath}>
+                                                            <label
+                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                type="button"
+                                                                name="banner"
+                                                                id="removeBanner"
+                                                                onClick={this.removeImageHandler}
+                                                            >
+                                                                <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                <span>Remove Banner</span>
+                                                            </label>
+                                                        </ShouldRender>
+                                                    </div>
+                                                    </div>
+                                                    <p className="bs-Fieldset-explanation"><span>Upload an image of at least 1900*700</span></p>
+                                                    <ShouldRender if={this.props.statusPage.status.bannerPath || this.props.bannerurl}>
+                                                        {bannerImage}
+                                                    </ShouldRender>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Colors</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <div className="Box-root Flex-flex" style={{ width: '700px' }}>
+                                                        <ShouldRender if={colors}>
+                                                            <div className="Box-root Box-root Box-root Flex-flex">
+                                                                <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='pageBackground'>
+                                                                    <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.pageBackground.r }, ${ colors.pageBackground.g }, ${ colors.pageBackground.b }, ${ colors.pageBackground.a })`, }} />
+                                                                </div>
+                                                                {this.state.displayColorPicker && this.state.currentColorPicker === 'pageBackground' && <div style={{position: 'absolute',zIndex: '2'}}>
+                                                                    <div onClick={this.handleClose} style={{position: 'fixed',top: '0px',right: '0px',bottom: '0px',left: '0px'}}/>
+                                                                        <SketchPicker color={colors.pageBackground} onChange={this.handleChange} />
+                                                                    </div>
+                                                                }
+                                                                <div style={{ marginLeft: '8px', marginTop: '5px', marginRight: '15px', width: '100%' }}>
+                                                                    <span>Page Background</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="Box-root Padding-horizontal--10 Padding-vertical--0 Box-root Flex-flex">
+                                                                <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='statusPageBackground'>
+                                                                    <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.statusPageBackground.r }, ${ colors.statusPageBackground.g }, ${ colors.statusPageBackground.b }, ${ colors.statusPageBackground.a })`, }} />
+                                                                </div>
+                                                                {this.state.displayColorPicker && this.state.currentColorPicker === 'statusPageBackground' && <div style={{position: 'absolute',zIndex: '2'}}>
+                                                                    <div onClick={this.handleClose} style={{position: 'fixed',top: '0px',right: '0px',bottom: '0px',left: '0px'}}/>
+                                                                        <SketchPicker color={colors.statusPageBackground} onChange={this.handleChange} />
+                                                                    </div>
+                                                                }
+                                                                <div style={{ marginLeft: '8px', marginTop: '5px', marginRight: '15px' }}>
+                                                                    <span>Status Page Background</span>
+                                                                </div>
+                                                            </div>
+                                                        </ShouldRender>
+                                                    </div>
+                                                    <div className="Box-root Flex-flex" style={{ marginTop: '12px',  width: '700px' }}>
+                                                        <ShouldRender if={colors}>
+                                                            <div className="Box-root Box-root Box-root Flex-flex">
+                                                                <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='heading'>
+                                                                    <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.heading.r }, ${ colors.heading.g }, ${ colors.heading.b }, ${ colors.heading.a })`, }} />
+                                                                </div>
+                                                                {this.state.displayColorPicker && this.state.currentColorPicker === 'heading' && <div style={{position: 'absolute',zIndex: '2'}}>
+                                                                    <div onClick={this.handleClose} style={{position: 'fixed',top: '0px',right: '0px',bottom: '0px',left: '0px'}}/>
+                                                                        <SketchPicker color={colors.heading} onChange={this.handleChange} />
+                                                                    </div>
+                                                                }
+                                                                <div style={{ marginLeft: '8px', marginTop: '5px', marginRight: '15px' }}>
+                                                                    <span>Heading Text</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="Box-root Padding-horizontal--40 Box-root Flex-flex" style={{ marginLeft: '25px' }}>
+                                                                <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='subheading'>
+                                                                    <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.subheading.r }, ${ colors.subheading.g }, ${ colors.subheading.b }, ${ colors.subheading.a })`, }} />
+                                                                </div>
+                                                                {this.state.displayColorPicker && this.state.currentColorPicker === 'subheading' && <div style={{position: 'absolute',zIndex: '2'}}>
+                                                                    <div onClick={this.handleClose} style={{position: 'fixed',top: '0px',right: '0px',bottom: '0px',left: '0px'}}/>
+                                                                        <SketchPicker color={colors.subheading} onChange={this.handleChange} />
+                                                                    </div>
+                                                                }
+                                                                <div style={{ marginLeft: '8px', marginTop: '5px', marginRight: '15px' }}>
+                                                                    <span>Sub Heading Text</span>
+                                                                </div>
+                                                            </div>
+                                                        </ShouldRender>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="bs-Fieldset-row">
@@ -275,6 +475,9 @@ Branding.propTypes = {
     resetLogoCache: PropTypes.func.isRequired,
     createFaviconCache: PropTypes.func.isRequired,
     resetFaviconCache: PropTypes.func.isRequired,
+    createBannerCache: PropTypes.func.isRequired,
+    resetBannerCache: PropTypes.func.isRequired,
+    setStatusPageColors: PropTypes.func.isRequired,
     updateStatusPageBranding: PropTypes.func.isRequired,
     createLogoCache: PropTypes.func.isRequired,
     logourl: PropTypes.oneOfType([
@@ -285,6 +488,11 @@ Branding.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
     ]),
+    bannerurl: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined])
+    ]),
+    colors: PropTypes.object,
     reset: PropTypes.func.isRequired,
     copyright: PropTypes.oneOfType([
         PropTypes.string,
@@ -304,6 +512,7 @@ const mapDispatchToProps = (dispatch) => {
         createLogoCache, createFaviconCache,
         resetLogoCache, resetFaviconCache,
         updateStatusPageBranding, updateStatusPageBrandingRequest,
+        createBannerCache, resetBannerCache, setStatusPageColors,
         updateStatusPageBrandingSuccess, updateStatusPageBrandingError, fetchProjectStatusPage,
     }, dispatch)
 }
@@ -314,6 +523,8 @@ function mapStateToProps(state) {
         statusPage: state.statusPage,
         logourl: state.statusPage.logocache.data,
         faviconurl: state.statusPage.faviconcache.data,
+        bannerurl: state.statusPage.bannercache.data,
+        colors: state.statusPage.colors,
         initialValues: {
             title: state.statusPage && state.statusPage.status && state.statusPage.status.title ? state.statusPage.status.title : '',
             description: state.statusPage && state.statusPage.status && state.statusPage.status.description ? state.statusPage.status.description : '',

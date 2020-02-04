@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.1442",
+  "version": "3.0.1499",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
@@ -49,6 +49,7 @@
     "react": "^16.5.2",
     "react-ace": "^7.0.4",
     "react-click-outside": "github:tj/react-click-outside",
+    "react-color": "^2.18.0",
     "react-copy-to-clipboard": "^5.0.2",
     "react-csv": "^1.1.1",
     "react-daterange-picker": "^2.0.1",

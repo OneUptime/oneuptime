@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { LargeSpinner as Loader } from '../basic/Loader';
-import { ResponsiveContainer, AreaChart as Chart, Area, CartesianGrid, Tooltip } from 'recharts';
+import { ResponsiveContainer, AreaChart as Chart, Area, CartesianGrid, Tooltip, YAxis } from 'recharts';
 import * as _ from 'lodash';
 import { formatDecimal, formatBytes } from '../../config';
 
@@ -54,7 +54,7 @@ class AreaChart extends Component {
             const processedData = (type === 'manual' ? data.map(a => {
                 return {
                     name: this.parseDate(a.date),
-                    v: -this.parseValue(a.downTime),
+                    v: this.parseValue(a.downTime),
                     display: this.parseValue(a.downTime, null, true, symbol)
                 };
             }) : data.map(a => {
@@ -70,6 +70,7 @@ class AreaChart extends Component {
                     <Chart data={processedData}>
                         <Tooltip content={<CustomTooltip />} />
                         <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                        {type === 'manual' ? <YAxis reversed hide /> : ''}
                         <Area
                             type="linear"
                             isAnimationActive={false}

@@ -1,10 +1,10 @@
 import { postApi } from '../api';
 import errors from '../errors';
 import * as types from '../constants/login';
-import {User} from '../config';
+import { User } from '../config';
 
 
-export const loginRequired = ()=>{
+export const loginRequired = () => {
 	return {
 		type: types.LOGIN_REQUIRED,
 	};
@@ -56,10 +56,10 @@ export const loginUser = (values) => {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			if(error.length > 100){
+			if (error.length > 100) {
 				error = 'Network Error';
 			}
 			dispatch(loginError(errors(error)));
