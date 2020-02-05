@@ -29,7 +29,7 @@ module.exports = {
     findOneBy: async function (query) {
 
         try {
-            
+
             if (!query) {
                 query = {};
             }
@@ -159,7 +159,7 @@ module.exports = {
             if (escalations && escalations.length > 0) {
                 await Promise.all(escalations.map(async (escalation) => {
                     var teamMembers = escalation.teamMembers.filter(member => member.userId.toString() !== memberId.toString());
-                    await _this.updateOneBy({ _id: escalation._id }, { teamMember: teamMembers });
+                    await _this.updateOneBy({ _id: escalation._id }, { teamMembers: teamMembers });
                 }));
             }
         } catch (error) {
@@ -241,22 +241,22 @@ function computeActiveTeams(escalation) {
     // eslint-disable-next-line no-useless-catch
     try {
         let {
-            team, rotationInterval, rotationFrequency,
+            teams, rotationInterval, rotationFrequency,
             rotationSwitchTime, createdAt, rotationTimezone
         } = escalation;
 
         const currentDate = new Date();
         if (rotationFrequency && rotationFrequency != "") {
             const diffsInInterval = computeIntervalDiffs(rotationFrequency, createdAt, currentDate, rotationSwitchTime);
-            const activeTeamIndex = computeActiveTeamIndex(team.length, diffsInInterval);
+            const activeTeamIndex = computeActiveTeamIndex(teams.length, diffsInInterval);
 
             let activeTeamRotationStartTime = moment(createdAt).add(diffsInInterval, rotationFrequency);
 
             let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
 
             const activeTeam = {
-                _id: team[activeTeamIndex]._id,
-                teamMembers: team[activeTeamIndex].teamMember,
+                _id: teams[activeTeamIndex]._id,
+                teamMembers: teams[activeTeamIndex].teamMembers,
                 rotationStartTime: activeTeamRotationStartTime,
                 rotationEndTime: activeTeamRotationEndTime
             };
@@ -264,15 +264,15 @@ function computeActiveTeams(escalation) {
 
             let nextActiveTeamIndex = activeTeamIndex + 1;
 
-            if (!team[nextActiveTeamIndex]) {
+            if (!teams[nextActiveTeamIndex]) {
                 nextActiveTeamIndex = 0;
             }
 
             const nextActiveTeamRotationStartTime = activeTeamRotationEndTime;
             const nextActiveTeamRotationEndTime = moment(nextActiveTeamRotationStartTime).add(rotationInterval, rotationFrequency);
             const nextActiveTeam = {
-                _id: team[nextActiveTeamIndex]._id,
-                teamMembers: team[nextActiveTeamIndex].teamMember,
+                _id: teams[nextActiveTeamIndex]._id,
+                teamMembers: teams[nextActiveTeamIndex].teamMembers,
                 rotationStartTime: nextActiveTeamRotationStartTime,
                 rotationEndTime: nextActiveTeamRotationEndTime,
             };
@@ -281,8 +281,8 @@ function computeActiveTeams(escalation) {
         } else {
             return {
                 activeTeam: {
-                    _id: team[0]._id,
-                    teamMembers: team[0].teamMember,
+                    _id: teams[0]._id,
+                    teamMembers: teams[0].teamMembers,
                     rotationStartTime: null,
                     rotationEndTime: null
                 },

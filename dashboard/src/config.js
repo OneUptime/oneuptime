@@ -138,7 +138,7 @@ export const Validate = {
 
     number(number) {
 
-        if (number && number.length && !isNaN(number)) {
+        if (number && !isNaN(number)) {
             return true;
         }
         else {

@@ -12,8 +12,8 @@ let EscalationSummarySingle = ({
 }) => {
 
     var data = isActiveTeam ? escalation.activeTeam : escalation.nextActiveTeam;
-    if (data && escalation)
-        var teamMembers = escalation;
+    if (data)
+        var teamMembers = data.teamMembers;
     return (
         <>
             {isActiveTeam && (<div className="bs-Fieldset-row">
