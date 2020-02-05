@@ -315,13 +315,23 @@ export function updateStatusPageBranding(projectId, values) {
 		let data = new FormData();
 		if (values.favicon && values.favicon[0]) {
 			data.append('favicon', values.favicon[0], values.favicon[0].name);
+		} else if (values.favicon === '') {
+			data.append('favicon', values.favicon);
 		}
 		if (values.logo && values.logo[0]) {
 			data.append('logo', values.logo[0], values.logo[0].name);
+		} else if (values.logo === '') {
+			data.append('logo', values.logo);
 		}
-		data.append('title', values.title);
-		data.append('description', values.description);
-		data.append('copyright', values.copyright);
+		if (values.banner && values.banner[0]) {
+			data.append('banner', values.banner[0], values.banner[0].name);
+		} else if (values.banner === '') {
+			data.append('banner', values.banner);
+		}
+		if (values.title) data.append('title', values.title);
+		if (values.description) data.append('description', values.description);
+		if (values.copyright) data.append('copyright', values.copyright);
+		if (values.colors) data.append('colors', JSON.stringify(values.colors));
 
 		if (values._id) data.append('_id', values._id);
 
@@ -623,6 +633,27 @@ export function createLogoCache(imageUrl) {
 	return {
 		type: types.LOGO_CACHE_INSERT,
 		payload: imageUrl
+	};
+}
+
+// Banner
+export function createBannerCache(imageUrl) {
+	return {
+		type: types.BANNER_CACHE_INSERT,
+		payload: imageUrl
+	};
+}
+
+export function resetBannerCache() {
+	return {
+		type: types.BANNER_CACHE_RESET
+	};
+}
+
+export function setStatusPageColors(color) {
+	return {
+		type: types.SET_STATUS_PAGE_COLORS,
+		payload: color
 	};
 }
 
