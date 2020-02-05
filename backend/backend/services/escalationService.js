@@ -29,6 +29,7 @@ module.exports = {
     findOneBy: async function (query) {
 
         try {
+            
             if (!query) {
                 query = {};
             }

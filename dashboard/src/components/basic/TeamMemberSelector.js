@@ -10,7 +10,7 @@ let errorStyle = {
 };
 
 const TeamMemberSelector = ({ input, placeholder, meta: { touched, error }, subProjectTeam, form, policyIndex, teamIndex }) => {
-    const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].team[teamIndex].teamMember, subProjectTeam);
+    const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].teams[teamIndex].teamMember, subProjectTeam);
 
     const allowedOptionsForDropdown = [{ value: '', label: 'Select Team Member...' }].concat(allowedTeamMembers.map(member => {
         return {

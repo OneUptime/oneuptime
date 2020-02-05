@@ -131,7 +131,7 @@ export class OnCallAlertBox extends Component {
                                                     rotationInterval: '',
                                                     rotationSwitchTime: '',
                                                     rotationTimezone: '',
-                                                    team: [
+                                                    teams: [
                                                         {
                                                             teamMembers: [],
                                                         }
@@ -235,7 +235,7 @@ const mapStateToProps = (state, props) => {
             email: true,
             sms: false,
             call: false,
-            team: [
+            teams: [
                 {
                     teamMembers: [
                         {
