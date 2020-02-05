@@ -121,9 +121,9 @@ export class OnCallAlertBox extends Component {
                                             className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                             onClick={() => this.props.pushArray('OnCallAlertBox', 'OnCallAlertBox',
                                                 {
-                                                    callFrequency: '3',
-                                                    smsFrequency: '3',
-                                                    emailFrequency: '3',
+                                                    callFrequency: 3,
+                                                    smsFrequency: 3,
+                                                    emailFrequency: 3,
                                                     email: true,
                                                     sms: false,
                                                     call: false,

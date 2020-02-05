@@ -402,7 +402,7 @@ module.exports = {
             let escalationIds = schedules.escalationIds;
             for (let value of escalationIds) {
                 var escalation = await EscalationService.findOneBy({ _id: value._id });
-                let callFrequency = parseInt(escalation.callFrequency);
+                let callFrequency = escalation.callFrequency;
 
                 for (let teamMember of escalation.teamMembers) {
                     const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);

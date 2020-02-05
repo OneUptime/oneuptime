@@ -107,7 +107,7 @@ let EscalationSummarySingle = ({
                         return (<div key={membersFromList._id} className="Box-root Margin-right--16 pointer">
                             <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
                             <span>{membersFromList.name}</span>
-                            <span> <br/><br/> Will only be active from { moment(member.startTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a')} and {moment(member.endTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a')}. <br/><br/>If there&#39;s no team member on-duty when this member is not on-duty the incident is at the risk of being {hasNextEscalationPolicy ? 'escalated' : 'ignored'}. <br/> <br/></span>
+                            <span> <br/><br/> Will only be active from { moment.tz(member.startTime).tz(member.timezone).format('hh:mm A')} and {moment(member.endTime).tz(moment.tz.guess()).format('hh:mm A')} everyday. <br/><br/>If there&#39;s no team member on-duty when this member is not on-duty the incident is at the risk of being {hasNextEscalationPolicy ? 'escalated' : 'ignored'}. <br/> <br/></span>
                         </div>)
 
                     })}

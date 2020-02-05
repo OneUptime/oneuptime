@@ -4,8 +4,8 @@ var Schema = mongoose.Schema;
 const teamSchema = new Schema({
     teamMember: [
         {
-            startTime: String,
-            endTime: String,
+            startTime: Date,
+            endTime: Date,
             timezone: String,
             member:{type: String, ref: 'User'}
         }
@@ -19,7 +19,7 @@ var escalationSchema = new Schema({
     smsFrequency: { type: Number, default: null },
     rotationFrequency: { type: String, default: null },
     rotationInterval: { type: Number, default: null },
-    rotationSwitchTime: String,
+    rotationSwitchTime: Date,
     rotationTimezone: String,
     call: {type: Boolean, default: false},
     email: {type: Boolean, default: false},

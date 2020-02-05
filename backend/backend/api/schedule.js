@@ -6,7 +6,7 @@
 
 let express = require('express');
 let ScheduleService = require('../services/scheduleService');
-
+let moment = require('moment');
 let router = express.Router();
 let isUserAdmin = require('../middlewares/project').isUserAdmin;
 let getUser = require('../middlewares/user').getUser;
@@ -122,7 +122,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             let storagevalue = {};
             let tempTeam = [];
 
-        
+            
             if(!value.email && !value.call && !value.sms){
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -179,9 +179,27 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 });
             }
 
+            if(value.callFrequency && typeof value.callFrequency === "string"){
+                value.callFrequency = parseInt(value.callFrequency);
+            }
+
+            if(value.smsFrequency && typeof value.smsFrequency === "string"){
+                value.smsFrequency = parseInt(value.smsFrequency);
+            }
+
+            if(value.emailFrequency && typeof value.emailFrequency === "string"){
+                value.emailFrequency = parseInt(value.emailFrequency);
+            }
+
+            if(value.rotationSwitchTime && typeof value.rotationSwitchTime === "string"){
+                value.emailFrequency = new Date(value.rotationSwitchTime);
+            }
+
+            
             storagevalue.callFrequency = value.callFrequency;
             storagevalue.smsFrequency = value.smsFrequency;
             storagevalue.emailFrequency = value.emailFrequency;
+        
             storagevalue.rotationFrequency = value.rotationFrequency;
             storagevalue.rotationInterval = value.rotationInterval;
             storagevalue.rotationSwitchTime = value.rotationSwitchTime;
@@ -208,6 +226,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 for (let TM of team.teamMember) {
                     let data = {};
                     if (!TM.member) {
+                        
                         return sendErrorResponse(req, res, {
                             code: 400,
                             message: 'Please add team members to your on-call schedule '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
@@ -222,9 +241,17 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                         });
                     }
 
+                    if(TM.startTime && typeof TM.startTime === "string"){
+                        TM.startTime = new Date(TM.startTime);
+                    }
+
+                    if(TM.endTime && typeof TM.endTime === "string"){
+                        TM.startTime = new Date(TM.endTime);
+                    }
+
                     data.member = TM.member;
-                    data.startTime = TM.startTime;
-                    data.endTime = TM.endTime;
+                    data.startTime = TM.startTime
+                    data.endTime = TM.endTime
                     data.timezone = TM.timezone;
                     teamMember.push(data);
                 }
