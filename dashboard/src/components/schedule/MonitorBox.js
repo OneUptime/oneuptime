@@ -149,7 +149,7 @@ let mapStateToProps = (state, props) => {
     const isRequesting = state.schedule.addMonitor.requesting;
     let currentProject = state.project.currentProject;
 
-    if (monitors.length > 0) {
+    if (monitors.length > 0 && schedule) {
 
         let scheduleMonitorIds = schedule.monitorIds.map(({ _id }) => _id);
         let monitorIds = monitors.map(({_id}) => _id);
