@@ -144,9 +144,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <ShouldRender if={!isCurrentlyNotMonitoring}>
-                        <AreaChart type={type} data={data} name={'load'} />
-                    </ShouldRender>
+                    <AreaChart type={type} data={data} name={'load'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -179,9 +177,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <ShouldRender if={!isCurrentlyNotMonitoring}>
-                        <AreaChart type={type} data={data} name={'memory'} />
-                    </ShouldRender>
+                    <AreaChart type={type} data={data} name={'memory'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -214,9 +210,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <ShouldRender if={!isCurrentlyNotMonitoring}>
-                        <AreaChart type={type} data={data} name={'disk'} />
-                    </ShouldRender>
+                    <AreaChart type={type} data={data} name={'disk'} />
                 </div>
             </div>
             <ShouldRender if={showAll}>
@@ -243,9 +237,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                         </div>
                     </div>
                     <div className="block-chart-main line-chart">
-                        <ShouldRender if={!isCurrentlyNotMonitoring}>
-                            <AreaChart type={type} data={data} name={'temperature'} />
-                        </ShouldRender>
+                        <AreaChart type={type} data={data} name={'temperature'} />
                     </div>
                 </div>
             </ShouldRender>
@@ -324,9 +316,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                 </div>
             </div>
             <div className="block-chart-main line-chart">
-                <ShouldRender if={!isCurrentlyNotMonitoring}>
-                    <AreaChart type={type} data={timeBlock} name={'downtime'} symbol="secs" />
-                </ShouldRender>
+                <AreaChart type={type} data={timeBlock} name={'downtime'} symbol="secs" />
             </div>
         </div>
     } else {
