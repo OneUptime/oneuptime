@@ -78,6 +78,13 @@ export const LOGO_CACHE_INSERT = 'incident/LOGO_CACHE_INSERT';
 export const FAVICON_CACHE_RESET = 'incident/FAVICON_CACHE_RESET';
 export const LOGO_CACHE_RESET = 'incident/LOGO_CACHE_RESET';
 
+// Banner
+export const BANNER_CACHE_INSERT = 'BANNER_CACHE_INSERT';
+export const BANNER_CACHE_RESET = 'BANNER_CACHE_RESET';
+
+// Colors
+export const SET_STATUS_PAGE_COLORS = 'UPDATE_STATUS_PAGE_COLORS';
+
 // Implements pagination for Status pages table
 
 export const PAGINATE_NEXT = 'PAGINATE_NEXT';

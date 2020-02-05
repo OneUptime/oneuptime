@@ -1,7 +1,8 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
-const UptimeLegend = () =>
-        <div className="uptime-legend box-inner clearfix">
+const UptimeLegend = ({ background }) =>
+        <div className="uptime-legend box-inner clearfix" style={background}>
             <span className="legend-item">
                 <span className="legend-color graph-up"></span>
                 <label>100% uptime</label>
@@ -17,5 +18,9 @@ const UptimeLegend = () =>
         </div>
 
 UptimeLegend.displayName = 'UptimeLegend';
+
+UptimeLegend.propTypes = {
+    background: PropTypes.object,
+}
 
 export default UptimeLegend;

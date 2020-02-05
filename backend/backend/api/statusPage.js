@@ -77,6 +77,9 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
         }, {
             name: 'logo',
             maxCount: 1
+        }, {
+            name: 'banner',
+            maxCount: 1
         }
     ]);
 
@@ -178,11 +181,16 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
             statusPage = await StatusPageService.findOneBy({ _id: data._id });
             let imagesPath = {
                 faviconPath: statusPage.faviconPath,
-                logoPath: statusPage.logoPath
+                logoPath: statusPage.logoPath,
+                bannerPath: statusPage.bannerPath,
             };
             if (Object.keys(files).length === 0 && Object.keys(imagesPath).length !== 0) {
                 data.faviconPath = imagesPath.faviconPath;
                 data.logoPath = imagesPath.logoPath;
+                data.bannerPath = imagesPath.bannerPath;
+                if (data.favicon === '') { data.faviconPath = null; }
+                if (data.logo === '') { data.logoPath = null; }
+                if (data.banner === '') { data.bannerPath = null; }
             }
             else {
                 if (files && files.favicon && files.favicon[0].filename) {
@@ -193,7 +201,13 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
                 if (files && files.logo && files.logo[0].filename) {
                     data.logoPath = files.logo[0].filename;
                 }
+                if (files && files.banner && files.banner[0].filename) {
+                    data.bannerPath = files.banner[0].filename;
+                }
             }
+        }
+        if (data.colors) {
+            data.colors = JSON.parse(data.colors);
         }
 
         try {

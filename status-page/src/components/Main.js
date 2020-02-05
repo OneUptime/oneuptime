@@ -125,6 +125,7 @@ class Main extends Component {
 		if (this.props.statusData && this.props.statusData.monitorIds) {
 			serviceStatus = getServiceStatus(this.props.monitorState, probes);
 			isGroupedByMonitorCategory = this.props.statusData.isGroupedByMonitorCategory;
+			var colors = this.props.statusData.colors
 
 			if (serviceStatus === 'all') {
 				status = 'status-bubble status-up';
@@ -167,10 +168,20 @@ class Main extends Component {
 				margin: '0 8px 1px 0',
 				backgroundColor: 'rgb(250, 117, 90)'// "red-status"
 			}
+			var heading = {
+				color: `rgba(${ colors.heading.r }, ${ colors.heading.g }, ${ colors.heading.b }, ${ colors.heading.a })`
+			}
+			var backgroundMain = {
+				background: `rgba(${ colors.pageBackground.r }, ${ colors.pageBackground.g }, ${ colors.pageBackground.b }, ${ colors.pageBackground.a })`
+			}
+			var contentBackground = {
+				background: `rgba(${ colors.statusPageBackground.r }, ${ colors.statusPageBackground.g }, ${ colors.statusPageBackground.b }, ${ colors.statusPageBackground.a })`
+			}
 		}
 
 		return (
-			<div>
+			<div style={backgroundMain}>
+				{this.props.statusData && this.props.statusData.bannerPath ? <span><img src={`${API_URL}/file/${this.props.statusData.bannerPath}`} alt="" className="banner" /></span> : ''}
 				{view ? <div className="innernew">
 					<div className="header clearfix">
 						<div className="heading">
@@ -182,7 +193,7 @@ class Main extends Component {
 							<div className="largestatus">
 								<span className={status}></span>
 								<div className="title-wrapper">
-									<span className="title">{statusMessage}</span>
+									<span className="title" style={heading}>{statusMessage}</span>
 									<label className="status-time">
 										As of <span className="current-time">{moment(date).format('LLLL')}</span>
 									</label>
@@ -192,6 +203,7 @@ class Main extends Component {
 								{probes.map((probe, index) =>
 									(<button
 										onClick={() => this.selectbutton(index)}
+										style={contentBackground}
 										key={`probes-btn${index}`}
 										id={`probes-btn${index}`}
 										className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
@@ -200,7 +212,7 @@ class Main extends Component {
 									</button>)
 								)}
 							</div>
-							<div className="statistics">
+							<div className="statistics" style={contentBackground}>
 								<div className="inner-gradient"></div>
 								<div className="uptime-graphs box-inner">
 									{isGroupedByMonitorCategory ?
@@ -213,7 +225,7 @@ class Main extends Component {
 													<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />) :
 											<NoMonitor />)}
 								</div>
-								{this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0 ? <UptimeLegend /> : ''}
+								{this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0 ?<UptimeLegend background={contentBackground}/>: ''}
 							</div>
 						</div>
 					</div>

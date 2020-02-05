@@ -28,6 +28,8 @@ var statusSchema = new Schema({
     copyright: String,
     faviconPath: String,
     logoPath: String,
+    bannerPath: String,
+    colors: Object,
     createdAt: {
         type: Date,
         default: Date.now

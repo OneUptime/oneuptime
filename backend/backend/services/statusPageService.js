@@ -53,6 +53,8 @@ module.exports = {
             statusPageModel.copyright = data.copyright || null;
             statusPageModel.faviconPath = data.faviconPath || null;
             statusPageModel.logoPath = data.logoPath || null;
+            statusPageModel.bannerPath = data.bannerPath || null;
+            statusPageModel.colors = data.colors || defaultStatusPageColors.default;
             statusPageModel.deleted = data.deleted || false;
             statusPageModel.isSubscriberEnabled = data.isSubscriberEnabled || false;
 
@@ -422,3 +424,4 @@ var ErrorService = require('./errorService');
 var SubscriberService = require('./subscriberService');
 var ProjectService = require('./projectService');
 var _ = require('lodash');
+var defaultStatusPageColors = require('../config/statusPageColors');
