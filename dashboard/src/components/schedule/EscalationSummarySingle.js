@@ -1,6 +1,7 @@
 import React from 'react';
 import moment from 'moment';
 import PropTypes from 'prop-types';
+import {DateTime} from '../../config';
 
 let EscalationSummarySingle = ({
     isActiveTeam,
@@ -68,7 +69,7 @@ let EscalationSummarySingle = ({
             {!isActiveTeam && data && data.rotationStartTime && <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label"><b>On-Call Duty Start Time</b></label>
                 <div className="bs-Fieldset-fields labelfield">
-                    {data && data.rotationStartTime ? moment(data.rotationStartTime).tz(moment.tz.guess()).format('ddd, Do MMM: hh:mm a') : ''}
+                    {data && data.rotationStartTime ? DateTime.format(DateTime.convertToCurrentTimezone(DateTime.changeDateTimezone(data.rotationStartTime, data.rotationTimezone)), 'ddd, Do MMM: hh:mm a') : ''}
                 </div>
             </div>}
 

@@ -138,9 +138,14 @@ export const Validate = {
 
     number(number) {
 
+        if(typeof(number) === "string" && number.length===0){
+            return false;
+        }
+
         if (number && !isNaN(number)) {
             return true;
         }
+        
         else {
             return false;
         }
@@ -580,3 +585,22 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
 
     return { logs, statuses };
 };
+
+export const DateTime = {
+    // This function will strip
+    changeDateTimezone: function (date, timezone){
+        return date;
+    },
+
+    convertToTimezone: function (date, timezone){
+        return moment(date).tz(timezone).toDate();
+    },
+
+    convertToCurrentTimezone: function(date){
+        return moment(date).tz(moment.tz.guess()).toDate();
+    },
+
+    format: function (date, formatString){
+        return moment(date).format(formatString);
+    }
+}
