@@ -9,7 +9,7 @@ let errorStyle = {
     topMargin: '5px'
 };
 
-const TeamSelector = ({ input, placeholder, meta: { touched, error }, subProjectTeam, form, policyIndex, teamIndex }) => {
+const TeamMemberSelector = ({ input, placeholder, meta: { touched, error }, subProjectTeam, form, policyIndex, teamIndex }) => {
     const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].team[teamIndex].teamMember, subProjectTeam);
 
     const allowedOptionsForDropdown = [{ value: '', label: 'Select Team Member...' }].concat(allowedTeamMembers.map(member => {
@@ -78,9 +78,9 @@ const TeamSelector = ({ input, placeholder, meta: { touched, error }, subProject
     );
 };
 
-TeamSelector.displayName = 'TeamSelector';
+TeamMemberSelector.displayName = 'TeamMemberSelector';
 
-TeamSelector.propTypes = {
+TeamMemberSelector.propTypes = {
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     meta: PropTypes.object.isRequired,
@@ -90,9 +90,9 @@ TeamSelector.propTypes = {
     teamIndex: PropTypes.number.isRequired,
 };
 
-function makeAllowedTeamMembers(teamMembers, subProjectTeam = []) {
+function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
     const validTeamMembers = teamMembers.filter(member => member.userId);
-    if (!validTeamMembers.length)
+    if (validTeamMembers.length === 0)
       return subProjectTeam;
 
     const memberMap = new Map();
@@ -121,4 +121,4 @@ function mapStateToProps(state, props) {
     };
 }
 
-export default connect(mapStateToProps)(TeamSelector);
+export default connect(mapStateToProps)(TeamMemberSelector);

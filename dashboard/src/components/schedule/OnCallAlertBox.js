@@ -56,7 +56,7 @@ function validate(values) {
                     alertArrayErrors[i] = repeatErrors;
                 }
             }
-            (values.OnCallAlertBox[i] && values.OnCallAlertBox[i].team) && values.OnCallAlertBox[i].team.forEach((val, j) => {
+            (values.OnCallAlertBox[i] && values.OnCallAlertBox[i].teams) && values.OnCallAlertBox[i].teams.forEach((val, j) => {
                 const escalationErrors = {}
                 if (val) {
                     if (val.teamMembers[0] && val.teamMembers[0].userId === '') {
@@ -217,17 +217,17 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 )
 
 const mapStateToProps = (state, props) => {
-    /* state.schedule.escalationData && state.schedule.escalationData.length ?
-     state.schedule.escalationData.map((value)=>{
+    /* state.schedule.escalations && state.schedule.escalations.length ?
+     state.schedule.escalations.map((value)=>{
          return {escalation: [value]};
      }) : */
-    const { escalationData } = state.schedule;
+    const { escalations } = state.schedule;
 
     const { projectId } = props.match.params;
     const { scheduleId } = props.match.params;
     const { subProjectId } = props.match.params;
 
-    let OnCallAlertBox = escalationData && escalationData.length > 0 ? escalationData : [
+    let OnCallAlertBox = escalations && escalations.length > 0 ? escalations : [
         {
             callFrequency: '3',
             smsFrequency: '3',

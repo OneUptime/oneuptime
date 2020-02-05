@@ -7,18 +7,45 @@ import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin
 import OnCallAlertBox from '../components/schedule/OnCallAlertBox';
 import PropTypes from 'prop-types';
 import EscalationSummary from '../components/schedule/EscalationSummary';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { withRouter } from 'react-router';
+import { subProjectTeamLoading } from '../actions/team';
+import { getEscalation } from '../actions/schedule';
+import { teamLoading } from '../actions/team';
 
 class Schedule extends Component {
     constructor(props) {
         super(props);
-        this.state = {editSchedule: false};
-
+        this.state = { editSchedule: false };
     }
-    
+
+    async componentDidMount() {
+
+        this.setState({ isLoading: true });
+
+        const { subProjectId, scheduleId } = this.props;
+        try {
+            await Promise.all([
+                this.props.getEscalation(subProjectId, scheduleId),
+                this.props.subProjectTeamLoading(subProjectId),
+                this.props.teamLoading(subProjectId)
+            ]);
+
+            this.setState({ isLoading: false, error: null })
+        } catch (e) {
+            this.setState({ error: e, isLoading: false });
+        }
+    }
+
     render() {
         const { editSchedule } = this.state;
 
-        const { subProjectId } = this.props.match.params;
+        var {
+            escalations,
+            teamMembers,
+            subProjectId,
+        } = this.props;
 
         return (
             <Dashboard>
@@ -35,12 +62,15 @@ class Schedule extends Component {
 
                                                 <MonitorBox />
 
-                                                {!editSchedule && <EscalationSummary onEditClicked={() => {
-                                                    this.setState({ editSchedule: true })
-                                                }} />}
+                                                {!editSchedule && escalations.length > 0 && <EscalationSummary
+                                                    onEditClicked={() => {
+                                                        this.setState({ editSchedule: true })
+                                                    }}
+                                                    escalations={escalations}
+                                                    teamMembers={teamMembers} />}
 
 
-                                                {editSchedule && <OnCallAlertBox afterSave={() => {
+                                                {(editSchedule || escalations.length === 0) && <OnCallAlertBox afterSave={() => {
                                                     this.setState({ editSchedule: false })
                                                 }} />}
 
@@ -62,10 +92,46 @@ class Schedule extends Component {
     }
 }
 
-Schedule.displayName = 'Settings'
+const mapDispatchToProps = dispatch => (
+    bindActionCreators({ getEscalation, subProjectTeamLoading, teamLoading }, dispatch)
+)
+
+const mapStateToProps = (state, props) => {
+    const { scheduleId } = props.match.params;
+
+    var schedule = state.schedule.subProjectSchedules.map((subProjectSchedule) => {
+        return subProjectSchedule.schedules.find(schedule => schedule._id === scheduleId)
+    });
+
+    schedule = schedule.find(schedule => schedule && schedule._id === scheduleId)
+    var escalations = state.schedule.escalations;
+    const { projectId } = props.match.params;
+
+    const { subProjectId } = props.match.params;
+    return {
+        schedule,
+        escalations,
+        projectId,
+        subProjectId,
+        scheduleId,
+        teamMembers: state.team.teamMembers
+    }
+}
+
+
+
+Schedule.displayName = 'Schedule'
 
 Schedule.propTypes = {
+    getEscalation: PropTypes.func.isRequired,
+    subProjectTeamLoading: PropTypes.func.isRequired,
+    subProjectId: PropTypes.string.isRequired,
+    scheduleId: PropTypes.string.isRequired,
+    teamLoading: PropTypes.func.isRequired,
+    onEditClicked: PropTypes.func.isRequired,
+    escalations: PropTypes.array.isRequired,
+    teamMembers: PropTypes.array.isRequired,
     match: PropTypes.object.isRequired
 }
 
-export default Schedule
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Schedule));

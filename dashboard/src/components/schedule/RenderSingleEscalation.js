@@ -347,7 +347,7 @@ let RenderSingleEscalation = ({
                                                         obj.rotationSwitchTime = null;
                                                         obj.rotationTimezone = null;
                                                         //just have one on-call team if there's no rotation.
-                                                        obj.team = obj.team[0] ? [obj.team[0]] : [];
+                                                        obj.teams = obj.teams[0] ? [obj.teams[0]] : [];
                                                         fields.remove(policyIndex);
                                                         fields.insert(policyIndex, obj);
                                                         manageRotationVisibility(false)
@@ -360,7 +360,7 @@ let RenderSingleEscalation = ({
                                     <div className="bs-Fieldset-rows">
                                         <FieldArray
                                             className="db-BusinessSettings-input TextInput bs-TextInput"
-                                            name={`${policy}.team`}
+                                            name={`${policy}.teams`}
                                             component={RenderTeams}
                                             subProjectId={subProjectId}
                                             policyIndex={policyIndex}

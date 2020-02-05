@@ -3,9 +3,6 @@ import PropTypes from 'prop-types'
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { withRouter } from 'react-router';
-import { subProjectTeamLoading } from '../../actions/team';
-import { getEscalation } from '../../actions/schedule';
-import { teamLoading } from '../../actions/team';
 import { ListLoader } from '../basic/Loader'
 import EscalationSummarySingle from './EscalationSummarySingle'
 
@@ -16,28 +13,11 @@ export class EscalationSummary extends Component {
         this.state = {};
     }
 
-    async componentDidMount() {
-
-        this.setState({ isLoading: true });
-
-        const { subProjectId, scheduleId } = this.props;
-        try {
-            await Promise.all([
-                this.props.getEscalation(subProjectId, scheduleId),
-                this.props.subProjectTeamLoading(subProjectId),
-                this.props.teamLoading(subProjectId)
-            ]);
-
-            this.setState({ isLoading: false, error: null })
-        } catch (e) {
-            this.setState({ error: e, isLoading: false });
-        }
-    }
 
     render() {
         var {
             onEditClicked,
-            escalationData,
+            escalations,
             teamMembers
         } = this.props;
 
@@ -79,9 +59,9 @@ export class EscalationSummary extends Component {
                         </div>
                         {!isLoading &&
                             !error &&
-                            escalationData &&
-                            escalationData.length > 0 &&
-                            escalationData.map((escalation, i) => {
+                            escalations &&
+                            escalations.length > 0 &&
+                            escalations.map((escalation, i) => {
                                 return (<div key={escalation.id} className="bs-ContentSection-content Box-root">
 
                                     <div className="Card-root" style={{ backgroundColor: '#ffffff' }}>
@@ -102,13 +82,13 @@ export class EscalationSummary extends Component {
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f7f7f7' }}>
                                         <div>
-                                            {escalation && escalation.activeTeam && <EscalationSummarySingle isActiveTeam={true} teamMemberList={teamMembers} escalation={escalation} hasNextEscalationPolicy={!!escalationData[i+1]} currentEscalationPolicyCount={i+1} />}
+                                            {escalation && escalation.activeTeam && <EscalationSummarySingle isActiveTeam={true} teamMemberList={teamMembers} escalation={escalation} hasNextEscalationPolicy={!!escalations[i+1]} currentEscalationPolicyCount={i+1} />}
 
                                             <div className="bs-Fieldset-row">
 
                                             </div>
 
-                                            {escalation && escalation.nextActiveTeam && <EscalationSummarySingle isNextActiveTeam={true} teamMemberList={teamMembers} escalation={escalation} hasNextEscalationPolicy={!!escalationData[i+1]} currentEscalationPolicyCount={i+1} />}
+                                            {escalation && escalation.nextActiveTeam && <EscalationSummarySingle isNextActiveTeam={true} teamMemberList={teamMembers} escalation={escalation} hasNextEscalationPolicy={!!escalations[i+1]} currentEscalationPolicyCount={i+1} />}
 
                                         </div>
                                     </div>
@@ -161,39 +141,20 @@ export class EscalationSummary extends Component {
 EscalationSummary.displayName = 'EscalationSummary';
 
 EscalationSummary.propTypes = {
-    getEscalation: PropTypes.func.isRequired,
-    subProjectTeamLoading: PropTypes.func.isRequired,
     subProjectId: PropTypes.string.isRequired,
     scheduleId: PropTypes.string.isRequired,
-    teamLoading: PropTypes.func.isRequired,
     onEditClicked: PropTypes.func.isRequired,
-    escalationData: PropTypes.array.isRequired,
+    escalations: PropTypes.array.isRequired,
     teamMembers: PropTypes.array.isRequired
 }
 
 const mapDispatchToProps = dispatch => (
-    bindActionCreators({ getEscalation, subProjectTeamLoading, teamLoading }, dispatch)
+    bindActionCreators({  }, dispatch)
 )
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId } = props.match.params;
-
-    var schedule = state.schedule.subProjectSchedules.map((subProjectSchedule) => {
-        return subProjectSchedule.schedules.find(schedule => schedule._id === scheduleId)
-    });
-
-    schedule = schedule.find(schedule => schedule && schedule._id === scheduleId)
-    var escalationData = state.schedule.escalationData;
-    const { projectId } = props.match.params;
-
-    const { subProjectId } = props.match.params;
     return {
-        schedule,
-        escalationData,
-        projectId,
-        subProjectId,
-        scheduleId,
-        teamMembers: state.team.teamMembers
+       
     }
 }
 

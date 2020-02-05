@@ -217,11 +217,11 @@ module.exports = {
         }
     },
 
-    addEscalation: async function (scheduleId, escalationData, userId) {
+    addEscalation: async function (scheduleId, escalations, userId) {
         try {
             let _this = this;
             let escalationIds = [];
-            for (let data of escalationData) {
+            for (let data of escalations) {
                 var escalation = {};
                 if (!data._id) {
                     escalation = await EscalationService.create(data);

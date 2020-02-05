@@ -26,7 +26,7 @@ var escalationSchema = new Schema({
     sms: {type: Boolean, default: false},
     createdById: { type: String, ref: 'User', default: null },
     scheduleId: { type: String, default: null },
-    team: { type: [teamSchema], default: null },
+    teams: { type: [teamSchema], default: null },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false},
 

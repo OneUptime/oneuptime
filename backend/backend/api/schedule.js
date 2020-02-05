@@ -114,9 +114,9 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
     try {
         let userId = req.user ? req.user.id : null;
         let scheduleId = req.params.scheduleId;
-        let escalationData = [];
+        let escalations = [];
         var escalationPolicyCount = 0;
-        for(let value of req.body){
+        for(let value of req.body) {
 
             escalationPolicyCount ++;
             let storagevalue = {};
@@ -172,7 +172,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 });
             }
 
-            if (value.rotationFrequency && (value.team.length <= 1)) {
+            if (value.rotationFrequency && (value.teams.length <= 1)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'You need more than one team for rotations '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
@@ -213,7 +213,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
 
             if(value._id) storagevalue._id = value._id;
 
-            for (let team  of value.team) {
+            for (let team  of value.teams) {
                 let rotationData = {};
                 let teamMembers = [];
                 if (!team.teamMembers || team.teamMembers.length === 0) {
@@ -259,10 +259,10 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 rotationData.teamMembers = teamMembers;
                 tempTeam.push(rotationData);
             }
-            storagevalue.team = tempTeam;
-            escalationData.push(storagevalue);
+            storagevalue.teams = tempTeam;
+            escalations.push(storagevalue);
         }
-        let escalation = await ScheduleService.addEscalation(scheduleId, escalationData, userId);
+        let escalation = await ScheduleService.addEscalation(scheduleId, escalations, userId);
         return sendItemResponse(req, res, escalation);
     } catch (error) {
         return sendErrorResponse(req, res, error);

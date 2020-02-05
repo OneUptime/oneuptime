@@ -54,8 +54,6 @@ module.exports = {
     create: async function (data) {
         try {
 
-            
-
             let escalationModel = new EscalationModel({
                 call: data.call,
                 email: data.email,
@@ -70,7 +68,7 @@ module.exports = {
                 projectId: data.projectId,
                 scheduleId: data.scheduleId,
                 createdById: data.createdById,
-                team: data.team,
+                teams: data.teams,
             });
 
             var escalation = await escalationModel.save();

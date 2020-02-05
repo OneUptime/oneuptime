@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { Field } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import TimezoneSelector from '../basic/TimezoneSelector';
-import TeamSelector from '../basic/TeamSelector';
+import TeamMemberSelector from '../basic/TeamMemberSelector';
 import TimeSelector from '../basic/TimeSelector';
 import Tooltip from '../basic/Tooltip';
 
@@ -39,7 +39,7 @@ let RenderMember = ({
                             className="db-BusinessSettings-input TextInput bs-TextInput"
                             type="text"
                             name={`${inputarray}.userId`}
-                            component={TeamSelector}
+                            component={TeamMemberSelector}
                             placeholder="Nawaz"
                             subProjectId={subProjectId}
                             policyIndex={policyIndex}
