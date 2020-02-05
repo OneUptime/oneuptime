@@ -201,7 +201,7 @@ module.exports = {
                                     activeTeam.teamMembers.forEach(async (teamMember) => {
                                         const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
                                         if ((currentTime >= startTime && currentTime <= endTime) || (startTime === '' && endTime === '')) {
-                                            var user = await UserService.findOneBy({ _id: teamMember.member });
+                                            var user = await UserService.findOneBy({ _id: teamMember.userId });
 
                                             if (user) {
                                                 let accessToken = jwt.sign({

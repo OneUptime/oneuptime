@@ -150,7 +150,7 @@ function mapStateToProps(state) {
     return {
         requesting: state.team.teamMember.requesting,
         error: state.team.teamMember.error,
-        teamMember: state.team.teamMember.member,
+        teamMember: state.team.teamMember.userId,
         projectId: state.project.currentProject !== null && state.project.currentProject._id,
     }
 }

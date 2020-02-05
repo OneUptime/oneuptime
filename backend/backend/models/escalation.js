@@ -7,7 +7,7 @@ const teamSchema = new Schema({
             startTime: Date,
             endTime: Date,
             timezone: String,
-            member:{type: String, ref: 'User'}
+            userId:{type: String, ref: 'User'}
         }
     ],
 });

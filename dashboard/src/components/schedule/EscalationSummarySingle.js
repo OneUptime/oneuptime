@@ -49,7 +49,7 @@ let EscalationSummarySingle = ({
                     {teamMembers && teamMembers.length > 0 && teamMembers.map((member) => {
 
                         var membersFromList = teamMemberList.filter((memberFromList) => {
-                            return memberFromList.userId === member.member;
+                            return memberFromList.userId === member.userId;
                         })
 
                         if (membersFromList.length > 0) {
@@ -97,7 +97,7 @@ let EscalationSummarySingle = ({
                         return member.startTime && member.startTime !== '' && member.endTime && member.endTime !== ''
                     }).map((member) => {
                         var membersFromList = teamMemberList.filter((memberFromList) => {
-                            return memberFromList.userId === member.member;
+                            return memberFromList.userId === member.userId;
                         })
 
                         if (membersFromList.length > 0) {

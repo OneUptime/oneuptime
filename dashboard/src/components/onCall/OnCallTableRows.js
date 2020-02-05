@@ -54,7 +54,7 @@ function parseSchedule(schedule) {
         for (let i = 0; i < escalationIds.length; i++) {
             if (escalationIds[i] && escalationIds[i].teamMember && escalationIds[i].teamMember.length) {
                 for (let j = 0; j < escalationIds[i].teamMember.length; j++) {
-                    escalationIds[i].teamMember[j] && escalationIds[i].teamMember[j].member && userIds.push(escalationIds[i].teamMember[j].member);
+                    escalationIds[i].teamMember[j] && escalationIds[i].teamMember[j].userId && userIds.push(escalationIds[i].teamMember[j].userId);
                 }
             }
         }

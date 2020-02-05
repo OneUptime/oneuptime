@@ -159,7 +159,7 @@ module.exports = {
 
             if (escalations && escalations.length > 0) {
                 await Promise.all(escalations.map(async (escalation) => {
-                    var teamMembers = escalation.teamMembers.filter(member => member.member.toString() !== memberId.toString());
+                    var teamMembers = escalation.teamMembers.filter(member => member.userId.toString() !== memberId.toString());
                     await _this.updateOneBy({ _id: escalation._id }, { teamMember: teamMembers });
                 }));
             }

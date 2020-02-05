@@ -12,7 +12,7 @@ let RenderMembers = ({ fields, meta: { error, submitFailed }, subProjectId, poli
         <ul>
             {
                 fields.map((inputarray, i) => {
-                    const memberValue = policyRotation.teamMember[i];
+                    const memberValue = policyRotation.teamMembers[i];
                     
                     return (
                         <RenderMember

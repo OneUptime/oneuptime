@@ -23,7 +23,7 @@ module.exports = {
                 .populate({
                     path: 'escalationIds',
                     select: 'teamMember',
-                    populate: { path: 'teamMember.member', select: 'name' }
+                    populate: { path: 'teamMember.userId', select: 'name' }
                 });
             return schedules;
         } catch (error) {
@@ -48,7 +48,7 @@ module.exports = {
                 .populate({
                     path: 'escalationIds',
                     select: 'teamMember',
-                    populate: { path: 'teamMember.member', select: 'name' }
+                    populate: { path: 'teamMember.userId', select: 'name' }
                 });
             return schedule;
         } catch (error) {

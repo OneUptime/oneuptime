@@ -225,7 +225,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
 
                 for (let teamMember of team.teamMembers) {
                     let data = {};
-                    if (!teamMember.member) {
+                    if (!teamMember.userId) {
                         
                         return sendErrorResponse(req, res, {
                             code: 400,
@@ -249,7 +249,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                         teamMember.startTime = new Date(teamMember.endTime);
                     }
 
-                    data.member = teamMember.member;
+                    data.userId = teamMember.userId;
                     data.startTime = teamMember.startTime
                     data.endTime = teamMember.endTime
                     data.timezone = teamMember.timezone;

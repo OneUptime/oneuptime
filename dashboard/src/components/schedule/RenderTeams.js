@@ -24,7 +24,7 @@ let RenderTeams = ({
               <div >
                 <FieldArray
                   className="db-BusinessSettings-input TextInput bs-TextInput"
-                  name={`${team}.teamMember`}
+                  name={`${team}.teamMembers`}
                   component={RenderMembers}
                   subProjectId={subProjectId}
                   policyIndex={policyIndex}
@@ -65,7 +65,7 @@ let RenderTeams = ({
                     type="button"
                     className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                     onClick={() => fields.push({
-                      teamMember: [
+                      teamMembers: [
                         {
                           member: '',
                           timezone: '',

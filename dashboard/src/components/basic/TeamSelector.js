@@ -91,14 +91,14 @@ TeamSelector.propTypes = {
 };
 
 function makeAllowedTeamMembers(teamMembers, subProjectTeam = []) {
-    const validTeamMembers = teamMembers.filter(member => member.member);
+    const validTeamMembers = teamMembers.filter(member => member.userId);
     if (!validTeamMembers.length)
       return subProjectTeam;
 
     const memberMap = new Map();
     const allowedTeamMembers = [];
     validTeamMembers.forEach(member => {
-      memberMap.set(member.member, member);
+      memberMap.set(member.userId, member);
     });
     const memberArray = Array.from(memberMap.keys());
     subProjectTeam.forEach(TM => {

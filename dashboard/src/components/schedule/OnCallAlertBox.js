@@ -59,8 +59,8 @@ function validate(values) {
             (values.OnCallAlertBox[i] && values.OnCallAlertBox[i].team) && values.OnCallAlertBox[i].team.forEach((val, j) => {
                 const escalationErrors = {}
                 if (val) {
-                    if (val.teamMember[0] && val.teamMember[0].member === '') {
-                        escalationErrors.member = 'Please select a member.';
+                    if (val.teamMembers[0] && val.teamMembers[0].userId === '') {
+                        escalationErrors.userId = 'Please select a member.';
                         escalationArrayErrors[j] = escalationErrors;
                     }
                 }
@@ -133,7 +133,7 @@ export class OnCallAlertBox extends Component {
                                                     rotationTimezone: '',
                                                     team: [
                                                         {
-                                                            teamMember: [],
+                                                            teamMembers: [],
                                                         }
                                                     ]
                                                 }
@@ -237,7 +237,7 @@ const mapStateToProps = (state, props) => {
             call: false,
             team: [
                 {
-                    teamMember: [
+                    teamMembers: [
                         {
                             member: '',
                             timezone: '',

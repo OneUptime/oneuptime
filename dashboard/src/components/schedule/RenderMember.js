@@ -38,7 +38,7 @@ let RenderMember = ({
                         <Field
                             className="db-BusinessSettings-input TextInput bs-TextInput"
                             type="text"
-                            name={`${inputarray}.member`}
+                            name={`${inputarray}.userId`}
                             component={TeamSelector}
                             placeholder="Nawaz"
                             subProjectId={subProjectId}
