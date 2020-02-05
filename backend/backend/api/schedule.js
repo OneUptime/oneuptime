@@ -215,17 +215,17 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
 
             for (let team  of value.team) {
                 let rotationData = {};
-                let teamMember = [];
-                if (!team.teamMember || team.teamMember.length === 0) {
+                let teamMembers = [];
+                if (!team.teamMembers || team.teamMembers.length === 0) {
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message: 'Team Members are required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                     });
                 }
 
-                for (let TM of team.teamMember) {
+                for (let teamMember of team.teamMembers) {
                     let data = {};
-                    if (!TM.member) {
+                    if (!teamMember.member) {
                         
                         return sendErrorResponse(req, res, {
                             code: 400,
@@ -234,28 +234,29 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                     }
 
                     //if any of these values are notspecified, then.
-                    if((!TM.startTime || !TM.endTime || !TM.timezone) && (TM.startTime || TM.endTime || TM.timezone)){
+                    if((!teamMember.startTime || !teamMember.endTime || !teamMember.timezone) && (teamMember.startTime || teamMember.endTime || teamMember.timezone)){
                         return sendErrorResponse(req, res, {
                             code: 400,
                             message: 'On-Call Start Time, On-Call End Time, and Timezone are required if you select to add "On-call duty times" for a team member'+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                         });
                     }
 
-                    if(TM.startTime && typeof TM.startTime === "string"){
-                        TM.startTime = new Date(TM.startTime);
+                    if(teamMember.startTime && typeof teamMember.startTime === "string"){
+                        teamMember.startTime = new Date(teamMember.startTime);
                     }
 
-                    if(TM.endTime && typeof TM.endTime === "string"){
-                        TM.startTime = new Date(TM.endTime);
+                    if(teamMember.endTime && typeof teamMember.endTime === "string"){
+                        teamMember.startTime = new Date(teamMember.endTime);
                     }
 
-                    data.member = TM.member;
-                    data.startTime = TM.startTime
-                    data.endTime = TM.endTime
-                    data.timezone = TM.timezone;
-                    teamMember.push(data);
+                    data.member = teamMember.member;
+                    data.startTime = teamMember.startTime
+                    data.endTime = teamMember.endTime
+                    data.timezone = teamMember.timezone;
+                    teamMembers.push(data);
                 }
-                rotationData.teamMember = teamMember;
+                
+                rotationData.teamMembers = teamMembers;
                 tempTeam.push(rotationData);
             }
             storagevalue.team = tempTeam;

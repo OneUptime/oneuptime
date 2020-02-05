@@ -2,7 +2,7 @@ var mongoose = require('../config/db');
 
 var Schema = mongoose.Schema;
 const teamSchema = new Schema({
-    teamMember: [
+    teamMembers: [
         {
             startTime: Date,
             endTime: Date,
