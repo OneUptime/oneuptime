@@ -9,7 +9,18 @@ ENV PRODUCTION=true
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
-COPY ./server.js /usr/src/app/
 
-# Execute script
+# Copy app source
+COPY . /usr/src/app
+
+# Install app dependencies
+RUN npm install
+
+# Bundle app source
+# RUN npm run build
+
+# Expose app port
+# EXPOSE 3010
+
+# Run app
 CMD ["node", "./server.js"]

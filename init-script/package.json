@@ -1,0 +1,16 @@
+{
+  "name": "fyipe-init-script",
+  "private": true,
+  "version": "0.0.1",
+  "main": "server.js",
+  "scripts": {
+    "test": "npm run tests",
+    "tests": "echo 'No tests written'",
+    "start": "node server.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "eslint": "^4.19.1"
+  }
+}
