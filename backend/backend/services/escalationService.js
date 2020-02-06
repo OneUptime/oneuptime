@@ -1,3 +1,8 @@
+var EscalationModel = require('../models/escalation');
+var ErrorService = require('./errorService');
+const moment = require('moment');
+const DateTime = require('../utils/DateTime');
+
 module.exports = {
 
     findBy: async function (query, limit, skip) {
@@ -208,37 +213,14 @@ module.exports = {
     }
 };
 
-function computeIntervalDiffs(frequency, createdAt, currentDate, rotationSwitchTime) {
-    // if (moment(currentDate).isAfter(rotationSwitchTime)) return 0;
-    switch (frequency) {
-        case 'days':
-            return differenceInDays(currentDate, createdAt);
-        case 'weeks':
-            return differenceInWeeks(currentDate, createdAt);
-        case 'months':
-            return differenceInMonths(currentDate, createdAt);
-    }
-}
 
-
-function computeActiveTeamIndex(numberOfTeams, diffsInInterval, rotationSwitchTime) {
-    let diffInt = diffsInInterval % numberOfTeams;
-
-    let activeTeamIndex = 0;
-    // handle case 0%3 which gives the same result as 3%3
-    // but will mean different things for rotation purposes
-    if (diffsInInterval === 0) return activeTeamIndex;
-    if (diffInt === 0) {
-        activeTeamIndex = numberOfTeams - 1;
-    } else {
-        activeTeamIndex = diffInt - 1;
-    }
-
-    return activeTeamIndex;
+function computeActiveTeamIndex(numberOfTeams, intervalDifference, rotationInterval) {
+    var difference = Math.floor(intervalDifference / rotationInterval);
+    return difference % numberOfTeams;
 }
 
 function computeActiveTeams(escalation) {
-    // eslint-disable-next-line no-useless-catch
+    
     try {
         let {
             teams, rotationInterval, rotationFrequency,
@@ -246,11 +228,37 @@ function computeActiveTeams(escalation) {
         } = escalation;
 
         const currentDate = new Date();
-        if (rotationFrequency && rotationFrequency != "") {
-            const diffsInInterval = computeIntervalDiffs(rotationFrequency, createdAt, currentDate, rotationSwitchTime);
-            const activeTeamIndex = computeActiveTeamIndex(teams.length, diffsInInterval);
 
-            let activeTeamRotationStartTime = moment(createdAt).add(diffsInInterval, rotationFrequency);
+
+
+        if (rotationFrequency && rotationFrequency != "") {
+
+            var intervalDifference = 0;
+
+            //convert rotation switch time to timezone. 
+            rotationSwitchTime = DateTime.changeDateTimezone(rotationSwitchTime, rotationTimezone);
+
+            if (rotationFrequency === "months") {
+                intervalDifference = DateTime.getDifferenceInMonths(rotationSwitchTime, currentDate);
+            }
+
+            if (rotationFrequency === "weeks") {
+                intervalDifference = DateTime.getDifferenceInWeeks(rotationSwitchTime, currentDate);
+            }
+
+            if (rotationFrequency === "days") {
+                intervalDifference = DateTime.getDifferenceInDays(rotationSwitchTime, currentDate);
+            }
+
+            const activeTeamIndex = computeActiveTeamIndex(teams.length, intervalDifference, rotationInterval);
+            let activeTeamRotationStartTime = null; 
+            
+            //if the first rotation hasn't kicked in yet. 
+            if(DateTime.lessThan(currentDate, rotationSwitchTime)){
+                activeTeamRotationStartTime = createdAt;
+            }else{
+                activeTeamRotationStartTime = moment(rotationSwitchTime).add(intervalDifference, rotationFrequency);
+            }
 
             let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
 
@@ -291,15 +299,10 @@ function computeActiveTeams(escalation) {
         }
 
     } catch (err) {
+        console.error(err);
         throw err;
     }
 }
 
 module.exports.computeActiveTeams = computeActiveTeams;
 
-var EscalationModel = require('../models/escalation');
-var ErrorService = require('./errorService');
-const moment = require('moment');
-const differenceInDays = require('date-fns/differenceInDays');
-const differenceInWeeks = require('date-fns/differenceInWeeks');
-const differenceInMonths = require('date-fns/differenceInMonths');

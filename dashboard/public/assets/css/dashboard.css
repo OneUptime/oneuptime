@@ -8029,7 +8029,7 @@ a.arrow:hover:after {
   background-position: 100% 50%;
 }
 a.red {
-  color: red;
+  color:#FF2D55;
 }
 a.red:hover {
   color: #333;
@@ -10414,7 +10414,7 @@ div.oauth-account-application-view:not(.react-oauth-account-application-view)
   div.status:after,
 div.update-product-view div.status:after {
   content: ' ';
-  background: red;
+  background:#FF2D55;
   position: absolute;
   height: 2px;
   bottom: -3px;
@@ -15924,7 +15924,7 @@ div.payouts-tax-reporting-view strong {
   font-weight: 700;
 }
 div.payouts-tax-reporting-view span.accept-error {
-  color: red;
+  color:#FF2D55;
   display: block;
   margin-top: 10px;
   margin-left: 20px;
@@ -30917,7 +30917,7 @@ div.payment-view div.header div.bank-img {
   height: 27px;
 }
 div.payment-view span.red {
-  color: red;
+  color:#FF2D55;
 }
 div.payment-view .notice.fraud_notice .actions {
   position: relative;
@@ -31214,7 +31214,7 @@ div.platform-earning-view div.header a.button.disabled span {
   div.ingestions
   div.row
   span.ingestion-list-item-cell.failed {
-  color: red;
+  color:#FF2D55;
 }
 .modal-dialog-view
   div.modal.modal-for-product-feed-view
@@ -31519,7 +31519,7 @@ div.platform-earning-view div.header a.button.disabled span {
   div.modal.modal-for-create-product-feed-view
   div.input-row
   span.ping-status.error {
-  color: red;
+  color:#FF2D55;
 }
 .modal-dialog-view
   .modal_container
@@ -32227,7 +32227,7 @@ div.overview
   a.balance-transaction
   .net.negative
   strong {
-  color: red;
+  color:#FF2D55;
 }
 div.overview div.content div.container.link a.failed,
 div.overview div.content div.container.link a.pending,
@@ -47638,7 +47638,7 @@ html.placeholder body#oauth-authorize label {
 }
 .recaptcha-container #recaptcha_error {
   margin-top: 10px;
-  color: red;
+  color:#FF2D55;
   font-size: 12px;
   display: none;
 }
@@ -49133,7 +49133,7 @@ html.db-NewChrome #main-body {
 }
 .cm-invalidchar,
 .cm-s-default .cm-error {
-  color: red;
+  color:#FF2D55;
 }
 .CodeMirror-composing {
   border-bottom: 2px solid;
@@ -51086,6 +51086,10 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 .flex-center{
   display: flex;
   justify-content:center;
+}
+
+.red{
+  color:#FF2D55 !important;
 }
 
 .underline{

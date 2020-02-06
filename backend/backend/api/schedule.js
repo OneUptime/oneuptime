@@ -192,7 +192,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             }
 
             if(value.rotationSwitchTime && typeof value.rotationSwitchTime === "string"){
-                value.emailFrequency = new Date(value.rotationSwitchTime);
+                value.rotationSwitchTime = new Date(value.rotationSwitchTime);
             }
 
             
@@ -246,7 +246,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                     }
 
                     if(teamMember.endTime && typeof teamMember.endTime === "string"){
-                        teamMember.startTime = new Date(teamMember.endTime);
+                        teamMember.endTime = new Date(teamMember.endTime);
                     }
 
                     data.userId = teamMember.userId;

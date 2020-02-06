@@ -64,12 +64,12 @@ export class EscalationSummary extends Component {
                             escalations.map((escalation, i) => {
                                 return (<div key={escalation.id} className="bs-ContentSection-content Box-root">
 
-                                    <div className="Card-root" style={{ backgroundColor: '#ffffff' }}>
+                                    {i!==0 && <div className="Card-root" style={{ backgroundColor: '#ffffff' }}>
                                         <div className="Box-root">
                                             <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                                 <div className="Box-root">
                                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                        <span>Escalation Policy {i + 1} </span>
+                                                        <span>Escalation Policy {i} </span>
                                                     </span>
                                                     <p>
                                                         <span>
@@ -79,7 +79,7 @@ export class EscalationSummary extends Component {
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div>}
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2" style={{ backgroundColor: '#f7f7f7' }}>
                                         <div>
                                             {escalation && escalation.activeTeam && <EscalationSummarySingle isActiveTeam={true} teamMemberList={teamMembers} escalation={escalation} hasNextEscalationPolicy={!!escalations[i+1]} currentEscalationPolicyCount={i+1} />}

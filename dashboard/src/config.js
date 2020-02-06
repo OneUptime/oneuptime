@@ -589,18 +589,43 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
 export const DateTime = {
     // This function will strip
     changeDateTimezone: function (date, timezone){
-        return date;
+        if(typeof date === "string"){
+            date = new Date(date);
+        }
+
+        // eg. moment.tz("2013-11-18 11:55", "Asia/Taipei");
+        return moment.tz(`${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`, timezone).toDate();
     },
 
     convertToTimezone: function (date, timezone){
+        if(typeof date === "string"){
+            date = new Date(date);
+        }
+
         return moment(date).tz(timezone).toDate();
     },
 
     convertToCurrentTimezone: function(date){
+        if(typeof date === "string"){
+            date = new Date(date);
+        }
+
         return moment(date).tz(moment.tz.guess()).toDate();
     },
 
     format: function (date, formatString){
+        if(typeof date === "string"){
+            date = new Date(date);
+        }
+
         return moment(date).format(formatString);
+    },
+
+    getCurrentTimezoneAbbr: function (){
+        return moment.tz(moment.tz.guess()).zoneAbbr();
+    },
+    
+    getCurrentTimezone: function (){
+        return moment.tz.guess();
     }
 }

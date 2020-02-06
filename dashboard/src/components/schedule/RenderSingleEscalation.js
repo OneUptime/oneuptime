@@ -21,7 +21,7 @@ let RenderSingleEscalation = ({
     fields, 
     rotationInterval
 }) => {
-    const [rotationFreqVisible, setRotationFreqVisibility] = useState(false);
+    const [rotationFreqVisible, setRotationFreqVisibility] = useState(!!rotationFrequency);
 
     const manageRotationVisibility = (visibilityVal) => {
         setRotationFreqVisibility(visibilityVal);
@@ -30,11 +30,11 @@ let RenderSingleEscalation = ({
     return (
         <li key={policyIndex} style={{ margin: '5px 0px' }}>
             <div className="Card-root" style={{ backgroundColor: '#ffffff' }}>
-                <div className="Box-root">
-                    {fields.length > 1 && <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root">
+            <div className="Box-root">
+                    {policyIndex!==0 &&fields.length > 1 && <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                     <div className="Box-root">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Escalation Policy {policyIndex + 1}</span>
+                                <span>Escalation Policy {policyIndex}</span>
                             </span>
                             <p>
                                 <span>
@@ -320,7 +320,7 @@ let RenderSingleEscalation = ({
                                                         name={`${policy}.rotationTimezone`}
                                                         component={TimezoneSelector}
                                                         style={{ width: '250px' }}
-                                                        placeholder="CXT - Christmas"
+                                                        placeholder="Select Timezone"
                                                     />
                                                     <Tooltip title="First Rotation On Timezone" >
                                                         <div>

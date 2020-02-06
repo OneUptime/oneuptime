@@ -123,7 +123,7 @@ let RenderMember = ({
                                 name={`${inputarray}.timezone`}
                                 component={TimezoneSelector}
                                 style={{ width: '250px' }}
-                                placeholder="CXT - Christmas"
+                                placeholder="Select Timezone"
                             />
                             <Tooltip title="On-Call Timezone" >
                                 <div>
