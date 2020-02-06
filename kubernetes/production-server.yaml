@@ -481,6 +481,33 @@ spec:
   selector:
     app: redis
 ---
+
+# Init Script deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: init-script
+  labels:
+    app: init-script
+spec:
+  selector:
+    matchLabels:
+      app: init-script
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: init-script
+    spec:
+      containers:
+        - image: registry.gitlab.com/fyipe-project/init-script:master
+          name: init-script
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+
 # stateful set config for mongo
 apiVersion: apps/v1beta1
 kind: StatefulSet

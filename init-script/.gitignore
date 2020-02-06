@@ -1,0 +1,8 @@
+*
+!.gitignore
+
+!Dockerfile
+
+!*.md
+!*.sh
+!*.yml
