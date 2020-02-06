@@ -1,0 +1,1 @@
+console.info('Fyipe Init Setup Script');
