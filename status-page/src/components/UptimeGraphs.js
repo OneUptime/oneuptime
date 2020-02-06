@@ -36,7 +36,6 @@ const calculateTime = (statuses, start, range) => {
 
         if (monitorStatus.status === 'offline') {
           timeObj.downTime = timeObj.downTime + end.diff(start, 'minutes');
-          timeObj.date = monitorStatus.endTime;
         }
         if (monitorStatus.status === 'degraded') {
           timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'minutes');
@@ -44,6 +43,8 @@ const calculateTime = (statuses, start, range) => {
         if (monitorStatus.status === 'online') {
           timeObj.upTime = timeObj.upTime + end.diff(start, 'minutes');
         }
+
+        timeObj.date = monitorStatus.endTime;
       }
     });
 
@@ -81,40 +82,24 @@ class UptimeGraphs extends Component {
       block.unshift(<BlockChart monitorId={monitor._id} time={timeBlock[i]} key={i} id={i} />);
     }
 
-    let status = {};
+    let status = {
+      display: 'inline-block',
+      borderRadius: '2px',
+      height: '8px',
+      width: '8px',
+      margin: '0 8px 1px 0',
+    };
     if (monitorStatus === 'degraded') {
-      status = {
-        display: 'inline-block',
-        borderRadius: '2px',
-        height: '8px',
-        width: '8px',
-        margin: '0 8px 1px 0',
-        backgroundColor: 'rgb(255, 222, 36)'
-      } // "yellow-status";
-    }
-    else if (monitorStatus === 'online') {
-      status = {
-        display: 'inline-block',
-        borderRadius: '2px',
-        height: '8px',
-        width: '8px',
-        margin: '0 8px 1px 0',
-        backgroundColor: 'rgb(117, 211, 128)'
-      }// "green-status";
+      status.backgroundColor = 'rgb(255, 222, 36)'; // "yellow-status";
+    } else if (monitorStatus === 'online') {
+      status.backgroundColor = 'rgb(117, 211, 128)'; // "green-status";
     } else {
-      status = {
-        display: 'inline-block',
-        borderRadius: '2px',
-        height: '8px',
-        width: '8px',
-        margin: '0 8px 1px 0',
-        backgroundColor: 'rgb(250, 117, 90)'
-      }// "red-status";
+      status.backgroundColor = 'rgb(250, 117, 90)'; // "red-status";
     }
+
+    var subheading = {}
     if (colors) {
-      var subheading = {
-        color: `rgba(${ colors.subheading.r }, ${ colors.subheading.g }, ${ colors.subheading.b }, ${ colors.subheading.a })`
-      }
+      subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;
     }
 
     return (
@@ -152,6 +137,6 @@ UptimeGraphs.propTypes = {
   activeProbe: PropTypes.number,
   monitorState: PropTypes.array,
   probes: PropTypes.array
-}
+};
 
 export default connect(mapStateToProps)(UptimeGraphs);
