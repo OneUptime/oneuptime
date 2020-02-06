@@ -486,7 +486,7 @@ spec:
       containers:
         - image: registry.gitlab.com/fyipe-project/init-script:master
           name: init-script
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
       restartPolicy: Always
       imagePullSecrets:
         - name: gitlabcredv2
