@@ -179,19 +179,19 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 });
             }
 
-            if(value.callFrequency && typeof value.callFrequency === "string"){
+            if(value.callFrequency && typeof value.callFrequency === 'string'){
                 value.callFrequency = parseInt(value.callFrequency);
             }
 
-            if(value.smsFrequency && typeof value.smsFrequency === "string"){
+            if(value.smsFrequency && typeof value.smsFrequency === 'string'){
                 value.smsFrequency = parseInt(value.smsFrequency);
             }
 
-            if(value.emailFrequency && typeof value.emailFrequency === "string"){
+            if(value.emailFrequency && typeof value.emailFrequency === 'string'){
                 value.emailFrequency = parseInt(value.emailFrequency);
             }
 
-            if(value.rotationSwitchTime && typeof value.rotationSwitchTime === "string"){
+            if(value.rotationSwitchTime && typeof value.rotationSwitchTime === 'string'){
                 value.rotationSwitchTime = new Date(value.rotationSwitchTime);
             }
 
@@ -241,17 +241,17 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                         });
                     }
 
-                    if(teamMember.startTime && typeof teamMember.startTime === "string"){
+                    if(teamMember.startTime && typeof teamMember.startTime === 'string'){
                         teamMember.startTime = new Date(teamMember.startTime);
                     }
 
-                    if(teamMember.endTime && typeof teamMember.endTime === "string"){
+                    if(teamMember.endTime && typeof teamMember.endTime === 'string'){
                         teamMember.endTime = new Date(teamMember.endTime);
                     }
 
                     data.userId = teamMember.userId;
-                    data.startTime = teamMember.startTime
-                    data.endTime = teamMember.endTime
+                    data.startTime = teamMember.startTime;
+                    data.endTime = teamMember.endTime;
                     data.timezone = teamMember.timezone;
                     teamMembers.push(data);
                 }

@@ -39,13 +39,21 @@ class Schedule extends Component {
     }
 
     render() {
-        const { editSchedule } = this.state;
+        const { editSchedule, isLoading, error } = this.state;
 
         var {
             escalations,
             teamMembers,
             subProjectId,
         } = this.props;
+
+        if(isLoading){
+            return <div></div>
+        }
+
+        if(error){
+            return <div></div>
+        }
 
         return (
             <Dashboard>
@@ -128,10 +136,8 @@ Schedule.propTypes = {
     subProjectId: PropTypes.string.isRequired,
     scheduleId: PropTypes.string.isRequired,
     teamLoading: PropTypes.func.isRequired,
-    onEditClicked: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,
-    teamMembers: PropTypes.array.isRequired,
-    match: PropTypes.object.isRequired
+    teamMembers: PropTypes.array.isRequired
 }
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Schedule));

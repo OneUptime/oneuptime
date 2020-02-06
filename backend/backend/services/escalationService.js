@@ -220,87 +220,81 @@ function computeActiveTeamIndex(numberOfTeams, intervalDifference, rotationInter
 }
 
 function computeActiveTeams(escalation) {
-    
-    try {
-        let {
-            teams, rotationInterval, rotationFrequency,
-            rotationSwitchTime, createdAt, rotationTimezone
-        } = escalation;
 
-        const currentDate = new Date();
+    let {
+        teams, rotationInterval, rotationFrequency,
+        rotationSwitchTime, createdAt, rotationTimezone
+    } = escalation;
 
+    const currentDate = new Date();
 
 
-        if (rotationFrequency && rotationFrequency != "") {
 
-            var intervalDifference = 0;
+    if (rotationFrequency && rotationFrequency != '') {
 
-            //convert rotation switch time to timezone. 
-            rotationSwitchTime = DateTime.changeDateTimezone(rotationSwitchTime, rotationTimezone);
+        var intervalDifference = 0;
 
-            if (rotationFrequency === "months") {
-                intervalDifference = DateTime.getDifferenceInMonths(rotationSwitchTime, currentDate);
-            }
+        //convert rotation switch time to timezone. 
+        rotationSwitchTime = DateTime.changeDateTimezone(rotationSwitchTime, rotationTimezone);
 
-            if (rotationFrequency === "weeks") {
-                intervalDifference = DateTime.getDifferenceInWeeks(rotationSwitchTime, currentDate);
-            }
-
-            if (rotationFrequency === "days") {
-                intervalDifference = DateTime.getDifferenceInDays(rotationSwitchTime, currentDate);
-            }
-
-            const activeTeamIndex = computeActiveTeamIndex(teams.length, intervalDifference, rotationInterval);
-            let activeTeamRotationStartTime = null; 
-            
-            //if the first rotation hasn't kicked in yet. 
-            if(DateTime.lessThan(currentDate, rotationSwitchTime)){
-                activeTeamRotationStartTime = createdAt;
-            }else{
-                activeTeamRotationStartTime = moment(rotationSwitchTime).add(intervalDifference, rotationFrequency);
-            }
-
-            let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
-
-            const activeTeam = {
-                _id: teams[activeTeamIndex]._id,
-                teamMembers: teams[activeTeamIndex].teamMembers,
-                rotationStartTime: activeTeamRotationStartTime,
-                rotationEndTime: activeTeamRotationEndTime
-            };
-
-
-            let nextActiveTeamIndex = activeTeamIndex + 1;
-
-            if (!teams[nextActiveTeamIndex]) {
-                nextActiveTeamIndex = 0;
-            }
-
-            const nextActiveTeamRotationStartTime = activeTeamRotationEndTime;
-            const nextActiveTeamRotationEndTime = moment(nextActiveTeamRotationStartTime).add(rotationInterval, rotationFrequency);
-            const nextActiveTeam = {
-                _id: teams[nextActiveTeamIndex]._id,
-                teamMembers: teams[nextActiveTeamIndex].teamMembers,
-                rotationStartTime: nextActiveTeamRotationStartTime,
-                rotationEndTime: nextActiveTeamRotationEndTime,
-            };
-
-            return { activeTeam, nextActiveTeam };
-        } else {
-            return {
-                activeTeam: {
-                    _id: teams[0]._id,
-                    teamMembers: teams[0].teamMembers,
-                    rotationStartTime: null,
-                    rotationEndTime: null
-                },
-                nextActiveTeam: null
-            }
+        if (rotationFrequency === 'months') {
+            intervalDifference = DateTime.getDifferenceInMonths(rotationSwitchTime, currentDate);
         }
 
-    } catch (err) {
-        console.error(err);
-        throw err;
+        if (rotationFrequency === 'weeks') {
+            intervalDifference = DateTime.getDifferenceInWeeks(rotationSwitchTime, currentDate);
+        }
+
+        if (rotationFrequency === 'days') {
+            intervalDifference = DateTime.getDifferenceInDays(rotationSwitchTime, currentDate);
+        }
+
+        const activeTeamIndex = computeActiveTeamIndex(teams.length, intervalDifference, rotationInterval);
+        let activeTeamRotationStartTime = null;
+
+        //if the first rotation hasn't kicked in yet. 
+        if (DateTime.lessThan(currentDate, rotationSwitchTime)) {
+            activeTeamRotationStartTime = createdAt;
+        } else {
+            activeTeamRotationStartTime = moment(rotationSwitchTime).add(intervalDifference, rotationFrequency);
+        }
+
+        let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
+
+        const activeTeam = {
+            _id: teams[activeTeamIndex]._id,
+            teamMembers: teams[activeTeamIndex].teamMembers,
+            rotationStartTime: activeTeamRotationStartTime,
+            rotationEndTime: activeTeamRotationEndTime
+        };
+
+
+        let nextActiveTeamIndex = activeTeamIndex + 1;
+
+        if (!teams[nextActiveTeamIndex]) {
+            nextActiveTeamIndex = 0;
+        }
+
+        const nextActiveTeamRotationStartTime = activeTeamRotationEndTime;
+        const nextActiveTeamRotationEndTime = moment(nextActiveTeamRotationStartTime).add(rotationInterval, rotationFrequency);
+        const nextActiveTeam = {
+            _id: teams[nextActiveTeamIndex]._id,
+            teamMembers: teams[nextActiveTeamIndex].teamMembers,
+            rotationStartTime: nextActiveTeamRotationStartTime,
+            rotationEndTime: nextActiveTeamRotationEndTime,
+        };
+
+        return { activeTeam, nextActiveTeam };
+    } else {
+        return {
+            activeTeam: {
+                _id: teams[0]._id,
+                teamMembers: teams[0].teamMembers,
+                rotationStartTime: null,
+                rotationEndTime: null
+            },
+            nextActiveTeam: null
+        };
     }
 }
 

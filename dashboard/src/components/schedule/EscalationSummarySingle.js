@@ -1,7 +1,6 @@
 import React from 'react';
-import moment from 'moment';
 import PropTypes from 'prop-types';
-import { DateTime } from '../../config';
+import  DateTime  from '../../utils/DateTime';
 
 let EscalationSummarySingle = ({
     isActiveTeam,
@@ -96,7 +95,7 @@ let EscalationSummarySingle = ({
                 </div>
             </div>}
 
-            {(isNextActiveTeam &&  teamMembersOnPartialDutyCount > 0) || isActiveTeam && <div className="bs-Fieldset-row">
+            {((isNextActiveTeam &&  teamMembersOnPartialDutyCount > 0) || isActiveTeam) && <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label"><b>Note:</b> </label>
                 <div className="bs-Fieldset-fields labelfield">
                     {hasNextEscalationPolicy && isActiveTeam && <span>If the current active team does not respond, then the incident will be escalated to Escalation Policy {currentEscalationPolicyCount + 1} <br /><br /></span>}

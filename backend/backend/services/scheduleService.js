@@ -236,16 +236,16 @@ module.exports = {
             }
             await _this.updateOneBy({ _id: scheduleId }, { escalationIds: escalationIds });
 
-            var escalations = await _this.getEscalation(scheduleId);
+            var scheduleEscalation = await _this.getEscalations(scheduleId);
 
-            return escalations.escalations;
+            return scheduleEscalation.escalations;
         } catch (error) {
             ErrorService.log('scheduleService.addEscalation', error);
             throw error;
         }
     },
 
-    getEscalation: async function (scheduleId) {
+    getEscalations: async function (scheduleId) {
         try {
             let _this = this;
             var schedule = await _this.findOneBy({ _id: scheduleId });
@@ -256,7 +256,7 @@ module.exports = {
             }));
             return { escalations, count: escalationIds.length };
         } catch (error) {
-            ErrorService.log('scheduleService.getEscalation', error);
+            ErrorService.log('scheduleService.getEscalations', error);
             throw error;
         }
     },

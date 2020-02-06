@@ -141,8 +141,6 @@ export class EscalationSummary extends Component {
 EscalationSummary.displayName = 'EscalationSummary';
 
 EscalationSummary.propTypes = {
-    subProjectId: PropTypes.string.isRequired,
-    scheduleId: PropTypes.string.isRequired,
     onEditClicked: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,
     teamMembers: PropTypes.array.isRequired
@@ -152,7 +150,7 @@ const mapDispatchToProps = dispatch => (
     bindActionCreators({  }, dispatch)
 )
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state_ignored, props_ignored) => {
     return {
        
     }
