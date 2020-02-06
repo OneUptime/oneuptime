@@ -171,41 +171,21 @@ export const bindRaf = (fn) => {
     };
 };
 
-function compareStatus(incident, log) {
-    return moment(incident.createdAt).isSameOrAfter(moment(log.createdAt)) ? (!incident.resolved ? incident.incidentType : 'online') : log.status;
-}
-
-export const getMonitorStatus = (incidents, logs) => {
-    let incident = incidents && incidents.length > 0 ? incidents[0] : null;
-    let log = logs && logs.length > 0 ? logs[0] : null;
-
-    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'online'));
-
-    return statusCompare || 'online';
-};
-
 export const filterProbeData = (monitor, probe) => {
-    const monitorLogs = monitor.logs;
-    const monitorStatuses = monitor.statuses;
-
-    const probesLog = monitorLogs && monitorLogs.length > 0 ?
-        probe ? monitorLogs.filter(probeLogs => {
-            return probeLogs._id === null || probeLogs._id === probe._id
-        }) : monitorLogs
-        : [];
-    let logs = probesLog && probesLog[0] && probesLog[0].logs && probesLog[0].logs.length > 0 ?
-        probesLog[0].logs : [];
+    const monitorStatuses = monitor && monitor.statuses ? monitor.statuses : null;
 
     const probesStatus = monitorStatuses && monitorStatuses.length > 0 ?
         probe ? monitorStatuses.filter(probeStatuses => {
             return probeStatuses._id === null || probeStatuses._id === probe._id
         }) : monitorStatuses
         : [];
-    let statuses = probesStatus && probesStatus[0] && probesStatus[0].statuses && probesStatus[0].statuses.length > 0 ?
+    const statuses = probesStatus && probesStatus[0] && probesStatus[0].statuses && probesStatus[0].statuses.length > 0 ?
         probesStatus[0].statuses : [];
 
-    return { logs, statuses };
+    return statuses;
 }
+
+export const getMonitorStatus = statuses => statuses && statuses.length > 0 ? (statuses[0].status || 'online') : 'online';
 
 export function getServiceStatus(monitorsData, probes) {
     var monitorsLength = monitorsData.length;
@@ -213,15 +193,17 @@ export function getServiceStatus(monitorsData, probes) {
 
     var totalServices = monitorsLength * probesLength;
     var onlineServices = totalServices;
+
     monitorsData.forEach(monitor => {
         probes.forEach(probe => {
-            let { logs } = filterProbeData(monitor, probe);
-            let monitorStatus = getMonitorStatus(monitor.incidents, logs);
+            let statuses = filterProbeData(monitor, probe);
+            let monitorStatus = getMonitorStatus(statuses);
             if (monitorStatus === 'degraded' || monitorStatus === 'offline') {
                 onlineServices--;
             }
         })
-    })
+    });
+
     if (onlineServices === totalServices) {
         return 'all';
     } else if (onlineServices === 0) {

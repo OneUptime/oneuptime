@@ -191,7 +191,7 @@ export default (state = INITIAL_STATE, action) => {
 
                                     if (probeId === data.probeId || (!probeId && !data.probeId)) {
                                         let previousStatus = probeStatuses.statuses[0];
-                                        previousStatus.endTime = Date.now();
+                                        previousStatus.endTime = new Date().toISOString();
 
                                         return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
                                     } else {
