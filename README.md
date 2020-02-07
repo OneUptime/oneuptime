@@ -20,6 +20,7 @@ TODO
  - `smoke-test` - Smoke test that is executed after Fyipe is deployed to staging or production. If smoke test fails, the staging / production deployment will automatically be rolled back. 
  - `status-page` - React project  - Status page project of Fyipe. 
  - `zapier` - Fyipe integrates with zapier. This is where integration code is. This gets deployed to zapier directly. 
+ - `init-script` - a container that runs schema migration script. 
 
 ## Running this project in local environment. 
 
