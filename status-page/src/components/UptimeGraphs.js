@@ -45,7 +45,7 @@ const calculateTime = (statuses, start, range) => {
           timeObj.upTime = timeObj.upTime + end.diff(start, 'minutes');
         }
 
-        timeObj.date = monitorStatus.endTime;
+        timeObj.date = end.toISOString();
         timeObj.emptytime = null;
       }
     });

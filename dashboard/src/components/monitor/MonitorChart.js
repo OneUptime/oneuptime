@@ -39,7 +39,7 @@ const calculateTime = (statuses, start, range) => {
 
                 if (monitorStatus.status === 'offline') {
                     timeObj.downTime = timeObj.downTime + end.diff(start, 'seconds');
-                    timeObj.date = monitorStatus.endTime;
+                    timeObj.date = end.toISOString();
                 }
                 if (monitorStatus.status === 'degraded') {
                     timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'seconds');
