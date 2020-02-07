@@ -12,6 +12,7 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import ShouldRender from '../components/basic/ShouldRender';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
+import { history } from '../store';
 
 const LoadingState = () => (
     <div className="Box-root Margin-bottom--12">
@@ -164,7 +165,10 @@ class TeamApp extends Component {
     }
 
     componentDidMount() {
-        if (this.props.currentProject) {
+        if (!this.props.currentProject) {
+            const projectId = history.location.pathname.split('project/')[1].split('/')[0];
+            this.props.subProjectTeamLoading(projectId);
+        } else {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
         if (!IS_DEV) {

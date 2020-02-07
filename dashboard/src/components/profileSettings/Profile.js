@@ -127,11 +127,11 @@ export class ProfileSetting extends Component {
     setInitPhoneVerification(true)
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     if (!IS_DEV) {
       logEvent('Profile settings page Loaded')
     }
-    this.props.userSettings()
+    await this.props.userSettings()
     const profilePic =
       this.props.profileSettings &&
       this.props.profileSettings.data &&

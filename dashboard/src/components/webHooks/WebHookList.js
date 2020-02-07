@@ -19,12 +19,16 @@ import {
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
+import { history } from '../../store';
 
 class WebHookList extends React.Component {
 
     ready() {
-        const { getWebHook, projectId } = this.props;
-        if (projectId) {
+        let { getWebHook, projectId } = this.props;
+        if (!projectId) {
+            projectId = history.location.pathname.split('project/')[1].split('/')[0];
+            getWebHook(projectId);
+        } else {
             getWebHook(projectId);
         }
         if (!IS_DEV) {

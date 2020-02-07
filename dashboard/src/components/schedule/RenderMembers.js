@@ -78,7 +78,10 @@ RenderMembers.propTypes = {
     ]).isRequired,
     policyIndex: PropTypes.number.isRequired,
     teamIndex: PropTypes.number.isRequired,
-    form: PropTypes.object.isRequired,
+    form: PropTypes.oneOfType([
+        PropTypes.array,
+        PropTypes.object
+    ]).isRequired
 }
 
 function mapStateToProps(state) {
