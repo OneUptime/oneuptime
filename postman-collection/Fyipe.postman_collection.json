@@ -8417,10 +8417,31 @@
 			"name": "Project",
 			"item": [
 				{
-					"name": "Create",
+					"name": "Create Project",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"projectName\": \"Fello\",\n    \"planId\": \"plan_EgTJMZULfh6THW\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/project/create",
 							"protocol": "http",
@@ -8435,15 +8456,109 @@
 						},
 						"description": "Create Project"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Create Project",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"projectName\": \"Fello\",\n    \"planId\": \"plan_EgTJMZULfh6THW\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/create",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										"create"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "580"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"244-Yp9oq8krZ4KBGNhFdoyOPcuzaB4\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:02:24 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e3db43990968537f188cef2\",\n    \"users\": [\n        {\n            \"_id\": \"5e3db43990968537f188cef3\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-02-07T19:02:17.884Z\",\n    \"adminNotes\": null,\n    \"name\": \"Fello\",\n    \"slug\": \"Fello-16018\",\n    \"apiKey\": \"5c53ccd0-49dc-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_Gh05qms37gLKxg\",\n    \"parentProjectId\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
-					"name": "Projects",
+					"name": "Get All Projects",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/project/projects/allProjects",
+							"raw": "http://localhost:3002/project/projects/allProjects?skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -8453,19 +8568,119 @@
 								"project",
 								"projects",
 								"allProjects"
+							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
 							]
 						},
-						"description": "All Projects (Subprojects)"
+						"description": "Get All Projects"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All Projects",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/projects/allProjects?skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										"projects",
+										"allProjects"
+									],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "3458"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"d82-icjz7msk4gtwTxGRLmDOYYwqnIo\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:23:00 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"1\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e347557f798176b8ece8d58\",\n            \"users\": [\n                {\n                    \"userId\": \"5e2ecf3f516aae26b133f352\",\n                    \"email\": \"ibukundairo@hackerbay.io\",\n                    \"name\": \"Ibukun Olatayo Dairo\",\n                    \"role\": \"Owner\",\n                    \"lastActive\": \"2020-02-07T18:23:00.856Z\"\n                }\n            ],\n            \"createdAt\": \"2020-01-31T18:43:35.607Z\",\n            \"adminNotes\": null,\n            \"name\": \"Cello\",\n            \"slug\": \"Cello-61372\",\n            \"apiKey\": \"96a0f350-4459-11ea-b8dc-a9123d3dcd0f\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GeNDRg0ncePzAp\",\n            \"parentProjectId\": null\n        },\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"1\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e3448f82d08987eda83a8c2\",\n            \"users\": [\n                {\n                    \"userId\": \"5e3448f42d08987eda83a8bd\",\n                    \"email\": \"cowr9a@ti8q9q4b.com\",\n                    \"name\": \"Test Name\",\n                    \"role\": \"Owner\",\n                    \"lastActive\": \"2020-01-31T15:38:15.220Z\"\n                }\n            ],\n            \"createdAt\": \"2020-01-31T15:34:16.275Z\",\n            \"adminNotes\": null,\n            \"name\": \"Unnamed Project\",\n            \"slug\": \"Unnamed-Project-09993\",\n            \"apiKey\": \"23d12940-443f-11ea-94d2-8991d559a321\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GeK9RckXKQVXX6\",\n            \"parentProjectId\": null\n        },\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"2\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e3448f72d08987eda83a8c0\",\n            \"users\": [\n                {\n                    \"userId\": \"5e3448f42d08987eda83a8bc\",\n                    \"email\": \"bdf83o@cw5wx4ab.com\",\n                    \"name\": \"Test Name\",\n                    \"role\": \"Owner\",\n                    \"lastActive\": \"2020-01-31T15:37:43.048Z\"\n                },\n                {\n                    \"userId\": \"5e3448f42d08987eda83a8bd\",\n                    \"email\": \"cowr9a@ti8q9q4b.com\",\n                    \"name\": \"Test Name\",\n                    \"role\": \"Member\",\n                    \"lastActive\": \"2020-01-31T15:38:15.220Z\"\n                }\n            ],\n            \"createdAt\": \"2020-01-31T15:34:15.645Z\",\n            \"adminNotes\": null,\n            \"name\": \"4zo\",\n            \"slug\": \"Unnamed-Project-87583\",\n            \"apiKey\": \"23712ef0-443f-11ea-94d2-8991d559a321\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GeK9h9FJ7qwuwi\",\n            \"parentProjectId\": null\n        },\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"2\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e3447d52d08987eda83a73d\",\n            \"users\": [\n                {\n                    \"userId\": \"5e3447cf2d08987eda83a737\",\n                    \"email\": \"0mnqig@rfhzoeia.com\",\n                    \"name\": \"Test Name\",\n                    \"role\": \"Owner\",\n                    \"lastActive\": \"2020-01-31T15:30:57.852Z\"\n                },\n                {\n                    \"userId\": \"5e3447cf2d08987eda83a738\",\n                    \"email\": \"tfiay@12d7trd.com\",\n                    \"name\": \"Test Name\",\n                    \"role\": \"Member\",\n                    \"lastActive\": \"2020-01-31T15:33:23.989Z\"\n                }\n            ],\n            \"createdAt\": \"2020-01-31T15:29:25.420Z\",\n            \"adminNotes\": null,\n            \"name\": \"7x\",\n            \"slug\": \"Unnamed-Project-07331\",\n            \"apiKey\": \"767483f0-443e-11ea-94d2-8991d559a321\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GeK5E7h4beP7r3\",\n            \"parentProjectId\": null\n        },\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"1\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e3447d52d08987eda83a73b\",\n            \"users\": [\n                {\n                    \"userId\": \"5e3447cf2d08987eda83a738\",\n                    \"email\": \"tfiay@12d7trd.com\",\n                    \"name\": \"Test Name\",\n                    \"role\": \"Owner\",\n                    \"lastActive\": \"2020-01-31T15:33:23.989Z\"\n                }\n            ],\n            \"createdAt\": \"2020-01-31T15:29:25.372Z\",\n            \"adminNotes\": null,\n            \"name\": \"Unnamed Project\",\n            \"slug\": \"Unnamed-Project-48138\",\n            \"apiKey\": \"766da620-443e-11ea-94d2-8991d559a321\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GeK5EjCNOO7d4h\",\n            \"parentProjectId\": null\n        }\n    ],\n    \"count\": 53,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				},
 				{
-					"name": "Projects",
+					"name": "Get All User Projects",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/project/projects",
+							"raw": "http://localhost:3002/project/projects?skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -8474,17 +8689,116 @@
 							"path": [
 								"project",
 								"projects"
+							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
 							]
 						},
-						"description": "All Projects"
+						"description": "Get All User Projects"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All User Projects",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/projects?skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										"projects"
+									],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1163"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"48b-6i0n4dC45d2u+B/jLwYKO6tIK70\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:31:29 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"1\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e347557f798176b8ece8d58\",\n            \"users\": [\n                {\n                    \"_id\": \"5e347557f798176b8ece8d59\",\n                    \"userId\": \"5e2ecf3f516aae26b133f352\",\n                    \"role\": \"Owner\"\n                }\n            ],\n            \"createdAt\": \"2020-01-31T18:43:35.607Z\",\n            \"adminNotes\": null,\n            \"name\": \"Cello\",\n            \"slug\": \"Cello-61372\",\n            \"apiKey\": \"96a0f350-4459-11ea-b8dc-a9123d3dcd0f\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GeNDRg0ncePzAp\",\n            \"parentProjectId\": null\n        },\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"1\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e2ecf45516aae26b133f354\",\n            \"users\": [\n                {\n                    \"_id\": \"5e2ecf45516aae26b133f355\",\n                    \"userId\": \"5e2ecf3f516aae26b133f352\",\n                    \"role\": \"Owner\"\n                }\n            ],\n            \"createdAt\": \"2020-01-27T11:53:41.352Z\",\n            \"adminNotes\": null,\n            \"name\": \"Bello\",\n            \"slug\": \"Unnamed-Project-41282\",\n            \"apiKey\": \"a98ab430-40fb-11ea-b3a8-83c18e01a99f\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GclhCoRrdskNuu\",\n            \"parentProjectId\": null\n        }\n    ],\n    \"count\": 2,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				},
 				{
-					"name": "Project",
+					"name": "Get Project",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/project/projects/:projectId",
 							"protocol": "http",
@@ -8500,19 +8814,105 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e2ecf45516aae26b133f354"
 								}
 							]
 						},
-						"description": "Single Project"
+						"description": "Get Single Project"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get Project",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/projects/:projectId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										"projects",
+										":projectId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e2ecf45516aae26b133f354"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "590"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"24e-lUILQkLVVc6HCkPc5x5Ccj89iRA\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:34:03 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e2ecf45516aae26b133f354\",\n    \"users\": [\n        {\n            \"_id\": \"5e2ecf45516aae26b133f355\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-01-27T11:53:41.352Z\",\n    \"adminNotes\": null,\n    \"name\": \"Bello\",\n    \"slug\": \"Unnamed-Project-41282\",\n    \"apiKey\": \"a98ab430-40fb-11ea-b3a8-83c18e01a99f\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_GclhCoRrdskNuu\",\n    \"parentProjectId\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
 					"name": "Reset API Key",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/resetToken",
 							"protocol": "http",
@@ -8528,19 +8928,120 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e347557f798176b8ece8d58"
 								}
 							]
 						},
 						"description": "Reset API Key"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Reset API Key",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/resetToken",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"resetToken"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e347557f798176b8ece8d58"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "580"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"244-H/g8v4h16LjPIist79gWlkWiohg\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:53:13 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e347557f798176b8ece8d58\",\n    \"users\": [\n        {\n            \"_id\": \"5e347557f798176b8ece8d59\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-01-31T18:43:35.607Z\",\n    \"adminNotes\": null,\n    \"name\": \"Cello\",\n    \"slug\": \"Cello-61372\",\n    \"apiKey\": \"17e28c90-49db-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_GeNDRg0ncePzAp\",\n    \"parentProjectId\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
 					"name": "Rename Project",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"projectName\": \"Cello\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/renameProject",
 							"protocol": "http",
@@ -8556,19 +9057,120 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e347557f798176b8ece8d58"
 								}
 							]
 						},
 						"description": "Rename Project"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Rename Project",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"projectName\": \"Cello\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/renameProject",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"renameProject"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e347557f798176b8ece8d58"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "580"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"244-H/g8v4h16LjPIist79gWlkWiohg\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:54:40 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e347557f798176b8ece8d58\",\n    \"users\": [\n        {\n            \"_id\": \"5e347557f798176b8ece8d59\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-01-31T18:43:35.607Z\",\n    \"adminNotes\": null,\n    \"name\": \"Cello\",\n    \"slug\": \"Cello-61372\",\n    \"apiKey\": \"17e28c90-49db-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_GeNDRg0ncePzAp\",\n    \"parentProjectId\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
 					"name": "Delete Project",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/deleteProject",
 							"protocol": "http",
@@ -8584,19 +9186,120 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e3db43990968537f188cef2"
 								}
 							]
 						},
 						"description": "Delete Project"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Delete Project",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/deleteProject",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"deleteProject"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e3db43990968537f188cef2"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "659"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"293-bo6wO+GeK6WTdabI/HrG22zcx+0\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:02:55 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": true,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e3db43990968537f188cef2\",\n    \"users\": [\n        {\n            \"_id\": \"5e3db43990968537f188cef3\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-02-07T19:02:17.884Z\",\n    \"adminNotes\": null,\n    \"name\": \"Fello\",\n    \"slug\": \"Fello-16018\",\n    \"apiKey\": \"5c53ccd0-49dc-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_Gh05qms37gLKxg\",\n    \"parentProjectId\": null,\n    \"__v\": 0,\n    \"deletedAt\": \"2020-02-07T19:02:53.996Z\",\n    \"deletedById\": \"5e2ecf3f516aae26b133f352\"\n}"
+						}
+					]
 				},
 				{
 					"name": "Edit Alert Options",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"alertEnable\": false,\n    \"billingNonUSCountries\": false,\n    \"billingRiskCountries\": false,\n    \"billingUS\": true,\n    \"minimumBalance\": \"20\",\n    \"rechargeToBalance\": \"40\",\n    \"_id\": \"5e347557f798176b8ece8d58\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/alertOptions",
 							"protocol": "http",
@@ -8612,19 +9315,135 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e347557f798176b8ece8d58"
 								}
 							]
 						},
 						"description": "Edit Alert Options"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Edit Alert Options",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"alertEnable\": false,\n    \"billingNonUSCountries\": false,\n    \"billingRiskCountries\": false,\n    \"billingUS\": true,\n    \"minimumBalance\": \"20\",\n    \"rechargeToBalance\": \"40\",\n    \"_id\": \"5e347557f798176b8ece8d58\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/alertOptions",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"alertOptions"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e347557f798176b8ece8d58"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "580"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"244-H/g8v4h16LjPIist79gWlkWiohg\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:56:39 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e347557f798176b8ece8d58\",\n    \"users\": [\n        {\n            \"_id\": \"5e347557f798176b8ece8d59\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-01-31T18:43:35.607Z\",\n    \"adminNotes\": null,\n    \"name\": \"Cello\",\n    \"slug\": \"Cello-61372\",\n    \"apiKey\": \"17e28c90-49db-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_GeNDRg0ncePzAp\",\n    \"parentProjectId\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
-					"name": "Change Plan",
+					"name": "Change Project Plan",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"projectName\": \"Cello\",\n    \"planId\": \"plan_EgTJMZULfh6THW\",\n    \"oldPlan\": \"Basic Monthly ($8 / Month / User)\",\n    \"newPlan\": \"Basic Monthly ($8 / Month / User)\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/changePlan",
 							"protocol": "http",
@@ -8640,19 +9459,135 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e347557f798176b8ece8d58"
 								}
 							]
 						},
 						"description": "Change Project Plan"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Change Project Plan",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"projectName\": \"Cello\",\n    \"planId\": \"plan_EgTJMZULfh6THW\",\n    \"oldPlan\": \"Basic Monthly ($8 / Month / User)\",\n    \"newPlan\": \"Basic Monthly ($8 / Month / User)\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/changePlan",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"changePlan"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e347557f798176b8ece8d58"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "580"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"244-wL4fN6FoRPQySJno9FEcRZHIzD4\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:58:04 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e347557f798176b8ece8d58\",\n    \"users\": [\n        {\n            \"_id\": \"5e347557f798176b8ece8d59\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-01-31T18:43:35.607Z\",\n    \"adminNotes\": null,\n    \"name\": \"Cello\",\n    \"slug\": \"Cello-61372\",\n    \"apiKey\": \"17e28c90-49db-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_Gh012Pke0BC6z4\",\n    \"parentProjectId\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
 					"name": "Upgrade To Enterprise",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"projectName\": \"Zello\",\n\t\"oldPlan\": \"plan_EgTJMZULfh6THW\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/upgradeToEnterprise",
 							"protocol": "http",
@@ -8668,21 +9603,122 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e3db43990968537f188cef2"
 								}
 							]
 						},
 						"description": "Upgrade Project To Enterprise"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Upgrade To Enterprise",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"projectName\": \"Zello\",\n\t\"oldPlan\": \"plan_EgTJMZULfh6THW\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/upgradeToEnterprise",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"upgradeToEnterprise"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e3db43990968537f188cef2"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "html",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "text/html; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "23"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"17-Ud3iUYmN5+SvzXpm9XriTK8m2DQ\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:16:15 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "Mail Sent Successfully!"
+						}
+					]
 				},
 				{
-					"name": "Team Member",
+					"name": "Get All Team Member Projects",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/project/projects/user/:userId",
+							"raw": "http://localhost:3002/project/projects/user/:userId?skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -8694,22 +9730,129 @@
 								"user",
 								":userId"
 							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							],
 							"variable": [
 								{
 									"key": "userId",
-									"value": ""
+									"value": "5e2ecf3f516aae26b133f352"
 								}
 							]
 						},
-						"description": "Single Team Member"
+						"description": "Get All Team Member Projects"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All Team Member Projects",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/projects/user/:userId?skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										"projects",
+										"user",
+										":userId"
+									],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									],
+									"variable": [
+										{
+											"key": "userId",
+											"value": "5e2ecf3f516aae26b133f352"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "3833"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"ef9-RlkY3DVtziOtKQXk/MLlarsG9zA\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:37:25 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"1\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e347557f798176b8ece8d58\",\n            \"users\": [\n                {\n                    \"isVerified\": true,\n                    \"onCallAlert\": null,\n                    \"twoFactorAuthEnabled\": false,\n                    \"backupCodes\": [\n                        {\n                            \"code\": \"80656207\",\n                            \"counter\": 0\n                        },\n                        {\n                            \"code\": \"78637838\",\n                            \"counter\": 1\n                        },\n                        {\n                            \"code\": \"48066866\",\n                            \"counter\": 2\n                        },\n                        {\n                            \"code\": \"26884181\",\n                            \"counter\": 3\n                        },\n                        {\n                            \"code\": \"41967906\",\n                            \"counter\": 4\n                        },\n                        {\n                            \"code\": \"57108620\",\n                            \"counter\": 5\n                        },\n                        {\n                            \"code\": \"33195921\",\n                            \"counter\": 6\n                        },\n                        {\n                            \"code\": \"77324177\",\n                            \"counter\": 7\n                        }\n                    ],\n                    \"disabled\": false,\n                    \"paymentFailedDate\": null,\n                    \"isBlocked\": false,\n                    \"alertPhoneNumber\": \"\",\n                    \"_id\": \"5e2ecf3f516aae26b133f352\",\n                    \"createdAt\": \"2020-01-27T11:53:35.429Z\",\n                    \"lastActive\": \"2020-02-07T18:37:25.707Z\",\n                    \"adminNotes\": null,\n                    \"name\": \"Ibukun Olatayo Dairo\",\n                    \"email\": \"ibukundairo@hackerbay.io\",\n                    \"password\": \"$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112\",\n                    \"companyName\": \"Hackerbay\",\n                    \"companyRole\": null,\n                    \"companySize\": null,\n                    \"referral\": null,\n                    \"companyPhoneNumber\": \"08158486068\",\n                    \"profilePic\": null,\n                    \"jwtRefreshToken\": \"0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ\",\n                    \"stripeCustomerId\": \"cus_GclhJ8JTR1IpOw\",\n                    \"resetPasswordToken\": null,\n                    \"resetPasswordExpires\": null,\n                    \"timezone\": null,\n                    \"coupon\": null,\n                    \"tempEmail\": null,\n                    \"twoFactorSecretCode\": \"KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W\",\n                    \"otpauth_url\": \"otpauth://totp/Fyipe%20(ibukundairo%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W\",\n                    \"tutorial\": {}\n                }\n            ],\n            \"createdAt\": \"2020-01-31T18:43:35.607Z\",\n            \"adminNotes\": null,\n            \"name\": \"Cello\",\n            \"slug\": \"Cello-61372\",\n            \"apiKey\": \"96a0f350-4459-11ea-b8dc-a9123d3dcd0f\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GeNDRg0ncePzAp\",\n            \"parentProjectId\": null\n        },\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"1\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e2ecf45516aae26b133f354\",\n            \"users\": [\n                {\n                    \"isVerified\": true,\n                    \"onCallAlert\": null,\n                    \"twoFactorAuthEnabled\": false,\n                    \"backupCodes\": [\n                        {\n                            \"code\": \"80656207\",\n                            \"counter\": 0\n                        },\n                        {\n                            \"code\": \"78637838\",\n                            \"counter\": 1\n                        },\n                        {\n                            \"code\": \"48066866\",\n                            \"counter\": 2\n                        },\n                        {\n                            \"code\": \"26884181\",\n                            \"counter\": 3\n                        },\n                        {\n                            \"code\": \"41967906\",\n                            \"counter\": 4\n                        },\n                        {\n                            \"code\": \"57108620\",\n                            \"counter\": 5\n                        },\n                        {\n                            \"code\": \"33195921\",\n                            \"counter\": 6\n                        },\n                        {\n                            \"code\": \"77324177\",\n                            \"counter\": 7\n                        }\n                    ],\n                    \"disabled\": false,\n                    \"paymentFailedDate\": null,\n                    \"isBlocked\": false,\n                    \"alertPhoneNumber\": \"\",\n                    \"_id\": \"5e2ecf3f516aae26b133f352\",\n                    \"createdAt\": \"2020-01-27T11:53:35.429Z\",\n                    \"lastActive\": \"2020-02-07T18:37:25.707Z\",\n                    \"adminNotes\": null,\n                    \"name\": \"Ibukun Olatayo Dairo\",\n                    \"email\": \"ibukundairo@hackerbay.io\",\n                    \"password\": \"$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112\",\n                    \"companyName\": \"Hackerbay\",\n                    \"companyRole\": null,\n                    \"companySize\": null,\n                    \"referral\": null,\n                    \"companyPhoneNumber\": \"08158486068\",\n                    \"profilePic\": null,\n                    \"jwtRefreshToken\": \"0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ\",\n                    \"stripeCustomerId\": \"cus_GclhJ8JTR1IpOw\",\n                    \"resetPasswordToken\": null,\n                    \"resetPasswordExpires\": null,\n                    \"timezone\": null,\n                    \"coupon\": null,\n                    \"tempEmail\": null,\n                    \"twoFactorSecretCode\": \"KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W\",\n                    \"otpauth_url\": \"otpauth://totp/Fyipe%20(ibukundairo%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W\",\n                    \"tutorial\": {}\n                }\n            ],\n            \"createdAt\": \"2020-01-27T11:53:41.352Z\",\n            \"adminNotes\": null,\n            \"name\": \"Bello\",\n            \"slug\": \"Unnamed-Project-41282\",\n            \"apiKey\": \"a98ab430-40fb-11ea-b3a8-83c18e01a99f\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GclhCoRrdskNuu\",\n            \"parentProjectId\": null\n        }\n    ],\n    \"count\": 2,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				},
 				{
-					"name": "Remove Team Member",
+					"name": "Delete Team Member",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/user/:userId/exitProject",
 							"protocol": "http",
@@ -8727,23 +9870,130 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e3db40790968537f188cee1"
 								},
 								{
 									"key": "userId",
-									"value": ""
+									"value": "5e2ecf3f516aae26b133f352"
 								}
 							]
 						},
-						"description": "Remove Project Team Member"
+						"description": "Delete Team Member"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Delete Team Member",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/user/:userId/exitProject",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"user",
+										":userId",
+										"exitProject"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e3db40790968537f188cee1"
+										},
+										{
+											"key": "userId",
+											"value": "5e2ecf3f516aae26b133f352"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "html",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "text/html; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "36"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"24-rSYY2cHjbMq2cZRE1KJkG2uCWn0\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:07:09 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "User successfully exited the project"
+						}
+					]
 				},
 				{
-					"name": "Create Subprojects",
+					"name": "Create SubProject",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"subProjectName\": \"Vello\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/subProject",
 							"protocol": "http",
@@ -8759,21 +10009,122 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e3db40790968537f188cee1"
 								}
 							]
 						},
-						"description": "Create Subprojects"
+						"description": "Create SubProjects"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Create SubProject",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"subProjectName\": \"Vello\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/subProject",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"subProject"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e3db40790968537f188cee1"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "570"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"23a-07yN8zOGOPJ95VEj571PxyACjXo\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:05:55 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"alertOptions\": {\n            \"billingUS\": true,\n            \"billingNonUSCountries\": false,\n            \"billingRiskCountries\": false\n        },\n        \"seats\": \"1\",\n        \"alertEnable\": false,\n        \"alertLimitReached\": false,\n        \"balance\": 0,\n        \"isBlocked\": false,\n        \"_id\": \"5e3db51390968537f188cef7\",\n        \"users\": [\n            {\n                \"_id\": \"5e3db40790968537f188cee2\",\n                \"userId\": \"5e2ecf3f516aae26b133f352\",\n                \"role\": \"Owner\"\n            }\n        ],\n        \"createdAt\": \"2020-02-07T19:05:55.143Z\",\n        \"adminNotes\": null,\n        \"name\": \"Vello\",\n        \"slug\": \"Vello-32034\",\n        \"apiKey\": \"ddd332a0-49dc-11ea-9025-59d19fb1a7b1\",\n        \"stripePlanId\": null,\n        \"stripeSubscriptionId\": null,\n        \"parentProjectId\": {\n            \"_id\": \"5e3db40790968537f188cee1\",\n            \"name\": \"Dello\"\n        }\n    }\n]"
+						}
+					]
 				},
 				{
-					"name": "Subprojects",
+					"name": "Get All SubProjects",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:3002/project/:projectId/subProject",
+							"raw": "http://localhost:3002/project/:projectId/subProjects",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -8782,24 +10133,125 @@
 							"path": [
 								"project",
 								":projectId",
-								"subProject"
+								"subProjects"
 							],
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e2ecf45516aae26b133f354"
 								}
 							]
 						},
-						"description": "All Subprojects"
+						"description": "Get All SubProjects"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Get All SubProjects",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/subProjects",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"subProjects"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e2ecf45516aae26b133f354"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "589"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"24d-WXmflK8atHD99quCGL2xtEqfLO4\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:40:03 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"1\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e321f54542c6f61d1292a5a\",\n            \"users\": [\n                {\n                    \"_id\": \"5e2ecf45516aae26b133f355\",\n                    \"userId\": \"5e2ecf3f516aae26b133f352\",\n                    \"role\": \"Owner\"\n                }\n            ],\n            \"createdAt\": \"2020-01-30T00:12:04.455Z\",\n            \"adminNotes\": null,\n            \"name\": \"Vello\",\n            \"slug\": \"Vello-01020\",\n            \"apiKey\": \"2521e320-42f5-11ea-9574-31ddcc0c3f10\",\n            \"stripePlanId\": null,\n            \"stripeSubscriptionId\": null,\n            \"parentProjectId\": {\n                \"_id\": \"5e2ecf45516aae26b133f354\",\n                \"name\": \"Bello\"\n            }\n        }\n    ],\n    \"count\": 1\n}"
+						}
+					]
 				},
 				{
-					"name": "Rename Subproject",
+					"name": "Rename SubProject",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"subProjectName\": \"Vello\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/:subProjectId",
 							"protocol": "http",
@@ -8815,23 +10267,128 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e2ecf45516aae26b133f354"
 								},
 								{
 									"key": "subProjectId",
-									"value": ""
+									"value": "5e321f54542c6f61d1292a5a"
 								}
 							]
 						},
-						"description": "Rename Subproject"
+						"description": "Rename SubProject"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Rename SubProject",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"subProjectName\": \"Vello\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/:subProjectId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										":subProjectId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e2ecf45516aae26b133f354"
+										},
+										{
+											"key": "subProjectId",
+											"value": "5e321f54542c6f61d1292a5a"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "592"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"250-H5r7I3goJB+GsnzUE9nvJpTpkh8\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:50:10 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e321f54542c6f61d1292a5a\",\n    \"users\": [\n        {\n            \"_id\": \"5e2ecf45516aae26b133f355\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-01-30T00:12:04.455Z\",\n    \"adminNotes\": null,\n    \"name\": \"Vello\",\n    \"slug\": \"Vello-01020\",\n    \"apiKey\": \"2521e320-42f5-11ea-9574-31ddcc0c3f10\",\n    \"stripePlanId\": null,\n    \"stripeSubscriptionId\": null,\n    \"parentProjectId\": {\n        \"_id\": \"5e2ecf45516aae26b133f354\",\n        \"name\": \"Bello\"\n    },\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
-					"name": "Delete Subproject",
+					"name": "Delete SubProject",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/:subProjectId",
 							"protocol": "http",
@@ -8847,23 +10404,113 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e3db40790968537f188cee1"
 								},
 								{
 									"key": "subProjectId",
-									"value": ""
+									"value": "5e3db49190968537f188cef4"
 								}
 							]
 						},
-						"description": "Delete Subproject"
+						"description": "Delete SubProject"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Delete SubProject",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/:subProjectId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										":subProjectId"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e3db40790968537f188cee1"
+										},
+										{
+											"key": "subProjectId",
+											"value": "5e3db49190968537f188cef4"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "648"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"288-SAirQ86x4rZKJrQxll01D3fW/Xg\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:05:11 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": true,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e3db49190968537f188cef4\",\n    \"users\": [\n        {\n            \"_id\": \"5e3db40790968537f188cee2\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-02-07T19:03:45.177Z\",\n    \"adminNotes\": null,\n    \"name\": \"Vello\",\n    \"slug\": \"Vello-02850\",\n    \"apiKey\": \"905ce020-49dc-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": null,\n    \"stripeSubscriptionId\": null,\n    \"parentProjectId\": \"5e3db40790968537f188cee1\",\n    \"__v\": 0,\n    \"deletedAt\": \"2020-02-07T19:05:11.436Z\",\n    \"deletedById\": \"5e2ecf3f516aae26b133f352\"\n}"
+						}
+					]
 				},
 				{
 					"name": "Block Project",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/blockProject",
 							"protocol": "http",
@@ -8879,19 +10526,105 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e347557f798176b8ece8d58"
 								}
 							]
 						},
 						"description": "Block Project"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Block Project",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/blockProject",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"blockProject"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e347557f798176b8ece8d58"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "579"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"243-emRTKPjXP/aBXVTYXJ6RdhUcOl4\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:09:58 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": true,\n    \"_id\": \"5e347557f798176b8ece8d58\",\n    \"users\": [\n        {\n            \"_id\": \"5e347557f798176b8ece8d59\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-01-31T18:43:35.607Z\",\n    \"adminNotes\": null,\n    \"name\": \"Cello\",\n    \"slug\": \"Cello-61372\",\n    \"apiKey\": \"17e28c90-49db-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_Gh012Pke0BC6z4\",\n    \"parentProjectId\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
 					"name": "Unblock Project",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/unblockProject",
 							"protocol": "http",
@@ -8907,19 +10640,105 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e347557f798176b8ece8d58"
 								}
 							]
 						},
 						"description": "Unblock Project"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Unblock Project",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/unblockProject",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"unblockProject"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e347557f798176b8ece8d58"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "580"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"244-wL4fN6FoRPQySJno9FEcRZHIzD4\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:10:18 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e347557f798176b8ece8d58\",\n    \"users\": [\n        {\n            \"_id\": \"5e347557f798176b8ece8d59\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-01-31T18:43:35.607Z\",\n    \"adminNotes\": null,\n    \"name\": \"Cello\",\n    \"slug\": \"Cello-61372\",\n    \"apiKey\": \"17e28c90-49db-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_Gh012Pke0BC6z4\",\n    \"parentProjectId\": null,\n    \"__v\": 0\n}"
+						}
+					]
 				},
 				{
 					"name": "Restore Project",
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/restoreProject",
 							"protocol": "http",
@@ -8935,21 +10754,122 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e3db43990968537f188cef2"
 								}
 							]
 						},
 						"description": "Restore Project"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Restore Project",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/restoreProject",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"restoreProject"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e3db43990968537f188cef2"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "638"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"27e-JNiPpVhQ3IA/oSOb/13Ym4FTdn8\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:13:40 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e3db43990968537f188cef2\",\n    \"users\": [\n        {\n            \"_id\": \"5e3db43990968537f188cef3\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-02-07T19:02:17.884Z\",\n    \"adminNotes\": null,\n    \"name\": \"Fello\",\n    \"slug\": \"Fello-16018\",\n    \"apiKey\": \"5c53ccd0-49dc-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_Gh0HqwYiQVH8G1\",\n    \"parentProjectId\": null,\n    \"__v\": 0,\n    \"deletedAt\": null,\n    \"deletedById\": \"5e2ecf3f516aae26b133f352\"\n}"
+						}
+					]
 				},
 				{
 					"name": "Search Projects",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"filter\": \"Bello\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
-							"raw": "http://localhost:3002/project/projects/search",
+							"raw": "http://localhost:3002/project/projects/search?skip=0&limit=5",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -8959,17 +10879,147 @@
 								"project",
 								"projects",
 								"search"
+							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
 							]
 						},
 						"description": "Search Projects"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Search Projects",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"filter\": \"Bello\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/projects/search?skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										"projects",
+										"search"
+									],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "678"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"2a6-ah+PWgMBnJ7/rfGhnVhrC+Rwmbw\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 18:41:48 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"alertOptions\": {\n                \"billingUS\": true,\n                \"billingNonUSCountries\": false,\n                \"billingRiskCountries\": false\n            },\n            \"seats\": \"1\",\n            \"alertEnable\": false,\n            \"alertLimitReached\": false,\n            \"balance\": 0,\n            \"isBlocked\": false,\n            \"_id\": \"5e2ecf45516aae26b133f354\",\n            \"users\": [\n                {\n                    \"userId\": \"5e2ecf3f516aae26b133f352\",\n                    \"email\": \"ibukundairo@hackerbay.io\",\n                    \"name\": \"Ibukun Olatayo Dairo\",\n                    \"role\": \"Owner\",\n                    \"lastActive\": \"2020-02-07T18:41:48.846Z\"\n                }\n            ],\n            \"createdAt\": \"2020-01-27T11:53:41.352Z\",\n            \"adminNotes\": null,\n            \"name\": \"Bello\",\n            \"slug\": \"Unnamed-Project-41282\",\n            \"apiKey\": \"a98ab430-40fb-11ea-b3a8-83c18e01a99f\",\n            \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n            \"stripeSubscriptionId\": \"sub_GclhCoRrdskNuu\",\n            \"parentProjectId\": null\n        }\n    ],\n    \"count\": 1,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+						}
+					]
 				},
 				{
-					"name": "Add Note",
+					"name": "Add Project Note",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"note\": \"Hello\"\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:3002/project/:projectId/addNote",
 							"protocol": "http",
@@ -8985,13 +11035,252 @@
 							"variable": [
 								{
 									"key": "projectId",
-									"value": ""
+									"value": "5e3db43990968537f188cef2"
 								}
 							]
 						},
 						"description": "Add Project Note"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Add Project Note",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "[\n    {\n        \"note\": \"Hello\"\n    }\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/addNote",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"addNote"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e3db43990968537f188cef2"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "51"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"33-UgTZ/vm7L96t3mOGecVKQfojhuA\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:19:08 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"_id\": \"5e3db82c90968537f188d079\",\n        \"note\": \"Hello\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Renew Alert Limit",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"alertLimit\": \"10\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/project/:projectId/renewAlertLimit",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"project",
+								":projectId",
+								"renewAlertLimit"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "5e3db43990968537f188cef2"
+								}
+							]
+						},
+						"description": "Renew Alert Limit"
+					},
+					"response": [
+						{
+							"name": "Renew Alert Limit",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"alertLimit\": \"10\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/project/:projectId/renewAlertLimit",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"project",
+										":projectId",
+										"renewAlertLimit"
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e3db43990968537f188cef2"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "656"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"290-MSJ6bN2atKQp9HX75xQjoaygfXs\""
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Feb 2020 19:17:20 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"alertOptions\": {\n        \"billingUS\": true,\n        \"billingNonUSCountries\": false,\n        \"billingRiskCountries\": false\n    },\n    \"seats\": \"1\",\n    \"deleted\": false,\n    \"alertEnable\": false,\n    \"alertLimitReached\": false,\n    \"balance\": 0,\n    \"isBlocked\": false,\n    \"_id\": \"5e3db43990968537f188cef2\",\n    \"users\": [\n        {\n            \"_id\": \"5e3db43990968537f188cef3\",\n            \"userId\": \"5e2ecf3f516aae26b133f352\",\n            \"role\": \"Owner\"\n        }\n    ],\n    \"createdAt\": \"2020-02-07T19:02:17.884Z\",\n    \"adminNotes\": null,\n    \"name\": \"Fello\",\n    \"slug\": \"Fello-16018\",\n    \"apiKey\": \"5c53ccd0-49dc-11ea-9025-59d19fb1a7b1\",\n    \"stripePlanId\": \"plan_EgTJMZULfh6THW\",\n    \"stripeSubscriptionId\": \"sub_Gh0HqwYiQVH8G1\",\n    \"parentProjectId\": null,\n    \"__v\": 0,\n    \"deletedAt\": null,\n    \"deletedById\": \"5e2ecf3f516aae26b133f352\",\n    \"alertLimit\": \"10\"\n}"
+						}
+					]
 				}
 			],
 			"description": "Project API",
