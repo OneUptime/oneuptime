@@ -147,11 +147,12 @@ const mapDispatchToProps = dispatch => {
 };
 
 function mapStateToProps(state) {
+    const projectId = state.project.currentProject ? state.project.currentProject._id : null;
     return {
         requesting: state.team.teamMember.requesting,
         error: state.team.teamMember.error,
         teamMember: state.team.teamMember.member,
-        projectId: state.project.currentProject !== null && state.project.currentProject._id,
+        projectId: projectId,
     }
 }
 

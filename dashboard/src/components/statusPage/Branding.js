@@ -356,8 +356,8 @@ export class Branding extends Component {
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Colors</label>
                                                 <div className="bs-Fieldset-fields">
-                                                    <div className="Box-root Flex-flex" style={{ width: '700px' }}>
-                                                        <ShouldRender if={colors}>
+                                                    {colors &&
+                                                        <div className="Box-root Flex-flex" style={{ width: '700px' }}>
                                                             <div className="Box-root Box-root Box-root Flex-flex">
                                                                 <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='pageBackground'>
                                                                     <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.pageBackground.r }, ${ colors.pageBackground.g }, ${ colors.pageBackground.b }, ${ colors.pageBackground.a })`, }} />
@@ -384,10 +384,10 @@ export class Branding extends Component {
                                                                     <span>Status Page Background</span>
                                                                 </div>
                                                             </div>
-                                                        </ShouldRender>
-                                                    </div>
-                                                    <div className="Box-root Flex-flex" style={{ marginTop: '12px',  width: '700px' }}>
-                                                        <ShouldRender if={colors}>
+                                                        </div>
+                                                    }
+                                                    {colors &&
+                                                        <div className="Box-root Flex-flex" style={{ marginTop: '12px',  width: '700px' }}>
                                                             <div className="Box-root Box-root Box-root Flex-flex">
                                                                 <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='heading'>
                                                                     <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.heading.r }, ${ colors.heading.g }, ${ colors.heading.b }, ${ colors.heading.a })`, }} />
@@ -414,8 +414,8 @@ export class Branding extends Component {
                                                                     <span>Sub Heading Text</span>
                                                                 </div>
                                                             </div>
-                                                        </ShouldRender>
-                                                    </div>
+                                                        </div>
+                                                    }
                                                 </div>
                                             </div>
                                             <div className="bs-Fieldset-row">

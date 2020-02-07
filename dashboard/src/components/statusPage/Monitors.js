@@ -65,18 +65,18 @@ export class Monitors extends Component {
                                                     <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                         <div className="Box-root" style={{ height: '5px' }}></div>
                                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        {
-                                                            this.props.currentProject._id === status.projectId._id || this.props.currentProject._id === status.projectId ?
+                                                        { status.projectId &&
+                                                            (this.props.currentProject._id === status.projectId._id || this.props.currentProject._id === status.projectId )?
                                                             <MonitorInputs monitors={this.props.monitors} subProject={this.props.currentProject} /> : false
                                                         }
-                                                        {
+                                                        { status.projectId &&
                                                             subProjects.map((subProject, i)=>{
                                                                 if((subProject._id === status.projectId._id) || (subProject._id === status.projectId)){
                                                                     return (<MonitorInputs monitors={this.props.monitors} subProject={subProject} key={i} />)
                                                                 }
                                                                 return false;
-                                                            }) 
-                                                        } 
+                                                            })
+                                                        }
                                                         </div>
                                                     </div>
                                                 </div>
