@@ -15,8 +15,13 @@ export class AlertChargesList extends Component {
         this.props = props;
     }
     componentDidMount() {
-        const { fetchAlertCharges, projectId } = this.props;
-        fetchAlertCharges(projectId, 0, 5);
+        let { fetchAlertCharges, projectId } = this.props;
+        if (!projectId) {
+            projectId = history.location.pathname.split('project/')[1].split('/')[0];
+            fetchAlertCharges(projectId, 0, 5);
+        } else {
+            fetchAlertCharges(projectId, 0, 5);
+        }
     }
 
     prevClicked = () => {
