@@ -1,7 +1,9 @@
+var StringUtil = require('../utils/string')
+
 module.exports = {
     user: {
         name: 'John Smith',
-        email: 'testmail@fyipe.com',
+        email: StringUtil.generateRandomString(10)+'@fyipe.com',
         password:'1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',
@@ -22,7 +24,7 @@ module.exports = {
 
     anotherUser: {
         name: 'Kayode Adebayo',
-        email: 'testmail1@fyipe.com',
+        email: StringUtil.generateRandomString(10)+'@fyipe.com',
         password:'123456789',
         confirmPassword: '123456789',
         companyName: 'Hackerbay',
@@ -43,7 +45,7 @@ module.exports = {
 
     newUser: {
         name: 'John Smith',
-        email: 'testmail2@fyipe.com',
+        email: StringUtil.generateRandomString(10)+'@fyipe.com',
         password:'1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',
@@ -85,7 +87,7 @@ module.exports = {
 
     profile: {
         name: 'John Smith',
-        email: 'lekan@fyipe.com',
+        email: StringUtil.generateRandomString(10)+'@fyipe.com',
         timezone: 'Europe/London',
         profilePic: 'Image.jpg',
         companyPhoneNumber: '+919910568840',

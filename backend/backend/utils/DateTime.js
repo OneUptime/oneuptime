@@ -105,6 +105,26 @@ var _this = {
         return date1.getTime() < date2.getTime();
     },
 
+    isInBetween(date, startDate, endDate){
+        if (typeof date === 'string') {
+            date = new Date(date);
+        }
+
+        if (typeof startDate === 'string') {
+            startDate = new Date(startDate);
+        }
+
+        if (typeof endDate === 'string') {
+            endDate = new Date(endDate);
+        }
+
+        if(_this.greaterThan(startDate, date) && _this.lessThan(date, endDate)){
+            return true;
+        }
+
+        return false; 
+    },
+
     equalTo(date1, date2) {
         if (typeof date1 === 'string') {
             date1 = new Date(date1);
