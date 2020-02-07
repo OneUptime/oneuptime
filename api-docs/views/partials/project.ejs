@@ -32,7 +32,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Project<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Create Project.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -44,50 +44,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/project/create</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -130,7 +86,12 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "projectName": "Fello",
+  "planId": "plan_EgTJMZULfh6THW"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -142,7 +103,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e3db43990968537f188cef2",
+  "users": [
+    {
+      "_id": "5e3db43990968537f188cef3",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-02-07T19:02:17.884Z",
+  "adminNotes": null,
+  "name": "Fello",
+  "slug": "Fello-16018",
+  "apiKey": "5c53ccd0-49dc-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_Gh05qms37gLKxg",
+  "parentProjectId": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -151,11 +143,11 @@
   </section>
 </article>
 
-<article id="get-projects" class="cf-grid-container dev-doc-item-container">
+<article id="get-all-projects" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Projects<span class="requestType">GET</span></h3>
+    <h3>Get All Projects<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Projects.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -182,35 +174,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
               </div>
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -226,7 +211,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/projects/allProjects</p>
+          <p class="url">https://api.fyipe.com/project/projects/allProjects?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -236,7 +221,179 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e347557f798176b8ece8d58",
+      "users": [
+        {
+          "userId": "5e2ecf3f516aae26b133f352",
+          "email": "nawazdhandala@hackerbay.io",
+          "name": "Nawaz Dhandala",
+          "role": "Owner",
+          "lastActive": "2020-02-07T18:23:00.856Z"
+        }
+      ],
+      "createdAt": "2020-01-31T18:43:35.607Z",
+      "adminNotes": null,
+      "name": "Cello",
+      "slug": "Cello-61372",
+      "apiKey": "96a0f350-4459-11ea-b8dc-a9123d3dcd0f",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GeNDRg0ncePzAp",
+      "parentProjectId": null
+    },
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e3448f82d08987eda83a8c2",
+      "users": [
+        {
+          "userId": "5e3448f42d08987eda83a8bd",
+          "email": "cowr9a@ti8q9q4b.com",
+          "name": "Test Name",
+          "role": "Owner",
+          "lastActive": "2020-01-31T15:38:15.220Z"
+        }
+      ],
+      "createdAt": "2020-01-31T15:34:16.275Z",
+      "adminNotes": null,
+      "name": "Unnamed Project",
+      "slug": "Unnamed-Project-09993",
+      "apiKey": "23d12940-443f-11ea-94d2-8991d559a321",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GeK9RckXKQVXX6",
+      "parentProjectId": null
+    },
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "2",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e3448f72d08987eda83a8c0",
+      "users": [
+        {
+          "userId": "5e3448f42d08987eda83a8bc",
+          "email": "bdf83o@cw5wx4ab.com",
+          "name": "Test Name",
+          "role": "Owner",
+          "lastActive": "2020-01-31T15:37:43.048Z"
+        },
+        {
+          "userId": "5e3448f42d08987eda83a8bd",
+          "email": "cowr9a@ti8q9q4b.com",
+          "name": "Test Name",
+          "role": "Member",
+          "lastActive": "2020-01-31T15:38:15.220Z"
+        }
+      ],
+      "createdAt": "2020-01-31T15:34:15.645Z",
+      "adminNotes": null,
+      "name": "4zo",
+      "slug": "Unnamed-Project-87583",
+      "apiKey": "23712ef0-443f-11ea-94d2-8991d559a321",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GeK9h9FJ7qwuwi",
+      "parentProjectId": null
+    },
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "2",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e3447d52d08987eda83a73d",
+      "users": [
+        {
+          "userId": "5e3447cf2d08987eda83a737",
+          "email": "0mnqig@rfhzoeia.com",
+          "name": "Test Name",
+          "role": "Owner",
+          "lastActive": "2020-01-31T15:30:57.852Z"
+        },
+        {
+          "userId": "5e3447cf2d08987eda83a738",
+          "email": "tfiay@12d7trd.com",
+          "name": "Test Name",
+          "role": "Member",
+          "lastActive": "2020-01-31T15:33:23.989Z"
+        }
+      ],
+      "createdAt": "2020-01-31T15:29:25.420Z",
+      "adminNotes": null,
+      "name": "7x",
+      "slug": "Unnamed-Project-07331",
+      "apiKey": "767483f0-443e-11ea-94d2-8991d559a321",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GeK5E7h4beP7r3",
+      "parentProjectId": null
+    },
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e3447d52d08987eda83a73b",
+      "users": [
+        {
+          "userId": "5e3447cf2d08987eda83a738",
+          "email": "tfiay@12d7trd.com",
+          "name": "Test Name",
+          "role": "Owner",
+          "lastActive": "2020-01-31T15:33:23.989Z"
+        }
+      ],
+      "createdAt": "2020-01-31T15:29:25.372Z",
+      "adminNotes": null,
+      "name": "Unnamed Project",
+      "slug": "Unnamed-Project-48138",
+      "apiKey": "766da620-443e-11ea-94d2-8991d559a321",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GeK5EjCNOO7d4h",
+      "parentProjectId": null
+    }
+  ],
+  "count": 53,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -245,11 +402,11 @@
   </section>
 </article>
 
-<article id="get-projects" class="cf-grid-container dev-doc-item-container">
+<article id="get-all-user-projects" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Projects<span class="requestType">GET</span></h3>
+    <h3>Get All User Projects<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All User Projects.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -276,35 +433,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
               </div>
             </div>
           </div>
         </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
         <li data-location="path">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>limit</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -320,7 +470,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/projects</p>
+          <p class="url">https://api.fyipe.com/project/projects?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -330,7 +480,71 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e347557f798176b8ece8d58",
+      "users": [
+        {
+          "_id": "5e347557f798176b8ece8d59",
+          "userId": "5e2ecf3f516aae26b133f352",
+          "role": "Owner"
+        }
+      ],
+      "createdAt": "2020-01-31T18:43:35.607Z",
+      "adminNotes": null,
+      "name": "Cello",
+      "slug": "Cello-61372",
+      "apiKey": "96a0f350-4459-11ea-b8dc-a9123d3dcd0f",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GeNDRg0ncePzAp",
+      "parentProjectId": null
+    },
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e2ecf45516aae26b133f354",
+      "users": [
+        {
+          "_id": "5e2ecf45516aae26b133f355",
+          "userId": "5e2ecf3f516aae26b133f352",
+          "role": "Owner"
+        }
+      ],
+      "createdAt": "2020-01-27T11:53:41.352Z",
+      "adminNotes": null,
+      "name": "Bello",
+      "slug": "Unnamed-Project-41282",
+      "apiKey": "a98ab430-40fb-11ea-b3a8-83c18e01a99f",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GclhCoRrdskNuu",
+      "parentProjectId": null
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -343,7 +557,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Project<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Single Project.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -363,28 +577,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -414,7 +606,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/projects/:projectId</p>
+          <p class="url">https://api.fyipe.com/project/projects/5e2ecf45516aae26b133f354</p>
         </div>
       </div>
 
@@ -424,7 +616,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e2ecf45516aae26b133f354",
+  "users": [
+    {
+      "_id": "5e2ecf45516aae26b133f355",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-01-27T11:53:41.352Z",
+  "adminNotes": null,
+  "name": "Bello",
+  "slug": "Unnamed-Project-41282",
+  "apiKey": "a98ab430-40fb-11ea-b3a8-83c18e01a99f",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_GclhCoRrdskNuu",
+  "parentProjectId": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -437,7 +660,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Reset API Key<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Reset API Key.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -457,28 +680,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -508,7 +709,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/resetToken</p>
+          <p class="url">https://api.fyipe.com/project/5e347557f798176b8ece8d58/resetToken</p>
         </div>
       </div>
 
@@ -518,7 +719,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e347557f798176b8ece8d58",
+  "users": [
+    {
+      "_id": "5e347557f798176b8ece8d59",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-01-31T18:43:35.607Z",
+  "adminNotes": null,
+  "name": "Cello",
+  "slug": "Cello-61372",
+  "apiKey": "17e28c90-49db-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_GeNDRg0ncePzAp",
+  "parentProjectId": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -531,7 +763,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Rename Project<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Rename Project.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -551,28 +783,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -624,12 +834,16 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/renameProject</p>
+          <p class="url">https://api.fyipe.com/project/5e347557f798176b8ece8d58/renameProject</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "projectName": "Cello"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -641,7 +855,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e347557f798176b8ece8d58",
+  "users": [
+    {
+      "_id": "5e347557f798176b8ece8d59",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-01-31T18:43:35.607Z",
+  "adminNotes": null,
+  "name": "Cello",
+  "slug": "Cello-61372",
+  "apiKey": "17e28c90-49db-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_GeNDRg0ncePzAp",
+  "parentProjectId": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -654,7 +899,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Project<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete Project.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -674,28 +919,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -725,7 +948,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/deleteProject</p>
+          <p class="url">https://api.fyipe.com/project/5e3db43990968537f188cef2/deleteProject</p>
         </div>
       </div>
 
@@ -735,7 +958,40 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": true,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e3db43990968537f188cef2",
+  "users": [
+    {
+      "_id": "5e3db43990968537f188cef3",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-02-07T19:02:17.884Z",
+  "adminNotes": null,
+  "name": "Fello",
+  "slug": "Fello-16018",
+  "apiKey": "5c53ccd0-49dc-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_Gh05qms37gLKxg",
+  "parentProjectId": null,
+  "__v": 0,
+  "deletedAt": "2020-02-07T19:02:53.996Z",
+  "deletedById": "5e2ecf3f516aae26b133f352"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -748,7 +1004,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Alert Options<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit Alert Options.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -768,28 +1024,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -841,12 +1075,22 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/alertOptions</p>
+          <p class="url">https://api.fyipe.com/project/5e347557f798176b8ece8d58/alertOptions</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertEnable": false,
+  "billingNonUSCountries": false,
+  "billingRiskCountries": false,
+  "billingUS": true,
+  "minimumBalance": "20",
+  "rechargeToBalance": "40",
+  "_id": "5e347557f798176b8ece8d58"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -858,7 +1102,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e347557f798176b8ece8d58",
+  "users": [
+    {
+      "_id": "5e347557f798176b8ece8d59",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-01-31T18:43:35.607Z",
+  "adminNotes": null,
+  "name": "Cello",
+  "slug": "Cello-61372",
+  "apiKey": "17e28c90-49db-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_GeNDRg0ncePzAp",
+  "parentProjectId": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -867,11 +1142,11 @@
   </section>
 </article>
 
-<article id="change-plan" class="cf-grid-container dev-doc-item-container">
+<article id="change-project-plan" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Change Plan<span class="requestType">POST</span></h3>
+    <h3>Change Project Plan<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Change Project Plan.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -891,28 +1166,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -964,12 +1217,19 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/changePlan</p>
+          <p class="url">https://api.fyipe.com/project/5e347557f798176b8ece8d58/changePlan</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "projectName": "Cello",
+  "planId": "plan_EgTJMZULfh6THW",
+  "oldPlan": "Basic Monthly ($8 / Month / User)",
+  "newPlan": "Basic Monthly ($8 / Month / User)"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -981,7 +1241,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e347557f798176b8ece8d58",
+  "users": [
+    {
+      "_id": "5e347557f798176b8ece8d59",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-01-31T18:43:35.607Z",
+  "adminNotes": null,
+  "name": "Cello",
+  "slug": "Cello-61372",
+  "apiKey": "17e28c90-49db-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_Gh012Pke0BC6z4",
+  "parentProjectId": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -994,7 +1285,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Upgrade To Enterprise<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Upgrade Project To Enterprise.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1014,28 +1305,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -1087,12 +1356,17 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/upgradeToEnterprise</p>
+          <p class="url">https://api.fyipe.com/project/5e3db43990968537f188cef2/upgradeToEnterprise</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "projectName": "Zello",
+  "oldPlan": "plan_EgTJMZULfh6THW"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1104,7 +1378,9 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+Mail Sent Successfully!                
+              </p>
             </code>
           </pre>
         </div>
@@ -1113,11 +1389,11 @@
   </section>
 </article>
 
-<article id="get-team-member" class="cf-grid-container dev-doc-item-container">
+<article id="get-all-team-member-projects" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Team Member<span class="requestType">GET</span></h3>
+    <h3>Get All Team Member Projects<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Team Member Projects.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1144,13 +1420,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -1172,7 +1463,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>The user id of the project user.</p>
+                <p>The user id of the project team member.</p>
               </div>
             </div>
           </div>
@@ -1188,7 +1479,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/projects/user/:userId</p>
+          <p class="url">https://api.fyipe.com/project/projects/user/5e2ecf3f516aae26b133f352?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -1198,7 +1489,193 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e347557f798176b8ece8d58",
+      "users": [
+        {
+          "isVerified": true,
+          "onCallAlert": null,
+          "twoFactorAuthEnabled": false,
+          "backupCodes": [
+            {
+              "code": "80656207",
+              "counter": 0
+            },
+            {
+              "code": "78637838",
+              "counter": 1
+            },
+            {
+              "code": "48066866",
+              "counter": 2
+            },
+            {
+              "code": "26884181",
+              "counter": 3
+            },
+            {
+              "code": "41967906",
+              "counter": 4
+            },
+            {
+              "code": "57108620",
+              "counter": 5
+            },
+            {
+              "code": "33195921",
+              "counter": 6
+            },
+            {
+              "code": "77324177",
+              "counter": 7
+            }
+          ],
+          "disabled": false,
+          "paymentFailedDate": null,
+          "isBlocked": false,
+          "alertPhoneNumber": "",
+          "_id": "5e2ecf3f516aae26b133f352",
+          "createdAt": "2020-01-27T11:53:35.429Z",
+          "lastActive": "2020-02-07T18:37:25.707Z",
+          "adminNotes": null,
+          "name": "Nawaz Dhandala",
+          "email": "nawazdhandala@hackerbay.io",
+          "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+          "companyName": "Hackerbay",
+          "companyRole": null,
+          "companySize": null,
+          "referral": null,
+          "companyPhoneNumber": "08158486068",
+          "profilePic": null,
+          "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ",
+          "stripeCustomerId": "cus_GclhJ8JTR1IpOw",
+          "resetPasswordToken": null,
+          "resetPasswordExpires": null,
+          "timezone": null,
+          "coupon": null,
+          "tempEmail": null,
+          "twoFactorSecretCode": "KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+          "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+          "tutorial": {}
+        }
+      ],
+      "createdAt": "2020-01-31T18:43:35.607Z",
+      "adminNotes": null,
+      "name": "Cello",
+      "slug": "Cello-61372",
+      "apiKey": "96a0f350-4459-11ea-b8dc-a9123d3dcd0f",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GeNDRg0ncePzAp",
+      "parentProjectId": null
+    },
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e2ecf45516aae26b133f354",
+      "users": [
+        {
+          "isVerified": true,
+          "onCallAlert": null,
+          "twoFactorAuthEnabled": false,
+          "backupCodes": [
+            {
+              "code": "80656207",
+              "counter": 0
+            },
+            {
+              "code": "78637838",
+              "counter": 1
+            },
+            {
+              "code": "48066866",
+              "counter": 2
+            },
+            {
+              "code": "26884181",
+              "counter": 3
+            },
+            {
+              "code": "41967906",
+              "counter": 4
+            },
+            {
+              "code": "57108620",
+              "counter": 5
+            },
+            {
+              "code": "33195921",
+              "counter": 6
+            },
+            {
+              "code": "77324177",
+              "counter": 7
+            }
+          ],
+          "disabled": false,
+          "paymentFailedDate": null,
+          "isBlocked": false,
+          "alertPhoneNumber": "",
+          "_id": "5e2ecf3f516aae26b133f352",
+          "createdAt": "2020-01-27T11:53:35.429Z",
+          "lastActive": "2020-02-07T18:37:25.707Z",
+          "adminNotes": null,
+          "name": "Nawaz Dhandala",
+          "email": "nawazdhandala@hackerbay.io",
+          "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+          "companyName": "Hackerbay",
+          "companyRole": null,
+          "companySize": null,
+          "referral": null,
+          "companyPhoneNumber": "08158486068",
+          "profilePic": null,
+          "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ",
+          "stripeCustomerId": "cus_GclhJ8JTR1IpOw",
+          "resetPasswordToken": null,
+          "resetPasswordExpires": null,
+          "timezone": null,
+          "coupon": null,
+          "tempEmail": null,
+          "twoFactorSecretCode": "KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+          "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+          "tutorial": {}
+        }
+      ],
+      "createdAt": "2020-01-27T11:53:41.352Z",
+      "adminNotes": null,
+      "name": "Bello",
+      "slug": "Unnamed-Project-41282",
+      "apiKey": "a98ab430-40fb-11ea-b3a8-83c18e01a99f",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GclhCoRrdskNuu",
+      "parentProjectId": null
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1211,7 +1688,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Team Member<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete Team Member.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1231,28 +1708,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -1281,7 +1736,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>The user id of the project user.</p>
+                <p>The user id of the project team member.</p>
               </div>
             </div>
           </div>
@@ -1297,7 +1752,8 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/user/:userId/exitProject</p>
+          <p class="url">
+            https://api.fyipe.com/project/5e3db40790968537f188cee1/user/5e2ecf3f516aae26b133f352/exitProject</p>
         </div>
       </div>
 
@@ -1307,7 +1763,9 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+User successfully exited the project
+              </p>
             </code>
           </pre>
         </div>
@@ -1320,7 +1778,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create SubProject<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Create SubProject.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1332,28 +1790,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/project/:projectId/subProject</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -1413,12 +1849,16 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/subProject</p>
+          <p class="url">https://api.fyipe.com/project/5e3db40790968537f188cee1/subProject</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "subProjectName": "Vello"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1430,7 +1870,41 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "alertOptions": {
+      "billingUS": true,
+      "billingNonUSCountries": false,
+      "billingRiskCountries": false
+    },
+    "seats": "1",
+    "alertEnable": false,
+    "alertLimitReached": false,
+    "balance": 0,
+    "isBlocked": false,
+    "_id": "5e3db51390968537f188cef7",
+    "users": [
+      {
+        "_id": "5e3db40790968537f188cee2",
+        "userId": "5e2ecf3f516aae26b133f352",
+        "role": "Owner"
+      }
+    ],
+    "createdAt": "2020-02-07T19:05:55.143Z",
+    "adminNotes": null,
+    "name": "Vello",
+    "slug": "Vello-32034",
+    "apiKey": "ddd332a0-49dc-11ea-9025-59d19fb1a7b1",
+    "stripePlanId": null,
+    "stripeSubscriptionId": null,
+    "parentProjectId": {
+      "_id": "5e3db40790968537f188cee1",
+      "name": "Dello"
+    }
+  }
+]              
+              </p>
             </code>
           </pre>
         </div>
@@ -1439,11 +1913,11 @@
   </section>
 </article>
 
-<article id="get-subprojects" class="cf-grid-container dev-doc-item-container">
+<article id="get-all-subprojects" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get SubProjects<span class="requestType">GET</span></h3>
+    <h3>Get All SubProjects<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All SubProjects.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1455,28 +1929,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/project/:projectId/subProject</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -1514,7 +1966,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/subProject</p>
+          <p class="url">https://api.fyipe.com/project/5e2ecf45516aae26b133f354/subProject</p>
         </div>
       </div>
 
@@ -1524,7 +1976,44 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e321f54542c6f61d1292a5a",
+      "users": [
+        {
+          "_id": "5e2ecf45516aae26b133f355",
+          "userId": "5e2ecf3f516aae26b133f352",
+          "role": "Owner"
+        }
+      ],
+      "createdAt": "2020-01-30T00:12:04.455Z",
+      "adminNotes": null,
+      "name": "Vello",
+      "slug": "Vello-01020",
+      "apiKey": "2521e320-42f5-11ea-9574-31ddcc0c3f10",
+      "stripePlanId": null,
+      "stripeSubscriptionId": null,
+      "parentProjectId": {
+        "_id": "5e2ecf45516aae26b133f354",
+        "name": "Bello"
+      }
+    }
+  ],
+  "count": 1
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1537,85 +2026,63 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Rename SubProject<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
-    </p>
+      <p>Rename SubProject./p>
+      </p>
 
-    <div class="attribute-parameter-container">
-      <h3>Path</h3>
+      <div class="attribute-parameter-container">
+        <h3>Path</h3>
 
-      <ul class="doc-item-detail-container">
-        <li>
-          <div class="cf-grid-row">
-            <div class="col-full">
-              <div class="item-title">
-                <span>https://api.fyipe.com/project/:projectId/:subProjectId</span>
+        <ul class="doc-item-detail-container">
+          <li>
+            <div class="cf-grid-row">
+              <div class="col-full">
+                <div class="item-title">
+                  <span>https://api.fyipe.com/project/:projectId/:subProjectId</span>
+                </div>
               </div>
             </div>
-          </div>
-        </li>
-      </ul>
-    </div>
+          </li>
+        </ul>
+      </div>
 
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
+      <div class="attribute-parameter-container">
+        <h3>Path Variables</h3>
 
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+        <ul class="doc-item-detail-container">
+          <li data-location="path">
+            <div class="cf-grid-row">
+              <div class="col-lg-third-1 pull-left">
+                <div class="item-title">
+                  <span>projectId</span>
+                  <span class="item-type"></span>
+                </div>
+              </div>
+              <div class="col-lg-third-2 pull-left">
+                <div class="item-description">
+                  <p>The project id of the project.</p>
+                </div>
               </div>
             </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
+          </li>
+          <li data-location="path">
+            <div class="cf-grid-row">
+              <div class="col-lg-third-1 pull-left">
+                <div class="item-title">
+                  <span>subProjectId</span>
+                  <span class="item-type"></span>
+                </div>
+              </div>
+              <div class="col-lg-third-2 pull-left">
+                <div class="item-description">
+                  <p>The subproject id of the project.</p>
+                </div>
               </div>
             </div>
-          </div>
-        </li>
-      </ul>
-    </div>
+          </li>
+        </ul>
+      </div>
 
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>projectId</span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>The project id of the project.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>subProjectId</span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>The subproject id of the project.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <!-- <div class="attribute-parameter-container">
+      <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -1645,12 +2112,16 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/:subProjectId</p>
+          <p class="url">https://api.fyipe.com/project/5e2ecf45516aae26b133f354/5e321f54542c6f61d1292a5a</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "subProjectName": "Vello"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1662,7 +2133,41 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e321f54542c6f61d1292a5a",
+  "users": [
+    {
+      "_id": "5e2ecf45516aae26b133f355",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-01-30T00:12:04.455Z",
+  "adminNotes": null,
+  "name": "Vello",
+  "slug": "Vello-01020",
+  "apiKey": "2521e320-42f5-11ea-9574-31ddcc0c3f10",
+  "stripePlanId": null,
+  "stripeSubscriptionId": null,
+  "parentProjectId": {
+    "_id": "5e2ecf45516aae26b133f354",
+    "name": "Bello"
+  },
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1675,7 +2180,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete SubProject<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete SubProject.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1687,28 +2192,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/project/:projectId/:subProjectId</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -1761,7 +2244,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/:subProjectId</p>
+          <p class="url">https://api.fyipe.com/project/5e3db40790968537f188cee1/5e3db49190968537f188cef4</p>
         </div>
       </div>
 
@@ -1771,7 +2254,40 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": true,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e3db49190968537f188cef4",
+  "users": [
+    {
+      "_id": "5e3db40790968537f188cee2",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-02-07T19:03:45.177Z",
+  "adminNotes": null,
+  "name": "Vello",
+  "slug": "Vello-02850",
+  "apiKey": "905ce020-49dc-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": null,
+  "stripeSubscriptionId": null,
+  "parentProjectId": "5e3db40790968537f188cee1",
+  "__v": 0,
+  "deletedAt": "2020-02-07T19:05:11.436Z",
+  "deletedById": "5e2ecf3f516aae26b133f352"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1784,7 +2300,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Block Project<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Block Project.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1804,28 +2320,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -1877,14 +2371,14 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/blockProject</p>
+          <p class="url">https://api.fyipe.com/project/5e347557f798176b8ece8d58/blockProject</p>
 
-          <p>Request Body</p>
+          <!-- <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p></p>
             </code>
-          </pre>
+          </pre> -->
         </div>
       </div>
 
@@ -1894,7 +2388,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": true,
+  "_id": "5e347557f798176b8ece8d58",
+  "users": [
+    {
+      "_id": "5e347557f798176b8ece8d59",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-01-31T18:43:35.607Z",
+  "adminNotes": null,
+  "name": "Cello",
+  "slug": "Cello-61372",
+  "apiKey": "17e28c90-49db-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_Gh012Pke0BC6z4",
+  "parentProjectId": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1907,7 +2432,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Unblock Project<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Unblock Project.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1927,28 +2452,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -2000,14 +2503,14 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/unblockProject</p>
+          <p class="url">https://api.fyipe.com/project/5e347557f798176b8ece8d58/unblockProject</p>
 
-          <p>Request Body</p>
+          <!-- <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p></p>
             </code>
-          </pre>
+          </pre> -->
         </div>
       </div>
 
@@ -2017,7 +2520,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e347557f798176b8ece8d58",
+  "users": [
+    {
+      "_id": "5e347557f798176b8ece8d59",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-01-31T18:43:35.607Z",
+  "adminNotes": null,
+  "name": "Cello",
+  "slug": "Cello-61372",
+  "apiKey": "17e28c90-49db-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_Gh012Pke0BC6z4",
+  "parentProjectId": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -2030,7 +2564,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Restore Project<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Restore Project.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -2050,28 +2584,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -2123,14 +2635,14 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/restoreProject</p>
+          <p class="url">https://api.fyipe.com/project/5e3db43990968537f188cef2/restoreProject</p>
 
-          <p>Request Body</p>
+          <!-- <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p></p>
             </code>
-          </pre>
+          </pre> -->
         </div>
       </div>
 
@@ -2140,7 +2652,40 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e3db43990968537f188cef2",
+  "users": [
+    {
+      "_id": "5e3db43990968537f188cef3",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-02-07T19:02:17.884Z",
+  "adminNotes": null,
+  "name": "Fello",
+  "slug": "Fello-16018",
+  "apiKey": "5c53ccd0-49dc-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_Gh0HqwYiQVH8G1",
+  "parentProjectId": null,
+  "__v": 0,
+  "deletedAt": null,
+  "deletedById": "5e2ecf3f516aae26b133f352"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -2153,7 +2698,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Search Projects<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Search Projects.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -2180,13 +2725,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -2229,7 +2789,11 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "filter": "Bello"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -2241,7 +2805,45 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e2ecf45516aae26b133f354",
+      "users": [
+        {
+          "userId": "5e2ecf3f516aae26b133f352",
+          "email": "nawazdhandala@hackerbay.io",
+          "name": "Nawaz Dhandala",
+          "role": "Owner",
+          "lastActive": "2020-02-07T18:41:48.846Z"
+        }
+      ],
+      "createdAt": "2020-01-27T11:53:41.352Z",
+      "adminNotes": null,
+      "name": "Bello",
+      "slug": "Unnamed-Project-41282",
+      "apiKey": "a98ab430-40fb-11ea-b3a8-83c18e01a99f",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GclhCoRrdskNuu",
+      "parentProjectId": null
+    }
+  ],
+  "count": 1,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -2250,11 +2852,11 @@
   </section>
 </article>
 
-<article id="add-note" class="cf-grid-container dev-doc-item-container">
+<article id="add-project-note" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Add Note<span class="requestType">POST</span></h3>
+    <h3>Add Project Note<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Add Project Note.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -2266,28 +2868,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/project/:projectId/addNote</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -2347,12 +2927,18 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/project/:projectId/addNote</p>
+          <p class="url">https://api.fyipe.com/project/5e3db43990968537f188cef2/addNote</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "note": "Hello"
+  }
+]
+              </p>
             </code>
           </pre>
         </div>
@@ -2364,7 +2950,153 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "_id": "5e3db82c90968537f188d079",
+    "note": "Hello"
+  }
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="renew-alert-limit" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Renew Alert Limit<span class="requestType">PUT</span></h3>
+    <p>
+      <p>Renew Alert Limit.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/project/:projectId/renewAlertLimit</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/project/5e3db43990968537f188cef2/renewAlertLimit</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "alertLimit": "10"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "alertOptions": {
+    "billingUS": true,
+    "billingNonUSCountries": false,
+    "billingRiskCountries": false
+  },
+  "seats": "1",
+  "deleted": false,
+  "alertEnable": false,
+  "alertLimitReached": false,
+  "balance": 0,
+  "isBlocked": false,
+  "_id": "5e3db43990968537f188cef2",
+  "users": [
+    {
+      "_id": "5e3db43990968537f188cef3",
+      "userId": "5e2ecf3f516aae26b133f352",
+      "role": "Owner"
+    }
+  ],
+  "createdAt": "2020-02-07T19:02:17.884Z",
+  "adminNotes": null,
+  "name": "Fello",
+  "slug": "Fello-16018",
+  "apiKey": "5c53ccd0-49dc-11ea-9025-59d19fb1a7b1",
+  "stripePlanId": "plan_EgTJMZULfh6THW",
+  "stripeSubscriptionId": "sub_Gh0HqwYiQVH8G1",
+  "parentProjectId": null,
+  "__v": 0,
+  "deletedAt": null,
+  "deletedById": "5e2ecf3f516aae26b133f352",
+  "alertLimit": "10"
+}                
+              </p>
             </code>
           </pre>
         </div>
