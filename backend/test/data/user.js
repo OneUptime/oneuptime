@@ -1,4 +1,4 @@
-var StringUtil = require('../utils/string')
+var StringUtil = require('../utils/string');
 
 module.exports = {
     user: {

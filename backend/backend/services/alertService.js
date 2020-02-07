@@ -257,7 +257,7 @@ module.exports = {
                                 let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
                                 let firstName = user.name;
                                 if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-                                    date = momentTz(date).tz(user.timezone).format();
+                                    date = moment(date).tz(user.timezone).format();
                                 }
 
                                 try {
@@ -455,8 +455,8 @@ module.exports = {
         }
 
         var currentDate = new Date();
-        var escalationStartTime = DateTime.changeDateTimezone(escalationStartTime, timezone);
-        var escalationEndTime = DateTime.changeDateTimezone(esccalationEndTime, timezone);
+        escalationStartTime = DateTime.changeDateTimezone(escalationStartTime, timezone);
+        escalationEndTime = DateTime.changeDateTimezone(escalationEndTime, timezone);
         return DateTime.isInBetween(currentDate, escalationStartTime, escalationEndTime);
     },
 
@@ -571,4 +571,5 @@ var { BACKEND_HOST } = process.env;
 var { twilioAlertLimit } = require('../config/twilio');
 var SmsCountService = require('./smsCountService');
 var DateTime = require('../utils/DateTime');
-const momentTz = require('moment-timezone');
+const moment = require('moment-timezone');
+const TimeZoneNames = moment.tz.names();
