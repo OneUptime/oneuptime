@@ -26,6 +26,9 @@ const styles = () => ({
 });
 
 const DateTimeSelector = ({ input, meta: { touched, error }, style, classes }) => {
+    if (!input.value) {
+        input.value = null
+    }
     const [value, setValue] = useState(input.value);
     const handleChange = (option) => {
         setValue(option);
@@ -54,7 +57,7 @@ const DateTimeSelector = ({ input, meta: { touched, error }, style, classes }) =
                           KeyboardButtonProps={{
                             'aria-label': 'change time',
                           }}
-                          emptyLabel="Select Date"
+                          emptyLabel="Select Date and Time"
                           initialFocusedDate={null}
                           InputProps={{ className: classes.input, disableUnderline: true }}
                       />

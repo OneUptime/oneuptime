@@ -74,7 +74,7 @@ RenderActiveTeamMembers = connect(mapStateToProps)(RenderActiveTeamMembers);
 
 RenderActiveTeamMembers.propTypes = {
   team: PropTypes.object.isRequired,
-  subProjectTeam: PropTypes.object.isRequired,
+  subProjectTeam: PropTypes.object,
   rotationFrequency: PropTypes.string,
   rotationSwitchTime: PropTypes.string,
   activeTeam: PropTypes.bool,
