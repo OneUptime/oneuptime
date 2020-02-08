@@ -84,7 +84,7 @@ class Main extends Component {
 				return (
 					<div key={i} style={monitorCategoryGroupContainerStyle} className="uptime-graph-header">
 						<div id={`monitorCategory${i}`} style={monitorCategoryStyle}>
-							<span>{groupedMonitors[0].monitorCategoryId ? groupedMonitors[0].monitorCategoryId.name.toUpperCase() : 'Uncategorized'}</span>
+							<span>{groupedMonitors[0].monitorCategoryId ? groupedMonitors[0].monitorCategoryId.name.toUpperCase() : 'Uncategorized'.toUpperCase()}</span>
 						</div>
 						{groupedMonitors.map((monitor, i) => {
 							return (<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />);
