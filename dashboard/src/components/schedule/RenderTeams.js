@@ -6,9 +6,9 @@ import { RenderMembers } from './RenderMembers';
 
 let RenderTeams = ({
   fields, subProjectId, policyIndex,
-  rotationFrequency
+  rotateBy
 }) => {
-  const canAddTeams = !!rotationFrequency
+  const canAddTeams = !!rotateBy
   return (
     <ul>
       {
@@ -103,7 +103,7 @@ RenderTeams.propTypes = {
     PropTypes.object
   ]).isRequired,
   policyIndex: PropTypes.number.isRequired,
-  rotationFrequency: PropTypes.string.isRequired
+  rotateBy: PropTypes.string.isRequired
 }
 
 export { RenderTeams };

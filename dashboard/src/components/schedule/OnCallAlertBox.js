@@ -23,36 +23,36 @@ function validate(values) {
             var repeatErrors = {};
             let escalationArrayErrors = [];
             if (values.OnCallAlertBox[i]) {
-                if (values.OnCallAlertBox[i].callFrequency === '') {
-                    repeatErrors.callFrequency = 'Please enter how many reminders to send';
+                if (values.OnCallAlertBox[i].callRetries === '') {
+                    repeatErrors.callRetries = 'Please enter how many reminders to send';
                     alertArrayErrors[i] = repeatErrors;
-                } else if (!Validate.number(values.OnCallAlertBox[i].callFrequency)) {
-                    repeatErrors.callFrequency = 'This should be a number.';
+                } else if (!Validate.number(values.OnCallAlertBox[i].callRetries)) {
+                    repeatErrors.callRetries = 'This should be a number.';
                     alertArrayErrors[i] = repeatErrors;
-                } else if (values.OnCallAlertBox[i].callFrequency <= 0) {
-                    repeatErrors.callFrequency = 'This should be greater than 0.';
-                    alertArrayErrors[i] = repeatErrors;
-                }
-
-                if (values.OnCallAlertBox[i].smsFrequency === '') {
-                    repeatErrors.smsFrequency = 'Please enter how many reminders to send';
-                    alertArrayErrors[i] = repeatErrors;
-                } else if (!Validate.number(values.OnCallAlertBox[i].smsFrequency)) {
-                    repeatErrors.smsFrequency = 'This should be a number.';
-                    alertArrayErrors[i] = repeatErrors;
-                } else if (values.OnCallAlertBox[i].smsFrequency <= 0) {
-                    repeatErrors.smsFrequency = 'This should be greater than 0';
+                } else if (values.OnCallAlertBox[i].callRetries <= 0) {
+                    repeatErrors.callRetries = 'This should be greater than 0.';
                     alertArrayErrors[i] = repeatErrors;
                 }
 
-                if (values.OnCallAlertBox[i].emailFrequency === '') {
-                    repeatErrors.emailFrequency = 'Please enter how many reminders to send.';
+                if (values.OnCallAlertBox[i].smsRetries === '') {
+                    repeatErrors.smsRetries = 'Please enter how many reminders to send';
                     alertArrayErrors[i] = repeatErrors;
-                } else if (!Validate.number(values.OnCallAlertBox[i].emailFrequency)) {
-                    repeatErrors.emailFrequency = 'This should be a number.';
+                } else if (!Validate.number(values.OnCallAlertBox[i].smsRetries)) {
+                    repeatErrors.smsRetries = 'This should be a number.';
                     alertArrayErrors[i] = repeatErrors;
-                } else if (values.OnCallAlertBox[i].emailFrequency <= 0) {
-                    repeatErrors.emailFrequency = 'This should be greater than 0';
+                } else if (values.OnCallAlertBox[i].smsRetries <= 0) {
+                    repeatErrors.smsRetries = 'This should be greater than 0';
+                    alertArrayErrors[i] = repeatErrors;
+                }
+
+                if (values.OnCallAlertBox[i].emailRetries === '') {
+                    repeatErrors.emailRetries = 'Please enter how many reminders to send.';
+                    alertArrayErrors[i] = repeatErrors;
+                } else if (!Validate.number(values.OnCallAlertBox[i].emailRetries)) {
+                    repeatErrors.emailRetries = 'This should be a number.';
+                    alertArrayErrors[i] = repeatErrors;
+                } else if (values.OnCallAlertBox[i].emailRetries <= 0) {
+                    repeatErrors.emailRetries = 'This should be greater than 0';
                     alertArrayErrors[i] = repeatErrors;
                 }
             }
@@ -121,15 +121,15 @@ export class OnCallAlertBox extends Component {
                                             className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                             onClick={() => this.props.pushArray('OnCallAlertBox', 'OnCallAlertBox',
                                                 {
-                                                    callFrequency: 3,
-                                                    smsFrequency: 3,
-                                                    emailFrequency: 3,
+                                                    callRetries: 3,
+                                                    smsRetries: 3,
+                                                    emailRetries: 3,
                                                     email: true,
                                                     sms: false,
                                                     call: false,
-                                                    rotationFrequency: '',
+                                                    rotateBy: '',
                                                     rotationInterval: '',
-                                                    rotationSwitchTime: '',
+                                                    firstRotationOn: '',
                                                     rotationTimezone: '',
                                                     teams: [
                                                         {
@@ -229,9 +229,9 @@ const mapStateToProps = (state, props) => {
 
     let OnCallAlertBox = escalations && escalations.length > 0 ? escalations : [
         {
-            callFrequency: '3',
-            smsFrequency: '3',
-            emailFrequency: '3',
+            callRetries: '3',
+            smsRetries: '3',
+            emailRetries: '3',
             email: true,
             sms: false,
             call: false,

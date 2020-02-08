@@ -5,11 +5,11 @@ const DateTime = require('../utils/DateTime');
 
 module.exports = {
 
-    findBy: async function (query, limit, skip) {
+    findBy: async function ({query, limit, skip, sort}) {
         try {
             if (!skip) skip = 0;
 
-            if (!limit) limit = 0;
+            if (!limit) limit = 10;
 
             if (typeof (skip) === 'string') skip = parseInt(skip);
 
@@ -19,7 +19,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             var escalations = await EscalationModel.find(query)
-                .sort([['createdAt', -1]])
+                .sort(sort)
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
@@ -64,12 +64,12 @@ module.exports = {
                 call: data.call,
                 email: data.email,
                 sms: data.sms,
-                callFrequency: data.callFrequency,
-                smsFrequency: data.smsFrequency,
-                emailFrequency: data.emailFrequency,
-                rotationFrequency: data.rotationFrequency,
+                callRetries: data.callRetries,
+                smsRetries: data.smsRetries,
+                emailRetries: data.emailRetries,
+                rotateBy: data.rotateBy,
                 rotationInterval: data.rotationInterval,
-                rotationSwitchTime: data.rotationSwitchTime,
+                firstRotationOn: data.firstRotationOn,
                 rotationTimezone: data.rotationTimezone,
                 projectId: data.projectId,
                 scheduleId: data.scheduleId,
@@ -159,7 +159,7 @@ module.exports = {
     removeEscalationMember: async function (projectId, memberId) {
         try {
             var _this = this;
-            var escalations = await _this.findBy({ projectId });
+            var escalations = await _this.findBy({qeury:{ projectId }});
 
             if (escalations && escalations.length > 0) {
                 await Promise.all(escalations.map(async (escalation) => {
@@ -186,7 +186,7 @@ module.exports = {
     restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
-        let escalation = await _this.findBy(query);
+        let escalation = await _this.findBy({query});
         if (escalation && escalation.length > 1) {
             const escalations = await Promise.all(escalation.map(async (escalation) => {
                 const escalationId = escalation._id;
@@ -222,44 +222,44 @@ function computeActiveTeamIndex(numberOfTeams, intervalDifference, rotationInter
 function computeActiveTeams(escalation) {
 
     let {
-        teams, rotationInterval, rotationFrequency,
-        rotationSwitchTime, createdAt, rotationTimezone
+        teams, rotationInterval, rotateBy,
+        firstRotationOn, createdAt, rotationTimezone
     } = escalation;
 
     const currentDate = new Date();
 
 
 
-    if (rotationFrequency && rotationFrequency != '') {
+    if (rotateBy && rotateBy != '') {
 
         var intervalDifference = 0;
 
         //convert rotation switch time to timezone. 
-        rotationSwitchTime = DateTime.changeDateTimezone(rotationSwitchTime, rotationTimezone);
+        firstRotationOn = DateTime.changeDateTimezone(firstRotationOn, rotationTimezone);
 
-        if (rotationFrequency === 'months') {
-            intervalDifference = DateTime.getDifferenceInMonths(rotationSwitchTime, currentDate);
+        if (rotateBy === 'months') {
+            intervalDifference = DateTime.getDifferenceInMonths(firstRotationOn, currentDate);
         }
 
-        if (rotationFrequency === 'weeks') {
-            intervalDifference = DateTime.getDifferenceInWeeks(rotationSwitchTime, currentDate);
+        if (rotateBy === 'weeks') {
+            intervalDifference = DateTime.getDifferenceInWeeks(firstRotationOn, currentDate);
         }
 
-        if (rotationFrequency === 'days') {
-            intervalDifference = DateTime.getDifferenceInDays(rotationSwitchTime, currentDate);
+        if (rotateBy === 'days') {
+            intervalDifference = DateTime.getDifferenceInDays(firstRotationOn, currentDate);
         }
 
         const activeTeamIndex = computeActiveTeamIndex(teams.length, intervalDifference, rotationInterval);
         let activeTeamRotationStartTime = null;
 
         //if the first rotation hasn't kicked in yet. 
-        if (DateTime.lessThan(currentDate, rotationSwitchTime)) {
+        if (DateTime.lessThan(currentDate, firstRotationOn)) {
             activeTeamRotationStartTime = createdAt;
         } else {
-            activeTeamRotationStartTime = moment(rotationSwitchTime).add(intervalDifference, rotationFrequency);
+            activeTeamRotationStartTime = moment(firstRotationOn).add(intervalDifference, rotateBy);
         }
 
-        let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotationFrequency);
+        let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotateBy);
 
         const activeTeam = {
             _id: teams[activeTeamIndex]._id,
@@ -276,7 +276,7 @@ function computeActiveTeams(escalation) {
         }
 
         const nextActiveTeamRotationStartTime = activeTeamRotationEndTime;
-        const nextActiveTeamRotationEndTime = moment(nextActiveTeamRotationStartTime).add(rotationInterval, rotationFrequency);
+        const nextActiveTeamRotationEndTime = moment(nextActiveTeamRotationStartTime).add(rotationInterval, rotateBy);
         const nextActiveTeam = {
             _id: teams[nextActiveTeamIndex]._id,
             teamMembers: teams[nextActiveTeamIndex].teamMembers,

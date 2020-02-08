@@ -122,7 +122,7 @@ let EscalationSummarySingle = ({
 
                     })}
                     {isActiveTeam && <><div>
-                        <p><b>Reminders: </b>{escalation.call && <span>{escalation.callFrequency}  Call reminders</span>} {escalation.call && escalation.sms && <span>,</span>} {escalation.sms && <span>{escalation.smsFrequency}  SMS reminders</span>} {(escalation.sms || escalation.call) && escalation.email && <span>,</span>} {escalation.email && <span>{escalation.emailFrequency}  Email reminders</span>} <span> will be sent to each member of this team if they do not respond. <br /></span></p>
+                        <p><b>Reminders: </b>{escalation.call && <span>{escalation.callRetries}  Call reminders</span>} {escalation.call && escalation.sms && <span>,</span>} {escalation.sms && <span>{escalation.smsRetries}  SMS reminders</span>} {(escalation.sms || escalation.call) && escalation.email && <span>,</span>} {escalation.email && <span>{escalation.emailRetries}  Email reminders</span>} <span> will be sent to each member of this team if they do not respond. <br /></span></p>
                     </div>
                         {hasNextEscalationPolicy && <span><br /><b>Information: </b>If they do not respond. The inident will be escalated to escalation policy {currentEscalationPolicyCount + 1} <br /></span>}
                         {!hasNextEscalationPolicy && <span> <br /><b><span className="red">Alert:</span> </b>If they do not respond. Then the incident is at the risk of being ignored. <br /></span>}

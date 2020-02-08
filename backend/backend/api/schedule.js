@@ -129,79 +129,79 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 });
             }
 
-            if(value.email && !value.emailFrequency){
+            if(value.email && !value.emailRetries){
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Number of Email Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if(value.call && !value.callFrequency){
+            if(value.call && !value.callRetries){
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Number of Call Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if(value.sms && !value.smsFrequency){
+            if(value.sms && !value.smsRetries){
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Number of SMS Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if (value.rotationFrequency && !value.rotationInterval) {
+            if (value.rotateBy && !value.rotationInterval) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Please specify Rotation Interval '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if ((value.rotationFrequency && value.rotationInterval) && !value.rotationSwitchTime) {
+            if ((value.rotateBy && value.rotationInterval) && !value.firstRotationOn) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Please specify "First rotation happens on" '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if ((value.rotationFrequency && value.rotationInterval) && (value.rotationSwitchTime && !value.rotationTimezone)) {
+            if ((value.rotateBy && value.rotationInterval) && (value.firstRotationOn && !value.rotationTimezone)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'You must specify timezone for "First rotation happens on" '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if (value.rotationFrequency && (value.teams.length <= 1)) {
+            if (value.rotateBy && (value.teams.length <= 1)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'You need more than one team for rotations '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if(value.callFrequency && typeof value.callFrequency === 'string'){
-                value.callFrequency = parseInt(value.callFrequency);
+            if(value.callRetries && typeof value.callRetries === 'string'){
+                value.callRetries = parseInt(value.callRetries);
             }
 
-            if(value.smsFrequency && typeof value.smsFrequency === 'string'){
-                value.smsFrequency = parseInt(value.smsFrequency);
+            if(value.smsRetries && typeof value.smsRetries === 'string'){
+                value.smsRetries = parseInt(value.smsRetries);
             }
 
-            if(value.emailFrequency && typeof value.emailFrequency === 'string'){
-                value.emailFrequency = parseInt(value.emailFrequency);
+            if(value.emailRetries && typeof value.emailRetries === 'string'){
+                value.emailRetries = parseInt(value.emailRetries);
             }
 
-            if(value.rotationSwitchTime && typeof value.rotationSwitchTime === 'string'){
-                value.rotationSwitchTime = new Date(value.rotationSwitchTime);
+            if(value.firstRotationOn && typeof value.firstRotationOn === 'string'){
+                value.firstRotationOn = new Date(value.firstRotationOn);
             }
 
             
-            storagevalue.callFrequency = value.callFrequency;
-            storagevalue.smsFrequency = value.smsFrequency;
-            storagevalue.emailFrequency = value.emailFrequency;
+            storagevalue.callRetries = value.callRetries;
+            storagevalue.smsRetries = value.smsRetries;
+            storagevalue.emailRetries = value.emailRetries;
         
-            storagevalue.rotationFrequency = value.rotationFrequency;
+            storagevalue.rotateBy = value.rotateBy;
             storagevalue.rotationInterval = value.rotationInterval;
-            storagevalue.rotationSwitchTime = value.rotationSwitchTime;
+            storagevalue.firstRotationOn = value.firstRotationOn;
             storagevalue.rotationTimezone = value.rotationTimezone;
             storagevalue.email = value.email;
             storagevalue.call = value.call;

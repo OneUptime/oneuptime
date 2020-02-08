@@ -40,15 +40,16 @@ module.exports = {
     },
 
 
-    create: async function ({ projectId, incidentId, activeEscalationId, scheduleId, incidentAcknowledged }) {
+    create: async function ({ project, incident, activeEscalation, schedule, escalations, incidentAcknowledged }) {
         try {
             var item = new OnCallScheduleStatusModel();
 
-            item.projectId = projectId;
-            item.activeEscalationId = activeEscalationId;
-            item.scheduleId = scheduleId;
+            item.project = project;
+            item.activeEscalation = activeEscalation;
+            item.schedule = schedule;
             item.incidentAcknowledged = incidentAcknowledged;
-            item.incidentId = incidentId;
+            item.incident = incident;
+            item.escalations = escalations;
 
             item = await item.save();
             return item;

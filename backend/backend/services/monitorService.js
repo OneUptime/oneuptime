@@ -236,7 +236,7 @@ module.exports = {
                 await Promise.all(incidents.map(async (incident) => {
                     await IncidentService.deleteBy({ _id: incident._id }, userId);
                 }));
-                var alerts = await AlertService.findBy({ monitorId: monitor._id }, userId);
+                var alerts = await AlertService.findBy({query:{ monitorId: monitor._id }});
 
                 await Promise.all(alerts.map(async (alert) => {
                     await AlertService.deleteBy({ _id: alert._id }, userId);

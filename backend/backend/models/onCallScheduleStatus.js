@@ -11,10 +11,18 @@ var schema = new Schema({
 
     createdAt: { type: Date, default: Date.now },
    
-    projectId: { type: String, ref: 'Project' },
-    scheduleId: {type: String, ref: 'Schedule'},
-    activeEscalationId: {type: String, ref: 'Escalation'},
-    incidentId: {type: String, ref: 'Incident'},
+    project: { type: Schema.Types.ObjectId, ref: 'Project' },
+    schedule: {type: Schema.Types.ObjectId, ref: 'Schedule'},
+    activeEscalation: {type: Schema.Types.ObjectId, ref: 'Escalation'},
+
+    escalations:[{
+        escalation: {type: Schema.Types.ObjectId, ref: 'Escalation'},
+        callRemindersSent: {type: Number, default: 0},
+        smsRemindersSent: {type: Number, default: 0},
+        emailRemindersSent: {type: Number, default: 0}
+    }],
+    
+    incident: {type: Schema.Types.ObjectId, ref: 'Incident'},
     incidentAcknowledged: {type: Boolean, default: false}, //Incident attached to this schedule is acknowledged. 
     deleted: { type: Boolean, default: false},
     deletedAt: { type: Date },

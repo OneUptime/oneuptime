@@ -115,7 +115,7 @@ module.exports = {
             });
 
             if (schedule && schedule._id) {
-                var escalations = await EscalationService.findBy({ scheduleId: schedule._id });
+                var escalations = await EscalationService.findBy({query: { scheduleId: schedule._id }});
                 await escalations.map(({ _id }) => EscalationService.deleteBy({ _id: _id }, userId));
             }
 
