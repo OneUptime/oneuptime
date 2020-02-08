@@ -129,21 +129,21 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 });
             }
 
-            if(value.email && !value.emailRetries){
+            if(value.email && !value.emailReminders){
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Number of Email Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if(value.call && !value.callRetries){
+            if(value.call && !value.callReminders){
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Number of Call Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if(value.sms && !value.smsRetries){
+            if(value.sms && !value.smsReminders){
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Number of SMS Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
@@ -178,16 +178,16 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                 });
             }
 
-            if(value.callRetries && typeof value.callRetries === 'string'){
-                value.callRetries = parseInt(value.callRetries);
+            if(value.callReminders && typeof value.callReminders === 'string'){
+                value.callReminders = parseInt(value.callReminders);
             }
 
-            if(value.smsRetries && typeof value.smsRetries === 'string'){
-                value.smsRetries = parseInt(value.smsRetries);
+            if(value.smsReminders && typeof value.smsReminders === 'string'){
+                value.smsReminders = parseInt(value.smsReminders);
             }
 
-            if(value.emailRetries && typeof value.emailRetries === 'string'){
-                value.emailRetries = parseInt(value.emailRetries);
+            if(value.emailReminders && typeof value.emailReminders === 'string'){
+                value.emailReminders = parseInt(value.emailReminders);
             }
 
             if(value.firstRotationOn && typeof value.firstRotationOn === 'string'){
@@ -195,9 +195,9 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             }
 
             
-            storagevalue.callRetries = value.callRetries;
-            storagevalue.smsRetries = value.smsRetries;
-            storagevalue.emailRetries = value.emailRetries;
+            storagevalue.callReminders = value.callReminders;
+            storagevalue.smsReminders = value.smsReminders;
+            storagevalue.emailReminders = value.emailReminders;
         
             storagevalue.rotateBy = value.rotateBy;
             storagevalue.rotationInterval = value.rotationInterval;

@@ -2,6 +2,8 @@ const ErrorService = require('../services/errorService');
 const OnCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const AlertService = require('../services/alertService');
 const EscalationService = require('../services/escalationService');
+const DateTime = require('../utils/DateTime');
+const moment = require('moment');
 
 module.exports = {
 
@@ -44,17 +46,62 @@ module.exports = {
                 }
 
                 // #3 and #4
+                // get active escalation policy. 
                 
-                var escalationPolicy = await EscalationService.findOneBy({_id: notAcknowledgedCallScheduleStatuses.activeEscalationId });
-                
-
-
                 var alerts = await AlertService.findBy({query: {onCallScheduleStatus:notAcknowledgedCallScheduleStatus.id}, limit: 9999, skip: 0, sort: {createdAt:-1}}); //sort by createdAtdescending. 
+                if(alerts && alerts.length > 0 && alerts[0]){
+                    //check when the last alert was sent.  
+                    var lastAlertSent = alerts[0].createdAt; //we take '0' index because list is reverse sorted. 
+                    if(DateTime.isInLastMinute(lastAlertSent)){
+                        continue; 
+                    }
+                }
 
-                //check when the last alert was sent.  
 
+                // this case is not possible, but still...
+                if(!notAcknowledgedCallScheduleStatus.escalations && notAcknowledgedCallScheduleStatus.escalations.length === 0){
+                    var notAcknowledgedCallScheduleStatusEscalation = {
+                        escalation: notAcknowledgedCallScheduleStatus.activeEscalation,
+                        callRemindersSent: 0,
+                        smsRemindersSent: 0,
+                        emailRemindersSent: 0
+                    }
+                }
 
+                //last alert sent is > minute. then, check if this escalation policy has exhaused any alerts. 
+                notAcknowledgedCallScheduleStatusEscalation = notAcknowledgedCallScheduleStatus.escalations[notAcknowledgedCallScheduleStatus.escalations.length - 1];
 
+                var shouldSendSMSReminder = false; 
+                var shouldSendCallReminder = false;
+                var shouldSendEmailReminder = false;
+
+                var escalationPolicy = await EscalationService.findOneBy({_id: notAcknowledgedCallScheduleStatusEscalation.escalation})
+                
+                if(escalationPolicy){
+                    shouldSendSMSReminder = escalationPolicy.smsReminders > notAcknowledgedCallScheduleStatusEscalation.smsRemindersSent;
+                    shouldSendCallReminder = escalationPolicy.callReminders > notAcknowledgedCallScheduleStatusEscalation.callRemindersSent;
+                    shouldSendEmailReminder = escalationPolicy.emailReminders > notAcknowledgedCallScheduleStatusEscalation.emailRemindersSent;
+
+                    if(shouldSendCallReminder){
+                        AlertService.sendCallAlert();
+                    } 
+
+                    if(shouldSendEmailReminder){
+                        AlertService.sendEmailAlert();
+                    } 
+
+                    if(shouldSendSMSReminder){
+                        AlertService.sendSMSAlert();
+                    } 
+                    
+                    //if all the alerts are exhaused, then escalate.
+                    if(!shouldSendSMSReminder && !shouldSendEmailReminder && !shouldSendCallReminder){
+                        _escalate();
+                    }
+
+                }else{
+                    _escalate();
+                }
             }
 
         } catch (error) {
@@ -63,4 +110,8 @@ module.exports = {
         }
     }
 };
+
+async function _escalate({}){
+
+}
 

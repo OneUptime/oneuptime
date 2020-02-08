@@ -133,7 +133,7 @@ let RenderSingleEscalation = ({
                                                     <Field
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
-                                                        name={`${policy}.callRetries`}
+                                                        name={`${policy}.callReminders`}
                                                         component={RenderField}
                                                         style={{ width: '250px' }}
                                                         defaultValue="3"
@@ -156,7 +156,7 @@ let RenderSingleEscalation = ({
                                                     <Field
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
-                                                        name={`${policy}.smsRetries`}
+                                                        name={`${policy}.smsReminders`}
                                                         component={RenderField}
                                                         style={{ width: '250px' }}
                                                         defaultValue="3"
@@ -179,7 +179,7 @@ let RenderSingleEscalation = ({
                                                     <Field
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
-                                                        name={`${policy}.emailRetries`}
+                                                        name={`${policy}.emailReminders`}
                                                         component={RenderField}
                                                         style={{ width: '250px' }}
                                                         defaultValue="3"

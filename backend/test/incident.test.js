@@ -175,9 +175,9 @@ describe('Incident API', function () {
         if (selectMonitor) {
             var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
                 .send([{
-                    emailRetries: 10,
-                    callRetries: 10,
-                    smsRetries: 10,
+                    emailReminders: 10,
+                    callReminders: 10,
+                    smsReminders: 10,
                     call: true,
                     sms: true,
                     email: true,
