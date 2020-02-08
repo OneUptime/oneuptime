@@ -231,7 +231,7 @@ module.exports = {
                         activeEscalationId: escalationId, 
                         scheduleId: schedule.id, 
                         incidentAcknowledged: false
-                    })
+                    });
 
 
                     const activeTeam = escalation.activeTeam;

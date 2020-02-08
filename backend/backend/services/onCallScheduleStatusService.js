@@ -30,7 +30,7 @@ module.exports = {
                 .populate('projectId')
                 .populate('incidentId')
                 .populate('scheduleId')
-                .populate('activeEscalationId')
+                .populate('activeEscalationId');
 
             return items;
         } catch (error) {
@@ -145,6 +145,7 @@ module.exports = {
             throw error;
         }
     },
-}
+};
 
 let OnCallScheduleStatusModel = require('../models/onCallScheduleStatus');
+let ErrorService = require('./errorService');
