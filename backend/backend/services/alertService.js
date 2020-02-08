@@ -6,6 +6,7 @@
 
 module.exports = {
     checkBalance: async function (projectId, alertPhoneNumber, userId, alertType) {
+
         var project = await ProjectService.findOneBy({ _id: projectId });
         var balance = project.balance;
         var countryCode = alertPhoneNumber.split(' ')[0];
@@ -17,6 +18,7 @@ module.exports = {
         } else {
             return false;
         }
+
     },
     checkConfig: async function (projectId, alertPhoneNumber) {
         var project = await ProjectService.findOneBy({ _id: projectId });
@@ -174,7 +176,7 @@ module.exports = {
         }
     },
 
-    sendIncidentCreated: async function (incident) {
+    sendCreatedIncident: async function (incident) {
         try {
             if (incident) {
                 var _this = this;
@@ -297,12 +299,12 @@ module.exports = {
 
             }
         } catch (error) {
-            ErrorService.log('alertService.sendIncidentCreated', error);
+            ErrorService.log('alertService.sendCreatedIncident', error);
             throw error;
         }
     },
 
-    sendIncidentCreatedToSubscribers: async function (incident) {
+    sendCreatedIncidentToSubscribers: async function (incident) {
         try {
             let _this = this;
             if (incident) {
@@ -320,12 +322,12 @@ module.exports = {
                 });
             }
         } catch (error) {
-            ErrorService.log('alertService.sendIncidentCreatedToSubscribers', error);
+            ErrorService.log('alertService.sendCreatedIncidentToSubscribers', error);
             throw error;
         }
     },
 
-    sendIncidentAcknowledgedToSubscribers: async function (incident) {
+    sendAcknowledgedIncidentToSubscribers: async function (incident) {
         try {
             let _this = this;
             if (incident) {
@@ -343,12 +345,12 @@ module.exports = {
                 });
             }
         } catch (error) {
-            ErrorService.log('alertService.sendIncidentAcknowledgedToSubscribers', error);
+            ErrorService.log('alertService.sendAcknowledgedIncidentToSubscribers', error);
             throw error;
         }
     },
 
-    sendIncidentResolvedToSubscribers: async function (incident) {
+    sendResolvedIncidentToSubscribers: async function (incident) {
         try {
             let _this = this;
             if (incident) {
@@ -366,7 +368,7 @@ module.exports = {
                 });
             }
         } catch (error) {
-            ErrorService.log('alertService.sendIncidentResolvedToSubscribers', error);
+            ErrorService.log('alertService.sendResolvedIncidentToSubscribers', error);
             throw error;
         }
     },

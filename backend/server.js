@@ -7,6 +7,7 @@ var redisAdapter = require('socket.io-redis');
 var keys = require('./backend/config/keys.js');
 var bodyParser = require('body-parser');
 var cors = require('cors');
+var cron = require('./workers/main');
 
 var { NODE_ENV } = process.env;
 
@@ -96,6 +97,7 @@ app.get('/', function (req, res) {
         serviceType: 'fyipe-api'
     }));
 });
+
 app.use('/*', function (req, res) {
     res.status(404).render('notFound.ejs', {});
 });

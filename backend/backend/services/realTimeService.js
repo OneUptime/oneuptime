@@ -1,14 +1,14 @@
 var io = global.io;
 
 module.exports = {
-    sendIncidentCreated: async (incident) => {
+    sendCreatedIncident: async (incident) => {
         try {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
             io.emit(`incidentCreated-${projectId}`, incident);
         } catch (error) {
-            ErrorService.log('realTimeService.sendIncidentCreated', error);
+            ErrorService.log('realTimeService.sendCreatedIncident', error);
             throw error;
         }
     },
