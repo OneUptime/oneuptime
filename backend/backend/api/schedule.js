@@ -6,7 +6,6 @@
 
 let express = require('express');
 let ScheduleService = require('../services/scheduleService');
-let moment = require('moment');
 let router = express.Router();
 let isUserAdmin = require('../middlewares/project').isUserAdmin;
 let getUser = require('../middlewares/user').getUser;

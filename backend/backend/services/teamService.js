@@ -156,8 +156,7 @@ module.exports = {
             } else {
                 teamMembers = await _this.getTeamMembersBy({ _id: project._id });
             }
-            // const plan = await Plans.getPlanById(project.stripePlanId);
-            var seats = await _this.getSeats(projectTeamMembers);
+
             var projectSeats = project.seats;
             if (typeof (projectSeats) === 'string') {
                 projectSeats = parseInt(projectSeats);

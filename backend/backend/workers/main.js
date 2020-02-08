@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const iotMonitorCron = require('./iotMonitor');
+//const iotMonitorCron = require('./iotMonitor');
 const escalationPolicy = require('./escalationPolicy');
 
 // Generate a random number betwen 1 and 50 and use that to run cron jobs. 

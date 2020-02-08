@@ -50,7 +50,7 @@ module.exports = {
             item.incidentAcknowledged = incidentAcknowledged;
             item.incidentId = incidentId;
 
-            var item = await item.save();
+            item = await item.save();
             return item;
         } catch (error) {
             ErrorService.log('OnCallScheduleStatusService.create', error);

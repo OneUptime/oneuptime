@@ -20,7 +20,7 @@ module.exports = {
             return false;
         }
     },
-    
+
     checkConfig: async function (projectId, alertPhoneNumber) {
         var project = await ProjectService.findOneBy({ _id: projectId });
         var alertOptions = project.alertOptions;
@@ -84,7 +84,7 @@ module.exports = {
             alert.projectId = projectId;
             alert.onCallScheduleStatusId = onCallScheduleStatusId;
             alert.scheduleId = scheduleId;
-            alert.escalationId = escalation;
+            alert.escalationId = escalationId;
             alert.monitorId = monitorId;
             alert.alertVia = alertVia;
             alert.userId = userId;
