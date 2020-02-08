@@ -5,6 +5,7 @@
  */
 
 module.exports = {
+    
     checkBalance: async function (projectId, alertPhoneNumber, userId, alertType) {
 
         var project = await ProjectService.findOneBy({ _id: projectId });

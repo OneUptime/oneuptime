@@ -15,6 +15,7 @@ var alertSchema = new Schema({
     monitorId: { type: String, ref: 'Monitor' },
     createdAt: { type: Date, default: Date.now },
     incidentId : { type: String, ref: 'Incident' },
+    onCallScheduleStatus: {type: String, ref: 'OnCallScheduleStatus'},
     error: { type: Boolean, default: false },
     errorMessage:String,
     deleted: { type: Boolean, default: false},

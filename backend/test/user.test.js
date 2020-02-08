@@ -13,7 +13,7 @@ var UserModel = require('../backend/models/user');
 var ProjectService = require('../backend/services/projectService');
 var AirtableService = require('../backend/services/airtableService');
 
-var LoginIPLog = require('../backend/models/LoginIPLog');
+var LoginIPLog = require('../backend/models/loginIPLog');
 var VerificationTokenModel = require('../backend/models/verificationToken');
 
 var projectId, userId, airtableId, token;
