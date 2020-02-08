@@ -1,7 +1,6 @@
 import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
-import moment from 'moment';
 
 let apiUrl = null;
 let dashboardUrl = null;
