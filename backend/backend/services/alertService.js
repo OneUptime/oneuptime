@@ -5,8 +5,8 @@
  */
 
 module.exports = {
-    
-    checkBalance: async function (projectId, alertPhoneNumber, userId, alertType) {
+
+    hasEnoughBalance: async function (projectId, alertPhoneNumber, userId, alertType) {
 
         var project = await ProjectService.findOneBy({ _id: projectId });
         var balance = project.balance;
@@ -19,8 +19,8 @@ module.exports = {
         } else {
             return false;
         }
-
     },
+    
     checkConfig: async function (projectId, alertPhoneNumber) {
         var project = await ProjectService.findOneBy({ _id: projectId });
         var alertOptions = project.alertOptions;
@@ -78,20 +78,26 @@ module.exports = {
     },
 
 
-    create: async function (projectId, monitorId, alertVia, userId, incidentId, alertStatus, error, errorMessage) {
+    create: async function ({projectId, monitorId, alertVia, userId, incidentId, onCallScheduleStatusId, scheduleId, escalationId, alertStatus, error, errorMessage}) {
         try {
             var alert = new AlertModel();
             alert.projectId = projectId;
+            alert.onCallScheduleStatusId = onCallScheduleStatusId;
+            alert.scheduleId = scheduleId;
+            alert.escalationId = escalation;
             alert.monitorId = monitorId;
             alert.alertVia = alertVia;
             alert.userId = userId;
             alert.incidentId = incidentId;
             alert.alertStatus = alertStatus;
+
             if (error) {
                 alert.error = error;
                 alert.errorMessage = errorMessage;
             }
+
             var savedAlert = await alert.save();
+
             return savedAlert;
         } catch (error) {
             ErrorService.log('alertService.create', error);
@@ -184,8 +190,11 @@ module.exports = {
                 var date = new Date();
                 var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
                 var projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
+                
                 var monitor = await MonitorService.findOneBy({ _id: monitorId });
+
                 var schedules = await ScheduleService.findBy({ monitorIds: monitorId });
+                
                 var project = await ProjectService.findOneBy({ _id: projectId });
 
                 if (schedules.length === 0 || !project.alertEnable) {
@@ -193,109 +202,136 @@ module.exports = {
                 }
 
                 for (var schedule of schedules) {
+
                     let monitorName = monitor.name;
 
+                    //scheudle has no escalations. Skip. 
                     if (!schedule.escalationIds || schedule.escalationIds.length === 0) {
                         continue;
                     }
 
-                    for (var escalationId of schedule.escalationIds) {
+                    //start with first ecalation policy, and then escalationPolicy will take care of others in escalation policy.  
+                    var escalationId = schedule.escalationIds[0];
 
-                        if (escalationId && escalationId._id) {
-                            escalationId = escalationId._id;
+                    if (escalationId && escalationId._id) {
+                        escalationId = escalationId._id;
+                    }
+
+                    //No escalation found in the database skip. 
+                    var escalation = await EscalationService.findOneBy({ _id: escalationId });
+
+                    if (!escalation) {
+                        continue;
+                    }
+
+                    //create new onCallScheduleStatus
+                    var onCallScheduleStatus = await OnCallScheduleStatusService.create({
+                        projectId, 
+                        incidentId: incident.id, 
+                        activeEscalationId: escalationId, 
+                        scheduleId: schedule.id, 
+                        incidentAcknowledged: false
+                    })
+
+
+                    const activeTeam = escalation.activeTeam;
+
+                    if(!activeTeam.teamMembers || activeTeam.teamMember.length === 0){
+                        continue; 
+                    }
+
+                
+                    for (var teamMember of activeTeam.teamMembers) {
+
+                        var canSendAlert = await _this.canSendAlertToTeamMember(teamMember.timezone, teamMember.startTime, teamMember.endTime);
+
+                        if (!canSendAlert) {
+
+                            if(escalation.call){
+                                await _this.create({projectId: incident.projectId, monitorId, alertVia: AlertType.Call, userId:user._id, incidentId:incident._id, scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, alertStatus: 'Not on Duty'});
+                            }
+                            if(escalation.email){
+                                await _this.create({projectId: incident.projectId, monitorId, alertVia: AlertType.Email, userId:user._id, incidentId:incident._id, scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, alertStatus: 'Not on Duty'});
+                            }
+                            if(escalation.sms){
+                                await _this.create({projectId: incident.projectId, monitorId, alertVia: AlertType.SMS, userId:user._id, incidentId:incident._id, scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, alertStatus: 'Not on Duty'});
+                            }
+
+                            continue; 
                         }
 
-                        var escalation = await EscalationService.findOneBy({ _id: escalationId });
+                        var user = await UserService.findOneBy({ _id: teamMember.userId });
 
-                        if (!escalation) {
+                        if (!user) {
                             continue;
                         }
 
-                        const activeTeam = escalation.activeTeam ? escalation.activeTeam : escalation.teams[0];
+                        let accessToken = jwt.sign({
+                            id: user._id
+                        }, jwtKey.jwtSecretKey, { expiresIn: 12 * 60 * 60 * 1000 });
 
-                        for (var teamMember of activeTeam.teamMembers) {
+                        if (escalation.sms) {
 
-                            var canSendAlert = await _this.canSendAlertToTeamMember(teamMember.timezone, teamMember.startTime, teamMember.endTime);
-
-                            if (!canSendAlert) {
-                                continue;
-                            }
-
-                            var user = await UserService.findOneBy({ _id: teamMember.userId });
-
-                            if (!user) {
-                                continue;
-                            }
-
-                            let accessToken = jwt.sign({
-                                id: user._id
-                            }, jwtKey.jwtSecretKey, { expiresIn: 12 * 60 * 60 * 1000 });
-
-                            if (escalation.sms) {
-
-                                let alertStatus, alert, balanceStatus;
-                                let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
-                                let configCheckStatus = await _this.checkConfig(incident.projectId, user.alertPhoneNumber);
-                                if (balanceCheckStatus && configCheckStatus) {
-                                    let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name, incident.incidentType, projectId);
-                                    if (alertSuccess && alertSuccess.code && alertSuccess.code === 400) {
-                                        await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, null, true, alertSuccess.message);
-                                    }
-                                    else if (alertSuccess) {
-                                        alertStatus = 'Success';
-                                        alert = await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
-                                        balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.SMS);
-                                        AlertChargeService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
-                                    }
-                                } else if (!balanceCheckStatus && configCheckStatus) {
-                                    alertStatus = 'Blocked - Low balance';
-                                    await _this.create(incident.projectId, monitorId, AlertType.SMS, user._id, incident._id, alertStatus);
+                            let alertStatus, alert, balanceStatus;
+                            let hasEnoughBalance = await _this.hasEnoughBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
+                            let configCheckStatus = await _this.checkConfig(incident.projectId, user.alertPhoneNumber);
+                            if (hasEnoughBalance && configCheckStatus) {
+                                let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitorName, user.alertPhoneNumber, incident._id, user._id, user.name, incident.incidentType, projectId);
+                                
+                                if (alertSuccess && alertSuccess.code && alertSuccess.code === 400) {
+                                    await _this.create({projectId: incident.projectId, monitorId, alertVia: AlertType.SMS, userId:user._id, incidentId:incident._id, scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, alertStatus: null, error: true, errorMessage: alertSuccess.message});
                                 }
 
+                                else if (alertSuccess) {
+                                    alertStatus = 'Success';
+                                    alert = await _this.create({projectId: incident.projectId,scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, monitorId, alertVia: AlertType.SMS, userId: user._id, incidentId:incident._id, alertStatus:alertStatus});
+                                    balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.SMS);
+                                    AlertChargeService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
+                                }
+                            } else if (!hasEnoughBalance && configCheckStatus) {
+                                alertStatus = 'Blocked - Low balance';
+                                await _this.create({projectId: incident.projectId, monitorId, scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, alertVia: AlertType.SMS, userId:user._id, incidentId:incident._id, alertStatus});
                             }
 
-                            if (escalation.email) {
-                                const queryString = `projectId=${incident.projectId}&&userId=${user._id}&&accessToken=${accessToken}`;
-                                let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
-                                let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-                                let firstName = user.name;
-                                if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-                                    date = moment(date).tz(user.timezone).format();
-                                }
+                        }
 
-                                try {
-                                    await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType, project.name);
-                                    await _this.create(incident.projectId, monitorId, AlertType.Email, user._id, incident._id, 'Success');
-                                } catch (e) {
-                                    await _this.create(incident.projectId, monitorId, AlertType.Email, user._id, incident._id, 'Cannnot Send');
-                                }
-
+                        if (escalation.email) {
+                            const queryString = `projectId=${incident.projectId}&&userId=${user._id}&&accessToken=${accessToken}`;
+                            let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
+                            let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
+                            let firstName = user.name;
+                            if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
+                                date = moment(date).tz(user.timezone).format();
                             }
 
-                            if (escalation.call) {
-                                let alertStatus, alert, balanceStatus;
-                                let balanceCheckStatus = await _this.checkBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
-                                if (balanceCheckStatus) {
-
-                                    let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
-                                    if (alertSuccess && alertSuccess.code && alertSuccess.code === 400) {
-                                        await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, null, true, alertSuccess.message);
-                                    }
-                                    else if (alertSuccess) {
-                                        alertStatus = 'Success';
-                                        alert = await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
-                                        balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.Call);
-                                        AlertChargeService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
-                                    }
-                                } else {
-                                    alertStatus = 'Blocked - Low balance';
-                                    await _this.create(incident.projectId, monitorId, AlertType.Call, user._id, incident._id, alertStatus);
-                                }
+                            try {
+                                await MailService.sendIncidentCreatedMail(date, monitorName, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType, project.name);
+                                await _this.create({projectId: incident.projectId,  scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id,monitorId, alertVia: AlertType.Email, userId: user._id, incidentId:incident._id, alertStatus:'Success'});
+                               
+                            } catch (e) {
+                                await _this.create({projectId: incident.projectId, monitorId, scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, alertVia: AlertType.Email, userId: user._id, incidentId:incident._id, alertStatus:'Cannot Send'});
                             }
                         }
 
+                        if (escalation.call) {
+                            let alertStatus, alert, balanceStatus;
+                            let hasEnoughBalance = await _this.hasEnoughBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
+                            if (hasEnoughBalance) {
+                                let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitorName, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
+                                if (alertSuccess && alertSuccess.code && alertSuccess.code === 400) {
+                                    await _this.create({projectId: incident.projectId, scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, monitorId, alertVia: AlertType.Call, userId:user._id, incidentId:incident._id, alertStatus: null, error: true, errorMessage: alertSuccess.message});
+                                }
+                                else if (alertSuccess) {
+                                    alert = await _this.create({projectId: incident.projectId, scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, monitorId, alertVia: AlertType.Call, userId: user._id, incidentId:incident._id, alertStatus:'Success'});
+                                    balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.Call);
+                                    AlertChargeService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
+                                }
+                            } else {
+                                alertStatus = 'Blocked - Low balance';
+                                await _this.create({projectId: incident.projectId, scheduleId: schedule.id, escalationId: escalationId, onCallScheduleStatusId: onCallScheduleStatus.id, monitorId, alertVia: AlertType.Call, userId:user._id, incidentId:incident._id, alertStatus});
+                            }
+                        }
                     }
-
                 }
 
             }
@@ -415,35 +451,6 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('alertService.sendSubscriberAlert', error);
-            throw error;
-        }
-    },
-
-    getSendIncidentInterval: async function (incident) {
-        try {
-            let _this = this;
-            let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
-            var schedules = await ScheduleService.findOneBy({ monitorIds: monitorId });
-            let escalationIds = schedules.escalationIds;
-            for (let value of escalationIds) {
-                var escalation = await EscalationService.findOneBy({ _id: value._id });
-                let callFrequency = escalation.callFrequency;
-
-                for (let teamMember of escalation.teamMembers) {
-                    const { currentTime, startTime, endTime } = await _this.getEscalationTime(teamMember.timezone, teamMember.startTime, teamMember.endTime);
-                    if (currentTime >= startTime && currentTime <= endTime) {
-                        // time difference in hours
-                        let timeDiff = endTime - startTime;
-                        // convert to minutes
-                        timeDiff *= 60;
-
-                        let interval = timeDiff / callFrequency; // minutes
-                        return interval;
-                    }
-                }
-            }
-        } catch (error) {
-            ErrorService.log('alertService.getSendIncidentInterval', error);
             throw error;
         }
     },
@@ -576,3 +583,4 @@ var SmsCountService = require('./smsCountService');
 var DateTime = require('../utils/DateTime');
 const moment = require('moment-timezone');
 const TimeZoneNames = moment.tz.names();
+let OnCallScheduleStatusService = require('./onCallScheduleStatusService');

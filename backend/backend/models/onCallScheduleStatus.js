@@ -15,8 +15,7 @@ var schema = new Schema({
     scheduleId: {type: String, ref: 'Schedule'},
     activeEscalationId: {type: String, ref: 'Escalation'},
     incidentId: {type: String, ref: 'Incident'},
-    incidentAcknowledged: {type: Boolean}, //Incident attached to this schedule is acknowledged. 
-
+    incidentAcknowledged: {type: Boolean, default: false}, //Incident attached to this schedule is acknowledged. 
     deleted: { type: Boolean, default: false},
     deletedAt: { type: Date },
     deletedById: { type: String, ref: 'User' },
