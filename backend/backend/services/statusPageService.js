@@ -126,11 +126,15 @@ module.exports = {
         }
     },
 
-    removeMonitor: async function (monitorId) {
+    removeMonitor: async function (monitorId, user) {
         try {
             var statusPage = await StatusPageModel.findOneAndUpdate({ monitorIds: monitorId }, {
                 $pull: { monitorIds: monitorId }
             });
+
+            var updatedStatusPage = await this.getStatus({ _id: statusPage._id }, user);
+            await RealTimeService.statusPageEdit(updatedStatusPage);
+
             return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.removeMonitor', error);
@@ -156,7 +160,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function (query, data, user) {
         try {
             var existingStatusPage = await this.findBy({
                 name: data.name,
@@ -178,6 +182,10 @@ module.exports = {
             }, {
                 new: true
             });
+
+            var statusPage = await this.getStatus({ _id: updatedStatusPage._id }, user);
+            await RealTimeService.statusPageEdit(statusPage);
+
             return updatedStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.updateOneBy', error);
@@ -385,7 +393,7 @@ module.exports = {
         }
     },
 
-    restoreBy: async function (query) {
+    restoreBy: async function (query, user) {
         const _this = this;
         query.deleted = true;
         let statusPage = await _this.findBy(query);
@@ -396,7 +404,7 @@ module.exports = {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
-                });
+                }, user);
                 await SubscriberService.restoreBy({ statusPageId, deleted: true });
                 return statusPage;
             }));
@@ -409,7 +417,7 @@ module.exports = {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
-                });
+                }, user);
                 await SubscriberService.restoreBy({ statusPageId, deleted: true });
             }
             return statusPage;
@@ -423,5 +431,6 @@ var MonitorService = require('./monitorService');
 var ErrorService = require('./errorService');
 var SubscriberService = require('./subscriberService');
 var ProjectService = require('./projectService');
+var RealTimeService = require('./realTimeService');
 var _ = require('lodash');
 var defaultStatusPageColors = require('../config/statusPageColors');

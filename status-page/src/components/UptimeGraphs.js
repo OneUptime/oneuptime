@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import BlockChart from './BlockChart';
 import moment from 'moment';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { fetchMonitorStatuses } from '../actions/status';
 import { filterProbeData, getMonitorStatus } from '../config';
 
 const calculateTime = (statuses, start, range) => {
@@ -62,6 +64,29 @@ const calculateTime = (statuses, start, range) => {
 };
 
 class UptimeGraphs extends Component {
+
+  componentDidMount() {
+    const { monitor } = this.props;
+
+    if (monitor && !monitor.statuses) {
+      const endDate = moment(Date.now());
+      const startDate = moment(Date.now()).subtract(90, 'days');
+      this.props.fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+    }
+  }
+
+  componentDidUpdate(nextProps) {
+    const { monitor } = this.props;
+
+    if (monitor !== nextProps.monitor) {
+      if (monitor && !monitor.statuses) {
+        const endDate = moment(Date.now());
+        const startDate = moment(Date.now()).subtract(90, 'days');
+        this.props.fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+      }
+    }
+  }
+
   render() {
     const { monitorState, monitor, probes, activeProbe, colors } = this.props;
     const now = Date.now();
@@ -132,13 +157,18 @@ function mapStateToProps(state) {
   };
 }
 
+const mapDispatchToProps = (dispatch) => bindActionCreators({
+  fetchMonitorStatuses
+}, dispatch);
+
 UptimeGraphs.propTypes = {
   monitor: PropTypes.object,
   colors: PropTypes.object,
+  fetchMonitorStatuses: PropTypes.func,
   id: PropTypes.string,
   activeProbe: PropTypes.number,
   monitorState: PropTypes.array,
   probes: PropTypes.array
 };
 
-export default connect(mapStateToProps)(UptimeGraphs);
+export default connect(mapStateToProps, mapDispatchToProps)(UptimeGraphs);

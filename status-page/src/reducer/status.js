@@ -56,6 +56,28 @@ export default (state = INITIAL_STATE, action) => {
                 requesting: true
             });
 
+        case 'UPDATE_STATUS_PAGE':
+            return Object.assign({}, state, {
+                error: null,
+                statusPage: {
+                    ...action.payload,
+
+                    monitorsData: action.payload.monitorsData && action.payload.monitorsData.length > 0 ?
+                        action.payload.monitorsData.map(newMonitorData => {
+                            if (state.statusPage.monitorsData && state.statusPage.monitorsData.length > 0) {
+                                state.statusPage.monitorsData.forEach(oldMonitorData => {
+                                    if (newMonitorData._id === oldMonitorData._id) {
+                                        newMonitorData.statuses = oldMonitorData.statuses;
+                                    }
+                                })
+                            }
+
+                            return newMonitorData;
+                        }) : []
+                },
+                requesting: false
+            });
+
         case STATUSPAGE_NOTES_SUCCESS:
             return Object.assign({}, state, {
                 notes: {
@@ -182,23 +204,51 @@ export default (state = INITIAL_STATE, action) => {
                     ...state.statusPage,
 
                     monitorsData: state.statusPage.monitorsData.map(monitor => {
-                        if (monitor._id === action.payload.monitorId) {
-                            const data = Object.assign({}, action.payload.data);
+                        if (monitor._id === action.payload.status.monitorId) {
+                            const data = Object.assign({}, action.payload.status.data);
+                            const probes = action.payload.probes;
+                            const isValidProbe = (monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'device')
+                                && probes && probes.length > 0;
 
-                            monitor.statuses = monitor.statuses && monitor.statuses.length > 0 ? (
-                                monitor.statuses.map(a => a._id).includes(data.probeId) || !data.probeId ? monitor.statuses.map(probeStatuses => {
-                                    let probeId = probeStatuses._id;
+                            if (monitor.statuses && monitor.statuses.length > 0) {
+                                const monitorProbes = monitor.statuses.map(a => a._id);
 
-                                    if (probeId === data.probeId || (!probeId && !data.probeId)) {
-                                        let previousStatus = probeStatuses.statuses[0];
-                                        previousStatus.endTime = new Date().toISOString();
+                                if (monitorProbes.includes(data.probeId) || !data.probeId) {
+                                    monitor.statuses = monitor.statuses.map(probeStatuses => {
+                                        let probeId = probeStatuses._id;
 
-                                        return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
-                                    } else {
-                                        return probeStatuses;
+                                        if (probeId === data.probeId || !data.probeId) {
+                                            let previousStatus = probeStatuses.statuses[0];
+                                            previousStatus.endTime = new Date().toISOString();
+
+                                            return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
+                                        } else {
+                                            return probeStatuses;
+                                        }
+                                    });
+
+                                    if (isValidProbe && !probes.every(probe => monitorProbes.includes(probe._id))) {
+                                        // add manual status to all new probes
+                                        let newProbeStatuses = [];
+
+                                        probes.forEach(probe => {
+                                            if (!monitorProbes.includes(probe._id)) {
+                                                newProbeStatuses.push({ _id: probe._id, statuses: [data] });
+                                            }
+                                        });
+
+                                        monitor.statuses = [...monitor.statuses, ...newProbeStatuses];
                                     }
-                                }) : [...monitor.statuses, { _id: data.probeId || null, statuses: [data] }]
-                            ) : [{ _id: data.probeId || null, statuses: [data] }];
+                                } else {
+                                    monitor.statuses = [...monitor.statuses, { _id: data.probeId || null, statuses: [data] }];
+                                }
+                            } else {
+                                if (isValidProbe) {
+                                    monitor.statuses = probes.map(probe => ({ _id: probe._id, statuses: [data] }));
+                                } else {
+                                    monitor.statuses = [{ _id: data.probeId || null, statuses: [data] }];
+                                }
+                            }
                         }
                         return monitor;
                     })

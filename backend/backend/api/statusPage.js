@@ -68,6 +68,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
 
     var data = req.body;
+    var user = req.user;
     var upload = multer({
         storage
     }).fields([
@@ -213,7 +214,8 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
         try {
             var statusPage = await StatusPageService.updateOneBy(
                 { projectId: data.projectId, _id: data._id },
-                data
+                data,
+                user
             );
             return sendItemResponse(req, res, statusPage);
         } catch (error) {

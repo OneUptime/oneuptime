@@ -13,6 +13,18 @@ module.exports = {
         }
     },
 
+    sendIncidentNotes: async (incident) => {
+        try {
+            var project = await ProjectService.findOneBy({ _id: incident.projectId });
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+
+            io.emit(`incidentNotes-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendIncidentNotes', error);
+            throw error;
+        }
+    },
+
     sendMonitorCreated: async (monitor) => {
         try {
             var project = await ProjectService.findOneBy({ _id: monitor.projectId._id });
@@ -57,6 +69,18 @@ module.exports = {
             io.emit(`incidentAcknowledged-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realTimeService.incidentAcknowledged', error);
+            throw error;
+        }
+    },
+
+    statusPageEdit: async (statusPage) => {
+        try {
+            var project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
+            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : statusPage.projectId._id;
+
+            io.emit(`updateStatusPage-${projectId}`, statusPage);
+        } catch (error) {
+            ErrorService.log('realTimeService.statusPageEdit', error);
             throw error;
         }
     },
