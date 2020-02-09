@@ -668,6 +668,12 @@ module.exports = {
         }
     },
 
+    getAccessToken: async function({userId, expiresIn}){
+        let accessToken = jwt.sign({
+            id: userId
+        }, jwtKey.jwtSecretKey, { expiresIn: expiresIn});
+    }
+
 };
 
 var bcrypt = require('bcrypt');

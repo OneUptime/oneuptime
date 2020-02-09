@@ -57,51 +57,8 @@ module.exports = {
                     }
                 }
 
-
-                // this case is not possible, but still...
-                if(!notAcknowledgedCallScheduleStatus.escalations && notAcknowledgedCallScheduleStatus.escalations.length === 0){
-                    var notAcknowledgedCallScheduleStatusEscalation = {
-                        escalation: notAcknowledgedCallScheduleStatus.activeEscalation,
-                        callRemindersSent: 0,
-                        smsRemindersSent: 0,
-                        emailRemindersSent: 0
-                    }
-                }
-
-                //last alert sent is > minute. then, check if this escalation policy has exhaused any alerts. 
-                notAcknowledgedCallScheduleStatusEscalation = notAcknowledgedCallScheduleStatus.escalations[notAcknowledgedCallScheduleStatus.escalations.length - 1];
-
-                var shouldSendSMSReminder = false; 
-                var shouldSendCallReminder = false;
-                var shouldSendEmailReminder = false;
-
-                var escalationPolicy = await EscalationService.findOneBy({_id: notAcknowledgedCallScheduleStatusEscalation.escalation})
-                
-                if(escalationPolicy){
-                    shouldSendSMSReminder = escalationPolicy.smsReminders > notAcknowledgedCallScheduleStatusEscalation.smsRemindersSent;
-                    shouldSendCallReminder = escalationPolicy.callReminders > notAcknowledgedCallScheduleStatusEscalation.callRemindersSent;
-                    shouldSendEmailReminder = escalationPolicy.emailReminders > notAcknowledgedCallScheduleStatusEscalation.emailRemindersSent;
-
-                    if(shouldSendCallReminder){
-                        AlertService.sendCallAlert();
-                    } 
-
-                    if(shouldSendEmailReminder){
-                        AlertService.sendEmailAlert();
-                    } 
-
-                    if(shouldSendSMSReminder){
-                        AlertService.sendSMSAlert();
-                    } 
-                    
-                    //if all the alerts are exhaused, then escalate.
-                    if(!shouldSendSMSReminder && !shouldSendEmailReminder && !shouldSendCallReminder){
-                        _escalate();
-                    }
-
-                }else{
-                    _escalate();
-                }
+                //and the rest happens here. 
+                AlertService.sendAlertsToTeamMembersInSchedule({schedule: notAcknowledgedCallScheduleStatus.schedule, incident:notAcknowledgedCallScheduleStatus.incident });                
             }
 
         } catch (error) {
