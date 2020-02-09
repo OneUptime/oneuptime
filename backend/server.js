@@ -7,7 +7,9 @@ var redisAdapter = require('socket.io-redis');
 var keys = require('./backend/config/keys.js');
 var bodyParser = require('body-parser');
 var cors = require('cors');
-var cron = require('./workers/main');
+
+//attach cron jobs
+require('./workers/main');
 
 var { NODE_ENV } = process.env;
 

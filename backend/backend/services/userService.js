@@ -669,7 +669,7 @@ module.exports = {
     },
 
     getAccessToken: async function({userId, expiresIn}){
-        let accessToken = jwt.sign({
+        return jwt.sign({
             id: userId
         }, jwtKey.jwtSecretKey, { expiresIn: expiresIn});
     }

@@ -203,11 +203,12 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule({ schedule, incident }) {
+    sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
         var _this = this;
         var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
         var projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
         var monitor = await MonitorService.findOneBy({ _id: monitorId });
+        var project = await ProjectService.findOneBy({ _id:projectId });
 
         if (!project.alertEnable) {
             return;
@@ -235,7 +236,7 @@ module.exports = {
                 escalationId = escalationId._id;
             }
 
-            var currentEscalationStatus = {
+            currentEscalationStatus = {
                 escalation: escalationId,
                 callRemindersSent:  0,
                 emailRemindersSent:  0,
@@ -253,7 +254,7 @@ module.exports = {
             });
         } else {
             onCallScheduleStatus = callScheduleStatuses[0];
-            currentEscalationStatus = notAcknowledgedCallScheduleStatus.escalations[notAcknowledgedCallScheduleStatus.escalations.length - 1];
+            currentEscalationStatus = onCallScheduleStatus.escalations[onCallScheduleStatus.escalations.length - 1];
             escalationId = currentEscalationStatus.escalation.id;
         }
 
@@ -268,9 +269,9 @@ module.exports = {
             return;
         }
 
-        shouldSendSMSReminder = escalationPolicy.smsReminders > currentEscalationStatus.smsRemindersSent;
-        shouldSendCallReminder = escalationPolicy.callReminders > currentEscalationStatus.callRemindersSent;
-        shouldSendEmailReminder = escalationPolicy.emailReminders > currentEscalationStatus.emailRemindersSent;
+        shouldSendSMSReminder = escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
+        shouldSendCallReminder = escalation.callReminders > currentEscalationStatus.callRemindersSent;
+        shouldSendEmailReminder = escalation.emailReminders > currentEscalationStatus.emailRemindersSent;
 
         if (!shouldSendSMSReminder && !shouldSendEmailReminder && !shouldSendCallReminder) {
             _this.escalate({schedule, incident});
@@ -280,6 +281,7 @@ module.exports = {
     },
 
     escalate: async function ({ schedule, incident }) {
+        var _this = this; 
         var callScheduleStatuses = OnCallScheduleStatusService.findBy({ query: { incident: incident.id, schedule: schedule } });
         var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
         var monitor = await MonitorService.findOneBy({ _id: monitorId });
@@ -326,7 +328,7 @@ module.exports = {
             callRemindersSent:  0,
             emailRemindersSent:  0,
             smsRemindersSent:  0
-        })
+        });
         callScheduleStatus.activeEscalationPolicy = nextEscalationPolicy;
 
         await callScheduleStatus.save();
@@ -337,14 +339,20 @@ module.exports = {
     },
 
     sendAlertsToTeamMembersInEscalationPolicy: async function ({escalation, incident, monitor, schedule, onCallScheduleStatus}) {
+        var _this = this;
+        var monitorId = monitor.id;
+
+        var projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
+        var project = await ProjectService.findOneBy({ _id:projectId });
+
         escalation = await EscalationService.findOneBy({_id: escalation.id});
 
         const activeTeam = escalation.activeTeam;
         var currentEscalationStatus = onCallScheduleStatus.escalations[onCallScheduleStatus.escalations.length -1];
 
-        shouldSendSMSReminder = escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
-        shouldSendCallReminder = escalation.callReminders > currentEscalationStatus.callRemindersSent;
-        shouldSendEmailReminder = escalation.emailReminders > currentEscalationStatus.emailRemindersSent;
+        var shouldSendSMSReminder = escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
+        var shouldSendCallReminder = escalation.callReminders > currentEscalationStatus.callRemindersSent;
+        var shouldSendEmailReminder = escalation.emailReminders > currentEscalationStatus.emailRemindersSent;
 
         if(shouldSendCallReminder){
             currentEscalationStatus.callRemindersSent++;
@@ -405,7 +413,9 @@ module.exports = {
     },
 
     sendEmailAlert: async function ({ incident, user, project, monitor, schedule, escalation, onCallScheduleStatus }) {
-
+        var _this = this;
+        var date = new Date();
+        var monitorId = monitor.id;
         let accessToken = UserService.getAccessToken({ userId: user._id, expiresIn: 12 * 60 * 60 * 1000 });
         const queryString = `projectId=${incident.projectId}&&userId=${user._id}&&accessToken=${accessToken}`;
         let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
@@ -425,17 +435,20 @@ module.exports = {
     },
 
     sendCallAlert: async function ({ incident, user, project, monitor, schedule, escalation, onCallScheduleStatus }) {
+        var _this = this;
         let alertStatus, alert, balanceStatus;
+        var date = new Date();
+        var monitorId = monitor.id;
         let accessToken = UserService.getAccessToken({ userId: user._id, expiresIn: 12 * 60 * 60 * 1000 });
-        let hasEnoughBalance = await _this.hasEnoughBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.Call);
+        let hasEnoughBalance = await _this.hasEnoughBalance(project.id, user.alertPhoneNumber, user._id, AlertType.Call);
         if (hasEnoughBalance) {
             let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitor.name, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
             if (alertSuccess && alertSuccess.code && alertSuccess.code === 400) {
-                await _this.create({ projectId: incident.projectId, schedule: schedule.id, escalation: escalation.id, onCallScheduleStatus: onCallScheduleStatus.id, monitorId, alertVia: AlertType.Call, userId: user._id, incidentId: incident._id, alertStatus: null, error: true, errorMessage: alertSuccess.message });
+                await _this.create({ projectId: project.id, schedule: schedule.id, escalation: escalation.id, onCallScheduleStatus: onCallScheduleStatus.id, monitorId, alertVia: AlertType.Call, userId: user._id, incidentId: incident._id, alertStatus: null, error: true, errorMessage: alertSuccess.message });
             }
             else if (alertSuccess) {
-                alert = await _this.create({ projectId: incident.projectId, schedule: schedule.id, escalation: escalation.id, onCallScheduleStatus: onCallScheduleStatus.id, monitorId, alertVia: AlertType.Call, userId: user._id, incidentId: incident._id, alertStatus: 'Success' });
-                balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.Call);
+                alert = await _this.create({ projectId: project.id, schedule: schedule.id, escalation: escalation.id, onCallScheduleStatus: onCallScheduleStatus.id, monitorId, alertVia: AlertType.Call, userId: user._id, incidentId: incident._id, alertStatus: 'Success' });
+                balanceStatus = await _this.getBalanceStatus(project.id, user.alertPhoneNumber, AlertType.Call);
                 AlertChargeService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
             }
         } else {
@@ -445,7 +458,11 @@ module.exports = {
     },
 
     sendSMSAlert: async function ({ incident, user, project, monitor, schedule, escalation, onCallScheduleStatus }) {
+        var _this = this;
         let alertStatus, alert, balanceStatus;
+        let projectId = project.id;
+        var date = new Date();
+        var monitorId = monitor.id;
         let hasEnoughBalance = await _this.hasEnoughBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
         let configCheckStatus = await _this.checkConfig(incident.projectId, user.alertPhoneNumber);
         if (hasEnoughBalance && configCheckStatus) {
@@ -699,9 +716,7 @@ const TwilioService = require('./twilioService');
 const ErrorService = require('./errorService');
 const StatusPageService = require('./statusPageService');
 const AlertChargeService = require('./alertChargeService');
-const jwtKey = require('../config/keys');
 const countryCode = require('../config/countryCode');
-const jwt = require('jsonwebtoken');
 const baseApiUrl = require('../config/baseApiUrl');
 const { getAlertChargeAmount, getCountryType } = require('../config/alertType');
 const { BACKEND_HOST } = process.env;

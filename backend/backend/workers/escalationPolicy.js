@@ -1,9 +1,7 @@
 const ErrorService = require('../services/errorService');
 const OnCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const AlertService = require('../services/alertService');
-const EscalationService = require('../services/escalationService');
 const DateTime = require('../utils/DateTime');
-const moment = require('moment');
 
 module.exports = {
 
@@ -68,7 +66,4 @@ module.exports = {
     }
 };
 
-async function _escalate({}){
-
-}
 

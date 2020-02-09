@@ -150,7 +150,7 @@ module.exports = {
                 subProject = project;
                 project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
             }
-            var projectTeamMembers = await _this.getTeamMembersBy({ parentProjectId: project._id });
+            
             if (subProject) {
                 var teamMembers = await _this.getTeamMembersBy({ _id: subProject._id });
             } else {
