@@ -1,1 +1,0 @@
-echo "Fyipe Init Setup Script"
