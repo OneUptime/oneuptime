@@ -6,6 +6,7 @@ import { API_URL } from '../config';
 import Dashboard from '../components/Dashboard';
 import { LargeSpinner as Loader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
+import { User } from '../config';
 
 import { getTeamMember } from '../actions/team';
 
@@ -17,6 +18,9 @@ const noDataStyle = {
 };
 
 function TeamMemberProfile({ requesting, error, teamMember, projectId, match, getTeamMember }) {
+    if (!projectId) {
+        projectId = User.getCurrentProjectId();
+    }
     const memberId = match.params.memberId;
 
     useEffect(() => {
