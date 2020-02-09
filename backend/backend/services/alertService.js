@@ -203,12 +203,12 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
+    sendAlertsToTeamMembersInSchedule: async function ({ schedule, incident }) {
         var _this = this;
         var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
         var projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
         var monitor = await MonitorService.findOneBy({ _id: monitorId });
-        var project = await ProjectService.findOneBy({ _id:projectId });
+        var project = await ProjectService.findOneBy({ _id: projectId });
 
         if (!project.alertEnable) {
             return;
@@ -238,9 +238,9 @@ module.exports = {
 
             currentEscalationStatus = {
                 escalation: escalationId,
-                callRemindersSent:  0,
-                emailRemindersSent:  0,
-                smsRemindersSent:  0
+                callRemindersSent: 0,
+                emailRemindersSent: 0,
+                smsRemindersSent: 0
             };
 
             //create new onCallScheduleStatus
@@ -274,14 +274,14 @@ module.exports = {
         shouldSendEmailReminder = escalation.emailReminders > currentEscalationStatus.emailRemindersSent;
 
         if (!shouldSendSMSReminder && !shouldSendEmailReminder && !shouldSendCallReminder) {
-            _this.escalate({schedule, incident});
-        }else{
-            _this.sendAlertsToTeamMembersInEscalationPolicy({escalation, monitor, incident, schedule, onCallScheduleStatus});
+            _this.escalate({ schedule, incident });
+        } else {
+            _this.sendAlertsToTeamMembersInEscalationPolicy({ escalation, monitor, incident, schedule, onCallScheduleStatus });
         }
     },
 
     escalate: async function ({ schedule, incident }) {
-        var _this = this; 
+        var _this = this;
         var callScheduleStatuses = OnCallScheduleStatusService.findBy({ query: { incident: incident.id, schedule: schedule } });
         var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
         var monitor = await MonitorService.findOneBy({ _id: monitorId });
@@ -302,67 +302,67 @@ module.exports = {
 
 
         //find next escalationPolicy.
-        var found = false; 
-        for(let escalationId of schedule.escalationIds){
-            
-            if(found){
+        var found = false;
+        for (let escalationId of schedule.escalationIds) {
+
+            if (found) {
                 nextEscalationPolicy = escalationId;
-                break; 
+                break;
             }
 
             if (escalationId && escalationId._id) {
                 escalationId = escalationId._id;
             }
 
-            if(activeEscalationPolicy.id === escalationId){
-                found = true; 
+            if (activeEscalationPolicy.id === escalationId) {
+                found = true;
             }
         }
 
-        if(!nextEscalationPolicy.id === activeEscalationPolicy.id){
+        if (!nextEscalationPolicy.id === activeEscalationPolicy.id) {
             return; //can't escalate anymore. 
         }
 
         callScheduleStatus.escalations.push({
             escalation: nextEscalationPolicy,
-            callRemindersSent:  0,
-            emailRemindersSent:  0,
-            smsRemindersSent:  0
+            callRemindersSent: 0,
+            emailRemindersSent: 0,
+            smsRemindersSent: 0
         });
         callScheduleStatus.activeEscalationPolicy = nextEscalationPolicy;
 
         await callScheduleStatus.save();
 
-        _this.sendAlertsToTeamMembersInEscalationPolicy({escalation: nextEscalationPolicy, monitor, incident, schedule, onCallScheduleStatus: callScheduleStatus});
+        _this.sendAlertsToTeamMembersInEscalationPolicy({ escalation: nextEscalationPolicy, monitor, incident, schedule, onCallScheduleStatus: callScheduleStatus });
 
 
     },
 
-    sendAlertsToTeamMembersInEscalationPolicy: async function ({escalation, incident, monitor, schedule, onCallScheduleStatus}) {
+    sendAlertsToTeamMembersInEscalationPolicy: async function ({ escalation, incident, monitor, schedule, onCallScheduleStatus }) {
         var _this = this;
         var monitorId = monitor.id;
 
         var projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
-        var project = await ProjectService.findOneBy({ _id:projectId });
+        var project = await ProjectService.findOneBy({ _id: projectId });
 
-        escalation = await EscalationService.findOneBy({_id: escalation.id});
+        escalation = await EscalationService.findOneBy({ _id: escalation.id });
 
         const activeTeam = escalation.activeTeam;
-        var currentEscalationStatus = onCallScheduleStatus.escalations[onCallScheduleStatus.escalations.length -1];
+        var currentEscalationStatus = onCallScheduleStatus.escalations[onCallScheduleStatus.escalations.length - 1];
 
         var shouldSendSMSReminder = escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
         var shouldSendCallReminder = escalation.callReminders > currentEscalationStatus.callRemindersSent;
         var shouldSendEmailReminder = escalation.emailReminders > currentEscalationStatus.emailRemindersSent;
 
-        if(shouldSendCallReminder){
+        if (shouldSendCallReminder) {
             currentEscalationStatus.callRemindersSent++;
         }
 
-        if(shouldSendEmailReminder){
+        if (shouldSendEmailReminder) {
             currentEscalationStatus.emailRemindersSent++;
         }
 
-        if(shouldSendSMSReminder){
+        if (shouldSendSMSReminder) {
             currentEscalationStatus.smsRemindersSent++;
         }
 
@@ -370,7 +370,7 @@ module.exports = {
             return;
         }
 
-        onCallScheduleStatus.escalations[onCallScheduleStatus.escalations.length -1] = currentEscalationStatus;
+        onCallScheduleStatus.escalations[onCallScheduleStatus.escalations.length - 1] = currentEscalationStatus;
         await onCallScheduleStatus.save();
 
         for (var teamMember of activeTeam.teamMembers) {
