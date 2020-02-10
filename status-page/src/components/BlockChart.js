@@ -13,14 +13,14 @@ class BlockChart extends Component {
     }
 
     requestnotes = (need, date) => {
-        if (this.props.time) {
-            if (need) {
-                this.props.getStatusPageIndividualNote(this.props.statusData.projectId._id, this.props.monitorId, date, this.props.monitorName, need);
+        if (need) {
+            this.props.getStatusPageIndividualNote(this.props.statusData.projectId._id, this.props.monitorId, date, this.props.monitorName, need);
+        } else {
+            if (this.props.time && this.props.time.emptytime) {
+                this.props.notmonitoredDays(this.props.time.emptytime, this.props.monitorName, 'No data available for this date');
             } else {
                 this.props.notmonitoredDays(date, this.props.monitorName, 'No incidents yet');
             }
-        } else if (this.props.emptytime || !need) {
-            this.props.notmonitoredDays(this.props.emptytime, this.props.monitorName, 'No data available for this date');
         }
     }
 
@@ -55,7 +55,7 @@ class BlockChart extends Component {
                 need = true;
             } else {
                 bar = 'bar';
-                title = this.props.time.date ? moment((this.props.time.date)).format('LL') : moment((new Date()).split('T')[0]).format('LL');
+                title = moment((this.props.time.date)).format('LL');
                 title1 = '<br>No downtime';
             }
         } else {
@@ -88,8 +88,7 @@ BlockChart.propTypes = {
     getStatusPageIndividualNote: PropTypes.func,
     notmonitoredDays: PropTypes.func,
     monitorName: PropTypes.any,
-    monitorId: PropTypes.any,
-    emptytime: PropTypes.any
+    monitorId: PropTypes.any
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(BlockChart);

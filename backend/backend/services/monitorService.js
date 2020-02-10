@@ -400,7 +400,8 @@ module.exports = {
                     ]
                 };
                 if (typeof probe !== 'undefined') {
-                    query.probeId = probe._id;
+                    // return manually created statuses in every probe
+                    query.probeId = { $in: [probe._id, null] };
                 }
 
                 let monitorStatuses = await MonitorStatusService.findBy(query);
