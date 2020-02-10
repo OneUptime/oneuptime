@@ -23,4 +23,4 @@ RUN npm install
 # EXPOSE 3010
 
 # Run app
-CMD ["node", "./server.js"]
+CMD ["npm", "start"]
