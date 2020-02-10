@@ -22,7 +22,7 @@ const calculateTime = (statuses, start, range) => {
         let dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
 
         let timeObj = {
-            date: dayStart.toString(),
+            date: dayStart.toISOString(),
             downTime: 0,
             upTime: 0,
             degradedTime: 0
@@ -30,7 +30,7 @@ const calculateTime = (statuses, start, range) => {
 
         reversedStatuses.forEach(monitorStatus => {
             if (monitorStatus.endTime === null) {
-                monitorStatus.endTime = Date.now();
+                monitorStatus.endTime = new Date().toISOString();
             }
 
             if (moment(monitorStatus.startTime).isBefore(dayEnd) && moment(monitorStatus.endTime).isAfter(dayStartIn)) {
@@ -39,7 +39,7 @@ const calculateTime = (statuses, start, range) => {
 
                 if (monitorStatus.status === 'offline') {
                     timeObj.downTime = timeObj.downTime + end.diff(start, 'seconds');
-                    timeObj.date = monitorStatus.endTime;
+                    timeObj.date = end.toISOString();
                 }
                 if (monitorStatus.status === 'degraded') {
                     timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'seconds');

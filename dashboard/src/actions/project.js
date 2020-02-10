@@ -200,11 +200,11 @@ export function createProject(values) {
 
 export function switchProject(dispatch, project) {
 	const currentProjectId = User.getCurrentProjectId();
-	const historyProjectId = history.location.pathname.split('project/')[1].split('/')[0];
+	const historyProjectId = history.location.pathname.split('project')[1];
 	if (!currentProjectId || project._id !== currentProjectId) {
 		history.push(`/project/${project._id}/monitoring`);
 		User.setCurrentProjectId(project._id);
-	} else if (currentProjectId && currentProjectId !== historyProjectId) {
+	} else if (historyProjectId && historyProjectId === '/') {
 		history.push(`/project/${project._id}/monitoring`);
 	}
 

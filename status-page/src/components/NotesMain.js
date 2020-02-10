@@ -17,12 +17,15 @@ class NotesMain extends Component {
         this.more = this.more.bind(this);
         this.subscribebutton = this.subscribebutton.bind(this);
     }
+
     componentDidMount() {
         this.props.getStatusPageNote(this.props.projectId, this.props.statusPageId, 0);
     }
+
     getAll = () => {
         this.props.getStatusPageNote(this.props.projectId, this.props.statusPageId, 0);
     }
+
     more = () => {
         this.props.getMoreNote(this.props.projectId, this.props.statusPageId, (this.props.skip + 5));
     }
@@ -30,6 +33,7 @@ class NotesMain extends Component {
     subscribebutton = () => {
         this.props.openSubscribeMenu();
     }
+
     render() {
         let note = '';
         if (this.props.noteData && this.props.noteData.notes) {
@@ -167,7 +171,7 @@ const mapStateToProps = (state) => {
     }
 };
 
-const mapDispatchToProps = (dispatch) => bindActionCreators({ getStatusPageNote, getMoreNote, openSubscribeMenu }, dispatch)
+const mapDispatchToProps = (dispatch) => bindActionCreators({ getStatusPageNote, getMoreNote, openSubscribeMenu }, dispatch);
 
 NotesMain.propTypes = {
     noteData: PropTypes.object,
@@ -184,6 +188,6 @@ NotesMain.propTypes = {
     statusPageId: PropTypes.string,
     isSubscriberEnabled: PropTypes.bool.isRequired,
     statusPage: PropTypes.object
-}
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(NotesMain);

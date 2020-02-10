@@ -21,6 +21,6 @@ describe('Check status-page up', () => {
         const response = await page.$eval('#app-loading > div', (e) => {
             return e.innerHTML;
         });
-        expect(response).toBe( 'StatusPage Not present');
+        expect(response).toBe( 'Status Page Not present');
     })
 })
