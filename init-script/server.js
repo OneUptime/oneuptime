@@ -5,7 +5,7 @@ const util = require('./util/db');
 const start = require('./scripts/start');
 const end = require('./scripts/end');
 
-(async function () {
+(async function run () {
 
   global.client = await util.connectToDb();
   global.db = global.client.db();
@@ -14,7 +14,7 @@ const end = require('./scripts/end');
 
   fs.readdirSync('scripts')
     .filter(file => file !== 'start.js' && file !== 'end.js') // Exclude start and end scripts
-    .sort((a, b) => a.split('.')[2] > b.split('.')[2] ? 1 : 0)
+    .sort((a, b) => parseInt(a.split('.')[2]) > parseInt(b.split('.')[2]) ? 1 : 0)
     .forEach(function (file) {
       if (PKG_VERSION < file.split('.')[2]) {
         require(`./scripts/${file}`)();
