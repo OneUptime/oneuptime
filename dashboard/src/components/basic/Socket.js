@@ -245,8 +245,7 @@ SocketApp.propTypes = {
     _id: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
-    ]),
-    probes: PropTypes.array
+    ])
 };
 
 let mapStateToProps = state => ({
