@@ -16,13 +16,26 @@ import {
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 
+const socket = io(API_URL);
+
 class SocketApp extends Component {
-    socket = io(API_URL)
 
     shouldComponentUpdate(nextProps) {
         if (this.props.project !== nextProps.project) {
             if (this.props.project) {
-                this.socket.close();
+                socket.removeListener(`incidentResolved-${this.props.project._id}`);
+                socket.removeListener(`incidentAcknowledged-${this.props.project._id}`);
+                socket.removeListener(`createMonitor-${this.props.project._id}`);
+                socket.removeListener(`updateMonitor-${this.props.project._id}`);
+                socket.removeListener(`deleteMonitor-${this.props.project._id}`);
+                socket.removeListener(`incidentCreated-${this.props.project._id}`);
+                socket.removeListener(`updateMonitorLog-${this.props.project._id}`);
+                socket.removeListener(`updateMonitorStatus-${this.props.project._id}`);
+                socket.removeListener(`updateProbe-${this.props.project._id}`);
+                socket.removeListener(`NewNotification-${this.props.project._id}`);
+                socket.removeListener(`TeamMemberRoleUpdate-${this.props.project._id}`);
+                socket.removeListener(`TeamMemberCreate-${this.props.project._id}`);
+                socket.removeListener(`TeamMemberDelete-${this.props.project._id}`);
             }
             return true;
         } else {
@@ -35,7 +48,7 @@ class SocketApp extends Component {
         const loggedInUser = User.getUserId();
 
         if (this.props.project) {
-            this.socket.on(`incidentResolved-${this.props.project._id}`, function (data) {
+            socket.on(`incidentResolved-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (!data.resolvedBy) {
@@ -55,7 +68,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            this.socket.on(`incidentAcknowledged-${this.props.project._id}`, function (data) {
+            socket.on(`incidentAcknowledged-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (!data.acknowledgedBy) {
@@ -75,7 +88,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            this.socket.on(`createMonitor-${this.props.project._id}`, function (data) {
+            socket.on(`createMonitor-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (data.createdById !== User.getUserId()) {
@@ -89,7 +102,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            this.socket.on(`updateMonitor-${this.props.project._id}`, function (data) {
+            socket.on(`updateMonitor-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.updatemonitorbysocket(data);
@@ -99,7 +112,7 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.updatemonitorbysocket(data);
                 }
             });
-            this.socket.on(`deleteMonitor-${this.props.project._id}`, function (data) {
+            socket.on(`deleteMonitor-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.deletemonitorbysocket(data);
@@ -109,7 +122,7 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.deletemonitorbysocket(data);
                 }
             });
-            this.socket.on(`incidentCreated-${this.props.project._id}`, function (data) {
+            socket.on(`incidentCreated-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (data && ((data.createdById && data.createdById._id !== User.getUserId()) || data.createdById === null)) {
@@ -123,7 +136,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            this.socket.on(`updateMonitorLog-${this.props.project._id}`, function (data) {
+            socket.on(`updateMonitorLog-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.updatemonitorlogbysocket(data);
@@ -133,17 +146,17 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.updatemonitorlogbysocket(data);
                 }
             });
-            this.socket.on(`updateMonitorStatus-${this.props.project._id}`, function (data) {
+            socket.on(`updateMonitorStatus-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
-                    thisObj.props.updatemonitorstatusbysocket(data);
+                    thisObj.props.updatemonitorstatusbysocket(data, thisObj.props.probes);
                 } else {
                     const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId);
                     const isUserInSubProject = subProject ? subProject.users.some(user => user.userId === loggedInUser) : false;
-                    if (isUserInSubProject) thisObj.props.updatemonitorstatusbysocket(data);
+                    if (isUserInSubProject) thisObj.props.updatemonitorstatusbysocket(data, thisObj.props.probes);
                 }
             });
-            this.socket.on(`updateProbe-${this.props.project._id}`, function (data) {
+            socket.on(`updateProbe-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.updateprobebysocket(data);
@@ -153,7 +166,7 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.updateprobebysocket(data);
                 }
             });
-            this.socket.on(`NewNotification-${this.props.project._id}`, function (data) {
+            socket.on(`NewNotification-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (data.createdBy && data.createdBy !== User.getUserId()) {
@@ -167,7 +180,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            this.socket.on(`TeamMemberRoleUpdate-${this.props.project._id}`, function (data) {
+            socket.on(`TeamMemberRoleUpdate-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     thisObj.props.teamMemberRoleUpdate(data.response);
@@ -177,7 +190,7 @@ class SocketApp extends Component {
                     if (isUserInSubProject) thisObj.props.teamMemberRoleUpdate(data.response);
                 }
             });
-            this.socket.on(`TeamMemberCreate-${this.props.project._id}`, function (data) {
+            socket.on(`TeamMemberCreate-${this.props.project._id}`, function (data) {
                 const isUserInProject = thisObj.props.project ? thisObj.props.project.users.some(user => user.userId === loggedInUser) : false;
                 if (isUserInProject) {
                     if (data.userId !== User.getUserId()) {
@@ -191,7 +204,7 @@ class SocketApp extends Component {
                     }
                 }
             });
-            this.socket.on(`TeamMemberDelete-${this.props.project._id}`, function (data) {
+            socket.on(`TeamMemberDelete-${this.props.project._id}`, function (data) {
                 if (data.projectId === thisObj.props.project._id) {
                     var projectUser = data.teamMembers.find(member => member.userId === User.getUserId());
                     if (!projectUser) {
@@ -222,7 +235,7 @@ class SocketApp extends Component {
     }
 }
 
-SocketApp.displayName = 'SocketApp'
+SocketApp.displayName = 'SocketApp';
 
 SocketApp.propTypes = {
     project: PropTypes.oneOfType([
@@ -233,12 +246,14 @@ SocketApp.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
     ]),
-}
+    probes: PropTypes.array
+};
 
 let mapStateToProps = state => ({
     project: state.project.currentProject,
-    subProjects: state.subProject.subProjects.subProjects
-})
+    subProjects: state.subProject.subProjects.subProjects,
+    probes: state.probe.probes.data
+});
 
 let mapDispatchToProps = dispatch => (
     bindActionCreators({
@@ -258,6 +273,6 @@ let mapDispatchToProps = dispatch => (
         openModal,
         closeModal
     }, dispatch)
-)
+);
 
 export default connect(mapStateToProps, mapDispatchToProps)(SocketApp);
