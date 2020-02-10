@@ -132,8 +132,10 @@ module.exports = {
                 $pull: { monitorIds: monitorId }
             });
 
-            var updatedStatusPage = await this.getStatus({ _id: statusPage._id }, user);
-            await RealTimeService.statusPageEdit(updatedStatusPage);
+            if (statusPage) {
+                var updatedStatusPage = await this.getStatus({ _id: statusPage._id }, user);
+                await RealTimeService.statusPageEdit(updatedStatusPage);
+            }
 
             return statusPage;
         } catch (error) {

@@ -8,7 +8,6 @@ import { API_URL } from '../../config';
 import {
   updatestatuspagebysocket,
   updatemonitorbysocket,
-  deletemonitorbysocket,
   updatemonitorstatusbysocket,
   incidentcreatedbysocket,
   updateincidentnotesbysocket,
@@ -25,7 +24,6 @@ class SocketApp extends Component {
       if (this.props.project) {
         socket.removeListener(`updateStatusPage-${this.props.project._id}`);
         socket.removeListener(`updateMonitor-${this.props.project._id}`);
-        socket.removeListener(`deleteMonitor-${this.props.project._id}`);
         socket.removeListener(`updateMonitorStatus-${this.props.project._id}`);
         socket.removeListener(`incidentCreated-${this.props.project._id}`);
         socket.removeListener(`incidentNotes-${this.props.project._id}`);
@@ -47,9 +45,6 @@ class SocketApp extends Component {
       });
       socket.on(`updateMonitor-${this.props.project._id}`, function (data) {
         thisObj.props.updatemonitorbysocket(data);
-      });
-      socket.on(`deleteMonitor-${this.props.project._id}`, function (data) {
-        thisObj.props.deletemonitorbysocket(data);
       });
       socket.on(`updateMonitorStatus-${this.props.project._id}`, function (data) {
         thisObj.props.updatemonitorstatusbysocket(data, thisObj.props.probes);
@@ -90,7 +85,6 @@ let mapDispatchToProps = dispatch => (
   bindActionCreators({
     updatestatuspagebysocket,
     updatemonitorbysocket,
-    deletemonitorbysocket,
     updatemonitorstatusbysocket,
     incidentcreatedbysocket,
     updateincidentnotesbysocket,

@@ -21,15 +21,6 @@ export function updatemonitorbysocket(monitor) {
   };
 }
 
-export function deletemonitorbysocket(monitor) {
-  return function (dispatch) {
-    dispatch({
-      type: 'DELETE_MONITOR',
-      payload: monitor._id
-    });
-  };
-}
-
 export function updatemonitorstatusbysocket(status, probes) {
   return function (dispatch) {
     dispatch({
