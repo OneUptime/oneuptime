@@ -53,7 +53,6 @@ class DashboardView extends Component {
     }
 
     render() {
-        let isNewMonitorVisible = true;
         let incidentslist = null;
 
         if (this.props.currentProject) {
@@ -65,18 +64,6 @@ class DashboardView extends Component {
             scriptElement.type = 'text/javascript';
             scriptElement.src = '/assets/js/landing.base.js';
             document.head.appendChild(scriptElement);
-        }
-
-        if (this.props.monitor && this.props.monitor.monitorsList && this.props.monitor.monitorsList.monitors && this.props.monitor.monitorsList.monitors.length > 0) {
-            this.props.monitor.monitorsList.monitors.map((subProjectMonitor) => {
-                return subProjectMonitor && subProjectMonitor.monitors && subProjectMonitor.monitors.map(monitor => {
-                    if (monitor.editMode) {
-                        isNewMonitorVisible = false;
-                    }
-
-                    return monitor;
-                });
-            });
         }
 
         if (this.props.incidents) {
@@ -153,13 +140,11 @@ class DashboardView extends Component {
                                                     }
 
                                                     <RenderIfSubProjectAdmin>
-                                                        <ShouldRender if={isNewMonitorVisible}>
-                                                            <NewMonitor index={1000} formKey="NewMonitorForm" />
-                                                        </ShouldRender>
+                                                        <NewMonitor index={1000} formKey="NewMonitorForm" />
                                                     </RenderIfSubProjectAdmin>
 
                                                     <RenderIfSubProjectMember>
-                                                        <ShouldRender if={!this.props.monitor.monitorsList.requesting && allMonitors.length === 0 && isNewMonitorVisible === false}>
+                                                        <ShouldRender if={!this.props.monitor.monitorsList.requesting && allMonitors.length === 0}>
                                                             <div
                                                                 id="app-loading"
                                                                 style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'backgroundColor': '#fdfdfd', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'flexDirection': 'column' }}
