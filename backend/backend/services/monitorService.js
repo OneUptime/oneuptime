@@ -195,13 +195,14 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function (query, user) {
         try {
             if (!query) {
                 query = {};
             }
-
             query.deleted = false;
+
+            var userId = user.id;
             var monitor = await MonitorModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } }, { new: true }).populate('deletedById', 'name');
 
             if (monitor) {
@@ -241,7 +242,7 @@ module.exports = {
                 await Promise.all(alerts.map(async (alert) => {
                     await AlertService.deleteBy({ _id: alert._id }, userId);
                 }));
-                await StatusPageService.removeMonitor(monitor._id);
+                await StatusPageService.removeMonitor(monitor._id, user);
                 await ScheduleService.removeMonitor(monitor._id);
                 await IntegrationService.removeMonitor(monitor._id, userId);
                 await NotificationService.create(monitor.projectId, `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`, monitor.deletedById._id, 'monitoraddremove');

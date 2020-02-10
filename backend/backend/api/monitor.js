@@ -245,7 +245,7 @@ router.post('/:projectId/monitorLogs/:monitorId', getUser, isAuthorized, async f
 
 router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        var monitor = await MonitorService.deleteBy({ _id: req.params.monitorId, projectId: req.params.projectId }, req.user.id);
+        var monitor = await MonitorService.deleteBy({ _id: req.params.monitorId, projectId: req.params.projectId }, req.user);
         if (monitor) {
             return sendItemResponse(req, res, monitor);
         }
