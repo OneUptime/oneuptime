@@ -20,15 +20,12 @@ const styles = () => ({
     input: {
         'flex': '0 0 auto', 'padding': '4px 7px 2px', 'backgroundColor': '#fff', 'borderRadius': '4px', 'boxShadow': '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)', 'color': '#000000', 'cursor': 'text', 'fontSize': '14px', 'lineHeight': '1.6', 'textAlign': 'left', 'textDecoration': 'none', 'verticalAlign': 'middle', 'whiteSpace': 'nowrap', 'wordBreak': 'keep-all', 'transition': 'box-shadow 0.08s ease-in, color 0.08s ease-in', 'WebkitUserSelect': 'auto', 'MozUserSelect': 'auto', 'MsUserSelect': 'auto', 'userSelect': 'auto',
         'font-family':'unset',
-        width:'250px',
         height:'32px'
     }
 });
 
-const DateTimeSelector = ({ input, meta: { touched, error }, style, classes }) => {
-    if (!input.value) {
-        input.value = null
-    }
+const DateTimeSelector = ({ input, meta: { touched, error }, style, classes, minDate }) => {
+    if (!input.value) { input.value = null; }
     const [value, setValue] = useState(input.value);
     const handleChange = (option) => {
         setValue(option);
@@ -40,7 +37,7 @@ const DateTimeSelector = ({ input, meta: { touched, error }, style, classes }) =
 
     return (
         <span>
-            <div style={{ ...style, width:'250px', height: '28px', marginTop: '-15px' }}>
+            <div style={{ width:'10px', height: '28px', marginTop: '-15px', zIndex: 1000 }}>
 
                 <MuiThemeProvider theme={theme}>
                   <MuiPickersUtilsProvider utils={DateFnsUtils}>
@@ -60,6 +57,8 @@ const DateTimeSelector = ({ input, meta: { touched, error }, style, classes }) =
                           emptyLabel="Select Date and Time"
                           initialFocusedDate={null}
                           InputProps={{ className: classes.input, disableUnderline: true }}
+                          style={{...style}}
+                          minDate={minDate}
                       />
                     
                   </MuiPickersUtilsProvider>
@@ -89,6 +88,7 @@ DateTimeSelector.propTypes = {
     style: PropTypes.object,
     meta: PropTypes.object.isRequired,
     classes: PropTypes.object,
+    minDate: PropTypes.object,
 };
 
 export default withStyles(styles)(DateTimeSelector);
