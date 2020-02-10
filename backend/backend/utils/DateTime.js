@@ -155,6 +155,14 @@ var _this = {
         }
 
         return moment.tz(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} ${date.getHours()}:${date.getMinutes()}`, _this.getCurrentTimezone()).toDate();
+    },
+
+    isInLastMinute(date){
+        if (typeof date === 'string') {
+            date = new Date(date);
+        }
+
+        return date; 
     }
 };
 

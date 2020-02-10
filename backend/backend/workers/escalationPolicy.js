@@ -49,8 +49,8 @@ module.exports = {
                 var alerts = await AlertService.findBy({query: {onCallScheduleStatus:notAcknowledgedCallScheduleStatus.id}, limit: 9999, skip: 0, sort: {createdAt:-1}}); //sort by createdAtdescending. 
                 if(alerts && alerts.length > 0 && alerts[0]){
                     //check when the last alert was sent.  
-                    var lastAlertSent = alerts[0].createdAt; //we take '0' index because list is reverse sorted. 
-                    if(DateTime.isInLastMinute(lastAlertSent)){
+                    var lastAlertSentAt = alerts[0].createdAt; //we take '0' index because list is reverse sorted. 
+                    if(DateTime.isInLastMinute(lastAlertSentAt)){
                         continue; 
                     }
                 }

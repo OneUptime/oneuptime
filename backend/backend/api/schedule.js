@@ -102,7 +102,7 @@ router.delete('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, asy
 router.get('/:projectId/:scheduleId/getescalation', getUser, isAuthorized, async (req, res)=>{
     try {
         let scheduleId = req.params.scheduleId;
-        let response = await ScheduleService.getEscalation(scheduleId);
+        let response = await ScheduleService.getEscalations(scheduleId);
         return sendListResponse(req, res, response.escalations, response.count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

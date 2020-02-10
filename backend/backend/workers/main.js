@@ -8,12 +8,16 @@ const escalationPolicy = require('./escalationPolicy');
 const cronMinuteStartTime = Math.floor(Math.random() * 50); 
 
 // Esclation Policy: This cron runs every minute
-cron.schedule(`* * * * * ${cronMinuteStartTime}`,() =>{
-    escalationPolicy.checkActiveEscalationPolicyAndSendAlerts();
+cron.schedule(`* * * * *`,() =>{
+    setTimeout(()=>{
+        escalationPolicy.checkActiveEscalationPolicyAndSendAlerts();
+    }, cronMinuteStartTime*1000);
 });
 
 // IoT Monitor: This cron runs every minute
-// cron.schedule(`* * * * * ${cronMinuteStartTime}`,() =>{
-//     iotMonitorCron.checkAllDeviceMonitor();
+// cron.schedule(`* * * * *`,() =>{
+    // setTimeout(()=>{
+    //     iotMonitorCron.checkAllDeviceMonitor();
+    // }, cronMinuteStartTime*1000);
 // });
 

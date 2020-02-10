@@ -9,7 +9,7 @@ var bodyParser = require('body-parser');
 var cors = require('cors');
 
 //attach cron jobs
-require('./workers/main');
+require('./backend/workers/main');
 
 var { NODE_ENV } = process.env;
 

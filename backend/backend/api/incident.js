@@ -29,6 +29,7 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {monitorId, projectId}
 // Returns: 200: Incident, 400: Error; 500: Server Error.
+
 router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req, res) {
     try {
         var monitorId = req.params.monitorId;
