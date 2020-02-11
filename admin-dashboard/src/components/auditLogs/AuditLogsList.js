@@ -128,34 +128,34 @@ export class AuditLogsList extends Component {
                       <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                           <div className="Box-root Margin-right--16">
-                            <span>{auditLog.projectName}</span>
+                            <span>{auditLog.projectId ? auditLog.projectId.name : 'N/A'}</span>
                           </div>
                         </span>
                       </div>
                     </td>
                     <td
-                      className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                      className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
                       style={{ height: '1px' }}
                     >
                       <div className="db-ListViewItem-link">
                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                           <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <div className="Box-root">
-                              <span>{auditLog.userName}</span>
+                              <span>{auditLog.userId ? auditLog.userId.name : 'N/A'}</span>
                             </div>
                           </span>
                         </div>
                       </div>
                     </td>
                     <td
-                      className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                      className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
                       style={{ height: '1px' }}
                     >
                       <div className="db-ListViewItem-link">
                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                           <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <div className="Box-root Flex-flex">
-                              <span>{auditLog.apiPath}</span>
+                              <span>{auditLog.reqLog.apiSection}</span>
                             </div>
                           </span>
                         </div>
@@ -209,10 +209,8 @@ export class AuditLogsList extends Component {
 
         <div style={{ textAlign: 'center', marginTop: '10px' }}>
           {this.props.auditLogs &&
-          (!this.props.auditLogs.auditLogs ||
-            !this.props.auditLogs.auditLogs.length) &&
-          !this.props.requesting &&
-          !this.props.auditLogs.error
+          (!this.props.auditLogs.auditLogs || !this.props.auditLogs.auditLogs.length) &&
+          (!this.props.requesting && !this.props.auditLogs.error)
             ? 'We don\'t have any logs yet'
             : null}
           {this.props.auditLogs && this.props.auditLogs.error

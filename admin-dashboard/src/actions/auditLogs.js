@@ -1,8 +1,6 @@
-// import { getApi, postApi } from '../api';
+import { getApi, postApi } from '../api';
 import * as types from '../constants/auditLogs';
 import errors from '../errors';
-
-import auditLogsDummyData from './helpers/auditLogsDummyData.json';
 
 // Fetch All Audit Logs
 export const fetchAuditLogsRequest = () => {
@@ -32,8 +30,12 @@ export const fetchAuditLogs = (skip, limit) => async dispatch => {
   dispatch(fetchAuditLogsRequest());
 
   try {
-    // const response = await getApi(`project/projects/allProjects?skip=${skip}&limit=${limit}`);
-    const response = dispatch(fetchAuditLogsSuccess(auditLogsDummyData.data));
+    const response = await getApi(
+      `auditLogs/allAuditLogs?skip=${skip}&limit=${limit}`
+    );
+    const data = response.data;
+
+    dispatch(fetchAuditLogsSuccess(data));
 
     return response;
   } catch (error) {
@@ -81,16 +83,10 @@ export const searchAuditLogs = (filter, skip, limit) => async dispatch => {
   dispatch(searchAuditLogsRequest());
 
   try {
-    // const response = await postApi(`project/projects/search?skip=${skip}&limit=${limit}`, values);
-
-    // Temporary filtering for UI Check.
-    const response = {
-      data: {
-        data: auditLogsDummyData.data.data.filter(a => {
-          return a.apiPath.includes(values.filter || skip || limit);
-        }).slice(skip).slice(0, limit)
-      }
-    };
+    const response = await postApi(
+      `auditLogs/search?skip=${skip}&limit=${limit}`,
+      values
+    );
     const data = response.data;
 
     dispatch(searchAuditLogsSuccess(data));

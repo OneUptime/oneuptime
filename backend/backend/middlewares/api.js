@@ -93,4 +93,24 @@ module.exports = {
 
     },
 
+    getProjectId: function(req, res){
+        // Get Project Id, If Available
+        let projectId;
+
+        if(req.params.projectId){
+            projectId = req.params.projectId;
+        }else if(req.query.projectId){
+            projectId = req.query.projectId;
+        }else if(req.headers['projectId']){
+            projectId = req.headers['projectId'];
+        }else if(req.body.projectId){
+            projectId = req.body.projectId;
+        }else{
+            return null;
+        }
+
+        return projectId;
+
+    },
+
 };
