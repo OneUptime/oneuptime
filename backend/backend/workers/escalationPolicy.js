@@ -2,6 +2,8 @@ const ErrorService = require('../services/errorService');
 const OnCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const AlertService = require('../services/alertService');
 const DateTime = require('../utils/DateTime');
+const IncidentService = require('../services/incidentService');
+const ScheduleService = require('../services/scheduleService');
 
 module.exports = {
 
@@ -22,7 +24,7 @@ module.exports = {
 
             //#1
 
-            var notAcknowledgedCallScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incidentAcknowledged: false }, limit: 9999999, skip: 0 });
+            var notAcknowledgedCallScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incidentAcknowledged: false, alertedEveryone: false }, limit: 9999999, skip: 0 });
 
             for(var notAcknowledgedCallScheduleStatus of notAcknowledgedCallScheduleStatuses){
 
@@ -37,7 +39,15 @@ module.exports = {
                     continue; 
                 }
 
-                if(notAcknowledgedCallScheduleStatus.incident && notAcknowledgedCallScheduleStatus.incident.acknowledged){
+                var incident = await IncidentService.findOneBy({_id:notAcknowledgedCallScheduleStatus.incident});
+
+                if(!incident){
+                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true; 
+                    notAcknowledgedCallScheduleStatus.save();
+                    continue; 
+                }
+
+                if(incident && incident.acknowledged){
                     notAcknowledgedCallScheduleStatus.incidentAcknowledged = true; 
                     notAcknowledgedCallScheduleStatus.save();
                     continue; 
@@ -46,17 +56,18 @@ module.exports = {
                 // #3 and #4
                 // get active escalation policy. 
                 
-                var alerts = await AlertService.findBy({query: {onCallScheduleStatus:notAcknowledgedCallScheduleStatus.id}, limit: 9999, skip: 0, sort: {createdAt:-1}}); //sort by createdAtdescending. 
+                var alerts = await AlertService.findBy({query: {onCallScheduleStatus:notAcknowledgedCallScheduleStatus._id}, limit: 9999, skip: 0, sort: {createdAt:-1}}); //sort by createdAtdescending. 
                 if(alerts && alerts.length > 0 && alerts[0]){
                     //check when the last alert was sent.  
                     var lastAlertSentAt = alerts[0].createdAt; //we take '0' index because list is reverse sorted. 
-                    if(DateTime.isInLastMinute(lastAlertSentAt)){
+                    if(!DateTime.isOlderThanLastMinute(lastAlertSentAt)){
                         continue; 
                     }
                 }
-
+                var schedule = await ScheduleService.findOneBy({_id: notAcknowledgedCallScheduleStatus.schedule });
                 //and the rest happens here. 
-                AlertService.sendAlertsToTeamMembersInSchedule({schedule: notAcknowledgedCallScheduleStatus.schedule, incident:notAcknowledgedCallScheduleStatus.incident });                
+            
+                AlertService.sendAlertsToTeamMembersInSchedule({schedule, incident });                
             }
 
         } catch (error) {

@@ -266,6 +266,10 @@ module.exports = {
             var data = {};
             var incident = await _this.findOneBy({ _id: incidentId });
 
+            if(!incident){
+                return;
+            }
+
             if (!incident.acknowledged) {
                 data.acknowledged = true;
                 data.acknowledgedBy = userId;
@@ -279,6 +283,14 @@ module.exports = {
 
             incident = await _this.updateOneBy({ _id: incidentId }, data);
             incident = await _this.findOneBy({ _id: incident._id });
+
+            if (incident.probes && incident.probes.length > 0) {
+                incident.probes.map(async probe => {
+                    await MonitorStatusService.create({ monitorId: incident.monitorId._id, probeId: probe.probeId._id, status: 'online' });
+                });
+            } else {
+                await MonitorStatusService.create({ monitorId: incident.monitorId._id, status: 'online' });
+            }
 
             await _this.sendIncidentResolvedNotification(incident, name);
             await RealTimeService.incidentResolved(incident);
@@ -419,7 +431,8 @@ var NotificationService = require('./notificationService');
 var WebHookService = require('./webHookService');
 var SlackService = require('./slackService');
 var ZapierService = require('./zapierService');
-var ProjectService = require('../services/projectService');
-var ErrorService = require('../services/errorService');
+var ProjectService = require('./projectService');
+var ErrorService = require('./errorService');
+var MonitorStatusService = require('./monitorStatusService');
 
 

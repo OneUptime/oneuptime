@@ -273,7 +273,7 @@ module.exports = {
 
     escalate: async function ({ schedule, incident }) {
         var _this = this;
-        var callScheduleStatuses = OnCallScheduleStatusService.findBy({ query: { incident: incident._id, schedule: schedule } });
+        var callScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incident: incident._id, schedule: schedule._id } });
         var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
         var monitor = await MonitorService.findOneBy({ _id: monitorId });
 
@@ -283,7 +283,7 @@ module.exports = {
 
         var callScheduleStatus = callScheduleStatuses[0];
 
-        var activeEscalationPolicy = callScheduleStatus.activeEscalationPolicy;
+        var activeEscalation = callScheduleStatus.activeEscalation;
 
         if (!schedule.escalationIds || schedule.escalationIds.length === 0) {
             return;
@@ -305,12 +305,14 @@ module.exports = {
                 escalationId = escalationId._id;
             }
 
-            if (activeEscalationPolicy._id === escalationId) {
+            if (activeEscalation._id.toString() === escalationId.toString()) {
                 found = true;
             }
         }
 
-        if (!nextEscalationPolicy._id === activeEscalationPolicy._id) {
+        if (!nextEscalationPolicy || nextEscalationPolicy._id.toString() !== activeEscalation._id.toString()) {
+            callScheduleStatus.alertedEveryone = true; 
+            await callScheduleStatus.save();
             return; //can't escalate anymore. 
         }
 
@@ -320,7 +322,7 @@ module.exports = {
             emailRemindersSent: 0,
             smsRemindersSent: 0
         });
-        callScheduleStatus.activeEscalationPolicy = nextEscalationPolicy;
+        callScheduleStatus.activeEscalation = nextEscalationPolicy;
 
         await callScheduleStatus.save();
 
@@ -410,17 +412,18 @@ module.exports = {
         var date = new Date();
         var monitorId = monitor._id;
         let accessToken = UserService.getAccessToken({ userId: user._id, expiresIn: 12 * 60 * 60 * 1000 });
-        const queryString = `projectId=${incident.projectId}&&userId=${user._id}&&accessToken=${accessToken}`;
+        const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
         let firstName = user.name;
-
+        
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
             date = moment(date).tz(user.timezone).format();
         }
 
         try {
-            return  await MailService.sendIncidentCreatedMail(date, monitor.name, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType, project.name);
+            await MailService.sendIncidentCreatedMail(date, monitor.name, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType, project.name);
+            return await _this.create({ projectId: incident.projectId, monitorId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Success' });
         } catch (e) {
             return await _this.create({ projectId: incident.projectId, monitorId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Cannot Send' });
         }
@@ -717,7 +720,7 @@ const ErrorService = require('./errorService');
 const StatusPageService = require('./statusPageService');
 const AlertChargeService = require('./alertChargeService');
 const countryCode = require('../config/countryCode');
-const baseApiUrl = require('../config/baseApiUrl');
+const baseApiUrl = process.env.BACKEND_HOST;
 const { getAlertChargeAmount, getCountryType } = require('../config/alertType');
 const { BACKEND_HOST } = process.env;
 const { twilioAlertLimit } = require('../config/twilio');

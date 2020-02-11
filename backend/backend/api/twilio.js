@@ -7,7 +7,7 @@
 const express = require('express');
 const IncidentService = require('../services/incidentService');
 const { sendIncidentCreatedCall, sendResponseMessage, sendVerificationSMS, verifySMSCode } = require('../services/twilioService');
-const baseApiUrl = require('../config/baseApiUrl');
+const baseApiUrl = process.env.BACKEND_HOST;
 const incidentSMSActionService = require('../services/IncidentSMSActionService');
 const {
     isAuthorized

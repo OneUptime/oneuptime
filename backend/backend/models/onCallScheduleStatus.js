@@ -28,6 +28,7 @@ var schema = new Schema({
     deletedAt: { type: Date },
     deletedById: { type: String, ref: 'User' },
 
+    alertedEveryone: { type: Boolean, default: false}, //this happens when everyone in the scheudle has been alerted and they still ignore the incident. 
 });
 
 module.exports = mongoose.model('OnCallScheduleStatus', schema);

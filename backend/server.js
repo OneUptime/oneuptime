@@ -8,13 +8,11 @@ var keys = require('./backend/config/keys.js');
 var bodyParser = require('body-parser');
 var cors = require('cors');
 
-//attach cron jobs
-require('./backend/workers/main');
-
 var { NODE_ENV } = process.env;
 
-if (NODE_ENV === 'local' || NODE_ENV === 'development')
-    require('custom-env').env(process.env.NODE_ENV);
+if (!NODE_ENV || NODE_ENV === 'local' || NODE_ENV === 'development'){
+    require('custom-env').env(process.env.NODE_ENV || 'development');
+}
 
 io.adapter(redisAdapter({
     host: keys.redisURL || 'localhost',
@@ -107,6 +105,9 @@ app.use('/*', function (req, res) {
 function close() {
     server.close();
 }
+
+//attach cron jobs
+require('./backend/workers/main');
 
 module.exports = app;
 

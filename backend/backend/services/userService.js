@@ -668,7 +668,7 @@ module.exports = {
         }
     },
 
-    getAccessToken: async function({userId, expiresIn}){
+    getAccessToken: function({userId, expiresIn}){
         return jwt.sign({
             id: userId
         }, jwtKey.jwtSecretKey, { expiresIn: expiresIn});
