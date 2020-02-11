@@ -117,8 +117,8 @@ class Main extends Component {
 	}
 
 	groupedMonitors = () => {
-		if (this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0) {
-			let monitorData = this.props.statusData.monitorIds;
+		if (this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0) {
+			let monitorData = this.props.statusData.monitorsData;
 			let groupedMonitorData = this.groupBy(monitorData, 'monitorCategoryId');
 			let monitorCategoryStyle = {
 				display: 'inline-block',
@@ -137,8 +137,7 @@ class Main extends Component {
 							<span>{groupedMonitors[0].monitorCategoryId ? groupedMonitors[0].monitorCategoryId.name.toUpperCase() : 'Uncategorized'.toUpperCase()}</span>
 						</div>
 						{groupedMonitors.map((monitor, i) => {
-							const monitorDetail = this.getMonitorDetail(this.props.monitorState, monitor._id);
-							return (<UptimeGraphs monitor={monitorDetail} key={i} id={`monitor${i}`} />);
+							return (<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />);
 						})}
 					</div>
 				);
@@ -146,10 +145,6 @@ class Main extends Component {
 		} else {
 			return <NoMonitor />;
 		}
-	}
-
-	getMonitorDetail = (monitors, id) => {
-		return monitors.find(monitor => monitor._id === id);
 	}
 
 	selectbutton = (index) => {
@@ -175,7 +170,7 @@ class Main extends Component {
 		let isGroupedByMonitorCategory = false;
 		let error = this.renderError();
 
-		if (this.props.statusData && this.props.statusData.monitorIds) {
+		if (this.props.statusData && this.props.statusData.monitorsData) {
 			serviceStatus = getServiceStatus(this.props.monitorState, probes);
 			isGroupedByMonitorCategory = this.props.statusData.isGroupedByMonitorCategory;
 			var colors = this.props.statusData.colors
@@ -247,16 +242,15 @@ class Main extends Component {
 									{isGroupedByMonitorCategory ?
 										this.groupedMonitors() :
 										(this.props.statusData &&
-											this.props.statusData.monitorIds !== undefined &&
-											this.props.statusData.monitorIds.length > 0 ?
-											this.props.statusData.monitorIds
+											this.props.statusData.monitorsData !== undefined &&
+											this.props.statusData.monitorsData.length > 0 ?
+											this.props.statusData.monitorsData
 												.map((monitor, i) => {
-													const monitorDetail = this.getMonitorDetail(this.props.monitorState, monitor._id);
-													return <UptimeGraphs monitor={monitorDetail} key={i} id={`monitor${i}`} />
+													return <UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />
 												}) :
 											<NoMonitor />)}
 								</div>
-								{this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0 ? <UptimeLegend background={contentBackground} /> : ''}
+								{this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0 ? <UptimeLegend background={contentBackground} /> : ''}
 							</div>
 						</div>
 					</div>

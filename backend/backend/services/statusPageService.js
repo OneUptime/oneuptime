@@ -281,11 +281,7 @@ module.exports = {
             var statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
-                .populate({
-                    path: 'monitorIds',
-                    select: 'name data type monitorCategoryId',
-                    populate: { path: 'monitorCategoryId', select: 'name' }
-                })
+                .populate('monitorIds', 'name')
                 .lean();
             if (statusPage && (statusPage._id || statusPage.id)) {
                 var permitted = await thisObj.isPermitted(user, statusPage);

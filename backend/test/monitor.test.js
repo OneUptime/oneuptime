@@ -283,7 +283,7 @@ describe('Monitor API with monitor Category', function () {
             monitorId = res.body._id;
             expect(res).to.have.status(200);
             expect(res.body.name).to.be.equal('New Monitor 8');
-            expect(res.body.monitorCategoryId).to.be.equal(monitorCategoryId);
+            expect(res.body.monitorCategoryId._id).to.be.equal(monitorCategoryId);
             done();
         });
     });

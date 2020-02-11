@@ -78,6 +78,34 @@ export default (state = INITIAL_STATE, action) => {
                 requesting: false
             });
 
+        case 'UPDATE_MONITOR':
+            return Object.assign({}, state, {
+                error: null,
+                statusPage: {
+                    ...state.statusPage,
+
+                    monitorIds: state.statusPage.monitorIds && state.statusPage.monitorIds.length > 0 ?
+                        state.statusPage.monitorIds.map(monitor => {
+                            if (monitor._id === action.payload._id) {
+                                monitor.name = action.payload.name;
+                            }
+                            return monitor;
+                        }) : [],
+                    monitorsData: state.statusPage.monitorsData && state.statusPage.monitorsData.length > 0 ?
+                        state.statusPage.monitorsData.map(monitor => {
+                            if (monitor._id === action.payload._id) {
+                                return {
+                                    ...monitor,
+                                    ...action.payload,
+                                    monitorCategoryId: action.payload.monitorCategoryId
+                                };
+                            }
+                            return monitor;
+                        }) : [],
+                },
+                requesting: false
+            });
+
         case STATUSPAGE_NOTES_SUCCESS:
             return Object.assign({}, state, {
                 notes: {
