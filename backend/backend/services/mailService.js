@@ -496,7 +496,7 @@ module.exports = {
             var info = await mailer.sendMail(mailOptions);
             return info;
         } catch (error) {
-            console.error(error);
+            ErrorService.log('mailService.sendIncidentCreatedMail', error);
             throw error;
         }
     },

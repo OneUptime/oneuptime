@@ -8,7 +8,7 @@ const escalationPolicy = require('./escalationPolicy');
 const cronMinuteStartTime = Math.floor(Math.random() * 50); 
 
 // Esclation Policy: This cron runs every minute
-cron.schedule(`* * * * *`,() =>{
+cron.schedule('* * * * *',() =>{
     setTimeout(()=>{
         escalationPolicy.checkActiveEscalationPolicyAndSendAlerts();
     }, cronMinuteStartTime*1000);
@@ -16,8 +16,8 @@ cron.schedule(`* * * * *`,() =>{
 
 // IoT Monitor: This cron runs every minute
 // cron.schedule(`* * * * *`,() =>{
-    // setTimeout(()=>{
-    //     iotMonitorCron.checkAllDeviceMonitor();
-    // }, cronMinuteStartTime*1000);
+// setTimeout(()=>{
+//     iotMonitorCron.checkAllDeviceMonitor();
+// }, cronMinuteStartTime*1000);
 // });
 

@@ -267,7 +267,7 @@ router.get('/:projectId/resolve/:incidentId', getUser, isAuthorized, async funct
     try {
         var userId = req.user ? req.user.id : null;
         await IncidentService.resolve(req.params.incidentId, userId);
-        return res.status(200).render('incidentAction.ejs', {title: "Incident Resolved", title_message: "Incident Resolved", body_message: "Your incident is now resolved.", action: "resolve", dashboard_url: DashboardUrl});
+        return res.status(200).render('incidentAction.ejs', {title: 'Incident Resolved', title_message: 'Incident Resolved', body_message: 'Your incident is now resolved.', action: 'resolve', dashboard_url: DashboardUrl});
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -283,7 +283,7 @@ router.get('/:projectId/acknowledge/:incidentId', getUser, isAuthorized, async f
     try {
         var userId = req.user ? req.user.id : null;
         await IncidentService.acknowledge(req.params.incidentId, userId, req.user.name);
-        return res.status(200).render('incidentAction.ejs', {title: "Incident Acknowledged", title_message: "Incident Acknowledged", body_message: "Your incident is now acknowledged", action: "acknowledge", dashboard_url: DashboardUrl});
+        return res.status(200).render('incidentAction.ejs', {title: 'Incident Acknowledged', title_message: 'Incident Acknowledged', body_message: 'Your incident is now acknowledged', action: 'acknowledge', dashboard_url: DashboardUrl});
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
