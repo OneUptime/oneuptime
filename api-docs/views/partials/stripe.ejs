@@ -28,11 +28,11 @@
   <section class="col-lg-half col-md-half dev-doc-example"></section>
 </article>
 
-<article id="create-events" class="cf-grid-container dev-doc-item-container">
+<article id="get-events" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Create Events<span class="requestType">POST</span></h3>
+    <h3>Get Events<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Get Stripe Events.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -44,50 +44,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/events</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -130,7 +86,18 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": {
+    "object": {
+      "customer": "cus_GclhJ8JTR1IpOw",
+      "subscription": "sub_GclhCoRrdskNuu",
+      "attempt_count": "0",
+      "paid": false
+    }
+  }
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -142,7 +109,11 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "paymentStatus": "failed"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -155,7 +126,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Charges<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Stripe Charges.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -167,28 +138,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/:projectId/charges</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -226,7 +175,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/stripe/:projectId/charges</p>
+          <p class="url">https://api.fyipe.com/stripe/5e2ecf45516aae26b133f354/charges</p>
         </div>
       </div>
 
@@ -236,7 +185,129 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "id": "ch_1GAeQAIt5jR0TXkE2wAf9Lnz",
+      "object": "charge",
+      "amount": 800,
+      "amount_refunded": 0,
+      "application": null,
+      "application_fee": null,
+      "application_fee_amount": null,
+      "balance_transaction": "txn_1GAeQAIt5jR0TXkEIQYyCXzr",
+      "billing_details": {
+        "address": {
+          "city": null,
+          "country": null,
+          "line1": null,
+          "line2": null,
+          "postal_code": null,
+          "state": null
+        },
+        "email": null,
+        "name": null,
+        "phone": null
+      },
+      "captured": true,
+      "created": 1581349418,
+      "currency": "usd",
+      "customer": "cus_GclhJ8JTR1IpOw",
+      "description": "Invoice BBE11D50-0011",
+      "destination": null,
+      "dispute": null,
+      "disputed": false,
+      "failure_code": null,
+      "failure_message": null,
+      "fraud_details": {},
+      "invoice": "in_1GAdOZIt5jR0TXkE6fEFBEkC",
+      "livemode": false,
+      "metadata": {},
+      "on_behalf_of": null,
+      "order": null,
+      "outcome": {
+        "network_status": "approved_by_network",
+        "reason": null,
+        "risk_level": "normal",
+        "risk_score": 32,
+        "seller_message": "Payment complete.",
+        "type": "authorized"
+      },
+      "paid": true,
+      "payment_intent": "pi_1GAeQAIt5jR0TXkE0XHYtP58",
+      "payment_method": "card_1G5W9gIt5jR0TXkElgQWQzE8",
+      "payment_method_details": {
+        "card": {
+          "brand": "visa",
+          "checks": {
+            "address_line1_check": null,
+            "address_postal_code_check": null,
+            "cvc_check": null
+          },
+          "country": "US",
+          "exp_month": 8,
+          "exp_year": 2021,
+          "fingerprint": "R6YzDa1bOKXSy3k3",
+          "funding": "credit",
+          "installments": null,
+          "last4": "4242",
+          "network": "visa",
+          "three_d_secure": null,
+          "wallet": null
+        },
+        "type": "card"
+      },
+      "receipt_email": "nawazdhandala@hackerbay.io",
+      "receipt_number": null,
+      "receipt_url": "https://pay.stripe.com/receipts/acct_1C0FAWIt5jR0TXkE/ch_1GAeQAIt5jR0TXkE2wAf9Lnz/rcpt_Gi4ZqvpK8wQp940kpxVD1rQ777Ha4Q2",
+      "refunded": false,
+      "refunds": {
+        "object": "list",
+        "data": [],
+        "has_more": false,
+        "total_count": 0,
+        "url": "/v1/charges/ch_1GAeQAIt5jR0TXkE2wAf9Lnz/refunds"
+      },
+      "review": null,
+      "shipping": null,
+      "source": {
+        "id": "card_1G5W9gIt5jR0TXkElgQWQzE8",
+        "object": "card",
+        "address_city": null,
+        "address_country": null,
+        "address_line1": null,
+        "address_line1_check": null,
+        "address_line2": null,
+        "address_state": null,
+        "address_zip": null,
+        "address_zip_check": null,
+        "brand": "Visa",
+        "country": "US",
+        "customer": "cus_GclhJ8JTR1IpOw",
+        "cvc_check": null,
+        "dynamic_last4": null,
+        "exp_month": 8,
+        "exp_year": 2021,
+        "fingerprint": "R6YzDa1bOKXSy3k3",
+        "funding": "credit",
+        "last4": "4242",
+        "metadata": {},
+        "name": null,
+        "tokenization_method": null
+      },
+      "source_transfer": null,
+      "statement_descriptor": "REGULAR PLAN",
+      "statement_descriptor_suffix": null,
+      "status": "succeeded",
+      "transfer_data": null,
+      "transfer_group": null
+    },
+    ...
+  ],
+  "count": 3
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -249,7 +320,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Add Credit Card<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Add Credit Card.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -261,28 +332,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/:projectId/creditCard/:token/pi</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -357,14 +406,15 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/stripe/:projectId/creditCard/:token/pi</p>
+          <p class="url">
+            https://api.fyipe.com/stripe/5e2ecf45516aae26b133f354/creditCard/tok_1GAj0yIt5jR0TXkERNoQc5hv/pi</p>
 
-          <p>Request Body</p>
+          <!-- <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p></p>
             </code>
-          </pre>
+          </pre> -->
         </div>
       </div>
 
@@ -374,7 +424,65 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "pi_1GAjCZIt5jR0TXkECoWziaK4",
+  "object": "payment_intent",
+  "allowed_source_types": [
+    "card"
+  ],
+  "amount": 100,
+  "amount_capturable": 0,
+  "amount_received": 0,
+  "application": null,
+  "application_fee_amount": null,
+  "canceled_at": null,
+  "cancellation_reason": null,
+  "capture_method": "automatic",
+  "charges": {
+    "object": "list",
+    "data": [],
+    "has_more": false,
+    "total_count": 0,
+    "url": "/v1/charges?payment_intent=pi_1GAjCZIt5jR0TXkECoWziaK4"
+  },
+  "client_secret": "pi_1GAjCZIt5jR0TXkECoWziaK4_secret_sYKrS8OyTWzAPNUe3iJrw9Td3",
+  "confirmation_method": "automatic",
+  "created": 1581367795,
+  "currency": "usd",
+  "customer": "cus_GclhJ8JTR1IpOw",
+  "description": "Verify if card is billable",
+  "invoice": "in_1GAjCYIt5jR0TXkEUNL4R0RW",
+  "last_payment_error": null,
+  "livemode": false,
+  "metadata": {
+    "description": "Verify if card is billable"
+  },
+  "next_action": null,
+  "next_source_action": null,
+  "on_behalf_of": null,
+  "payment_method": null,
+  "payment_method_options": {
+    "card": {
+      "installments": null,
+      "request_three_d_secure": "automatic"
+    }
+  },
+  "payment_method_types": [
+    "card"
+  ],
+  "receipt_email": null,
+  "review": null,
+  "setup_future_usage": null,
+  "shipping": null,
+  "source": "card_1GAjCTIt5jR0TXkEVSy7LmGJ",
+  "statement_descriptor": null,
+  "statement_descriptor_suffix": null,
+  "status": "requires_confirmation",
+  "transfer_data": null,
+  "transfer_group": null
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -383,11 +491,11 @@
   </section>
 </article>
 
-<article id="get-credit-cards" class="cf-grid-container dev-doc-item-container">
+<article id="get-all-credit-cards" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Credit Cards<span class="requestType">GET</span></h3>
+    <h3>Get All Credit Cards<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Credit Cards.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -399,28 +507,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/:projectId/creditCard</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -458,7 +544,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/stripe/:projectId/creditCard</p>
+          <p class="url">https://api.fyipe.com/stripe/5e2ecf45516aae26b133f354/creditCard</p>
         </div>
       </div>
 
@@ -468,7 +554,41 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "card_1G5W9gIt5jR0TXkElgQWQzE8",
+      "object": "card",
+      "address_city": null,
+      "address_country": null,
+      "address_line1": null,
+      "address_line1_check": null,
+      "address_line2": null,
+      "address_state": null,
+      "address_zip": null,
+      "address_zip_check": null,
+      "brand": "Visa",
+      "country": "US",
+      "customer": "cus_GclhJ8JTR1IpOw",
+      "cvc_check": "pass",
+      "dynamic_last4": null,
+      "exp_month": 8,
+      "exp_year": 2021,
+      "fingerprint": "R6YzDa1bOKXSy3k3",
+      "funding": "credit",
+      "last4": "4242",
+      "metadata": {},
+      "name": null,
+      "tokenization_method": null,
+      "default_source": true
+    }
+  ],
+  "has_more": false,
+  "url": "/v1/customers/cus_GclhJ8JTR1IpOw/sources"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -481,7 +601,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Credit Card<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Single Credit Card.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -493,28 +613,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/:projectId/creditCard/:cardId</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -567,7 +665,8 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/stripe/:projectId/creditCard/:cardId</p>
+          <p class="url">https://api.fyipe.com/stripe/5e2ecf45516aae26b133f354/creditCard/card_1G5W9gIt5jR0TXkElgQWQzE8
+          </p>
         </div>
       </div>
 
@@ -577,7 +676,33 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "card_1G5W9gIt5jR0TXkElgQWQzE8",
+  "object": "card",
+  "address_city": null,
+  "address_country": null,
+  "address_line1": null,
+  "address_line1_check": null,
+  "address_line2": null,
+  "address_state": null,
+  "address_zip": null,
+  "address_zip_check": null,
+  "brand": "Visa",
+  "country": "US",
+  "customer": "cus_GclhJ8JTR1IpOw",
+  "cvc_check": "pass",
+  "dynamic_last4": null,
+  "exp_month": 8,
+  "exp_year": 2021,
+  "fingerprint": "R6YzDa1bOKXSy3k3",
+  "funding": "credit",
+  "last4": "4242",
+  "metadata": {},
+  "name": null,
+  "tokenization_method": null
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -590,7 +715,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Credit Card<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit Credit Card.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -602,28 +727,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/:projectId/creditCard/:cardId</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -698,14 +801,15 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/stripe/:projectId/creditCard/:cardId</p>
+          <p class="url">https://api.fyipe.com/stripe/5e2ecf45516aae26b133f354/creditCard/card_1G5W9gIt5jR0TXkElgQWQzE8
+          </p>
 
-          <p>Request Body</p>
+          <!-- <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p></p>
             </code>
-          </pre>
+          </pre> -->
         </div>
       </div>
 
@@ -715,7 +819,518 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "cus_GclhJ8JTR1IpOw",
+  "object": "customer",
+  "account_balance": 0,
+  "address": null,
+  "balance": 0,
+  "created": 1580126008,
+  "currency": "usd",
+  "default_source": "card_1G5W9gIt5jR0TXkElgQWQzE8",
+  "delinquent": false,
+  "description": "Hackerbay",
+  "discount": null,
+  "email": "nawazdhandala@hackerbay.io",
+  "invoice_prefix": "BBE11D50",
+  "invoice_settings": {
+    "custom_fields": null,
+    "default_payment_method": null,
+    "footer": null
+  },
+  "livemode": false,
+  "metadata": {},
+  "name": null,
+  "phone": null,
+  "preferred_locales": [],
+  "shipping": null,
+  "sources": {
+    "object": "list",
+    "data": [
+      {
+        "id": "card_1G5W9gIt5jR0TXkElgQWQzE8",
+        "object": "card",
+        "address_city": null,
+        "address_country": null,
+        "address_line1": null,
+        "address_line1_check": null,
+        "address_line2": null,
+        "address_state": null,
+        "address_zip": null,
+        "address_zip_check": null,
+        "brand": "Visa",
+        "country": "US",
+        "customer": "cus_GclhJ8JTR1IpOw",
+        "cvc_check": "pass",
+        "dynamic_last4": null,
+        "exp_month": 8,
+        "exp_year": 2021,
+        "fingerprint": "R6YzDa1bOKXSy3k3",
+        "funding": "credit",
+        "last4": "4242",
+        "metadata": {},
+        "name": null,
+        "tokenization_method": null
+      },
+      {
+        "id": "card_1GAjCTIt5jR0TXkEVSy7LmGJ",
+        "object": "card",
+        "address_city": null,
+        "address_country": null,
+        "address_line1": null,
+        "address_line1_check": null,
+        "address_line2": null,
+        "address_state": null,
+        "address_zip": "24010",
+        "address_zip_check": "pass",
+        "brand": "Visa",
+        "country": "US",
+        "customer": "cus_GclhJ8JTR1IpOw",
+        "cvc_check": "pass",
+        "dynamic_last4": null,
+        "exp_month": 4,
+        "exp_year": 2021,
+        "fingerprint": "Sv6XZRujGyCWF1ey",
+        "funding": "debit",
+        "last4": "5556",
+        "metadata": {},
+        "name": null,
+        "tokenization_method": null
+      }
+    ],
+    "has_more": false,
+    "total_count": 2,
+    "url": "/v1/customers/cus_GclhJ8JTR1IpOw/sources"
+  },
+  "subscriptions": {
+    "object": "list",
+    "data": [
+      {
+        "id": "sub_Gh0HqwYiQVH8G1",
+        "object": "subscription",
+        "application_fee_percent": null,
+        "billing": "charge_automatically",
+        "billing_cycle_anchor": 1582312415,
+        "billing_thresholds": null,
+        "cancel_at": null,
+        "cancel_at_period_end": false,
+        "canceled_at": null,
+        "collection_method": "charge_automatically",
+        "created": 1581102815,
+        "current_period_end": 1582312415,
+        "current_period_start": 1581102815,
+        "customer": "cus_GclhJ8JTR1IpOw",
+        "days_until_due": null,
+        "default_payment_method": null,
+        "default_source": null,
+        "default_tax_rates": [],
+        "discount": null,
+        "ended_at": null,
+        "invoice_customer_balance_settings": {
+          "consume_applied_balance_on_void": true
+        },
+        "items": {
+          "object": "list",
+          "data": [
+            {
+              "id": "si_Gh0HDecZxTgwuW",
+              "object": "subscription_item",
+              "billing_thresholds": null,
+              "created": 1581102816,
+              "metadata": {},
+              "plan": {
+                "id": "plan_EgTJMZULfh6THW",
+                "object": "plan",
+                "active": true,
+                "aggregate_usage": null,
+                "amount": 800,
+                "amount_decimal": "800",
+                "billing_scheme": "per_unit",
+                "created": 1552380853,
+                "currency": "usd",
+                "interval": "month",
+                "interval_count": 1,
+                "livemode": false,
+                "metadata": {},
+                "nickname": "REGULAR PLAN MONTHLY",
+                "product": "prod_EgTJOMggEHKLuW",
+                "tiers": null,
+                "tiers_mode": null,
+                "transform_usage": null,
+                "trial_period_days": 14,
+                "usage_type": "licensed"
+              },
+              "quantity": 1,
+              "subscription": "sub_Gh0HqwYiQVH8G1",
+              "tax_rates": []
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/subscription_items?subscription=sub_Gh0HqwYiQVH8G1"
+        },
+        "latest_invoice": "in_1G9cGhIt5jR0TXkEAk9LZrdh",
+        "livemode": false,
+        "metadata": {},
+        "next_pending_invoice_item_invoice": null,
+        "pending_invoice_item_interval": null,
+        "pending_setup_intent": null,
+        "pending_update": null,
+        "plan": {
+          "id": "plan_EgTJMZULfh6THW",
+          "object": "plan",
+          "active": true,
+          "aggregate_usage": null,
+          "amount": 800,
+          "amount_decimal": "800",
+          "billing_scheme": "per_unit",
+          "created": 1552380853,
+          "currency": "usd",
+          "interval": "month",
+          "interval_count": 1,
+          "livemode": false,
+          "metadata": {},
+          "nickname": "REGULAR PLAN MONTHLY",
+          "product": "prod_EgTJOMggEHKLuW",
+          "tiers": null,
+          "tiers_mode": null,
+          "transform_usage": null,
+          "trial_period_days": 14,
+          "usage_type": "licensed"
+        },
+        "quantity": 1,
+        "schedule": null,
+        "start": 1581102815,
+        "start_date": 1581102815,
+        "status": "trialing",
+        "tax_percent": null,
+        "trial_end": 1582312415,
+        "trial_start": 1581102815
+      },
+      {
+        "id": "sub_Gh05jSGsPvgugp",
+        "object": "subscription",
+        "application_fee_percent": null,
+        "billing": "charge_automatically",
+        "billing_cycle_anchor": 1582311685,
+        "billing_thresholds": null,
+        "cancel_at": null,
+        "cancel_at_period_end": false,
+        "canceled_at": null,
+        "collection_method": "charge_automatically",
+        "created": 1581102085,
+        "current_period_end": 1582311685,
+        "current_period_start": 1581102085,
+        "customer": "cus_GclhJ8JTR1IpOw",
+        "days_until_due": null,
+        "default_payment_method": null,
+        "default_source": null,
+        "default_tax_rates": [],
+        "discount": null,
+        "ended_at": null,
+        "invoice_customer_balance_settings": {
+          "consume_applied_balance_on_void": true
+        },
+        "items": {
+          "object": "list",
+          "data": [
+            {
+              "id": "si_Gh05QOqdtYVUcK",
+              "object": "subscription_item",
+              "billing_thresholds": null,
+              "created": 1581102086,
+              "metadata": {},
+              "plan": {
+                "id": "plan_EgTJMZULfh6THW",
+                "object": "plan",
+                "active": true,
+                "aggregate_usage": null,
+                "amount": 800,
+                "amount_decimal": "800",
+                "billing_scheme": "per_unit",
+                "created": 1552380853,
+                "currency": "usd",
+                "interval": "month",
+                "interval_count": 1,
+                "livemode": false,
+                "metadata": {},
+                "nickname": "REGULAR PLAN MONTHLY",
+                "product": "prod_EgTJOMggEHKLuW",
+                "tiers": null,
+                "tiers_mode": null,
+                "transform_usage": null,
+                "trial_period_days": 14,
+                "usage_type": "licensed"
+              },
+              "quantity": 1,
+              "subscription": "sub_Gh05jSGsPvgugp",
+              "tax_rates": []
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/subscription_items?subscription=sub_Gh05jSGsPvgugp"
+        },
+        "latest_invoice": "in_1G9c4vIt5jR0TXkEhiAgJiir",
+        "livemode": false,
+        "metadata": {},
+        "next_pending_invoice_item_invoice": null,
+        "pending_invoice_item_interval": null,
+        "pending_setup_intent": null,
+        "pending_update": null,
+        "plan": {
+          "id": "plan_EgTJMZULfh6THW",
+          "object": "plan",
+          "active": true,
+          "aggregate_usage": null,
+          "amount": 800,
+          "amount_decimal": "800",
+          "billing_scheme": "per_unit",
+          "created": 1552380853,
+          "currency": "usd",
+          "interval": "month",
+          "interval_count": 1,
+          "livemode": false,
+          "metadata": {},
+          "nickname": "REGULAR PLAN MONTHLY",
+          "product": "prod_EgTJOMggEHKLuW",
+          "tiers": null,
+          "tiers_mode": null,
+          "transform_usage": null,
+          "trial_period_days": 14,
+          "usage_type": "licensed"
+        },
+        "quantity": 1,
+        "schedule": null,
+        "start": 1581102085,
+        "start_date": 1581102085,
+        "status": "trialing",
+        "tax_percent": null,
+        "trial_end": 1582311685,
+        "trial_start": 1581102085
+      },
+      {
+        "id": "sub_GcoLz5EyYH4rVt",
+        "object": "subscription",
+        "application_fee_percent": null,
+        "billing": "charge_automatically",
+        "billing_cycle_anchor": 1581345458,
+        "billing_thresholds": null,
+        "cancel_at": null,
+        "cancel_at_period_end": false,
+        "canceled_at": null,
+        "collection_method": "charge_automatically",
+        "created": 1580135858,
+        "current_period_end": 1583851058,
+        "current_period_start": 1581345458,
+        "customer": "cus_GclhJ8JTR1IpOw",
+        "days_until_due": null,
+        "default_payment_method": null,
+        "default_source": null,
+        "default_tax_rates": [],
+        "discount": null,
+        "ended_at": null,
+        "invoice_customer_balance_settings": {
+          "consume_applied_balance_on_void": true
+        },
+        "items": {
+          "object": "list",
+          "data": [
+            {
+              "id": "si_GcoLSxloBKqlLU",
+              "object": "subscription_item",
+              "billing_thresholds": null,
+              "created": 1580135858,
+              "metadata": {},
+              "plan": {
+                "id": "plan_EgTJMZULfh6THW",
+                "object": "plan",
+                "active": true,
+                "aggregate_usage": null,
+                "amount": 800,
+                "amount_decimal": "800",
+                "billing_scheme": "per_unit",
+                "created": 1552380853,
+                "currency": "usd",
+                "interval": "month",
+                "interval_count": 1,
+                "livemode": false,
+                "metadata": {},
+                "nickname": "REGULAR PLAN MONTHLY",
+                "product": "prod_EgTJOMggEHKLuW",
+                "tiers": null,
+                "tiers_mode": null,
+                "transform_usage": null,
+                "trial_period_days": 14,
+                "usage_type": "licensed"
+              },
+              "quantity": 1,
+              "subscription": "sub_GcoLz5EyYH4rVt",
+              "tax_rates": []
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/subscription_items?subscription=sub_GcoLz5EyYH4rVt"
+        },
+        "latest_invoice": "in_1GAdOZIt5jR0TXkE6fEFBEkC",
+        "livemode": false,
+        "metadata": {},
+        "next_pending_invoice_item_invoice": null,
+        "pending_invoice_item_interval": null,
+        "pending_setup_intent": null,
+        "pending_update": null,
+        "plan": {
+          "id": "plan_EgTJMZULfh6THW",
+          "object": "plan",
+          "active": true,
+          "aggregate_usage": null,
+          "amount": 800,
+          "amount_decimal": "800",
+          "billing_scheme": "per_unit",
+          "created": 1552380853,
+          "currency": "usd",
+          "interval": "month",
+          "interval_count": 1,
+          "livemode": false,
+          "metadata": {},
+          "nickname": "REGULAR PLAN MONTHLY",
+          "product": "prod_EgTJOMggEHKLuW",
+          "tiers": null,
+          "tiers_mode": null,
+          "transform_usage": null,
+          "trial_period_days": 14,
+          "usage_type": "licensed"
+        },
+        "quantity": 1,
+        "schedule": null,
+        "start": 1580135858,
+        "start_date": 1580135858,
+        "status": "active",
+        "tax_percent": null,
+        "trial_end": 1581345458,
+        "trial_start": 1580135858
+      },
+      {
+        "id": "sub_GclhCoRrdskNuu",
+        "object": "subscription",
+        "application_fee_percent": null,
+        "billing": "charge_automatically",
+        "billing_cycle_anchor": 1581335620,
+        "billing_thresholds": null,
+        "cancel_at": null,
+        "cancel_at_period_end": false,
+        "canceled_at": null,
+        "collection_method": "charge_automatically",
+        "created": 1580126020,
+        "current_period_end": 1583841220,
+        "current_period_start": 1581335620,
+        "customer": "cus_GclhJ8JTR1IpOw",
+        "days_until_due": null,
+        "default_payment_method": null,
+        "default_source": null,
+        "default_tax_rates": [],
+        "discount": null,
+        "ended_at": null,
+        "invoice_customer_balance_settings": {
+          "consume_applied_balance_on_void": true
+        },
+        "items": {
+          "object": "list",
+          "data": [
+            {
+              "id": "si_Gclh9MfD3c4Wwl",
+              "object": "subscription_item",
+              "billing_thresholds": null,
+              "created": 1580126020,
+              "metadata": {},
+              "plan": {
+                "id": "plan_EgTJMZULfh6THW",
+                "object": "plan",
+                "active": true,
+                "aggregate_usage": null,
+                "amount": 800,
+                "amount_decimal": "800",
+                "billing_scheme": "per_unit",
+                "created": 1552380853,
+                "currency": "usd",
+                "interval": "month",
+                "interval_count": 1,
+                "livemode": false,
+                "metadata": {},
+                "nickname": "REGULAR PLAN MONTHLY",
+                "product": "prod_EgTJOMggEHKLuW",
+                "tiers": null,
+                "tiers_mode": null,
+                "transform_usage": null,
+                "trial_period_days": 14,
+                "usage_type": "licensed"
+              },
+              "quantity": 1,
+              "subscription": "sub_GclhCoRrdskNuu",
+              "tax_rates": []
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/subscription_items?subscription=sub_GclhCoRrdskNuu"
+        },
+        "latest_invoice": "in_1GAapgIt5jR0TXkEDe20lhTC",
+        "livemode": false,
+        "metadata": {},
+        "next_pending_invoice_item_invoice": null,
+        "pending_invoice_item_interval": null,
+        "pending_setup_intent": null,
+        "pending_update": null,
+        "plan": {
+          "id": "plan_EgTJMZULfh6THW",
+          "object": "plan",
+          "active": true,
+          "aggregate_usage": null,
+          "amount": 800,
+          "amount_decimal": "800",
+          "billing_scheme": "per_unit",
+          "created": 1552380853,
+          "currency": "usd",
+          "interval": "month",
+          "interval_count": 1,
+          "livemode": false,
+          "metadata": {},
+          "nickname": "REGULAR PLAN MONTHLY",
+          "product": "prod_EgTJOMggEHKLuW",
+          "tiers": null,
+          "tiers_mode": null,
+          "transform_usage": null,
+          "trial_period_days": 14,
+          "usage_type": "licensed"
+        },
+        "quantity": 1,
+        "schedule": null,
+        "start": 1580126020,
+        "start_date": 1580126020,
+        "status": "active",
+        "tax_percent": null,
+        "trial_end": 1581335620,
+        "trial_start": 1580126020
+      }
+    ],
+    "has_more": false,
+    "total_count": 4,
+    "url": "/v1/customers/cus_GclhJ8JTR1IpOw/subscriptions"
+  },
+  "tax_exempt": "none",
+  "tax_ids": {
+    "object": "list",
+    "data": [],
+    "has_more": false,
+    "total_count": 0,
+    "url": "/v1/customers/cus_GclhJ8JTR1IpOw/tax_ids"
+  },
+  "tax_info": null,
+  "tax_info_verification": null
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -728,7 +1343,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Credit Card<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete Credit Card.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -740,28 +1355,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/:projectId/creditCard/:cardId</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -814,7 +1407,8 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/stripe/:projectId/creditCard/:cardId</p>
+          <p class="url">https://api.fyipe.com/stripe/5e2ecf45516aae26b133f354/creditCard/card_1GAj0yIt5jR0TXkE0O5xntB0
+          </p>
         </div>
       </div>
 
@@ -824,7 +1418,13 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "card_1GAj0yIt5jR0TXkE0O5xntB0",
+  "object": "card",
+  "deleted": true
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -833,11 +1433,11 @@
   </section>
 </article>
 
-<article id="create-webhook" class="cf-grid-container dev-doc-item-container">
+<article id="payment-intent-webhook" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Create WebHook<span class="requestType">POST</span></h3>
+    <h3>Payment Intent WebHook<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Payment Intent WebHook.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -849,50 +1449,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/webHook/pi</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -935,7 +1491,69 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": {
+    "object": {
+      "id": "pi_1GAjCZIt5jR0TXkECoWziaK4",
+      "object": "payment_intent",
+      "allowed_source_types": [
+        "card"
+      ],
+      "amount": 100,
+      "amount_capturable": 0,
+      "amount_received": 0,
+      "application": null,
+      "application_fee_amount": null,
+      "canceled_at": null,
+      "cancellation_reason": null,
+      "capture_method": "automatic",
+      "charges": {
+        "object": "list",
+        "data": [],
+        "has_more": false,
+        "total_count": 0,
+        "url": "/v1/charges?payment_intent=pi_1GAjCZIt5jR0TXkECoWziaK4"
+      },
+      "client_secret": "pi_1GAjCZIt5jR0TXkECoWziaK4_secret_sYKrS8OyTWzAPNUe3iJrw9Td3",
+      "confirmation_method": "automatic",
+      "created": 1581367795,
+      "currency": "usd",
+      "customer": "cus_GclhJ8JTR1IpOw",
+      "description": "Verify if card is billable",
+      "invoice": "in_1GAjCYIt5jR0TXkEUNL4R0RW",
+      "last_payment_error": null,
+      "livemode": false,
+      "metadata": {
+        "description": "Verify if card is billable"
+      },
+      "next_action": null,
+      "next_source_action": null,
+      "on_behalf_of": null,
+      "payment_method": null,
+      "payment_method_options": {
+        "card": {
+          "installments": null,
+          "request_three_d_secure": "automatic"
+        }
+      },
+      "payment_method_types": [
+        "card"
+      ],
+      "receipt_email": null,
+      "review": null,
+      "setup_future_usage": null,
+      "shipping": null,
+      "source": "card_1GAjCTIt5jR0TXkEVSy7LmGJ",
+      "statement_descriptor": null,
+      "statement_descriptor_suffix": null,
+      "status": "requires_confirmation",
+      "transfer_data": null,
+      "transfer_group": null
+    }
+  }
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -947,7 +1565,9 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+false                
+              </p>
             </code>
           </pre>
         </div>
@@ -960,7 +1580,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Add Balance<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Add Balance.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -972,28 +1592,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/:projectId/addBalance</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -1053,12 +1651,16 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/stripe/:projectId/addBalance</p>
+          <p class="url">https://api.fyipe.com/stripe/5e2ecf45516aae26b133f354/addBalance</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "rechargeBalanceAmount": 10
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1070,7 +1672,65 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "pi_1GAjS2It5jR0TXkEycILXb8q",
+  "object": "payment_intent",
+  "allowed_source_types": [
+    "card"
+  ],
+  "amount": 1000,
+  "amount_capturable": 0,
+  "amount_received": 0,
+  "application": null,
+  "application_fee_amount": null,
+  "canceled_at": null,
+  "cancellation_reason": null,
+  "capture_method": "automatic",
+  "charges": {
+    "object": "list",
+    "data": [],
+    "has_more": false,
+    "total_count": 0,
+    "url": "/v1/charges?payment_intent=pi_1GAjS2It5jR0TXkEycILXb8q"
+  },
+  "client_secret": "pi_1GAjS2It5jR0TXkEycILXb8q_secret_BL1tYARd02lteYD0trOOEeiDl",
+  "confirmation_method": "automatic",
+  "created": 1581368754,
+  "currency": "usd",
+  "customer": "cus_GclhJ8JTR1IpOw",
+  "description": "Recharge balance",
+  "invoice": "in_1GAjS1It5jR0TXkETZQOGKZi",
+  "last_payment_error": null,
+  "livemode": false,
+  "metadata": {
+    "projectId": "5e2ecf45516aae26b133f354"
+  },
+  "next_action": null,
+  "next_source_action": null,
+  "on_behalf_of": null,
+  "payment_method": null,
+  "payment_method_options": {
+    "card": {
+      "installments": null,
+      "request_three_d_secure": "automatic"
+    }
+  },
+  "payment_method_types": [
+    "card"
+  ],
+  "receipt_email": null,
+  "review": null,
+  "setup_future_usage": null,
+  "shipping": null,
+  "source": "card_1G5W9gIt5jR0TXkElgQWQzE8",
+  "statement_descriptor": null,
+  "statement_descriptor_suffix": null,
+  "status": "requires_confirmation",
+  "transfer_data": null,
+  "transfer_group": null
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1083,7 +1743,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Check Credit Card<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Check Credit Card.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1095,50 +1755,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/stripe/checkCard</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -1181,7 +1797,13 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "tokenId": "tok_visa",
+  "email": "testmail@fyipe.com",
+  "companyName": "Hackerbay"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1193,7 +1815,65 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "pi_1GAjnfIt5jR0TXkE3ZdPpNPR",
+  "object": "payment_intent",
+  "allowed_source_types": [
+    "card"
+  ],
+  "amount": 100,
+  "amount_capturable": 0,
+  "amount_received": 0,
+  "application": null,
+  "application_fee_amount": null,
+  "canceled_at": null,
+  "cancellation_reason": null,
+  "capture_method": "automatic",
+  "charges": {
+    "object": "list",
+    "data": [],
+    "has_more": false,
+    "total_count": 0,
+    "url": "/v1/charges?payment_intent=pi_1GAjnfIt5jR0TXkE3ZdPpNPR"
+  },
+  "client_secret": "pi_1GAjnfIt5jR0TXkE3ZdPpNPR_secret_eluz6j3g7BzofkkwaeVSEidTw",
+  "confirmation_method": "automatic",
+  "created": 1581370095,
+  "currency": "usd",
+  "customer": "cus_GiA7x3vTeEVPLa",
+  "description": "Verify if card is billable",
+  "invoice": "in_1GAjneIt5jR0TXkE6QRfDiA4",
+  "last_payment_error": null,
+  "livemode": false,
+  "metadata": {
+    "description": "Verify if card is billable"
+  },
+  "next_action": null,
+  "next_source_action": null,
+  "on_behalf_of": null,
+  "payment_method": null,
+  "payment_method_options": {
+    "card": {
+      "installments": null,
+      "request_three_d_secure": "automatic"
+    }
+  },
+  "payment_method_types": [
+    "card"
+  ],
+  "receipt_email": null,
+  "review": null,
+  "setup_future_usage": null,
+  "shipping": null,
+  "source": "card_1GAjncIt5jR0TXkEf7BpMrgV",
+  "statement_descriptor": null,
+  "statement_descriptor_suffix": null,
+  "status": "requires_confirmation",
+  "transfer_data": null,
+  "transfer_group": null
+}                
+              </p>
             </code>
           </pre>
         </div>
