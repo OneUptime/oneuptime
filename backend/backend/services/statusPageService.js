@@ -296,7 +296,7 @@ module.exports = {
                 statusPage.monitorsData = _.flatten(filteredMonitorData);
             }
             else {
-                let error = new Error('StatusPage Not present');
+                let error = new Error('Status Page Not present');
                 error.code = 400;
                 ErrorService.log('statusPageService.getStatus', error);
                 throw error;

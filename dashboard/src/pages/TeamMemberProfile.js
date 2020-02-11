@@ -6,6 +6,7 @@ import { API_URL } from '../config';
 import Dashboard from '../components/Dashboard';
 import { LargeSpinner as Loader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
+import { User } from '../config';
 
 import { getTeamMember } from '../actions/team';
 
@@ -17,6 +18,9 @@ const noDataStyle = {
 };
 
 function TeamMemberProfile({ requesting, error, teamMember, projectId, match, getTeamMember }) {
+    if (!projectId) {
+        projectId = User.getCurrentProjectId();
+    }
     const memberId = match.params.memberId;
 
     useEffect(() => {
@@ -147,11 +151,12 @@ const mapDispatchToProps = dispatch => {
 };
 
 function mapStateToProps(state) {
+    const projectId = state.project.currentProject ? state.project.currentProject._id : null;
     return {
         requesting: state.team.teamMember.requesting,
         error: state.team.teamMember.error,
         teamMember: state.team.teamMember.member,
-        projectId: state.project.currentProject !== null && state.project.currentProject._id,
+        projectId: projectId,
     }
 }
 

@@ -95,7 +95,12 @@ export function getProjects(switchToProjectId) {
 			dispatch(projectsSuccess(projects));
 
 			if (projects.length > 0 && !switchToProjectId) {
-				dispatch(switchProject(dispatch, projects[0]));
+				if(User.getCurrentProjectId()) {
+					let project = projects.filter(project => project._id === User.getCurrentProjectId())
+					dispatch(switchProject(dispatch, project[0]));
+				} else {
+					dispatch(switchProject(dispatch, projects[0]));
+				}
 			}
 			else {
 
@@ -107,7 +112,11 @@ export function getProjects(switchToProjectId) {
 						projectSwitched = true;
 					}
 				}
-
+				if(User.getCurrentProjectId() && !projectSwitched) {
+					let project = projects.filter(project => project._id === User.getCurrentProjectId());
+					dispatch(switchProject(dispatch, project[0]));
+					projectSwitched = true;
+				}
 				!projectSwitched && dispatch(switchProject(dispatch, projects[0]));
 			}
 
@@ -190,8 +199,14 @@ export function createProject(values) {
 
 
 export function switchProject(dispatch, project) {
-
-	history.push('/project/' + project._id + '/monitoring');
+	const currentProjectId = User.getCurrentProjectId();
+	const historyProjectId = history.location.pathname.split('project')[1];
+	if (!currentProjectId || project._id !== currentProjectId) {
+		history.push(`/project/${project._id}/monitoring`);
+		User.setCurrentProjectId(project._id);
+	} else if (historyProjectId && historyProjectId === '/') {
+		history.push(`/project/${project._id}/monitoring`);
+	}
 
 	dispatch(resetSubProjects());
 	dispatch(resetAlert());
@@ -202,7 +217,7 @@ export function switchProject(dispatch, project) {
 	dispatch(resetCreateMonitor());
 	dispatch(resetSubProjectFetchStatusPages());
 	dispatch(fetchNotificationsReset());
-
+	
 	getSubProjects(project._id)(dispatch);
 	fetchAlert(project._id)(dispatch);
 	fetchSubProjectStatusPages(project._id)(dispatch);

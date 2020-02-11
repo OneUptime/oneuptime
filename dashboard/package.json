@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.1499",
+  "version": "3.0.1546",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
@@ -40,7 +40,7 @@
     "moment-jalaali": "^0.8.3",
     "moment-range": "^4.0.1",
     "moment-timezone": "^0.5.27",
-    "npm": "^6.13.4",
+    "npm": "^6.13.7",
     "prop-types": "^15.6.1",
     "puppeteer": "1.19.0",
     "puppeteer-cluster": "^0.17.0",
