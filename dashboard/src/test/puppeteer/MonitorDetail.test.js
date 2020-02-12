@@ -227,6 +227,11 @@ describe('Monitor Detail API', () => {
             await page.click(addButtonSelector);
             await page.waitFor(1000);
 
+            await page.click('input[name=startDate]');
+            await page.click('div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)');
+            await page.click('input[name=endDate]');
+            await page.click('div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)');
+
             await page.type('input[name=name]', utils.scheduledEventName);
             await page.type('textarea[name=description]', utils.scheduledEventDescription);
 
@@ -281,8 +286,15 @@ describe('Monitor Detail API', () => {
                 const addButtonSelector = '#addScheduledEventButton';
                 await page.click(addButtonSelector);
                 await page.waitFor(1000);
-                await page.type('input[name=name]', utils.generateRandomString());
-                await page.type('textarea[name=description]', utils.generateRandomString());
+
+                await page.click('input[name=startDate]');
+                await page.click('div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)');
+                await page.click('input[name=endDate]');
+                await page.click('div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)');
+                
+                await page.type('input[name=name]', `${utils.generateRandomString()}${i}`);
+                await page.type('textarea[name=description]', utils.scheduledEventDescription);
+
                 await page.evaluate(() => {
                     document.querySelector('input[name=showEventOnStatusPage]').click();
                 });
@@ -297,8 +309,8 @@ describe('Monitor Detail API', () => {
 
             var createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
 
-            let scheduledEventRows = await page.$$(createdScheduledEventSelector);
-            let countScheduledEvent = scheduledEventRows.length;
+            var scheduledEventRows = await page.$$(createdScheduledEventSelector);
+            var countScheduledEvent = scheduledEventRows.length;
 
             expect(countScheduledEvent).toEqual(1);
 
