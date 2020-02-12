@@ -21,7 +21,7 @@ module.exports = {
         }
     },
 
-    checkConfig: async function (projectId, alertPhoneNumber) {
+    doesPhoneNumberComplyWithHighRiskConfig: async function (projectId, alertPhoneNumber) {
         var project = await ProjectService.findOneBy({ _id: projectId });
         var alertOptions = project.alertOptions;
         var countryCode = alertPhoneNumber.split(' ')[0];
@@ -441,11 +441,11 @@ module.exports = {
         }
         let hasEnoughBalance = await _this.hasEnoughBalance(project._id, user.alertPhoneNumber, user._id, AlertType.Call);
         if (hasEnoughBalance) {
-            let alertSuccess = await TwilioService.sendIncidentCreatedCall(date, monitor.name, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
-            if (alertSuccess && alertSuccess.code && alertSuccess.code === 400) {
-                return await _this.create({ projectId: project._id, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Call, userId: user._id, incidentId: incident._id, alertStatus: null, error: true, errorMessage: alertSuccess.message });
+            let alertStatus = await TwilioService.sendIncidentCreatedCall(date, monitor.name, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
+            if (alertStatus && alertStatus.code && alertStatus.code === 400) {
+                return await _this.create({ projectId: project._id, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Call, userId: user._id, incidentId: incident._id, alertStatus: null, error: true, errorMessage: alertStatus.message });
             }
-            else if (alertSuccess) {
+            else if (alertStatus) {
                 alert = await _this.create({ projectId: project._id, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Call, userId: user._id, incidentId: incident._id, alertStatus: 'Success' });
                 balanceStatus = await _this.getBalanceStatus(project._id, user.alertPhoneNumber, AlertType.Call);
                 AlertChargeService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
@@ -468,21 +468,21 @@ module.exports = {
         }
 
         let hasEnoughBalance = await _this.hasEnoughBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
-        let configCheckStatus = await _this.checkConfig(incident.projectId, user.alertPhoneNumber);
-        if (hasEnoughBalance && configCheckStatus) {
-            let alertSuccess = await TwilioService.sendIncidentCreatedMessage(date, monitor.name, user.alertPhoneNumber, incident._id, user._id, user.name, incident.incidentType, projectId);
+        let doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(incident.projectId, user.alertPhoneNumber);
+        if (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig) {
+            let alertStatus = await TwilioService.sendIncidentCreatedMessage(date, monitor.name, user.alertPhoneNumber, incident._id, user._id, user.name, incident.incidentType, projectId);
 
-            if (alertSuccess && alertSuccess.code && alertSuccess.code === 400) {
-                await _this.create({ projectId: incident.projectId, monitorId, alertVia: AlertType.SMS, userId: user._id, incidentId: incident._id, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, alertStatus: null, error: true, errorMessage: alertSuccess.message });
+            if (alertStatus && alertStatus.code && alertStatus.code === 400) {
+                await _this.create({ projectId: incident.projectId, monitorId, alertVia: AlertType.SMS, userId: user._id, incidentId: incident._id, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, alertStatus: null, error: true, errorMessage: alertStatus.message });
             }
 
-            else if (alertSuccess) {
+            else if (alertStatus) {
                 alertStatus = 'Success';
                 alert = await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.SMS, userId: user._id, incidentId: incident._id, alertStatus: alertStatus });
                 balanceStatus = await _this.getBalanceStatus(incident.projectId, user.alertPhoneNumber, AlertType.SMS);
                 AlertChargeService.create(incident.projectId, balanceStatus.chargeAmount, balanceStatus.closingBalance, alert._id, monitorId, incident._id, user.alertPhoneNumber);
             }
-        } else if (!hasEnoughBalance && configCheckStatus) {
+        } else if (!hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig) {
             alertStatus = 'Blocked - Low balance';
             return await _this.create({ projectId: incident.projectId, monitorId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, alertVia: AlertType.SMS, userId: user._id, incidentId: incident._id, alertStatus });
         }

@@ -73,6 +73,7 @@ router.get('/voice/status', async (req, res) => {
  * @description Resolves or Acks an incident based on what key is hit by user.
  * @returns Twiml with with action status.
  */
+
 router.post('/voice/incident/action', getUser, isAuthorized, async function (req, res) {
     try {
         const { accessToken, projectId, incidentId } = req.query;
@@ -137,7 +138,7 @@ router.post('/sms/incoming', async (req, res) => {
         // There should only be one pending incident to act upon. If not then this can not be done over sms.
         if (action[1] || !action[0]) {
             sendResponseMessage(From, 'You have many pending incidents. Please go to your Dashbard to perform actions on each. Thank you.');
-            return sendItemResponse(req, res, { status: 'two incidents available, action not possible' });
+            return sendItemResponse(req, res, { status: 'Too many pending incidents.' });
         }
         switch (actionType) {
         case 1:
@@ -152,11 +153,11 @@ router.post('/sms/incoming', async (req, res) => {
             return sendItemResponse(req, res, { status: 'resolved' });
         default:
             sendResponseMessage(From, 'We could not perform with action. Please logon to Fyipe Dashboard to complete. Thank you.');
-            return sendItemResponse(req, res, 'invalid no, ask again.');
+            return sendItemResponse(req, res, 'Invalid Number.');
         }
     } catch (e) {
         sendResponseMessage(From, 'We could not perform with action. Please logon to Fyipe Dashboard to complete. Thank you.');
-        return sendErrorResponse(req, res, { status: 'action failed' });
+        return sendErrorResponse(req, res, { status: 'Error' });
     }
 });
 

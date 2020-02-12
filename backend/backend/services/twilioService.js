@@ -53,7 +53,7 @@ module.exports = {
             var alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
             if (alertLimit) {
                 var options = {
-                    body: `Your monitor ${monitorName} is ${incidentType}. Acknowledge this incident by sending 1 or Resolve by sending 2 to ${twilioCredentials.phoneNumber}. You can also log into Fyipe dashboard to acknowledge or reoslve it.`,
+                    body: `Your monitor ${monitorName} is ${incidentType}. Reply 1 to this SMS to Acknowledge OR 2 to resolve. Check more details about this incident on Fyipe Dashboard.`,
                     from: twilioCredentials.phoneNumber,
                     to: number
                 };
@@ -192,7 +192,7 @@ module.exports = {
     test: async function (data) {
         try {
             var options = {
-                body: 'This is a test message to check your twilio settings.Please do not reply',
+                body: 'This is a test message from Fyipe to check your Twilio credentials.',
                 from: data.phoneNumber,
                 to: twilioCredentials.testphoneNumber
             };
