@@ -137,14 +137,15 @@ var _this = {
         return moment.tz(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} ${date.getHours()}:${date.getMinutes()}`, _this.getCurrentTimezone()).toDate();
     },
 
-    isInLastMinute(date){
-        var current = new Date();
+    isOlderThanLastMinute(date){
         if (typeof date === 'string') {
             date = new Date(date);
         }
 
-        var date = moment(date).add(60, 'seconds');
-        return _this.greaterThan(date, current);
+        var current = new Date();
+        date = moment(date).add(1,'minutes').toDate();
+
+        return _this.lessThan(date, current); 
     }
 };
 
