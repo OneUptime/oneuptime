@@ -54,7 +54,7 @@ export class ScheduledEventBox extends Component {
         const projectId = this.props.monitor ? this.props.monitor.projectId._id || this.props.monitor.projectId : null;
 
         return (
-            <div onKeyDown={this.handleKeyBoard}>
+            <div onKeyDown={this.handleKeyBoard} className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
