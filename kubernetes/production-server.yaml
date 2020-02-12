@@ -20,7 +20,7 @@ spec:
         app: dashboard
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/dashboard:master
+        - image: registry.gitlab.com/fyipe-project/dashboard:latest
           name: dashboard
           imagePullPolicy: IfNotPresent
           env:
@@ -116,7 +116,7 @@ spec:
         app: backend
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/backend:master
+        - image: registry.gitlab.com/fyipe-project/backend:latest
           name: backend
           imagePullPolicy: IfNotPresent
           env:
@@ -183,7 +183,7 @@ spec:
         app: slack
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/slack:master
+        - image: registry.gitlab.com/fyipe-project/slack:latest
           name: slack
           imagePullPolicy: Always
           ports:
@@ -227,7 +227,7 @@ spec:
         app: home
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/home:master
+        - image: registry.gitlab.com/fyipe-project/home:latest
           name: home
           imagePullPolicy: IfNotPresent
           env:
@@ -273,7 +273,7 @@ spec:
         app: status-page
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/status-page:master
+        - image: registry.gitlab.com/fyipe-project/status-page:latest
           name: status-page
           imagePullPolicy: IfNotPresent
           env:
@@ -320,7 +320,7 @@ spec:
         app: probe
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/probe:master
+        - image: registry.gitlab.com/fyipe-project/probe:latest
           name: probe
           imagePullPolicy: IfNotPresent
           env:
@@ -376,7 +376,7 @@ spec:
         app: api-docs
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/api-docs:master
+        - image: registry.gitlab.com/fyipe-project/api-docs:latest
           name: api-docs
           imagePullPolicy: Always
           env:
@@ -422,7 +422,7 @@ spec:
         app: admin-dashboard
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/admin-dashboard:master
+        - image: registry.gitlab.com/fyipe-project/admin-dashboard:latest
           name: admin-dashboard
           imagePullPolicy: Always
           env:
@@ -481,6 +481,33 @@ spec:
   selector:
     app: redis
 ---
+
+# Init Script deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: init-script
+  labels:
+    app: init-script
+spec:
+  selector:
+    matchLabels:
+      app: init-script
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: init-script
+    spec:
+      containers:
+        - image: registry.gitlab.com/fyipe-project/init-script:latest
+          name: init-script
+          imagePullPolicy: Always
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+
 # stateful set config for mongo
 apiVersion: apps/v1beta1
 kind: StatefulSet

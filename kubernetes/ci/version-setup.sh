@@ -18,3 +18,4 @@ version server-monitor
 version probe
 version admin-dashboard
 version slack
+version init-script
