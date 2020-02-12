@@ -407,6 +407,7 @@ module.exports = {
     },
 
     sendEmailAlert: async function ({ incident, user, project, monitor, schedule, escalation, onCallScheduleStatus }) {
+        
         var _this = this;
 
         var date = new Date();
@@ -422,7 +423,7 @@ module.exports = {
         }
 
         try {
-            await MailService.sendIncidentCreatedMail(date, monitor.name, user.email, user._id, firstName.split(' ')[0], incident.projectId, ack_url, resolve_url, accessToken, incident.incidentType, project.name);
+            await MailService.sendIncidentCreatedMail({incidentTime: date, monitorName: monitor.name, email: user.email, userId: user._id, firstName: firstName.split(' ')[0], projectId: incident.projectId, acknowledgeUrl: ack_url, resolveUrl: resolve_url, accessToken, incidentType: incident.incidentType, projectName: project.name});
             return await _this.create({ projectId: incident.projectId, monitorId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Success' });
         } catch (e) {
             return await _this.create({ projectId: incident.projectId, monitorId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Cannot Send' });

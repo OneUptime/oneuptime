@@ -466,11 +466,11 @@ module.exports = {
      * @param {string} email Email of user being alerted.
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
-     * @param {string} ack_url API link that has requirements for acknowledging incident.
-     * @param {string} resolve_url API link that has requirements for resolving incident.
+     * @param {string} acknowledgeUrl API link that has requirements for acknowledging incident.
+     * @param {string} resolveUrl API link that has requirements for resolving incident.
      * @param {string} accessToken An access token to be used used to access API from email.
      */
-    sendIncidentCreatedMail: async function (incidentTime, monitorName, email, userId, userName, projectId, ack_url, resolve_url, accessToken, incidentType, projectName) {
+    sendIncidentCreatedMail: async function ({incidentTime, monitorName, email, userId, firstName, projectId, acknowledgeUrl, resolveUrl, accessToken, incidentType, projectName}) {
         try {
             var mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
@@ -482,11 +482,11 @@ module.exports = {
                     incidentTime: incidentTime,
                     monitorName: monitorName,
                     accessToken,
-                    userName,
+                    firstName,
                     userId,
                     projectId,
-                    ack_url,
-                    resolve_url,
+                    acknowledgeUrl,
+                    resolveUrl,
                     incidentType,
                     projectName,
                     dashboardURL: DASHBOARD_HOST
