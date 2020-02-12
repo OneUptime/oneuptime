@@ -155,7 +155,7 @@ export class AuditLogsList extends Component {
                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                           <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <div className="Box-root Flex-flex">
-                              <span>{auditLog.reqLog.apiSection}</span>
+                              <span>{auditLog.request && auditLog.request.apiSection ? auditLog.request.apiSection : ''}</span>
                             </div>
                           </span>
                         </div>
@@ -181,8 +181,8 @@ export class AuditLogsList extends Component {
                                       content: props => (
                                         <AuditLogsJsonViewModal
                                           {...props}
-                                          reqLog={auditLog.reqLog}
-                                          resLog={auditLog.resLog}
+                                          reqLog={auditLog.request}
+                                          resLog={auditLog.response}
                                         />
                                       )
                                     });

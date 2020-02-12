@@ -49,7 +49,7 @@ app.use(express.static(path.join(__dirname, 'views')));
 
 app.use(
     require('./backend/middlewares/user').checkUser,
-    require('./backend/middlewares/auditLogs').logRequest);
+    require('./backend/middlewares/auditLogs').log);
 
 // Routes(API)
 app.use('/server', require('./backend/api/server'));
@@ -85,7 +85,7 @@ app.use('/scheduledEvent', require('./backend/api/scheduledEvent'));
 app.use('/probe', require('./backend/api/probe'));
 app.use('/version', require('./backend/api/version'));
 app.use('/tutorial', require('./backend/api/tutorial'));
-app.use('/auditLogs', require('./backend/api/auditLogs'));
+app.use('/audit-logs', require('./backend/api/auditLogs'));
 app.set('port', process.env.PORT || 3002);
 
 const server = http.listen(app.get('port'), function () {

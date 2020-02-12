@@ -10,8 +10,8 @@ var Schema = mongoose.Schema;
 var auditLogsSchema = new Schema({
     userId: { type: String, ref: 'User' },
     projectId: { type: String, ref: 'Project' },
-    reqLog: { type: Object },
-    resLog: { type: Object },
+    request: { type: Object },
+    response: { type: Object },
     createdAt: {
         type: Date,
         default: Date.now

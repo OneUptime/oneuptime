@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, skip, limit }) {
         try {
             if (!skip) skip = 0;
 
@@ -24,7 +24,7 @@ module.exports = {
         }
     },
 
-    countBy: async function(query) {
+    countBy: async function({ query }) {
         if (!query) {
             query = {};
         }
@@ -33,35 +33,33 @@ module.exports = {
         return count;
     },
 
-    createAuditLog: async function(data) {
+    create: async function(data) {
         try {
             var auditLogsModel = new AuditLogsModel({
                 userId: data.userId,
                 projectId: data.projectId,
-                reqLog: data.reqLog,
-                resLog: data.resLog
+                request: data.request,
+                response: data.response
             });
 
             var auditLog = await auditLogsModel.save();
             return auditLog;
         } catch (error) {
-            ErrorService.log('auditLogs.createAuditLog', error);
+            ErrorService.log('auditLogs.create', error);
             throw error;
         }
     },
 
-    getAllAuditLogs: async function(skip, limit) {
+    search: async function({ filter, skip, limit }) {
         var _this = this;
-        let auditLogs = await _this.findBy({}, limit, skip);
+        const query = {
+            'request.apiSection': { $regex: new RegExp(filter), $options: 'i' }
+        };
 
-        return auditLogs;
-    },
+        const searchedAuditLogs = await _this.findBy({ query, skip, limit });
+        const totalSearchCount = await _this.countBy({ query });
 
-    searchAuditLogs: async function(query, skip, limit) {
-        var _this = this;
-        let searchedAuditLogs = await _this.findBy(query, limit, skip);
-
-        return searchedAuditLogs;
+        return { searchedAuditLogs, totalSearchCount };
     }
 };
 

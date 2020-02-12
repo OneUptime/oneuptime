@@ -5,6 +5,7 @@
  */
 
 const url = require('url');
+const _ = require('lodash');
 
 var AuditLogsService = require('../services/auditLogsService');
 var ErrorService = require('../services/errorService');
@@ -12,52 +13,72 @@ var sendErrorResponse = require('./response').sendErrorResponse;
 var { getProjectId } = require('./api');
 
 module.exports = {
-    logRequest: async function(req, res, next) {
+    log: async function(req, res, next) {
         try {
-            // Avoiding logging req/res on '/auditLogs' routes for now. Since it exponentially increace the size of auditLogs db data.
-            const isAuditLogRoute = req.originalUrl.includes('/auditLogs');
+            const blackListedRoutes = ['/audit-logs/'];
+            const blackListedReqObjectPaths = ['body.password'];
+            const blackListedResObjectPaths = [];
 
-            if (!isAuditLogRoute) {
-                // Audit logging is attached to req 'close' event, because of below reasons.
-                //    - To get 'projectId' value if available. (Mostly passed as route parameter)
-                //    - To access 'res.resBody' which is added in 'response' middlewares.
-                req.on('close', async () => {
-                    const parsedUrl = url.parse(req.originalUrl);
-                    const userId = req.user && req.user.id ? req.user.id : null;
-                    const projectId = getProjectId(req, res);
+            // Audit logging is attached to req 'close' event, because of below reasons.
+            //    - To get 'projectId' value if available. (Mostly passed as route parameter)
+            //    - To access 'res.resBody' which is added in 'response' middlewares.
+            req.on('close', async () => {
+                const parsedUrl = url.parse(req.originalUrl);
+                const userId = req.user && req.user.id ? req.user.id : null;
+                const projectId = getProjectId(req, res);
 
-                    const apiRequestDetails = {
-                        apiSection: parsedUrl.pathname, // url path without any query strings.
-                        apiUrl: req.originalUrl,
-                        protocol: req.protocol,
-                        hostname: req.hostname,
-                        port: req.socket.address().port,
-                        method: req.method,
-                        params: req.params,
-                        queries: req.query,
-                        body: req.body || {},
-                        headers: req.headers
-                    };
+                // Avoiding logging any audit data, if its a blacklisted url/route.
+                const isBlackListedRoute = blackListedRoutes.some(
+                    blackListedRouteName => {
+                        const fullApiUrl = req.originalUrl || '';
+                        const paramsRouteUrl = req.route.path || '';   // Ex. "/:projectId/statuspages"
+    
+                        return (
+                            fullApiUrl.includes(blackListedRouteName) ||
+                            paramsRouteUrl.includes(blackListedRouteName)
+                        );
+                    }
+                );
 
-                    const apiResponseDetails = {
-                        statusCode: res.statusCode,
-                        statusMessage: res.statusMessage,
-                        resBody: res.resBody || {},
-                        headers: res.getHeaders()
-                    };
+                if (isBlackListedRoute) {
+                    return;
+                }
 
-                    await AuditLogsService.createAuditLog({
-                        userId: userId,
-                        projectId: projectId,
-                        reqLog: apiRequestDetails,
-                        resLog: apiResponseDetails
-                    });
+                // Removing specified blacklisted object paths for security and other reasons.
+                const modifiedReq = _.omit(req, blackListedReqObjectPaths);
+                const modifiedRes = _.omit(res, blackListedResObjectPaths);
+
+                const apiRequestDetails = {
+                    apiSection: parsedUrl.pathname, // url path without any query strings.
+                    apiUrl: modifiedReq.originalUrl,
+                    protocol: modifiedReq.protocol,
+                    hostname: modifiedReq.hostname,
+                    port: modifiedReq.socket.address().port,
+                    method: modifiedReq.method,
+                    params: modifiedReq.params,
+                    queries: modifiedReq.query,
+                    body: modifiedReq.body || {},
+                    headers: modifiedReq.headers
+                };
+
+                const apiResponseDetails = {
+                    statusCode: modifiedRes.statusCode,
+                    statusMessage: modifiedRes.statusMessage,
+                    resBody: modifiedRes.resBody || {},
+                    headers: modifiedRes.getHeaders()
+                };
+
+                await AuditLogsService.create({
+                    userId: userId,
+                    projectId: projectId,
+                    request: apiRequestDetails,
+                    response: apiResponseDetails
                 });
-            }
+            });
 
             next();
         } catch (error) {
-            ErrorService.log('auditLogs.logRequest', error);
+            ErrorService.log('auditLogs.log', error);
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Error while logging the request.'

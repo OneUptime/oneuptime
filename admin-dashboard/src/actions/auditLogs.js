@@ -31,7 +31,7 @@ export const fetchAuditLogs = (skip, limit) => async dispatch => {
 
   try {
     const response = await getApi(
-      `auditLogs/allAuditLogs?skip=${skip}&limit=${limit}`
+      `audit-logs/allAuditLogs?skip=${skip}&limit=${limit}`
     );
     const data = response.data;
 
@@ -84,7 +84,7 @@ export const searchAuditLogs = (filter, skip, limit) => async dispatch => {
 
   try {
     const response = await postApi(
-      `auditLogs/search?skip=${skip}&limit=${limit}`,
+      `audit-logs/search?skip=${skip}&limit=${limit}`,
       values
     );
     const data = response.data;

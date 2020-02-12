@@ -19,10 +19,12 @@ router.get('/allAuditLogs', getUser, isUserMasterAdmin, async function(
     res
 ) {
     try {
+        const query = {};
         const skip = req.query.skip;
         const limit = req.query.limit;
-        const auditLogs = await AuditLogsService.getAllAuditLogs(skip, limit);
-        const count = await AuditLogsService.countBy({});
+
+        const auditLogs = await AuditLogsService.findBy({ query, skip, limit });
+        const count = await AuditLogsService.countBy({ query });
 
         return sendListResponse(req, res, auditLogs, count);
     } catch (error) {
@@ -35,18 +37,10 @@ router.post('/search', getUser, isUserMasterAdmin, async function(req, res) {
         const filter = req.body.filter;
         const skip = req.query.skip;
         const limit = req.query.limit;
-        const query = {
-            'reqLog.apiSection': { $regex: new RegExp(filter), $options: 'i' }
-        };
 
-        const searchedAuditLogs = await AuditLogsService.searchAuditLogs(
-            query,
-            skip,
-            limit
-        );
-        const count = await AuditLogsService.countBy(query);
+        const { searchedAuditLogs, totalSearchCount } = await AuditLogsService.search({ filter, skip, limit });
 
-        return sendListResponse(req, res, searchedAuditLogs, count);
+        return sendListResponse(req, res, searchedAuditLogs, totalSearchCount);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
