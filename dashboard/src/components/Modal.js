@@ -47,7 +47,8 @@ const composableComponent = (ComposedComponent) => {
                             opacity: 1,
                             transform: 'none',
                             display: 'block',
-                            pointerEvents: 'auto'
+                            pointerEvents: 'auto',
+                            zIndex: 20,
                         }}
                     >
 

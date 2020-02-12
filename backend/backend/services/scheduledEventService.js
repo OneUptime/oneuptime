@@ -48,7 +48,14 @@ module.exports = {
         try {
             var updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
                 $set: data
-            }, { new: true });
+            }, { new: true })
+                .lean();
+            if (updatedScheduledEvent.createdById === 'API') {
+                updatedScheduledEvent.createdById = {name: 'API', _id: null};
+            } else {
+                var user = await UserModel.findOne({_id: updatedScheduledEvent.createdById}).lean();
+                updatedScheduledEvent.createdById = {_id: user._id, name: user.name};
+            }
             return updatedScheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.updateOneBy', error);

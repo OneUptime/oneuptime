@@ -4,16 +4,14 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import 'imrc-datetime-picker/dist/imrc-datetime-picker.css';
-import { DatetimePickerTrigger } from 'imrc-datetime-picker';
-
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
 import { createScheduledEvent } from '../../actions/scheduledEvent';
 import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
-
+import DateTimeSelector from '../basic/DateTimeSelector';
 
 
 function validate(values) {
@@ -33,44 +31,17 @@ class CreateSchedule extends React.Component {
 
     state = {
         currentDate: moment(),
-        startDate: moment(),
-        endDate: moment(),
-        startDateCleared: false,
-        endDateCleared: false
     };
-
-    handleChangeStartDate = (moment) => {
-        this.setState(state => {
-            let { endDate } = state;
-
-            if (endDate < moment) {
-                endDate = moment;
-            }
-            return {
-                startDate: moment,
-                startDateCleared: false,
-                endDate,
-            }
-        });
-    }
-
-    handleChangeEndDate = (moment) => {
-        this.setState({
-            endDate: moment,
-            endDateCleared: false
-        });
-    }
 
     submitForm = (values) => {
         const { createScheduledEvent, closeModal, createScheduledEventModalId } = this.props;
-        const { startDate, endDate } = this.state;
         const projectId = this.props.data.projectId;
         const monitorId = this.props.data.monitorId;
         const postObj = {};
 
         postObj.name = values.name;
-        postObj.startDate = startDate;
-        postObj.endDate = endDate;
+        postObj.startDate = moment(values.startDate);
+        postObj.endDate = moment(values.endDate);
         postObj.description = values.description;
         postObj.showEventOnStatusPage = values.showEventOnStatusPage;
         postObj.callScheduleOnEvent = values.callScheduleOnEvent;
@@ -97,14 +68,11 @@ class CreateSchedule extends React.Component {
     }
 
     render() {
-        const { startDate, startDateCleared, endDate, endDateCleared, currentDate } = this.state;
-        const { requesting, error } = this.props;
-
-        const valueStartDate = !startDateCleared && startDate ? startDate.format('MMMM Do YYYY, h:mm a') : '';
-        const valueEndDate = !endDateCleared && endDate ? endDate.format('MMMM Do YYYY, h:mm a') : '';
-
-
-        const { handleSubmit, closeModal } = this.props;
+        const { currentDate } = this.state;
+        let { requesting, error, minStartDate, closeModal, handleSubmit } = this.props;
+        if (!minStartDate) {
+            minStartDate = currentDate;
+        }
 
         return (
             <div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
@@ -154,15 +122,16 @@ class CreateSchedule extends React.Component {
                                                             <span>Start date and time</span>
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <div className="bs-Fieldset-field" style={{ width: '70%' }}>
-                                                                <DatetimePickerTrigger
+                                                            <div className="bs-Fieldset-field">
+                                                                <Field
+                                                                    className="bs-TextInput"
+                                                                    type="text"
+                                                                    name="startDate"
+                                                                    component={DateTimeSelector}
+                                                                    placeholder="10pm"
+                                                                    style={{ width: '300px' }}
                                                                     minDate={currentDate}
-                                                                    moment={startDate}
-                                                                    onChange={this.handleChangeStartDate}
-                                                                    showTimePicker={true}
-                                                                    closeOnSelectDay={true}>
-                                                                    <input type="text" className="bs-TextInput" value={valueStartDate} style={{ width: 300, padding: '3px 5px' }} />
-                                                                </DatetimePickerTrigger>
+                                                                />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -175,16 +144,15 @@ class CreateSchedule extends React.Component {
                                                             <span>End date and time</span>
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <div className="bs-Fieldset-field" style={{ width: '70%' }}>
-                                                                <DatetimePickerTrigger
-                                                                    minDate={startDate}
-                                                                    moment={endDate}
-                                                                    onChange={this.handleChangeEndDate}
-                                                                    showTimePicker={true}
-                                                                    closeOnSelectDay={true}>
-                                                                    <input type="text" className="bs-TextInput" value={valueEndDate} style={{ width: 300, padding: '3px 5px' }} />
-                                                                </DatetimePickerTrigger>
-                                                            </div>
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type="text"
+                                                                name="endDate"
+                                                                component={DateTimeSelector}
+                                                                placeholder="10pm"
+                                                                style={{ width: '300px' }}
+                                                                minDate={moment(minStartDate)}
+                                                            />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -374,6 +342,7 @@ CreateSchedule.propTypes = {
     data: PropTypes.object,
     requesting: PropTypes.bool,
     error: PropTypes.object,
+    minStartDate: PropTypes.object,
 };
 
 let NewCreateSchedule = reduxForm({
@@ -390,13 +359,17 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     }
     , dispatch);
 
-const mapStateToProps = state => (
-    {
+const selector = formValueSelector('newCreateSchedule');
+
+const mapStateToProps = state => {
+    const minStartDate = selector(state, 'startDate');
+    return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,
         requesting: state.scheduledEvent.newScheduledEvent.requesting,
         error: state.scheduledEvent.newScheduledEvent.error,
-        createScheduledEventModalId: state.modal.modals[0].id
+        createScheduledEventModalId: state.modal.modals[0].id,
+        minStartDate
     }
-);
+}
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewCreateSchedule);
