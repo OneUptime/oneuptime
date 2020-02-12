@@ -2,17 +2,16 @@ const PKG_VERSION = require('./package.json').version.split('.')[2];
 
 const fs = require('fs');
 const util = require('./util/db');
-const start = require('./scripts/start');
-const end = require('./scripts/end');
+const scripts = require('./scripts');
 
-(async function run () {
+async function run () {
 
-  global.client = await util.connectToDb();
-  global.db = global.client.db();
+  const connection = await util.connectToDb();
+  global.db = connection.db();
 
-  await start();
+  await scripts.start();
 
-  fs.readdirSync('scripts')
+  fs.readdirSync('./scripts')
     .filter(file => file !== 'start.js' && file !== 'end.js') // Exclude start and end scripts
     .sort((a, b) => parseInt(a.split('.')[2]) > parseInt(b.split('.')[2]) ? 1 : 0)
     .forEach(function (file) {
@@ -21,8 +20,12 @@ const end = require('./scripts/end');
       }
     });
 
-  await end();
+  await scripts.end();
 
-  global.client.close();
+  connection.close();
 
-})();
+}
+
+module.exports = run;
+
+run();

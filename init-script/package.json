@@ -1,11 +1,10 @@
 {
   "name": "fyipe-init-script",
   "private": true,
-  "version": "3.0.1497",
+  "version": "3.0.1499",
   "main": "server.js",
   "scripts": {
-    "test": "npm run tests",
-    "tests": "echo 'No tests written'",
+    "test": "jest tests",
     "start": "node server.js ",
     "lint": "eslint ."
   },
@@ -14,6 +13,18 @@
   },
   "devDependencies": {
     "babel-eslint": "^10.0.3",
-    "eslint": "^4.19.1"
+    "eslint": "^4.19.1",
+    "jest": "^25.1.0"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "util",
+      "scripts/start.js",
+      "scripts/end.js",
+      "server.js"
+    ],
+    "testMatch": [
+      "<rootDir>/**/*.test.js"
+    ]
   }
 }

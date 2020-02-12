@@ -1,8 +1,10 @@
 const MongoClient = require('mongodb').MongoClient;
 const url = process.env['MONGO_URL'] || 'mongodb://localhost/fyipedb';
 
+global.client = global.client || MongoClient;
+
 async function connectToDb() {
-  return MongoClient.connect(url, { useUnifiedTopology: true });
+  return global.client.connect(url, { useUnifiedTopology: true });
 }
 
 async function find(collection, query = {}) {
