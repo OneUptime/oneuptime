@@ -11,7 +11,7 @@ import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPage, fetchMonitorStatuses, getStatusPageIndividualNote, selectedProbe } from '../actions/status';
+import { getStatusPage, selectedProbe } from '../actions/status';
 import { getProbes } from '../actions/probe';
 
 let greenBackground = {
@@ -58,18 +58,22 @@ class Main extends Component {
 		};
 	}
 
-	componentDidUpdate(nextProps) {
-		if (this.props.probes !== nextProps.probes) {
+	componentDidUpdate(prevProps) {
+		if (prevProps.probes !== this.props.probes) {
 			clearTimeout(this.state.nowHandler);
 
-			this.setState({ now: Date.now() });
-
-			let nowHandler = setTimeout(() => {
-				this.setState({ now: Date.now() });
-			}, 300000);
-
-			this.setState({ nowHandler });
+			this.setLastAlive();
 		}
+	}
+
+	setLastAlive = () => {
+		this.setState({ now: Date.now() });
+
+		let nowHandler = setTimeout(() => {
+			this.setState({ now: Date.now() });
+		}, 300000);
+
+		this.setState({ nowHandler });
 	}
 
 	componentDidMount() {
@@ -323,9 +327,7 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => bindActionCreators({
 	getStatusPage,
-	fetchMonitorStatuses,
 	getProbes,
-	getStatusPageIndividualNote,
 	selectedProbe
 }, dispatch);
 
@@ -333,7 +335,6 @@ Main.propTypes = {
 	statusData: PropTypes.object,
 	status: PropTypes.object,
 	getStatusPage: PropTypes.func,
-	fetchMonitorStatuses: PropTypes.func,
 	getProbes: PropTypes.func,
 	login: PropTypes.object.isRequired,
 	monitorState: PropTypes.array,

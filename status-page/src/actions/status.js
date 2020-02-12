@@ -142,8 +142,9 @@ export const getStatusPageIndividualNote = (projectId, monitorId, date, name, ne
 			dispatch(individualNoteEnable({
 				message: Data.data.message,
 				name: {
+					_id: monitorId,
 					name,
-					date: date.split('T')[0]
+					date
 				}
 			}));
 		}, (error) => {

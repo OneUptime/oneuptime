@@ -9,9 +9,7 @@ import {
   updatestatuspagebysocket,
   updatemonitorbysocket,
   updatemonitorstatusbysocket,
-  incidentcreatedbysocket,
-  updateincidentnotesbysocket,
-  incidentresolvedbysocket,
+  updateincidentnotebysocket,
   updateprobebysocket
 } from '../../actions/socket';
 
@@ -25,9 +23,7 @@ class SocketApp extends Component {
         socket.removeListener(`updateStatusPage-${this.props.project._id}`);
         socket.removeListener(`updateMonitor-${this.props.project._id}`);
         socket.removeListener(`updateMonitorStatus-${this.props.project._id}`);
-        socket.removeListener(`incidentCreated-${this.props.project._id}`);
-        socket.removeListener(`incidentNotes-${this.props.project._id}`);
-        socket.removeListener(`incidentResolved-${this.props.project._id}`);
+        socket.removeListener(`updateIncidentNote-${this.props.project._id}`);
         socket.removeListener(`updateProbe-${this.props.project._id}`);
       }
       return true;
@@ -49,14 +45,8 @@ class SocketApp extends Component {
       socket.on(`updateMonitorStatus-${this.props.project._id}`, function (data) {
         thisObj.props.updatemonitorstatusbysocket(data, thisObj.props.probes);
       });
-      socket.on(`incidentCreated-${this.props.project._id}`, function (data) {
-        thisObj.props.incidentcreatedbysocket(data);
-      });
-      socket.on(`incidentNotes-${this.props.project._id}`, function (data) {
-        thisObj.props.updateincidentnotesbysocket(data);
-      });
-      socket.on(`incidentResolved-${this.props.project._id}`, function (data) {
-        thisObj.props.incidentresolvedbysocket(data);
+      socket.on(`updateIncidentNote-${this.props.project._id}`, function (data) {
+        thisObj.props.updateincidentnotebysocket(data);
       });
       socket.on(`updateProbe-${this.props.project._id}`, function (data) {
         thisObj.props.updateprobebysocket(data);
@@ -72,8 +62,7 @@ SocketApp.propTypes = {
   project: PropTypes.oneOfType([
     PropTypes.object,
     PropTypes.oneOf([null, undefined])
-  ]),
-  probes: PropTypes.array
+  ])
 };
 
 let mapStateToProps = state => ({
@@ -86,9 +75,7 @@ let mapDispatchToProps = dispatch => (
     updatestatuspagebysocket,
     updatemonitorbysocket,
     updatemonitorstatusbysocket,
-    incidentcreatedbysocket,
-    updateincidentnotesbysocket,
-    incidentresolvedbysocket,
+    updateincidentnotebysocket,
     updateprobebysocket
   }, dispatch)
 );

@@ -149,6 +149,10 @@ module.exports = {
             var updatedIncident = await IncidentModel.findOneAndUpdate(query, {
                 $set: data
             }, { new: true });
+
+            var incident = await this.findOneBy(query);
+
+            await RealTimeService.updateIncidentNote(incident);
         } catch (error) {
             ErrorService.log('incidentService.updateOneBy', error);
             throw error;

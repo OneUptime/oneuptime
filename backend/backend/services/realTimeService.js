@@ -13,14 +13,14 @@ module.exports = {
         }
     },
 
-    sendIncidentNotes: async (incident) => {
+    updateIncidentNote: async (incident) => {
         try {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
-            io.emit(`incidentNotes-${projectId}`, incident);
+            io.emit(`updateIncidentNote-${projectId}`, incident);
         } catch (error) {
-            ErrorService.log('realTimeService.sendIncidentNotes', error);
+            ErrorService.log('realTimeService.updateIncidentNote', error);
             throw error;
         }
     },

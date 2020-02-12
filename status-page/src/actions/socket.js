@@ -14,10 +14,6 @@ export function updatemonitorbysocket(monitor) {
       type: 'UPDATE_MONITOR',
       payload: monitor
     });
-    dispatch({
-      type: 'UPDATE_INCIDENT_MONITOR_NAME',
-      payload: monitor
-    });
   };
 }
 
@@ -30,28 +26,10 @@ export function updatemonitorstatusbysocket(status, probes) {
   };
 }
 
-export function incidentcreatedbysocket(incident) {
+export function updateincidentnotebysocket(incident) {
   return function (dispatch) {
     dispatch({
-      type: 'ADD_NEW_INCIDENT',
-      payload: incident
-    });
-  };
-}
-
-export function updateincidentnotesbysocket(incident) {
-  return function (dispatch) {
-    dispatch({
-      type: 'UPDATE_INCIDENT_NOTES',
-      payload: incident
-    });
-  };
-}
-
-export function incidentresolvedbysocket(incident) {
-  return function (dispatch) {
-    dispatch({
-      type: 'INCIDENT_RESOLVED_BY_SOCKET',
+      type: 'UPDATE_INCIDENT_NOTE',
       payload: incident
     });
   };

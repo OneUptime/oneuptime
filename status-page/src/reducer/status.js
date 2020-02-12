@@ -56,7 +56,8 @@ export default (state = INITIAL_STATE, action) => {
                 requesting: true
             });
 
-        case 'UPDATE_STATUS_PAGE':
+        case 'UPDATE_STATUS_PAGE': {
+            const isValidMonitorNote = state.individualnote && action.payload.monitorIds && action.payload.monitorIds.length > 0 && action.payload.monitorIds.find(monitor => monitor._id === state.individualnote._id);
             return Object.assign({}, state, {
                 error: null,
                 statusPage: {
@@ -75,8 +76,11 @@ export default (state = INITIAL_STATE, action) => {
                             return newMonitorData;
                         }) : []
                 },
+                individualnote: isValidMonitorNote ? state.individualnote : null,
+                notesmessage: isValidMonitorNote ? state.notesmessage : null,
                 requesting: false
             });
+        }
 
         case 'UPDATE_MONITOR':
             return Object.assign({}, state, {
@@ -147,6 +151,23 @@ export default (state = INITIAL_STATE, action) => {
                     requesting: false,
                     skip: 0,
                     count: 0
+                }
+            });
+
+        case 'UPDATE_INCIDENT_NOTE':
+            return Object.assign({}, state, {
+                notes: {
+                    ...state.notes,
+
+                    notes: state.notes.notes && state.notes.notes.length > 0 ?
+                        state.notes.notes.map(note => {
+                            if (note._id === action.payload._id) {
+                                return action.payload;
+                            } else {
+                                return note;
+                            }
+                        })
+                        : []
                 }
             });
 

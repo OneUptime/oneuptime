@@ -75,10 +75,10 @@ class UptimeGraphs extends Component {
     }
   }
 
-  componentDidUpdate(nextProps) {
+  componentDidUpdate(prevProps) {
     const { monitor } = this.props;
 
-    if (monitor !== nextProps.monitor) {
+    if (prevProps.monitor !== monitor) {
       if (monitor && !monitor.statuses) {
         const endDate = moment(Date.now());
         const startDate = moment(Date.now()).subtract(90, 'days');
