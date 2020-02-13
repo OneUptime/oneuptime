@@ -28,11 +28,11 @@
   <section class="col-lg-half col-md-half dev-doc-example"></section>
 </article>
 
-<article id="signup" class="cf-grid-container dev-doc-item-container">
+<article id="signup-user" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Signup<span class="requestType">POST</span></h3>
+    <h3>Signup User<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Signup User.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -86,7 +86,52 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "nawaz1234++",
+  "name": "Nawaz Dhandala",
+  "companyName": "Hackerbay",
+  "confirmPassword": "nawaz1234++",
+  "companyPhoneNumber": "08158486068",
+  "cardName": "Nawaz Dhandala",
+  "address1": "26 Adenuga Street, Harmony Estate",
+  "city": "Boston",
+  "state": "MA",
+  "zipCode": "100234",
+  "country": "US",
+  "planId": "plan_EgTJMZULfh6THW",
+  "paymentIntent": {
+    "id": "pi_1Fyj2OIt5jR0TXkEa9D9ZQVE",
+    "object": "payment_intent",
+    "allowed_source_types": [
+      "card"
+    ],
+    "amount": 100,
+    "canceled_at": null,
+    "cancellation_reason": null,
+    "capture_method": "automatic",
+    "client_secret": "pi_1Fyj2OIt5jR0TXkEa9D9ZQVE_secret_ShiSLKRcq6VFA8RfabPm9ip7k",
+    "confirmation_method": "automatic",
+    "created": 1578507228,
+    "currency": "usd",
+    "description": "Verify if card is billable",
+    "last_payment_error": null,
+    "livemode": false,
+    "next_action": null,
+    "next_source_action": null,
+    "payment_method": null,
+    "payment_method_types": [
+      "card"
+    ],
+    "receipt_email": null,
+    "setup_future_usage": null,
+    "shipping": null,
+    "source": "card_1Fyj23It5jR0TXkEtade3LeX",
+    "status": "succeeded"
+  }
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -98,7 +143,48 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "5e164dc71b8ae81859214be9",
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "airtableId": "recT2NNt8Kv9som83",
+  "cardRegistered": true,
+  "tokens": {
+    "jwtAccessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMTY0ZGM3MWI4YWU4MTg1OTIxNGJlOSIsImlhdCI6MTU3ODUyMDAxMiwiZXhwIjoxNTg3MTYwMDEyfQ.II0TBl71WIfBoCzD4LidoGXGsX9henVzMVDgYOp20ss",
+    "jwtRefreshToken": "bktIFnguuULSY4lcfZe4v1l7iQr68RPTrt0bo5316aWnhQRMcz00U1a1JMPQt2SN4XDFHZdkBRTpjaGVTpBnWRI5z8QPNGnSubcUS8eVmcXQSOSxvUAZRwAivtPkvtsbuMTr2wXKmAuTk6I68FH6AcwjPlnzZ2p7t2XlqzUc679Ct4ld6RPm8VHOY7ayPCnTK7HaThesQzxhlCenweeM6tco0ghmWElGoTdVmx1IZGdwlK6Bd5BkT8JQ4nUHbBq7"
+  },
+  "project": {
+    "alertOptions": {
+      "billingUS": true,
+      "billingNonUSCountries": false,
+      "billingRiskCountries": false
+    },
+    "seats": "1",
+    "deleted": false,
+    "alertEnable": false,
+    "balance": 0,
+    "isBlocked": false,
+    "_id": "5e164dcc1b8ae81859214beb",
+    "users": [
+      {
+        "_id": "5e164dcc1b8ae81859214bec",
+        "userId": "5e164dc71b8ae81859214be9",
+        "role": "Owner"
+      }
+    ],
+    "createdAt": "2020-01-08T21:46:52.288Z",
+    "adminNotes": null,
+    "name": "Unnamed Project",
+    "slug": "Unnamed-Project-58230",
+    "apiKey": "618a3c40-3260-11ea-90e0-f774d8900757",
+    "stripePlanId": "plan_EgTJMZULfh6THW",
+    "stripeSubscriptionId": "sub_GVny0kh9ROxBif",
+    "parentProjectId": null,
+    "__v": 0
+  }
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -111,7 +197,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Email Confirmation<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Email Confirmation.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -160,7 +246,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/user/confirmation/:token</p>
+          <p class="url">https://api.fyipe.com/user/confirmation/079fc3a18126a43dfe7613b5b64a6b44</p>
         </div>
       </div>
 
@@ -170,7 +256,9 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+Redirects to Accounts.                
+              </p>
             </code>
           </pre>
         </div>
@@ -183,7 +271,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Resend Email Confirmation<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Resend Email Confirmation.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -237,7 +325,12 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "nawaz1234++"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -249,7 +342,9 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+A verification email has been sent to nawazdhandala@hackerbay.io                
+              </p>
             </code>
           </pre>
         </div>
@@ -262,7 +357,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Forgot Password<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Forgot Password.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -316,7 +411,11 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "email": "nawazdhandala@hackerbay.io"
+}
+              </p>
             </code>
           </pre>
         </div>
@@ -328,7 +427,11 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "message": "User received mail succcessfully."
+}
+              </p>
             </code>
           </pre>
         </div>
@@ -341,7 +444,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Reset Password<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Reset Password.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -395,7 +498,12 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "password": "fyipe",
+  "token": "079fc3a18126a43dfe7613b5b64a6b44"
+}
+              </p>
             </code>
           </pre>
         </div>
@@ -407,7 +515,11 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "message": "User password has been reset successfully."
+}
+              </p>
             </code>
           </pre>
         </div>
@@ -416,11 +528,11 @@
   </section>
 </article>
 
-<article id="login" class="cf-grid-container dev-doc-item-container">
+<article id="login-user" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Login<span class="requestType">POST</span></h3>
+    <h3>Login User<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Login User.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -474,7 +586,12 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "nawaz1234++"
+}
+              </p>
             </code>
           </pre>
         </div>
@@ -486,7 +603,20 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "5e089f88b400211639928c92",
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "redirect": null,
+  "cardRegistered": true,
+  "tokens": {
+    "jwtAccessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUwODg5MywiZXhwIjoxNTg3MTQ4ODkzfQ.ANgsnvlkfarFNDZkcHcilgRKhmReqwkSLuPijPW6HaM",
+    "jwtRefreshToken": "zlqDZkE3IrW5PkAIaxYGrX8sTLmiakmOB9tGffbtDLobs8VKrgpgs8IFm8tcbuEOHAhWYsOZILoAVPtjXbpDc2juVZWjYcosXyz545tBAOT3NlupM73UZx5WdgkcCJRyUdXmBU4tK4toLRP196zaEhSpAIk1pwWRv15TUg6roMWhHj6gSyvvvwdcQAxGAelAF0qPyzrl30r81d0dxCaSQFJkXcpiZ8jj05o3YnGrtDxuKJM6ngnlbQJ05CkUdUeI"
+  },
+  "role": null
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -495,11 +625,11 @@
   </section>
 </article>
 
-<article id="confirm-invited" class="cf-grid-container dev-doc-item-container">
+<article id="confirm-if-invited" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Confirm Invited<span class="requestType">POST</span></h3>
+    <h3>Confirm If Invited<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Confirm If Invited.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -553,7 +683,11 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "email": "nawazdhandala@hackerbay.io"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -565,7 +699,9 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+true                
+              </p>
             </code>
           </pre>
         </div>
@@ -574,11 +710,11 @@
   </section>
 </article>
 
-<article id="confirm-authenticated" class="cf-grid-container dev-doc-item-container">
+<article id="confirm-if-authenticated" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Confirm Authenticated<span class="requestType">POST</span></h3>
+    <h3>Confirm If Authenticated<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Confirm If Authenticated.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -628,13 +764,6 @@
         <div class="example-code example-response">
           <p>Request URL</p>
           <p class="url">https://api.fyipe.com/user/isAuthenticated</p>
-
-          <p>Request Body</p>
-          <pre>
-            <code class="language-json">
-              <p></p>
-            </code>
-          </pre>
         </div>
       </div>
 
@@ -644,7 +773,16 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "authenticated": true,
+  "user": {
+    "id": "5e2ecf3f516aae26b133f352",
+    "iat": 1580504303,
+    "exp": 1589144303
+  }
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -653,11 +791,11 @@
   </section>
 </article>
 
-<article id="get-profile" class="cf-grid-container dev-doc-item-container">
+<article id="get-user-profile" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Profile<span class="requestType">GET</span></h3>
+    <h3>Get User Profile<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get User Profile.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -694,7 +832,29 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "5e089f88b400211639928c92",
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$j.riXz0kwhcMUXrCW2g9W.xI.bs4fKs5g2bvf7P/wHTyxE/l33AaW",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "isVerified": true,
+  "companyPhoneNumber": "+2348158486068",
+  "alertPhoneNumber": "",
+  "profilePic": null,
+  "timezone": "",
+  "tokens": {
+    "jwtAccessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUxMDcyMCwiZXhwIjoxNTg3MTUwNzIwfQ.b6VFtcpsMi86-2t0VvYE7oZYAq2vecNKXX9LE2MRJYw",
+    "jwtRefreshToken": "zlqDZkE3IrW5PkAIaxYGrX8sTLmiakmOB9tGffbtDLobs8VKrgpgs8IFm8tcbuEOHAhWYsOZILoAVPtjXbpDc2juVZWjYcosXyz545tBAOT3NlupM73UZx5WdgkcCJRyUdXmBU4tK4toLRP196zaEhSpAIk1pwWRv15TUg6roMWhHj6gSyvvvwdcQAxGAelAF0qPyzrl30r81d0dxCaSQFJkXcpiZ8jj05o3YnGrtDxuKJM6ngnlbQJ05CkUdUeI"
+  },
+  "tempEmail": null,
+  "tempAlertPhoneNumber": null
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -703,11 +863,11 @@
   </section>
 </article>
 
-<article id="edit-profile" class="cf-grid-container dev-doc-item-container">
+<article id="edit-user-profile" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Edit Profile<span class="requestType">PUT</span></h3>
+    <h3>Edit User Profile<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit User Profile.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -761,7 +921,13 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+name: Nawaz Dhandala
+email: nawazdhandala@hackerbay.io
+companyPhoneNumber: 2348158486068
+timezone:
+alertPhoneNumber:                
+              </p>
             </code>
           </pre>
         </div>
@@ -773,7 +939,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "isVerified": true,
+  "onCallAlert": null,
+  "disabled": false,
+  "paymentFailedDate": null,
+  "isBlocked": false,
+  "deleted": false,
+  "alertPhoneNumber": "",
+  "_id": "5e089f88b400211639928c92",
+  "createdAt": "2019-12-29T12:43:52.563Z",
+  "lastActive": "2020-01-08T19:22:20.221Z",
+  "adminNotes": null,
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$j.riXz0kwhcMUXrCW2g9W.xI.bs4fKs5g2bvf7P/wHTyxE/l33AaW",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "companyPhoneNumber": "2348158486068",
+  "profilePic": null,
+  "jwtRefreshToken": "zlqDZkE3IrW5PkAIaxYGrX8sTLmiakmOB9tGffbtDLobs8VKrgpgs8IFm8tcbuEOHAhWYsOZILoAVPtjXbpDc2juVZWjYcosXyz545tBAOT3NlupM73UZx5WdgkcCJRyUdXmBU4tK4toLRP196zaEhSpAIk1pwWRv15TUg6roMWhHj6gSyvvvwdcQAxGAelAF0qPyzrl30r81d0dxCaSQFJkXcpiZ8jj05o3YnGrtDxuKJM6ngnlbQJ05CkUdUeI",
+  "stripeCustomerId": "cus_GRuxpXIUgqLVg7",
+  "resetPasswordToken": null,
+  "resetPasswordExpires": null,
+  "timezone": "",
+  "coupon": null,
+  "tempEmail": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -782,11 +979,11 @@
   </section>
 </article>
 
-<article id="edit-team-member-profile" class="cf-grid-container dev-doc-item-container">
+<article id="edit-user-profile" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Edit Team Member Profile<span class="requestType">PUT</span></h3>
+    <h3>Edit User Profile<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Edit User Profile.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -857,12 +1054,18 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/user/profile/:userId</p>
+          <p class="url">https://api.fyipe.com/user/profile/5e089f88b400211639928c92</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+name: Nawaz Dhandala
+email: nawazdhandala@hackerbay.io
+companyPhoneNumber: 2348158486068
+timezone:
+alertPhoneNumber:                  
+              </p>
             </code>
           </pre>
         </div>
@@ -874,7 +1077,38 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "isVerified": true,
+  "onCallAlert": null,
+  "disabled": false,
+  "paymentFailedDate": null,
+  "isBlocked": false,
+  "deleted": false,
+  "alertPhoneNumber": "",
+  "_id": "5e089f88b400211639928c92",
+  "createdAt": "2019-12-29T12:43:52.563Z",
+  "lastActive": "2020-01-08T19:22:20.221Z",
+  "adminNotes": null,
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$j.riXz0kwhcMUXrCW2g9W.xI.bs4fKs5g2bvf7P/wHTyxE/l33AaW",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "companyPhoneNumber": "2348158486068",
+  "profilePic": null,
+  "jwtRefreshToken": "zlqDZkE3IrW5PkAIaxYGrX8sTLmiakmOB9tGffbtDLobs8VKrgpgs8IFm8tcbuEOHAhWYsOZILoAVPtjXbpDc2juVZWjYcosXyz545tBAOT3NlupM73UZx5WdgkcCJRyUdXmBU4tK4toLRP196zaEhSpAIk1pwWRv15TUg6roMWhHj6gSyvvvwdcQAxGAelAF0qPyzrl30r81d0dxCaSQFJkXcpiZ8jj05o3YnGrtDxuKJM6ngnlbQJ05CkUdUeI",
+  "stripeCustomerId": "cus_GRuxpXIUgqLVg7",
+  "resetPasswordToken": null,
+  "resetPasswordExpires": null,
+  "timezone": "",
+  "coupon": null,
+  "tempEmail": null,
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -887,7 +1121,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Change Password<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Change Password.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -941,7 +1175,13 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "currentPassword": "nawaz1234++",
+  "newPassword": "nawaz1234+++",
+  "confirmPassword": "nawaz1234+++"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -953,7 +1193,17 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "id": "5e089f88b400211639928c92",
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "tokens": {
+    "jwtAccessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMDg5Zjg4YjQwMDIxMTYzOTkyOGM5MiIsImlhdCI6MTU3ODUxMTQ5NSwiZXhwIjoxNTg3MTUxNDk1fQ.Bau6_DGS1aL_o66K14vdCUpF5wr1Hf15-bH9OhTIFHw",
+    "jwtRefreshToken": "zlqDZkE3IrW5PkAIaxYGrX8sTLmiakmOB9tGffbtDLobs8VKrgpgs8IFm8tcbuEOHAhWYsOZILoAVPtjXbpDc2juVZWjYcosXyz545tBAOT3NlupM73UZx5WdgkcCJRyUdXmBU4tK4toLRP196zaEhSpAIk1pwWRv15TUg6roMWhHj6gSyvvvwdcQAxGAelAF0qPyzrl30r81d0dxCaSQFJkXcpiZ8jj05o3YnGrtDxuKJM6ngnlbQJ05CkUdUeI"
+  }
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -962,11 +1212,11 @@
   </section>
 </article>
 
-<article id="get-users" class="cf-grid-container dev-doc-item-container">
+<article id="get-all-users" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Users<span class="requestType">GET</span></h3>
+    <h3>Get All Users<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Users.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -978,6 +1228,43 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/user/users</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -1003,7 +1290,167 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "isVerified": true,
+      "onCallAlert": null,
+      "twoFactorAuthEnabled": false,
+      "backupCodes": [
+        {
+          "code": "80656207",
+          "counter": 0
+        },
+        {
+          "code": "78637838",
+          "counter": 1
+        },
+        {
+          "code": "48066866",
+          "counter": 2
+        },
+        {
+          "code": "26884181",
+          "counter": 3
+        },
+        {
+          "code": "41967906",
+          "counter": 4
+        },
+        {
+          "code": "57108620",
+          "counter": 5
+        },
+        {
+          "code": "33195921",
+          "counter": 6
+        },
+        {
+          "code": "77324177",
+          "counter": 7
+        }
+      ],
+      "disabled": false,
+      "paymentFailedDate": null,
+      "isBlocked": false,
+      "alertPhoneNumber": "",
+      "_id": "5e2ecf3f516aae26b133f352",
+      "createdAt": "2020-01-27T11:53:35.429Z",
+      "lastActive": "2020-02-13T12:59:41.825Z",
+      "adminNotes": null,
+      "name": "Nawaz Dhandala",
+      "email": "nawazdhandala@hackerbay.io",
+      "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+      "companyName": "Hackerbay",
+      "companyRole": null,
+      "companySize": null,
+      "referral": null,
+      "companyPhoneNumber": "08158486068",
+      "profilePic": null,
+      "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ",
+      "stripeCustomerId": "cus_GclhJ8JTR1IpOw",
+      "resetPasswordToken": null,
+      "resetPasswordExpires": null,
+      "timezone": null,
+      "coupon": null,
+      "tempEmail": null,
+      "twoFactorSecretCode": "KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+      "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+      "tutorial": {},
+      "projects": [
+        {
+          "alertOptions": {
+            "billingUS": true,
+            "billingNonUSCountries": false,
+            "billingRiskCountries": false
+          },
+          "seats": "1",
+          "alertEnable": false,
+          "alertLimitReached": false,
+          "balance": 0,
+          "isBlocked": false,
+          "_id": "5e3db43990968537f188cef2",
+          "users": [
+            {
+              "_id": "5e3db43990968537f188cef3",
+              "userId": "5e2ecf3f516aae26b133f352",
+              "role": "Owner"
+            }
+          ],
+          "createdAt": "2020-02-07T19:02:17.884Z",
+          "adminNotes": [
+            {
+              "_id": "5e3db82c90968537f188d079",
+              "note": "Hello"
+            }
+          ],
+          "name": "Fello",
+          "slug": "Fello-16018",
+          "apiKey": "5c53ccd0-49dc-11ea-9025-59d19fb1a7b1",
+          "stripePlanId": "plan_EgTJMZULfh6THW",
+          "stripeSubscriptionId": "sub_Gh0HqwYiQVH8G1",
+          "parentProjectId": null,
+          "alertLimit": "10"
+        },
+        {
+          "alertOptions": {
+            "billingUS": true,
+            "billingNonUSCountries": false,
+            "billingRiskCountries": false
+          },
+          "seats": "1",
+          "alertEnable": false,
+          "alertLimitReached": false,
+          "balance": 0,
+          "isBlocked": false,
+          "_id": "5e3db40790968537f188cee1",
+          "users": [],
+          "createdAt": "2020-02-07T19:01:27.184Z",
+          "adminNotes": null,
+          "name": "Dello",
+          "slug": "Dello-58759",
+          "apiKey": "3e37f9b0-49dc-11ea-9025-59d19fb1a7b1",
+          "stripePlanId": "plan_EgTJMZULfh6THW",
+          "stripeSubscriptionId": "sub_Gh05jSGsPvgugp",
+          "parentProjectId": null
+        },
+        {
+          "alertOptions": {
+            "billingUS": true,
+            "billingNonUSCountries": false,
+            "billingRiskCountries": false
+          },
+          "seats": "1",
+          "alertEnable": false,
+          "alertLimitReached": false,
+          "balance": 0,
+          "isBlocked": false,
+          "_id": "5e2ecf45516aae26b133f354",
+          "users": [
+            {
+              "_id": "5e2ecf45516aae26b133f355",
+              "userId": "5e2ecf3f516aae26b133f352",
+              "role": "Owner"
+            }
+          ],
+          "createdAt": "2020-01-27T11:53:41.352Z",
+          "adminNotes": null,
+          "name": "Bello",
+          "slug": "Unnamed-Project-41282",
+          "apiKey": "a98ab430-40fb-11ea-b3a8-83c18e01a99f",
+          "stripePlanId": "plan_EgTJMZULfh6THW",
+          "stripeSubscriptionId": "sub_GclhCoRrdskNuu",
+          "parentProjectId": null
+        }
+      ]
+    }
+  ],
+  "count": 1,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1016,7 +1463,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Search Users<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Search Users.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1028,28 +1475,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/user/users/search</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -1092,7 +1517,11 @@
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "filter": "Nawaz"
+}
+              </p>
             </code>
           </pre>
         </div>
@@ -1104,7 +1533,165 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "isVerified": true,
+      "onCallAlert": null,
+      "twoFactorAuthEnabled": false,
+      "backupCodes": [
+        {
+          "code": "80656207",
+          "counter": 0
+        },
+        {
+          "code": "78637838",
+          "counter": 1
+        },
+        {
+          "code": "48066866",
+          "counter": 2
+        },
+        {
+          "code": "26884181",
+          "counter": 3
+        },
+        {
+          "code": "41967906",
+          "counter": 4
+        },
+        {
+          "code": "57108620",
+          "counter": 5
+        },
+        {
+          "code": "33195921",
+          "counter": 6
+        },
+        {
+          "code": "77324177",
+          "counter": 7
+        }
+      ],
+      "disabled": false,
+      "paymentFailedDate": null,
+      "isBlocked": false,
+      "alertPhoneNumber": "",
+      "_id": "5e2ecf3f516aae26b133f352",
+      "createdAt": "2020-01-27T11:53:35.429Z",
+      "lastActive": "2020-02-13T13:03:46.646Z",
+      "adminNotes": null,
+      "name": "Nawaz Dhandala",
+      "email": "nawazdhandala@hackerbay.io",
+      "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+      "companyName": "Hackerbay",
+      "companyRole": null,
+      "companySize": null,
+      "referral": null,
+      "companyPhoneNumber": "08158486068",
+      "profilePic": null,
+      "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ",
+      "stripeCustomerId": "cus_GclhJ8JTR1IpOw",
+      "resetPasswordToken": null,
+      "resetPasswordExpires": null,
+      "timezone": null,
+      "coupon": null,
+      "tempEmail": null,
+      "twoFactorSecretCode": "KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+      "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+      "tutorial": {},
+      "projects": [
+        {
+          "alertOptions": {
+            "billingUS": true,
+            "billingNonUSCountries": false,
+            "billingRiskCountries": false
+          },
+          "seats": "1",
+          "alertEnable": false,
+          "alertLimitReached": false,
+          "balance": 0,
+          "isBlocked": false,
+          "_id": "5e3db43990968537f188cef2",
+          "users": [
+            {
+              "_id": "5e3db43990968537f188cef3",
+              "userId": "5e2ecf3f516aae26b133f352",
+              "role": "Owner"
+            }
+          ],
+          "createdAt": "2020-02-07T19:02:17.884Z",
+          "adminNotes": [
+            {
+              "_id": "5e3db82c90968537f188d079",
+              "note": "Hello"
+            }
+          ],
+          "name": "Fello",
+          "slug": "Fello-16018",
+          "apiKey": "5c53ccd0-49dc-11ea-9025-59d19fb1a7b1",
+          "stripePlanId": "plan_EgTJMZULfh6THW",
+          "stripeSubscriptionId": "sub_Gh0HqwYiQVH8G1",
+          "parentProjectId": null,
+          "alertLimit": "10"
+        },
+        {
+          "alertOptions": {
+            "billingUS": true,
+            "billingNonUSCountries": false,
+            "billingRiskCountries": false
+          },
+          "seats": "1",
+          "alertEnable": false,
+          "alertLimitReached": false,
+          "balance": 0,
+          "isBlocked": false,
+          "_id": "5e3db40790968537f188cee1",
+          "users": [],
+          "createdAt": "2020-02-07T19:01:27.184Z",
+          "adminNotes": null,
+          "name": "Dello",
+          "slug": "Dello-58759",
+          "apiKey": "3e37f9b0-49dc-11ea-9025-59d19fb1a7b1",
+          "stripePlanId": "plan_EgTJMZULfh6THW",
+          "stripeSubscriptionId": "sub_Gh05jSGsPvgugp",
+          "parentProjectId": null
+        },
+        {
+          "alertOptions": {
+            "billingUS": true,
+            "billingNonUSCountries": false,
+            "billingRiskCountries": false
+          },
+          "seats": "1",
+          "alertEnable": false,
+          "alertLimitReached": false,
+          "balance": 0,
+          "isBlocked": false,
+          "_id": "5e2ecf45516aae26b133f354",
+          "users": [
+            {
+              "_id": "5e2ecf45516aae26b133f355",
+              "userId": "5e2ecf3f516aae26b133f352",
+              "role": "Owner"
+            }
+          ],
+          "createdAt": "2020-01-27T11:53:41.352Z",
+          "adminNotes": null,
+          "name": "Bello",
+          "slug": "Unnamed-Project-41282",
+          "apiKey": "a98ab430-40fb-11ea-b3a8-83c18e01a99f",
+          "stripePlanId": "plan_EgTJMZULfh6THW",
+          "stripeSubscriptionId": "sub_GclhCoRrdskNuu",
+          "parentProjectId": null
+        }
+      ]
+    }
+  ],
+  "count": 1
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1117,7 +1704,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get User<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Single User.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1166,7 +1753,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/user/users/:userId</p>
+          <p class="url">https://api.fyipe.com/user/users/5e089f88b400211639928c92s</p>
         </div>
       </div>
 
@@ -1176,7 +1763,75 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "isVerified": true,
+  "onCallAlert": null,
+  "twoFactorAuthEnabled": false,
+  "backupCodes": [
+    {
+      "code": "80656207",
+      "counter": 0
+    },
+    {
+      "code": "78637838",
+      "counter": 1
+    },
+    {
+      "code": "48066866",
+      "counter": 2
+    },
+    {
+      "code": "26884181",
+      "counter": 3
+    },
+    {
+      "code": "41967906",
+      "counter": 4
+    },
+    {
+      "code": "57108620",
+      "counter": 5
+    },
+    {
+      "code": "33195921",
+      "counter": 6
+    },
+    {
+      "code": "77324177",
+      "counter": 7
+    }
+  ],
+  "disabled": false,
+  "paymentFailedDate": null,
+  "isBlocked": false,
+  "deleted": false,
+  "alertPhoneNumber": "",
+  "_id": "5e2ecf3f516aae26b133f352",
+  "createdAt": "2020-01-27T11:53:35.429Z",
+  "lastActive": "2020-02-13T13:01:55.934Z",
+  "adminNotes": null,
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "companyPhoneNumber": "08158486068",
+  "profilePic": null,
+  "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ",
+  "stripeCustomerId": "cus_GclhJ8JTR1IpOw",
+  "resetPasswordToken": null,
+  "resetPasswordExpires": null,
+  "timezone": null,
+  "coupon": null,
+  "tempEmail": null,
+  "twoFactorSecretCode": "KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1189,7 +1844,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete User<span class="requestType">DELETE</span></h3>
     <p>
-      <p></p>
+      <p>Delete User.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1238,7 +1893,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/user/:userId</p>
+          <p class="url">https://api.fyipe.com/user/5e089f88b400211639928c92</p>
         </div>
       </div>
 
@@ -1248,7 +1903,77 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "isVerified": true,
+  "onCallAlert": null,
+  "twoFactorAuthEnabled": false,
+  "backupCodes": [
+    {
+      "code": "80656207",
+      "counter": 0
+    },
+    {
+      "code": "78637838",
+      "counter": 1
+    },
+    {
+      "code": "48066866",
+      "counter": 2
+    },
+    {
+      "code": "26884181",
+      "counter": 3
+    },
+    {
+      "code": "41967906",
+      "counter": 4
+    },
+    {
+      "code": "57108620",
+      "counter": 5
+    },
+    {
+      "code": "33195921",
+      "counter": 6
+    },
+    {
+      "code": "77324177",
+      "counter": 7
+    }
+  ],
+  "disabled": false,
+  "paymentFailedDate": null,
+  "isBlocked": false,
+  "deleted": true,
+  "alertPhoneNumber": "",
+  "_id": "5e2ecf3f516aae26b133f352",
+  "createdAt": "2020-01-27T11:53:35.429Z",
+  "lastActive": "2020-02-13T13:10:26.327Z",
+  "adminNotes": null,
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "companyPhoneNumber": "08158486068",
+  "profilePic": null,
+  "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ",
+  "stripeCustomerId": "cus_GclhJ8JTR1IpOw",
+  "resetPasswordToken": null,
+  "resetPasswordExpires": null,
+  "timezone": null,
+  "coupon": null,
+  "tempEmail": null,
+  "twoFactorSecretCode": "KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "__v": 0,
+  "deletedAt": "2020-02-13T13:10:26.327Z",
+  "deletedById": "5e2ecf3f516aae26b133f352"
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1261,7 +1986,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Restore User<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Restore User.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1332,14 +2057,14 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/user/:userId/restoreUser</p>
+          <p class="url">https://api.fyipe.com/user/5e089f88b400211639928c92/restoreUser</p>
 
-          <p>Request Body</p>
+          <!-- <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p></p>
             </code>
-          </pre>
+          </pre> -->
         </div>
       </div>
 
@@ -1349,7 +2074,75 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "isVerified": true,
+  "onCallAlert": null,
+  "twoFactorAuthEnabled": false,
+  "backupCodes": [
+    {
+      "code": "80656207",
+      "counter": 0
+    },
+    {
+      "code": "78637838",
+      "counter": 1
+    },
+    {
+      "code": "48066866",
+      "counter": 2
+    },
+    {
+      "code": "26884181",
+      "counter": 3
+    },
+    {
+      "code": "41967906",
+      "counter": 4
+    },
+    {
+      "code": "57108620",
+      "counter": 5
+    },
+    {
+      "code": "33195921",
+      "counter": 6
+    },
+    {
+      "code": "77324177",
+      "counter": 7
+    }
+  ],
+  "disabled": false,
+  "paymentFailedDate": null,
+  "isBlocked": false,
+  "deleted": false,
+  "alertPhoneNumber": "",
+  "_id": "5e2ecf3f516aae26b133f352",
+  "createdAt": "2020-01-27T11:53:35.429Z",
+  "lastActive": "2020-02-13T13:10:26.327Z",
+  "adminNotes": null,
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "companyPhoneNumber": "08158486068",
+  "profilePic": null,
+  "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ",
+  "stripeCustomerId": "cus_GclhJ8JTR1IpOw",
+  "resetPasswordToken": null,
+  "resetPasswordExpires": null,
+  "timezone": null,
+  "coupon": null,
+  "tempEmail": null,
+  "twoFactorSecretCode": "KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "__v": 0
+} 
+              </p>             
             </code>
           </pre>
         </div>
@@ -1362,7 +2155,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Block User<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Block User.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1433,14 +2226,14 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/user/:userId/blockUser</p>
+          <p class="url">https://api.fyipe.com/user/5e089f88b400211639928c92/blockUser</p>
 
-          <p>Request Body</p>
+          <!-- <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p></p>
             </code>
-          </pre>
+          </pre> -->
         </div>
       </div>
 
@@ -1450,7 +2243,75 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "isVerified": true,
+  "onCallAlert": null,
+  "twoFactorAuthEnabled": false,
+  "backupCodes": [
+    {
+      "code": "80656207",
+      "counter": 0
+    },
+    {
+      "code": "78637838",
+      "counter": 1
+    },
+    {
+      "code": "48066866",
+      "counter": 2
+    },
+    {
+      "code": "26884181",
+      "counter": 3
+    },
+    {
+      "code": "41967906",
+      "counter": 4
+    },
+    {
+      "code": "57108620",
+      "counter": 5
+    },
+    {
+      "code": "33195921",
+      "counter": 6
+    },
+    {
+      "code": "77324177",
+      "counter": 7
+    }
+  ],
+  "disabled": false,
+  "paymentFailedDate": null,
+  "isBlocked": true,
+  "deleted": false,
+  "alertPhoneNumber": "",
+  "_id": "5e2ecf3f516aae26b133f352",
+  "createdAt": "2020-01-27T11:53:35.429Z",
+  "lastActive": "2020-02-13T13:14:36.776Z",
+  "adminNotes": null,
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "companyPhoneNumber": "08158486068",
+  "profilePic": null,
+  "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ",
+  "stripeCustomerId": "cus_GclhJ8JTR1IpOw",
+  "resetPasswordToken": null,
+  "resetPasswordExpires": null,
+  "timezone": null,
+  "coupon": null,
+  "tempEmail": null,
+  "twoFactorSecretCode": "KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1463,7 +2324,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Unblock User<span class="requestType">PUT</span></h3>
     <p>
-      <p></p>
+      <p>Unblock User.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1534,14 +2395,14 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/user/:userId/unblockUser</p>
+          <p class="url">https://api.fyipe.com/user/5e089f88b400211639928c92/unblockUser</p>
 
-          <p>Request Body</p>
+          <!-- <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p></p>
             </code>
-          </pre>
+          </pre> -->
         </div>
       </div>
 
@@ -1551,7 +2412,75 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "isVerified": true,
+  "onCallAlert": null,
+  "twoFactorAuthEnabled": false,
+  "backupCodes": [
+    {
+      "code": "80656207",
+      "counter": 0
+    },
+    {
+      "code": "78637838",
+      "counter": 1
+    },
+    {
+      "code": "48066866",
+      "counter": 2
+    },
+    {
+      "code": "26884181",
+      "counter": 3
+    },
+    {
+      "code": "41967906",
+      "counter": 4
+    },
+    {
+      "code": "57108620",
+      "counter": 5
+    },
+    {
+      "code": "33195921",
+      "counter": 6
+    },
+    {
+      "code": "77324177",
+      "counter": 7
+    }
+  ],
+  "disabled": false,
+  "paymentFailedDate": null,
+  "isBlocked": false,
+  "deleted": false,
+  "alertPhoneNumber": "",
+  "_id": "5e2ecf3f516aae26b133f352",
+  "createdAt": "2020-01-27T11:53:35.429Z",
+  "lastActive": "2020-02-13T13:14:53.878Z",
+  "adminNotes": null,
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "companyPhoneNumber": "08158486068",
+  "profilePic": null,
+  "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ",
+  "stripeCustomerId": "cus_GclhJ8JTR1IpOw",
+  "resetPasswordToken": null,
+  "resetPasswordExpires": null,
+  "timezone": null,
+  "coupon": null,
+  "tempEmail": null,
+  "twoFactorSecretCode": "KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W",
+  "__v": 0
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -1560,11 +2489,11 @@
   </section>
 </article>
 
-<article id="add-note" class="cf-grid-container dev-doc-item-container">
+<article id="add-user-note" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Add Note<span class="requestType">POST</span></h3>
+    <h3>Add User Note<span class="requestType">POST</span></h3>
     <p>
-      <p></p>
+      <p>Add User Note.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1635,12 +2564,19 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/user/:userId/addNote</p>
+          <p class="url">https://api.fyipe.com/user/5e089f88b400211639928c92/addNote</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+[
+  {
+    "_id": "5e2ecf3f516aae26b133f352",
+    "note": "Hello User"
+  }
+]              
+              </p>
             </code>
           </pre>
         </div>
@@ -1653,6 +2589,394 @@
           <pre>
             <code class="language-json">
               <p></p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="create-secret-token" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Secret Token (2FA)<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create 2FA Secret Token.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/user/totp/token/:userId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>userId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The user id of the project user.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/user/totp/token/5e089f88b400211639928c92</p>
+
+          <!-- <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p></p>
+            </code>
+          </pre> -->
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "otpauth_url": "otpauth://totp/Fyipe%20(nawazdhandala%40hackerbay.io)?secret=KARS6P2SKVTVAW2AOBIFILZRNBDWIY3W"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="verify-secret-token" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Verify Secret Token (2FA)<span class="requestType">POST</span></h3>
+    <p>
+      <p>Verify 2FA Secret Token.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/user/totp/verifyToken</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/user/totp/verifyToken</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+	"userId": "5e2ecf3f516aae26b133f352",
+	"email": "nawazdhandala@hackerbay.io",
+	"token": "80656207"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "id": "5e2ecf3f516aae26b133f352",
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "isVerified": true,
+  "twoFactorAuthEnabled": false,
+  "companyPhoneNumber": "08158486068",
+  "alertPhoneNumber": "",
+  "profilePic": null,
+  "backupCodes": [
+    {
+      "code": "80656207",
+      "counter": 0
+    },
+    {
+      "code": "78637838",
+      "counter": 1
+    },
+    {
+      "code": "48066866",
+      "counter": 2
+    },
+    {
+      "code": "26884181",
+      "counter": 3
+    },
+    {
+      "code": "41967906",
+      "counter": 4
+    },
+    {
+      "code": "57108620",
+      "counter": 5
+    },
+    {
+      "code": "33195921",
+      "counter": 6
+    },
+    {
+      "code": "77324177",
+      "counter": 7
+    }
+  ],
+  "timezone": "",
+  "tokens": {
+    "jwtAccessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MTYyOTY5OSwiZXhwIjoxNTkwMjY5Njk5fQ.F5lKpj8y9qrvfJAVdRZYEtI6dYLlH6V9lPLWCDMIIjw",
+    "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ"
+  },
+  "tempEmail": null,
+  "tempAlertPhoneNumber": null
+}                                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="verify-backup-codes" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Verify Backup Codes (2FA)<span class="requestType">POST</span></h3>
+    <p>
+      <p>Verify 2FA Backup Codes.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/user/verify/backupCode</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/user/verify/backupCode</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "email": "nawazdhandala@hackerbay.io",
+  "code": "80656207"
+}                 
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "id": "5e2ecf3f516aae26b133f352",
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "password": "$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "isVerified": true,
+  "twoFactorAuthEnabled": false,
+  "companyPhoneNumber": "08158486068",
+  "alertPhoneNumber": "",
+  "profilePic": null,
+  "backupCodes": [
+    {
+      "code": "80656207",
+      "counter": 0
+    },
+    {
+      "code": "78637838",
+      "counter": 1
+    },
+    {
+      "code": "48066866",
+      "counter": 2
+    },
+    {
+      "code": "26884181",
+      "counter": 3
+    },
+    {
+      "code": "41967906",
+      "counter": 4
+    },
+    {
+      "code": "57108620",
+      "counter": 5
+    },
+    {
+      "code": "33195921",
+      "counter": 6
+    },
+    {
+      "code": "77324177",
+      "counter": 7
+    }
+  ],
+  "timezone": "",
+  "tokens": {
+    "jwtAccessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MTYyOTY5OSwiZXhwIjoxNTkwMjY5Njk5fQ.F5lKpj8y9qrvfJAVdRZYEtI6dYLlH6V9lPLWCDMIIjw",
+    "jwtRefreshToken": "0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ"
+  },
+  "tempEmail": null,
+  "tempAlertPhoneNumber": null
+}                
+              </p>
             </code>
           </pre>
         </div>
