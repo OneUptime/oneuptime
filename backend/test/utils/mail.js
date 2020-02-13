@@ -5,7 +5,7 @@ var imap = new Imap({
     password: process.env['MAIL_RECIPIENT_PASSWORD'],
     host: process.env['MAIL_SERVER_IMAP'],
     port: process.env['MAIL_PORT_IMAP'],
-    tls: true
+    tls: !!process.env['MAIL_IMAP_SECURE']
 });
 
 function openBox(cb) {
