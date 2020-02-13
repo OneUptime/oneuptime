@@ -91,7 +91,7 @@ build_n_test_dashboard:
     - npm ci
     # try building, if there are warnings then this will fail
     - npm run build
-    - npm run jest
+    - npm run test
   except:
     refs:
       - hotfix-master
@@ -241,7 +241,7 @@ build_n_test_statuspage:
     - curl localhost:3006
     # try building, if there are warnings then this will fail
     - npm run build
-    - npm run jest
+    - npm run test
   except:
     refs:
       - hotfix-master
@@ -348,7 +348,7 @@ build_n_test_accounts:
     - npm ci
     # try building, if there are warnings then this will fail
     - npm run build
-    - npm run jest
+    - npm run test
   except:
     refs:
       - hotfix-master

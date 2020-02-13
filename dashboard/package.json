@@ -91,7 +91,6 @@
     "test": "jest --runInBand",
     "start": "node index.js",
     "audit": "npm-audit-ci-wrapper --threshold=low",
-    "jest": "jest --runInBand",
     "fix-lint": "eslint . --fix"
   },
   "devDependencies": {
