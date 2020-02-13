@@ -163,8 +163,17 @@ module.exports = {
 
             if (escalations && escalations.length > 0) {
                 await Promise.all(escalations.map(async (escalation) => {
-                    var teamMembers = escalation.teamMembers.filter(member => member.userId.toString() !== memberId.toString());
-                    await _this.updateOneBy({ _id: escalation._id }, { teamMembers: teamMembers });
+                    var teams = escalation.teams.map((team)=>{
+                        var teamMembers = team.teamMembers; 
+                        teamMembers = teamMembers.filter((member)=>{
+                            return member.userId !== memberId;
+                        });
+
+                        team.teamMembers = teamMembers
+
+                        return team;
+                    });
+                    await _this.updateOneBy({ _id: escalation._id }, { teams: teams });
                 }));
             }
         } catch (error) {

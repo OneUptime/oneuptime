@@ -14,7 +14,7 @@ var AirtableService = require('../backend/services/airtableService');
 
 var userId, airtableId, projectId;
 
-describe('Email verification API', function () {
+describe.only('Email verification API', function () {
     this.timeout(20000);
 
     before(function (done) {
@@ -34,10 +34,10 @@ describe('Email verification API', function () {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should send email verification', async function (done) {
+    it('should send email verification', async function () {
         var emailStatuses = await EmailStatusService.findBy({});
-        expect(emailStatuses[0].subject).to.equal('[Fyipe] Please confirm the email linked to your Fyipe ID');
-        done();
+        expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
+        expect(emailStatuses[0].status).to.equal('Success');
     });
 
     it('should not login non-verified user', async function () {
