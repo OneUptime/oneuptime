@@ -107,6 +107,14 @@ services:
       - PROBE_KEY=test-key
     depends_on:
       - backend
+
+  ngrok:
+    ports:
+      - "4040:4040"
+    image: wernight/ngrok:latest
+    command: ngrok http backend:3002
+    depends_on:
+      - backend
   
 volumes:
   mongodata:
