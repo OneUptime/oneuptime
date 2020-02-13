@@ -29,6 +29,7 @@ lint_n_audit_backend:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
@@ -63,6 +64,7 @@ lint_n_audit_dashboard:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
@@ -110,6 +112,7 @@ lint_n_audit_http_test_server:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
@@ -147,6 +150,7 @@ lint_n_audit_admin-dashboard:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
@@ -181,6 +185,7 @@ lint_n_audit_zapier:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
@@ -210,6 +215,7 @@ lint_n_audit_statuspage:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
@@ -261,6 +267,7 @@ lint_n_audit_accounts:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
@@ -368,6 +375,7 @@ lint_n_audit_home:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
@@ -469,6 +477,7 @@ lint_n_audit_probe:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
@@ -498,6 +507,7 @@ lint_n_audit_server-monitor:
     - npm ci
     - npm run lint
     - npm run audit
+    - npm run dep-check
     - cd ..
   except:
     refs:
