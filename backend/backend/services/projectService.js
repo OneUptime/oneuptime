@@ -66,14 +66,12 @@ module.exports = {
         return count;
     },
 
-    deleteBy: async function (query, user) {
+    deleteBy: async function (query, userId) {
         try {
             if (!query) {
                 query = {};
             }
             query.deleted = false;
-
-            var userId = user.id;
             var project = await ProjectModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
@@ -90,7 +88,7 @@ module.exports = {
 
                 var monitors = await MonitorService.findBy({ projectId: project._id });
                 await Promise.all(monitors.map(async (monitor) => {
-                    await MonitorService.deleteBy({ _id: monitor._id }, user);
+                    await MonitorService.deleteBy({ _id: monitor._id }, userId);
                 }));
 
                 var schedules = await ScheduleService.findBy({ projectId: project._id });
@@ -416,7 +414,7 @@ module.exports = {
         return { projects, count };
     },
 
-    restoreBy: async function (query, user) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
 
@@ -436,7 +434,7 @@ module.exports = {
                 let projectSeats = project.seats;
                 await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
                 await ScheduleService.restoreBy({ projectId, deleted: true });
-                await StatusPageService.restoreBy({ projectId, deleted: true }, user);
+                await StatusPageService.restoreBy({ projectId, deleted: true });
                 await integrationService.restoreBy({ projectId, deleted: true });
                 await MonitorService.restoreBy({ projectId, deleted: true });
                 return project;
@@ -459,7 +457,7 @@ module.exports = {
                 await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
                 await integrationService.restoreBy({ projectId, deleted: true });
                 await ScheduleService.restoreBy({ projectId, deleted: true });
-                await StatusPageService.restoreBy({ projectId, deleted: true }, user);
+                await StatusPageService.restoreBy({ projectId, deleted: true });
                 await MonitorService.restoreBy({ projectId, deleted: true });
             }
             return project;

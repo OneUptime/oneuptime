@@ -167,7 +167,11 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 router.put('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
         var data = req.body;
-        var monitor = await MonitorService.updateOneBy({ _id: req.params.monitorId }, data);
+        var unsetData;
+        if (!data.monitorCategoryId || data.monitorCategoryId === '') {
+            unsetData = { monitorCategoryId: '' };
+        }
+        var monitor = await MonitorService.updateOneBy({ _id: req.params.monitorId }, data, unsetData);
         if (monitor) {
             return sendItemResponse(req, res, monitor);
         } else {
@@ -245,7 +249,7 @@ router.post('/:projectId/monitorLogs/:monitorId', getUser, isAuthorized, async f
 
 router.delete('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        var monitor = await MonitorService.deleteBy({ _id: req.params.monitorId, projectId: req.params.projectId }, req.user);
+        var monitor = await MonitorService.deleteBy({ _id: req.params.monitorId, projectId: req.params.projectId }, req.user.id);
         if (monitor) {
             return sendItemResponse(req, res, monitor);
         }

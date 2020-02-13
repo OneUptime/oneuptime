@@ -8,6 +8,7 @@ var express = require('express');
 var moment = require('moment');
 var IncidentService = require('../services/incidentService');
 var MonitorStatusService = require('../services/monitorStatusService');
+var RealTimeService = require('../services/realTimeService');
 
 var router = express.Router();
 
@@ -240,6 +241,7 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
         var incident = await IncidentService.updateOneBy({ _id: incidentId }, data);
         if (incident && incident._id) {
             incident = await IncidentService.findOneBy({ _id: incident._id, projectId: incident.projectId });
+            await RealTimeService.updateIncidentNote(incident);
         }
         return sendItemResponse(req, res, incident);
     } catch (error) {

@@ -17,9 +17,9 @@ class BlockChart extends Component {
             this.props.getStatusPageIndividualNote(this.props.statusData.projectId._id, this.props.monitorId, date, this.props.monitorName, need);
         } else {
             if (this.props.time && this.props.time.emptytime) {
-                this.props.notmonitoredDays(this.props.time.emptytime, this.props.monitorName, 'No data available for this date');
+                this.props.notmonitoredDays(this.props.monitorId, this.props.time.emptytime, this.props.monitorName, 'No data available for this date');
             } else {
-                this.props.notmonitoredDays(date, this.props.monitorName, 'No incidents yet');
+                this.props.notmonitoredDays(this.props.monitorId, date, this.props.monitorName, 'No incidents yet');
             }
         }
     }

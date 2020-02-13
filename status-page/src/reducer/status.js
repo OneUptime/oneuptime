@@ -105,10 +105,28 @@ export default (state = INITIAL_STATE, action) => {
                                 };
                             }
                             return monitor;
-                        }) : [],
+                        }) : []
                 },
                 requesting: false
             });
+
+        case 'DELETE_MONITOR': {
+            const isIndividualNote = state.individualnote && state.individualnote._id === action.payload;
+            return Object.assign({}, state, {
+                error: null,
+                statusPage: {
+                    ...state.statusPage,
+
+                    monitorIds: state.statusPage.monitorIds && state.statusPage.monitorIds.length > 0 ?
+                        state.statusPage.monitorIds.filter(monitor => monitor._id !== action.payload) : [],
+                    monitorsData: state.statusPage.monitorsData && state.statusPage.monitorsData.length > 0 ?
+                        state.statusPage.monitorsData.filter(monitor => monitor._id !== action.payload) : []
+                },
+                individualnote: isIndividualNote ? null : state.individualnote,
+                notesmessage: isIndividualNote ? null : state.notesmessage,
+                requesting: false
+            });
+        }
 
         case STATUSPAGE_NOTES_SUCCESS:
             return Object.assign({}, state, {

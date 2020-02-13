@@ -87,7 +87,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function (query, data, unsetData) {
         try {
             if (!query) {
                 query = {};
@@ -99,9 +99,9 @@ module.exports = {
                 {
                     new: true
                 });
-            if (!data.monitorCategoryId || data.monitorCategoryId === '') {
+            if (unsetData) {
                 monitor = await MonitorModel.findOneAndUpdate(query,
-                    { $unset: { monitorCategoryId: '' } },
+                    { $unset: unsetData },
                     {
                         new: true
                     });
@@ -204,14 +204,13 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query, user) {
+    deleteBy: async function (query, userId) {
         try {
             if (!query) {
                 query = {};
             }
-            query.deleted = false;
 
-            var userId = user.id;
+            query.deleted = false;
             var monitor = await MonitorModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } }, { new: true }).populate('deletedById', 'name');
 
             if (monitor) {
@@ -251,7 +250,7 @@ module.exports = {
                 await Promise.all(alerts.map(async (alert) => {
                     await AlertService.deleteBy({ _id: alert._id }, userId);
                 }));
-                await StatusPageService.removeMonitor(monitor._id, user);
+                await StatusPageService.removeMonitor(monitor._id);
                 await ScheduleService.removeMonitor(monitor._id);
                 await IntegrationService.removeMonitor(monitor._id, userId);
                 await NotificationService.create(monitor.projectId, `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`, monitor.deletedById._id, 'monitoraddremove');

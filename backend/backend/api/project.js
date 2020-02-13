@@ -299,6 +299,7 @@ router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async
 router.delete('/:projectId/deleteProject', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
         let projectId = req.params.projectId;
+        let userId = req.user.id;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -306,7 +307,7 @@ router.delete('/:projectId/deleteProject', getUser, isAuthorized, isUserOwner, a
                 message: 'ProjectId must be present.'
             });
         }
-        var project = await ProjectService.deleteBy({ _id: projectId }, req.user);
+        var project = await ProjectService.deleteBy({ _id: projectId }, userId);
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -482,6 +483,7 @@ router.delete('/:projectId/:subProjectId', getUser, isAuthorized, async function
     try {
         const parentProjectId = req.params.projectId;
         const subProjectId = req.params.subProjectId;
+        const userId = req.user.id;
 
         if (!subProjectId) {
             return sendErrorResponse(req, res, {
@@ -489,7 +491,7 @@ router.delete('/:projectId/:subProjectId', getUser, isAuthorized, async function
                 message: 'SubProjectId must be present.'
             });
         }
-        var subProject = await ProjectService.deleteBy({ _id: subProjectId, parentProjectId }, req.user);
+        var subProject = await ProjectService.deleteBy({ _id: subProjectId, parentProjectId }, userId);
         return sendItemResponse(req, res, subProject);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -597,7 +599,7 @@ router.put('/:projectId/unblockProject', getUser, isUserMasterAdmin, async funct
 router.put('/:projectId/restoreProject', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const projectId = req.params.projectId;
-        const project = await ProjectService.restoreBy({ _id: projectId, deleted: true }, req.user);
+        const project = await ProjectService.restoreBy({ _id: projectId, deleted: true });
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);

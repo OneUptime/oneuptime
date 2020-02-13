@@ -126,17 +126,11 @@ module.exports = {
         }
     },
 
-    removeMonitor: async function (monitorId, user) {
+    removeMonitor: async function (monitorId) {
         try {
             var statusPage = await StatusPageModel.findOneAndUpdate({ monitorIds: monitorId }, {
                 $pull: { monitorIds: monitorId }
             });
-
-            if (statusPage) {
-                var updatedStatusPage = await this.getStatus({ _id: statusPage._id }, user);
-                await RealTimeService.statusPageEdit(updatedStatusPage);
-            }
-
             return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.removeMonitor', error);
@@ -162,7 +156,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data, user) {
+    updateOneBy: async function (query, data) {
         try {
             var existingStatusPage = await this.findBy({
                 name: data.name,
@@ -184,10 +178,6 @@ module.exports = {
             }, {
                 new: true
             });
-
-            var statusPage = await this.getStatus({ _id: updatedStatusPage._id }, user);
-            await RealTimeService.statusPageEdit(statusPage);
-
             return updatedStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.updateOneBy', error);
@@ -270,7 +260,7 @@ module.exports = {
         }
     },
 
-    getStatus: async function (query, user) {
+    getStatus: async function (query, userId) {
         try {
             var thisObj = this;
             if (!query) {
@@ -284,7 +274,7 @@ module.exports = {
                 .populate('monitorIds', 'name')
                 .lean();
             if (statusPage && (statusPage._id || statusPage.id)) {
-                var permitted = await thisObj.isPermitted(user, statusPage);
+                var permitted = await thisObj.isPermitted(userId, statusPage);
                 if (!permitted) {
                     let error = new Error('You are unauthorized to access the page please login to continue.');
                     error.code = 401;
@@ -339,14 +329,14 @@ module.exports = {
             throw error;
         }
     },
-    isPermitted: async function (user, statusPage) {
+    isPermitted: async function (userId, statusPage) {
         try {
             return new Promise(async (resolve) => {
                 if (statusPage.isPrivate) {
-                    if (user) {
+                    if (userId) {
                         var project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
                         if (project && project._id) {
-                            if (project.users.some(({ userId }) => userId === user.id)) {
+                            if (project.users.some(user => user.userId === userId)) {
                                 resolve(true);
                             }
                             else {
@@ -391,7 +381,7 @@ module.exports = {
         }
     },
 
-    restoreBy: async function (query, user) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         let statusPage = await _this.findBy(query);
@@ -402,7 +392,7 @@ module.exports = {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
-                }, user);
+                });
                 await SubscriberService.restoreBy({ statusPageId, deleted: true });
                 return statusPage;
             }));
@@ -415,7 +405,7 @@ module.exports = {
                     deleted: false,
                     deletedAt: null,
                     deleteBy: null
-                }, user);
+                });
                 await SubscriberService.restoreBy({ statusPageId, deleted: true });
             }
             return statusPage;
