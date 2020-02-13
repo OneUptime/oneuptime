@@ -12,7 +12,7 @@ var ProjectService = require('../backend/services/projectService');
 var VerificationTokenModel = require('../backend/models/verificationToken');
 var AirtableService = require('../backend/services/airtableService');
 
-var userId, airtableId, emailContent, projectId;
+var userId, airtableId, projectId;
 
 describe('Email verification API', function () {
     this.timeout(20000);
