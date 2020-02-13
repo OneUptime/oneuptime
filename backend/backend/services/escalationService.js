@@ -169,7 +169,7 @@ module.exports = {
                             return member.userId !== memberId;
                         });
 
-                        team.teamMembers = teamMembers
+                        team.teamMembers = teamMembers;
 
                         return team;
                     });

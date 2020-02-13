@@ -14,7 +14,7 @@ var AirtableService = require('../backend/services/airtableService');
 
 var userId, airtableId, projectId;
 
-describe.only('Email verification API', function () {
+describe('Email verification API', function () {
     this.timeout(20000);
 
     before(function (done) {
