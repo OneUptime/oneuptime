@@ -34,7 +34,7 @@ describe('Email verification API', function () {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should send email verification', function (done) {
+    it('should send email verification', async function (done) {
         var emailStatuses = await EmailStatusService.findBy({});
         expect(emailStatuses[0].subject).to.equal('[Fyipe] Please confirm the email linked to your Fyipe ID');
         done();
