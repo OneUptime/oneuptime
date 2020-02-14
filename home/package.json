@@ -20,8 +20,7 @@
     "cli-table": "^0.3.1",
     "compression": "^1.7.4",
     "ejs": "^2.6.2",
-    "express": "^4.17.1",
-    "request": "^2.88.0"
+    "express": "^4.17.1"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.2",
