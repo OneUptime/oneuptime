@@ -419,6 +419,5 @@ var MonitorService = require('./monitorService');
 var ErrorService = require('./errorService');
 var SubscriberService = require('./subscriberService');
 var ProjectService = require('./projectService');
-var RealTimeService = require('./realTimeService');
 var _ = require('lodash');
 var defaultStatusPageColors = require('../config/statusPageColors');

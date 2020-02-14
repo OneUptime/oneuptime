@@ -22,7 +22,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
-            io.emit(`updateIncidentNote-${projectId}`, incident);
+            global.io.emit(`updateIncidentNote-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realTimeService.updateIncidentNote', error);
             throw error;
@@ -103,7 +103,7 @@ module.exports = {
             var project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : statusPage.projectId._id;
 
-            io.emit(`updateStatusPage-${projectId}`, statusPage);
+            global.io.emit(`updateStatusPage-${projectId}`, statusPage);
         } catch (error) {
             ErrorService.log('realTimeService.statusPageEdit', error);
             throw error;
