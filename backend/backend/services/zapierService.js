@@ -136,7 +136,7 @@ module.exports = {
             incident = await incident.save();
             let msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
             await NotificationService.create(incident.projectId, msg, null, 'warning');
-            await RealTimeService.sendIncidentCreated(incident);
+            await RealTimeService.sendCreatedIncident(incident);
 
             let project = await ProjectService.findOneBy({_id: monitorObj.project._id});
             if(project.parentProjectId){

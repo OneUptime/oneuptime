@@ -6,6 +6,7 @@ var Whitepapers = require('../config/whitepaper');
 var ErrorService = require('./errorService');
 var defaultEmailTemplates = require('../config/emailTemplate');
 var EmailSmtpService = require('./emailSmtpService');
+const EmailStatusService = require('./emailStatusService');
 var { ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST } = process.env;
 
 var options = {
@@ -99,9 +100,25 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
+
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -120,9 +137,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendVerifyEmail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -139,9 +170,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendLeadEmailToFyipeTeam', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -160,9 +205,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendUserFeedbackResponse', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -184,10 +243,24 @@ module.exports = {
                     template: 'request_demo_body',
                 };
                 var info = await mailer.sendMail(mailOptions);
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Success'
+                });
                 return info;
             }
         } catch (error) {
             ErrorService.log('mailService.sendRequestDemoEmail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -229,11 +302,27 @@ module.exports = {
                         }
                     };
                     var info = await mailer.sendMail(mailOptions);
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success'
+                    });
                     return info;
                 }
             }
         } catch (error) {
             ErrorService.log('mailService.sendWhitepaperEmail', error);
+            if (mailOptions) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Error'
+                });
+            }
             throw error;
         }
     },
@@ -257,9 +346,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendForgotPasswordMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -282,9 +385,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendResetPasswordConfirmMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -308,9 +425,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendNewUserAddedToProjectMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -330,67 +461,135 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendExistingUserAddedToProjectMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
 
     sendExistingStatusPageViewerMail: async function (subProject, addedByUser, email) {
+        try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'You\'ve been added to a sub-project on Fyipe',
+                template: 'existing_viewer_added_to_project_body',
+                context: {
+                    homeURL: HOME_HOST,
+                    subProjectName: subProject.name,
+                    userName: addedByUser.name
+                }
+            };
 
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'You\'ve been added to a sub-project on Fyipe',
-            template: 'existing_viewer_added_to_project_body',
-            context: {
-                homeURL: HOME_HOST,
-                subProjectName: subProject.name,
-                userName: addedByUser.name
-            }
-        };
-
-        var info = await mailer.sendMail(mailOptions);
-        return info;
+            var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendExistingStatusPageViewerMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
+            throw error;
+        }
     },
 
     sendExistingUserAddedToSubProjectMail: async function (project, addedByUser, email) {
+        try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'You\'ve been added to a subproject on Fyipe',
+                template: 'existing_user_added_to_subproject_body',
+                context: {
+                    homeURL: HOME_HOST,
+                    projectName: project.name,
+                    userName: addedByUser.name,
+                    dashboardURL: DASHBOARD_HOST
+                }
+            };
 
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'You\'ve been added to a subproject on Fyipe',
-            template: 'existing_user_added_to_subproject_body',
-            context: {
-                homeURL: HOME_HOST,
-                projectName: project.name,
-                userName: addedByUser.name,
-                dashboardURL: DASHBOARD_HOST
-            }
-        };
-
-        var info = await mailer.sendMail(mailOptions);
-        return info;
+            var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendExistingUserAddedToSubProjectMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
+            throw error;
+        }
     },
 
     sendNewStatusPageViewerMail: async function (project, addedByUser, email) {
+        try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'You\'ve been added to a project on Fyipe',
+                template: 'new_viewer_added_to_project',
+                context: {
+                    homeURL: HOME_HOST,
+                    projectName: project.name,
+                    userName: addedByUser.name,
+                    accountsURL: ACCOUNTS_HOST
+                }
+            };
 
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'You\'ve been added to a project on Fyipe',
-            template: 'new_viewer_added_to_project',
-            context: {
-                homeURL: HOME_HOST,
-                projectName: project.name,
-                userName: addedByUser.name,
-                accountsURL: ACCOUNTS_HOST
-            }
-        };
-
-        var info = await mailer.sendMail(mailOptions);
-        return info;
+            var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendNewStatusPageViewerMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
+            throw error;
+        }
     },
 
     sendChangeRoleEmailToUser: async function (project, addedByUser, email, role) {
@@ -409,9 +608,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendChangeRoleEmailToUser', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -431,9 +644,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendRemoveFromProjectEmailToUser', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -453,9 +680,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendRemoveFromSubProjectEmailToUser', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -466,35 +707,53 @@ module.exports = {
      * @param {string} email Email of user being alerted.
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
-     * @param {string} ack_url API link that has requirements for acknowledging incident.
-     * @param {string} resolve_url API link that has requirements for resolving incident.
+     * @param {string} acknowledgeUrl API link that has requirements for acknowledging incident.
+     * @param {string} resolveUrl API link that has requirements for resolving incident.
      * @param {string} accessToken An access token to be used used to access API from email.
      */
-    sendIncidentCreatedMail: async function (incidentTime, monitorName, email, userId, userName, projectId, ack_url, resolve_url, accessToken, incidentType,projectName) {
+    sendIncidentCreatedMail: async function ({ incidentTime, monitorName, email, userId, firstName, projectId, acknowledgeUrl, resolveUrl, accessToken, incidentType, projectName }) {
+        try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: `${projectName}/${monitorName} is ${incidentType}`,
+                template: 'new_incident_created',
+                context: {
+                    homeURL: HOME_HOST,
+                    incidentTime: incidentTime,
+                    monitorName: monitorName,
+                    accessToken,
+                    firstName,
+                    userId,
+                    projectId,
+                    acknowledgeUrl,
+                    resolveUrl,
+                    incidentType,
+                    projectName,
+                    dashboardURL: DASHBOARD_HOST
+                }
+            };
 
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: `${projectName}/${monitorName} is ${incidentType}`,
-            template: 'new_incident_created',
-            context: {
-                homeURL: HOME_HOST,
-                incidentTime: incidentTime,
-                monitorName: monitorName,
-                accessToken,
-                userName,
-                userId,
-                projectId,
-                ack_url,
-                resolve_url,
-                incidentType,
-                projectName,
-                dashboardURL: DASHBOARD_HOST
-            }
-        };
-
-        var info = await mailer.sendMail(mailOptions);
-        return info;
+            var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendIncidentCreatedMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
+            throw error;
+        }
     },
 
 
@@ -532,9 +791,23 @@ module.exports = {
                 }
             };
             var info = await privateMailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendIncidentCreatedMailToSubscriber', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -573,9 +846,23 @@ module.exports = {
                 }
             };
             var info = await privateMailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendIncidentCreatedMailToSubscriber', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -615,9 +902,23 @@ module.exports = {
                 }
             };
             var info = await privateMailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendIncidentCreatedMailToSubscriber', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -635,6 +936,13 @@ module.exports = {
                 }
             };
             var info = await privateMailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             let err;
@@ -651,6 +959,13 @@ module.exports = {
                 err.code = 400;
             }
             ErrorService.log('mailService.testSmtpConfig', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw err;
         }
     },
@@ -671,11 +986,26 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
+            return info;
         } catch (error) {
             ErrorService.log('mailService.sendChangePlanMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
-        return info;
+
     },
 
     sendCreateProjectMail: async function (projectName, email) {
@@ -692,29 +1022,61 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
         } catch (error) {
             ErrorService.log('mailService.sendCreateProjectMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
         return info;
     },
 
     sendCreateSubProjectMail: async function (subProjectName, email) {
+        try {
+            var mailOptions = {
+                from: '"Fyipe " <' + accountMail.from + '>',
+                to: email,
+                subject: 'New Sub-Project',
+                template: 'create_subproject',
+                context: {
+                    homeURL: HOME_HOST,
+                    subProjectName: subProjectName,
+                    dashboardURL: DASHBOARD_HOST
+                }
+            };
 
-        var mailOptions = {
-            from: '"Fyipe " <' + accountMail.from + '>',
-            to: email,
-            subject: 'New Sub-Project',
-            template: 'create_subproject',
-            context: {
-                homeURL: HOME_HOST,
-                subProjectName: subProjectName,
-                dashboardURL: DASHBOARD_HOST
-            }
-        };
-
-        var info = await mailer.sendMail(mailOptions);
-        return info;
+            var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendCreateSubProjectMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
+            throw error;
+        }
     },
 
     sendUpgradeToEnterpriseMail: async function (projectName, projectId, oldPlan, email) {
@@ -733,9 +1095,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendUpgradeToEnterpriseMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     },
@@ -756,9 +1132,23 @@ module.exports = {
                 }
             };
             var info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success'
+            });
             return info;
         } catch (error) {
             ErrorService.log('mailService.sendPaymentFailedEmail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error'
+            });
             throw error;
         }
     }

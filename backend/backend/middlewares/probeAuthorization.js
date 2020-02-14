@@ -45,8 +45,8 @@ module.exports = {
                     message: 'Probe Name not found.'
                 });
             }
-            var probe = await ProbeService.findOneBy({ probeKey });
-            if (probe && probe.probeName && probe.probeName === probeName) {
+            var probe = await ProbeService.findOneBy({ probeKey, probeName });
+            if (probe) {
                 req.probe = {};
                 req.probe.id = probe._id;
                 await ProbeService.updateProbeStatus(probe._id);

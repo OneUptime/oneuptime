@@ -82,12 +82,12 @@ services:
 
   probe1:
     ports:
-      - "3019:3019"
+      - "3024:3024"
     build: ./probe
     env_file: 
       - ./probe/.env
     environment:
-      - PORT=3019
+      - PORT=3024
       - SERVER_URL=http://backend:3002
       - PROBE_NAME=Probe 1
       - PROBE_KEY=test-key
@@ -96,15 +96,23 @@ services:
 
   probe2:
     ports:
-      - "3020:3020"
+      - "3025:3025"
     build: ./probe
     env_file: 
       - ./probe/.env
     environment:
-      - PORT=3020
+      - PORT=3025
       - SERVER_URL=http://backend:3002
       - PROBE_NAME=Probe 2
       - PROBE_KEY=test-key
+    depends_on:
+      - backend
+
+  ngrok:
+    ports:
+      - "4040:4040"
+    image: wernight/ngrok:latest
+    command: ngrok http backend:3002
     depends_on:
       - backend
   

@@ -153,7 +153,7 @@ router.post('/signup', async function (req, res) {
             // Call the UserService.
             user = await UserService.signup(data);
             // Call the MailService.
-            MailService.sendSignupMail(user.email, user.name);
+            await MailService.sendSignupMail(user.email, user.name);
             // create access token and refresh token.
             let authUserObj = {
                 id: user._id,
