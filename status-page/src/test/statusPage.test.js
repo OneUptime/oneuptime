@@ -152,7 +152,7 @@ describe('Status page monitors check', function () {
         await page.reload({
             waitUntil: 'networkidle0'
         });
-        let monitorCategoryNameSelector = '#monitorCategory0';
+        let monitorCategoryNameSelector = '#monitorCategory1';
         let monitorCategoryName = await page.$eval(monitorCategoryNameSelector, el => el.textContent);
         expect(monitorCategoryName).to.be.equal(monitorCategory.monitorCategoryName.toUpperCase());
     });

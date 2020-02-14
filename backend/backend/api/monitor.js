@@ -167,7 +167,11 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 router.put('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
         var data = req.body;
-        var monitor = await MonitorService.updateOneBy({ _id: req.params.monitorId }, data);
+        var unsetData;
+        if (!data.monitorCategoryId || data.monitorCategoryId === '') {
+            unsetData = { monitorCategoryId: '' };
+        }
+        var monitor = await MonitorService.updateOneBy({ _id: req.params.monitorId }, data, unsetData);
         if (monitor) {
             return sendItemResponse(req, res, monitor);
         } else {

@@ -175,7 +175,8 @@ describe('Status API', function () {
                 expect(res).to.be.an('object');
                 expect(res.body).to.have.property('monitorIds');
                 expect(res.body.monitorIds).to.be.an('array').with.length.greaterThan(0);
-                expect(res.body.monitorIds[0]).to.have.property('monitorCategoryId');
+                expect(res.body.monitorsData).to.be.an('array').with.length.greaterThan(0);
+                expect(res.body.monitorsData[0]).to.have.property('monitorCategoryId');
                 done();
             });
     });
