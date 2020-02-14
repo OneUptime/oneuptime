@@ -88,7 +88,7 @@ module.exports = {
 
                 var monitors = await MonitorService.findBy({ projectId: project._id });
                 await Promise.all(monitors.map(async (monitor) => {
-                    await MonitorService.deleteBy({ _id: monitor._id });
+                    await MonitorService.deleteBy({ _id: monitor._id }, userId);
                 }));
 
                 var schedules = await ScheduleService.findBy({ projectId: project._id });
