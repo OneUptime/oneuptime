@@ -15,7 +15,7 @@ var MonitorService = require('../backend/services/monitorService');
 var NotificationService = require('../backend/services/notificationService');
 var AirtableService = require('../backend/services/airtableService');
 
-var baseApiUrl = require('../backend/config/baseApiUrl');
+const baseApiUrl = process.env.BACKEND_HOST;
 var VerificationTokenModel = require('../backend/models/verificationToken');
 var TwilioConfig = require('../backend/config/twilio');
 

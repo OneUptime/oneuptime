@@ -150,14 +150,13 @@ module.exports = {
                 subProject = project;
                 project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
             }
-            var projectTeamMembers = await _this.getTeamMembersBy({ parentProjectId: project._id });
+            
             if (subProject) {
                 var teamMembers = await _this.getTeamMembersBy({ _id: subProject._id });
             } else {
                 teamMembers = await _this.getTeamMembersBy({ _id: project._id });
             }
-            // const plan = await Plans.getPlanById(project.stripePlanId);
-            var seats = await _this.getSeats(projectTeamMembers);
+
             var projectSeats = project.seats;
             if (typeof (projectSeats) === 'string') {
                 projectSeats = parseInt(projectSeats);

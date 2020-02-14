@@ -4,7 +4,7 @@
  *
  */
 var secure = false;
-if ( process.env['MAIL_SECURE'] === 'true' ){
+if ( process.env['MAIL_SMTP_SECURE'] === 'true' ){
     secure = true;
 }
 

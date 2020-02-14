@@ -56,7 +56,8 @@
     "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",
     "lint": "eslint .",
-    "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,ejs'"
+    "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,ejs'",
+    "fix-lint": "eslint . --fix"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.2",

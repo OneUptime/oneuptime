@@ -3,7 +3,6 @@ import * as types from '../constants/schedule'
 import errors from '../errors'
 
 // Get a payload of Schedules
-
 export function resetSchedule() {
 	return {
 		type: types.SCHEDULE_FETCH_RESET
@@ -41,7 +40,6 @@ export function fetchSchedules(projectId, skip, limit) {
             promise = getApi(`schedule/${projectId}?skip=${skip || 0}&limit=${limit || 10}`);
         promise.then(function(schedule){
 			dispatch(scheduleSuccess(schedule.data));
-
 		}, function(error){
 			if(error && error.response && error.response.data)
 				error = error.response.data;
@@ -121,7 +119,6 @@ export function fetchSubProjectSchedules(projectId) {
 		return promise;
 	}
 }
-// fetch project statuspage
 
 export function resetProjectSchedule() {
 	return {

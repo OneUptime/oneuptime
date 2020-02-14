@@ -175,18 +175,15 @@ describe('Incident API', function () {
         if (selectMonitor) {
             var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
                 .send([{
-                    emailFrequency: 10,
-                    callFrequency: 10,
-                    smsFrequency: 10,
+                    emailReminders: 10,
+                    callReminders: 10,
+                    smsReminders: 10,
                     call: true,
                     sms: true,
                     email: true,
-                    team: [{
-                        teamMember: [{
-                            member: userId,
-                            startTime: 'Tue Dec 17 2019 01:00:26 GMT+0000',
-                            endTime: 'Tue Dec 17 2019 22:55:26 GMT+0000',
-                            timezone: 'UTC(GMT +00:00)'
+                    teams: [{
+                        teamMembers: [{
+                            userId: userId
                         }]
                     }]
                 }]);
@@ -199,8 +196,7 @@ describe('Incident API', function () {
                 });
             }
         }
-        /* eslint-disable no-console */
-        console.log(alert);
+        
         expect(alert).to.be.an('object');
         expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
     });

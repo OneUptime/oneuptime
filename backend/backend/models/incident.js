@@ -70,6 +70,7 @@ var monitorSchema = new Schema({
         type: Date
     },
 
-    deletedById: { type: String, ref: 'User' }
+    deletedById: { type: String, ref: 'User' },
+
 });
 module.exports = mongoose.model('Incident', monitorSchema);

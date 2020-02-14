@@ -80,8 +80,9 @@ module.exports = {
     },
 
     sendErrorResponse: function (req, res, error) {
-        //purge request.
-        //req = null;
+        //log error to the console. 
+        console.error(error);
+        
         if (error.statusCode && error.message) {
             return res.status(error.statusCode).send({ message: error.message });
         }

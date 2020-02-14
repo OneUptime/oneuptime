@@ -73,10 +73,9 @@
     "build": "react-scripts build",
     "test": "jest --runInBand",
     "start": "node index.js",
-    "audit": "npm-audit-ci-wrapper --threshold=high",
-    "jest": "jest --runInBand",
-    "fix-lint": "eslint . --fix",
-    "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'"
+    "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
+    "audit": "npm-audit-ci-wrapper --threshold=low",
+    "fix-lint": "eslint . --fix"
   },
   "devDependencies": {
     "axios-mock-adapter": "^1.15.0",

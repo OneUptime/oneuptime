@@ -8,7 +8,7 @@ var express = require('express');
 var moment = require('moment');
 var IncidentService = require('../services/incidentService');
 var MonitorStatusService = require('../services/monitorStatusService');
-
+var DashboardUrl = process.env.DASHBOARD_HOST;
 var router = express.Router();
 
 const {
@@ -29,6 +29,7 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {monitorId, projectId}
 // Returns: 200: Incident, 400: Error; 500: Server Error.
+
 router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (req, res) {
     try {
         var monitorId = req.params.monitorId;
@@ -188,13 +189,7 @@ router.post('/:projectId/resolve/:incidentId', getUser, isAuthorized, async func
         var userId = req.user ? req.user.id : null;
         // Call the IncidentService
         var incident = await IncidentService.resolve(req.params.incidentId, userId);
-        if (incident.probes && incident.probes.length > 0) {
-            incident.probes.map(async probe => {
-                await MonitorStatusService.create({ monitorId: incident.monitorId._id, probeId: probe.probeId._id, status: 'online' });
-            });
-        } else {
-            await MonitorStatusService.create({ monitorId: incident.monitorId._id, status: 'online' });
-        }
+        
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -238,6 +233,7 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
         }
         // Call the IncidentService
         var incident = await IncidentService.updateOneBy({ _id: incidentId }, data);
+        
         if (incident && incident._id) {
             incident = await IncidentService.findOneBy({ _id: incident._id, projectId: incident.projectId });
         }
@@ -257,6 +253,38 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function (r
         } else {
             return sendErrorResponse(req, res, { message: 'Incident not found' });
         }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// IMPORTANT: THIS API IS USED IN AN EMAIL.
+// Description: Updating user who resolved incident.
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {incidentId, projectId}
+// Returns: 200: incident, 400: Error; 500: Server Error.
+router.get('/:projectId/resolve/:incidentId', getUser, isAuthorized, async function (req, res) {
+    try {
+        var userId = req.user ? req.user.id : null;
+        await IncidentService.resolve(req.params.incidentId, userId);
+        return res.status(200).render('incidentAction.ejs', {title: 'Incident Resolved', title_message: 'Incident Resolved', body_message: 'Your incident is now resolved.', action: 'resolve', dashboard_url: DashboardUrl});
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// IMPORTANT: THIS API IS USED IN AN ALERT EMAIL.
+// Description: Updating user who resolved incident.
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {incidentId, projectId}
+// Returns: 200: incident, 400: Error; 500: Server Error.
+router.get('/:projectId/acknowledge/:incidentId', getUser, isAuthorized, async function (req, res) {
+    try {
+        var userId = req.user ? req.user.id : null;
+        await IncidentService.acknowledge(req.params.incidentId, userId, req.user.name);
+        return res.status(200).render('incidentAction.ejs', {title: 'Incident Acknowledged', title_message: 'Incident Acknowledged', body_message: 'Your incident is now acknowledged', action: 'acknowledge', dashboard_url: DashboardUrl});
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

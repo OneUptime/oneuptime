@@ -8,12 +8,12 @@ class Dropdown extends React.Component {
         expanded: false
     }
 
-    UNSAFE_componentWillUpdate() {
+    componentDidUpdate() {
         document.addEventListener('touchstart', this.handleDocumentClick);
         document.addEventListener('mousedown', this.handleDocumentClick);
     }
 
-    UNSAFE_componentWillMount() {
+    componentDidMount() {
         document.addEventListener('touchstart', this.handleDocumentClick);
         document.addEventListener('mousedown', this.handleDocumentClick);
     }

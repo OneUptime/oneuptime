@@ -4,10 +4,8 @@ var MonitorService = require('../services/monitorService'),
     ZapierService = require('../services/zapierService'),
     ErrorService = require('../services/errorService');
 
-// it collects all IOT device monitors then check the last time they where pinged
-// If the difference is greater than 2 minutes
-// creates incident if a website is down and resolves it when they come back up
 module.exports = {
+
     checkAllDeviceMonitor: async () => {
         try {
             var newDate = new moment();
