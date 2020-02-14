@@ -4,10 +4,8 @@
  *
  */
 
-
 let express = require('express');
 let ScheduleService = require('../services/scheduleService');
-
 let router = express.Router();
 let isUserAdmin = require('../middlewares/project').isUserAdmin;
 let getUser = require('../middlewares/user').getUser;
@@ -104,7 +102,7 @@ router.delete('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, asy
 router.get('/:projectId/:scheduleId/getescalation', getUser, isAuthorized, async (req, res)=>{
     try {
         let scheduleId = req.params.scheduleId;
-        let response = await ScheduleService.getEscalation(scheduleId);
+        let response = await ScheduleService.getEscalations(scheduleId);
         return sendListResponse(req, res, response.escalations, response.count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -115,59 +113,95 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
     try {
         let userId = req.user ? req.user.id : null;
         let scheduleId = req.params.scheduleId;
-        let escalationData = [];
+        let escalations = [];
+        var escalationPolicyCount = 0;
+        for(let value of req.body) {
 
-        for(let value of req.body){
+            escalationPolicyCount ++;
             let storagevalue = {};
             let tempTeam = [];
-            if(!value.emailFrequency){
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Email Frequency is required'
-                });
-            }
 
+            
             if(!value.email && !value.call && !value.sms){
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'At least one type of alert is required'
+                    message: 'Please select how should Fyipe alert your team - SMS, Email OR Call'+ (req.body.length> 1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if (value.rotationFrequency && !value.rotationInterval) {
+            if(value.email && !value.emailReminders){
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'You must specify rotation interval'
+                    message: 'Number of Email Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if ((value.rotationFrequency && value.rotationInterval) && !value.rotationSwitchTime) {
+            if(value.call && !value.callReminders){
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'You must specify rotation switch time'
+                    message: 'Number of Call Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if ((value.rotationFrequency && value.rotationInterval) && (value.rotationSwitchTime && !value.rotationTimezone)) {
+            if(value.sms && !value.smsReminders){
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'You must specify timezones for rotations.'
+                    message: 'Number of SMS Reminders is required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            if (value.rotationFrequency && (value.team.length <= 1)) {
+            if (value.rotateBy && !value.rotationInterval) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'You need more than one team for rotations.'
+                    message: 'Please specify Rotation Interval '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                 });
             }
 
-            storagevalue.callFrequency = value.callFrequency;
-            storagevalue.smsFrequency = value.smsFrequency;
-            storagevalue.emailFrequency = value.emailFrequency;
-            storagevalue.rotationFrequency = value.rotationFrequency;
+            if ((value.rotateBy && value.rotationInterval) && !value.firstRotationOn) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Please specify "First rotation happens on" '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
+                });
+            }
+
+            if ((value.rotateBy && value.rotationInterval) && (value.firstRotationOn && !value.rotationTimezone)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'You must specify timezone for "First rotation happens on" '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
+                });
+            }
+
+            if (value.rotateBy && (value.teams.length <= 1)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'You need more than one team for rotations '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
+                });
+            }
+
+            if(value.callReminders && typeof value.callReminders === 'string'){
+                value.callReminders = parseInt(value.callReminders);
+            }
+
+            if(value.smsReminders && typeof value.smsReminders === 'string'){
+                value.smsReminders = parseInt(value.smsReminders);
+            }
+
+            if(value.emailReminders && typeof value.emailReminders === 'string'){
+                value.emailReminders = parseInt(value.emailReminders);
+            }
+
+            if(value.firstRotationOn && typeof value.firstRotationOn === 'string'){
+                value.firstRotationOn = new Date(value.firstRotationOn);
+            }
+
+            
+            storagevalue.callReminders = value.callReminders;
+            storagevalue.smsReminders = value.smsReminders;
+            storagevalue.emailReminders = value.emailReminders;
+        
+            storagevalue.rotateBy = value.rotateBy;
             storagevalue.rotationInterval = value.rotationInterval;
-            storagevalue.rotationSwitchTime = value.rotationSwitchTime;
+            storagevalue.firstRotationOn = value.firstRotationOn;
             storagevalue.rotationTimezone = value.rotationTimezone;
             storagevalue.email = value.email;
             storagevalue.call = value.call;
@@ -178,37 +212,56 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
 
             if(value._id) storagevalue._id = value._id;
 
-            for (let team  of value.team) {
+            for (let team  of value.teams) {
                 let rotationData = {};
-                let teamMember = [];
-                if (!team.teamMember || team.teamMember.length === 0) {
+                let teamMembers = [];
+                if (!team.teamMembers || team.teamMembers.length === 0) {
                     return sendErrorResponse(req, res, {
                         code: 400,
-                        message: 'Team Members are required'
+                        message: 'Team Members are required '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                     });
                 }
 
-                for (let TM of team.teamMember) {
+                for (let teamMember of team.teamMembers) {
                     let data = {};
-                    if (!TM.member) {
+                    if (!teamMember.userId) {
+                        
                         return sendErrorResponse(req, res, {
                             code: 400,
-                            message: 'Team Members is required'
+                            message: 'Please add team members to your on-call schedule '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
                         });
                     }
-                    data.member = TM.member;
-                    data.startTime = TM.startTime;
-                    data.endTime = TM.endTime;
-                    data.timezone = TM.timezone;
-                    teamMember.push(data);
+
+                    //if any of these values are notspecified, then.
+                    if((!teamMember.startTime || !teamMember.endTime || !teamMember.timezone) && (teamMember.startTime || teamMember.endTime || teamMember.timezone)){
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'On-Call Start Time, On-Call End Time, and Timezone are required if you select to add "On-call duty times" for a team member'+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
+                        });
+                    }
+
+                    if(teamMember.startTime && typeof teamMember.startTime === 'string'){
+                        teamMember.startTime = new Date(teamMember.startTime);
+                    }
+
+                    if(teamMember.endTime && typeof teamMember.endTime === 'string'){
+                        teamMember.endTime = new Date(teamMember.endTime);
+                    }
+
+                    data.userId = teamMember.userId;
+                    data.startTime = teamMember.startTime;
+                    data.endTime = teamMember.endTime;
+                    data.timezone = teamMember.timezone;
+                    teamMembers.push(data);
                 }
-                rotationData.teamMember = teamMember;
+                
+                rotationData.teamMembers = teamMembers;
                 tempTeam.push(rotationData);
             }
-            storagevalue.team = tempTeam;
-            escalationData.push(storagevalue);
+            storagevalue.teams = tempTeam;
+            escalations.push(storagevalue);
         }
-        let escalation = await ScheduleService.addEscalation(scheduleId, escalationData, userId);
+        let escalation = await ScheduleService.addEscalation(scheduleId, escalations, userId);
         return sendItemResponse(req, res, escalation);
     } catch (error) {
         return sendErrorResponse(req, res, error);

@@ -668,12 +668,18 @@ module.exports = {
         }
     },
 
+    getAccessToken: function({userId, expiresIn}){
+        return jwt.sign({
+            id: userId
+        }, jwtKey.jwtSecretKey, { expiresIn: expiresIn});
+    }
+
 };
 
 var bcrypt = require('bcrypt');
 var constants = require('../config/constants.json');
 var UserModel = require('../models/user');
-var LoginIPLog = require('../models/LoginIPLog');
+var LoginIPLog = require('../models/loginIPLog');
 var util = require('./utilService.js');
 var randToken = require('rand-token');
 var PaymentService = require('./paymentService');

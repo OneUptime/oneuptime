@@ -142,8 +142,9 @@ export const getStatusPageIndividualNote = (projectId, monitorId, date, name, ne
 			dispatch(individualNoteEnable({
 				message: Data.data.message,
 				name: {
+					_id: monitorId,
 					name,
-					date: date.split('T')[0]
+					date
 				}
 			}));
 		}, (error) => {
@@ -163,12 +164,13 @@ export const getStatusPageIndividualNote = (projectId, monitorId, date, name, ne
 	};
 }
 
-export const notmonitoredDays = (date, name, message) => {
+export const notmonitoredDays = (monitorId, date, name, message) => {
 	return function (dispatch) {
 		dispatch(statusPageNoteReset());
 		dispatch(individualNoteEnable({
 			message: message,
 			name: {
+				_id: monitorId,
 				name,
 				date
 			}

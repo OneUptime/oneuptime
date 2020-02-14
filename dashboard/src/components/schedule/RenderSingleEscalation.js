@@ -11,11 +11,17 @@ import { RenderField } from '../basic/RenderField';
 import Tooltip from '../basic/Tooltip';
 
 let RenderSingleEscalation = ({
-    policy, email, sms, call,
-    rotationFrequency, subProjectId,
-    policyIndex, fields, rotationInterval
+    policy, 
+    email, 
+    sms, 
+    call,
+    rotateBy, 
+    subProjectId,
+    policyIndex, 
+    fields, 
+    rotationInterval
 }) => {
-    const [rotationFreqVisible, setRotationFreqVisibility] = useState(false);
+    const [rotationFreqVisible, setRotationFreqVisibility] = useState(!!rotateBy);
 
     const manageRotationVisibility = (visibilityVal) => {
         setRotationFreqVisibility(visibilityVal);
@@ -23,16 +29,16 @@ let RenderSingleEscalation = ({
 
     return (
         <li key={policyIndex} style={{ margin: '5px 0px' }}>
-            <div className="Card-root" style={{ backgroundColor: policyIndex === 0 ? '#f7f7f7' : '#ffffff' }}>
-                <div className="Box-root">
-                    {fields.length > 1 && <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root">
+            <div className="Card-root" style={{ backgroundColor: '#ffffff' }}>
+            <div className="Box-root">
+                    {policyIndex!==0 &&fields.length > 1 && <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                     <div className="Box-root">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Escalation Policy {policyIndex + 1}</span>
+                                <span>Escalation Policy {policyIndex}</span>
                             </span>
                             <p>
                                 <span>
-
+        
                                 </span>
                             </p>
                         </div>
@@ -127,7 +133,7 @@ let RenderSingleEscalation = ({
                                                     <Field
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
-                                                        name={`${policy}.callFrequency`}
+                                                        name={`${policy}.callReminders`}
                                                         component={RenderField}
                                                         style={{ width: '250px' }}
                                                         defaultValue="3"
@@ -150,7 +156,7 @@ let RenderSingleEscalation = ({
                                                     <Field
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
-                                                        name={`${policy}.smsFrequency`}
+                                                        name={`${policy}.smsReminders`}
                                                         component={RenderField}
                                                         style={{ width: '250px' }}
                                                         defaultValue="3"
@@ -173,7 +179,7 @@ let RenderSingleEscalation = ({
                                                     <Field
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
-                                                        name={`${policy}.emailFrequency`}
+                                                        name={`${policy}.emailReminders`}
                                                         component={RenderField}
                                                         style={{ width: '250px' }}
                                                         defaultValue="3"
@@ -207,11 +213,11 @@ let RenderSingleEscalation = ({
                                             <div className="bs-Fieldset-fields">
                                                 <span className="flex">
                                                     <Field
-                                                        name={`${policy}.rotationFrequency`}
+                                                        name={`${policy}.rotateBy`}
                                                         className="db-select-nw"
                                                         placeholder="Rotation Frequency"
                                                         type="text"
-                                                        id="rotationFrequency"
+                                                        id="rotateBy"
                                                         options={[
                                                             { value: 'days', label: 'Day' },
                                                             { value: 'weeks', label: 'Week' },
@@ -244,7 +250,7 @@ let RenderSingleEscalation = ({
                                         </>
                                     </div>)}
 
-                                    {rotationFreqVisible && rotationFrequency && (<div className="bs-Fieldset-row">
+                                    {rotationFreqVisible && rotateBy && (<div className="bs-Fieldset-row">
 
                                         <>
                                             <label className="bs-Fieldset-label">Rotation Interval</label>
@@ -273,7 +279,7 @@ let RenderSingleEscalation = ({
 
                                     </div>)}
 
-                                    {rotationFreqVisible && rotationFrequency && (<div className="bs-Fieldset-row">
+                                    {rotationFreqVisible && rotateBy && (<div className="bs-Fieldset-row">
 
                                         <>
                                             <label className="bs-Fieldset-label">First rotation happens on</label>
@@ -281,7 +287,7 @@ let RenderSingleEscalation = ({
                                                 <span className="flex">
                                                     <RenderRotationSwitchTime
                                                         policy={policy}
-                                                        rotationFrequency={rotationFrequency}
+                                                        rotateBy={rotateBy}
                                                     />
                                                     <Tooltip title="First Rotation On" >
                                                         <div>
@@ -302,7 +308,7 @@ let RenderSingleEscalation = ({
 
                                     </div>)}
 
-                                    {rotationFreqVisible && rotationFrequency && (<div className="bs-Fieldset-row">
+                                    {rotationFreqVisible && rotateBy && (<div className="bs-Fieldset-row">
 
                                         <>
                                             <label className="bs-Fieldset-label">Rotation Timezone</label>
@@ -314,7 +320,7 @@ let RenderSingleEscalation = ({
                                                         name={`${policy}.rotationTimezone`}
                                                         component={TimezoneSelector}
                                                         style={{ width: '250px' }}
-                                                        placeholder="CXT - Christmas"
+                                                        placeholder="Select Timezone"
                                                     />
                                                     <Tooltip title="First Rotation On Timezone" >
                                                         <div>
@@ -333,7 +339,19 @@ let RenderSingleEscalation = ({
                                             <label className="bs-Fieldset-label"></label>
                                             <div className="bs-Fieldset-fields">
                                                 <button className="button-as-anchor"
-                                                    onClick={(() => manageRotationVisibility(false))}
+                                                    onClick={() => {
+                                                        //remove rotation data from the object. 
+                                                        var obj = fields.get(policyIndex);
+                                                        obj.rotationInterval = null;
+                                                        obj.rotateBy = null;
+                                                        obj.firstRotationOn = null;
+                                                        obj.rotationTimezone = null;
+                                                        //just have one on-call team if there's no rotation.
+                                                        obj.teams = obj.teams[0] ? [obj.teams[0]] : [];
+                                                        fields.remove(policyIndex);
+                                                        fields.insert(policyIndex, obj);
+                                                        manageRotationVisibility(false)
+                                                    }}
                                                 >Disable Team Rotation</button>
                                             </div>
                                         </>
@@ -342,11 +360,11 @@ let RenderSingleEscalation = ({
                                     <div className="bs-Fieldset-rows">
                                         <FieldArray
                                             className="db-BusinessSettings-input TextInput bs-TextInput"
-                                            name={`${policy}.team`}
+                                            name={`${policy}.teams`}
                                             component={RenderTeams}
                                             subProjectId={subProjectId}
                                             policyIndex={policyIndex}
-                                            rotationFrequency={rotationFrequency}
+                                            rotateBy={rotateBy}
                                             rotationInterval={rotationInterval}
                                         />
                                     </div>
@@ -383,7 +401,7 @@ RenderSingleEscalation.propTypes = {
     email: PropTypes.bool.isRequired,
     policy: PropTypes.string.isRequired,
     policyIndex: PropTypes.number.isRequired,
-    rotationFrequency: PropTypes.string,
+    rotateBy: PropTypes.string,
     rotationInterval: PropTypes.number,
     fields: PropTypes.oneOfType([
         PropTypes.array,

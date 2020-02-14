@@ -254,7 +254,7 @@ export class ProfileSetting extends Component {
 
   render() {
     var { profileSettingState, resendTimer, emailValue, twoFactorAuthSetting } = this.props
-    if (isNaN(resendTimer)) {
+    if (!Validate.number(resendTimer)) {
       resendTimer = parseInt(resendTimer, 10)
     }
     if (resendTimer < 1) {
@@ -783,7 +783,7 @@ const mapDispatchToProps = dispatch => {
 
 function mapStateToProps(state) {
   var resendTimer = state.profileSettings.resendTimer
-  if (isNaN(resendTimer)) {
+  if (!Validate.number(resendTimer)) {
     resendTimer = parseInt(resendTimer, 10)
   }
   var initValues = state.profileSettings.profileSetting ? Object.assign({}, state.profileSettings.profileSetting.data) : {}

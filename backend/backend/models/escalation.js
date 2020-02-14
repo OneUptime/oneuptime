@@ -2,31 +2,31 @@ var mongoose = require('../config/db');
 
 var Schema = mongoose.Schema;
 const teamSchema = new Schema({
-    teamMember: [
+    teamMembers: [
         {
-            startTime: String,
-            endTime: String,
+            startTime: Date,
+            endTime: Date,
             timezone: String,
-            member:{type: String, ref: 'User'}
+            userId:{type: String, ref: 'User'}
         }
     ],
 });
 
 var escalationSchema = new Schema({
     projectId: { type: String, ref: 'Project', alias: 'project', default: null },
-    callFrequency: { type: String, default: null },
-    emailFrequency: { type: String, default: null },
-    smsFrequency: { type: String, default: null },
-    rotationFrequency: { type: String, default: null },
+    callReminders: { type: Number, default: null },
+    emailReminders: { type: Number, default: null },
+    smsReminders: { type: Number, default: null },
+    rotateBy: { type: String, default: null },
     rotationInterval: { type: Number, default: null },
-    rotationSwitchTime: String,
+    firstRotationOn: Date,
     rotationTimezone: String,
     call: {type: Boolean, default: false},
     email: {type: Boolean, default: false},
     sms: {type: Boolean, default: false},
     createdById: { type: String, ref: 'User', default: null },
     scheduleId: { type: String, default: null },
-    team: { type: [teamSchema], default: null },
+    teams: { type: [teamSchema], default: null },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false},
 

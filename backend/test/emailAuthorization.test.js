@@ -4,8 +4,7 @@ var userData = require('./data/user');
 var chai = require('chai');
 chai.use(require('chai-http'));
 var app = require('../server');
-var mailParser = require('mailparser').simpleParser;
-
+var EmailStatusService = require('../backend/services/emailStatusService');
 var request = chai.request.agent(app);
 var { createUser } = require('./utils/userSignUp');
 var UserService = require('../backend/services/userService');
@@ -13,15 +12,14 @@ var ProjectService = require('../backend/services/projectService');
 var VerificationTokenModel = require('../backend/models/verificationToken');
 var AirtableService = require('../backend/services/airtableService');
 
-var userId, airtableId, emailContent, projectId;
-var { imap, openBox } = require('./utils/mail');
+var userId, airtableId, projectId;
 
 describe('Email verification API', function () {
     this.timeout(20000);
 
     before(function (done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createUser(request, userData.user, function (err, res) {
             userId = res.body.id;
             projectId = res.body.project._id;
             airtableId = res.body.airtableId;
@@ -36,31 +34,10 @@ describe('Email verification API', function () {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should send email verification', function (done) {
-        imap.once('ready', function () {
-            openBox(function (err) {
-                if (err) throw err;
-                var f = imap.seq.fetch('1:2', {
-                    bodies: [''],
-                    struct: true
-                });
-                f.on('message', function (msg) {
-                    msg.on('body', function (stream) {
-                        mailParser(stream, {}, async function (err, parsedMail) {
-                            if (parsedMail.subject === '[Fyipe] Please confirm the email linked to your Fyipe ID') {
-                                emailContent = parsedMail.text.includes('Please click on this link to verify your');
-                                expect(emailContent).to.be.equal(true);
-                            }
-                        });
-                    });
-                });
-                f.once('end', function () {
-                    done();
-                    imap.end();
-                });
-            });
-        });
-        imap.connect();
+    it('should send email verification', async function () {
+        var emailStatuses = await EmailStatusService.findBy({});
+        expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
+        expect(emailStatuses[0].status).to.equal('Success');
     });
 
     it('should not login non-verified user', async function () {

@@ -260,7 +260,7 @@ module.exports = {
         }
     },
 
-    getStatus: async function (query, user) {
+    getStatus: async function (query, userId) {
         try {
             var thisObj = this;
             if (!query) {
@@ -271,14 +271,10 @@ module.exports = {
             var statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
-                .populate({
-                    path: 'monitorIds',
-                    select: 'name data type monitorCategoryId',
-                    populate: { path: 'monitorCategoryId', select: 'name' }
-                })
+                .populate('monitorIds', 'name')
                 .lean();
             if (statusPage && (statusPage._id || statusPage.id)) {
-                var permitted = await thisObj.isPermitted(user, statusPage);
+                var permitted = await thisObj.isPermitted(userId, statusPage);
                 if (!permitted) {
                     let error = new Error('You are unauthorized to access the page please login to continue.');
                     error.code = 401;
@@ -333,14 +329,14 @@ module.exports = {
             throw error;
         }
     },
-    isPermitted: async function (user, statusPage) {
+    isPermitted: async function (userId, statusPage) {
         try {
             return new Promise(async (resolve) => {
                 if (statusPage.isPrivate) {
-                    if (user) {
+                    if (userId) {
                         var project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
                         if (project && project._id) {
-                            if (project.users.some(({ userId }) => userId === user.id)) {
+                            if (project.users.some(user => user.userId === userId)) {
                                 resolve(true);
                             }
                             else {

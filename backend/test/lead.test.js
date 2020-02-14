@@ -6,11 +6,9 @@ var app = require('../server');
 
 var request = chai.request.agent(app);
 var leadService = require('../backend/services/leadService');
-var { imap, openBox, leadEmailContent } = require('./utils/mail');
-var mailParser = require('mailparser').simpleParser;
+var EmailStatusService = require('../backend/services/emailStatusService');
 
-
-var textAsHtml, leadData = {
+var leadData = {
     'csrf-token': '1',
     analytics_event_id: '',
     fullname: 'John Smith',
@@ -33,32 +31,13 @@ describe('Lead API', function () {
         });
     });
     it('should add lead when requested for type demo and check the sent message', function (done) {
-        request.post('/lead').send(leadData).end(function (err, res) {
+        request.post('/lead').send(leadData).end(async function (err, res) {
             expect(res).to.have.status(200);
             leadService.hardDeleteBy({ _id: res.body._id });
-            imap.once('ready', function () {
-                openBox(function (err, box) {
-                    if (err) throw err;
-                    var seq =  box.messages.total;
-                    var f = imap.fetch(`${seq}:${seq}`, {
-                        bodies: [''],
-                        struct: true
-                    });
-                    f.on('message', function (msg) {
-                        msg.on('body', function (stream) {
-                            mailParser(stream, {}, function (err, parsedMail) {
-                                textAsHtml = parsedMail.text;
-                                expect(textAsHtml).to.be.equal(leadEmailContent);
-                            });
-                        });
-                    });
-                    f.once('end', function () {
-                        imap.end();
-                        done();
-                    });
-                });
-            });
-            imap.connect();
+            var emailStatuses = await EmailStatusService.findBy({});
+            expect(emailStatuses[0].subject).to.equal('Thank you for your demo request.');
+            expect(emailStatuses[0].status).to.equal('Success');
+            done();
         });
     });
 });

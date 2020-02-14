@@ -7,7 +7,7 @@ const twilioCredentials = require('../config/twilio');
 const incidentSMSActionModel = require('../models/incidentSMSAction');
 const twilio = require('twilio');
 const client = twilio(twilioCredentials.accountSid, twilioCredentials.authToken);
-const baseApiUrl = require('../config/baseApiUrl');
+const baseApiUrl = process.env.BACKEND_HOST;
 const ErrorService = require('./errorService');
 var Handlebars = require('handlebars');
 var defaultSmsTemplates = require('../config/smsTemplate');
@@ -16,6 +16,8 @@ var UserModel = require('../models/user');
 var UserService = require('./userService');
 var SmsCountService = require('./smsCountService');
 var AlertService = require('./alertService');
+var CallEnabled = !!process.env['CALL_ENABLED'];
+var SMSEnabled = !!process.env['SMS_ENABLE'];
 
 var getTwilioSettings = async (projectId) => {
     let { accountSid, authToken, phoneNumber } = twilioCredentials;
@@ -41,8 +43,14 @@ module.exports = {
                 from: twilioCredentials.phoneNumber,
                 to,
             };
-            var message = await client.messages.create(options);
-            return message;
+            if (SMSEnabled) {
+                var message = await client.messages.create(options);
+                return message;
+            } else {
+                var error = new Error('SMS Not Enabled');
+                error.code = 400;
+                return error;
+            }
         } catch (error) {
             ErrorService.log('twillioService.sendResponseMessage', error);
             throw error;
@@ -50,10 +58,15 @@ module.exports = {
     },
     sendIncidentCreatedMessage: async function (incidentTime, monitorName, number, incidentId, userId, name, incidentType, projectId) {
         try {
+            if (!SMSEnabled) {
+                var error = new Error('SMS Not Enabled');
+                error.code = 400;
+                return error;
+            }
             var alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
             if (alertLimit) {
                 var options = {
-                    body: `Your monitor ${monitorName} is ${incidentType}. Acknowledge this incident by sending 1 or Resolve by sending 2 to ${twilioCredentials.phoneNumber}. You can also log into Fyipe dashboard to acknowledge or reoslve it.`,
+                    body: `Your monitor ${monitorName} is ${incidentType}. Reply 1 to this SMS to Acknowledge OR 2 to resolve. Check more details about this incident on Fyipe Dashboard.`,
                     from: twilioCredentials.phoneNumber,
                     to: number
                 };
@@ -65,12 +78,13 @@ module.exports = {
                 incidentSMSAction.number = number;
                 incidentSMSAction.name = name;
                 await incidentSMSAction.save();
-
-                var message = await client.messages.create(options);
-                return message;
+                if (SMSEnabled) {
+                    var message = await client.messages.create(options);
+                    return message;
+                }
             }
             else {
-                var error = new Error('Alerts limit reached for the day.');
+                error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -82,6 +96,11 @@ module.exports = {
 
     sendIncidentCreatedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName, projectId) {
         try {
+            if (!SMSEnabled) {
+                var error = new Error('SMS Not Enabled');
+                error.code = 400;
+                return error;
+            }
             let _this = this;
             var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Created');
             let data = {
@@ -107,7 +126,7 @@ module.exports = {
                 return message;
             }
             else {
-                var error = new Error('Alerts limit reached for the day.');
+                error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -119,6 +138,11 @@ module.exports = {
 
     sendIncidentAcknowldegedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName, projectId) {
         try {
+            if (!SMSEnabled) {
+                var error = new Error('SMS Not Enabled');
+                error.code = 400;
+                return error;
+            }
             let _this = this;
             var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Acknowldeged');
             let data = {
@@ -143,7 +167,7 @@ module.exports = {
                 var message = await newClient.messages.create(options);
                 return message;
             } else {
-                var error = new Error('Alerts limit reached for the day.');
+                error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -155,6 +179,11 @@ module.exports = {
 
     sendIncidentResolvedMessageToSubscriber: async function (incidentTime, monitorName, number, smsTemplate, incident, projectName, projectId) {
         try {
+            if (!SMSEnabled) {
+                var error = new Error('SMS Not Enabled');
+                error.code = 400;
+                return error;
+            }
             let _this = this;
             var { template } = await _this.getTemplate(smsTemplate, 'Subscriber Incident Resolved');
             let data = {
@@ -179,7 +208,7 @@ module.exports = {
                 var message = await newClient.messages.create(options);
                 return message;
             } else {
-                var error = new Error('Alerts limit reached for the day.');
+                error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -191,13 +220,20 @@ module.exports = {
 
     test: async function (data) {
         try {
+            if (!SMSEnabled) {
+                var error = new Error('SMS Not Enabled');
+                error.code = 400;
+                return error;
+            }
             var options = {
-                body: 'This is a test message to check your twilio settings.Please do not reply',
+                body: 'This is a test message from Fyipe to check your Twilio credentials.',
                 from: data.phoneNumber,
                 to: twilioCredentials.testphoneNumber
             };
             let newClient = dynamicClient(data.accountSid, data.authToken);
+
             var message = await newClient.messages.create(options);
+
             return message;
         } catch (error) {
             let err = Object.assign({}, error);
@@ -212,6 +248,11 @@ module.exports = {
 
     sendIncidentCreatedCall: async function (incidentTime, monitorName, number, accessToken, incidentId, projectId, redialCount, incidentType) {
         try {
+            if (!CallEnabled) {
+                var error = new Error('Call Not Enabled');
+                error.code = 400;
+                return error;
+            }
             var options = {
                 url: `${baseApiUrl}/twilio/voice/incident?redialCount=${redialCount || 0}&accessToken=${accessToken}&incidentId=${incidentId}&projectId=${projectId}&monitorName=${monitorName.split(' ').join('%20')}&incidentType=${incidentType}`,
                 from: twilioCredentials.phoneNumber,
@@ -223,11 +264,11 @@ module.exports = {
                 StatusCallbackEvent: ['no-answer', 'canceled', 'failed']
             };
             var alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
-            if (alertLimit) {
+            if (alertLimit && CallEnabled) {
                 var call = await client.calls.create(options);
                 return call;
             } else {
-                var error = new Error('Alerts limit reached for the day.');
+                error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -248,20 +289,28 @@ module.exports = {
     },
     sendVerificationSMS: async function (to, userId, projectId) {
         try {
+            if (!SMSEnabled) {
+                var error = new Error('SMS Not Enabled');
+                error.code = 400;
+                return error;
+            }
             var alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
             if (alertLimit) {
                 if (!to.startsWith('+')) {
                     to = '+' + to;
                 }
                 var channel = 'sms';
+
                 var verificationRequest = await client.verify.services(twilioCredentials.verificationSid)
                     .verifications
                     .create({ to, channel });
+
                 await SmsCountService.create(userId, to, projectId);
                 await UserService.updateOneBy({ _id: userId }, { tempAlertPhoneNumber: to });
                 return verificationRequest;
+
             } else {
-                var error = new Error('Alerts limit reached for the day.');
+                error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 throw error;
             }
@@ -272,16 +321,22 @@ module.exports = {
     },
     verifySMSCode: async function (to, code, userId, projectId) {
         try {
+            if (!SMSEnabled) {
+                var error = new Error('SMS Not Enabled');
+                error.code = 400;
+                return error;
+            }
             var alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
             if (alertLimit) {
                 if (!to.startsWith('+')) {
                     to = '+' + to;
                 }
+
                 var verificationResult = await client.verify.services(twilioCredentials.verificationSid)
                     .verificationChecks
                     .create({ to, code });
                 if (verificationResult.status === 'pending') {
-                    var error = new Error('Incorrect code');
+                    error = new Error('Incorrect code');
                     error.code = 400;
                     throw error;
                 }

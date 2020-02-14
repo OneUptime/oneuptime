@@ -28,7 +28,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
         var userId = req.user.id;
         var data = req.body;
         data.projectId = projectId;
-        var alert = await alertService.create(projectId, data.monitorId, data.alertVia, userId, data.incidentId);
+        var alert = await alertService.create({projectId, monitorId: data.monitorId, alertVia: data.alertVia, userId: userId, incidentId: data.incidentId});
         return sendItemResponse(req, res, alert);
     } catch(error) {
         return sendErrorResponse(req, res, error);
@@ -49,7 +49,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
 router.get('/:projectId/alert', getUser, isAuthorized, async function (req, res) {
     try {
         var projectId = req.params.projectId;
-        var alerts = await alertService.findBy({ projectId }, req.query.skip || 0, req.query.limit || 10);
+        var alerts = await alertService.findBy({query: { projectId }, skip: req.query.skip || 0, limit: req.query.limit || 10});
         var count = await alertService.countBy({ projectId });
         return sendListResponse(req, res, alerts, count); // frontend expects sendListResponse
     } catch (error) {
@@ -62,7 +62,7 @@ router.get('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
         var incidentId = req.params.incidentId;
         var skip = req.query.skip || 0;
         var limit = req.query.limit || 10;
-        var alerts = await alertService.findBy({incidentId:incidentId }, skip, limit);
+        var alerts = await alertService.findBy({query: {incidentId:incidentId }, skip, limit});
         var count = await alertService.countBy({incidentId: incidentId});
         return sendListResponse(req, res, alerts,  count);
     } catch(error) {

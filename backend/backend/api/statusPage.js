@@ -9,6 +9,7 @@ var express = require('express');
 var StatusPageService = require('../services/statusPageService');
 var MonitorService = require('../services/monitorService');
 var ProbeService = require('../services/probeService');
+var RealTimeService = require('../services/realTimeService');
 
 var router = express.Router();
 var UtilService = require('../services/utilService');
@@ -215,6 +216,10 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
                 { projectId: data.projectId, _id: data._id },
                 data
             );
+
+            var updatedStatusPage = await StatusPageService.getStatus({ _id: statusPage._id }, req.user.id);
+            await RealTimeService.statusPageEdit(updatedStatusPage);
+
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error);

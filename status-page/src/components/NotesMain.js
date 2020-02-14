@@ -6,7 +6,7 @@ import moment from 'moment';
 import Notes from './Notes';
 import ShouldRender from './ShouldRender';
 import SubscribeBox from './Subscribe/SubscribeBox';
-import { getStatusPageNote, getMoreNote } from '../actions/status';
+import { getStatusPageNote, getStatusPageIndividualNote, getMoreNote } from '../actions/status';
 import { openSubscribeMenu } from '../actions/subscribe';
 
 class NotesMain extends Component {
@@ -20,6 +20,16 @@ class NotesMain extends Component {
 
     componentDidMount() {
         this.props.getStatusPageNote(this.props.projectId, this.props.statusPageId, 0);
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.statusPage !== this.props.statusPage) {
+            if (this.props.individualnote) {
+                this.props.getStatusPageIndividualNote(this.props.projectId, this.props.individualnote._id, this.props.individualnote.date, this.props.individualnote.name, true);
+            } else {
+                this.props.getStatusPageNote(this.props.projectId, this.props.statusPageId, 0);
+            }
+        }
     }
 
     getAll = () => {
@@ -171,13 +181,19 @@ const mapStateToProps = (state) => {
     }
 };
 
-const mapDispatchToProps = (dispatch) => bindActionCreators({ getStatusPageNote, getMoreNote, openSubscribeMenu }, dispatch);
+const mapDispatchToProps = (dispatch) => bindActionCreators({
+    getStatusPageNote,
+    getStatusPageIndividualNote,
+    getMoreNote,
+    openSubscribeMenu
+}, dispatch);
 
 NotesMain.propTypes = {
     noteData: PropTypes.object,
     notesmessage: PropTypes.string,
     individualnote: PropTypes.object,
     getStatusPageNote: PropTypes.func,
+    getStatusPageIndividualNote: PropTypes.func,
     getMoreNote: PropTypes.func,
     requestingmore: PropTypes.bool,
     projectId: PropTypes.string,

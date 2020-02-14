@@ -1,7 +1,6 @@
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
-var request = require('request'); //eslint-disable-line
 var path = require('path');
 var compression = require('compression');
 

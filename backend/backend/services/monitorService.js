@@ -87,7 +87,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function (query, data, unsetData) {
         try {
             if (!query) {
                 query = {};
@@ -98,8 +98,15 @@ module.exports = {
                 { $set: data },
                 {
                     new: true
-                })
-                .populate('projectId', 'name');
+                });
+            if (unsetData) {
+                monitor = await MonitorModel.findOneAndUpdate(query,
+                    { $unset: unsetData },
+                    {
+                        new: true
+                    });
+            }
+            monitor = await this.findOneBy(query);
 
             await RealTimeService.monitorEdit(monitor);
 
@@ -155,7 +162,8 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId', 'name');
+                .populate('projectId', 'name')
+                .populate('monitorCategoryId', 'name');
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.findBy', error);
@@ -171,7 +179,8 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             var monitor = await MonitorModel.findOne(query)
-                .populate('projectId', 'name');
+                .populate('projectId', 'name')
+                .populate('monitorCategoryId', 'name');
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
@@ -236,7 +245,7 @@ module.exports = {
                 await Promise.all(incidents.map(async (incident) => {
                     await IncidentService.deleteBy({ _id: incident._id }, userId);
                 }));
-                var alerts = await AlertService.findBy({ monitorId: monitor._id }, userId);
+                var alerts = await AlertService.findBy({query:{ monitorId: monitor._id }});
 
                 await Promise.all(alerts.map(async (alert) => {
                     await AlertService.deleteBy({ _id: alert._id }, userId);

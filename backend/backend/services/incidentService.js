@@ -1,4 +1,5 @@
 
+
 module.exports = {
 
     findBy: async function (query, limit, skip) {
@@ -176,10 +177,10 @@ module.exports = {
 
     async _sendIncidentCreatedAlert(incident) {
         try {
-            await AlertService.sendIncidentCreated(incident);
-            await AlertService.sendIncidentCreatedToSubscribers(incident);
+            await AlertService.sendCreatedIncident(incident);
+            await AlertService.sendCreatedIncidentToSubscribers(incident);
             await ZapierService.pushToZapier('incident_created', incident);
-            await RealTimeService.sendIncidentCreated(incident);
+            await RealTimeService.sendCreatedIncident(incident);
 
             if (!incident.createdById) {
                 let msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
@@ -240,7 +241,7 @@ module.exports = {
                 // Ping webhook
                 var monitor = await MonitorService.findOneBy({ _id: incident.monitorId });
                 incident = await _this.findOneBy({ _id: incident._id });
-                await AlertService.sendIncidentAcknowledgedToSubscribers(incident);
+                await AlertService.sendAcknowledgedIncidentToSubscribers(incident);
 
                 await WebHookService.sendNotification(incident.projectId, incident, monitor, 'acknowledged');
                 await RealTimeService.incidentAcknowledged(incident);
@@ -265,6 +266,10 @@ module.exports = {
             var data = {};
             var incident = await _this.findOneBy({ _id: incidentId });
 
+            if(!incident){
+                return;
+            }
+
             if (!incident.acknowledged) {
                 data.acknowledged = true;
                 data.acknowledgedBy = userId;
@@ -278,6 +283,14 @@ module.exports = {
 
             incident = await _this.updateOneBy({ _id: incidentId }, data);
             incident = await _this.findOneBy({ _id: incident._id });
+
+            if (incident.probes && incident.probes.length > 0) {
+                incident.probes.map(async probe => {
+                    await MonitorStatusService.create({ monitorId: incident.monitorId._id, probeId: probe.probeId._id, status: 'online' });
+                });
+            } else {
+                await MonitorStatusService.create({ monitorId: incident.monitorId._id, status: 'online' });
+            }
 
             await _this.sendIncidentResolvedNotification(incident, name);
             await RealTimeService.incidentResolved(incident);
@@ -347,7 +360,7 @@ module.exports = {
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
                 // Ping webhook
                 await WebHookService.sendNotification(incident.projectId, incident, resolvedincident.monitorId, 'resolved');
-                await AlertService.sendIncidentResolvedToSubscribers(incident);
+                await AlertService.sendResolvedIncidentToSubscribers(incident);
             }
             else {
                 msg = `${resolvedincident.monitorId.name} monitor was down for ${downtimestring} and is now resolved by ${name || 'fyipe'}`;
@@ -358,7 +371,7 @@ module.exports = {
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
                 // Ping webhook
                 await WebHookService.sendNotification(incident.projectId, incident, resolvedincident.monitorId, 'resolved');
-                await AlertService.sendIncidentResolvedToSubscribers(incident);
+                await AlertService.sendResolvedIncidentToSubscribers(incident);
             }
         } catch (error) {
             ErrorService.log('incidentService.sendIncidentResolvedNotification', error);
@@ -418,5 +431,8 @@ var NotificationService = require('./notificationService');
 var WebHookService = require('./webHookService');
 var SlackService = require('./slackService');
 var ZapierService = require('./zapierService');
-var ProjectService = require('../services/projectService');
-var ErrorService = require('../services/errorService');
+var ProjectService = require('./projectService');
+var ErrorService = require('./errorService');
+var MonitorStatusService = require('./monitorStatusService');
+
+
