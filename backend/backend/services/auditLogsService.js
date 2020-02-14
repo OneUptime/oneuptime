@@ -60,6 +60,16 @@ module.exports = {
         const totalSearchCount = await _this.countBy({ query });
 
         return { searchedAuditLogs, totalSearchCount };
+    },
+
+    hardDeleteBy: async function({ query }) {
+        try {
+            await AuditLogsModel.deleteMany(query);
+            return 'Audit Log(s) Removed Successfully!';
+        } catch (error) {
+            ErrorService.log('auditLogs.hardDeleteBy', error);
+            throw error;
+        }
     }
 };
 

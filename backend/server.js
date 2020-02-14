@@ -47,9 +47,7 @@ app.set('view engine', 'ejs');
 
 app.use(express.static(path.join(__dirname, 'views')));
 
-app.use(
-    require('./backend/middlewares/user').checkUser,
-    require('./backend/middlewares/auditLogs').log);
+app.use(require('./backend/middlewares/auditLogs').log);
 
 // Routes(API)
 app.use('/server', require('./backend/api/server'));

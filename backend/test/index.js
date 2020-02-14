@@ -1,4 +1,5 @@
 require('./alert.test');
+require('./auditLogs.test');
 require('./emailAuthorization.test');
 require('./emailTemplate.test');
 require('./feedback.test');

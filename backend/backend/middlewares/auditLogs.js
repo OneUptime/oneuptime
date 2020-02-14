@@ -6,6 +6,7 @@
 
 const url = require('url');
 const _ = require('lodash');
+const isValidMongoObjectId = require('mongoose').Types.ObjectId.isValid;
 
 var AuditLogsService = require('../services/auditLogsService');
 var ErrorService = require('../services/errorService');
@@ -23,16 +24,20 @@ module.exports = {
             //    - To get 'projectId' value if available. (Mostly passed as route parameter)
             //    - To access 'res.resBody' which is added in 'response' middlewares.
             req.on('close', async () => {
+                let userId = req.user && req.user.id ? req.user.id : null;
+                userId =  isValidMongoObjectId(userId) ? userId : null;
+
+                let projectId = getProjectId(req, res);
+                projectId = isValidMongoObjectId(projectId) ? projectId : null;
+                
                 const parsedUrl = url.parse(req.originalUrl);
-                const userId = req.user && req.user.id ? req.user.id : null;
-                const projectId = getProjectId(req, res);
 
                 // Avoiding logging any audit data, if its a blacklisted url/route.
                 const isBlackListedRoute = blackListedRoutes.some(
                     blackListedRouteName => {
                         const fullApiUrl = req.originalUrl || '';
-                        const paramsRouteUrl = req.route.path || '';   // Ex. "/:projectId/statuspages"
-    
+                        const paramsRouteUrl = (req.route && req.route.path) || ''; // Ex. "/:projectId/statuspages"
+
                         return (
                             fullApiUrl.includes(blackListedRouteName) ||
                             paramsRouteUrl.includes(blackListedRouteName)
