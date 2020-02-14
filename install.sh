@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # This script runs the local development server in Docker.
 if [[ ! $(which docker) && ! $(docker  --version) ]]
 then

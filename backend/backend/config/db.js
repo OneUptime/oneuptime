@@ -8,7 +8,11 @@
 var mongoose = require('mongoose');
 var keys = require('./keys.js');
 
-mongoose.connect(keys.dbURL, { useNewUrlParser: true })
+mongoose.connect(keys.dbURL,{
+    'useUnifiedTopology': true, 
+    'useCreateIndex': true, 
+    'useNewUrlParser': true
+}) 
     .then(() => {
         // eslint-disable-next-line
         return console.log('Mongo connected');

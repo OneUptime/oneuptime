@@ -23,7 +23,7 @@ module.exports = {
                 .populate({
                     path: 'escalationIds',
                     select: 'teamMember',
-                    populate: { path: 'teamMember.member', select: 'name' }
+                    populate: { path: 'teamMember.userId', select: 'name' }
                 });
             return schedules;
         } catch (error) {
@@ -48,7 +48,7 @@ module.exports = {
                 .populate({
                     path: 'escalationIds',
                     select: 'teamMember',
-                    populate: { path: 'teamMember.member', select: 'name' }
+                    populate: { path: 'teamMember.userId', select: 'name' }
                 });
             return schedule;
         } catch (error) {
@@ -115,7 +115,7 @@ module.exports = {
             });
 
             if (schedule && schedule._id) {
-                var escalations = await EscalationService.findBy({ scheduleId: schedule._id });
+                var escalations = await EscalationService.findBy({query: { scheduleId: schedule._id }});
                 await escalations.map(({ _id }) => EscalationService.deleteBy({ _id: _id }, userId));
             }
 
@@ -217,11 +217,11 @@ module.exports = {
         }
     },
 
-    addEscalation: async function (scheduleId, escalationData, userId) {
+    addEscalation: async function (scheduleId, escalations, userId) {
         try {
             let _this = this;
             let escalationIds = [];
-            for (let data of escalationData) {
+            for (let data of escalations) {
                 var escalation = {};
                 if (!data._id) {
                     escalation = await EscalationService.create(data);
@@ -236,16 +236,16 @@ module.exports = {
             }
             await _this.updateOneBy({ _id: scheduleId }, { escalationIds: escalationIds });
 
-            var escalations = await _this.getEscalation(scheduleId);
+            var scheduleEscalation = await _this.getEscalations(scheduleId);
 
-            return escalations.escalations;
+            return scheduleEscalation.escalations;
         } catch (error) {
             ErrorService.log('scheduleService.addEscalation', error);
             throw error;
         }
     },
 
-    getEscalation: async function (scheduleId) {
+    getEscalations: async function (scheduleId) {
         try {
             let _this = this;
             var schedule = await _this.findOneBy({ _id: scheduleId });
@@ -256,7 +256,7 @@ module.exports = {
             }));
             return { escalations, count: escalationIds.length };
         } catch (error) {
-            ErrorService.log('scheduleService.getEscalation', error);
+            ErrorService.log('scheduleService.getEscalations', error);
             throw error;
         }
     },

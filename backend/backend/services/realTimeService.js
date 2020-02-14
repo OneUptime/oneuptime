@@ -1,14 +1,18 @@
-var io = global.io;
 
 module.exports = {
-    sendIncidentCreated: async (incident) => {
+    sendCreatedIncident: async (incident) => {
         try {
+            
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
-
-            io.emit(`incidentCreated-${projectId}`, incident);
+            
+            global.io.emit(`incidentCreated-${projectId}`, incident);
         } catch (error) {
-            ErrorService.log('realTimeService.sendIncidentCreated', error);
+            ErrorService.log('realTimeService.sendCreatedIncident', error);
             throw error;
         }
     },
@@ -27,10 +31,16 @@ module.exports = {
 
     sendMonitorCreated: async (monitor) => {
         try {
+
+            if(!global || !global.io){
+                return;
+            }
+
+
             var project = await ProjectService.findOneBy({ _id: monitor.projectId._id });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId._id;
 
-            io.emit(`createMonitor-${projectId}`, monitor);
+            global.io.emit(`createMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realTimeService.sendMonitorCreated', error);
             throw error;
@@ -39,10 +49,15 @@ module.exports = {
 
     sendMonitorDelete: async (monitor) => {
         try {
+
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
 
-            io.emit(`deleteMonitor-${projectId}`, monitor);
+            global.io.emit(`deleteMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realTimeService.sendMonitorDelete', error);
             throw error;
@@ -51,10 +66,15 @@ module.exports = {
 
     incidentResolved: async (incident) => {
         try {
+
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
-            io.emit(`incidentResolved-${projectId}`, incident);
+            global.io.emit(`incidentResolved-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realTimeService.incidentResolved', error);
             throw error;
@@ -63,10 +83,15 @@ module.exports = {
 
     incidentAcknowledged: async (incident) => {
         try {
+
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: incident.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
-            io.emit(`incidentAcknowledged-${projectId}`, incident);
+            global.io.emit(`incidentAcknowledged-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realTimeService.incidentAcknowledged', error);
             throw error;
@@ -87,10 +112,15 @@ module.exports = {
 
     monitorEdit: async (monitor) => {
         try {
+
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
 
-            io.emit(`updateMonitor-${projectId}`, monitor);
+            global.io.emit(`updateMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realTimeService.monitorEdit', error);
             throw error;
@@ -99,10 +129,15 @@ module.exports = {
 
     updateMonitorLog: async (data, projectId) => {
         try {
+
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: projectId });
             var parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
-            io.emit(`updateMonitorLog-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
+            global.io.emit(`updateMonitorLog-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
         } catch (error) {
             ErrorService.log('realTimeService.updateMonitorLog', error);
             throw error;
@@ -111,10 +146,15 @@ module.exports = {
 
     updateMonitorStatus: async (data, projectId) => {
         try {
+
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: projectId });
             var parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
-            io.emit(`updateMonitorStatus-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
+            global.io.emit(`updateMonitorStatus-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
         } catch (error) {
             ErrorService.log('realTimeService.updateMonitorStatus', error);
             throw error;
@@ -123,11 +163,16 @@ module.exports = {
 
     updateProbe: async (data, monitorId) => {
         try {
+
+            if(!global || !global.io){
+                return;
+            }
+
             var monitor = await MonitorService.findOneBy({ _id: monitorId });
             var project = await ProjectService.findOneBy({ _id: monitor.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
-            io.emit(`updateProbe-${projectId}`, data);
+            global.io.emit(`updateProbe-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.updateProbe', error);
             throw error;
@@ -136,10 +181,14 @@ module.exports = {
 
     sendNotification: async (data) => {
         try {
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: data.projectId });
             var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : data.projectId;
 
-            io.emit(`NewNotification-${projectId}`, data);
+            global.io.emit(`NewNotification-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.sendNotification', error);
             throw error;
@@ -148,10 +197,14 @@ module.exports = {
 
     updateTeamMemberRole: async (projectId, data) => {
         try {
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-            io.emit(`TeamMemberRoleUpdate-${projectId}`, data);
+            global.io.emit(`TeamMemberRoleUpdate-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.updateTeamMemberRole', error);
             throw error;
@@ -160,10 +213,14 @@ module.exports = {
 
     createTeamMember: async (projectId, data) => {
         try {
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-            io.emit(`TeamMemberCreate-${projectId}`, data);
+            global.io.emit(`TeamMemberCreate-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.createTeamMember', error);
             throw error;
@@ -172,10 +229,14 @@ module.exports = {
 
     deleteTeamMember: async (projectId, data) => {
         try {
+            if(!global || !global.io){
+                return;
+            }
+
             var project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-            io.emit(`TeamMemberDelete-${projectId}`, data);
+            global.io.emit(`TeamMemberDelete-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.deleteTeamMember', error);
             throw error;

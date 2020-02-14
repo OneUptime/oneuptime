@@ -10,8 +10,9 @@ var cors = require('cors');
 
 var { NODE_ENV } = process.env;
 
-if (NODE_ENV === 'local' || NODE_ENV === 'development')
+if (NODE_ENV === 'local' || NODE_ENV === 'development'){
     require('custom-env').env(process.env.NODE_ENV);
+}
 
 io.adapter(redisAdapter({
     host: keys.redisURL || 'localhost',
@@ -96,6 +97,7 @@ app.get('/', function (req, res) {
         serviceType: 'fyipe-api'
     }));
 });
+
 app.use('/*', function (req, res) {
     res.status(404).render('notFound.ejs', {});
 });
@@ -103,6 +105,9 @@ app.use('/*', function (req, res) {
 function close() {
     server.close();
 }
+
+//attach cron jobs
+require('./backend/workers/main');
 
 module.exports = app;
 

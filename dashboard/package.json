@@ -17,7 +17,7 @@
     "clsx": "^1.0.4",
     "components": "^0.1.0",
     "connected-react-router": "^4.5.0",
-    "date-fns": "^2.8.1",
+    "date-fns": "^2.9.0",
     "envfile": "^3.0.0",
     "express": "^4.16.4",
     "faker": "^4.1.0",
@@ -90,8 +90,7 @@
     "build": "react-scripts build",
     "test": "jest --runInBand",
     "start": "node index.js",
-    "audit": "npm-audit-ci-wrapper --threshold=high",
-    "jest": "jest --runInBand",
+    "audit": "npm-audit-ci-wrapper --threshold=low",
     "fix-lint": "eslint . --fix"
   },
   "devDependencies": {

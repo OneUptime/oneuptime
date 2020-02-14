@@ -146,9 +146,14 @@ export const Validate = {
 
     number(number) {
 
-        if (number && number.length && !isNaN(number)) {
+        if(typeof(number) === 'string' && number.length===0){
+            return false;
+        }
+
+        if (number && !isNaN(number)) {
             return true;
         }
+        
         else {
             return false;
         }
@@ -588,3 +593,4 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
 
     return { logs, statuses };
 };
+

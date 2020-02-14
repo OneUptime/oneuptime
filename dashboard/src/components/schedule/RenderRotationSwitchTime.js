@@ -6,29 +6,29 @@ import DateTimeSelector from '../basic/DateTimeSelector';
 import TimeSelector from '../basic/TimeSelector';
 
 const RenderRotationSwitchTime = ({
-  policy, rotationFrequency
+  policy, rotateBy
 }) => {
 
   return (
     <>
-      <ShouldRender if={rotationFrequency === 'weeks' || rotationFrequency === 'months'}>
+      <ShouldRender if={rotateBy === 'weeks' || rotateBy === 'months'}>
         <div>
           <Field
             className="db-BusinessSettings-input TextInput bs-TextInput"
             type="text"
-            name={`${policy}.rotationSwitchTime`}
+            name={`${policy}.firstRotationOn`}
             component={DateTimeSelector}
             placeholder="10pm"
             style={{ width: '250px' }}
           />
         </div>
       </ShouldRender>
-      <ShouldRender if={rotationFrequency === 'days'}>
+      <ShouldRender if={rotateBy === 'days'}>
         <div>
           <Field
             className="db-BusinessSettings-input TextInput bs-TextInput"
             type="text"
-            name={`${policy}.rotationSwitchTime`}
+            name={`${policy}.firstRotationOn`}
             component={TimeSelector}
             placeholder="10pm"
             style={{ width: '250px' }}
@@ -43,7 +43,7 @@ RenderRotationSwitchTime.displayName = 'RenderRotationSwitchTime'
 
 RenderRotationSwitchTime.propTypes = {
   policy: PropTypes.string.isRequired,
-  rotationFrequency: PropTypes.string.isRequired
+  rotateBy: PropTypes.string.isRequired
 }
 
 export { RenderRotationSwitchTime }

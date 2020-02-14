@@ -29,7 +29,6 @@
             "error",
             "always"
         ],
-        "no-unused-vars": "off",
         "require-atomic-updates": "off",
         "no-async-promise-executor": "off"
     }
