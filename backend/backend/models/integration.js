@@ -1,8 +1,8 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
-var integrationSchema = new Schema({
+const integrationSchema = new Schema({
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', alias: 'project' },
     createdById: { type: Schema.Types.ObjectId, ref: 'User', alias: 'user' },
     integrationType: {

@@ -1,22 +1,22 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var projectData = require('./data/project');
-var chai = require('chai');
+let expect = require('chai').expect;
+let userData = require('./data/user');
+let projectData = require('./data/project');
+let chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+let app = require('../server');
 
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var NotificationService = require('../backend/services/notificationService');
-var AirtableService = require('../backend/services/airtableService');
+let UserService = require('../backend/services/userService');
+let ProjectService = require('../backend/services/projectService');
+let NotificationService = require('../backend/services/notificationService');
+let AirtableService = require('../backend/services/airtableService');
 
-var VerificationTokenModel = require('../backend/models/verificationToken');
+let VerificationTokenModel = require('../backend/models/verificationToken');
 
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
+let request = chai.request.agent(app);
+let { createUser } = require('./utils/userSignUp');
 
-var projectId, token, userId, airtableId;
+let projectId, token, userId, airtableId;
 
 describe('Notification API', function () {
     this.timeout(20000);
@@ -63,7 +63,7 @@ describe('Notification API', function () {
     });
 
     it('should get project notifications current user is present in', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.get(`/notification/${projectId}`)
             .set('Authorization', authorization).send().end(function (err, res) {
                 expect(res).to.have.status(200);
@@ -75,7 +75,7 @@ describe('Notification API', function () {
     });
 
     it('should not get project notifications current user is not present in', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.get(`/notification/${projectData.firstProject._id}`)
             .set('Authorization', authorization).send().end(function (err, res) {
                 expect(res).to.have.status(400);
@@ -84,7 +84,7 @@ describe('Notification API', function () {
     });
 
     it('should mark project notification as read', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/notification/${projectId}`).set('Authorization', authorization).send({
             message: 'New Notification',
             icon: 'bell'
@@ -101,7 +101,7 @@ describe('Notification API', function () {
     });
 
     it('should mark all project notifications as read', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/notification/${projectId}`).set('Authorization', authorization).send({
             message: 'New Notification',
             icon: 'bell'

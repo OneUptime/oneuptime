@@ -5,24 +5,24 @@
  */
 
 
-let express = require('express');
+const express = require('express');
 
-let router = express.Router();
-let NotificationService = require('../services/notificationService');
+const router = express.Router();
+const NotificationService = require('../services/notificationService');
 const {
     isAuthorized
 } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-let sendListResponse = require('../middlewares/response').sendListResponse;
-let sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (req, res) {
     try {
-        let subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-        let notifications = await NotificationService.findBy({ projectId: { $in: subProjectIds } }, req.query.skip || 0, req.query.limit || 20);
-        let count = await NotificationService.countBy({ projectId: { $in: subProjectIds } });
+        const subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        const notifications = await NotificationService.findBy({ projectId: { $in: subProjectIds } }, req.query.skip || 0, req.query.limit || 20);
+        const count = await NotificationService.countBy({ projectId: { $in: subProjectIds } });
         return sendListResponse(req, res, notifications, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -31,13 +31,13 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
 
 router.put('/:projectId/:notificationId/read', getUser, isAuthorized, async function (req, res) {
     try {
-        let notificationId = req.params.notificationId;
-        let userId = req.user ? req.user.id : null;
-        let notification = await NotificationService.updateOneBy({ _id: notificationId},{ read: [userId] });
+        const notificationId = req.params.notificationId;
+        const userId = req.user ? req.user.id : null;
+        const notification = await NotificationService.updateOneBy({ _id: notificationId},{ read: [userId] });
         if (notification) {
             return sendItemResponse(req, res, notification);
         } else {
-            let error = new Error('Notification not found.');
+            const error = new Error('Notification not found.');
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -48,14 +48,14 @@ router.put('/:projectId/:notificationId/read', getUser, isAuthorized, async func
 
 router.put('/:projectId/readAll', getUser, isAuthorized, getSubProjects, async function (req, res) {
     try {
-        let subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-        let userId = req.user ? req.user.id : null;
-        let notifications = await NotificationService.updateManyBy({ projectId: { $in: subProjectIds } }, { read: userId });
+        const subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        const userId = req.user ? req.user.id : null;
+        const notifications = await NotificationService.updateManyBy({ projectId: { $in: subProjectIds } }, { read: userId });
 
         if (notifications.ok === 1 && notifications.n > 0) {
             return sendItemResponse(req, res, { count: notifications.n, read: notifications.nModified });
         } else {
-            let error = new Error('No notification found.');
+            const error = new Error('No notification found.');
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -66,13 +66,13 @@ router.put('/:projectId/readAll', getUser, isAuthorized, getSubProjects, async f
 
 router.put('/:projectId/:notificationId', getUser, isAuthorized, async function (req, res) {
     try {
-        let notificationId = req.params.notificationId;
-        let updateObject = req.body;
-        let notification = await NotificationService.updateOneBy({_id:notificationId},updateObject);
+        const notificationId = req.params.notificationId;
+        const updateObject = req.body;
+        const notification = await NotificationService.updateOneBy({_id:notificationId},updateObject);
         if (notification) {
             return sendItemResponse(req, res, notification);
         } else {
-            let error = new Error('Notification not found.');
+            const error = new Error('Notification not found.');
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -83,10 +83,10 @@ router.put('/:projectId/:notificationId', getUser, isAuthorized, async function 
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
     try {
-        let projectId = req.params.projectId;
-        let userId = req.user ? req.user.id : null;
-        let data = req.body;
-        let notification = await NotificationService.create(projectId, data.message, userId, data.icon);
+        const projectId = req.params.projectId;
+        const userId = req.user ? req.user.id : null;
+        const data = req.body;
+        const notification = await NotificationService.create(projectId, data.message, userId, data.icon);
         return sendItemResponse(req, res, notification);
     } catch (error) {
         return sendErrorResponse(req, res, error);

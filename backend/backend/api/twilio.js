@@ -11,8 +11,8 @@ const {
     isAuthorized
 } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
-let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-let sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const router = express.Router();
 const SmsCountService = require('../services/smsCountService');
 /**
@@ -59,12 +59,12 @@ router.get('/voice/status', async (req, res) => {
 
 router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (req, res) {
     try {
-        let { to } = req.body;
-        let userId = req.user ? req.user.id : null;
-        let projectId = req.query.projectId;
-        let {validateResend,problem} = await SmsCountService.validateResend(userId);
+        const { to } = req.body;
+        const userId = req.user ? req.user.id : null;
+        const projectId = req.query.projectId;
+        const {validateResend,problem} = await SmsCountService.validateResend(userId);
         if (validateResend) {
-            let sendVerifyToken = await sendVerificationSMS(to, userId,projectId);
+            const sendVerifyToken = await sendVerificationSMS(to, userId,projectId);
             return sendItemResponse(req, res, sendVerifyToken);
         }
         else {
@@ -78,10 +78,10 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function 
 
 router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
     try {
-        let { to, code } = req.body;
-        let userId = req.user ? req.user.id : null;
-        let projectId = req.query.projectId;
-        let sendVerifyToken = await verifySMSCode(to, code, userId,projectId);
+        const { to, code } = req.body;
+        const userId = req.user ? req.user.id : null;
+        const projectId = req.query.projectId;
+        const sendVerifyToken = await verifySMSCode(to, code, userId,projectId);
         return sendItemResponse(req, res, sendVerifyToken);
     } catch (error) {
         return sendErrorResponse(req, res, {

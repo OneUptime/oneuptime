@@ -12,7 +12,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            var zap = await ZapierModel.find(query);
+            const zap = await ZapierModel.find(query);
 
             return zap;
         } catch (error) {
@@ -24,10 +24,10 @@ module.exports = {
 
     test: async function (projectId, apiKey) {
         try{
-            var project = await ProjectService.findOneBy({ apiKey: apiKey, _id: projectId });
+            const project = await ProjectService.findOneBy({ apiKey: apiKey, _id: projectId });
             if (project) return await Object.assign({}, project, {projectName: project.name});
             else {
-                let error = new Error('We are not able to authenticate you because your `API Key` or `Project ID` is not valid. Please go to your project settings and retrieve your API key and Project ID.');
+                const error = new Error('We are not able to authenticate you because your `API Key` or `Project ID` is not valid. Please go to your project settings and retrieve your API key and Project ID.');
                 error.code = 400;
                 ErrorService.log('ZapierService.test', error);
                 throw error;
@@ -40,18 +40,18 @@ module.exports = {
 
     getIncidents: async function( projectId ){ 
         try {
-            var zapierResponseArray = [];
-            var zapierResponse = {};
-            var _this = this;
-            var project = await ProjectService.findOneBy({_id: projectId});
+            const zapierResponseArray = [];
+            const zapierResponse = {};
+            const _this = this;
+            const project = await ProjectService.findOneBy({_id: projectId});
             
             if (project) {
                 zapierResponse.projectName = project.name;
                 zapierResponse.projectId = project._id;
-                var projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
-                var projectIds = projects.map(project => project._id);
-                var findquery = { projectId: { $in: projectIds }, acknowledged: false, resolved: false };
-                var incidents = await IncidentService.findBy(findquery);
+                const projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
+                const projectIds = projects.map(project => project._id);
+                const findquery = { projectId: { $in: projectIds }, acknowledged: false, resolved: false };
+                const incidents = await IncidentService.findBy(findquery);
                 await Promise.all(incidents.map(async (incident)=>{
                     zapierResponseArray.push(await _this.mapIncidentToResponse(incident, zapierResponse));
                 }));
@@ -69,17 +69,17 @@ module.exports = {
 
     getAcknowledgedIncidents: async function( projectId ){
         try {
-            var zapierResponseArray = [];
-            var zapierResponse = {};
-            var _this = this;
-            var project = await ProjectService.findOneBy({_id: projectId});
+            const zapierResponseArray = [];
+            const zapierResponse = {};
+            const _this = this;
+            const project = await ProjectService.findOneBy({_id: projectId});
             if (project) {
                 zapierResponse.projectName = project.name;
                 zapierResponse.projectId = project._id;
-                var projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
-                var projectIds = projects.map(project => project._id);
-                var findquery = { projectId: { $in: projectIds }, acknowledged: true, resolved: false };
-                var incidents = await IncidentService.findBy(findquery);
+                const projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
+                const projectIds = projects.map(project => project._id);
+                const findquery = { projectId: { $in: projectIds }, acknowledged: true, resolved: false };
+                const incidents = await IncidentService.findBy(findquery);
                 await Promise.all(incidents.map(async (incident)=>{
                     zapierResponseArray.push(await _this.mapIncidentToResponse(incident, zapierResponse));
                 }));
@@ -97,17 +97,17 @@ module.exports = {
 
     getResolvedIncidents: async function( projectId ){
         try {
-            var zapierResponseArray = [];
-            var zapierResponse = {};
-            var _this = this;
-            var project = await ProjectService.findOneBy({_id: projectId});
+            const zapierResponseArray = [];
+            const zapierResponse = {};
+            const _this = this;
+            const project = await ProjectService.findOneBy({_id: projectId});
             if (project) {
                 zapierResponse.projectName = project.name;
                 zapierResponse.projectId = project._id;
-                var projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
-                var projectIds = projects.map(project => project._id);
-                var findquery = { projectId: { $in: projectIds }, acknowledged: true, resolved: true };
-                var incidents = await IncidentService.findBy(findquery);
+                const projects = await ProjectService.findBy({ $or: [{_id: projectId}, { parentProjectId: projectId }] });
+                const projectIds = projects.map(project => project._id);
+                const findquery = { projectId: { $in: projectIds }, acknowledged: true, resolved: true };
+                const incidents = await IncidentService.findBy(findquery);
                     
                 await Promise.all(incidents.map(async (incident)=>{
                     zapierResponseArray.push(await _this.mapIncidentToResponse(incident, zapierResponse));
@@ -125,8 +125,8 @@ module.exports = {
     },
 
     createIncident: async function (monitors){
-        let zapierResponse = {};
-        let incidentArr = [];
+        const zapierResponse = {};
+        const incidentArr = [];
         await Promise.all(monitors.map(async (monitor)=>{
             const monitorObj = await MonitorService.findOneBy({_id: monitor});
             let incident = new IncidentModel();
@@ -134,7 +134,7 @@ module.exports = {
             incident.monitorId = monitorObj._id;
             incident.createdByZapier = true;
             incident = await incident.save();
-            let msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
+            const msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
             await NotificationService.create(incident.projectId, msg, null, 'warning');
             await RealTimeService.sendCreatedIncident(incident);
 
@@ -151,8 +151,8 @@ module.exports = {
     },
 
     acknowledgeLastIncident: async function (monitors){
-        let zapierResponse = {};
-        let incidentArr = [];
+        const zapierResponse = {};
+        const incidentArr = [];
         await Promise.all(monitors.map(async (monitor)=>{
             let lastIncident = await IncidentService.findOneBy({monitorId: monitor, acknowledged: false});
             lastIncident = await IncidentService.acknowledge(lastIncident._id, null, 'Zapier', true);
@@ -170,7 +170,7 @@ module.exports = {
     },
 
     acknowledgeAllIncidents: async function (monitors){
-        let zapierResponse = {};
+        const zapierResponse = {};
         let incidentArr = [];
         await Promise.all(monitors.map(async (monitor)=>{
             let incidents = await IncidentService.findBy({monitorId: monitor, acknowledged: false});
@@ -191,8 +191,8 @@ module.exports = {
     },
 
     acknowledgeIncident: async function (incidents){
-        let zapierResponse = {};
-        let incidentArr = [];
+        const zapierResponse = {};
+        const incidentArr = [];
         await Promise.all(incidents.map(async (incident)=>{
             await IncidentService.acknowledge(incident, null, 'Zapier', true);
             const incidentObj = await IncidentService.findOneBy({_id: incident});
@@ -209,8 +209,8 @@ module.exports = {
     },
 
     resolveLastIncident: async function (monitors){
-        let zapierResponse = {};
-        let incidentArr = [];
+        const zapierResponse = {};
+        const incidentArr = [];
         await Promise.all(monitors.map(async (monitor)=>{
             let lastIncident = await IncidentService.findOneBy({monitorId: monitor, resolved: false});
             lastIncident = await IncidentService.resolve(lastIncident._id, null, 'Zapier', true);
@@ -228,7 +228,7 @@ module.exports = {
     },
 
     resolveAllIncidents: async function (monitors){
-        let zapierResponse = {};
+        const zapierResponse = {};
         let incidentArr = [];
         await Promise.all(monitors.map(async (monitor)=>{
             let incidents = await IncidentService.findBy({monitorId: monitor, resolved: false});
@@ -249,8 +249,8 @@ module.exports = {
     },
 
     resolveIncident: async function (incidents){
-        let zapierResponse = {};
-        let incidentArr = [];
+        const zapierResponse = {};
+        const incidentArr = [];
         await Promise.all(incidents.map(async (incident)=>{
             await IncidentService.resolve(incident, null, 'Zapier', true);
             const incidentObj = await IncidentService.findOneBy({_id: incident});
@@ -285,7 +285,7 @@ module.exports = {
                 incidentObj.investigationNote = incident.investigationNote;
                 incidentObj.createdAt = incident.createdAt;
                 incidentObj.createdById = incident.createdById ? incident.createdById.name : 'Fyipe';
-                var monitor = await MonitorService.findOneBy({ _id: incident.monitorId });
+                const monitor = await MonitorService.findOneBy({ _id: incident.monitorId });
                 incidentObj.monitorName = monitor.name;
                 incidentObj.monitorType = monitor.type;
                 incidentObj.monitorData = monitor.data[monitor.type];
@@ -302,12 +302,12 @@ module.exports = {
 
     subscribe: async function (projectId, url, type, monitors) {
         try {
-            var zapier = new ZapierModel();
+            const zapier = new ZapierModel();
             zapier.projectId = projectId;
             zapier.url = url;
             zapier.type = type;
             zapier.monitors = monitors;
-            var zap = await zapier.save();
+            const zap = await zapier.save();
             return({ id: zap._id });
         } catch (error) {
             ErrorService.log('ZapierService.subscribe', error);
@@ -333,18 +333,18 @@ module.exports = {
 
     pushToZapier: async function (type, incident) {
         try {
-            var _this = this;
-            var projectId = incident.projectId._id || incident.projectId;
-            var project = await ProjectService.findOneBy({_id: projectId});
+            const _this = this;
+            const projectId = incident.projectId._id || incident.projectId;
+            let project = await ProjectService.findOneBy({_id: projectId});
             
             if (project.parentProjectId) {
                 project = await ProjectService.findOneBy({_id: project.parentProjectId._id});
             }
-            var zap = await _this.findBy({ projectId: project._id, type: type, $or: [{monitors: incident.monitorId._id},{monitors:[]}]});
+            const zap = await _this.findBy({ projectId: project._id, type: type, $or: [{monitors: incident.monitorId._id},{monitors:[]}]});
             
             if (zap && zap.length) {
                 zap.map(async z => {
-                    var zapierResponse = {};
+                    let zapierResponse = {};
                     if (project) {
                         zapierResponse.projectName = project.name;
                         zapierResponse.projectId = project._id;
@@ -381,12 +381,12 @@ module.exports = {
     },
 };
 
-var axios = require('axios');
-var ProjectService = require('./projectService');
-var ErrorService = require('./errorService');
-var IncidentService = require('./incidentService');
-var MonitorService = require('./monitorService');
-var ZapierModel = require('../models/zapier');
-var IncidentModel = require('../models/incident');
-var NotificationService = require('./notificationService');
-var RealTimeService = require('./realTimeService');
+const axios = require('axios');
+const ProjectService = require('./projectService');
+const ErrorService = require('./errorService');
+const IncidentService = require('./incidentService');
+const MonitorService = require('./monitorService');
+const ZapierModel = require('../models/zapier');
+const IncidentModel = require('../models/incident');
+const NotificationService = require('./notificationService');
+const RealTimeService = require('./realTimeService');

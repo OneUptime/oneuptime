@@ -1,6 +1,6 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 const teamSchema = new Schema({
     teamMembers: [
         {
@@ -12,7 +12,7 @@ const teamSchema = new Schema({
     ],
 });
 
-var escalationSchema = new Schema({
+const escalationSchema = new Schema({
     projectId: { type: String, ref: 'Project', alias: 'project', default: null },
     callReminders: { type: Number, default: null },
     emailReminders: { type: Number, default: null },

@@ -1,7 +1,7 @@
 module.exports = {
     get: async function (query) {
         try {
-            var alerts = await incidentSMSActionModel.find(query).sort([['createdAt', -1]]);
+            const alerts = await incidentSMSActionModel.find(query).sort([['createdAt', -1]]);
             return alerts;
         } catch (error) {
             ErrorService.log('incidentSMSActionService.get', error);
@@ -16,7 +16,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var incidentafter = await incidentSMSActionModel.findOneAndUpdate(query, {
+            const incidentafter = await incidentSMSActionModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true

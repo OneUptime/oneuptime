@@ -1,13 +1,13 @@
 module.exports = {
     create: async function (data) {
         try {
-            var emailTemplateModel = new EmailTemplateModel();
+            const emailTemplateModel = new EmailTemplateModel();
             emailTemplateModel.projectId = data.projectId || null;
             emailTemplateModel.subject = data.subject || null;
             emailTemplateModel.body = data.body || null;
             emailTemplateModel.emailType = data.emailType || null;
             emailTemplateModel.allowedVariables = emailTemplateVariables[[data.emailType]];
-            var emailTemplate = await emailTemplateModel.save();
+            const emailTemplate = await emailTemplateModel.save();
             return emailTemplate;
         } catch (error) {
             ErrorService.log('emailTemplateService.create', error);
@@ -26,17 +26,18 @@ module.exports = {
             if (data.emailType && !data.allowedVariables) {
                 data.allowedVariables = emailTemplateVariables[[data.emailType]];
             }
-            var updatedEmailTemplate = await EmailTemplateModel.findOneAndUpdate(query, {
+            const updatedEmailTemplate = await EmailTemplateModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
+            return updatedEmailTemplate;
         } catch (error) {
             ErrorService.log('EmailTemplateService.updateOneBy', error);
             throw error;
         }
 
-        return updatedEmailTemplate;
+       
     },
 
     updateBy: async function (query, data) {
@@ -46,7 +47,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await EmailTemplateModel.updateMany(query, {
+            let updatedData = await EmailTemplateModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -59,7 +60,7 @@ module.exports = {
 
     deleteBy: async function (query, userId) {
         try {
-            var emailTemplate = await EmailTemplateModel.findOneAndUpdate(query, {
+            const emailTemplate = await EmailTemplateModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -94,7 +95,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var emailTemplates = await EmailTemplateModel.find(query)
+            const emailTemplates = await EmailTemplateModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -113,7 +114,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var emailTemplate = await EmailTemplateModel.findOne(query)
+            const emailTemplate = await EmailTemplateModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name');
             return emailTemplate;
@@ -130,7 +131,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await EmailTemplateModel.count(query);
+            const count = await EmailTemplateModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('emailTemplateService.countBy', error);
@@ -139,19 +140,19 @@ module.exports = {
     },
 
     getTemplates: async function (projectId) {
-        let _this = this;
-        var templates = await Promise.all(defaultTemplate.map(async (template) => {
-            var emailTemplate = await _this.findOneBy({ projectId: projectId, emailType: template.emailType });
+        const _this = this;
+        const templates = await Promise.all(defaultTemplate.map(async (template) => {
+            const emailTemplate = await _this.findOneBy({ projectId: projectId, emailType: template.emailType });
             return emailTemplate != null && emailTemplate != undefined ? emailTemplate : template;
         }));
         return templates;
     },
 
     resetTemplate: async function (projectId, templateId) {
-        let _this = this;
-        var oldTemplate = await _this.findOneBy({ _id: templateId });
-        var newTemplate = defaultTemplate.filter(template => template.emailType === oldTemplate.emailType)[0];
-        var resetTemplate = await _this.updateOneBy({
+        const _this = this;
+        const oldTemplate = await _this.findOneBy({ _id: templateId });
+        const newTemplate = defaultTemplate.filter(template => template.emailType === oldTemplate.emailType)[0];
+        const resetTemplate = await _this.updateOneBy({
             _id: oldTemplate._id},{
             emailType: newTemplate.emailType,
             subject: newTemplate.subject,
@@ -172,7 +173,7 @@ module.exports = {
     },
 };
 
-var EmailTemplateModel = require('../models/emailTemplate');
-var ErrorService = require('./errorService');
-var emailTemplateVariables = require('../config/emailTemplateVariables');
-var defaultTemplate = require('../config/emailTemplate');
+const EmailTemplateModel = require('../models/emailTemplate');
+const ErrorService = require('./errorService');
+const emailTemplateVariables = require('../config/emailTemplateVariables');
+const defaultTemplate = require('../config/emailTemplate');

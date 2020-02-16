@@ -1,25 +1,25 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+let expect = require('chai').expect;
+let userData = require('./data/user');
+let chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+let app = require('../server');
 
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var AirtableService = require('../backend/services/airtableService');
+let request = chai.request.agent(app);
+let { createUser } = require('./utils/userSignUp');
+let UserService = require('../backend/services/userService');
+let ProjectService = require('../backend/services/projectService');
+let AirtableService = require('../backend/services/airtableService');
 
-var token, projectId, userId, airtableId;
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var payment = require('../backend/config/payment');
-var stripe = require('stripe')(payment.paymentPrivateKey);
-var ngrok = require('ngrok');
+let token, projectId, userId, airtableId;
+let VerificationTokenModel = require('../backend/models/verificationToken');
+let payment = require('../backend/config/payment');
+let stripe = require('stripe')(payment.paymentPrivateKey);
+let ngrok = require('ngrok');
 
-var cardId, authorization, webhookId;
+let cardId, authorization, webhookId;
 
-var sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+let sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 
 describe('Stripe payment API', function () {
@@ -183,24 +183,24 @@ describe('Stripe payment API', function () {
     });
     it('should update balance when payment intent is confirmed from the client side', async function () {
 
-        var ngrokURL = await ngrok.connect(3020);
-        var url = `${ngrokURL}/stripe/webHook/pi`;
-        var webhook = await stripe.webhookEndpoints.create({
+        let ngrokURL = await ngrok.connect(3020);
+        let url = `${ngrokURL}/stripe/webHook/pi`;
+        let webhook = await stripe.webhookEndpoints.create({
             url,
             enabled_events: ['payment_intent.succeeded']
         });
         webhookId = webhook.id;
         if (webhook.status === 'enabled') {
-            var addBalanceRequest = await request.post(`/stripe/${projectId}/addBalance`)
+            let addBalanceRequest = await request.post(`/stripe/${projectId}/addBalance`)
                 .set('Authorization', authorization)
                 .send({
                     rechargeBalanceAmount: '100'
                 });
-            var confirmedpaymentIntent = await stripe.paymentIntents.confirm(addBalanceRequest.body.id);
+            let confirmedpaymentIntent = await stripe.paymentIntents.confirm(addBalanceRequest.body.id);
             if (confirmedpaymentIntent) {
                 await sleep(20000);
-                var project = await ProjectService.findOneBy({ _id: projectId });
-                var { balance } = project;
+                let project = await ProjectService.findOneBy({ _id: projectId });
+                let { balance } = project;
                 expect(balance).to.be.equal(100);
             }
         }

@@ -1,15 +1,15 @@
-let express = require('express');
-let StripeService = require('../services/stripeService');
-let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-let sendItemResponse = require('../middlewares/response').sendItemResponse;
-let sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
-let sendListResponse = require('../middlewares/response').sendListResponse;
+const express = require('express');
+const StripeService = require('../services/stripeService');
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
 
-let getUser = require('../middlewares/user').getUser;
-let { isUserOwner } = require('../middlewares/project');
-let { isAuthorized } = require('../middlewares/authorization');
+const getUser = require('../middlewares/user').getUser;
+const { isUserOwner } = require('../middlewares/project');
+const { isAuthorized } = require('../middlewares/authorization');
 
-let router = express.Router();
+const router = express.Router();
 
 // Route
 // Description: Getting events from stripe via webhooks.
@@ -24,7 +24,7 @@ router.post('/stripe/events', async function (req, res) {
         const chargeAttemptCount = event.data.object.attempt_count;
 
         if (!event.data.object.paid) {
-            let response = await StripeService.events(customerId, subscriptionId, chargeAttemptCount);
+            const response = await StripeService.events(customerId, subscriptionId, chargeAttemptCount);
             return sendItemResponse(req, res, response);
         } else {
             return sendEmptyResponse(req, res);
@@ -36,8 +36,8 @@ router.post('/stripe/events', async function (req, res) {
 
 router.get('/:projectId/charges', getUser, async function (req, res) {
     try {
-        let userId = req.user ? req.user.id : null;
-        let charges = await StripeService.charges(userId);
+        const userId = req.user ? req.user.id : null;
+        const charges = await StripeService.charges(userId);
         return sendListResponse(req, res, charges);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -46,9 +46,9 @@ router.get('/:projectId/charges', getUser, async function (req, res) {
 
 router.post('/:projectId/creditCard/:token/pi', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try { 
-        let userId = req.user ? req.user.id : null;
-        let { token } = req.params;
-        let item = await StripeService.creditCard.create(token, userId);
+        const userId = req.user ? req.user.id : null;
+        const { token } = req.params;
+        const item = await StripeService.creditCard.create(token, userId);
         return sendItemResponse(req, res, item);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -57,9 +57,9 @@ router.post('/:projectId/creditCard/:token/pi', getUser, isAuthorized, isUserOwn
 
 router.put('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
-        let userId = req.user ? req.user.id : null;
-        let { cardId } = req.params;
-        let card = await StripeService.creditCard.update(userId, cardId);
+        const userId = req.user ? req.user.id : null;
+        const { cardId } = req.params;
+        const card = await StripeService.creditCard.update(userId, cardId);
         return sendItemResponse(req, res, card);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -68,9 +68,9 @@ router.put('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner,
 
 router.delete('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
-        let userId = req.user ? req.user.id : null;
-        let { cardId } = req.params;
-        let card = await StripeService.creditCard.delete(cardId, userId);
+        const userId = req.user ? req.user.id : null;
+        const { cardId } = req.params;
+        const card = await StripeService.creditCard.delete(cardId, userId);
         return sendItemResponse(req, res, card);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -79,8 +79,8 @@ router.delete('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwn
 
 router.get('/:projectId/creditCard', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
-        let userId = req.user ? req.user.id : null;
-        let cards = await StripeService.creditCard.get(userId);
+        const userId = req.user ? req.user.id : null;
+        const cards = await StripeService.creditCard.get(userId);
         return sendItemResponse(req, res, cards);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -89,9 +89,9 @@ router.get('/:projectId/creditCard', getUser, isAuthorized, isUserOwner, async f
 
 router.get('/:projectId/creditCard/:cardId', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
-        let userId = req.user ? req.user.id : null;
-        let { cardId } = req.params;
-        let card = await StripeService.creditCard.get(userId, cardId);
+        const userId = req.user ? req.user.id : null;
+        const { cardId } = req.params;
+        const card = await StripeService.creditCard.get(userId, cardId);
         return sendItemResponse(req, res, card);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -105,7 +105,7 @@ router.post('/webHook/pi', async function (req, res) {
             const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
             const endpointSecret = process.env.WEBHOOK_SECRET;
             const signatureHeader = req.headers['stripe-signature'];
-            let event = stripe.webhooks.constructEvent(req.body, signatureHeader, endpointSecret);
+            const event = stripe.webhooks.constructEvent(req.body, signatureHeader, endpointSecret);
             switch (event.type) {
             case 'payment_intent.succeeded':
                 paymentIntentData = event.data.object;
@@ -137,8 +137,8 @@ router.post('/webHook/pi', async function (req, res) {
 
 router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
-        let userId = req.user ? req.user.id : null;
-        let { projectId } = req.params;
+        const userId = req.user ? req.user.id : null;
+        const { projectId } = req.params;
         let { rechargeBalanceAmount } = req.body;
         rechargeBalanceAmount = Number(rechargeBalanceAmount);
         if (!rechargeBalanceAmount) {
@@ -147,7 +147,7 @@ router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async 
                 message: 'Amount should be present and it should be a valid number.'
             });
         }
-        let item = await StripeService.addBalance(userId, rechargeBalanceAmount, projectId);
+        const item = await StripeService.addBalance(userId, rechargeBalanceAmount, projectId);
         return sendItemResponse(req, res, item);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -156,8 +156,8 @@ router.post('/:projectId/addBalance', getUser, isAuthorized, isUserOwner, async 
 
 router.post('/checkCard', async function (req, res) {
     try {
-        let { tokenId, email, companyName } = req.body;
-        let paymentIntent = await StripeService.makeTestCharge(tokenId, email, companyName);
+        const { tokenId, email, companyName } = req.body;
+        const paymentIntent = await StripeService.makeTestCharge(tokenId, email, companyName);
         return sendItemResponse(req, res, paymentIntent);
     } catch (error) {
         return sendErrorResponse(req, res, error);

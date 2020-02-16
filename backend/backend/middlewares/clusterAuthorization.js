@@ -3,7 +3,7 @@
  * Copyright HackerBay, Inc.
  *
  */
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const EnvClusterKey = require('../config/keys').clusterKey;
 
 module.exports = {

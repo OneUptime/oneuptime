@@ -1,14 +1,14 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var chai = require('chai');
+let expect = require('chai').expect;
+let chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+let app = require('../server');
 
-var request = chai.request.agent(app);
-var leadService = require('../backend/services/leadService');
-var EmailStatusService = require('../backend/services/emailStatusService');
+let request = chai.request.agent(app);
+let leadService = require('../backend/services/leadService');
+let EmailStatusService = require('../backend/services/emailStatusService');
 
-var leadData = {
+let leadData = {
     'csrf-token': '1',
     analytics_event_id: '',
     fullname: 'John Smith',
@@ -34,7 +34,7 @@ describe('Lead API', function () {
         request.post('/lead').send(leadData).end(async function (err, res) {
             expect(res).to.have.status(200);
             leadService.hardDeleteBy({ _id: res.body._id });
-            var emailStatuses = await EmailStatusService.findBy({});
+            let emailStatuses = await EmailStatusService.findBy({});
             expect(emailStatuses[0].subject).to.equal('Thank you for your demo request.');
             expect(emailStatuses[0].status).to.equal('Success');
             done();

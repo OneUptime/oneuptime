@@ -1,18 +1,18 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+let expect = require('chai').expect;
+let userData = require('./data/user');
+let chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
-var EmailStatusService = require('../backend/services/emailStatusService');
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var AirtableService = require('../backend/services/airtableService');
+let app = require('../server');
+let EmailStatusService = require('../backend/services/emailStatusService');
+let request = chai.request.agent(app);
+let { createUser } = require('./utils/userSignUp');
+let UserService = require('../backend/services/userService');
+let ProjectService = require('../backend/services/projectService');
+let VerificationTokenModel = require('../backend/models/verificationToken');
+let AirtableService = require('../backend/services/airtableService');
 
-var userId, airtableId, projectId;
+let userId, airtableId, projectId;
 
 describe('Email verification API', function () {
     this.timeout(20000);
@@ -35,7 +35,7 @@ describe('Email verification API', function () {
     });
 
     it('should send email verification', async function () {
-        var emailStatuses = await EmailStatusService.findBy({});
+        let emailStatuses = await EmailStatusService.findBy({});
         expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
         expect(emailStatuses[0].status).to.equal('Success');
     });
@@ -52,18 +52,18 @@ describe('Email verification API', function () {
     });
 
     it('should verify the user', async function () {
-        var token = await VerificationTokenModel.findOne({ userId });
+        let token = await VerificationTokenModel.findOne({ userId });
         try {
             await request.get(`/user/confirmation/${token.token}`).redirects(0);
         } catch (error) {
             expect(error).to.have.status(302);
-            var user = await UserService.findOneBy({ _id: userId });
+            let user = await UserService.findOneBy({ _id: userId });
             expect(user.isVerified).to.be.equal(true);
         }
     });
 
     it('should login the verified user', async function () {
-        var res = await request.post('/user/login').send({
+        let res = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password
         });

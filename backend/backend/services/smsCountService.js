@@ -13,7 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            var SmsCount = await SmsCountModel.find(query)
+            const SmsCount = await SmsCountModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -32,7 +32,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var SmsCount = await SmsCountModel.findOne(query)
+            const SmsCount = await SmsCountModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('userIds', 'name');
             return SmsCount;
@@ -44,11 +44,11 @@ module.exports = {
 
     create: async function (userId, sentTo,projectId) {
         try {
-            var smsCountModel = new SmsCountModel();
+            const smsCountModel = new SmsCountModel();
             smsCountModel.userId = userId || null;
             smsCountModel.sentTo = sentTo || null;
             smsCountModel.projectId = projectId || null;
-            var smsCount = await smsCountModel.save();
+            const smsCount = await smsCountModel.save();
             return smsCount;
         } catch (error) {
             ErrorService.log('smsCountService.create', error);
@@ -63,7 +63,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var count = await SmsCountModel.count(query);
+            const count = await SmsCountModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('smsCountService.countBy', error);
@@ -74,13 +74,14 @@ module.exports = {
     validateResend: async function (userId) {
         try {
             const _this = this;
-            var smsCount = await _this.findBy({ userId: userId, createdAt: { '$gt': new Date(Date.now() - 24 * 60 * 60 * 1000) } }, 4, 0);
+            let problem = '';
+            const smsCount = await _this.findBy({ userId: userId, createdAt: { '$gt': new Date(Date.now() - 24 * 60 * 60 * 1000) } }, 4, 0);
             if (smsCount.length > 3) {
                 let time = moment(smsCount[3].createdAt).add(1, 'days');
                 time = time.diff(moment(Date.now()),'minutes');
-                var problem = `You have exhausted the maximum limit of sms resends in a day please wait ${Math.floor(time / 60)} Hours ${Math.floor(time % 60)} minutes before retrying.`;
+                problem = `You have exhausted the maximum limit of sms resends in a day please wait ${Math.floor(time / 60)} Hours ${Math.floor(time % 60)} minutes before retrying.`;
             }
-            return {validateResend : smsCount.length > 3 ? false : true,problem : problem || ''};
+            return { validateResend : smsCount.length > 3 ? false : true, problem : problem };
         } catch (error) {
             ErrorService.log('smsCountService.validateResend', error);
             throw error;
@@ -89,7 +90,7 @@ module.exports = {
 
     deleteBy: async function (query, userId) {
         try {
-            var smsCount = await SmsCountModel.findOneAndUpdate(query, {
+            const smsCount = await SmsCountModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -116,6 +117,6 @@ module.exports = {
     }
 };
 
-var SmsCountModel = require('../models/smsCount');
-var moment = require('moment');
-var ErrorService = require('../services/errorService');
+const SmsCountModel = require('../models/smsCount');
+const moment = require('moment');
+const ErrorService = require('../services/errorService');

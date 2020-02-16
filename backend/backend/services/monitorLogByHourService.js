@@ -1,7 +1,7 @@
 module.exports = {
     create: async function (data) {
         try {
-            var LogHour = new MonitorLogByHourModel();
+            const LogHour = new MonitorLogByHourModel();
 
             LogHour.monitorId = data.monitorId;
             LogHour.probeId = data.probeId;
@@ -26,7 +26,7 @@ module.exports = {
             LogHour.maxMainTemp = data.mainTemp;
             LogHour.intervalDate = data.intervalDate;
 
-            var savedLogHour = await LogHour.save();
+            const savedLogHour = await LogHour.save();
 
             return savedLogHour;
         } catch (error) {
@@ -41,7 +41,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLogByHour = await MonitorLogByHourModel.findOneAndUpdate(query,
+            const monitorLogByHour = await MonitorLogByHourModel.findOneAndUpdate(query,
                 { $set: data },
                 {
                     new: true
@@ -72,7 +72,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLogsByHour = await MonitorLogByHourModel.find(query)
+            const monitorLogsByHour = await MonitorLogByHourModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -90,7 +90,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLog = await MonitorLogByHourModel.findOne(query);
+            const monitorLog = await MonitorLogByHourModel.findOne(query);
 
             return monitorLog;
         } catch (error) {
@@ -105,7 +105,7 @@ module.exports = {
                 query = {};
             }
 
-            var count = await MonitorLogByHourModel.count(query);
+            const count = await MonitorLogByHourModel.count(query);
 
             return count;
         } catch (error) {
@@ -115,5 +115,5 @@ module.exports = {
     }
 };
 
-var MonitorLogByHourModel = require('../models/monitorLogByHour');
-var ErrorService = require('../services/errorService');
+const MonitorLogByHourModel = require('../models/monitorLogByHour');
+const ErrorService = require('../services/errorService');

@@ -5,16 +5,16 @@
  */
 
 
-let express = require('express');
-let router = express.Router();
+const express = require('express');
+const router = express.Router();
 
-let SubscriberService = require('../services/subscriberService');
+const SubscriberService = require('../services/subscriberService');
 
-let getUser = require('../middlewares/user').getUser;
+const getUser = require('../middlewares/user').getUser;
 
-let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-let sendListResponse = require('../middlewares/response').sendListResponse;
-let sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 // Route Description: Adding / Updating subscriber to the project.
 // req.params->{projectId}; req.body -> {monitorIds, alertVia, contactEmail, contactPhone, }
@@ -22,8 +22,8 @@ let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId/:statusPageId', async function (req, res) {
     try{
-        let body = req.body;
-        let data = {};
+        const body = req.body;
+        const data = {};
         data.projectId = req.params.projectId;
         data.statusPageId = req.params.statusPageId;
     
@@ -132,7 +132,7 @@ router.post('/:projectId/:statusPageId', async function (req, res) {
             }
         }
     
-        let monitors = body.monitors;
+        const monitors = body.monitors;
         data.alertVia = body.userDetails.method;
         data.contactEmail = body.userDetails.email || null;
         data.contactPhone = body.userDetails.phone_number || null;
@@ -140,7 +140,7 @@ router.post('/:projectId/:statusPageId', async function (req, res) {
         data.contactWebhook = body.userDetails.endpoint || null;
         data.monitorId = '';
 
-        let subscriber = await SubscriberService.subscribe(data,monitors);
+        const subscriber = await SubscriberService.subscribe(data,monitors);
         return sendItemResponse(req, res, subscriber);
     }catch(error){
         return sendErrorResponse(req, res, error);
@@ -149,7 +149,7 @@ router.post('/:projectId/:statusPageId', async function (req, res) {
 
 router.post('/:projectId/subscribe/:monitorId', async function (req, res) {
     try{
-        let data = req.body;
+        const data = req.body;
         data.projectId = req.params.projectId;
         data.monitorId = req.params.monitorId;
     
@@ -243,14 +243,14 @@ router.post('/:projectId/subscribe/:monitorId', async function (req, res) {
                 });
             }
         }
-        let hasSubscribed = await SubscriberService.subscriberCheck(data);
+        const hasSubscribed = await SubscriberService.subscriberCheck(data);
         if(hasSubscribed){
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'You are already subscribed to this monitor.'
             });
         }else{
-            let subscriber = await SubscriberService.create(data);
+            const subscriber = await SubscriberService.create(data);
             return sendItemResponse(req, res, subscriber);
         }
     }catch(error){
@@ -263,11 +263,11 @@ router.post('/:projectId/subscribe/:monitorId', async function (req, res) {
 // Returns: response subscriber, error message
 router.get('/:projectId', async function (req, res) {
     try{
-        let projectId = req.params.projectId;
-        let skip = req.query.skip || 0;
-        let limit = req.query.limit || 10;
-        let subscribers = await SubscriberService.findBy({projectId: projectId}, skip, limit);
-        let count = await SubscriberService.countBy({projectId: projectId});
+        const projectId = req.params.projectId;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
+        const subscribers = await SubscriberService.findBy({projectId: projectId}, skip, limit);
+        const count = await SubscriberService.countBy({projectId: projectId});
         return sendListResponse(req, res, subscribers, count);
     }catch(error){
         return sendErrorResponse(req, res, error);
@@ -279,11 +279,11 @@ router.get('/:projectId', async function (req, res) {
 // Returns: response subscriber, error message
 router.get('/:projectId/monitor/:monitorId', async function (req, res) {
     try{
-        let monitorId = req.params.monitorId;
-        let skip = req.query.skip || 0;
-        let limit = req.query.limit || 10;
-        let subscribers = await SubscriberService.findBy({monitorId: monitorId }, skip, limit);
-        let count = await SubscriberService.countBy({monitorId: monitorId});
+        const monitorId = req.params.monitorId;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
+        const subscribers = await SubscriberService.findBy({monitorId: monitorId }, skip, limit);
+        const count = await SubscriberService.countBy({monitorId: monitorId});
         return sendListResponse(req, res, subscribers, count);
     }catch(error){
         return sendErrorResponse(req, res, error);
@@ -295,9 +295,9 @@ router.get('/:projectId/monitor/:monitorId', async function (req, res) {
 // Returns: response subscriber, error message
 router.get('/:projectId/:subscriberId', async function (req, res) {
     try{
-        let projectId = req.params.projectId;
-        let subscriberId = req.params.subscriberId;
-        let subscriber = await SubscriberService.findByOne({_id: subscriberId, projectId: projectId});
+        const projectId = req.params.projectId;
+        const subscriberId = req.params.subscriberId;
+        const subscriber = await SubscriberService.findByOne({_id: subscriberId, projectId: projectId});
         return sendItemResponse(req, res, subscriber);
     }catch(error){
         return sendErrorResponse(req, res, error);
@@ -309,9 +309,9 @@ router.get('/:projectId/:subscriberId', async function (req, res) {
 //  Returns: response subscriber, error message
 router.delete('/:projectId/:subscriberId', getUser, async function (req, res) {
     try{
-        let subscriberId = req.params.subscriberId;
-        let userId = req.user ? req.user.id : null;
-        let subscriber = await SubscriberService.deleteBy({_id: subscriberId}, userId);
+        const subscriberId = req.params.subscriberId;
+        const userId = req.user ? req.user.id : null;
+        const subscriber = await SubscriberService.deleteBy({_id: subscriberId}, userId);
         return sendItemResponse(req, res, subscriber);
     }catch(error){
         return sendErrorResponse(req, res, error);

@@ -1,7 +1,7 @@
 module.exports = {
     create: async function (projectId, chargeAmount, balanceAfterAlertSent, alertId, monitorId, incidentId, sentTo) {
         try {
-            var alertCharge = new AlertChargeModel();
+            const alertCharge = new AlertChargeModel();
             alertCharge.projectId = projectId;
             alertCharge.chargeAmount = chargeAmount;
             alertCharge.closingAccountBalance = balanceAfterAlertSent;
@@ -35,7 +35,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            var alertCharges;
+            let alertCharges;
             if ( skip >= 0 && limit > 0 ) { 
                 alertCharges = await AlertChargeModel.find(query)
                     .sort([['createdAt', sort]])
@@ -61,7 +61,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            var count = await AlertChargeModel.count(query);
+            const count = await AlertChargeModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('alertChargeService.countBy', error);
@@ -70,5 +70,5 @@ module.exports = {
     },
 };
 
-let AlertChargeModel = require('../models/alertCharge');
-let ErrorService = require('./errorService');
+const AlertChargeModel = require('../models/alertCharge');
+const ErrorService = require('./errorService');

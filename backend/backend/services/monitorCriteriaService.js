@@ -78,7 +78,7 @@ const MonitorCriteriaService = {
     create: function (monitorType) {
         try {
             const criteria = this.getCriteria()[monitorType];
-            let criteriaObj = {};
+            const criteriaObj = {};
 
             if (criteria) {
                 if (criteria.up_1000 && criteria.up_1000.length) {
@@ -111,12 +111,12 @@ const MonitorCriteriaService = {
     },
 
     makeCriteria: function (val) {
-        let val2 = {};
-        let and = [];
-        let or = [];
+        const val2 = {};
+        const and = [];
+        const or = [];
 
         for (let i = 0; i < val.length; i++) {
-            let val3 = {};
+            const val3 = {};
             if (val[i].responseType && val[i].responseType.length) {
                 val3.responseType = val[i].responseType;
             }
@@ -145,10 +145,10 @@ const MonitorCriteriaService = {
     },
 
     mapCriteria: function (val) {
-        let val2 = [];
+        const val2 = [];
         if (val && val.and && val.and.length) {
             for (let i = 0; i < val.and.length; i++) {
-                let val3 = {};
+                const val3 = {};
                 if (val.and[i].responseType && val.and[i].responseType.length) {
                     val3.responseType = val.and[i].responseType;
                 }
@@ -177,7 +177,7 @@ const MonitorCriteriaService = {
         }
         else if (val && val.or && val.or.length) {
             for (let i = 0; i < val.or.length; i++) {
-                let val3 = {};
+                const val3 = {};
                 if (val.or[i].responseType && val.or[i].responseType.length) {
                     val3.responseType = val.or[i].responseType;
                 }
@@ -207,6 +207,6 @@ const MonitorCriteriaService = {
     }
 };
 
-var ErrorService = require('../services/errorService');
+const ErrorService = require('../services/errorService');
 
 module.exports = MonitorCriteriaService;

@@ -1,18 +1,18 @@
-let express = require('express');
-let SmsSmtpService = require('../services/smsSmtpService');
-let TwilioService = require('../services/twilioService');
-let router = express.Router();
+const express = require('express');
+const SmsSmtpService = require('../services/smsSmtpService');
+const TwilioService = require('../services/twilioService');
+const router = express.Router();
 const {
     isAuthorized
 } = require('../middlewares/authorization');
-let getUser = require('../middlewares/user').getUser;
-let isUserOwner = require('../middlewares/project').isUserOwner;
-let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-let sendItemResponse = require('../middlewares/response').sendItemResponse;
+const getUser = require('../middlewares/user').getUser;
+const isUserOwner = require('../middlewares/project').isUserOwner;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
     try {
-        let data = req.body;
+        const data = req.body;
         data.projectId = req.params.projectId;
         if (!data.accountSid) {
             return sendErrorResponse(req, res, {
@@ -34,9 +34,9 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
                 message: 'Phone Number is required.'
             });
         }
-        let testResult = await TwilioService.test(data);
+        const testResult = await TwilioService.test(data);
         if (testResult && !testResult.errorCode) {
-            let smsSmtp = await SmsSmtpService.create(data);
+            const smsSmtp = await SmsSmtpService.create(data);
             return sendItemResponse(req, res, smsSmtp);
         }
     } catch (error) {
@@ -46,8 +46,8 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
     try {
-        let projectId = req.params.projectId;
-        let smsSmtp = await SmsSmtpService.findOneBy({ projectId });
+        const projectId = req.params.projectId;
+        const smsSmtp = await SmsSmtpService.findOneBy({ projectId });
         return sendItemResponse(req, res, smsSmtp);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -56,11 +56,11 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (req, res) {
     try {
-        let data = req.body;
-        let smsSmtpId = req.params.smsSmtpId;
-        let testResult = await TwilioService.test(data);
+        const data = req.body;
+        const smsSmtpId = req.params.smsSmtpId;
+        const testResult = await TwilioService.test(data);
         if (testResult && !testResult.errorCode) {
-            let smsSmtp = await SmsSmtpService.updateOneBy({_id : smsSmtpId},data);
+            const smsSmtp = await SmsSmtpService.updateOneBy({_id : smsSmtpId},data);
             return sendItemResponse(req, res, smsSmtp);
         }
     } catch (error) {
@@ -71,9 +71,9 @@ router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (req,
 
 router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function (req, res) {
     try {
-        let data = req.body;
-        let smsSmtpId = req.params.smsSmtpId;
-        let smsSmtp = await SmsSmtpService.updateOneBy({_id : smsSmtpId},data);
+        const data = req.body;
+        const smsSmtpId = req.params.smsSmtpId;
+        const smsSmtp = await SmsSmtpService.updateOneBy({_id : smsSmtpId},data);
         return sendItemResponse(req, res, smsSmtp);
     } catch (error) {
         return sendErrorResponse(req, res, error);

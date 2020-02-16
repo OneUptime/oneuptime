@@ -4,23 +4,23 @@
  *
  */
 
-let express = require('express');
-let ScheduleService = require('../services/scheduleService');
-let router = express.Router();
-let isUserAdmin = require('../middlewares/project').isUserAdmin;
-let getUser = require('../middlewares/user').getUser;
-let getSubProjects = require('../middlewares/subProject').getSubProjects;
+const express = require('express');
+const ScheduleService = require('../services/scheduleService');
+const router = express.Router();
+const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const getUser = require('../middlewares/user').getUser;
+const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const {
     isAuthorized
 } = require('../middlewares/authorization');
-let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-let sendListResponse = require('../middlewares/response').sendListResponse;
-let sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        let data = req.body;
-        let userId = req.user ? req.user.id : null;
+        const data = req.body;
+        const userId = req.user ? req.user.id : null;
         data.createdById = userId;
         data.projectId = req.params.projectId;
 
@@ -30,7 +30,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
                 message: 'Name is required'
             });
         }
-        let schedule = await ScheduleService.create(data);
+        const schedule = await ScheduleService.create(data);
         return sendItemResponse(req, res, schedule);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -39,9 +39,9 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 
 router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
     try {
-        let projectId = req.params.projectId;
-        let schedules = await ScheduleService.findBy({projectId: projectId}, req.query.limit || 10, req.query.skip || 0);
-        let count = await ScheduleService.countBy({projectId});
+        const projectId = req.params.projectId;
+        const schedules = await ScheduleService.findBy({projectId: projectId}, req.query.limit || 10, req.query.skip || 0);
+        const count = await ScheduleService.countBy({projectId});
         return sendListResponse(req, res, schedules, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -50,8 +50,8 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.get('/:projectId/schedules', getUser, isAuthorized, getSubProjects, async function (req, res) {
     try {
-        let subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-        let schedules = await ScheduleService.getSubProjectSchedules(subProjectIds);
+        const subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        const schedules = await ScheduleService.getSubProjectSchedules(subProjectIds);
         return sendItemResponse(req, res, schedules); // frontend expects sendItemResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -60,9 +60,9 @@ router.get('/:projectId/schedules', getUser, isAuthorized, getSubProjects, async
 
 router.get('/:projectId/schedule', getUser, isAuthorized, async function(req, res){
     try {
-        let projectId = req.params.projectId;
-        let schedule = await ScheduleService.findBy({projectId}, req.query.limit || 10, req.query.skip || 0);
-        let count = await ScheduleService.countBy({projectId});
+        const projectId = req.params.projectId;
+        const schedule = await ScheduleService.findBy({projectId}, req.query.limit || 10, req.query.skip || 0);
+        const count = await ScheduleService.countBy({projectId});
         return sendListResponse(req, res, schedule, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -71,9 +71,9 @@ router.get('/:projectId/schedule', getUser, isAuthorized, async function(req, re
 
 router.put('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        let scheduleId = req.params.scheduleId;
-        let data = req.body;
-        let schedule = await ScheduleService.updateOneBy({_id : scheduleId},data);
+        const scheduleId = req.params.scheduleId;
+        const data = req.body;
+        const schedule = await ScheduleService.updateOneBy({_id : scheduleId},data);
         return sendItemResponse(req, res, schedule);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -83,8 +83,8 @@ router.put('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async 
 router.delete('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
 
     try {
-        let scheduleId = req.params.scheduleId;
-        let userId = req.user ? req.user.id : null;
+        const scheduleId = req.params.scheduleId;
+        const userId = req.user ? req.user.id : null;
 
         if (!scheduleId) {
             return sendErrorResponse( req, res, {
@@ -92,7 +92,7 @@ router.delete('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, asy
                 message: 'ScheduleId must be present.'
             });
         }
-        let schedule = await ScheduleService.deleteBy({_id: scheduleId}, userId);
+        const schedule = await ScheduleService.deleteBy({_id: scheduleId}, userId);
         return sendItemResponse(req, res, schedule);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -101,8 +101,8 @@ router.delete('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, asy
 
 router.get('/:projectId/:scheduleId/getescalation', getUser, isAuthorized, async (req, res)=>{
     try {
-        let scheduleId = req.params.scheduleId;
-        let response = await ScheduleService.getEscalations(scheduleId);
+        const scheduleId = req.params.scheduleId;
+        const response = await ScheduleService.getEscalations(scheduleId);
         return sendListResponse(req, res, response.escalations, response.count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -111,15 +111,15 @@ router.get('/:projectId/:scheduleId/getescalation', getUser, isAuthorized, async
 
 router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUserAdmin, async(req, res)=>{
     try {
-        let userId = req.user ? req.user.id : null;
-        let scheduleId = req.params.scheduleId;
-        let escalations = [];
+        const userId = req.user ? req.user.id : null;
+        const scheduleId = req.params.scheduleId;
+        const escalations = [];
         let escalationPolicyCount = 0;
-        for(let value of req.body) {
+        for(const value of req.body) {
 
             escalationPolicyCount ++;
-            let storagevalue = {};
-            let tempTeam = [];
+            const storagevalue = {};
+            const tempTeam = [];
 
             
             if(!value.email && !value.call && !value.sms){
@@ -212,9 +212,9 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
 
             if(value._id) storagevalue._id = value._id;
 
-            for (let team  of value.teams) {
-                let rotationData = {};
-                let teamMembers = [];
+            for (const team  of value.teams) {
+                const rotationData = {};
+                const teamMembers = [];
                 if (!team.teamMembers || team.teamMembers.length === 0) {
                     return sendErrorResponse(req, res, {
                         code: 400,
@@ -222,8 +222,8 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                     });
                 }
 
-                for (let teamMember of team.teamMembers) {
-                    let data = {};
+                for (const teamMember of team.teamMembers) {
+                    const data = {};
                     if (!teamMember.userId) {
                         
                         return sendErrorResponse(req, res, {
@@ -261,7 +261,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
             storagevalue.teams = tempTeam;
             escalations.push(storagevalue);
         }
-        let escalation = await ScheduleService.addEscalation(scheduleId, escalations, userId);
+        const escalation = await ScheduleService.addEscalation(scheduleId, escalations, userId);
         return sendItemResponse(req, res, escalation);
     } catch (error) {
         return sendErrorResponse(req, res, error);

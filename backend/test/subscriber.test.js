@@ -6,7 +6,7 @@ let chai = require('chai');
 chai.use(require('chai-http'));
 let app = require('../server');
 let request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
+let { createUser } = require('./utils/userSignUp');
 
 let UserService = require('../backend/services/userService');
 let StatusPageService = require('../backend/services/statusPageService');
@@ -14,9 +14,9 @@ let ProjectService = require('../backend/services/projectService');
 let NotificationService = require('../backend/services/notificationService');
 let SubscriberService = require('../backend/services/subscriberService');
 let MonitorService = require('../backend/services/monitorService');
-var AirtableService = require('../backend/services/airtableService');
+let AirtableService = require('../backend/services/airtableService');
 
-var VerificationTokenModel = require('../backend/models/verificationToken');
+let VerificationTokenModel = require('../backend/models/verificationToken');
 
 let projectId, userId, airtableId, monitorId, token, subscriberId, statusPageId, monitor = {
     name: 'New Monitor',
@@ -41,7 +41,7 @@ describe('Subscriber API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
+                        let authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
                             expect(res.body.name).to.be.equal(monitor.name);
@@ -131,7 +131,7 @@ describe('Subscriber API', function () {
     });
 
     it('should delete a subscriber', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.delete(`/subscriber/${projectId}/${subscriberId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             done();

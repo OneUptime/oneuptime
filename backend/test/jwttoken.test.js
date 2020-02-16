@@ -1,20 +1,20 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+let expect = require('chai').expect;
+let userData = require('./data/user');
+let chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+let app = require('../server');
 
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var AirtableService = require('../backend/services/airtableService');
+let UserService = require('../backend/services/userService');
+let ProjectService = require('../backend/services/projectService');
+let AirtableService = require('../backend/services/airtableService');
 
-var VerificationTokenModel = require('../backend/models/verificationToken');
+let VerificationTokenModel = require('../backend/models/verificationToken');
 
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
+let request = chai.request.agent(app);
+let { createUser } = require('./utils/userSignUp');
 
-var token, projectId, refreshToken, userId, airtableId;
+let token, projectId, refreshToken, userId, airtableId;
 
 describe('Jwt Token API', function () {
     this.timeout(20000);
@@ -49,7 +49,7 @@ describe('Jwt Token API', function () {
     });
 
     it('should get new access and refresh token when provided a valid jwtRefreshToken', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post('/token/new').set('Authorization', authorization)
             .send({ refreshToken: refreshToken }).end(function (err, res) {
                 expect(res).to.have.status(200);

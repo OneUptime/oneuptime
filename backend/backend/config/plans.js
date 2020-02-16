@@ -62,13 +62,13 @@ module.exports = {
     },
 
     getPlanById(id) {
-        let plans = this.getPlans();
+        const plans = this.getPlans();
         if(id) return plans.find(plan => plan.planId === id) || null;
         else return null;
     },
 
     getPlanByExtraUserId(id) {
-        let plans = this.getPlans();
+        const plans = this.getPlans();
         if(id) return plans.find(plan => plan.extraUserPlanId === id) || null;
         else return null;
     }

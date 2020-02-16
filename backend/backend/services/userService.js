@@ -13,7 +13,7 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            var users = await UserModel.find(query)
+            const users = await UserModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -26,7 +26,7 @@ module.exports = {
 
     create: async function (data) {
         try {
-            var userModel = new UserModel();
+            const userModel = new UserModel();
             userModel.name = data.name || null;
             userModel.email = data.email || null;
             userModel.password = data.password || null;
@@ -51,7 +51,7 @@ module.exports = {
             userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
             userModel.otpauth_url = data.otpauth_url || null;
 
-            var user = await userModel.save();
+            const user = await userModel.save();
             return user;
         } catch (error) {
             ErrorService.log('userService.create', error);
@@ -66,7 +66,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var count = await UserModel.count(query);
+            const count = await UserModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('userService.countBy', error);
@@ -81,7 +81,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var user = await UserModel.findOneAndUpdate(query, {
+            const user = await UserModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -103,7 +103,7 @@ module.exports = {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            var user = await UserModel.findOne(query)
+            const user = await UserModel.findOne(query)
                 .sort([['createdAt', -1]]);
             return user;
         } catch (error) {
@@ -129,7 +129,7 @@ module.exports = {
         }
 
         try {
-            var updatedUser = await UserModel.findOneAndUpdate(query, {
+            const updatedUser = await UserModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
@@ -148,7 +148,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await UserModel.updateMany(query, {
+            let updatedData = await UserModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -167,7 +167,7 @@ module.exports = {
             type = type.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
             data[type] = { show: false };
 
-            var tutorial = await UserModel.findOneAndUpdate(query, { $set: { tutorial: data } }, { new: true });
+            const tutorial = await UserModel.findOneAndUpdate(query, { $set: { tutorial: data } }, { new: true });
             return tutorial || null;
         } catch (error) {
             ErrorService.log('userService.closeTutorialBy', error);
@@ -178,13 +178,13 @@ module.exports = {
     sendToken: async function (user, email) {
         try {
             const _this = this;
-            var verificationTokenModel = new VerificationTokenModel({
+            const verificationTokenModel = new VerificationTokenModel({
                 userId: user._id,
                 token: crypto.randomBytes(16).toString('hex')
             });
-            var verificationToken = await verificationTokenModel.save();
+            const verificationToken = await verificationTokenModel.save();
             if (verificationToken) {
-                var verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
+                const verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
                 MailService.sendVerifyEmail(verificationTokenURL, user.name, email);
                 if (email !== user.email) {
                     _this.updateOneBy({ _id: user._id }, { tempEmail: email });
@@ -202,31 +202,31 @@ module.exports = {
     //Returns: promise.
     signup: async function (data) {
         try {
-            var _this = this;
-            var email = data.email;
-            var stripePlanId = data.planId;
-            var paymentIntent = data.paymentIntent;
+            const _this = this;
+            const email = data.email;
+            const stripePlanId = data.planId;
+            const paymentIntent = data.paymentIntent;
 
             if (util.isEmailValid(email)) {
-                var user = await _this.findOneBy({ email: email });
+                let user = await _this.findOneBy({ email: email });
 
                 if (user) {
-                    let error = new Error('User already exists.');
+                    const error = new Error('User already exists.');
                     error.code = 400;
                     ErrorService.log('userService.signup', error);
                     throw error;
                 } else {
                     // Check here is the payment intent is successfully paid. If yes then create the customer else not.
-                    var processedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
+                    const processedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
                     if (processedPaymentIntent.status !== 'succeeded') {
-                        let error = new Error('Unsuccessful attempt to charge card');
+                        const error = new Error('Unsuccessful attempt to charge card');
                         error.code = 400;
                         ErrorService.log('PaymentService.checkPaymentIntent', error);
                         throw error;
                     }
-                    var customerId = processedPaymentIntent.customer;
+                    const customerId = processedPaymentIntent.customer;
 
-                    var hash = await bcrypt.hash(data.password, constants.saltRounds);
+                    const hash = await bcrypt.hash(data.password, constants.saltRounds);
 
                     data.password = hash;
                     // creating jwt refresh token
@@ -234,8 +234,8 @@ module.exports = {
                     //save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
 
-                    let createdAt = new Date(user.createdAt).toISOString().split('T', 1);
-                    var record = await AirtableService.logUser({
+                    const createdAt = new Date(user.createdAt).toISOString().split('T', 1);
+                    const record = await AirtableService.logUser({
                         name: data.name,
                         email: data.email,
                         phone: data.companyPhoneNumber,
@@ -248,10 +248,10 @@ module.exports = {
 
                     //update customer Id
                     user = await _this.updateOneBy({ _id: user._id }, { stripeCustomerId: customerId });
-                    var subscription = await PaymentService.subscribePlan(stripePlanId, customerId, data.coupon);
+                    const subscription = await PaymentService.subscribePlan(stripePlanId, customerId, data.coupon);
 
-                    var projectName = 'Unnamed Project';
-                    var projectData = {
+                    const projectName = 'Unnamed Project';
+                    const projectData = {
                         name: projectName,
                         userId: user._id,
                         stripePlanId: stripePlanId,
@@ -264,7 +264,7 @@ module.exports = {
                     return user;
                 }
             } else {
-                let error = new Error('Email is not in valid format.');
+                const error = new Error('Email is not in valid format.');
                 error.code = 400;
                 ErrorService.log('userService.signup', error);
                 throw error;
@@ -276,20 +276,19 @@ module.exports = {
     },
     getUserIpLocation: async function (clientIP) {
         try {
-            var ipLocation;
-            ipLocation = await iplocation(clientIP);
+            const ipLocation = await iplocation(clientIP);
             return ipLocation;
         } catch (error) {
-            ipLocation = {};
+            return {};
         }
     },
 
     generateUserBackupCodes: async function(secretKey, numberOfCodes) {
         hotp.options = {digits: 8};
-        let backupCodes = [];
+        const backupCodes = [];
 
         for (let i = 0; i < numberOfCodes; i++) {
-            let token = hotp.generate(secretKey, i);
+            const token = hotp.generate(secretKey, i);
             backupCodes.push({code: token, counter: i});
         }
         return backupCodes;
@@ -297,11 +296,11 @@ module.exports = {
 
     verifyUserBackupCode: async function(code, secretKey, counter) {
         try {
-            var _this = this;
+            const _this = this;
             hotp.options = {digits: 8};
             const isValid = hotp.check(code, secretKey, counter);
             if (isValid) {
-                var user = await _this.findOneBy({twoFactorSecretCode:secretKey});
+                const user = await _this.findOneBy({twoFactorSecretCode:secretKey});
                 return user;
             }
             return isValid;
@@ -313,9 +312,9 @@ module.exports = {
 
     generateTwoFactorSecret: async function(userId) {
         try {
-            var _this = this;
-            var user = await _this.findOneBy({_id:userId});
-            var secretCode = speakeasy.generateSecret({ length: 20, name: `Fyipe (${user.email})` });
+            const _this = this;
+            const user = await _this.findOneBy({_id:userId});
+            const secretCode = speakeasy.generateSecret({ length: 20, name: `Fyipe (${user.email})` });
             const backupCodes = await _this.generateUserBackupCodes(secretCode.base32, 8);
             const data = {
                 twoFactorSecretCode: secretCode.base32,
@@ -332,9 +331,9 @@ module.exports = {
 
     verifyAuthToken: async function(token, userId) {
         try {
-            var _this = this;
-            let user = await _this.findOneBy({_id:userId});
-            var isValidCode = speakeasy.totp.verify({
+            const _this = this;
+            const user = await _this.findOneBy({_id:userId});
+            const isValidCode = speakeasy.totp.verify({
                 secret: user.twoFactorSecretCode,
                 encoding: 'base32',
                 token: token,
@@ -357,55 +356,55 @@ module.exports = {
     //Returns: promise.
     login: async function (email, password, clientIP) {
         try {
-            var _this = this;
+            const _this = this;
             if (util.isEmailValid(email)) {
                 // find user if present in db.
-                var user = await _this.findOneBy({ email: email });
+                let user = await _this.findOneBy({ email: email });
 
                 if (!user) {
-                    let error = new Error('User does not exist.');
+                    const error = new Error('User does not exist.');
                     error.code = 400;
                     ErrorService.log('userService.login', error);
                     throw error;
                 } else {
-                    var ipLocation = await _this.getUserIpLocation(clientIP);
+                    const ipLocation = await _this.getUserIpLocation(clientIP);
                     await LoginIPLog.create({ userId: user._id, ipLocation });
 
                     if (user.paymentFailedDate) {
                         // calculate number of days the subscription renewal has failed.
-                        var oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
-                        var daysAfterPaymentFailed = Math.round((new Date - user.paymentFailedDate) / oneDayInMilliSeconds);
+                        const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
+                        const daysAfterPaymentFailed = Math.round((new Date - user.paymentFailedDate) / oneDayInMilliSeconds);
 
                         if (daysAfterPaymentFailed >= 15) {
                             user = await _this.updateOneBy({ _id: user._id }, { disabled: true });
 
-                            let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
+                            const error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
                             error.code = 400;
                             ErrorService.log('userService.login', error);
                             throw error;
                         }
                     }
-                    var encryptedPassword = user.password;
+                    const encryptedPassword = user.password;
 
                     if (user.disabled) {
-                        let error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
+                        const error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
                         error.code = 400;
                         ErrorService.log('userService.login', error);
                         throw error;
                     }
                     if (!user.isVerified && NODE_ENV !== 'development') {
-                        let error = new Error('Verify your email first.');
+                        const error = new Error('Verify your email first.');
                         error.code = 401;
                         ErrorService.log('userService.login', error);
                         throw error;
                     }
                     if (!encryptedPassword) {
-                        let error = new Error('Your account does not exist. Please sign up.');
+                        const error = new Error('Your account does not exist. Please sign up.');
                         error.code = 400;
                         ErrorService.log('userService.login', error);
                         throw error;
                     } else {
-                        var res = await bcrypt.compare(password, encryptedPassword);
+                        const res = await bcrypt.compare(password, encryptedPassword);
                         if (user.twoFactorAuthEnabled) {
                             return {message: 'Login with 2FA token', email};
                         }
@@ -413,7 +412,7 @@ module.exports = {
                         if (res) {
                             return user;
                         } else {
-                            let error = new Error('Password is incorrect.');
+                            const error = new Error('Password is incorrect.');
                             error.code = 400;
                             ErrorService.log('userService.login', error);
                             throw error;
@@ -421,7 +420,7 @@ module.exports = {
                     }
                 }
             } else {
-                let error = new Error('Email is not in valid format.');
+                const error = new Error('Email is not in valid format.');
                 error.code = 400;
                 ErrorService.log('userService.login', error);
                 throw error;
@@ -438,18 +437,18 @@ module.exports = {
     //Returns: promise.
     forgotPassword: async function (email) {
         try {
-            var _this = this;
+            const _this = this;
             if (util.isEmailValid(email)) {
-                var user = await this.findOneBy({ email: email });
+                let user = await this.findOneBy({ email: email });
 
                 if (!user) {
-                    let error = new Error('User does not exist.');
+                    const error = new Error('User does not exist.');
                     error.code = 400;
                     ErrorService.log('userService.forgotPassword', error);
                     throw error;
                 } else {
-                    var buf = await crypto.randomBytes(20);
-                    var token = buf.toString('hex');
+                    const buf = await crypto.randomBytes(20);
+                    const token = buf.toString('hex');
 
                     //update a user.
                     user = await _this.updateOneBy({
@@ -462,7 +461,7 @@ module.exports = {
                     return user;
                 }
             } else {
-                let error = new Error('Email is not in valid format.');
+                const error = new Error('Email is not in valid format.');
                 error.code = 400;
                 ErrorService.log('userService.forgotPassword', error);
                 throw error;
@@ -480,8 +479,8 @@ module.exports = {
     //Returns: promise.
     resetPassword: async function (password, token) {
         try {
-            var _this = this;
-            var user = await _this.findOneBy({
+            const _this = this;
+            let user = await _this.findOneBy({
                 resetPasswordToken: token,
                 resetPasswordExpires: {
                     $gt: Date.now()
@@ -491,7 +490,7 @@ module.exports = {
             if (!user) {
                 return null;
             } else {
-                var hash = await bcrypt.hash(password, constants.saltRounds);
+                const hash = await bcrypt.hash(password, constants.saltRounds);
 
                 //update a user.
                 user = await _this.updateOneBy({
@@ -516,23 +515,23 @@ module.exports = {
     //Returns: promise.
     getNewToken: async function (refreshToken) {
         try {
-            var _this = this;
-            var user = await _this.findOneBy({ jwtRefreshToken: refreshToken });
+            const _this = this;
+            let user = await _this.findOneBy({ jwtRefreshToken: refreshToken });
 
             if (!user) {
-                let error = new Error('Invalid Refresh Token');
+                const error = new Error('Invalid Refresh Token');
                 error.code = 400;
                 ErrorService.log('userService.getNewToken', error);
                 throw error;
             } else {
-                var userObj = { id: user._id };
+                const userObj = { id: user._id };
 
-                var accessToken = `${jwt.sign(userObj, jwtKey.jwtSecretKey, { expiresIn: 86400 })}`;
-                var jwtRefreshToken = randToken.uid(256);
+                const accessToken = `${jwt.sign(userObj, jwtKey.jwtSecretKey, { expiresIn: 86400 })}`;
+                const jwtRefreshToken = randToken.uid(256);
 
                 user = await _this.updateOneBy({ _id: user._id }, { jwtRefreshToken: jwtRefreshToken });
 
-                var token = {
+                const token = {
                     accessToken: accessToken,
                     refreshToken: refreshToken
                 };
@@ -547,22 +546,22 @@ module.exports = {
 
     changePassword: async function (data) {
         try {
-            var _this = this;
-            var currentPassword = data.currentPassword;
-            var user = await _this.findOneBy({ _id: data._id });
-            var encryptedPassword = user.password;
+            const _this = this;
+            const currentPassword = data.currentPassword;
+            let user = await _this.findOneBy({ _id: data._id });
+            const encryptedPassword = user.password;
 
-            var check = await bcrypt.compare(currentPassword, encryptedPassword);
+            const check = await bcrypt.compare(currentPassword, encryptedPassword);
             if (check) {
-                var newPassword = data.newPassword;
-                var hash = await bcrypt.hash(newPassword, constants.saltRounds);
+                const newPassword = data.newPassword;
+                const hash = await bcrypt.hash(newPassword, constants.saltRounds);
 
                 data.password = hash;
                 user = await _this.updateOneBy({ _id: data._id }, data);
 
                 return user;
             } else {
-                let error = new Error('Current Password is incorrect.');
+                const error = new Error('Current Password is incorrect.');
                 error.code = 400;
                 ErrorService.log('userService.changePassword', error);
                 throw error;
@@ -575,17 +574,17 @@ module.exports = {
     },
 
     getAllUsers: async function (skip, limit) {
-        var _this = this;
+        const _this = this;
         let users = await _this.findBy({ _id: { $ne: null }, deleted: { $ne: null } }, skip, limit);
         users = await Promise.all(users.map(async (user) => {
             // find user subprojects and parent projects
-            var userProjects = await ProjectService.findBy({ 'users.userId': user._id });
-            var parentProjectIds = [];
-            var projectIds = [];
+            let userProjects = await ProjectService.findBy({ 'users.userId': user._id });
+            let parentProjectIds = [];
+            let projectIds = [];
             if (userProjects.length > 0) {
-                var subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
+                const subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
                 parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
-                var projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
+                const projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
                 projectIds = projects.map(project => project._id);
             }
             userProjects = await ProjectService.findBy({ $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }] });
@@ -630,7 +629,7 @@ module.exports = {
 
     addNotes: async function (userId, notes) {
         const _this = this;
-        let adminNotes = (await _this.updateOneBy({
+        const adminNotes = (await _this.updateOneBy({
             _id: userId
         }, {
             adminNotes: notes
@@ -639,17 +638,17 @@ module.exports = {
     },
 
     searchUsers: async function (query, skip, limit) {
-        var _this = this;
+        const _this = this;
         let users = await _this.findBy(query, skip, limit);
         users = await Promise.all(users.map(async (user) => {
             // find user subprojects and parent projects
-            var userProjects = await ProjectService.findBy({ 'users.userId': user._id });
-            var parentProjectIds = [];
-            var projectIds = [];
+            let userProjects = await ProjectService.findBy({ 'users.userId': user._id });
+            let parentProjectIds = [];
+            let projectIds = [];
             if (userProjects.length > 0) {
-                var subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
+                const subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
                 parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
-                var projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
+                const projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
                 projectIds = projects.map(project => project._id);
             }
             userProjects = await ProjectService.findBy({ $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }] });
@@ -676,22 +675,22 @@ module.exports = {
 
 };
 
-var bcrypt = require('bcrypt');
-var constants = require('../config/constants.json');
-var UserModel = require('../models/user');
-var LoginIPLog = require('../models/loginIPLog');
-var util = require('./utilService.js');
-var randToken = require('rand-token');
-var PaymentService = require('./paymentService');
-var crypto = require('crypto');
-var ProjectService = require('./projectService');
-var ErrorService = require('./errorService');
-var jwt = require('jsonwebtoken');
-var iplocation = require('iplocation').default;
-var jwtKey = require('../config/keys');
-var { BACKEND_HOST, NODE_ENV } = process.env;
-var VerificationTokenModel = require('../models/verificationToken');
-var MailService = require('../services/mailService');
-var AirtableService = require('./airtableService');
-var speakeasy = require('speakeasy');
-var { hotp } = require('otplib');
+const bcrypt = require('bcrypt');
+const constants = require('../config/constants.json');
+const UserModel = require('../models/user');
+const LoginIPLog = require('../models/loginIPLog');
+const util = require('./utilService.js');
+const randToken = require('rand-token');
+const PaymentService = require('./paymentService');
+const crypto = require('crypto');
+const ProjectService = require('./projectService');
+const ErrorService = require('./errorService');
+const jwt = require('jsonwebtoken');
+const iplocation = require('iplocation').default;
+const jwtKey = require('../config/keys');
+const { BACKEND_HOST, NODE_ENV } = process.env;
+const VerificationTokenModel = require('../models/verificationToken');
+const MailService = require('../services/mailService');
+const AirtableService = require('./airtableService');
+const speakeasy = require('speakeasy');
+const { hotp } = require('otplib');

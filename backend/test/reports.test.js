@@ -4,19 +4,19 @@ const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-var moment = require('moment');
+let moment = require('moment');
 
 const request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
+let { createUser } = require('./utils/userSignUp');
 
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var IncidentService = require('../backend/services/incidentService');
-var MonitorService = require('../backend/services/monitorService');
-var NotificationService = require('../backend/services/notificationService');
-var AirtableService = require('../backend/services/airtableService');
+let UserService = require('../backend/services/userService');
+let ProjectService = require('../backend/services/projectService');
+let IncidentService = require('../backend/services/incidentService');
+let MonitorService = require('../backend/services/monitorService');
+let NotificationService = require('../backend/services/notificationService');
+let AirtableService = require('../backend/services/airtableService');
 
-var VerificationTokenModel = require('../backend/models/verificationToken');
+let VerificationTokenModel = require('../backend/models/verificationToken');
 
 let token, userId, airtableId, projectId, monitorId, monitor = {
     name: 'New Monitor',
@@ -45,7 +45,7 @@ describe('Reports API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
+                        let authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
                             done();

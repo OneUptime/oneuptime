@@ -1,7 +1,7 @@
 module.exports = {
     create: async function (data) {
         try {
-            var LogWeek = new MonitorLogByWeekModel();
+            const LogWeek = new MonitorLogByWeekModel();
 
             LogWeek.monitorId = data.monitorId;
             LogWeek.probeId = data.probeId;
@@ -26,7 +26,7 @@ module.exports = {
             LogWeek.maxMainTemp = data.mainTemp;
             LogWeek.intervalDate = data.intervalDate;
 
-            var savedLogWeek = await LogWeek.save();
+            const savedLogWeek = await LogWeek.save();
 
             return savedLogWeek;
         } catch (error) {
@@ -41,7 +41,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLogByWeek = await MonitorLogByWeekModel.findOneAndUpdate(query,
+            const monitorLogByWeek = await MonitorLogByWeekModel.findOneAndUpdate(query,
                 { $set: data },
                 {
                     new: true
@@ -72,7 +72,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLogsByWeek = await MonitorLogByWeekModel.find(query)
+            const monitorLogsByWeek = await MonitorLogByWeekModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -90,7 +90,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLog = await MonitorLogByWeekModel.findOne(query);
+            const monitorLog = await MonitorLogByWeekModel.findOne(query);
 
             return monitorLog;
         } catch (error) {
@@ -105,7 +105,7 @@ module.exports = {
                 query = {};
             }
 
-            var count = await MonitorLogByWeekModel.count(query);
+            const count = await MonitorLogByWeekModel.count(query);
 
             return count;
         } catch (error) {
@@ -115,5 +115,5 @@ module.exports = {
     }
 };
 
-var MonitorLogByWeekModel = require('../models/monitorLogByWeek');
-var ErrorService = require('../services/errorService');
+const MonitorLogByWeekModel = require('../models/monitorLogByWeek');
+const ErrorService = require('../services/errorService');

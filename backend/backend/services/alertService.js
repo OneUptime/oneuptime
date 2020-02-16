@@ -8,11 +8,11 @@ module.exports = {
 
     hasEnoughBalance: async function (projectId, alertPhoneNumber, userId, alertType) {
 
-        var project = await ProjectService.findOneBy({ _id: projectId });
-        var balance = project.balance;
-        var countryCode = alertPhoneNumber.split(' ')[0];
-        var countryType = getCountryType(countryCode);
-        var alertChargeAmount = getAlertChargeAmount(alertType, countryType);
+        const project = await ProjectService.findOneBy({ _id: projectId });
+        const balance = project.balance;
+        const countryCode = alertPhoneNumber.split(' ')[0];
+        const countryType = getCountryType(countryCode);
+        const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
         if (balance > alertChargeAmount.minimumBalance) {
             await PaymentService.chargeAlert(userId, projectId, alertChargeAmount.price);
             return true;
@@ -22,10 +22,10 @@ module.exports = {
     },
 
     doesPhoneNumberComplyWithHighRiskConfig: async function (projectId, alertPhoneNumber) {
-        var project = await ProjectService.findOneBy({ _id: projectId });
-        var alertOptions = project.alertOptions;
-        var countryCode = alertPhoneNumber.split(' ')[0];
-        var countryType = getCountryType(countryCode);
+        const project = await ProjectService.findOneBy({ _id: projectId });
+        const alertOptions = project.alertOptions;
+        const countryCode = alertPhoneNumber.split(' ')[0];
+        let countryType = getCountryType(countryCode);
         if (countryType === 'us') {
             countryType = 'billingUS';
         } else if (countryType === 'non-us') {
@@ -59,7 +59,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var alerts = await AlertModel.find(query)
+            const alerts = await AlertModel.find(query)
                 .sort(sort)
                 .limit(limit)
                 .skip(skip)
@@ -76,7 +76,7 @@ module.exports = {
 
     create: async function ({ projectId, monitorId, alertVia, userId, incidentId, onCallScheduleStatus, schedule, escalation, alertStatus, error, errorMessage }) {
         try {
-            var alert = new AlertModel();
+            const alert = new AlertModel();
             alert.projectId = projectId;
             alert.onCallScheduleStatus = onCallScheduleStatus;
             alert.schedule = schedule;
@@ -92,7 +92,7 @@ module.exports = {
                 alert.errorMessage = errorMessage;
             }
 
-            var savedAlert = await alert.save();
+            const savedAlert = await alert.save();
 
             return savedAlert;
         } catch (error) {
@@ -108,7 +108,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var count = await AlertModel.count(query);
+            const count = await AlertModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('alertService.countBy', error);
@@ -124,18 +124,19 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedAlert = await AlertModel.findOneAndUpdate(query,
+            const updatedAlert = await AlertModel.findOneAndUpdate(query,
                 {
                     $set: data
                 },
                 {
                     new: true
                 });
+            return updatedAlert;
         } catch (error) {
             ErrorService.log('AlertService.updateOneBy', error);
             throw error;
         }
-        return updatedAlert;
+
     },
 
     updateBy: async function (query, data) {
@@ -145,7 +146,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await AlertModel.updateMany(query, {
+            let updatedData = await AlertModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -163,7 +164,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var alerts = await AlertModel.findOneAndUpdate(query, {
+            const alerts = await AlertModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedAt: Date.now(),
@@ -182,13 +183,13 @@ module.exports = {
     sendCreatedIncident: async function (incident) {
         try {
             if (incident) {
-                var _this = this;
+                const _this = this;
 
-                var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+                const monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
 
-                var schedules = await ScheduleService.findBy({ monitorIds: monitorId });
+                const schedules = await ScheduleService.findBy({ monitorIds: monitorId });
 
-                for (var schedule of schedules) {
+                for (const schedule of schedules) {
                     _this.sendAlertsToTeamMembersInSchedule({ schedule, incident });
                 }
 
@@ -200,10 +201,10 @@ module.exports = {
     },
 
     sendAlertsToTeamMembersInSchedule: async function ({ schedule, incident }) {
-        var _this = this;
-        var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
-        var projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
-        var monitor = await MonitorService.findOneBy({ _id: monitorId });
+        const _this = this;
+        const monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+        const projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
+        const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
         if (!schedule || !incident) {
             return;
@@ -214,10 +215,10 @@ module.exports = {
             return;
         }
 
-        var callScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incident: incident._id, schedule: schedule } });
-        var onCallScheduleStatus = null;
-        var escalationId = null;
-        var currentEscalationStatus = null;
+        const callScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incident: incident._id, schedule: schedule } });
+        let onCallScheduleStatus = null;
+        let escalationId = null;
+        let currentEscalationStatus = null;
 
         if (callScheduleStatuses.length === 0) {
             //start with first ecalation policy, and then escalationPolicy will take care of others in escalation policy.  
@@ -249,12 +250,12 @@ module.exports = {
             escalationId = currentEscalationStatus.escalation._id;
         }
 
-        var shouldSendSMSReminder = false;
-        var shouldSendCallReminder = false;
-        var shouldSendEmailReminder = false;
+        let shouldSendSMSReminder = false;
+        let shouldSendCallReminder = false;
+        let shouldSendEmailReminder = false;
 
         //No escalation found in the database skip. 
-        var escalation = await EscalationService.findOneBy({ _id: escalationId });
+        const escalation = await EscalationService.findOneBy({ _id: escalationId });
 
         if (!escalation) {
             return;
@@ -272,28 +273,28 @@ module.exports = {
     },
 
     escalate: async function ({ schedule, incident }) {
-        var _this = this;
-        var callScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incident: incident._id, schedule: schedule._id } });
-        var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
-        var monitor = await MonitorService.findOneBy({ _id: monitorId });
+        const _this = this;
+        const callScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incident: incident._id, schedule: schedule._id } });
+        const monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+        const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
         if (callScheduleStatuses.length === 0) {
             return;
         }
 
-        var callScheduleStatus = callScheduleStatuses[0];
+        const callScheduleStatus = callScheduleStatuses[0];
 
-        var activeEscalation = callScheduleStatus.activeEscalation;
+        const activeEscalation = callScheduleStatus.activeEscalation;
 
         if (!schedule.escalationIds || schedule.escalationIds.length === 0) {
             return;
         }
 
-        var nextEscalationPolicy = null;
+        let nextEscalationPolicy = null;
 
 
         //find next escalationPolicy.
-        var found = false;
+        let found = false;
         for (let escalationId of schedule.escalationIds) {
 
             if (found) {
@@ -332,20 +333,20 @@ module.exports = {
     },
 
     sendAlertsToTeamMembersInEscalationPolicy: async function ({ escalation, incident, monitor, schedule, onCallScheduleStatus }) {
-        var _this = this;
-        var monitorId = monitor._id;
+        const _this = this;
+        const monitorId = monitor._id;
 
-        var projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
-        var project = await ProjectService.findOneBy({ _id: projectId });
+        const projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
+        const project = await ProjectService.findOneBy({ _id: projectId });
 
         escalation = await EscalationService.findOneBy({ _id: escalation._id });
 
         const activeTeam = escalation.activeTeam;
-        var currentEscalationStatus = onCallScheduleStatus.escalations[onCallScheduleStatus.escalations.length - 1];
+        const currentEscalationStatus = onCallScheduleStatus.escalations[onCallScheduleStatus.escalations.length - 1];
 
-        var shouldSendSMSReminder = escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
-        var shouldSendCallReminder = escalation.callReminders > currentEscalationStatus.callRemindersSent;
-        var shouldSendEmailReminder = escalation.emailReminders > currentEscalationStatus.emailRemindersSent;
+        const shouldSendSMSReminder = escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
+        const shouldSendCallReminder = escalation.callReminders > currentEscalationStatus.callRemindersSent;
+        const shouldSendEmailReminder = escalation.emailReminders > currentEscalationStatus.emailRemindersSent;
 
         if (shouldSendCallReminder) {
             currentEscalationStatus.callRemindersSent++;
@@ -366,9 +367,9 @@ module.exports = {
         onCallScheduleStatus.escalations[onCallScheduleStatus.escalations.length - 1] = currentEscalationStatus;
         await onCallScheduleStatus.save();
 
-        for (var teamMember of activeTeam.teamMembers) {
+        for (const teamMember of activeTeam.teamMembers) {
 
-            var isOnDuty = await _this.isOnDuty(teamMember.timezone, teamMember.startTime, teamMember.endTime);
+            const isOnDuty = await _this.isOnDuty(teamMember.timezone, teamMember.startTime, teamMember.endTime);
 
             if (!isOnDuty) {
 
@@ -386,7 +387,7 @@ module.exports = {
                 continue;
             }
 
-            let user = await UserService.findOneBy({ _id: teamMember.userId });
+            const user = await UserService.findOneBy({ _id: teamMember.userId });
 
             if (!user) {
                 continue;
@@ -408,15 +409,15 @@ module.exports = {
 
     sendEmailAlert: async function ({ incident, user, project, monitor, schedule, escalation, onCallScheduleStatus }) {
 
-        var _this = this;
+        const _this = this;
 
-        var date = new Date();
-        var monitorId = monitor._id;
-        let accessToken = UserService.getAccessToken({ userId: user._id, expiresIn: 12 * 60 * 60 * 1000 });
+        let date = new Date();
+        const monitorId = monitor._id;
+        const accessToken = UserService.getAccessToken({ userId: user._id, expiresIn: 12 * 60 * 60 * 1000 });
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
-        let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        let firstName = user.name;
+        const ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
+        const resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
+        const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
             date = moment(date).tz(user.timezone).format();
@@ -431,12 +432,12 @@ module.exports = {
     },
 
     sendCallAlert: async function ({ incident, user, project, monitor, schedule, escalation, onCallScheduleStatus }) {
-        var _this = this;
+        const _this = this;
         let alertStatus, alert, balanceStatus;
-        var date = new Date();
-        var monitorId = monitor._id;
-        let accessToken = UserService.getAccessToken({ userId: user._id, expiresIn: 12 * 60 * 60 * 1000 });
-        
+        const date = new Date();
+        const monitorId = monitor._id;
+        const accessToken = UserService.getAccessToken({ userId: user._id, expiresIn: 12 * 60 * 60 * 1000 });
+
         if (!project.alertEnable) {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Alerts Disabled' });
         }
@@ -445,9 +446,9 @@ module.exports = {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'No Phone Number' });
         }
 
-        let hasEnoughBalance = await _this.hasEnoughBalance(project._id, user.alertPhoneNumber, user._id, AlertType.Call);
+        const hasEnoughBalance = await _this.hasEnoughBalance(project._id, user.alertPhoneNumber, user._id, AlertType.Call);
         if (hasEnoughBalance) {
-            let alertStatus = await TwilioService.sendIncidentCreatedCall(date, monitor.name, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
+            const alertStatus = await TwilioService.sendIncidentCreatedCall(date, monitor.name, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
             if (alertStatus && alertStatus.code && alertStatus.code === 400) {
                 return await _this.create({ projectId: project._id, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Call, userId: user._id, incidentId: incident._id, alertStatus: null, error: true, errorMessage: alertStatus.message });
             }
@@ -463,11 +464,11 @@ module.exports = {
     },
 
     sendSMSAlert: async function ({ incident, user, project, monitor, schedule, escalation, onCallScheduleStatus }) {
-        var _this = this;
+        const _this = this;
         let alertStatus, alert, balanceStatus;
-        let projectId = project._id;
-        var date = new Date();
-        var monitorId = monitor._id;
+        const projectId = project._id;
+        const date = new Date();
+        const monitorId = monitor._id;
 
         if (!project.alertEnable) {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Alerts Disabled' });
@@ -477,8 +478,8 @@ module.exports = {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'No Phone Number' });
         }
 
-        let hasEnoughBalance = await _this.hasEnoughBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
-        let doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(incident.projectId, user.alertPhoneNumber);
+        const hasEnoughBalance = await _this.hasEnoughBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);
+        const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(incident.projectId, user.alertPhoneNumber);
         if (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig) {
             let alertStatus = await TwilioService.sendIncidentCreatedMessage(date, monitor.name, user.alertPhoneNumber, incident._id, user._id, user.name, incident.incidentType, projectId);
 
@@ -501,13 +502,13 @@ module.exports = {
 
     sendCreatedIncidentToSubscribers: async function (incident) {
         try {
-            let _this = this;
+            const _this = this;
             if (incident) {
-                let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
-                var subscribers = await SubscriberService.findBy({ monitorId: monitorId });
+                const monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+                const subscribers = await SubscriberService.findBy({ monitorId: monitorId });
                 subscribers.forEach(async (subscriber) => {
                     if (subscriber.statusPageId) {
-                        var enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
+                        const enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
                         if (enabledStatusPage) {
                             await _this.sendSubscriberAlert(subscriber, incident);
                         }
@@ -524,13 +525,13 @@ module.exports = {
 
     sendAcknowledgedIncidentToSubscribers: async function (incident) {
         try {
-            let _this = this;
+            const _this = this;
             if (incident) {
-                let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
-                var subscribers = await SubscriberService.findBy({ monitorId: monitorId });
+                const monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+                const subscribers = await SubscriberService.findBy({ monitorId: monitorId });
                 subscribers.forEach(async (subscriber) => {
                     if (subscriber.statusPageId) {
-                        var enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
+                        const enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
                         if (enabledStatusPage) {
                             await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Acknowldeged');
                         }
@@ -547,13 +548,13 @@ module.exports = {
 
     sendResolvedIncidentToSubscribers: async function (incident) {
         try {
-            let _this = this;
+            const _this = this;
             if (incident) {
-                let monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
-                var subscribers = await SubscriberService.findBy({ monitorId: monitorId });
+                const monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
+                const subscribers = await SubscriberService.findBy({ monitorId: monitorId });
                 subscribers.forEach(async (subscriber) => {
                     if (subscriber.statusPageId) {
-                        var enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
+                        const enabledStatusPage = await StatusPageService.findOneBy({ _id: subscriber.statusPageId, isSubscriberEnabled: true });
                         if (enabledStatusPage) {
                             await _this.sendSubscriberAlert(subscriber, incident, 'Subscriber Incident Resolved');
                         }
@@ -570,14 +571,14 @@ module.exports = {
 
     sendSubscriberAlert: async function (subscriber, incident, templateType = 'Subscriber Incident Created') {
         try {
-            let _this = this;
-            let date = new Date();
-            var project = await ProjectService.findOneBy({ _id: incident.projectId });
+            const _this = this;
+            const date = new Date();
+            const project = await ProjectService.findOneBy({ _id: incident.projectId });
             if (subscriber.alertVia == AlertType.Email) {
-                var emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType: templateType });
+                const emailTemplate = await EmailTemplateService.findOneBy({ projectId: incident.projectId, emailType: templateType });
                 const subscriberAlert = await SubscriberAlertService.create({ projectId: incident.projectId, incidentId: incident._id, subscriberId: subscriber._id, alertVia: AlertType.Email, alertStatus: 'Sent' });
                 const alertId = subscriberAlert._id;
-                var trackEmailAsViewedUrl = `${BACKEND_HOST}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
+                const trackEmailAsViewedUrl = `${BACKEND_HOST}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
                 if (templateType === 'Subscriber Incident Acknowldeged') {
                     await MailService.sendIncidentAcknowledgedMailToSubscriber(date, subscriber.monitorName, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, trackEmailAsViewedUrl);
                 } else if (templateType === 'Subscriber Incident Resolved') {
@@ -586,13 +587,13 @@ module.exports = {
                     await MailService.sendIncidentCreatedMailToSubscriber(date, subscriber.monitorName, subscriber.contactEmail, subscriber._id, subscriber.contactEmail, incident, project.name, emailTemplate, trackEmailAsViewedUrl);
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
-                var countryCode = await _this.mapCountryShortNameToCountryCode(subscriber.countryCode);
+                const countryCode = await _this.mapCountryShortNameToCountryCode(subscriber.countryCode);
                 let contactPhone = subscriber.contactPhone;
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
-                var sendResult;
-                var smsTemplate = await SmsTemplateService.findOneBy({ projectId: incident.projectId, smsType: templateType });
+                let sendResult;
+                const smsTemplate = await SmsTemplateService.findOneBy({ projectId: incident.projectId, smsType: templateType });
                 if (templateType === 'Subscriber Incident Acknowldeged') {
                     sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(date, subscriber.monitorName, contactPhone, smsTemplate, incident, project.name, incident.projectId);
                 } else if (templateType === 'Subscriber Incident Resolved') {
@@ -622,17 +623,17 @@ module.exports = {
             return true;
         }
 
-        var currentDate = new Date();
+        const currentDate = new Date();
         escalationStartTime = DateTime.changeDateTimezone(escalationStartTime, timezone);
         escalationEndTime = DateTime.changeDateTimezone(escalationEndTime, timezone);
         return DateTime.isInBetween(currentDate, escalationStartTime, escalationEndTime);
     },
 
     getSubProjectAlerts: async function (subProjectIds) {
-        var _this = this;
-        let subProjectAlerts = await Promise.all(subProjectIds.map(async (id) => {
-            let alerts = await _this.findBy({ query: { projectId: id }, skip: 0, limit: 10 });
-            let count = await _this.countBy({ projectId: id });
+        const _this = this;
+        const subProjectAlerts = await Promise.all(subProjectIds.map(async (id) => {
+            const alerts = await _this.findBy({ query: { projectId: id }, skip: 0, limit: 10 });
+            const count = await _this.countBy({ projectId: id });
             return { alerts, count, _id: id, skip: 0, limit: 10 };
         }));
         return subProjectAlerts;
@@ -681,11 +682,11 @@ module.exports = {
         }
     },
     getBalanceStatus: async function (projectId, alertPhoneNumber, alertType) {
-        var project = await ProjectService.findOneBy({ _id: projectId });
-        var balance = project.balance;
-        var countryCode = alertPhoneNumber.split(' ')[0];
-        var countryType = getCountryType(countryCode);
-        var alertChargeAmount = getAlertChargeAmount(alertType, countryType);
+        const project = await ProjectService.findOneBy({ _id: projectId });
+        const balance = project.balance;
+        const countryCode = alertPhoneNumber.split(' ')[0];
+        const countryType = getCountryType(countryCode);
+        const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
         return {
             chargeAmount: alertChargeAmount.price,
             closingBalance: balance
@@ -693,11 +694,11 @@ module.exports = {
     },
 
     checkPhoneAlertsLimit: async function (projectId) {
-        var _this = this;
-        var yesterday = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
-        let alerts = await _this.countBy({ projectId: projectId, alertVia: { $in: [AlertType.Call, AlertType.SMS] }, error: { $in: [null, undefined, false] }, createdAt: { $gte: yesterday } });
-        let smsCounts = await SmsCountService.countBy({ projectId: projectId, createdAt: { '$gte': yesterday } });
-        let project = await ProjectService.findOneBy({ _id: projectId });
+        const _this = this;
+        const yesterday = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
+        const alerts = await _this.countBy({ projectId: projectId, alertVia: { $in: [AlertType.Call, AlertType.SMS] }, error: { $in: [null, undefined, false] }, createdAt: { $gte: yesterday } });
+        const smsCounts = await SmsCountService.countBy({ projectId: projectId, createdAt: { '$gte': yesterday } });
+        const project = await ProjectService.findOneBy({ _id: projectId });
         let limit = project && project.alertLimit ? project.alertLimit : twilioAlertLimit;
         if (limit && typeof limit === 'string') {
             limit = parseInt(limit, 10);

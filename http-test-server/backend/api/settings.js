@@ -1,7 +1,7 @@
-var express = require('express');
-var http = require('http');
+let express = require('express');
+let http = require('http');
 
-var router = express.Router();
+let router = express.Router();
 
 router.get('/settings', function (req, res) {
     res.status(200).render('settings.ejs', {
@@ -11,7 +11,7 @@ router.get('/settings', function (req, res) {
 
 router.post('/api/settings', function (req, res) {
     const { responseTime, statusCode, responseType, body } = req.body;
-    var { httpServerResponse } = global;
+    let { httpServerResponse } = global;
     let newResponseType = {...httpServerResponse.responseType, currentType: responseType};
     httpServerResponse = {
         ...httpServerResponse,

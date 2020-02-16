@@ -1,26 +1,26 @@
 /* eslint-disable */
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+let expect = require('chai').expect;
+let userData = require('./data/user');
+let chai = require('chai');
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
-var app = require('../server');
+let app = require('../server');
 
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var MonitorService = require('../backend/services/monitorService');
-var MonitorCategoryService = require('../backend/services/monitorCategoryService');
-var NotificationService = require('../backend/services/notificationService');
-var AirtableService = require('../backend/services/airtableService');
+let request = chai.request.agent(app);
+let { createUser } = require('./utils/userSignUp');
+let UserService = require('../backend/services/userService');
+let ProjectService = require('../backend/services/projectService');
+let MonitorService = require('../backend/services/monitorService');
+let MonitorCategoryService = require('../backend/services/monitorCategoryService');
+let NotificationService = require('../backend/services/notificationService');
+let AirtableService = require('../backend/services/airtableService');
 
-var VerificationTokenModel = require('../backend/models/verificationToken');
+let VerificationTokenModel = require('../backend/models/verificationToken');
 
-var token, userId, airtableId, projectId, monitorId, monitorCategoryId;
+let token, userId, airtableId, projectId, monitorId, monitorCategoryId;
 
-var monitorCategory = {
+let monitorCategory = {
     monitorCategoryName: 'New Monitor Category',
 };
 
@@ -67,7 +67,7 @@ describe('Monitor API', function () {
     });
 
     it('should not create a monitor when the `name` field is null', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
             name: null,
             type: 'url',
@@ -79,7 +79,7 @@ describe('Monitor API', function () {
     });
 
     it('should not create a monitor when the `type` field is null', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 1',
             type: null,
@@ -91,7 +91,7 @@ describe('Monitor API', function () {
     });
 
     it('should not create a monitor when the `data` field is not valid', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 2',
             type: 'url',
@@ -103,7 +103,7 @@ describe('Monitor API', function () {
     });
 
     it('should create a new monitor when the correct data is given by an authenticated user', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 3',
             type: 'url',
@@ -118,7 +118,7 @@ describe('Monitor API', function () {
 
     it('should not create a new monitor with invalid call schedule', function (done) {
         let scheduleId = 20;
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 4',
             type: 'url',
@@ -132,7 +132,7 @@ describe('Monitor API', function () {
 
     it('should create a new monitor with valid call schedule', function (done) {
         let scheduleId;
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/schedule/${projectId}`).set('Authorization', authorization).send({
             name: 'Valid Schedule',
         }).end(function (err, res) {
@@ -161,7 +161,7 @@ describe('Monitor API', function () {
 
     it('should create two new monitors and add them to one call schedule', function (done) {
         let scheduleId;
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/schedule/${projectId}`).set('Authorization', authorization).send({
             name: 'Valid Schedule for two monitors',
         }).end(function (err, res) {
@@ -195,7 +195,7 @@ describe('Monitor API', function () {
     });
 
     it('should update a monitor when the correct data is given by an authenticated user', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.put(`/monitor/${projectId}/${monitorId}`).set('Authorization', authorization).send({
             name: 'Updated Monitor',
             type: 'url',
@@ -210,7 +210,7 @@ describe('Monitor API', function () {
     });
 
     it('should get monitors for an authenticated user by ProjectId', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.get(`/monitor/${projectId}/monitor`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -221,7 +221,7 @@ describe('Monitor API', function () {
     });
 
     it('should get a monitor for an authenticated user with valid monitorId', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.get(`/monitor/${projectId}/monitor/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -231,7 +231,7 @@ describe('Monitor API', function () {
     });
 
     it('should delete a monitor when monitorId is valid', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.delete(`/monitor/${projectId}/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             done();
@@ -256,7 +256,7 @@ describe('Monitor API with monitor Category', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
+                        let authorization = `Basic ${token}`;
                         request.post(`/monitorCategory/${projectId}`).set('Authorization', authorization).send(monitorCategory).end(function (err, res) {
                             monitorCategoryId = res.body._id;
                             done();
@@ -273,7 +273,7 @@ describe('Monitor API with monitor Category', function () {
     });
 
     it('should create a new monitor when the monitor Category is provided by an authenticated user', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 8',
             type: 'url',
@@ -290,13 +290,13 @@ describe('Monitor API with monitor Category', function () {
 });
 
 // eslint-disable-next-line no-unused-vars
-var subProjectId, newUserToken, subProjectMonitorId;
+let subProjectId, newUserToken, subProjectMonitorId;
 
 describe('Monitor API with Sub-Projects', function () {
     this.timeout(30000);
     before(function (done) {
         this.timeout(30000);
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         // create a subproject for parent project
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({ subProjectName: 'New SubProject' }
         ).end(function (err, res) {
@@ -311,7 +311,7 @@ describe('Monitor API with Sub-Projects', function () {
                             password: userData.newUser.password
                         }).end(function (err, res) {
                             newUserToken = res.body.tokens.jwtAccessToken;
-                            var authorization = `Basic ${token}`;
+                            let authorization = `Basic ${token}`;
                             // add second user to subproject
                             request.post(`/team/${subProjectId}`).set('Authorization', authorization).send({
                                 emails: userData.newUser.email,
@@ -340,7 +340,7 @@ describe('Monitor API with Sub-Projects', function () {
                         email: userData.anotherUser.email,
                         password: userData.anotherUser.password
                     }).end(function (err, res) {
-                        var authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                        let authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
                             name: 'New Monitor 9',
                             type: 'url',
@@ -357,7 +357,7 @@ describe('Monitor API with Sub-Projects', function () {
     });
 
     it('should not create a monitor for user that is not `admin` in project.', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        let authorization = `Basic ${newUserToken}`;
         request.post(`/monitor/${subProjectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 10',
             type: 'url',
@@ -370,7 +370,7 @@ describe('Monitor API with Sub-Projects', function () {
     });
 
     it('should create a monitor in parent project by valid admin.', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 11',
             type: 'url',
@@ -384,7 +384,7 @@ describe('Monitor API with Sub-Projects', function () {
     });
 
     it('should create a monitor in sub-project.', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${subProjectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 12',
             type: 'url',
@@ -398,7 +398,7 @@ describe('Monitor API with Sub-Projects', function () {
     });
 
     it('should get only sub-project\'s monitors for valid sub-project user', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        let authorization = `Basic ${newUserToken}`;
         request.get(`/monitor/${subProjectId}/monitor`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -411,7 +411,7 @@ describe('Monitor API with Sub-Projects', function () {
     });
 
     it('should get both project and sub-project monitors for valid parent project user.', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.get(`/monitor/${projectId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('array');
@@ -424,7 +424,7 @@ describe('Monitor API with Sub-Projects', function () {
     });
 
     it('should not delete a monitor for user that is not `admin` in sub-project.', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        let authorization = `Basic ${newUserToken}`;
         request.delete(`/monitor/${subProjectId}/${subProjectMonitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('You cannot edit the project because you\'re not an admin.');
@@ -433,7 +433,7 @@ describe('Monitor API with Sub-Projects', function () {
     });
 
     it('should delete sub-project monitor', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.delete(`/monitor/${subProjectId}/${subProjectMonitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             done();
@@ -441,7 +441,7 @@ describe('Monitor API with Sub-Projects', function () {
     });
 
     it('should delete project monitor', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.delete(`/monitor/${projectId}/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             done();
@@ -453,7 +453,7 @@ describe('Monitor API with Sub-Projects', function () {
 describe('Monitor API - Tests Project Seats With SubProjects', function () {
     this.timeout(30000);
 
-    var monitorDataArray = [
+    let monitorDataArray = [
         { name: 'New Monitor1', type: 'url', data: { url: 'http://www.tests.org' } },
         { name: 'New Monitor2', type: 'url', data: { url: 'http://www.tests.org' } },
         { name: 'New Monitor3', type: 'url', data: { url: 'http://www.tests.org' } },
@@ -468,7 +468,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
 
     before(async function () {
         this.timeout(30000);
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         await Promise.all(monitorDataArray.map(async (monitor) => {
             await request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor);
         }));
@@ -482,7 +482,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
 
     // project seats -> 2, monitors -> 10
     it('should not create a new monitor because project seats are filled up (project seats -> 2, monitors -> 10).', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 13',
             type: 'url',
@@ -496,7 +496,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
 
     // project seats -> 3, monitors -> 10
     it('should add a new seat (project seats -> 3, monitors -> 10).', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}/addseat`).set('Authorization', authorization).send({
             name: 'New Monitor 14',
             type: 'url',
@@ -510,7 +510,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
 
     // project seats -> 3, monitors -> 11
     it('should create a monitor (project seats -> 3, monitors -> 11).', function (done) {
-        var authorization = `Basic ${token}`;
+        let authorization = `Basic ${token}`;
         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
             name: 'New Monitor 15',
             type: 'url',
@@ -525,9 +525,9 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
 
     // project seats -> 2, monitors -> 10
     it('should delete project monitor (project seats -> 2, monitors -> 10)', async () => {
-        var authorization = `Basic ${token}`;
-        var res = await request.delete(`/monitor/${projectId}/${monitorId}`).set('Authorization', authorization);
-        var project = await ProjectService.findOneBy({ _id: projectId });
+        let authorization = `Basic ${token}`;
+        let res = await request.delete(`/monitor/${projectId}/${monitorId}`).set('Authorization', authorization);
+        let project = await ProjectService.findOneBy({ _id: projectId });
         expect(res).to.have.status(200);
         expect(parseInt(project.seats)).to.be.equal(2);
     });

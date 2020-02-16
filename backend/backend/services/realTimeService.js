@@ -7,8 +7,8 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: incident.projectId });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+            const project = await ProjectService.findOneBy({ _id: incident.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
             
             global.io.emit(`incidentCreated-${projectId}`, incident);
         } catch (error) {
@@ -19,8 +19,8 @@ module.exports = {
 
     updateIncidentNote: async (incident) => {
         try {
-            var project = await ProjectService.findOneBy({ _id: incident.projectId });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+            const project = await ProjectService.findOneBy({ _id: incident.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
             global.io.emit(`updateIncidentNote-${projectId}`, incident);
         } catch (error) {
@@ -37,8 +37,8 @@ module.exports = {
             }
 
 
-            var project = await ProjectService.findOneBy({ _id: monitor.projectId._id });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId._id;
+            const project = await ProjectService.findOneBy({ _id: monitor.projectId._id });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId._id;
 
             global.io.emit(`createMonitor-${projectId}`, monitor);
         } catch (error) {
@@ -54,8 +54,8 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
+            const project = await ProjectService.findOneBy({ _id: monitor.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
 
             global.io.emit(`deleteMonitor-${projectId}`, monitor);
         } catch (error) {
@@ -71,8 +71,8 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: incident.projectId });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+            const project = await ProjectService.findOneBy({ _id: incident.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
             global.io.emit(`incidentResolved-${projectId}`, incident);
         } catch (error) {
@@ -88,8 +88,8 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: incident.projectId });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+            const project = await ProjectService.findOneBy({ _id: incident.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
 
             global.io.emit(`incidentAcknowledged-${projectId}`, incident);
         } catch (error) {
@@ -100,8 +100,8 @@ module.exports = {
 
     statusPageEdit: async (statusPage) => {
         try {
-            var project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : statusPage.projectId._id;
+            const project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : statusPage.projectId._id;
 
             global.io.emit(`updateStatusPage-${projectId}`, statusPage);
         } catch (error) {
@@ -117,8 +117,8 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
+            const project = await ProjectService.findOneBy({ _id: monitor.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
 
             global.io.emit(`updateMonitor-${projectId}`, monitor);
         } catch (error) {
@@ -134,8 +134,8 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: projectId });
-            var parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            const parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
             global.io.emit(`updateMonitorLog-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
         } catch (error) {
@@ -151,8 +151,8 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: projectId });
-            var parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            const parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
             global.io.emit(`updateMonitorStatus-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
         } catch (error) {
@@ -168,9 +168,9 @@ module.exports = {
                 return;
             }
 
-            var monitor = await MonitorService.findOneBy({ _id: monitorId });
-            var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+            const monitor = await MonitorService.findOneBy({ _id: monitorId });
+            const project = await ProjectService.findOneBy({ _id: monitor.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
 
             global.io.emit(`updateProbe-${projectId}`, data);
         } catch (error) {
@@ -185,8 +185,8 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: data.projectId });
-            var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : data.projectId;
+            const project = await ProjectService.findOneBy({ _id: data.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : data.projectId;
 
             global.io.emit(`NewNotification-${projectId}`, data);
         } catch (error) {
@@ -201,7 +201,7 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             global.io.emit(`TeamMemberRoleUpdate-${projectId}`, data);
@@ -217,7 +217,7 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             global.io.emit(`TeamMemberCreate-${projectId}`, data);
@@ -233,7 +233,7 @@ module.exports = {
                 return;
             }
 
-            var project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({ _id: projectId });
 
             projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
             global.io.emit(`TeamMemberDelete-${projectId}`, data);
@@ -244,6 +244,6 @@ module.exports = {
     },
 };
 
-var ErrorService = require('./errorService');
-var ProjectService = require('./projectService');
-var MonitorService = require('./monitorService');
+const ErrorService = require('./errorService');
+const ProjectService = require('./projectService');
+const MonitorService = require('./monitorService');

@@ -1,7 +1,7 @@
 module.exports = {
     create: async function (data) {
         try {
-            let Log = new MonitorLogModel();
+            const Log = new MonitorLogModel();
 
             Log.monitorId = data.monitorId;
             Log.probeId = data.probeId;
@@ -20,25 +20,25 @@ module.exports = {
             Log.mainTemp = data.mainTemp;
             Log.maxTemp = data.maxTemp;
 
-            var savedLog = await Log.save();
+            const savedLog = await Log.save();
 
-            var now = new Date();
+            const now = new Date();
 
-            var intervalHourDate = moment(now).format('MMM Do YYYY, h A');
-            var intervalDayDate = moment(now).format('MMM Do YYYY');
-            var intervalWeekDate = moment(now).format('wo [week of] YYYY');
+            const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
+            const intervalDayDate = moment(now).format('MMM Do YYYY');
+            const intervalWeekDate = moment(now).format('wo [week of] YYYY');
 
-            var logByHour = await MonitorLogByHourService.findOneBy({
+            const logByHour = await MonitorLogByHourService.findOneBy({
                 probeId: data.probeId,
                 monitorId: data.monitorId,
                 intervalDate: intervalHourDate
             });
-            var logByDay = await MonitorLogByDayService.findOneBy({
+            const logByDay = await MonitorLogByDayService.findOneBy({
                 probeId: data.probeId,
                 monitorId: data.monitorId,
                 intervalDate: intervalDayDate
             });
-            var logByWeek = await MonitorLogByWeekService.findOneBy({
+            const logByWeek = await MonitorLogByWeekService.findOneBy({
                 probeId: data.probeId,
                 monitorId: data.monitorId,
                 intervalDate: intervalWeekDate
@@ -101,7 +101,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLog = await MonitorLogModel.findOneAndUpdate(query,
+            const monitorLog = await MonitorLogModel.findOneAndUpdate(query,
                 { $set: data },
                 {
                     new: true
@@ -132,7 +132,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLogs = await MonitorLogModel.find(query)
+            const monitorLogs = await MonitorLogModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -151,7 +151,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLog = await MonitorLogModel.findOne(query)
+            const monitorLog = await MonitorLogModel.findOne(query)
                 .populate('probeId');
 
             return monitorLog;
@@ -167,7 +167,7 @@ module.exports = {
                 query = {};
             }
 
-            var count = await MonitorLogModel.count(query);
+            const count = await MonitorLogModel.count(query);
 
             return count;
         } catch (error) {
@@ -178,7 +178,7 @@ module.exports = {
 
     async sendMonitorLog(data) {
         try {
-            var monitor = await MonitorService.findOneBy({ _id: data.monitorId });
+            const monitor = await MonitorService.findOneBy({ _id: data.monitorId });
             if (monitor) {
                 await RealTimeService.updateMonitorLog(data, monitor.projectId._id);
             }
@@ -189,12 +189,12 @@ module.exports = {
     }
 };
 
-var MonitorLogModel = require('../models/monitorLog');
-var MonitorLogByHourService = require('../services/monitorLogByHourService');
-var MonitorLogByDayService = require('../services/monitorLogByDayService');
-var MonitorLogByWeekService = require('../services/monitorLogByWeekService');
-var MonitorService = require('../services/monitorService');
-var RealTimeService = require('./realTimeService');
-var probeService = require('../services/probeService');
-var ErrorService = require('../services/errorService');
-var moment = require('moment');
+const MonitorLogModel = require('../models/monitorLog');
+const MonitorLogByHourService = require('../services/monitorLogByHourService');
+const MonitorLogByDayService = require('../services/monitorLogByDayService');
+const MonitorLogByWeekService = require('../services/monitorLogByWeekService');
+const MonitorService = require('../services/monitorService');
+const RealTimeService = require('./realTimeService');
+const probeService = require('../services/probeService');
+const ErrorService = require('../services/errorService');
+const moment = require('moment');

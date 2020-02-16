@@ -11,8 +11,8 @@ const {
 } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-let sendListResponse = require('../middlewares/response').sendListResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
 const router = express.Router();
 
 
@@ -25,10 +25,10 @@ const router = express.Router();
 router.get('/:projectId/active-members', getUser, isAuthorized, getSubProjects, async (req, res) => {
     try {
         const { startDate, endDate, skip, limit } = req.query;
-        let subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        const subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Call ReportService
-        let members = await ReportService.getMostActiveMembers(subProjectIds, startDate, endDate, skip, limit);
-        let count = members.count;
+        const members = await ReportService.getMostActiveMembers(subProjectIds, startDate, endDate, skip, limit);
+        const count = members.count;
         return sendListResponse(req, res, members.members, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -44,10 +44,10 @@ router.get('/:projectId/active-members', getUser, isAuthorized, getSubProjects, 
 router.get('/:projectId/active-monitors', getUser, isAuthorized, getSubProjects, async (req, res) => {
     try {
         const { startDate, endDate, skip, limit } = req.query;
-        let subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        const subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Call Reports Service
-        let monitors = await ReportService.getMostActiveMonitors(subProjectIds, startDate, endDate, skip, limit);
-        let count = monitors.count;
+        const monitors = await ReportService.getMostActiveMonitors(subProjectIds, startDate, endDate, skip, limit);
+        const count = monitors.count;
         return sendListResponse(req, res, monitors.monitors, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -63,9 +63,9 @@ router.get('/:projectId/active-monitors', getUser, isAuthorized, getSubProjects,
 router.get('/:projectId/average-resolved', getUser, isAuthorized, getSubProjects, async (req, res) => {
     try {
         const { startDate, endDate, filter } = req.query;
-        let subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        const subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Reports Service
-        let resolveTime = await ReportService.getAverageTimeBy(subProjectIds, startDate, endDate, filter);
+        const resolveTime = await ReportService.getAverageTimeBy(subProjectIds, startDate, endDate, filter);
         return sendListResponse(req, res, resolveTime);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -81,9 +81,9 @@ router.get('/:projectId/average-resolved', getUser, isAuthorized, getSubProjects
 router.get('/:projectId/incidents', getUser, isAuthorized, getSubProjects, async (req, res) => {
     try {
         const { startDate, endDate, filter } = req.query;
-        let subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        const subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
         // Reports Service
-        let incidents = await ReportService.getIncidentCountBy(subProjectIds, startDate, endDate, filter);
+        const incidents = await ReportService.getIncidentCountBy(subProjectIds, startDate, endDate, filter);
         return sendListResponse(req, res, incidents);
     } catch (error) {
         return sendErrorResponse(req, res, error);

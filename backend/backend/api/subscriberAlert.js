@@ -5,22 +5,22 @@
  */
 
 
-let express = require('express');
-let SubscriberAlertService = require('../services/subscriberAlertService');
-let path = require('path');
-let fs = require('fs');
+const express = require('express');
+const SubscriberAlertService = require('../services/subscriberAlertService');
+const path = require('path');
+const fs = require('fs');
 
-let router = express.Router();
+const router = express.Router();
 
 
-let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-let sendListResponse = require('../middlewares/response').sendListResponse;
-let sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId/:subscriberId', async (req, res)=>{
     
     try {
-        let data = req.body;
+        const data = req.body;
         data.projectId = req.params.projectId;
         data.subscriberId = req.params.subscriberId;
     
@@ -37,7 +37,7 @@ router.post('/:projectId/:subscriberId', async (req, res)=>{
                 message: 'AlertVia must be present'
             });
         }
-        let subscriberAlert = await SubscriberAlertService.create(data);
+        const subscriberAlert = await SubscriberAlertService.create(data);
         return sendItemResponse(req, res, subscriberAlert);
     } catch(error) {
         return sendErrorResponse(req, res, error);
@@ -53,8 +53,8 @@ router.get('/:projectId/:alertId/viewed', async function (req, res) {
         const projectId = req.params.projectId;
 
         await SubscriberAlertService.updateOneBy({ _id: alertId, projectId: projectId }, {alertStatus: 'Viewed'});
-        let filePath = path.join(__dirname, '..', '..', 'views', 'img', 'Fyipe-Logo.png');
-        let img = fs.readFileSync(filePath);
+        const filePath = path.join(__dirname, '..', '..', 'views', 'img', 'Fyipe-Logo.png');
+        const img = fs.readFileSync(filePath);
 
         res.set('Content-Type', 'image/png');
         res.status(200);
@@ -69,11 +69,11 @@ router.get('/:projectId/:alertId/viewed', async function (req, res) {
 // Returns: response subscriber alerts, error message
 router.get('/:projectId', async (req, res) => {
     try {
-        let projectId = req.params.projectId;
-        let skip = req.query.skip || 0;
-        let limit = req.query.limit || 10;
-        let subscriberAlerts = await SubscriberAlertService.findBy({projectId: projectId}, skip, limit);
-        let count = await SubscriberAlertService.countBy({projectId: projectId});
+        const projectId = req.params.projectId;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
+        const subscriberAlerts = await SubscriberAlertService.findBy({projectId: projectId}, skip, limit);
+        const count = await SubscriberAlertService.countBy({projectId: projectId});
         return sendListResponse(req, res, subscriberAlerts, count);
     } catch(error) {
         return sendErrorResponse(req, res, error);
@@ -85,12 +85,12 @@ router.get('/:projectId', async (req, res) => {
 // Returns: response subscriber alerts, error message
 router.get('/:projectId/incident/:incidentId', async (req, res) => {
     try {
-        let projectId = req.params.projectId;
-        let incidentId = req.params.incidentId;
-        let skip = req.query.skip || 0;
-        let limit = req.query.limit || 10;
-        let subscriberAlerts = await SubscriberAlertService.findBy({incidentId: incidentId, projectId: projectId }, skip, limit);
-        let count = await SubscriberAlertService.countBy({incidentId: incidentId, projectId: projectId});
+        const projectId = req.params.projectId;
+        const incidentId = req.params.incidentId;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
+        const subscriberAlerts = await SubscriberAlertService.findBy({incidentId: incidentId, projectId: projectId }, skip, limit);
+        const count = await SubscriberAlertService.countBy({incidentId: incidentId, projectId: projectId});
         return sendListResponse(req, res, subscriberAlerts, count);
     } catch(error) {
         return sendErrorResponse(req, res, error);

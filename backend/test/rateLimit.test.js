@@ -1,8 +1,8 @@
-var expect = require('chai').expect;
-var chai = require('chai');
+let expect = require('chai').expect;
+let chai = require('chai');
 chai.use(require('chai-http'));
-var requests = [], _;
-var app, request, sandbox;
+let requests = [], _;
+let app, request, sandbox;
 
 describe('API limit rate', function () {
 
@@ -23,13 +23,13 @@ describe('API limit rate', function () {
     this.timeout(10000);
 
     it('should get too many requests response after 3 requests', async function () {
-        for (var i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 3; i++) {
             requests.push(request.get('/'));
         }
         _ = await Promise.all(requests);
         try {
             if (_) {
-                var response = await request.get('/');
+                let response = await request.get('/');
                 expect(response.status).to.be.equal(429);
             }
         } catch (err) {
