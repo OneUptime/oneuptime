@@ -10,8 +10,8 @@ var cors = require('cors');
 
 var { NODE_ENV } = process.env;
 
-if (NODE_ENV === 'local' || NODE_ENV === 'development'){
-    require('custom-env').env(process.env.NODE_ENV);
+if (!NODE_ENV || NODE_ENV === 'local' || NODE_ENV === 'development'){
+    require('custom-env').env(process.env.NODE_ENV || 'development');
 }
 
 io.adapter(redisAdapter({
