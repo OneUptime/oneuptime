@@ -9,7 +9,7 @@ import {Validate} from  '../../config';
 import {FlatLoader} from '../basic/Loader.js';
 
 
-let errorStyle = {
+const errorStyle = {
     color:'red'
 }
 
@@ -127,8 +127,8 @@ class CompanyForm extends Component {
 
 CompanyForm.displayName = 'CompanyForm'
 
-let validate = function(values){
-	let error = {};
+const validate = function(values){
+	const error = {};
 
 	if(!Validate.text(values.companyName)){
 		error.companyName = 'Company name is required.'
@@ -154,7 +154,7 @@ let validate = function(values){
 }
 
 
-let companyForm = reduxForm({
+const companyForm = reduxForm({
 	form: 'CompanyForm',              // <------ same form name
 	destroyOnUnmount: false,         // <------ preserve form data
 	forceUnregisterOnUnmount: true,

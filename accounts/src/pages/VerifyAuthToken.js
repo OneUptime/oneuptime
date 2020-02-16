@@ -104,14 +104,14 @@ export class VerifyAuthToken extends Component {
 VerifyAuthToken.displayName = 'VerifyAuthToken';
 
 function validate(values) {
-	let errors = {};
+	const errors = {};
 	if (!values.token) {
 		errors.token = 'Please provide token.';
 	}
 	return errors;
 }
 
-let verifyAuthTokenForm = reduxForm({
+const verifyAuthTokenForm = reduxForm({
 	form: 'verifyAuthToken',
 	validate
 })(VerifyAuthToken);

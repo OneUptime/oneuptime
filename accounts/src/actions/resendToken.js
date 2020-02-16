@@ -27,7 +27,7 @@ export function resendTokenSuccess(data) {
 export function resendToken(values) {
 	return function(dispatch){
 
-		var promise = postApi('user/resend', values);
+		const promise = postApi('user/resend', values);
 		dispatch(resendTokenRequest(promise));
 
 		promise.then(function(data){
