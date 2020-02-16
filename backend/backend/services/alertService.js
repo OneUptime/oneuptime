@@ -204,7 +204,7 @@ module.exports = {
         var monitorId = incident.monitorId._id ? incident.monitorId._id : incident.monitorId;
         var projectId = incident.projectId._id ? incident.projectId._id : incident.projectId;
         var monitor = await MonitorService.findOneBy({ _id: monitorId });
-    
+
         if (!schedule || !incident) {
             return;
         }
@@ -311,7 +311,7 @@ module.exports = {
         }
 
         if (!nextEscalationPolicy || nextEscalationPolicy._id.toString() !== activeEscalation._id.toString()) {
-            callScheduleStatus.alertedEveryone = true; 
+            callScheduleStatus.alertedEveryone = true;
             await callScheduleStatus.save();
             return; //can't escalate anymore. 
         }
@@ -407,7 +407,7 @@ module.exports = {
     },
 
     sendEmailAlert: async function ({ incident, user, project, monitor, schedule, escalation, onCallScheduleStatus }) {
-        
+
         var _this = this;
 
         var date = new Date();
@@ -417,13 +417,13 @@ module.exports = {
         let ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         let resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
         let firstName = user.name;
-        
+
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
             date = moment(date).tz(user.timezone).format();
         }
 
         try {
-            await MailService.sendIncidentCreatedMail({incidentTime: date, monitorName: monitor.name, email: user.email, userId: user._id, firstName: firstName.split(' ')[0], projectId: incident.projectId, acknowledgeUrl: ack_url, resolveUrl: resolve_url, accessToken, incidentType: incident.incidentType, projectName: project.name});
+            await MailService.sendIncidentCreatedMail({ incidentTime: date, monitorName: monitor.name, email: user.email, userId: user._id, firstName: firstName.split(' ')[0], projectId: incident.projectId, acknowledgeUrl: ack_url, resolveUrl: resolve_url, accessToken, incidentType: incident.incidentType, projectName: project.name });
             return await _this.create({ projectId: incident.projectId, monitorId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Success' });
         } catch (e) {
             return await _this.create({ projectId: incident.projectId, monitorId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Cannot Send' });
@@ -436,9 +436,15 @@ module.exports = {
         var date = new Date();
         var monitorId = monitor._id;
         let accessToken = UserService.getAccessToken({ userId: user._id, expiresIn: 12 * 60 * 60 * 1000 });
+        
         if (!project.alertEnable) {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Alerts Disabled' });
         }
+
+        if (!user.alertPhoneNumber || user.alertPhoneNumber === "") {
+            return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'No Phone Number' });
+        }
+
         let hasEnoughBalance = await _this.hasEnoughBalance(project._id, user.alertPhoneNumber, user._id, AlertType.Call);
         if (hasEnoughBalance) {
             let alertStatus = await TwilioService.sendIncidentCreatedCall(date, monitor.name, user.alertPhoneNumber, accessToken, incident._id, incident.projectId, incident.incidentType);
@@ -465,6 +471,10 @@ module.exports = {
 
         if (!project.alertEnable) {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Alerts Disabled' });
+        }
+
+        if (!user.alertPhoneNumber || user.alertPhoneNumber === "") {
+            return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'No Phone Number' });
         }
 
         let hasEnoughBalance = await _this.hasEnoughBalance(incident.projectId, user.alertPhoneNumber, user._id, AlertType.SMS);

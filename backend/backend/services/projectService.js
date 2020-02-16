@@ -204,7 +204,7 @@ module.exports = {
             return updatedProject;
         }
         var chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, projectId, data.alertOptions);
-        if (chargeForBalance && chargeForBalance.paid) {
+        if (chargeForBalance) {
             var newBalance = rechargeToBalance + currentBalance;
             updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,

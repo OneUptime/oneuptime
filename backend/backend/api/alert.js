@@ -70,7 +70,7 @@ router.get('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
     }
 });
 
-// Mark alert as viewed
+// Mark alert as viewed. This is for Email.
 router.get('/:projectId/:alertId/viewed', async function (req, res) {
     try {
         const alertId = req.params.alertId;
