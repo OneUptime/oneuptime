@@ -37,9 +37,35 @@ export class MonitorDetail extends Component {
         this.state = {
             createIncidentModalId: uuid.v4(),
             startDate: moment().subtract(30, 'd'),
-            endDate: moment()
+            endDate: moment(),
+            now: Date.now(),
+            nowHandler: null
         }
         this.selectbutton = this.selectbutton.bind(this);
+    }
+
+    componentDidMount() {
+        this.setLastAlive();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.probes !== this.props.probes) {
+            if (this.state.nowHandler) {
+                clearTimeout(this.state.nowHandler);
+            }
+
+            this.setLastAlive();
+        }
+    }
+
+    setLastAlive = () => {
+        this.setState({ now: Date.now() });
+
+        let nowHandler = setTimeout(() => {
+            this.setState({ now: Date.now() });
+        }, 300000);
+
+        this.setState({ nowHandler });
     }
 
     handleDateChange = (startDate, endDate) => {
@@ -101,11 +127,19 @@ export class MonitorDetail extends Component {
         return string.replace('-', ' ');
     }
 
+    componentWillUnmount() {
+        if (this.state.nowHandler) {
+            clearTimeout(this.state.nowHandler);
+        }
+    }
+
     render() {
         const { createIncidentModalId, startDate, endDate } = this.state;
         const { monitor, create, monitorState, activeProbe, currentProject, probes, activeIncident } = this.props;
 
         const probe = monitor && probes && probes.length > 0 ? probes[probes.length < 2 ? 0 : activeProbe] : null;
+        const lastAlive = probe && probe.lastAlive ? probe.lastAlive : null;
+
         const { logs, statuses } = filterProbeData(monitor, probe, startDate, endDate);
 
         const status = getMonitorStatus(monitor.incidents, logs);
@@ -137,6 +171,8 @@ export class MonitorDetail extends Component {
                 break;
         }
 
+        const isCurrentlyNotMonitoring = (lastAlive && moment(this.state.now).diff(moment(lastAlive), 'seconds') >= 300) || !lastAlive;
+
         return (
             <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
                 <div className="db-Trends-header">
@@ -161,7 +197,7 @@ export class MonitorDetail extends Component {
                                     </ShouldRender>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                         {url && <span>
-                                            Currently Monitoring &nbsp;
+                                            Currently {isCurrentlyNotMonitoring && 'Not'} Monitoring &nbsp;
                                         <a href={url}>{url}</a>
                                         </span>}
                                     </span>
