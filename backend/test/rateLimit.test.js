@@ -1,7 +1,8 @@
-let expect = require('chai').expect;
-let chai = require('chai');
+const expect = require('chai').expect;
+const chai = require('chai');
 chai.use(require('chai-http'));
-let requests = [], _;
+const requests = [];
+let _;
 let app, request, sandbox;
 
 describe('API limit rate', function () {
@@ -29,7 +30,7 @@ describe('API limit rate', function () {
         _ = await Promise.all(requests);
         try {
             if (_) {
-                let response = await request.get('/');
+                const response = await request.get('/');
                 expect(response.status).to.be.equal(429);
             }
         } catch (err) {

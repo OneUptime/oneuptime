@@ -1,19 +1,19 @@
 /* eslint-disable linebreak-style */
 process.env.PORT = 3020;
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
-let app = require('../server');
+const app = require('../server');
 
-let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
-let UserService = require('../backend/services/userService');
-let ProjectService = require('../backend/services/projectService');
-let AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
 
-let VerificationTokenModel = require('../backend/models/verificationToken');
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
 let projectId, userId, airtableId, token;
 
@@ -23,7 +23,7 @@ describe('Tutorial API', function () {
     before(function (done) {
         this.timeout(40000);
         createUser(request, userData.user, function(err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -49,7 +49,7 @@ describe('Tutorial API', function () {
     });
 
     it('should get the user tutorial status', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get('/tutorial').set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -60,7 +60,7 @@ describe('Tutorial API', function () {
     });
 
     it('should update the user tutorial status', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put('/tutorial').set('Authorization', authorization).send({
             type: 'monitor'
         }).end(function (err, res) {

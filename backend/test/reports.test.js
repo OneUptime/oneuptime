@@ -4,28 +4,29 @@ const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-let moment = require('moment');
+const moment = require('moment');
 
 const request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
+const { createUser } = require('./utils/userSignUp');
 
-let UserService = require('../backend/services/userService');
-let ProjectService = require('../backend/services/projectService');
-let IncidentService = require('../backend/services/incidentService');
-let MonitorService = require('../backend/services/monitorService');
-let NotificationService = require('../backend/services/notificationService');
-let AirtableService = require('../backend/services/airtableService');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const IncidentService = require('../backend/services/incidentService');
+const MonitorService = require('../backend/services/monitorService');
+const NotificationService = require('../backend/services/notificationService');
+const AirtableService = require('../backend/services/airtableService');
 
-let VerificationTokenModel = require('../backend/models/verificationToken');
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, airtableId, projectId, monitorId, monitor = {
+let token, userId, airtableId, projectId, monitorId;
+const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
 };
-let endDate = moment().format('YYYY-MM-DD');
-let startDate = moment().subtract(7, 'd').format('YYYY-MM-DD');
-let filter = 'month';
+const endDate = moment().format('YYYY-MM-DD');
+const startDate = moment().subtract(7, 'd').format('YYYY-MM-DD');
+const filter = 'month';
 
 describe('Reports API', function () {
     this.timeout(20000);
@@ -33,7 +34,7 @@ describe('Reports API', function () {
     before(function (done) {
         this.timeout(40000);
         createUser(request, userData.user, function (err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -45,7 +46,7 @@ describe('Reports API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        let authorization = `Basic ${token}`;
+                        const authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
                             done();

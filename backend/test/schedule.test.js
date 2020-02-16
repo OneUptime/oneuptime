@@ -1,19 +1,19 @@
 process.env.PORT = 3020;
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-let app = require('../server');
+const app = require('../server');
 
-let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
 // let log = require('./data/log');
-let UserService = require('../backend/services/userService');
-let ProjectService = require('../backend/services/projectService');
-let ScheduleService = require('../backend/services/scheduleService');
-let AirtableService = require('../backend/services/airtableService');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const ScheduleService = require('../backend/services/scheduleService');
+const AirtableService = require('../backend/services/airtableService');
 
-let VerificationTokenModel = require('../backend/models/verificationToken');
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
 let token, projectId, scheduleId, userId, airtableId;
 
@@ -57,7 +57,7 @@ describe('Schedule API', function () {
     });
 
     it('should not create a schedule when the `name` field is null', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/schedule/${projectId}`).set('Authorization', authorization).send({
             name: null,
         }).end(function (err, res) {
@@ -67,7 +67,7 @@ describe('Schedule API', function () {
     });
 
     it('should create a new schedule when `name` is given by an authenticated user', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/schedule/${projectId}`).set('Authorization', authorization).send({
             name: 'Valid Schedule',
         }).end(function (err, res) {
@@ -79,7 +79,7 @@ describe('Schedule API', function () {
     });
 
     it('should get schedules for an authenticated user', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/schedule/${projectId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -90,7 +90,7 @@ describe('Schedule API', function () {
     });
 
     it('should rename a schedule when the `projectId` is valid and the `scheduleName` is given', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/schedule/${projectId}/${scheduleId}`).set('Authorization', authorization).send({
             name: 'Renamed Schedule',
         }).end(function (err, response) {
@@ -103,7 +103,7 @@ describe('Schedule API', function () {
     });
 
     it('should delete a schedule when the `projectId` and `scheduleId` is valid', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/schedule/${projectId}`).set('Authorization', authorization).send({
             name: 'Delete Schedule',
         }).end(function (err, res) {
@@ -123,7 +123,7 @@ describe('Schedule API with Sub-Projects', function () {
     this.timeout(30000);
     before(function (done) {
         this.timeout(30000);
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         // create a subproject for parent project
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({ subProjectName: 'New SubProject' }).end(function (err, res) {
             subProjectId = res.body[0]._id;
@@ -136,7 +136,7 @@ describe('Schedule API with Sub-Projects', function () {
                             password: userData.newUser.password
                         }).end(function (err, res) {
                             newUserToken = res.body.tokens.jwtAccessToken;
-                            let authorization = `Basic ${token}`;
+                            const authorization = `Basic ${token}`;
                             // add second user to subproject
                             request.post(`/team/${subProjectId}`).set('Authorization', authorization).send({
                                 emails: userData.newUser.email,
@@ -164,7 +164,7 @@ describe('Schedule API with Sub-Projects', function () {
                         email: userData.anotherUser.email,
                         password: userData.anotherUser.password
                     }).end(function (err, res) {
-                        let authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                        const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                         request.post(`/schedule/${projectId}`).set('Authorization', authorization).send({
                             name: 'Valid Schedule'
                         }).end(function (err, res) {
@@ -179,7 +179,7 @@ describe('Schedule API with Sub-Projects', function () {
     });
 
     it('should not create a schedule for user that is not `admin` in sub-project.', function (done) {
-        let authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.post(`/schedule/${subProjectId}`).set('Authorization', authorization).send({
             name: 'Valid Schedule'
         }).end(function (err, res) {
@@ -190,7 +190,7 @@ describe('Schedule API with Sub-Projects', function () {
     });
 
     it('should create a schedule in parent project by valid admin.', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/schedule/${projectId}`).set('Authorization', authorization).send({
             name: 'Valid Schedule'
         }).end(function (err, res) {
@@ -202,7 +202,7 @@ describe('Schedule API with Sub-Projects', function () {
     });
 
     it('should create a schedule in parent project by valid admin.', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/schedule/${subProjectId}`).set('Authorization', authorization).send({
             name: 'Valid Schedule'
         }).end(function (err, res) {
@@ -214,7 +214,7 @@ describe('Schedule API with Sub-Projects', function () {
     });
 
     it('should get only sub-project\'s schedules for valid sub-project user', function (done) {
-        let authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.get(`/schedule/${subProjectId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -226,7 +226,7 @@ describe('Schedule API with Sub-Projects', function () {
     });
 
     it('should get both project and sub-project schedule for valid parent project user.', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/schedule/${projectId}/schedules`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('array');
@@ -240,7 +240,7 @@ describe('Schedule API with Sub-Projects', function () {
     });
 
     it('should not delete a schedule for user that is not `admin` in sub-project.', function (done) {
-        let authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.delete(`/schedule/${subProjectId}/${subProjectScheduleId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('You cannot edit the project because you\'re not an admin.');
@@ -249,7 +249,7 @@ describe('Schedule API with Sub-Projects', function () {
     });
 
     it('should delete sub-project schedule', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/schedule/${subProjectId}/${subProjectScheduleId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             done();
@@ -257,7 +257,7 @@ describe('Schedule API with Sub-Projects', function () {
     });
 
     it('should delete project schedule', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/schedule/${projectId}/${scheduleId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             done();

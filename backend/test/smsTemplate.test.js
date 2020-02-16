@@ -1,20 +1,20 @@
 /* eslint-disable no-useless-escape */
 process.env.PORT = 3020;
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-let app = require('../server');
+const app = require('../server');
 
-let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
-let UserService = require('../backend/services/userService');
-let ProjectService = require('../backend/services/projectService');
-let SmsTemplateService = require('../backend/services/smsTemplateService');
-let NotificationService = require('../backend/services/notificationService');
-let AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const SmsTemplateService = require('../backend/services/smsTemplateService');
+const NotificationService = require('../backend/services/notificationService');
+const AirtableService = require('../backend/services/airtableService');
 
-let VerificationTokenModel = require('../backend/models/verificationToken');
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
 let token, projectId, userId, airtableId, smsTemplateId;
 
@@ -24,7 +24,7 @@ describe('SMS Template API', function () {
     before(function (done) {
         this.timeout(40000);
         createUser(request, userData.user, function(err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -53,7 +53,7 @@ describe('SMS Template API', function () {
 
     // 'post /:projectId'
     it('should create an sms template with valid data', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/smsTemplate/${projectId}`).set('Authorization', authorization).send({
             body: 'SMS Body',
             smsType: 'Subscriber Incident Created'
@@ -67,7 +67,7 @@ describe('SMS Template API', function () {
     });
 
     it('should sanitize dirty template data sent to endpoint', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/smsTemplate/${projectId}`).set('Authorization', authorization).send({
             body: '<img src=x onerror=alert(1)//>',
             smsType: 'Subscriber Incident Created'
@@ -79,7 +79,7 @@ describe('SMS Template API', function () {
     });
 
     it('should get an array of sms templates by valid projectId', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/smsTemplate/${projectId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('array');
@@ -88,7 +88,7 @@ describe('SMS Template API', function () {
     });
 
     it('should get an sms template by valid smsTemplateId', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -97,7 +97,7 @@ describe('SMS Template API', function () {
     });
 
     it('should update an sms template by valid smsTemplateId', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).send({
             body: 'New SMS Body'
         }).set('Authorization', authorization).end(function (err, res) {
@@ -110,7 +110,7 @@ describe('SMS Template API', function () {
     });
 
     it('should deleted an sms template', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             done();

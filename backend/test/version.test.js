@@ -1,11 +1,11 @@
 /* eslint-disable linebreak-style */
 process.env.PORT = 3020;
-let expect = require('chai').expect;
-let chai = require('chai');
+const expect = require('chai').expect;
+const chai = require('chai');
 chai.use(require('chai-http'));
-let app = require('../server');
+const app = require('../server');
 
-let request = chai.request.agent(app);
+const request = chai.request.agent(app);
 
 describe('Version API', function () {
     this.timeout(20000);

@@ -1,20 +1,20 @@
 process.env.PORT = 3020;
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-let app = require('../server');
+const app = require('../server');
 
-let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
-let UserService = require('../backend/services/userService');
-let ProjectService = require('../backend/services/projectService');
-let MonitorService = require('../backend/services/monitorService');
-let ZapierService = require('../backend/services/zapierService');
-let AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const MonitorService = require('../backend/services/monitorService');
+const ZapierService = require('../backend/services/zapierService');
+const AirtableService = require('../backend/services/airtableService');
 
-let VerificationTokenModel = require('../backend/models/verificationToken');
-let incidentData = require('./data/incident');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const incidentData = require('./data/incident');
 
 // eslint-disable-next-line
 let token, projectId, apiKey, userId, airtableId, zapierId, monitorId, incidentId, monitor = {
@@ -29,7 +29,7 @@ describe('Zapier API', function () {
     before(function (done) {
         this.timeout(40000);
         createUser(request, userData.user, function (err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             apiKey = project.apiKey;
@@ -42,10 +42,10 @@ describe('Zapier API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        let authorization = `Basic ${token}`;
+                        const authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
-                            let authorization = `Basic ${token}`;
+                            const authorization = `Basic ${token}`;
                             request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization).send(incidentData).end(function () {
                                 request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization).send(incidentData).end(function () {
                                     done();
@@ -69,7 +69,7 @@ describe('Zapier API', function () {
     });
 
     it('should not subscribe to zapier when missing apiKey in query', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -79,7 +79,7 @@ describe('Zapier API', function () {
     });
 
     it('should not subscribe to zapier when missing url as a parameter', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -91,7 +91,7 @@ describe('Zapier API', function () {
     });
 
     it('should not subscribe to zapier when missing type as a parameter', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -103,7 +103,7 @@ describe('Zapier API', function () {
     });
 
     it('should subscribe to zapier service', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -118,7 +118,7 @@ describe('Zapier API', function () {
     });
 
     it('should fail getting test and apiKey is missing in query', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/zapier/test?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -128,7 +128,7 @@ describe('Zapier API', function () {
     });
 
     it('should fail when getting test and projectId is missing in query', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/zapier/test?apiKey=${apiKey}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -166,7 +166,7 @@ describe('Zapier API', function () {
     });
 
     it('should get zapier incidents', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/zapier/incidents?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -176,7 +176,7 @@ describe('Zapier API', function () {
     });
 
     it('should fail getting resolved and apiKey is missing in query', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/zapier/incident/resolved?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -186,7 +186,7 @@ describe('Zapier API', function () {
     });
 
     it('should fail when getting resolved and projectId is missing in query', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/zapier/incident/resolved?apiKey=${apiKey}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -196,7 +196,7 @@ describe('Zapier API', function () {
     });
 
     it('should get zapier resolved', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/zapier/incident/resolved?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -206,7 +206,7 @@ describe('Zapier API', function () {
     });
 
     it('should fail getting acknowledged and apiKey is missing in query', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/zapier/incident/acknowledged?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -216,7 +216,7 @@ describe('Zapier API', function () {
     });
 
     it('should fail when getting acknowledged and projectId is missing in query', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/zapier/incident/acknowledged?apiKey=${apiKey}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {
@@ -226,7 +226,7 @@ describe('Zapier API', function () {
     });
 
     it('should get zapier acknowledged', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/zapier/incident/acknowledged?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send().end(function (err, res) {

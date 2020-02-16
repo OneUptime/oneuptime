@@ -1,25 +1,24 @@
 process.env.PORT = 3020;
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-let app = require('../server');
+const app = require('../server');
 
-let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
-let incidentData = require('./data/incident');
-let UserService = require('../backend/services/userService');
-let ProjectService = require('../backend/services/projectService');
-let IncidentService = require('../backend/services/incidentService');
-let MonitorService = require('../backend/services/monitorService');
-let NotificationService = require('../backend/services/notificationService');
-let AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const incidentData = require('./data/incident');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const IncidentService = require('../backend/services/incidentService');
+const MonitorService = require('../backend/services/monitorService');
+const NotificationService = require('../backend/services/notificationService');
+const AirtableService = require('../backend/services/airtableService');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const TwilioConfig = require('../backend/config/twilio');
 
-const baseApiUrl = process.env.BACKEND_HOST;
-let VerificationTokenModel = require('../backend/models/verificationToken');
-let TwilioConfig = require('../backend/config/twilio');
-
-let token, userId, airtableId, projectId, monitorId, incidentId, monitor = {
+let token, userId, airtableId, projectId, monitorId;
+const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -42,12 +41,12 @@ describe('Twilio API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        let authorization = `Basic ${token}`;
+                        const authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
                             request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization)
                                 .send(incidentData).end((err, res) => {
-                                    incidentId = res.body._id;
+                                   
                                     expect(res).to.have.status(200);
                                     expect(res.body).to.be.an('object');
                                     done();
@@ -71,7 +70,7 @@ describe('Twilio API', function () {
 
 
     it('should send verification sms code for adding alert phone number', function (done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/twilio/sms/sendVerificationToken?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({
