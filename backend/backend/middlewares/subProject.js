@@ -1,15 +1,15 @@
-var ProjectService = require('../services/projectService');
-var ErrorService = require('../services/errorService');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var url = require('url');
+const ProjectService = require('../services/projectService');
+const ErrorService = require('../services/errorService');
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const url = require('url');
 
 module.exports = {
     // Description: Get subprojects which user belongs to.
     getSubProjects: async function (req, res, next) {
         try {
-            let userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
+            const userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
 
-            let projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
+            const projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
 
             req.user.subProjects = null;
 
@@ -21,7 +21,7 @@ module.exports = {
                 });
             }
 
-            var query = userId === 'API' ?
+            const query = userId === 'API' ?
                 { $or: [{ parentProjectId: projectId }, { _id: projectId }] }
                 : {
                     $or: [
@@ -30,7 +30,7 @@ module.exports = {
                     ]
                 };
             // Fetch user subprojects
-            var subProjects = await ProjectService.findBy(query);
+            const subProjects = await ProjectService.findBy(query);
             if (subProjects.length > 0) {
                 req.user.subProjects = subProjects;
                 next();

@@ -4,10 +4,10 @@
  * 
  */
 
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 //This API is used to get the backend response if it's a consumer service deployed on Fyipe Cloud or an Enterprise Service deployed on Enterprise customer's cloud.
 router.get('/is-consumer-service', function (req, res) {

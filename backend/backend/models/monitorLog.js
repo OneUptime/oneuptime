@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var monitorLogSchema = new Schema({
+const Schema = mongoose.Schema;
+const monitorLogSchema = new Schema({
     monitorId: { type: String, ref: 'Monitor' }, // which monitor does this belong to.
     probeId: { type: String, ref: 'Probe' }, // which probe does this belong to.
     status: String, // status based on criteria.

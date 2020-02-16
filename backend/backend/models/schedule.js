@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var scheduleSchema = new Schema({
+const Schema = mongoose.Schema;
+const scheduleSchema = new Schema({
     name: String,
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', alias: 'project' }, //which project this schedule belongs to.
     createdById: { type: String, ref: 'User' },

@@ -12,7 +12,7 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            var integrations = await IntegrationModel.find(query)
+            const integrations = await IntegrationModel.find(query)
                 .sort([['createdAt, -1']])
                 .limit(limit)
                 .skip(skip)
@@ -29,8 +29,8 @@ module.exports = {
     // create a new integration
     create: async function (projectId, userId, data, integrationType, notificationOptions) {
         try {
-            let _this = this;
-            var integrationModel = new IntegrationModel(data);
+            const _this = this;
+            const integrationModel = new IntegrationModel(data);
             integrationModel.projectId = projectId;
             integrationModel.createdById = userId;
             integrationModel.data = data;
@@ -40,7 +40,7 @@ module.exports = {
                 integrationModel.notificationOptions = notificationOptions;
             }
 
-            var integration = await integrationModel.save();
+            let integration = await integrationModel.save();
             integration = await _this.findOneBy({ _id: integration._id });
             return integration;
         } catch (error) {
@@ -56,7 +56,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await IntegrationModel.count(query);
+            const count = await IntegrationModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('IntegrationService.countBy', error);
@@ -70,7 +70,7 @@ module.exports = {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            var integration = await IntegrationModel.findOneAndUpdate(query, {
+            const integration = await IntegrationModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -89,7 +89,7 @@ module.exports = {
             if (!query) query = {};
 
             if (query.deleted) query.deleted = false;
-            var integration = await IntegrationModel.findOne(query)
+            const integration = await IntegrationModel.findOne(query)
                 .sort([['createdAt, -1']])
                 .populate('createdById','name')
                 .populate('projectId','name')
@@ -103,17 +103,17 @@ module.exports = {
 
     updateOneBy: async function (query, data) {
         try {
-            var _this = this;
+            const _this = this;
             if (!query) {
                 query = {};
             }
 
             if (!data._id) {
-                let integration = await _this.create(data.projectId, data.userId, data, data.integrationType);
+                const integration = await _this.create(data.projectId, data.userId, data, data.integrationType);
                 return integration;
             } else {
                 query.deleted = false;
-                var updatedIntegration = await IntegrationModel.findOneAndUpdate(query, {
+                let updatedIntegration = await IntegrationModel.findOneAndUpdate(query, {
                     $set: {
                         monitorId: data.monitorId,
                         'data.endpoint': data.endpoint,
@@ -140,7 +140,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await IntegrationModel.updateMany(query, {
+            let updatedData = await IntegrationModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -158,7 +158,7 @@ module.exports = {
                 query = {monitorId:monitorId};
             }
             query.deleted = false;
-            var integrations = await IntegrationModel.updateMany(query, {
+            const integrations = await IntegrationModel.updateMany(query, {
                 $set: { deleted: true, deletedAt: Date.now(), deletedById: userId }
             });
             return integrations;
@@ -201,5 +201,5 @@ module.exports = {
         }
     }
 };
-var IntegrationModel = require('../models/integration');
-var ErrorService = require('./errorService');
+const IntegrationModel = require('../models/integration');
+const ErrorService = require('./errorService');

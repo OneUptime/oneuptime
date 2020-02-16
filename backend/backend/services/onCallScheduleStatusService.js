@@ -24,7 +24,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var items = await OnCallScheduleStatusModel.find(query)
+            const items = await OnCallScheduleStatusModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId')
@@ -42,7 +42,7 @@ module.exports = {
 
     create: async function ({ project, incident, activeEscalation, schedule, escalations, incidentAcknowledged }) {
         try {
-            var item = new OnCallScheduleStatusModel();
+            let item = new OnCallScheduleStatusModel();
 
             item.project = project;
             item.activeEscalation = activeEscalation;
@@ -66,7 +66,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var count = await OnCallScheduleStatusModel.count(query);
+            const count = await OnCallScheduleStatusModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('OnCallScheduleStatusService.countBy', error);
@@ -82,7 +82,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var item = await OnCallScheduleStatusModel.findOneAndUpdate(query,
+            const item = await OnCallScheduleStatusModel.findOneAndUpdate(query,
                 {
                     $set: data
                 },
@@ -107,7 +107,7 @@ module.exports = {
             await OnCallScheduleStatusModel.updateMany(query, {
                 $set: data
             });
-            var items = await this.findBy(query);
+            const items = await this.findBy(query);
             return items;
         } catch (error) {
             ErrorService.log('OnCallScheduleStatusService.updateMany', error);
@@ -122,7 +122,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var items = await OnCallScheduleStatusModel.findOneAndUpdate(query, {
+            const items = await OnCallScheduleStatusModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedAt: Date.now(),
@@ -148,5 +148,5 @@ module.exports = {
     },
 };
 
-let OnCallScheduleStatusModel = require('../models/onCallScheduleStatus');
-let ErrorService = require('./errorService');
+const OnCallScheduleStatusModel = require('../models/onCallScheduleStatus');
+const ErrorService = require('./errorService');

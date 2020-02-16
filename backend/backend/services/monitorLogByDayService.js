@@ -1,7 +1,7 @@
 module.exports = {
     create: async function (data) {
         try {
-            var LogDay = new MonitorLogByDayModel();
+            const LogDay = new MonitorLogByDayModel();
 
             LogDay.monitorId = data.monitorId;
             LogDay.probeId = data.probeId;
@@ -26,7 +26,7 @@ module.exports = {
             LogDay.maxMainTemp = data.mainTemp;
             LogDay.intervalDate = data.intervalDate;
 
-            var savedLogDay = await LogDay.save();
+            const savedLogDay = await LogDay.save();
 
             return savedLogDay;
         } catch (error) {
@@ -41,7 +41,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLogByDay = await MonitorLogByDayModel.findOneAndUpdate(query,
+            const monitorLogByDay = await MonitorLogByDayModel.findOneAndUpdate(query,
                 { $set: data },
                 {
                     new: true
@@ -72,7 +72,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLogsByDay = await MonitorLogByDayModel.find(query)
+            const monitorLogsByDay = await MonitorLogByDayModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -90,7 +90,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorLog = await MonitorLogByDayModel.findOne(query);
+            const monitorLog = await MonitorLogByDayModel.findOne(query);
 
             return monitorLog;
         } catch (error) {
@@ -105,7 +105,7 @@ module.exports = {
                 query = {};
             }
 
-            var count = await MonitorLogByDayModel.count(query);
+            const count = await MonitorLogByDayModel.count(query);
 
             return count;
         } catch (error) {
@@ -115,5 +115,5 @@ module.exports = {
     }
 };
 
-var MonitorLogByDayModel = require('../models/monitorLogByDay');
-var ErrorService = require('../services/errorService');
+const MonitorLogByDayModel = require('../models/monitorLogByDay');
+const ErrorService = require('../services/errorService');

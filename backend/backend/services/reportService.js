@@ -16,8 +16,8 @@ module.exports = {
    */
     async getMostActiveMembers(subProjectIds, startDate, endDate, skip, limit) {
         try {
-            let start = moment(startDate).toDate();
-            let end = moment(endDate).toDate();
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).toDate();
 
             if (typeof skip === 'string') {
                 skip = parseInt(skip);
@@ -27,7 +27,7 @@ module.exports = {
                 limit = parseInt(limit);
             }
             // Use aggregate to proccess data
-            var result = await IncidentModel.aggregate([
+            const result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, acknowledgeTime: { $subtract: ['$acknowledgedAt', '$createdAt'] }, createdAt: 1, resolvedBy: 1 } },
                 { $group: { _id: '$resolvedBy', incidents: { $sum: 1 }, averageAcknowledge: { $avg: '$acknowledgeTime' }, averageResolved: { $avg: '$resolveTime' } } },
@@ -42,13 +42,13 @@ module.exports = {
                 }
             ]);
 
-            var arr = [];
-            var wrapper = {};
+            const arr = [];
+            const wrapper = {};
             const filterMembers = result[0].members.filter(member => member._id !== null);
             for (const member of filterMembers) {
-                var response = await UserService.findOneBy({ _id: member._id });
+                const response = await UserService.findOneBy({ _id: member._id });
 
-                let result = { memberId: member._id, memberName: response.name, incidents: member.incidents, averageAcknowledgeTime: member.averageAcknowledge, averageResolved: member.averageResolved };
+                const result = { memberId: member._id, memberName: response.name, incidents: member.incidents, averageAcknowledgeTime: member.averageAcknowledge, averageResolved: member.averageResolved };
                 arr.push(result);
             }
             wrapper['members'] = arr;
@@ -68,8 +68,8 @@ module.exports = {
    */
     async getMostActiveMonitors(subProjectIds, startDate, endDate, skip, limit) {
         try {
-            let start = moment(startDate).toDate();
-            let end = moment(endDate).toDate();
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).toDate();
 
             if (typeof skip === 'string') {
                 skip = parseInt(skip);
@@ -79,7 +79,7 @@ module.exports = {
                 limit = parseInt(limit);
             }
             // Use aggregate to process data
-            var result = await IncidentModel.aggregate([
+            const result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } }, { deleted: false }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, acknowledgeTime: { $subtract: ['$acknowledgedAt', '$createdAt'] }, createdAt: 1, monitorId: 1 } },
                 { $group: { _id: '$monitorId', incidents: { $sum: 1 }, averageAcknowledge: { $avg: '$acknowledgeTime' }, averageResolved: { $avg: '$resolveTime' } } },
@@ -94,13 +94,13 @@ module.exports = {
                 }
             ]);
 
-            var arr = [];
-            var wrapper = {};
+            const arr = [];
+            const wrapper = {};
             for (const monitor of result[0].monitors) {
-                var response = await MonitorService.findOneBy({ _id: monitor._id });
+                let response = await MonitorService.findOneBy({ _id: monitor._id });
 
                 if (!response) response = {};
-                let monitorObj = { monitorId: monitor._id, monitorName: response.name, incidents: monitor.incidents, averageAcknowledgeTime: monitor.averageAcknowledge, averageResolved: monitor.averageResolved };
+                const monitorObj = { monitorId: monitor._id, monitorName: response.name, incidents: monitor.incidents, averageAcknowledgeTime: monitor.averageAcknowledge, averageResolved: monitor.averageResolved };
                 arr.push(monitorObj);
             }
             wrapper['monitors'] = arr;
@@ -121,8 +121,8 @@ module.exports = {
    */
     async getAverageTimeBy(subProjectIds, startDate, endDate, filter) {
         try {
-            let start = moment(startDate).toDate();
-            let end = moment(endDate).toDate();
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).toDate();
             let group, sort, inputFormat, outputFormat;
 
             if (filter === 'day') {
@@ -153,7 +153,7 @@ module.exports = {
                 inputFormat = 'YYYY';
                 outputFormat = 'YYYY';
             }
-            var result = await IncidentModel.aggregate([
+            const result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { resolved: true }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $project: { resolveTime: { $subtract: ['$resolvedAt', '$createdAt'] }, createdAt: 1 } },
                 { $group: group },
@@ -187,8 +187,8 @@ module.exports = {
       */
     async getIncidentCountBy(subProjectIds, startDate, endDate, filter) {
         try {
-            let start = moment(startDate).toDate();
-            let end = moment(endDate).toDate();
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).toDate();
             let group, sort, inputFormat, outputFormat;
 
             if (filter === 'day') {
@@ -219,7 +219,7 @@ module.exports = {
                 inputFormat = 'YYYY';
                 outputFormat = 'YYYY';
             }
-            var result = await IncidentModel.aggregate([
+            const result = await IncidentModel.aggregate([
                 { $match: { $and: [{ projectId: { $in: subProjectIds } }, { createdAt: { $gte: start, $lte: end } }] } },
                 { $group: group },
                 { $sort: sort }

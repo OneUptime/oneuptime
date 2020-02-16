@@ -1,25 +1,24 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
-var incidentData = require('./data/incident');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var IncidentService = require('../backend/services/incidentService');
-var MonitorService = require('../backend/services/monitorService');
-var NotificationService = require('../backend/services/notificationService');
-var AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const incidentData = require('./data/incident');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const IncidentService = require('../backend/services/incidentService');
+const MonitorService = require('../backend/services/monitorService');
+const NotificationService = require('../backend/services/notificationService');
+const AirtableService = require('../backend/services/airtableService');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const TwilioConfig = require('../backend/config/twilio');
 
-const baseApiUrl = process.env.BACKEND_HOST;
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var TwilioConfig = require('../backend/config/twilio');
-
-var token, userId, airtableId, projectId, monitorId, incidentId, monitor = {
+let token, userId, airtableId, projectId, monitorId;
+const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -42,12 +41,12 @@ describe('Twilio API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
+                        const authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
                             request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization)
                                 .send(incidentData).end((err, res) => {
-                                    incidentId = res.body._id;
+                                   
                                     expect(res).to.have.status(200);
                                     expect(res.body).to.be.an('object');
                                     done();
@@ -69,48 +68,9 @@ describe('Twilio API', function () {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should get a message response', function (done) {
-        request.get('/twilio/voice/incident').send().end(function (err, res) {
-            expect(res).to.have.status(200);
-            done();
-        });
-    });
 
-    it('should acknowledge an incident', function (done) {
-        var authorization = `Basic ${token}`;
-        request.post(`/twilio/voice/incident/action?projectId=${projectId}&incidentId=${incidentId}&accessToken=${authorization}`).send({
-            Digits: '1'
-        }).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.text).to.includes('The incident status has been acknowledged. Press 2 to resolve this incident');
-            done();
-        });
-    });
-
-    it('should repeat if wrong key is entered', function (done) {
-        var authorization = `Basic ${token}`;
-        let actionPath = `${baseApiUrl}/twilio/voice/incident/action?projectId=${projectId}&amp;incidentId=${incidentId}&amp;accessToken=${authorization}`;
-        request.post(`/twilio/voice/incident/action?projectId=${projectId}&incidentId=${incidentId}&accessToken=${authorization}`).send({
-            Digits: '5'
-        }).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.text).to.eql(`<Response><Gather numDigits="1" input="dtmf" action="${actionPath}" timeout="15"><Say voice="alice">You have pressed unknown key, Please press 1 to acknowledge or 2 to resolve the incident.</Say></Gather><Say voice="alice">No response received. This call will end.</Say><Hangup /></Response>`);
-            done();
-        });
-    });
-
-    it('should resolve an incident', function (done) {
-        var authorization = `Basic ${token}`;
-        request.post(`/twilio/voice/incident/action?projectId=${projectId}&incidentId=${incidentId}&accessToken=${authorization}`).send({
-            Digits: '2'
-        }).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.text).to.eql('<Response><Say voice="alice">The incident status has been resolved. Log on to your dashboard to see the status. Thank you for using Fyipe.</Say><Hangup /></Response>');
-            done();
-        });
-    });
     it('should send verification sms code for adding alert phone number', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/twilio/sms/sendVerificationToken?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({

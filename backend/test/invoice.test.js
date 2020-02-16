@@ -1,35 +1,35 @@
 
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var UserService = require('../backend/services/userService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var ProjectService = require('../backend/services/projectService');
-var AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const UserService = require('../backend/services/userService');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
 
-var payment = require('../backend/config/payment');
-var stripe = require('stripe')(payment.paymentPrivateKey);
+const payment = require('../backend/config/payment');
+const stripe = require('stripe')(payment.paymentPrivateKey);
 
-var token, userId, airtableId, projectId, stripeCustomerId, testPlan;
+let token, userId, airtableId, projectId, stripeCustomerId, testPlan;
 
 describe('Invoice API', function () {
     this.timeout(20000);
 
     before(async function () {
         this.timeout(30000);
-        var checkCardData = await request.post('/stripe/checkCard').send({
+        const checkCardData = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
             email: userData.email,
             companyName: userData.companyName
         });
-        var confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
+        const confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
 
-        var signUp = await request.post('/user/signup').send({
+        const signUp = await request.post('/user/signup').send({
             paymentIntent: {
                 id: confirmedPaymentIntent.id
             },
@@ -37,25 +37,25 @@ describe('Invoice API', function () {
         });
 
 
-        let project = signUp.body.project;
+        const project = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;
         airtableId = signUp.body.airtableId;
 
-        var verificationToken = await VerificationTokenModel.findOne({ userId });
+        const verificationToken = await VerificationTokenModel.findOne({ userId });
         try {
             await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
         } catch (error) {
             //catch
         }
 
-        var login = await request.post('/user/login').send({
+        const login = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password
         });
         token = login.body.tokens.jwtAccessToken;
 
-        var user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({ _id: userId });
         stripeCustomerId = user.stripeCustomerId;
 
         testPlan = await stripe.plans.create({
@@ -86,8 +86,8 @@ describe('Invoice API', function () {
     });
 
     it('should return invoices', async function () {
-        var authorization = `Basic ${token}`;
-        var invoices = await request.post(`/invoice/${projectId}`).set('Authorization', authorization);
+        const authorization = `Basic ${token}`;
+        const invoices = await request.post(`/invoice/${projectId}`).set('Authorization', authorization);
         expect(invoices.status).to.be.equal(200);
         expect(invoices.body).to.be.an('object');
         expect(invoices.body).to.have.property('data');

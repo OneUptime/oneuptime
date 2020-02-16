@@ -1,6 +1,6 @@
-var rateLimit = require('express-rate-limit');
-var { WINDOWMS, MAX } = process.env;
-var limiter = rateLimit({
+const rateLimit = require('express-rate-limit');
+const { WINDOWMS, MAX } = process.env;
+const limiter = rateLimit({
     windowMs: Number(WINDOWMS), 
     max: Number(MAX),
     keyGenerator: function (req) {

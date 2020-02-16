@@ -4,10 +4,10 @@
  *
  */
 
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var schema = new Schema({
+const Schema = mongoose.Schema;
+const schema = new Schema({
     from: { type: String, ref: 'Project' },
     to: { type: String, ref: 'User' },
     subject: String,

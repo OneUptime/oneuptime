@@ -19,7 +19,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var items = await EmailStatusModel.find(query)
+            const items = await EmailStatusModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort(sort);
@@ -33,7 +33,7 @@ module.exports = {
     create: async function ({from, to, status, subject, body, template}) {
         try {
             
-            var item = new EmailStatusModel();
+            let item = new EmailStatusModel();
 
             item.status = status;
             item.from = from;
@@ -59,7 +59,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var count = await EmailStatusModel.count(query);
+            const count = await EmailStatusModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('emailStatusService.countBy', error);
@@ -74,7 +74,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var items = await EmailStatusModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } });
+            const items = await EmailStatusModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } });
             return items;
         } catch (error) {
             ErrorService.log('emailStatusService.findOneAndUpdate', error);
@@ -93,7 +93,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var item = await EmailStatusModel.findOne(query);
+            const item = await EmailStatusModel.findOne(query);
             return item;
         } catch (error) {
             ErrorService.log('emailStatusService.findOne', error);
@@ -109,14 +109,14 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            var updatedEmailStatus = await EmailStatusModel.findOneAndUpdate(query, {
+            const updatedEmailStatus = await EmailStatusModel.findOneAndUpdate(query, {
                 $set: data
             }, { new: true });
+            return updatedEmailStatus;
         } catch (error) {
             ErrorService.log('emailStatusService.updateOneBy', error);
             throw error;
         }
-        return updatedEmailStatus;
     },
 
     updateBy: async function (query, data) {
@@ -126,7 +126,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await EmailStatusModel.updateMany(query, {
+            let updatedData = await EmailStatusModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -138,5 +138,5 @@ module.exports = {
     }
 };
 
-var EmailStatusModel = require('../models/emailStatus');
-var ErrorService = require('./errorService');
+const EmailStatusModel = require('../models/emailStatus');
+const ErrorService = require('./errorService');

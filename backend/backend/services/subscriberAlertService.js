@@ -1,7 +1,7 @@
 module.exports = {
     create: async function (data) {
         try {
-            var subscriberAlertModel = new SubscriberAlertModel();
+            const subscriberAlertModel = new SubscriberAlertModel();
             subscriberAlertModel.projectId = data.projectId || null;
             subscriberAlertModel.subscriberId = data.subscriberId || null;
             subscriberAlertModel.incidentId = data.incidentId || null;
@@ -11,7 +11,7 @@ module.exports = {
                 subscriberAlertModel.error = data.error;
                 subscriberAlertModel.errorMessage = data.errorMessage;
             }
-            var subscriberAlert = await subscriberAlertModel.save();
+            const subscriberAlert = await subscriberAlertModel.save();
             return subscriberAlert;
         } catch (error) {
             ErrorService.log('SubscriberAlertService.create', error);
@@ -27,16 +27,17 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             //find and update
-            var subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {
+            const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
+            return subscriberAlert;
         } catch (error) {
             ErrorService.log('SubscriberAlertService.updateOneBy', error);
             throw error;
         }
-        return subscriberAlert;
+        
     },
 
     updateBy: async function (query, data) {
@@ -46,7 +47,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await SubscriberAlertModel.updateMany(query, {
+            let updatedData = await SubscriberAlertModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -59,7 +60,7 @@ module.exports = {
 
     deleteBy: async function (query, userId) {
         try {
-            var subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {
+            const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -94,7 +95,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var subscriberAlerts = await SubscriberAlertModel.find(query)
+            const subscriberAlerts = await SubscriberAlertModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -115,7 +116,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var subscriberAlert = await SubscriberAlertModel.find(query)
+            const subscriberAlert = await SubscriberAlertModel.find(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('subscriberId', 'name')
@@ -134,7 +135,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await SubscriberAlertModel.count(query);
+            const count = await SubscriberAlertModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('SubscriberAlertService.countBy', error);
@@ -153,5 +154,5 @@ module.exports = {
     },
 };
 
-var SubscriberAlertModel = require('../models/subscriberAlert');
-var ErrorService = require('./errorService');
+const SubscriberAlertModel = require('../models/subscriberAlert');
+const ErrorService = require('./errorService');

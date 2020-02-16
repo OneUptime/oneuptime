@@ -4,14 +4,14 @@
  *
  */
 
-var jwtKey = require('../config/keys');
-var jwt = require('jsonwebtoken');
-var url = require('url');
-var UserService = require('../services/userService');
-var ErrorService = require('../services/errorService');
-var ProjectService = require('../services/projectService');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var apiMiddleware = require('../middlewares/api');
+const jwtKey = require('../config/keys');
+const jwt = require('jsonwebtoken');
+const url = require('url');
+const UserService = require('../services/userService');
+const ErrorService = require('../services/errorService');
+const ProjectService = require('../services/projectService');
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const apiMiddleware = require('../middlewares/api');
 
 module.exports = {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
@@ -40,7 +40,7 @@ module.exports = {
                 });
             }
 
-            let token = accessToken.split(' ')[1] || accessToken;
+            const token = accessToken.split(' ')[1] || accessToken;
 
             //Decode the token
             jwt.verify(token, jwtKey.jwtSecretKey, (err, decoded) => {
@@ -84,7 +84,7 @@ module.exports = {
                     });
                 }
 
-                let token = accessToken.split(' ')[1] || accessToken;
+                const token = accessToken.split(' ')[1] || accessToken;
 
                 //Decode the token
                 jwt.verify(token, jwtKey.jwtSecretKey, (err, decoded) => {
@@ -120,7 +120,7 @@ module.exports = {
                         message:'Token is not of type string'
                     });
                 }
-                let token = accessToken.split(' ')[1] || accessToken;
+                const token = accessToken.split(' ')[1] || accessToken;
                 jwt.verify(token, jwtKey.jwtSecretKey, async (err, decoded) => {
                     if (err) {
                         return sendErrorResponse(req, res, {
@@ -131,15 +131,15 @@ module.exports = {
                         req.authorizationType = 'USER';
                         req.user = decoded;
                         UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
-                        var userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
-                        var projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
+                        const userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
+                        const projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
                         if (!projectId) {
                             return res.status(400).send({code: 400, message:'Project id is not present.'});
                         }
-                        var project = await ProjectService.findOneBy({_id: projectId});
-                        var isUserPresentInProject = false;
+                        const project = await ProjectService.findOneBy({_id: projectId});
+                        let isUserPresentInProject = false;
                         if (project) {
-                            for (var i = 0; i < project.users.length; i++) {
+                            for (let i = 0; i < project.users.length; i++) {
                                 if (project.users[i].userId === userId) {
                                     isUserPresentInProject = true;
                                     break;

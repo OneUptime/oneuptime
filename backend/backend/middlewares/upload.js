@@ -5,11 +5,11 @@
  */
 
 
-var GridFsStorage = require('multer-gridfs-storage');
-var crypto = require('crypto');
-var keys = require('../config/keys');
+const GridFsStorage = require('multer-gridfs-storage');
+const crypto = require('crypto');
+const keys = require('../config/keys');
 
-var mongoUri = keys.dbURL;
+const mongoUri = keys.dbURL;
 
 // Description: Generating random name of files.
 // Returns: fileinfo, error.

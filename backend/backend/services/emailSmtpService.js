@@ -2,7 +2,7 @@ module.exports = {
     create: async function (data) {
         try {
             data.pass = await EncryptDecrypt.encrypt(data.pass);
-            var emailSmtpModel = new EmailSmtpModel();
+            const emailSmtpModel = new EmailSmtpModel();
             emailSmtpModel.projectId = data.projectId;
             emailSmtpModel.user = data.user;
             emailSmtpModel.pass = data.pass;
@@ -14,7 +14,7 @@ module.exports = {
                 emailSmtpModel.secure = data.secure;
             }
             emailSmtpModel.enabled = true;
-            var emailSmtp = await emailSmtpModel.save();
+            const emailSmtp = await emailSmtpModel.save();
             if (emailSmtp && emailSmtp.pass) {
                 emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
             }
@@ -37,7 +37,7 @@ module.exports = {
                 data.pass = await EncryptDecrypt.encrypt(data.pass);
             }
 
-            var updatedEmailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
+            const updatedEmailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
@@ -45,12 +45,11 @@ module.exports = {
             if (updatedEmailSmtp && updatedEmailSmtp.pass) {
                 updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(updatedEmailSmtp.pass);
             }
+            return updatedEmailSmtp;
         } catch (error) {
             ErrorService.log('EmailSmtpModel.findByIdAndUpdate', error);
             throw error;
         }
-
-        return updatedEmailSmtp;
     },
 
     updateBy: async function (query, data) {
@@ -60,7 +59,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await EmailSmtpModel.updateMany(query, {
+            let updatedData = await EmailSmtpModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -73,7 +72,7 @@ module.exports = {
 
     deleteBy: async function (query, userId) {
         try {
-            var emailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
+            const emailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -108,7 +107,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var emailSmtp = await EmailSmtpModel.find(query)
+            const emailSmtp = await EmailSmtpModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -133,7 +132,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var emailSmtp = await EmailSmtpModel.findOne(query)
+            let emailSmtp = await EmailSmtpModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .lean();
@@ -158,7 +157,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await EmailSmtpModel.count(query);
+            const count = await EmailSmtpModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('emailSmtpService.countBy', error);
@@ -177,6 +176,6 @@ module.exports = {
     },
 };
 
-var EmailSmtpModel = require('../models/smtp');
-var ErrorService = require('./errorService');
-var EncryptDecrypt = require('../config/encryptDecrypt');
+const EmailSmtpModel = require('../models/smtp');
+const ErrorService = require('./errorService');
+const EncryptDecrypt = require('../config/encryptDecrypt');

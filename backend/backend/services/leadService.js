@@ -13,7 +13,7 @@ module.exports = {
     //Returns: promise
     create: async function (data) {
         try {
-            var lead = new LeadsModel();
+            let lead = new LeadsModel();
             lead.type = data.type;
             lead.name = data.name;
             lead.email = data.email;
@@ -54,6 +54,6 @@ module.exports = {
     }
 };
 
-var LeadsModel = require('../models/lead');
-var MailService = require('./mailService');
-var ErrorService = require('./errorService');
+const LeadsModel = require('../models/lead');
+const MailService = require('./mailService');
+const ErrorService = require('./errorService');

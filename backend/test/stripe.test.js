@@ -1,25 +1,25 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
 
-var token, projectId, userId, airtableId;
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var payment = require('../backend/config/payment');
-var stripe = require('stripe')(payment.paymentPrivateKey);
-var ngrok = require('ngrok');
+let token, projectId, userId, airtableId;
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const payment = require('../backend/config/payment');
+const stripe = require('stripe')(payment.paymentPrivateKey);
+const ngrok = require('ngrok');
 
-var cardId, authorization, webhookId;
+let cardId, authorization, webhookId;
 
-var sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 
 describe('Stripe payment API', function () {
@@ -28,7 +28,7 @@ describe('Stripe payment API', function () {
     before(function (done) {
         this.timeout(40000);
         createUser(request, userData.user, function(err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -183,24 +183,24 @@ describe('Stripe payment API', function () {
     });
     it('should update balance when payment intent is confirmed from the client side', async function () {
 
-        var ngrokURL = await ngrok.connect(3020);
-        var url = `${ngrokURL}/stripe/webHook/pi`;
-        var webhook = await stripe.webhookEndpoints.create({
+        const ngrokURL = await ngrok.connect(3020);
+        const url = `${ngrokURL}/stripe/webHook/pi`;
+        const webhook = await stripe.webhookEndpoints.create({
             url,
             enabled_events: ['payment_intent.succeeded']
         });
         webhookId = webhook.id;
         if (webhook.status === 'enabled') {
-            var addBalanceRequest = await request.post(`/stripe/${projectId}/addBalance`)
+            const addBalanceRequest = await request.post(`/stripe/${projectId}/addBalance`)
                 .set('Authorization', authorization)
                 .send({
                     rechargeBalanceAmount: '100'
                 });
-            var confirmedpaymentIntent = await stripe.paymentIntents.confirm(addBalanceRequest.body.id);
+            const confirmedpaymentIntent = await stripe.paymentIntents.confirm(addBalanceRequest.body.id);
             if (confirmedpaymentIntent) {
                 await sleep(20000);
-                var project = await ProjectService.findOneBy({ _id: projectId });
-                var { balance } = project;
+                const project = await ProjectService.findOneBy({ _id: projectId });
+                const { balance } = project;
                 expect(balance).to.be.equal(100);
             }
         }

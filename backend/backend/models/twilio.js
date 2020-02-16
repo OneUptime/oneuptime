@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var twilioSchema = new Schema({
+const Schema = mongoose.Schema;
+const twilioSchema = new Schema({
     projectId: { type: String, ref: 'Project' }, //which project does this belong to.
     accountSid: String,
     authToken: String,

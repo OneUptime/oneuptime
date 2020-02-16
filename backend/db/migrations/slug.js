@@ -1,7 +1,7 @@
 
-var slugify = require('slugify');
-var generate = require('nanoid/generate');
-var projectModel = require('../../backend/models/project');
+const slugify = require('slugify');
+const generate = require('nanoid/generate');
+const projectModel = require('../../backend/models/project');
 
 module.exports.init = async function () {
     const projects = await projectModel.find({ slug: { '$exist': false } });

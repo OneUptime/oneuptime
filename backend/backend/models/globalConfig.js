@@ -1,8 +1,8 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
-var globalConfigSchema = new Schema({
+const globalConfigSchema = new Schema({
     name: String,
     value: String,
 

@@ -6,10 +6,10 @@ const iv = EncryptionKeys.iv;
 
 module.exports = {
     encrypt: (plainText) => {
-        let promise = new Promise((resolve, reject) => {
+        const promise = new Promise((resolve, reject) => {
             try {
-                var cipher = crypto.createCipheriv(algorithm, key, iv);
-                var encoded = cipher.update(plainText, 'utf8', 'hex');
+                const cipher = crypto.createCipheriv(algorithm, key, iv);
+                let encoded = cipher.update(plainText, 'utf8', 'hex');
                 encoded += cipher.final('hex');
                 resolve(encoded);
             } catch (error) {
@@ -20,10 +20,10 @@ module.exports = {
     },
 
     decrypt: (encText) => {
-        let promise = new Promise((resolve, reject) => {
+        const promise = new Promise((resolve, reject) => {
             try {
-                var decipher = crypto.createDecipheriv(algorithm, key, iv);
-                var decoded = decipher.update(encText, 'hex', 'utf8');
+                const decipher = crypto.createDecipheriv(algorithm, key, iv);
+                let decoded = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');
                 resolve(decoded);
             } catch (error) {
