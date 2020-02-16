@@ -34,6 +34,14 @@
         "no-case-declarations": "error",
         "no-mixed-spaces-and-tabs": "error",
         "no-useless-escape": "error",
-        "quotes": ["error", "single"]
+        "quotes": ["error", "single"],
+        "prefer-const": [
+            "error",
+            {
+              "destructuring": "any",
+              "ignoreReadBeforeAssign": false
+            }
+          ],
+          "no-var": "error"
     }
 }
