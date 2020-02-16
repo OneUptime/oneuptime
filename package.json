@@ -11,7 +11,9 @@
     "husky": "^3.1.0",
     "lint-staged": "^9.5.0"
   },
-  "scripts": {},
+  "scripts": {
+    "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://gitlab.com/fyipe-project/app.git"
