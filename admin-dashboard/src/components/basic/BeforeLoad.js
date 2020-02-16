@@ -9,7 +9,7 @@ class BeforeLoad extends React.Component {
         const initialUrl = sessionStorage.getItem('initialUrl');
         this.isAuthenticated = isAuthenticated;
         const redirectTo = getQueryVar('redirectTo', initialUrl);
-        let counter = getQueryVar('counter',initialUrl) || 0;
+        const counter = getQueryVar('counter',initialUrl) || 0;
         if (redirectTo) this.redirect = redirectTo;
         if (isAuthenticated) {
             if (redirectTo) {

@@ -8,7 +8,7 @@ function ProbeStatus({ lastAlive }) {
     useEffect(() => {
         setNow(Date.now());
 
-        let nowHandler = setTimeout(() => {
+        const nowHandler = setTimeout(() => {
             setNow(Date.now());
         }, 300000);
 
