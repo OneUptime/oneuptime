@@ -4,10 +4,10 @@
  *
  */
 
-var express = require('express');
-var EmailTemplateService = require('../services/emailTemplateService');
+let express = require('express');
+let EmailTemplateService = require('../services/emailTemplateService');
 
-var router = express.Router();
+let router = express.Router();
 
 const createDOMPurify = require('dompurify');
 const jsdom = require('jsdom').jsdom;
@@ -17,16 +17,16 @@ const DOMPurify = createDOMPurify(window);
 const {
     isAuthorized
 } = require('../middlewares/authorization');
-var getUser = require('../middlewares/user').getUser;
-var isUserOwner = require('../middlewares/project').isUserOwner;
+let getUser = require('../middlewares/user').getUser;
+let isUserOwner = require('../middlewares/project').isUserOwner;
 
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
 
     try{
-        var data = req.body;
+        let data = req.body;
         data.projectId = req.params.projectId;
         if(!data.subject){
             return sendErrorResponse(req, res, {
@@ -45,7 +45,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
         // sanitize template markup
         data.subject = await DOMPurify.sanitize(data.subject);
         data.body = await DOMPurify.sanitize(data.body, {WHOLE_DOCUMENT: true});
-        var emailTemplate = await EmailTemplateService.create(data);
+        let emailTemplate = await EmailTemplateService.create(data);
         return sendItemResponse(req, res, emailTemplate);
     }catch(error){
         return sendErrorResponse(req, res, error);
@@ -54,10 +54,10 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.get('/:projectId/:templateId/reset', getUser, isAuthorized, async function(req, res){
     try {
-        var projectId = req.params.projectId;
-        var templateId = req.params.templateId;
+        let projectId = req.params.projectId;
+        let templateId = req.params.templateId;
         await EmailTemplateService.resetTemplate(projectId, templateId);
-        var templates = await EmailTemplateService.getTemplates(projectId);
+        let templates = await EmailTemplateService.getTemplates(projectId);
         return sendItemResponse(req, res, templates);
     } catch(error) {
         return sendErrorResponse(req, res, error);
@@ -66,8 +66,8 @@ router.get('/:projectId/:templateId/reset', getUser, isAuthorized, async functio
 
 router.get('/:projectId', getUser, isAuthorized,  async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var templates = await EmailTemplateService.getTemplates(projectId);
+        let projectId = req.params.projectId;
+        let templates = await EmailTemplateService.getTemplates(projectId);
         return sendItemResponse(req, res, templates);
     } catch(error) {
         return sendErrorResponse(req, res, error);
@@ -76,8 +76,8 @@ router.get('/:projectId', getUser, isAuthorized,  async function (req, res) {
 
 router.get('/:projectId/emailTemplate/:emailTemplateId', getUser, isAuthorized, async function (req, res) {
     try {
-        var emailTemplateId = req.params.emailTemplateId;
-        var emailTemplates = await EmailTemplateService.findOneBy({ _id: emailTemplateId });
+        let emailTemplateId = req.params.emailTemplateId;
+        let emailTemplates = await EmailTemplateService.findOneBy({ _id: emailTemplateId });
         return sendItemResponse(req, res, emailTemplates);
     } catch(error) {
         return sendErrorResponse( req, res, error );
@@ -86,10 +86,10 @@ router.get('/:projectId/emailTemplate/:emailTemplateId', getUser, isAuthorized, 
 
 router.put('/:projectId/emailTemplate/:emailTemplateId', getUser, isAuthorized, async function (req, res) {
     try {
-        var data = req.body;
-        var Id = req.params.emailTemplateId;
+        let data = req.body;
+        let Id = req.params.emailTemplateId;
         // Call the EmailTemplateService
-        var emailTemplate = await EmailTemplateService.updateOneBy({_id:Id},data);
+        let emailTemplate = await EmailTemplateService.updateOneBy({_id:Id},data);
         return sendItemResponse(req, res, emailTemplate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           );
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -99,7 +99,7 @@ router.put('/:projectId/emailTemplate/:emailTemplateId', getUser, isAuthorized, 
 
 router.put('/:projectId', getUser, isAuthorized, async function (req, res){
     try{
-        var data = [];
+        let data = [];
         for(let value of req.body){
             if(!value.subject){
                 return sendErrorResponse(req, res, {
@@ -123,7 +123,7 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res){
         for(let value of data){
             await EmailTemplateService.updateOneBy({_id:value._id},value);
         }
-        var emailTemplates = await EmailTemplateService.getTemplates(req.params.projectId);
+        let emailTemplates = await EmailTemplateService.getTemplates(req.params.projectId);
         return sendItemResponse(req, res, emailTemplates);
     }catch(error){
         sendErrorResponse(req, res, error);
@@ -132,9 +132,9 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res){
 
 router.delete('/:projectId/emailTemplate/:emailTemplateId', getUser, isUserOwner, async function(req, res){
     try{
-        var emailTemplateId = req.params.emailTemplateId;
-        var userId = req.user.id;
-        var emailTemplate = await EmailTemplateService.deleteBy({_id: emailTemplateId}, userId);
+        let emailTemplateId = req.params.emailTemplateId;
+        let userId = req.user.id;
+        let emailTemplate = await EmailTemplateService.deleteBy({_id: emailTemplateId}, userId);
         return sendItemResponse(req, res, emailTemplate);
     }catch(error){
         return sendErrorResponse(req, res, error);

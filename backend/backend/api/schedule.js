@@ -50,8 +50,8 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.get('/:projectId/schedules', getUser, isAuthorized, getSubProjects, async function (req, res) {
     try {
-        var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-        var schedules = await ScheduleService.getSubProjectSchedules(subProjectIds);
+        let subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+        let schedules = await ScheduleService.getSubProjectSchedules(subProjectIds);
         return sendItemResponse(req, res, schedules); // frontend expects sendItemResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -60,9 +60,9 @@ router.get('/:projectId/schedules', getUser, isAuthorized, getSubProjects, async
 
 router.get('/:projectId/schedule', getUser, isAuthorized, async function(req, res){
     try {
-        var projectId = req.params.projectId;
-        var schedule = await ScheduleService.findBy({projectId}, req.query.limit || 10, req.query.skip || 0);
-        var count = await ScheduleService.countBy({projectId});
+        let projectId = req.params.projectId;
+        let schedule = await ScheduleService.findBy({projectId}, req.query.limit || 10, req.query.skip || 0);
+        let count = await ScheduleService.countBy({projectId});
         return sendListResponse(req, res, schedule, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -83,8 +83,8 @@ router.put('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async 
 router.delete('/:projectId/:scheduleId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
 
     try {
-        var scheduleId = req.params.scheduleId;
-        var userId = req.user ? req.user.id : null;
+        let scheduleId = req.params.scheduleId;
+        let userId = req.user ? req.user.id : null;
 
         if (!scheduleId) {
             return sendErrorResponse( req, res, {
@@ -114,7 +114,7 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
         let userId = req.user ? req.user.id : null;
         let scheduleId = req.params.scheduleId;
         let escalations = [];
-        var escalationPolicyCount = 0;
+        let escalationPolicyCount = 0;
         for(let value of req.body) {
 
             escalationPolicyCount ++;

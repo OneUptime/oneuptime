@@ -1,13 +1,13 @@
-var express = require('express');
-var IntegrationService = require('../services/integrationService');
-var getUser = require('../middlewares/user').getUser;
-var isUserAdmin = require('../middlewares/project').isUserAdmin;
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendListResponse = require('../middlewares/response').sendListResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let express = require('express');
+let IntegrationService = require('../services/integrationService');
+let getUser = require('../middlewares/user').getUser;
+let isUserAdmin = require('../middlewares/project').isUserAdmin;
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendListResponse = require('../middlewares/response').sendListResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 
-var router = express.Router();
+let router = express.Router();
 
 router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res) {
     try {
@@ -43,7 +43,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
             });
         }
 
-        var existingWebhook = await IntegrationService.findOneBy({
+        let existingWebhook = await IntegrationService.findOneBy({
             monitorId,
             'data.endpoint' : endpoint,
             'data.endpointType' : endpointType,
@@ -56,10 +56,10 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
             });
         }
 
-        var data = {userId, endpoint, endpointType, monitorId};
-        var notificationOptions = { incidentCreated, incidentAcknowledged, incidentResolved };
-        var integrationType = 'webhook';
-        var webhook = await IntegrationService.create(projectId, userId, data, integrationType, notificationOptions);
+        let data = {userId, endpoint, endpointType, monitorId};
+        let notificationOptions = { incidentCreated, incidentAcknowledged, incidentResolved };
+        let integrationType = 'webhook';
+        let webhook = await IntegrationService.create(projectId, userId, data, integrationType, notificationOptions);
         return sendItemResponse(req, res, webhook);
     } catch(error) {
         return sendErrorResponse(req, res, error);
@@ -70,7 +70,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (req, res
 router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (req, res) {
     try {
         let data = req.body;
-        var integrationId = req.params.integrationId;
+        let integrationId = req.params.integrationId;
         data.projectId = req.params.projectId;
         data.userId = req.user ? req.user.id : null;
         data._id = integrationId;
@@ -97,7 +97,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (r
             });
         }
 
-        var existingWebhook = await IntegrationService.findOneBy({
+        let existingWebhook = await IntegrationService.findOneBy({
             monitorId: data.monitorId,
             'data.endpoint' : data.endpoint,
             'data.endpointType' : data.endpointType,
@@ -110,7 +110,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (r
             });
         }
 
-        var webhook = await IntegrationService.updateOneBy({_id:integrationId},data);
+        let webhook = await IntegrationService.updateOneBy({_id:integrationId},data);
         return sendItemResponse(req, res, webhook);
     } catch(error) {
         return sendErrorResponse(req, res, error);
@@ -120,10 +120,10 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (r
 // req => params => {teamId, projectId}
 router.delete('/:projectId/delete/:integrationId', getUser, isUserAdmin, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var integrationId = req.params.integrationId;
-        var userId = req.user ? req.user.id : null;
-        var data = await IntegrationService.deleteBy({_id: integrationId, projectId: projectId}, userId);
+        let projectId = req.params.projectId;
+        let integrationId = req.params.integrationId;
+        let userId = req.user ? req.user.id : null;
+        let data = await IntegrationService.deleteBy({_id: integrationId, projectId: projectId}, userId);
         return sendItemResponse(req, res, data);
     } catch(error) {
         return sendErrorResponse(req, res, error);
@@ -133,10 +133,10 @@ router.delete('/:projectId/delete/:integrationId', getUser, isUserAdmin, async f
 // req => params => {projectId}
 router.get('/:projectId/hooks', getUser, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var integrationType = 'webhook';
-        var integrations = await IntegrationService.findBy({projectId: projectId, integrationType: integrationType}, req.query.skip || 0, req.query.limit || 10);
-        var count = await IntegrationService.countBy({projectId: projectId, integrationType: integrationType});
+        let projectId = req.params.projectId;
+        let integrationType = 'webhook';
+        let integrations = await IntegrationService.findBy({projectId: projectId, integrationType: integrationType}, req.query.skip || 0, req.query.limit || 10);
+        let count = await IntegrationService.countBy({projectId: projectId, integrationType: integrationType});
         return sendListResponse(req, res, integrations, count);
     } catch(error) {
         return sendErrorResponse(req, res, error);

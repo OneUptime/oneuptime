@@ -4,10 +4,10 @@
  *
  */
 
-var express = require('express');
-var SmsTemplateService = require('../services/smsTemplateService');
+let express = require('express');
+let SmsTemplateService = require('../services/smsTemplateService');
 
-var router = express.Router();
+let router = express.Router();
 
 const createDOMPurify = require('dompurify');
 const jsdom = require('jsdom').jsdom;
@@ -17,15 +17,15 @@ const DOMPurify = createDOMPurify(window);
 const {
     isAuthorized
 } = require('../middlewares/authorization');
-var getUser = require('../middlewares/user').getUser;
-var isUserOwner = require('../middlewares/project').isUserOwner;
+let getUser = require('../middlewares/user').getUser;
+let isUserOwner = require('../middlewares/project').isUserOwner;
 
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
     try {
-        var data = req.body;
+        let data = req.body;
         data.projectId = req.params.projectId;
 
         if(!data.body){
@@ -36,7 +36,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
         }
 
         data.body = await DOMPurify.sanitize(data.body);
-        var smsTemplate = await SmsTemplateService.create(data);
+        let smsTemplate = await SmsTemplateService.create(data);
         return sendItemResponse(req, res, smsTemplate);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -45,10 +45,10 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.get('/:projectId/:templateId/reset', getUser, isAuthorized, async function(req, res){
     try {
-        var projectId = req.params.projectId;
-        var templateId = req.params.templateId;
+        let projectId = req.params.projectId;
+        let templateId = req.params.templateId;
         await SmsTemplateService.resetTemplate(projectId, templateId);
-        var templates = await SmsTemplateService.getTemplates(projectId);
+        let templates = await SmsTemplateService.getTemplates(projectId);
         return sendItemResponse(req, res, templates);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -57,8 +57,8 @@ router.get('/:projectId/:templateId/reset', getUser, isAuthorized, async functio
 
 router.get('/:projectId', getUser, isAuthorized,  async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var templates = await SmsTemplateService.getTemplates(projectId);
+        let projectId = req.params.projectId;
+        let templates = await SmsTemplateService.getTemplates(projectId);
         return sendItemResponse(req, res, templates);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -67,8 +67,8 @@ router.get('/:projectId', getUser, isAuthorized,  async function (req, res) {
 
 router.get('/:projectId/smsTemplate/:smsTemplateId', getUser, isAuthorized, async function (req, res) {
     try {
-        var smsTemplateId = req.params.smsTemplateId;
-        var smsTemplates = await SmsTemplateService.findOneBy({ _id: smsTemplateId });
+        let smsTemplateId = req.params.smsTemplateId;
+        let smsTemplates = await SmsTemplateService.findOneBy({ _id: smsTemplateId });
         return sendItemResponse(req, res, smsTemplates);
     } catch(error) {
         return sendErrorResponse( req, res, error );
@@ -77,11 +77,11 @@ router.get('/:projectId/smsTemplate/:smsTemplateId', getUser, isAuthorized, asyn
 
 router.put('/:projectId/smsTemplate/:smsTemplateId', getUser, isAuthorized, async function (req, res) {
     try {
-        var data = req.body;
-        var smsTemplateId = req.params.smsTemplateId;
+        let data = req.body;
+        let smsTemplateId = req.params.smsTemplateId;
         // Call the SMSTemplateService
         data.body = await DOMPurify.sanitize(data.body);
-        var smsTemplate = await SmsTemplateService.updateOneBy({_id : smsTemplateId},data);
+        let smsTemplate = await SmsTemplateService.updateOneBy({_id : smsTemplateId},data);
         return sendItemResponse(req, res, smsTemplate);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -91,7 +91,7 @@ router.put('/:projectId/smsTemplate/:smsTemplateId', getUser, isAuthorized, asyn
 
 router.put('/:projectId', getUser, isAuthorized, async function (req, res){
     try {
-        var data = [];
+        let data = [];
         for(let value of req.body){
 
             if(!value.body){
@@ -108,7 +108,7 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res){
         for(let value of data){
             await SmsTemplateService.updateOneBy({_id : value._id},value);
         }
-        var smsTemplates = await SmsTemplateService.getTemplates(req.params.projectId);
+        let smsTemplates = await SmsTemplateService.getTemplates(req.params.projectId);
         return sendItemResponse(req, res, smsTemplates);
     } catch (error) {
         sendErrorResponse(req, res, error);
@@ -117,9 +117,9 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res){
 
 router.delete('/:projectId/smsTemplate/:smsTemplateId', getUser, isUserOwner, async function(req, res){
     try {
-        var smsTemplateId = req.params.smsTemplateId;
-        var userId = req.user.id;
-        var smsTemplate = await SmsTemplateService.deleteBy({_id: smsTemplateId}, userId);
+        let smsTemplateId = req.params.smsTemplateId;
+        let userId = req.user.id;
+        let smsTemplate = await SmsTemplateService.deleteBy({_id: smsTemplateId}, userId);
         return sendItemResponse(req, res, smsTemplate);
     } catch (error) {
         return sendErrorResponse(req, res, error);

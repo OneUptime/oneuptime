@@ -4,12 +4,12 @@
  * 
  */
 
-var express = require('express');
+let express = require('express');
 
-var router = express.Router();
-var UserService = require('../services/userService');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let router = express.Router();
+let UserService = require('../services/userService');
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 // Route
 // Description: reset refresh token and access token.
@@ -21,7 +21,7 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 //                                               }
 router.post('/new', async function (req, res) {
     try {
-        var jwtRefreshToken = req.body.refreshToken;
+        let jwtRefreshToken = req.body.refreshToken;
     
         if(!jwtRefreshToken){
             return sendErrorResponse( req, res, {
@@ -29,8 +29,8 @@ router.post('/new', async function (req, res) {
                 message: 'Refresh Token not found.'
             });
         }
-        var token = await UserService.getNewToken(jwtRefreshToken);
-        var tokenData = {
+        let token = await UserService.getNewToken(jwtRefreshToken);
+        let tokenData = {
             jwtAccessToken: token.accessToken,
             jwtRefreshToken: token.refreshToken,
         };

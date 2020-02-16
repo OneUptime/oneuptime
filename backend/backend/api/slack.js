@@ -6,23 +6,23 @@
 
 
 
-var express = require('express');
-var request = require('request');
-var IntegrationService = require('../services/integrationService');
-var getUser = require('../middlewares/user').getUser;
-var isUserAdmin = require('../middlewares/project').isUserAdmin;
-var { CLIENT_ID, CLIENT_SECRET, APP_ROUTE, API_ROUTE } = require('../config/slack');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendListResponse = require('../middlewares/response').sendListResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let express = require('express');
+let request = require('request');
+let IntegrationService = require('../services/integrationService');
+let getUser = require('../middlewares/user').getUser;
+let isUserAdmin = require('../middlewares/project').isUserAdmin;
+let { CLIENT_ID, CLIENT_SECRET, APP_ROUTE, API_ROUTE } = require('../config/slack');
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendListResponse = require('../middlewares/response').sendListResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-var router = express.Router();
+let router = express.Router();
 
 router.get('/auth/redirect', function (req, res) {
 
     // get fyipe project id from slack auth state query params
-    var state = req.query.state;
-    var slackCode = req.query.code;
+    let state = req.query.state;
+    let slackCode = req.query.code;
 
     if(!slackCode){
         return sendErrorResponse( req, res, {
@@ -40,10 +40,10 @@ router.get('/auth/redirect', function (req, res) {
     // hack that gets the user authToken and project ID, not very secure, but sufficient for now 
     state = state.split(',', 2);
 
-    var projectId = state[0];
-    var userToken = state[1];
+    let projectId = state[0];
+    let userToken = state[1];
 
-    var options = {
+    let options = {
         uri: `${API_ROUTE}/slack/${projectId}/link?code=${slackCode}`,
         method: 'POST',
         headers: {
@@ -63,10 +63,10 @@ router.get('/auth/redirect', function (req, res) {
 
 router.post('/:projectId/link', getUser, isUserAdmin, async function (req, res) {
 
-    var projectId = req.params.projectId;
-    var code = req.query.code;
-    var userId = req.user ? req.user.id : null;
-    var slug = req.body.slug;
+    let projectId = req.params.projectId;
+    let code = req.query.code;
+    let userId = req.user ? req.user.id : null;
+    let slug = req.body.slug;
 
     if(!slug) {
         return sendErrorResponse( req, res, {
@@ -82,7 +82,7 @@ router.post('/:projectId/link', getUser, isUserAdmin, async function (req, res) 
         });
     }
 
-    var options = {
+    let options = {
         uri: 'https://slack.com/api/oauth.access?code='
             +code+
             '&client_id='+CLIENT_ID+
@@ -91,13 +91,13 @@ router.post('/:projectId/link', getUser, isUserAdmin, async function (req, res) 
     };
 
     request(options, async (error, response, body) => {
-        var JSONresponse = JSON.parse(body);
+        let JSONresponse = JSON.parse(body);
         if (!JSONresponse.ok){
             return sendErrorResponse(req, res, JSONresponse.error);
         } else {
             
             // get slack response object
-            var data = {
+            let data = {
                 userId: JSONresponse.user_id,
                 teamName: JSONresponse.team_name,
                 accessToken: JSONresponse.access_token,
@@ -108,9 +108,9 @@ router.post('/:projectId/link', getUser, isUserAdmin, async function (req, res) 
                 botAccessToken: JSONresponse.bot.bot_access_token
             };
 
-            var integrationType = 'slack';
+            let integrationType = 'slack';
             try{
-                var slack = await IntegrationService.create(projectId,userId,data,integrationType, null);
+                let slack = await IntegrationService.create(projectId,userId,data,integrationType, null);
                 return sendItemResponse(req, res, slack);
             }catch(error){
                 return sendErrorResponse(req, res, error);
@@ -122,14 +122,14 @@ router.post('/:projectId/link', getUser, isUserAdmin, async function (req, res) 
 // req => params => {teamId, projectId}
 router.delete('/:projectId/unLink/:teamId', getUser, isUserAdmin, async function (req, res) {
 
-    var projectId = req.params.projectId;
-    var teamId = req.params.teamId;
-    var userId = req.user ? req.user.id : null;
+    let projectId = req.params.projectId;
+    let teamId = req.params.teamId;
+    let userId = req.user ? req.user.id : null;
 
-    var integrationType = 'slack';
+    let integrationType = 'slack';
 
     try{
-        var data = await IntegrationService.deleteBy({projectId: projectId, 'data.teamId' : teamId, integrationType: integrationType}, userId);
+        let data = await IntegrationService.deleteBy({projectId: projectId, 'data.teamId' : teamId, integrationType: integrationType}, userId);
         return sendItemResponse(req, res, data);
     }catch(error){
         return sendErrorResponse(req, res, error);
@@ -139,12 +139,12 @@ router.delete('/:projectId/unLink/:teamId', getUser, isUserAdmin, async function
 // req => params => {projectId}
 router.get('/:projectId/teams', getUser, async function (req, res) {
 
-    var projectId = req.params.projectId;
-    var integrationType = 'slack';
+    let projectId = req.params.projectId;
+    let integrationType = 'slack';
 
     try{
-        var integrations = await IntegrationService.findBy({projectId: projectId, integrationType: integrationType}, req.query.skip || 0, req.query.limit || 10);
-        var count = await IntegrationService.countBy({projectId: projectId, integrationType: integrationType});    
+        let integrations = await IntegrationService.findBy({projectId: projectId, integrationType: integrationType}, req.query.skip || 0, req.query.limit || 10);
+        let count = await IntegrationService.countBy({projectId: projectId, integrationType: integrationType});    
         return sendListResponse(req, res, integrations, count);
     }catch(error){
         return sendErrorResponse(req, res, error);

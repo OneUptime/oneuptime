@@ -5,17 +5,17 @@
  */
 
 
-var express = require('express');
-var StatusPageService = require('../services/statusPageService');
-var MonitorService = require('../services/monitorService');
-var ProbeService = require('../services/probeService');
-var RealTimeService = require('../services/realTimeService');
+let express = require('express');
+let StatusPageService = require('../services/statusPageService');
+let MonitorService = require('../services/monitorService');
+let ProbeService = require('../services/probeService');
+let RealTimeService = require('../services/realTimeService');
 
-var router = express.Router();
-var UtilService = require('../services/utilService');
-var validUrl = require('valid-url');
-var multer = require('multer');
-var ErrorService = require('../services/errorService');
+let router = express.Router();
+let UtilService = require('../services/utilService');
+let validUrl = require('valid-url');
+let multer = require('multer');
+let ErrorService = require('../services/errorService');
 const { toXML } = require('jstoxml');
 const { BACKEND_HOST } = process.env;
 
@@ -26,9 +26,9 @@ const storage = require('../middlewares/upload');
 const {
     isAuthorized
 } = require('../middlewares/authorization');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendListResponse = require('../middlewares/response').sendListResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendListResponse = require('../middlewares/response').sendListResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -36,7 +36,7 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        var data = req.body;
+        let data = req.body;
         data.projectId = req.params.projectId;
 
         // Sanitize
@@ -55,7 +55,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
         }
 
         // Call the StatusPageService.
-        var statusPage = await StatusPageService.create(data);
+        let statusPage = await StatusPageService.create(data);
         return sendItemResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -68,8 +68,8 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 // Returns: response status, error message
 router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
 
-    var data = req.body;
-    var upload = multer({
+    let data = req.body;
+    let upload = multer({
         storage
     }).fields([
         {
@@ -115,7 +115,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
             });
         }
 
-        for (var i = 0; i < data.links.length; i++) {
+        for (let i = 0; i < data.links.length; i++) {
             if (!data.links[i].name) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -148,8 +148,8 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
                     message: 'Please enter a valid URL.'
                 });
             }
-            var counter = 0;
-            for (var j = 0; j < data.links.length; j++) {
+            let counter = 0;
+            for (let j = 0; j < data.links.length; j++) {
                 if (data.links[i].name == data.links[j].name) {
                     counter++;
                 }
@@ -169,7 +169,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
     }
 
     upload(req, res, async function (error) {
-        var files = req.files || {};
+        let files = req.files || {};
         let data = req.body;
         data.projectId = req.params.projectId;
         data.subProjectId = req.params.subProjectId;
@@ -179,7 +179,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
         }
 
         if (data._id) {
-            statusPage = await StatusPageService.findOneBy({ _id: data._id });
+            let statusPage = await StatusPageService.findOneBy({ _id: data._id });
             let imagesPath = {
                 faviconPath: statusPage.faviconPath,
                 logoPath: statusPage.logoPath,
@@ -212,12 +212,12 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
         }
 
         try {
-            var statusPage = await StatusPageService.updateOneBy(
+            let statusPage = await StatusPageService.updateOneBy(
                 { projectId: data.projectId, _id: data._id },
                 data
             );
 
-            var updatedStatusPage = await StatusPageService.getStatus({ _id: statusPage._id }, req.user.id);
+            let updatedStatusPage = await StatusPageService.getStatus({ _id: statusPage._id }, req.user.id);
             await RealTimeService.statusPageEdit(updatedStatusPage);
 
             return sendItemResponse(req, res, statusPage);
@@ -236,8 +236,8 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function (req, 
     let projectId = req.params.projectId;
     try {
         // Call the StatusPageService.
-        var statusPages = await StatusPageService.findBy({ projectId: projectId }, req.query.skip || 0, req.query.limit || 10);
-        var count = await StatusPageService.countBy({ projectId: projectId });
+        let statusPages = await StatusPageService.findBy({ projectId: projectId }, req.query.skip || 0, req.query.limit || 10);
+        let count = await StatusPageService.countBy({ projectId: projectId });
         return sendListResponse(req, res, statusPages, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -245,9 +245,9 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function (req, 
 });
 
 router.get('/:projectId/statuspages', getUser, isAuthorized, getSubProjects, async function (req, res) {
-    var subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
+    let subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
     try {
-        var statusPages = await StatusPageService.getSubProjectStatusPages(subProjectIds);
+        let statusPages = await StatusPageService.getSubProjectStatusPages(subProjectIds);
         return sendItemResponse(req, res, statusPages); // frontend expects sendItemResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -255,10 +255,10 @@ router.get('/:projectId/statuspages', getUser, isAuthorized, getSubProjects, asy
 });
 
 router.get('/:projectId/statuspage', getUser, isAuthorized, async function (req, res) {
-    var projectId = req.params.projectId;
+    let projectId = req.params.projectId;
     try {
-        var statusPage = await StatusPageService.findBy({ projectId }, req.query.skip || 0, req.query.limit || 10);
-        var count = await StatusPageService.countBy({ projectId });
+        let statusPage = await StatusPageService.findBy({ projectId }, req.query.skip || 0, req.query.limit || 10);
+        let count = await StatusPageService.countBy({ projectId });
         return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -267,10 +267,10 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function (req,
 
 // External status page api - get the data to show on status page
 router.get('/:statusPageId', checkUser, async function (req, res) {
-    var statusPageId = req.params.statusPageId;
-    var url = req.query.url;
-    var user = req.user;
-    var statusPage = {};
+    let statusPageId = req.params.statusPageId;
+    let url = req.query.url;
+    let user = req.user;
+    let statusPage = {};
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
@@ -291,10 +291,10 @@ router.get('/:statusPageId', checkUser, async function (req, res) {
 });
 
 router.get('/:statusPageId/rss', checkUser, async function (req, res) {
-    var statusPageId = req.params.statusPageId;
-    var url = req.query.url;
-    var user = req.user;
-    var statusPage = {};
+    let statusPageId = req.params.statusPageId;
+    let url = req.query.url;
+    let user = req.user;
+    let statusPage = {};
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
@@ -308,9 +308,9 @@ router.get('/:statusPageId/rss', checkUser, async function (req, res) {
                 message: 'StatusPage Id or Url required'
             });
         }
-        var { incidents } = await StatusPageService.getIncidents({ _id: statusPageId });
-        var refinedIncidents = [];
-        for (var incident of incidents) {
+        let { incidents } = await StatusPageService.getIncidents({ _id: statusPageId });
+        let refinedIncidents = [];
+        for (let incident of incidents) {
             refinedIncidents.push({
                 Incident: {
                     IncidentType: incident.incidentType,
@@ -327,7 +327,7 @@ router.get('/:statusPageId/rss', checkUser, async function (req, res) {
             header: true
         };
 
-        var feedObj = {
+        let feedObj = {
             _name: 'rss',
             _attrs: {
                 version: '2.0'
@@ -353,7 +353,7 @@ router.get('/:statusPageId/rss', checkUser, async function (req, res) {
                 }
             ]
         };
-        var finalFeed = toXML(feedObj, xmlOptions);
+        let finalFeed = toXML(feedObj, xmlOptions);
         res.contentType('application/rss');
         return sendItemResponse(req, res, finalFeed);
     } catch (error) {
@@ -361,9 +361,9 @@ router.get('/:statusPageId/rss', checkUser, async function (req, res) {
     }
 });
 router.get('/:projectId/:statusPageId/notes', checkUser, async function (req, res) {
-    var statusPageId = req.params.statusPageId;
-    var skip = req.query.skip || 0;
-    var limit = req.query.limit || 5;
+    let statusPageId = req.params.statusPageId;
+    let skip = req.query.skip || 0;
+    let limit = req.query.limit || 5;
     try {
         // Call the StatusPageService.
         let response = await StatusPageService.getNotes({ _id: statusPageId }, skip, limit);
@@ -376,14 +376,14 @@ router.get('/:projectId/:statusPageId/notes', checkUser, async function (req, re
 });
 
 router.get('/:projectId/:monitorId/individualnotes', checkUser, async function (req, res) {
-    var date = req.query.date;
+    let date = req.query.date;
     date = new Date(date);
-    var start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-    var end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+    let start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+    let end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
 
-    var skip = req.query.skip || 0;
-    var limit = req.query.limit || 5;
-    var query = {
+    let skip = req.query.skip || 0;
+    let limit = req.query.limit || 5;
+    let query = {
         monitorId: req.params.monitorId,
         deleted: false,
         createdAt: { $gte: start, $lt: end }
@@ -405,8 +405,8 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function (
 router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function (req, res) {
     try {
         const { startDate, endDate } = req.body;
-        var monitorId = req.params.monitorId;
-        var monitorStatuses = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
+        let monitorId = req.params.monitorId;
+        let monitorStatuses = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
         return sendListResponse(req, res, monitorStatuses);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -426,8 +426,8 @@ router.get('/:projectId/probes', checkUser, async function (req, res) {
 });
 
 router.delete('/:projectId/:statusPageId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    var statusPageId = req.params.statusPageId;
-    var userId = req.user ? req.user.id : null;
+    let statusPageId = req.params.statusPageId;
+    let userId = req.user ? req.user.id : null;
     try {
         // Call the StatusPageService.
         let statusPage = await StatusPageService.deleteBy({ _id: statusPageId }, userId);

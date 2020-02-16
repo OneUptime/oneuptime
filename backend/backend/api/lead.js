@@ -4,11 +4,11 @@
  *
  */
 
-var express = require('express');
-var router = express.Router();
-var LeadService = require('../services/leadService');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let express = require('express');
+let router = express.Router();
+let LeadService = require('../services/leadService');
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 //Public API to capture leads. Type is Demo or Whitepaper.
 router.post('/', async function (req, res) {

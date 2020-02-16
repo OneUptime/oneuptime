@@ -4,12 +4,12 @@
  *
  */
 
-var express = require('express');
+let express = require('express');
 
-var router = express.Router();
-var FileService = require('../services/fileService');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendFileResponse = require('../middlewares/response').sendFileResponse;
+let router = express.Router();
+let FileService = require('../services/fileService');
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendFileResponse = require('../middlewares/response').sendFileResponse;
 
 // Route Description: Getting uploaded files stored in mongodb.
 // Params:
@@ -18,7 +18,7 @@ var sendFileResponse = require('../middlewares/response').sendFileResponse;
 
 router.get('/:filename', async function (req, res) {
     try{
-        var file = await FileService.findOneBy({filename: req.params.filename});
+        let file = await FileService.findOneBy({filename: req.params.filename});
         return sendFileResponse(req, res, file);
     }catch(error){
         return sendErrorResponse(req, res, error);

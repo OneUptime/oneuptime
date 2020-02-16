@@ -13,7 +13,7 @@ const isAuthorizedProbe = require('../middlewares/probeAuthorization').isAuthori
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-var getUser = require('../middlewares/user').getUser;
+let getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 
 router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
@@ -134,8 +134,8 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) 
 
 router.get('/:projectId/probes', getUser, isAuthorized, async function (req, res) {
     try {
-        var limit = req.query.limit || null;
-        var skip = req.query.skip || null;
+        let limit = req.query.limit || null;
+        let skip = req.query.skip || null;
         let probe = await ProbeService.findBy({}, limit, skip);
         let count = await ProbeService.countBy({});
         return sendListResponse(req, res, probe, count);

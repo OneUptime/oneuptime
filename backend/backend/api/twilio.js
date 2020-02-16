@@ -6,17 +6,14 @@
 
 const express = require('express');
 const IncidentService = require('../services/incidentService');
-const { sendIncidentCreatedCall, sendResponseMessage, sendVerificationSMS, verifySMSCode } = require('../services/twilioService');
-const baseApiUrl = process.env.BACKEND_HOST;
-const incidentSMSActionService = require('../services/IncidentSMSActionService');
+const { sendIncidentCreatedCall, sendVerificationSMS, verifySMSCode } = require('../services/twilioService');
 const {
     isAuthorized
 } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 const router = express.Router();
-const errorResponse = '<Response><Say voice="alice">The incident status was not updated. Please go to Fyipe Dashboard to update. Thank you.</Say></Response>';
 const SmsCountService = require('../services/smsCountService');
 /**
  * @param { accessToken, projectId, incidentId }: Come in the query string, passed in twilio service.
@@ -62,12 +59,12 @@ router.get('/voice/status', async (req, res) => {
 
 router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (req, res) {
     try {
-        var { to } = req.body;
-        var userId = req.user ? req.user.id : null;
-        var projectId = req.query.projectId;
-        var {validateResend,problem} = await SmsCountService.validateResend(userId);
+        let { to } = req.body;
+        let userId = req.user ? req.user.id : null;
+        let projectId = req.query.projectId;
+        let {validateResend,problem} = await SmsCountService.validateResend(userId);
         if (validateResend) {
-            var sendVerifyToken = await sendVerificationSMS(to, userId,projectId);
+            let sendVerifyToken = await sendVerificationSMS(to, userId,projectId);
             return sendItemResponse(req, res, sendVerifyToken);
         }
         else {
@@ -81,10 +78,10 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function 
 
 router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
     try {
-        var { to, code } = req.body;
-        var userId = req.user ? req.user.id : null;
-        var projectId = req.query.projectId;
-        var sendVerifyToken = await verifySMSCode(to, code, userId,projectId);
+        let { to, code } = req.body;
+        let userId = req.user ? req.user.id : null;
+        let projectId = req.query.projectId;
+        let sendVerifyToken = await verifySMSCode(to, code, userId,projectId);
         return sendItemResponse(req, res, sendVerifyToken);
     } catch (error) {
         return sendErrorResponse(req, res, {

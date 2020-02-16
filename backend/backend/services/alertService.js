@@ -441,7 +441,7 @@ module.exports = {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Alerts Disabled' });
         }
 
-        if (!user.alertPhoneNumber || user.alertPhoneNumber === "") {
+        if (!user.alertPhoneNumber || user.alertPhoneNumber === '') {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'No Phone Number' });
         }
 
@@ -473,7 +473,7 @@ module.exports = {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'Alerts Disabled' });
         }
 
-        if (!user.alertPhoneNumber || user.alertPhoneNumber === "") {
+        if (!user.alertPhoneNumber || user.alertPhoneNumber === '') {
             return await _this.create({ projectId: incident.projectId, schedule: schedule._id, escalation: escalation._id, onCallScheduleStatus: onCallScheduleStatus._id, monitorId, alertVia: AlertType.Email, userId: user._id, incidentId: incident._id, alertStatus: 'No Phone Number' });
         }
 

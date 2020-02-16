@@ -7,7 +7,6 @@ const twilioCredentials = require('../config/twilio');
 const incidentSMSActionModel = require('../models/incidentSMSAction');
 const twilio = require('twilio');
 const client = twilio(twilioCredentials.accountSid, twilioCredentials.authToken);
-const baseApiUrl = process.env.BACKEND_HOST;
 const ErrorService = require('./errorService');
 let Handlebars = require('handlebars');
 let defaultSmsTemplates = require('../config/smsTemplate');
@@ -84,7 +83,7 @@ module.exports = {
                 }
             }
             else {
-                error = new Error('Alerts limit reached for the day.');
+                let error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -126,7 +125,7 @@ module.exports = {
                 return message;
             }
             else {
-                error = new Error('Alerts limit reached for the day.');
+                let error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -167,7 +166,7 @@ module.exports = {
                 let message = await newClient.messages.create(options);
                 return message;
             } else {
-                error = new Error('Alerts limit reached for the day.');
+                let error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -208,7 +207,7 @@ module.exports = {
                 let message = await newClient.messages.create(options);
                 return message;
             } else {
-                error = new Error('Alerts limit reached for the day.');
+                let error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -269,7 +268,7 @@ module.exports = {
                 let call = await client.calls.create(options);
                 return call;
             } else {
-                error = new Error('Alerts limit reached for the day.');
+                let error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 return error;
             }
@@ -311,7 +310,7 @@ module.exports = {
                 return verificationRequest;
 
             } else {
-                error = new Error('Alerts limit reached for the day.');
+                let error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
                 throw error;
             }
@@ -337,7 +336,7 @@ module.exports = {
                     .verificationChecks
                     .create({ to, code });
                 if (verificationResult.status === 'pending') {
-                    error = new Error('Incorrect code');
+                    let error = new Error('Incorrect code');
                     error.code = 400;
                     throw error;
                 }

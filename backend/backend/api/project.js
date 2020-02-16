@@ -1,19 +1,19 @@
-var express = require('express');
-var ProjectService = require('../services/projectService');
+let express = require('express');
+let ProjectService = require('../services/projectService');
 
-var router = express.Router();
-var PaymentService = require('../services/paymentService');
-var UserService = require('../services/userService');
-var MailService = require('../services/mailService');
-var getUser = require('../middlewares/user').getUser;
-var isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-var isUserOwner = require('../middlewares/project').isUserOwner;
+let router = express.Router();
+let PaymentService = require('../services/paymentService');
+let UserService = require('../services/userService');
+let MailService = require('../services/mailService');
+let getUser = require('../middlewares/user').getUser;
+let isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+let isUserOwner = require('../middlewares/project').isUserOwner;
 const {
     isAuthorized
 } = require('../middlewares/authorization');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendListResponse = require('../middlewares/response').sendListResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendListResponse = require('../middlewares/response').sendListResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 // Route
 // Description: Creating new Porject by Admin.
@@ -22,7 +22,7 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 // Returns: 200: Project Details; 400: Error.
 router.post('/create', getUser, async function (req, res) {
     try {
-        var data = req.body;
+        let data = req.body;
         data.name = data.projectName;
 
         // Sanitize
@@ -54,9 +54,9 @@ router.post('/create', getUser, async function (req, res) {
             });
         }
 
-        var stripePlanId = data.planId;
-        var projectName = data.projectName;
-        var userId = req.user ? req.user.id : null;
+        let stripePlanId = data.planId;
+        let projectName = data.projectName;
+        let userId = req.user ? req.user.id : null;
         data.userId = userId;
 
         if (!data.stripePlanId) {
@@ -64,10 +64,10 @@ router.post('/create', getUser, async function (req, res) {
         }
 
         // check if user has a project with provided name already
-        var countProject = await ProjectService.countBy({ name: projectName, 'users.userId': userId });
+        let countProject = await ProjectService.countBy({ name: projectName, 'users.userId': userId });
 
         if (countProject < 1) {
-            var user = await UserService.findOneBy({ _id: userId });
+            let user = await UserService.findOneBy({ _id: userId });
             if (!user.stripeCustomerId) {
 
                 if (!data.paymentIntent) {
@@ -84,10 +84,10 @@ router.post('/create', getUser, async function (req, res) {
                     });
                 }
 
-                var paymentIntent = {
+                let paymentIntent = {
                     id: data.paymentIntent
                 };
-                var checkedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
+                let checkedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
                 if (checkedPaymentIntent.status !== 'succeeded') {
                     return sendErrorResponse(req, res, {
                         code: 400,
@@ -95,16 +95,16 @@ router.post('/create', getUser, async function (req, res) {
                     });
                 }
                 user = await UserService.updateOneBy({ _id: userId }, { stripeCustomerId: checkedPaymentIntent.customer });
-                var subscriptionnew = await PaymentService.subscribePlan(stripePlanId, checkedPaymentIntent.customer);
+                let subscriptionnew = await PaymentService.subscribePlan(stripePlanId, checkedPaymentIntent.customer);
                 if (!data.stripeSubscriptionId) {
                     data.stripeSubscriptionId = subscriptionnew.stripeSubscriptionId;
                 }
-                var project = await ProjectService.create(data);
+                let project = await ProjectService.create(data);
                 await MailService.sendCreateProjectMail(projectName, user.email);
                 return sendItemResponse(req, res, project);
 
             } else {
-                var subscription = await PaymentService.subscribePlan(stripePlanId, user.stripeCustomerId);
+                let subscription = await PaymentService.subscribePlan(stripePlanId, user.stripeCustomerId);
                 if (subscription.subscriptionPaymentStatus === 'canceled' || subscription.subscriptionPaymentStatus === 'unpaid') {
                     user = await UserService.findOneBy({ _id: userId });
                     await MailService.sendPaymentFailedEmail(projectName, user.email, user.name);
@@ -112,7 +112,7 @@ router.post('/create', getUser, async function (req, res) {
                 if (!data.stripeSubscriptionId) {
                     data.stripeSubscriptionId = subscription.stripeSubscriptionId;
                 }
-                project = await ProjectService.create(data);
+                let project = await ProjectService.create(data);
                 user = await UserService.findOneBy({ _id: userId });
                 await MailService.sendCreateProjectMail(projectName, user.email);
                 return sendItemResponse(req, res, project);
@@ -136,21 +136,21 @@ router.get('/projects', getUser, async function (req, res) {
     try {
         let userId = req.user ? req.user.id : null;
         // find user subprojects and parent projects
-        var userProjects = await ProjectService.findBy({ 'users.userId': userId });
+        let userProjects = await ProjectService.findBy({ 'users.userId': userId });
         userProjects = userProjects.filter(project => project.users.find(user => user.userId === userId && user.role !== 'Viewer'));
-        var parentProjectIds = [];
-        var projectIds = [];
+        let parentProjectIds = [];
+        let projectIds = [];
         if (userProjects.length > 0) {
-            var subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
+            let subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
             parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
-            var projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
+            let projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
             projectIds = projects.map(project => project._id);
         }
 
         // query data
         const query = { $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }] };
-        var response = await ProjectService.findBy(query, req.query.limit || 10, req.query.skip || 0);
-        var count = await ProjectService.countBy(query);
+        let response = await ProjectService.findBy(query, req.query.limit || 10, req.query.skip || 0);
+        let count = await ProjectService.countBy(query);
         return sendListResponse(req, res, response, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -163,7 +163,7 @@ router.get('/projects', getUser, async function (req, res) {
 // Returns: 200: {project}; 400: Error.
 router.get('/:projectId/resetToken', getUser, isAuthorized, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
+        let projectId = req.params.projectId;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -171,7 +171,7 @@ router.get('/:projectId/resetToken', getUser, isAuthorized, async function (req,
                 message: 'ProjectId must be present.'
             });
         }
-        var project = await ProjectService.resetApiKey(projectId);
+        let project = await ProjectService.resetApiKey(projectId);
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -184,8 +184,8 @@ router.get('/:projectId/resetToken', getUser, isAuthorized, async function (req,
 // Returns: 200: {project}; 400: Error.
 router.put('/:projectId/renameProject', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var projectName = req.body.projectName;
+        let projectId = req.params.projectId;
+        let projectName = req.body.projectName;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -200,7 +200,7 @@ router.put('/:projectId/renameProject', getUser, isAuthorized, isUserOwner, asyn
                 message: 'New project name must be present.'
             });
         }
-        var project = await ProjectService.updateOneBy({ _id: projectId }, { name: projectName });
+        let project = await ProjectService.updateOneBy({ _id: projectId }, { name: projectName });
         return sendItemResponse(req, res, project);
     } catch (error) {
         sendErrorResponse(req, res, error);
@@ -210,7 +210,7 @@ router.put('/:projectId/renameProject', getUser, isAuthorized, isUserOwner, asyn
 router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
         let projectId = req.params.projectId;
-        var userId = req.user ? req.user.id : null;
+        let userId = req.user ? req.user.id : null;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -285,7 +285,7 @@ router.put('/:projectId/alertOptions', getUser, isAuthorized, isUserOwner, async
             },
             userId
         };
-        var project = await ProjectService.updateAlertOptions(data);
+        let project = await ProjectService.updateAlertOptions(data);
         return sendItemResponse(req, res, project);
     } catch (error) {
         sendErrorResponse(req, res, error);
@@ -307,7 +307,7 @@ router.delete('/:projectId/deleteProject', getUser, isAuthorized, isUserOwner, a
                 message: 'ProjectId must be present.'
             });
         }
-        var project = await ProjectService.deleteBy({ _id: projectId }, userId);
+        let project = await ProjectService.deleteBy({ _id: projectId }, userId);
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -322,12 +322,12 @@ router.delete('/:projectId/deleteProject', getUser, isAuthorized, isUserOwner, a
 // Returns: 200: {project}; 400: Error.
 router.post('/:projectId/changePlan', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var projectName = req.body.projectName;
-        var planId = req.body.planId;
-        var userId = req.user ? req.user.id : null;
-        var oldPlan = req.body.oldPlan;
-        var newPlan = req.body.newPlan;
+        let projectId = req.params.projectId;
+        let projectName = req.body.projectName;
+        let planId = req.body.planId;
+        let userId = req.user ? req.user.id : null;
+        let oldPlan = req.body.oldPlan;
+        let newPlan = req.body.newPlan;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -363,9 +363,9 @@ router.post('/:projectId/changePlan', getUser, isAuthorized, isUserOwner, async 
                 message: 'New Plan must be present.'
             });
         }
-        var project = await ProjectService.changePlan(projectId, planId);
-        var user = await UserService.findOneBy({ _id: userId });
-        var email = user.email;
+        let project = await ProjectService.changePlan(projectId, planId);
+        let user = await UserService.findOneBy({ _id: userId });
+        let email = user.email;
         await MailService.sendChangePlanMail(projectName, oldPlan, newPlan, email);
         return sendItemResponse(req, res, project);
     } catch (error) {
@@ -380,10 +380,10 @@ router.post('/:projectId/changePlan', getUser, isAuthorized, isUserOwner, async 
 // Returns: 200: {project}; 400: Error.
 router.post('/:projectId/upgradeToEnterprise', getUser, isAuthorized, isUserOwner, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var projectName = req.body.projectName;
-        var userId = req.user ? req.user.id : null;
-        var oldPlan = req.body.oldPlan;
+        let projectId = req.params.projectId;
+        let projectName = req.body.projectName;
+        let userId = req.user ? req.user.id : null;
+        let oldPlan = req.body.oldPlan;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -405,8 +405,8 @@ router.post('/:projectId/upgradeToEnterprise', getUser, isAuthorized, isUserOwne
                 message: 'Old Plan must be present.'
             });
         }
-        var user = await UserService.findOneBy({ _id: userId });
-        var email = user.email;
+        let user = await UserService.findOneBy({ _id: userId });
+        let email = user.email;
         await MailService.sendUpgradeToEnterpriseMail(projectName, projectId, oldPlan, email);
         return sendItemResponse(req, res, 'Mail Sent Successfully!');
     } catch (error) {
@@ -422,9 +422,9 @@ router.post('/:projectId/upgradeToEnterprise', getUser, isAuthorized, isUserOwne
 router.delete('/:projectId/user/:userId/exitProject', getUser, isAuthorized, async function (req, res) {
     // Call the ProjectService
     try {
-        var userId = req.user ? req.user.id : null;
-        var projectId = req.params.projectId;
-        var teamMember = await ProjectService.exitProject(projectId, userId);
+        let userId = req.user ? req.user.id : null;
+        let projectId = req.params.projectId;
+        let teamMember = await ProjectService.exitProject(projectId, userId);
         return sendItemResponse(req, res, teamMember);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -438,9 +438,9 @@ router.delete('/:projectId/user/:userId/exitProject', getUser, isAuthorized, asy
 // Returns: 200: subproject;
 router.post('/:projectId/subProject', getUser, isAuthorized, async function (req, res) {
     try {
-        var userId = req.user ? req.user.id : null;
-        var parentProjectId = req.params.projectId;
-        var subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
+        let userId = req.user ? req.user.id : null;
+        let parentProjectId = req.params.projectId;
+        let subProjectName = req.body && req.body.subProjectName ? req.body.subProjectName : null;
         if (!subProjectName) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -491,7 +491,7 @@ router.delete('/:projectId/:subProjectId', getUser, isAuthorized, async function
                 message: 'SubProjectId must be present.'
             });
         }
-        var subProject = await ProjectService.deleteBy({ _id: subProjectId, parentProjectId }, userId);
+        let subProject = await ProjectService.deleteBy({ _id: subProjectId, parentProjectId }, userId);
         return sendItemResponse(req, res, subProject);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -505,12 +505,12 @@ router.delete('/:projectId/:subProjectId', getUser, isAuthorized, async function
 router.get('/:projectId/subProjects', getUser, isAuthorized, async function (req, res) {
     // Call the ProjectService
     try {
-        var parentProjectId = req.params.projectId;
-        var userId = req.user ? req.user.id : null;
-        var skip = req.query.skip || 0;
-        var limit = req.query.limit || 10;
-        var subProjects = await ProjectService.findBy({ parentProjectId, 'users.userId': userId }, limit, skip);
-        var count = await ProjectService.countBy({ parentProjectId, 'users.userId': userId });
+        let parentProjectId = req.params.projectId;
+        let userId = req.user ? req.user.id : null;
+        let skip = req.query.skip || 0;
+        let limit = req.query.limit || 10;
+        let subProjects = await ProjectService.findBy({ parentProjectId, 'users.userId': userId }, limit, skip);
+        let count = await ProjectService.countBy({ parentProjectId, 'users.userId': userId });
         return sendListResponse(req, res, subProjects, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -568,7 +568,7 @@ router.put('/:projectId/blockProject', getUser, isUserMasterAdmin, async functio
 router.put('/:projectId/renewAlertLimit', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const projectId = req.params.projectId;
-        var limit = req.body.alertLimit;
+        let limit = req.body.alertLimit;
         if (!limit) {
             return sendErrorResponse(req, res, {
                 code: 400,

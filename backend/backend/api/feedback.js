@@ -4,12 +4,12 @@
  * 
  */
 
-var express = require('express');
+let express = require('express');
 
-var router = express.Router();
-var FeedbackService = require('../services/feedbackService');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let router = express.Router();
+let FeedbackService = require('../services/feedbackService');
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 const getUser = require('../middlewares/user').getUser;
 const {
@@ -24,7 +24,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
                 message: 'Cannot submit a feedback with an empty message or page'
             });
         }
-        var feedback = await FeedbackService.create(req.params.projectId, req.body.feedback, req.body.page, req.user.id);
+        let feedback = await FeedbackService.create(req.params.projectId, req.body.feedback, req.body.page, req.user.id);
         return sendItemResponse(req, res, feedback);
     } catch (error) {
         return sendErrorResponse(req, res, error);

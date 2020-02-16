@@ -4,21 +4,21 @@
  *
  */
 
-var express = require('express');
-var EmailSmtpService = require('../services/emailSmtpService');
-var MailService = require('../services/mailService');
-var router = express.Router();
+let express = require('express');
+let EmailSmtpService = require('../services/emailSmtpService');
+let MailService = require('../services/mailService');
+let router = express.Router();
 const {
     isAuthorized
 } = require('../middlewares/authorization');
-var getUser = require('../middlewares/user').getUser;
-var isUserOwner = require('../middlewares/project').isUserOwner;
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+let getUser = require('../middlewares/user').getUser;
+let isUserOwner = require('../middlewares/project').isUserOwner;
+let sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+let sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
     try {
-        var data = req.body;
+        let data = req.body;
         data.projectId = req.params.projectId;
         data.email = req.user.email;
         if (!data.user) {
@@ -58,7 +58,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
         let testResult = await MailService.testSmtpConfig(data);
         if (!testResult.failed) {
 
-            var emailSmtp = await EmailSmtpService.create(data);
+            let emailSmtp = await EmailSmtpService.create(data);
             return sendItemResponse(req, res, emailSmtp);
         }
     } catch (error) {
@@ -68,8 +68,8 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var emailSmtp = await EmailSmtpService.findOneBy({ projectId });
+        let projectId = req.params.projectId;
+        let emailSmtp = await EmailSmtpService.findOneBy({ projectId });
         return sendItemResponse(req, res, emailSmtp);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -78,13 +78,13 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function (req, res) {
     try {
-        var data = req.body;
-        var emailSmtpId = req.params.emailSmtpId;
+        let data = req.body;
+        let emailSmtpId = req.params.emailSmtpId;
         data.email = req.user.email;
         let testResult = await MailService.testSmtpConfig(data);
         if (!testResult.failed) {
             // Call the EmailTemplateService
-            var emailSmtp = await EmailSmtpService.updateOneBy({ _id: emailSmtpId }, data);
+            let emailSmtp = await EmailSmtpService.updateOneBy({ _id: emailSmtpId }, data);
             return sendItemResponse(req, res, emailSmtp);
         }
     } catch (error) {
@@ -95,9 +95,9 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function (re
 
 router.delete('/:projectId/:emailSmtpId', getUser, isUserOwner, async function (req, res) {
     try {
-        var data = req.body;
-        var emailSmtpId = req.params.emailSmtpId;
-        var emailSmtp = await EmailSmtpService.updateOneBy({ _id: emailSmtpId }, data);
+        let data = req.body;
+        let emailSmtpId = req.params.emailSmtpId;
+        let emailSmtp = await EmailSmtpService.updateOneBy({ _id: emailSmtpId }, data);
         return sendItemResponse(req, res, emailSmtp);
     } catch (error) {
         return sendErrorResponse(req, res, error);
