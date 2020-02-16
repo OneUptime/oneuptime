@@ -1,24 +1,24 @@
-let express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 
 const { isAuthorized } = require('../middlewares/authorization');
 
-var { getUser, checkUserBelongToProject } = require('../middlewares/user');
-var { isUserAdmin }  = require('../middlewares/project');
+const { getUser, checkUserBelongToProject } = require('../middlewares/user');
+const { isUserAdmin }  = require('../middlewares/project');
 
-var ScheduledEventService = require('../services/scheduledEventService');
+const ScheduledEventService = require('../services/scheduledEventService');
 
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendListResponse = require('../middlewares/response').sendListResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 
 router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var monitorId = req.params.monitorId;
+        const projectId = req.params.projectId;
+        const monitorId = req.params.monitorId;
 
-        var data = req.body;
+        const data = req.body;
         data.createdById = req.user ? req.user.id : null;
 
 
@@ -97,7 +97,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async 
                 message: 'Event description is not of string type.'
             });
         }
-        var scheduledEvent = await ScheduledEventService.create({projectId, monitorId}, data);
+        const scheduledEvent = await ScheduledEventService.create({projectId, monitorId}, data);
         return sendItemResponse(req, res, scheduledEvent);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -106,9 +106,9 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async 
 
 router.put('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        var data = req.body;
-        var eventId = req.params.eventId;
-        var scheduledEvent = await ScheduledEventService.updateOneBy({_id:eventId},data);
+        const data = req.body;
+        const eventId = req.params.eventId;
+        const scheduledEvent = await ScheduledEventService.updateOneBy({_id:eventId},data);
         if (scheduledEvent) {
             return sendItemResponse(req, res, scheduledEvent);
         } else {
@@ -125,8 +125,8 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async fun
 
 router.delete('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        var userId = req.user ? req.user.id : null;
-        var event = await ScheduledEventService.deleteBy({ _id: req.params.eventId }, userId);
+        const userId = req.user ? req.user.id : null;
+        const event = await ScheduledEventService.deleteBy({ _id: req.params.eventId }, userId);
         if (event) {
             return sendItemResponse(req, res, event);
         }
@@ -144,10 +144,10 @@ router.delete('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async 
 
 router.get('/:projectId/:monitorId', getUser, isAuthorized, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var monitorId = req.params.monitorId;
+        const projectId = req.params.projectId;
+        const monitorId = req.params.monitorId;
 
-        var query = req.query;
+        const query = req.query;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -176,8 +176,8 @@ router.get('/:projectId/:monitorId', getUser, isAuthorized, async function (req,
                 message: 'Monitor ID is not of string type.'
             });
         }
-        var events = await ScheduledEventService.findBy({ projectId, monitorId }, query.limit, query.skip);
-        var count = await ScheduledEventService.countBy({ projectId, monitorId});
+        const events = await ScheduledEventService.findBy({ projectId, monitorId }, query.limit, query.skip);
+        const count = await ScheduledEventService.countBy({ projectId, monitorId});
         return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -186,10 +186,10 @@ router.get('/:projectId/:monitorId', getUser, isAuthorized, async function (req,
 
 router.get('/:projectId/:monitorId/statusPage', checkUserBelongToProject,  async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var monitorId = req.params.monitorId;
+        const projectId = req.params.projectId;
+        const monitorId = req.params.monitorId;
 
-        var query = req.query;
+        const query = req.query;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -218,8 +218,8 @@ router.get('/:projectId/:monitorId/statusPage', checkUserBelongToProject,  async
                 message: 'Monitor ID is not of string type.'
             });
         }
-        var events = await ScheduledEventService.findBy({ projectId, monitorId, showEventOnStatusPage: true }, query.limit, query.skip);
-        var count = await ScheduledEventService.countBy({ projectId, monitorId, showEventOnStatusPage: true });
+        const events = await ScheduledEventService.findBy({ projectId, monitorId, showEventOnStatusPage: true }, query.limit, query.skip);
+        const count = await ScheduledEventService.countBy({ projectId, monitorId, showEventOnStatusPage: true });
         return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

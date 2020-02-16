@@ -1,9 +1,9 @@
-var slugify = require('slugify');
-var generate = require('nanoid/generate');
-var mongoose = require('../config/db');
+const slugify = require('slugify');
+const generate = require('nanoid/generate');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var projectSchema = new Schema({
+const Schema = mongoose.Schema;
+const projectSchema = new Schema({
     name: String,
     slug: {
         type: String

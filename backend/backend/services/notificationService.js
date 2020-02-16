@@ -18,7 +18,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var notifications = await NotificationModel.find(query)
+            const notifications = await NotificationModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 });
@@ -36,7 +36,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await NotificationModel.count(query);
+            const count = await NotificationModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('notificationService.countBy', error);
@@ -49,7 +49,7 @@ module.exports = {
             if (!meta) {
                 meta = {};
             }
-            var notification = new NotificationModel();
+            let notification = new NotificationModel();
             notification.projectId = projectId;
             notification.message = message;
             notification.icon = icon;
@@ -66,7 +66,7 @@ module.exports = {
 
     updateManyBy: async function (query, data) {
         try {
-            var notifications = await NotificationModel.updateMany(query, {
+            const notifications = await NotificationModel.updateMany(query, {
                 $addToSet: data
             });
             return notifications;
@@ -78,16 +78,16 @@ module.exports = {
 
     updateOneBy: async function (query, data) {
         try {
-            let _this = this;
+            const _this = this;
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            var notification = await _this.findOneBy(query);
-            let read = notification.read;
+            let notification = await _this.findOneBy(query);
+            const read = notification.read;
             if (data.read) {
-                for (let userId of data.read) {
+                for (const userId of data.read) {
                     read.push(userId);
                 }
             }
@@ -111,7 +111,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await NotificationModel.updateMany(query, {
+            let updatedData = await NotificationModel.updateMany(query, {
                 $set: data
             });
             updatedData = await NotificationModel.find(query)
@@ -125,7 +125,7 @@ module.exports = {
 
     delete: async function (notificationId) {
         try {
-            var result = await NotificationModel.findById(notificationId).remove();
+            const result = await NotificationModel.findById(notificationId).remove();
             return result;
         } catch (error) {
             ErrorService.log('notificationService.delete', error);
@@ -151,7 +151,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var notification = await NotificationModel.findOne(query)
+            const notification = await NotificationModel.findOne(query)
                 .populate('projectId', 'name');
             return notification;
         } catch (error) {
@@ -162,6 +162,6 @@ module.exports = {
 
 };
 
-var NotificationModel = require('../models/notification');
-var RealTimeService = require('../services/realTimeService');
-var ErrorService = require('../services/errorService');
+const NotificationModel = require('../models/notification');
+const RealTimeService = require('../services/realTimeService');
+const ErrorService = require('../services/errorService');

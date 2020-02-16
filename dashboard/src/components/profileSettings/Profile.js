@@ -532,7 +532,7 @@ export class ProfileSetting extends Component {
                                 type='text'
                                 name='otp'
                                 id='otp'
-                                placeholder='1234'
+                                placeholder='123456'
                                 component={RenderField}
                                 disabled={verifySMSCodeRequesting}
                                 style={{ width: 120, marginRight: 10 }}

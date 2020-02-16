@@ -1,18 +1,18 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
-var EmailStatusService = require('../backend/services/emailStatusService');
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
-var UserService = require('../backend/services/userService');
-var FeedbackService = require('../backend/services/feedbackService');
-var ProjectService = require('../backend/services/projectService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var AirtableService = require('../backend/services/airtableService');
-var token, projectId, userId, airtableId;
+const app = require('../server');
+const EmailStatusService = require('../backend/services/emailStatusService');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const FeedbackService = require('../backend/services/feedbackService');
+const ProjectService = require('../backend/services/projectService');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const AirtableService = require('../backend/services/airtableService');
+let token, projectId, userId, airtableId;
 
 describe('Feedback API', function () {
     this.timeout(50000);
@@ -20,7 +20,7 @@ describe('Feedback API', function () {
     before(function (done) {
         this.timeout(40000);
         createUser(request, userData.user, function (err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -47,8 +47,8 @@ describe('Feedback API', function () {
 
     it('should create feedback and check the sent emails to fyipe team and user', function (done) {
 
-        var authorization = `Basic ${token}`;
-        var testFeedback = {
+        const authorization = `Basic ${token}`;
+        const testFeedback = {
             feedback: 'test feedback',
             page: 'test page'
         };
@@ -56,7 +56,7 @@ describe('Feedback API', function () {
             expect(res).to.have.status(200);
             FeedbackService.hardDeleteBy({ _id: res.body._id });
             AirtableService.deleteFeedback(res.body.airtableId);
-            var emailStatuses = await EmailStatusService.findBy({});
+            const emailStatuses = await EmailStatusService.findBy({});
             expect(emailStatuses[0].subject).to.equal('Thank you for your feedback!');
             done();
         });

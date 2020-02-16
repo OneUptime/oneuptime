@@ -24,9 +24,9 @@ module.exports = {
 
             //#1
 
-            var notAcknowledgedCallScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incidentAcknowledged: false, alertedEveryone: false }, limit: 9999999, skip: 0 });
+            const notAcknowledgedCallScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incidentAcknowledged: false, alertedEveryone: false }, limit: 9999999, skip: 0 });
 
-            for(var notAcknowledgedCallScheduleStatus of notAcknowledgedCallScheduleStatuses){
+            for(const notAcknowledgedCallScheduleStatus of notAcknowledgedCallScheduleStatuses){
 
                 if(!notAcknowledgedCallScheduleStatus){
                     continue; 
@@ -39,7 +39,7 @@ module.exports = {
                     continue; 
                 }
 
-                var incident = await IncidentService.findOneBy({_id:notAcknowledgedCallScheduleStatus.incident});
+                const incident = await IncidentService.findOneBy({_id:notAcknowledgedCallScheduleStatus.incident});
 
                 if(!incident){
                     notAcknowledgedCallScheduleStatus.incidentAcknowledged = true; 
@@ -56,15 +56,15 @@ module.exports = {
                 // #3 and #4
                 // get active escalation policy. 
                 
-                var alerts = await AlertService.findBy({query: {onCallScheduleStatus:notAcknowledgedCallScheduleStatus._id}, limit: 9999, skip: 0, sort: {createdAt:-1}}); //sort by createdAtdescending. 
+                const alerts = await AlertService.findBy({query: {onCallScheduleStatus:notAcknowledgedCallScheduleStatus._id}, limit: 9999, skip: 0, sort: {createdAt:-1}}); //sort by createdAtdescending. 
                 if(alerts && alerts.length > 0 && alerts[0]){
                     //check when the last alert was sent.  
-                    var lastAlertSentAt = alerts[0].createdAt; //we take '0' index because list is reverse sorted. 
+                    const lastAlertSentAt = alerts[0].createdAt; //we take '0' index because list is reverse sorted. 
                     if(!DateTime.isOlderThanLastMinute(lastAlertSentAt)){
                         continue; 
                     }
                 }
-                var schedule = await ScheduleService.findOneBy({_id: notAcknowledgedCallScheduleStatus.schedule });
+                const schedule = await ScheduleService.findOneBy({_id: notAcknowledgedCallScheduleStatus.schedule });
                 //and the rest happens here. 
             
                 AlertService.sendAlertsToTeamMembersInSchedule({schedule, incident });                

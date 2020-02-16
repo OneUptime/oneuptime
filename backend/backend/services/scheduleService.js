@@ -12,7 +12,7 @@ module.exports = {
             if (!query) query = {};
 
             if(!query.deleted) query.deleted = false;
-            var schedules = await ScheduleModel.find(query)
+            const schedules = await ScheduleModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -39,7 +39,7 @@ module.exports = {
             }
 
             if(!query.deleted) query.deleted = false;
-            var schedule = await ScheduleModel.findOne(query)
+            const schedule = await ScheduleModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('userIds', 'name')
                 .populate('createdById', 'name')
@@ -59,7 +59,7 @@ module.exports = {
 
     create: async function (data) {
         try {
-            var scheduleModel = new ScheduleModel();
+            const scheduleModel = new ScheduleModel();
             scheduleModel.name = data.name || null;
             scheduleModel.projectId = data.projectId || null;
             scheduleModel.createdById = data.createdById || null;
@@ -67,7 +67,7 @@ module.exports = {
             // if userIds is array
             if (data.userIds) {
                 scheduleModel.userIds = [];
-                for (let userId of data.userIds) {
+                for (const userId of data.userIds) {
                     scheduleModel.userIds.push(userId);
                 }
             }
@@ -75,11 +75,11 @@ module.exports = {
             // if monitorIds is array
             if (data.monitorIds) {
                 scheduleModel.monitorIds = [];
-                for (let monitorId of data.monitorIds) {
+                for (const monitorId of data.monitorIds) {
                     scheduleModel.userIds.push(monitorId);
                 }
             }
-            var schedule = await scheduleModel.save();
+            const schedule = await scheduleModel.save();
             return schedule;
         } catch (error) {
             ErrorService.log('scheduleService.create', error);
@@ -94,7 +94,7 @@ module.exports = {
             }
 
             if(!query.deleted) query.deleted = false;
-            var count = await ScheduleModel.count(query);
+            const count = await ScheduleModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('scheduleService.countBy', error);
@@ -104,7 +104,7 @@ module.exports = {
 
     deleteBy: async function (query, userId) {
         try {
-            var schedule = await ScheduleModel.findOneAndUpdate(query, {
+            const schedule = await ScheduleModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -115,7 +115,7 @@ module.exports = {
             });
 
             if (schedule && schedule._id) {
-                var escalations = await EscalationService.findBy({query: { scheduleId: schedule._id }});
+                const escalations = await EscalationService.findBy({query: { scheduleId: schedule._id }});
                 await escalations.map(({ _id }) => EscalationService.deleteBy({ _id: _id }, userId));
             }
 
@@ -128,7 +128,7 @@ module.exports = {
 
     removeMonitor: async function (monitorId) {
         try {
-            var schedule = await ScheduleModel.findOneAndUpdate({monitorIds:monitorId}, {
+            const schedule = await ScheduleModel.findOneAndUpdate({monitorIds:monitorId}, {
                 $pull: {monitorIds: monitorId}
             });
             return schedule;
@@ -145,11 +145,11 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var _this = this;
-            var schedule = await _this.findOneBy(query);
-            var userIds = [];
+            const _this = this;
+            let schedule = await _this.findOneBy(query);
+            let userIds = [];
             if (data.userIds) {
-                for (let userId of data.userIds) {
+                for (const userId of data.userIds) {
                     userIds.push(userId);
                 }
             }
@@ -157,9 +157,9 @@ module.exports = {
                 userIds = schedule.userIds;
             }
             data.userIds = userIds;
-            var monitorIds = [];
+            let monitorIds = [];
             if (data.monitorIds) {
-                for (let monitorId of data.monitorIds) {
+                for (const monitorId of data.monitorIds) {
                     monitorIds.push(monitorId);
                 }
             }
@@ -187,7 +187,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await ScheduleModel.updateMany(query, {
+            let updatedData = await ScheduleModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -219,10 +219,10 @@ module.exports = {
 
     addEscalation: async function (scheduleId, escalations, userId) {
         try {
-            let _this = this;
-            let escalationIds = [];
-            for (let data of escalations) {
-                var escalation = {};
+            const _this = this;
+            const escalationIds = [];
+            for (const data of escalations) {
+                let escalation = {};
                 if (!data._id) {
                     escalation = await EscalationService.create(data);
                 } else {
@@ -236,7 +236,7 @@ module.exports = {
             }
             await _this.updateOneBy({ _id: scheduleId }, { escalationIds: escalationIds });
 
-            var scheduleEscalation = await _this.getEscalations(scheduleId);
+            const scheduleEscalation = await _this.getEscalations(scheduleId);
 
             return scheduleEscalation.escalations;
         } catch (error) {
@@ -247,11 +247,11 @@ module.exports = {
 
     getEscalations: async function (scheduleId) {
         try {
-            let _this = this;
-            var schedule = await _this.findOneBy({ _id: scheduleId });
+            const _this = this;
+            const schedule = await _this.findOneBy({ _id: scheduleId });
 
-            let escalationIds = schedule.escalationIds;
-            let escalations = await Promise.all(escalationIds.map(async (escalationId) => {
+            const escalationIds = schedule.escalationIds;
+            const escalations = await Promise.all(escalationIds.map(async (escalationId) => {
                 return await EscalationService.findOneBy({ _id: escalationId._id });
             }));
             return { escalations, count: escalationIds.length };
@@ -263,8 +263,8 @@ module.exports = {
 
     escalationCheck: async function (escalationIds, scheduleId, userId) {
         try {
-            let _this = this;
-            var scheduleIds = await _this.findOneBy({ _id: scheduleId });
+            const _this = this;
+            let scheduleIds = await _this.findOneBy({ _id: scheduleId });
 
             scheduleIds = scheduleIds.escalationIds.map(i => i._id.toString());
             escalationIds = escalationIds.map(i => i.toString());
@@ -290,10 +290,10 @@ module.exports = {
     },
 
     getSubProjectSchedules: async function (subProjectIds) {
-        var _this = this;
-        let subProjectSchedules = await Promise.all(subProjectIds.map(async (id) => {
-            let schedules = await _this.findBy({ projectId: id }, 10, 0);
-            let count = await _this.countBy({ projectId: id });
+        const _this = this;
+        const subProjectSchedules = await Promise.all(subProjectIds.map(async (id) => {
+            const schedules = await _this.findBy({ projectId: id }, 10, 0);
+            const count = await _this.countBy({ projectId: id });
             return { schedules, count, _id: id, skip: 0, limit: 10 };
         }));
         return subProjectSchedules;
@@ -341,6 +341,6 @@ module.exports = {
     }
 };
 
-var ScheduleModel = require('../models/schedule');
-let EscalationService = require('../services/escalationService');
-let ErrorService = require('../services/errorService');
+const ScheduleModel = require('../models/schedule');
+const EscalationService = require('../services/escalationService');
+const ErrorService = require('../services/errorService');

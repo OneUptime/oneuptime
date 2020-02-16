@@ -1,15 +1,15 @@
-var nodemailer = require('nodemailer');
-var accountMail = require('../config/mail');
-var hbs = require('nodemailer-express-handlebars');
-var Handlebars = require('handlebars');
-var Whitepapers = require('../config/whitepaper');
-var ErrorService = require('./errorService');
-var defaultEmailTemplates = require('../config/emailTemplate');
-var EmailSmtpService = require('./emailSmtpService');
+const nodemailer = require('nodemailer');
+const accountMail = require('../config/mail');
+const hbs = require('nodemailer-express-handlebars');
+const Handlebars = require('handlebars');
+const Whitepapers = require('../config/whitepaper');
+const ErrorService = require('./errorService');
+const defaultEmailTemplates = require('../config/emailTemplate');
+const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
-var { ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST } = process.env;
+const { ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST } = process.env;
 
-var options = {
+const options = {
     viewEngine: {
         extname: '.hbs',
         layoutsDir: 'views/email/',
@@ -21,7 +21,7 @@ var options = {
 };
 
 
-var mailer = nodemailer.createTransport({
+const mailer = nodemailer.createTransport({
     host: accountMail.host,
     port: accountMail.port,
     secure: accountMail.secure,
@@ -33,10 +33,10 @@ var mailer = nodemailer.createTransport({
 
 mailer.use('compile', hbs(options));
 
-var getTemplates = async (emailTemplate, emailType) => {
-    var defaultTemplate = defaultEmailTemplates.filter(template => template.emailType === emailType);
-    var emailContent = defaultTemplate[0].body;
-    var emailSubject = defaultTemplate[0].subject;
+const getTemplates = async (emailTemplate, emailType) => {
+    const defaultTemplate = defaultEmailTemplates.filter(template => template.emailType === emailType);
+    let emailContent = defaultTemplate[0].body;
+    let emailSubject = defaultTemplate[0].subject;
 
     if (emailTemplate != null && emailTemplate != undefined && emailTemplate.body) {
         emailContent = emailTemplate.body;
@@ -44,14 +44,14 @@ var getTemplates = async (emailTemplate, emailType) => {
     if (emailTemplate != null && emailTemplate != undefined && emailTemplate.subject) {
         emailSubject = emailTemplate.subject;
     }
-    var template = await Handlebars.compile(emailContent);
-    var subject = await Handlebars.compile(emailSubject);
+    const template = await Handlebars.compile(emailContent);
+    const subject = await Handlebars.compile(emailSubject);
     return { template, subject };
 };
 
-var getSmtpSettings = async (projectId) => {
-    var { user, pass, host, port, from, secure } = accountMail;
-    var smtpDb = await EmailSmtpService.findOneBy({ projectId, enabled: true });
+const getSmtpSettings = async (projectId) => {
+    let { user, pass, host, port, from, secure } = accountMail;
+    const smtpDb = await EmailSmtpService.findOneBy({ projectId, enabled: true });
     if (smtpDb && smtpDb.user && smtpDb.user !== null && smtpDb.user !== undefined) {
         user = smtpDb.user;
         pass = smtpDb.pass;
@@ -64,8 +64,8 @@ var getSmtpSettings = async (projectId) => {
     return { user, pass, host, port, from, secure };
 };
 
-var createMailer = async (host, port, user, pass, secure) => {
-    let privateMailer = await nodemailer.createTransport({
+const createMailer = async (host, port, user, pass, secure) => {
+    const privateMailer = await nodemailer.createTransport({
         host: host,
         port: port,
         secure: secure,
@@ -86,9 +86,9 @@ module.exports = {
     // Param 1: userEmail: Email of user
     // Returns: promise
     sendSignupMail: async function (userEmail, name) {
-
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: userEmail,
                 subject: 'Welcome to Fyipe.',
@@ -99,7 +99,7 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
 
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -123,9 +123,9 @@ module.exports = {
         }
     },
     sendVerifyEmail: async function (tokenVerifyURL, name, email) {
-
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'Activate your Fyipe account',
@@ -136,7 +136,7 @@ module.exports = {
                     name: name.split(' ')[0].toString()
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -158,8 +158,9 @@ module.exports = {
         }
     },
     sendLeadEmailToFyipeTeam: async function (lead) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: 'noreply@fyipe.com',
                 subject: 'New Lead Added',
@@ -169,7 +170,7 @@ module.exports = {
                     text: JSON.stringify(lead, null, 2)
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -192,9 +193,9 @@ module.exports = {
     },
 
     sendUserFeedbackResponse: async function (userEmail, name) {
-
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: userEmail,
                 subject: 'Thank you for your feedback!',
@@ -204,7 +205,7 @@ module.exports = {
                     name: name.split(' ')[0].toString()
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -227,22 +228,23 @@ module.exports = {
     },
 
     sendRequestDemoEmail: async function (to) {
+        let mailOptions = {};
         try {
             if (!to) {
-                let error = new Error('Email not found');
+                const error = new Error('Email not found');
                 error.code = 400;
                 throw error;
             }
             else {
 
-                var mailOptions = {
+                mailOptions = {
                     from: '"Fyipe " <' + accountMail.from + '>',
                     cc: 'noreply@fyipe.com',
                     to: to,
                     subject: 'Thank you for your demo request.',
                     template: 'request_demo_body',
                 };
-                var info = await mailer.sendMail(mailOptions);
+                const info = await mailer.sendMail(mailOptions);
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
@@ -266,9 +268,10 @@ module.exports = {
     },
 
     sendWhitepaperEmail: async function (to, whitepaperName) {
+        let mailOptions = {};
         try {
             if (!to || whitepaperName) {
-                let error = new Error('Email or Whitepaper found');
+                const error = new Error('Email or Whitepaper found');
                 error.code = 400;
                 ErrorService.log('mailService.sendWhitepaperEmail', error);
                 throw error;
@@ -276,7 +279,7 @@ module.exports = {
             else {
                 let link = null;
 
-                for (var i = 0; i < Whitepapers.length; i++) {
+                for (let i = 0; i < Whitepapers.length; i++) {
                     if (Whitepapers[i].name === whitepaperName) {
                         link = Whitepapers[i].link;
                     }
@@ -284,13 +287,13 @@ module.exports = {
 
 
                 if (!link) {
-                    let error = new Error('Whitepaper not found');
+                    const error = new Error('Whitepaper not found');
                     error.code = 400;
                     ErrorService.log('mailService.sendWhitepaperEmail', error);
                     throw error;
                 }
                 else {
-                    var mailOptions = {
+                    mailOptions = {
                         from: '"Fyipe " <' + accountMail.from + '>',
                         cc: 'noreply@fyipe.com',
                         to: to,
@@ -301,7 +304,7 @@ module.exports = {
                             link: link
                         }
                     };
-                    var info = await mailer.sendMail(mailOptions);
+                    const info = await mailer.sendMail(mailOptions);
                     await EmailStatusService.create({
                         from: mailOptions.from,
                         to: mailOptions.to,
@@ -334,8 +337,9 @@ module.exports = {
     // Param 3: token: Password reset token
     // Returns: promise
     sendForgotPasswordMail: async function (forgotPasswordURL, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'Password Reset for Fyipe',
@@ -345,7 +349,7 @@ module.exports = {
                     forgotPasswordURL
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -372,9 +376,10 @@ module.exports = {
     // Param 1: email: Email of user
     // Returns: promise
     sendResetPasswordConfirmMail: async function (email) {
+        let mailOptions = {};
 
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'Your password has been changed.',
@@ -384,7 +389,7 @@ module.exports = {
                     accountsURL: ACCOUNTS_HOST
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -411,8 +416,9 @@ module.exports = {
     // Param 1: userEmail: Email of users
     // Returns: promise
     sendNewUserAddedToProjectMail: async function (project, addedByUser, email, registerUrl) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'You\'ve been added to a project on Fyipe',
@@ -424,7 +430,7 @@ module.exports = {
                     registerUrl
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -447,8 +453,9 @@ module.exports = {
     },
 
     sendExistingUserAddedToProjectMail: async function (project, addedByUser, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'You\'ve been added to a project on Fyipe',
@@ -460,7 +467,7 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -483,8 +490,9 @@ module.exports = {
     },
 
     sendExistingStatusPageViewerMail: async function (subProject, addedByUser, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'You\'ve been added to a sub-project on Fyipe',
@@ -496,7 +504,7 @@ module.exports = {
                 }
             };
 
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -519,8 +527,9 @@ module.exports = {
     },
 
     sendExistingUserAddedToSubProjectMail: async function (project, addedByUser, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'You\'ve been added to a subproject on Fyipe',
@@ -533,7 +542,7 @@ module.exports = {
                 }
             };
 
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -556,8 +565,9 @@ module.exports = {
     },
 
     sendNewStatusPageViewerMail: async function (project, addedByUser, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'You\'ve been added to a project on Fyipe',
@@ -570,7 +580,7 @@ module.exports = {
                 }
             };
 
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -593,8 +603,9 @@ module.exports = {
     },
 
     sendChangeRoleEmailToUser: async function (project, addedByUser, email, role) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'You\'ve been assigned a new role',
@@ -607,7 +618,7 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -630,8 +641,9 @@ module.exports = {
     },
 
     sendRemoveFromProjectEmailToUser: async function (project, removedByUser, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'You\'ve been removed from a project on Fyipe',
@@ -643,7 +655,7 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -666,8 +678,9 @@ module.exports = {
     },
 
     sendRemoveFromSubProjectEmailToUser: async function (subProject, removedByUser, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'You\'ve been removed from a subproject on Fyipe',
@@ -679,7 +692,7 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -712,8 +725,9 @@ module.exports = {
      * @param {string} accessToken An access token to be used used to access API from email.
      */
     sendIncidentCreatedMail: async function ({ incidentTime, monitorName, email, userId, firstName, projectId, acknowledgeUrl, resolveUrl, accessToken, incidentType, projectName }) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: `${projectName}/${monitorName} is ${incidentType}`,
@@ -734,7 +748,7 @@ module.exports = {
                 }
             };
 
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -765,9 +779,10 @@ module.exports = {
      * @param {string} projectId Id of the project whose monitor has incident.
      */
     sendIncidentCreatedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, trackEmailAsViewedUrl) {
+        let mailOptions = {};
         try {
-            var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Created');
-            let data = {
+            let { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Created');
+            const data = {
                 incidentTime,
                 monitorName,
                 userName,
@@ -779,9 +794,9 @@ module.exports = {
             };
             template = template(data);
             subject = subject(data);
-            var smtpSettings = await getSmtpSettings(incident.projectId);
-            let privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
-            var mailOptions = {
+            const smtpSettings = await getSmtpSettings(incident.projectId);
+            const privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
+            mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
                 subject: subject,
@@ -790,7 +805,7 @@ module.exports = {
                     body: template
                 }
             };
-            var info = await privateMailer.sendMail(mailOptions);
+            const info = await privateMailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -820,9 +835,10 @@ module.exports = {
      * @param {string} projectId Id of the project whose monitor has incident.
      */
     sendIncidentAcknowledgedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, trackEmailAsViewedUrl) {
+        let mailOptions = {};
         try {
-            var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Acknowldeged');
-            let data = {
+            let { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Acknowldeged');
+            const data = {
                 incidentTime,
                 monitorName,
                 userName,
@@ -834,9 +850,9 @@ module.exports = {
             };
             template = template(data);
             subject = subject(data);
-            var smtpSettings = await getSmtpSettings(incident.projectId);
-            let privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
-            var mailOptions = {
+            const smtpSettings = await getSmtpSettings(incident.projectId);
+            const privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
+            mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
                 subject: subject,
@@ -845,7 +861,7 @@ module.exports = {
                     body: template
                 }
             };
-            var info = await privateMailer.sendMail(mailOptions);
+            const info = await privateMailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -875,9 +891,10 @@ module.exports = {
      * @param {string} projectId Id of the project whose monitor has incident.
      */
     sendIncidentResolvedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, trackEmailAsViewedUrl) {
+        let mailOptions = {};
         try {
-            var { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Resolved');
-            let data = {
+            let { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Resolved');
+            const data = {
                 incidentTime,
                 monitorName,
                 userName,
@@ -889,9 +906,9 @@ module.exports = {
             };
             template = template(data);
             subject = subject(data);
-            var smtpSettings = await getSmtpSettings(incident.projectId);
-            let privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
-            var mailOptions = {
+            const smtpSettings = await getSmtpSettings(incident.projectId);
+            const privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
+            mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
                 subject: subject,
@@ -901,7 +918,7 @@ module.exports = {
                     body: template
                 }
             };
-            var info = await privateMailer.sendMail(mailOptions);
+            const info = await privateMailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -924,9 +941,10 @@ module.exports = {
     },
 
     testSmtpConfig: async function (data) {
+        let mailOptions = {};
         try {
-            var privateMailer = await createMailer(data.host, data.port, data.user, data.pass, data.secure);
-            var mailOptions = {
+            const privateMailer = await createMailer(data.host, data.port, data.user, data.pass, data.secure);
+            mailOptions = {
                 from: '"Fyipe " <' + data.from + '>',
                 to: data.email,
                 subject: 'Email Smtp Settings Test',
@@ -935,7 +953,7 @@ module.exports = {
                     homeURL: HOME_HOST,
                 }
             };
-            var info = await privateMailer.sendMail(mailOptions);
+            const info = await privateMailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -971,8 +989,9 @@ module.exports = {
     },
 
     sendChangePlanMail: async function (projectName, oldPlan, newPlan, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'Change of Subscription Plan',
@@ -985,7 +1004,7 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -1009,8 +1028,9 @@ module.exports = {
     },
 
     sendCreateProjectMail: async function (projectName, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'New Project',
@@ -1021,7 +1041,7 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -1029,6 +1049,7 @@ module.exports = {
                 template: mailOptions.template,
                 status: 'Success'
             });
+            return info;
         } catch (error) {
             ErrorService.log('mailService.sendCreateProjectMail', error);
             await EmailStatusService.create({
@@ -1040,12 +1061,12 @@ module.exports = {
             });
             throw error;
         }
-        return info;
     },
 
     sendCreateSubProjectMail: async function (subProjectName, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'New Sub-Project',
@@ -1057,7 +1078,7 @@ module.exports = {
                 }
             };
 
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -1080,8 +1101,9 @@ module.exports = {
     },
 
     sendUpgradeToEnterpriseMail: async function (projectName, projectId, oldPlan, email) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: 'support@fyipe.com',
                 subject: 'Upgrade to enterprise plan request from ' + email,
@@ -1094,7 +1116,7 @@ module.exports = {
                     email: email
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -1117,8 +1139,9 @@ module.exports = {
     },
 
     sendPaymentFailedEmail: async function (projectName, email, name, chargeAttemptStage) {
+        let mailOptions = {};
         try {
-            var mailOptions = {
+            mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
                 subject: 'Subscription Payment Failed',
@@ -1131,7 +1154,7 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-            var info = await mailer.sendMail(mailOptions);
+            const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,

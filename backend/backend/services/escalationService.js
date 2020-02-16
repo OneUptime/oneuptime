@@ -1,5 +1,5 @@
-var EscalationModel = require('../models/escalation');
-var ErrorService = require('./errorService');
+const EscalationModel = require('../models/escalation');
+const ErrorService = require('./errorService');
 const moment = require('moment');
 const DateTime = require('../utils/DateTime');
 
@@ -18,7 +18,7 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            var escalations = await EscalationModel.find(query)
+            const escalations = await EscalationModel.find(query)
                 .sort(sort)
                 .limit(limit)
                 .skip(skip)
@@ -40,7 +40,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var escalation = await EscalationModel.findOne(query)
+            const escalation = await EscalationModel.findOne(query)
                 .populate('projectId', 'name')
                 .populate('scheduleId', 'name')
                 .lean();
@@ -60,7 +60,7 @@ module.exports = {
     create: async function (data) {
         try {
 
-            let escalationModel = new EscalationModel({
+            const escalationModel = new EscalationModel({
                 call: data.call,
                 email: data.email,
                 sms: data.sms,
@@ -77,7 +77,7 @@ module.exports = {
                 teams: data.teams,
             });
 
-            var escalation = await escalationModel.save();
+            const escalation = await escalationModel.save();
             return escalation;
         } catch (error) {
             ErrorService.log('escalationService.create', error);
@@ -93,7 +93,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await EscalationModel.count(query);
+            const count = await EscalationModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('escalationService.countBy', error);
@@ -103,7 +103,7 @@ module.exports = {
 
     deleteBy: async function (query, userId) {
         try {
-            var escalation = await EscalationModel.findOneAndUpdate(query, {
+            const escalation = await EscalationModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -126,16 +126,17 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var escalation = await EscalationModel.findOneAndUpdate(query, {
+            const escalation = await EscalationModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
+            return escalation;
         } catch (error) {
             ErrorService.log('escalationService.updateOneBy', error);
             throw error;
         }
-        return escalation;
+       
     },
 
     updateBy: async function (query, data) {
@@ -145,7 +146,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await EscalationModel.updateMany(query, {
+            let updatedData = await EscalationModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -158,13 +159,13 @@ module.exports = {
 
     removeEscalationMember: async function (projectId, memberId) {
         try {
-            var _this = this;
-            var escalations = await _this.findBy({qeury:{ projectId }});
+            const _this = this;
+            const escalations = await _this.findBy({qeury:{ projectId }});
 
             if (escalations && escalations.length > 0) {
                 await Promise.all(escalations.map(async (escalation) => {
-                    var teams = escalation.teams.map((team)=>{
-                        var teamMembers = team.teamMembers; 
+                    const teams = escalation.teams.map((team)=>{
+                        let teamMembers = team.teamMembers; 
                         teamMembers = teamMembers.filter((member)=>{
                             return member.userId !== memberId;
                         });
@@ -224,16 +225,18 @@ module.exports = {
 
 
 function computeActiveTeamIndex(numberOfTeams, intervalDifference, rotationInterval) {
-    var difference = Math.floor(intervalDifference / rotationInterval);
+    const difference = Math.floor(intervalDifference / rotationInterval);
     return difference % numberOfTeams;
 }
 
 function computeActiveTeams(escalation) {
 
-    let {
+    const {
         teams, rotationInterval, rotateBy,
-        firstRotationOn, createdAt, rotationTimezone
+        createdAt, rotationTimezone
     } = escalation;
+
+    let firstRotationOn = escalation.firstRotationOn;
 
     const currentDate = new Date();
 
@@ -241,7 +244,7 @@ function computeActiveTeams(escalation) {
 
     if (rotateBy && rotateBy != '') {
 
-        var intervalDifference = 0;
+        let intervalDifference = 0;
 
         //convert rotation switch time to timezone. 
         firstRotationOn = DateTime.changeDateTimezone(firstRotationOn, rotationTimezone);
@@ -268,7 +271,7 @@ function computeActiveTeams(escalation) {
             activeTeamRotationStartTime = moment(firstRotationOn).add(intervalDifference, rotateBy);
         }
 
-        let activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotateBy);
+        const activeTeamRotationEndTime = moment(activeTeamRotationStartTime).add(rotationInterval, rotateBy);
 
         const activeTeam = {
             _id: teams[activeTeamIndex]._id,

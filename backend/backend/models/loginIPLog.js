@@ -1,7 +1,7 @@
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-var loginIPlogSchema = new Schema({
+const loginIPlogSchema = new Schema({
     userId: {
         type: String, 
         ref: 'User',

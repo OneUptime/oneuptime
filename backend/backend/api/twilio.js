@@ -6,17 +6,14 @@
 
 const express = require('express');
 const IncidentService = require('../services/incidentService');
-const { sendIncidentCreatedCall, sendResponseMessage, sendVerificationSMS, verifySMSCode } = require('../services/twilioService');
-const baseApiUrl = process.env.BACKEND_HOST;
-const incidentSMSActionService = require('../services/IncidentSMSActionService');
+const { sendIncidentCreatedCall, sendVerificationSMS, verifySMSCode } = require('../services/twilioService');
 const {
     isAuthorized
 } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const router = express.Router();
-const errorResponse = '<Response><Say voice="alice">The incident status was not updated. Please go to Fyipe Dashboard to update. Thank you.</Say></Response>';
 const SmsCountService = require('../services/smsCountService');
 /**
  * @param { accessToken, projectId, incidentId }: Come in the query string, passed in twilio service.
@@ -24,20 +21,6 @@ const SmsCountService = require('../services/smsCountService');
  * @description Twilio gets user message from this API, we send with input Gather set to take a single key press.
  * @returns Twiml with 'Content-Type', 'text/xml' in headers for twilio to understand.
  */
-router.get('/voice/incident', async function (req, res) {
-    const { accessToken, projectId, incidentId, monitorName, incidentType } = req.query;
-    let actionPath = `${baseApiUrl}/twilio/voice/incident/action?projectId=${projectId}&amp;incidentId=${incidentId}&amp;accessToken=${accessToken}`;
-
-    // Twilio says this message first. The gather listens for keyboard clicks
-    const message = '<Say voice="alice">This is an alert from Fyipe. Your monitor ' + monitorName + ' is ' + incidentType + '. Press one to acknowledge or two to resolve.</Say>';
-    const gather = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" timeout="15"> ` + message + '</Gather>';
-
-    // This is said when user hits no key.
-    const onNoKeyPress = '<Say voice="alice">No response received. This call will end.</Say>';
-    const hangUp = '<Hangup />';
-    res.set('Content-Type', 'text/xml');
-    return sendItemResponse(req, res, '<Response> ' + gather + onNoKeyPress + hangUp + '</Response>');
-});
 
 router.get('/voice/status', async (req, res) => {
     try {
@@ -74,101 +57,14 @@ router.get('/voice/status', async (req, res) => {
  * @returns Twiml with with action status.
  */
 
-router.post('/voice/incident/action', getUser, isAuthorized, async function (req, res) {
-    try {
-        const { accessToken, projectId, incidentId } = req.query;
-
-        let actionPath = `${baseApiUrl}/twilio/voice/incident/action?projectId=${projectId}&amp;incidentId=${incidentId}&amp;accessToken=${accessToken}`;
-        var userId = req.user ? req.user.id : null;
-
-        var data = { decoded: userId, incidentId: incidentId, projectId: req.query.projectId };
-
-        res.set('Content-Type', 'text/xml');
-
-        if (!data.incidentId) {
-            return sendItemResponse(res, res, errorResponse);
-        }
-
-        if (typeof data.incidentId !== 'string') {
-            return sendItemResponse(req, res, errorResponse);
-        }
-
-        switch (req.body.Digits) {
-        // eslint-disable-next-line no-case-declarations
-        case '1': {
-            // Call the IncidentService
-            await IncidentService.acknowledge(incidentId, userId, req.user.name);
-            // Ask the user to resolve incident after acknowledging
-            const onAcknowledge = `<Gather numDigits="1" input="dtmf"  action="${actionPath}" timeout="15"> <Say voice="alice">The incident status has been acknowledged. Press 2 to resolve this incident</Say> </Gather>`;
-            // This is said when user hits no key.
-            const onNoKeyPress = '<Say voice="alice">No response received. This call will end.</Say>';
-            const hangUp = '<Hangup />';
-            return sendItemResponse(req, res, '<Response>' + onAcknowledge + onNoKeyPress + hangUp + '</Response>');
-        }
-        case '2': {
-            // Call the IncidentService
-            await IncidentService.resolve(incidentId, userId);
-            // incident resolve success message
-            const message = '<Say voice="alice">The incident status has been resolved. Log on to your dashboard to see the status. Thank you for using Fyipe.</Say>';
-            const hangUp = '<Hangup />';
-            return sendItemResponse(req, res, '<Response>' + message + hangUp + '</Response>');
-        }
-        default: {
-            // Request user to press 1 or 2
-            const message = '<Say voice="alice">You have pressed unknown key, Please press 1 to acknowledge or 2 to resolve the incident.</Say>';
-            const gather = `<Gather numDigits="1" input="dtmf" action="${actionPath}" timeout="15">${message}</Gather>`;
-
-            // This is said when user hits no key.
-            const onNoKeyPress = '<Say voice="alice">No response received. This call will end.</Say>';
-            const hangUp = '<Hangup />';
-            return sendItemResponse(req, res, '<Response>' + gather + onNoKeyPress + hangUp + '</Response>');
-        }
-        }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.post('/sms/incoming', async (req, res) => {
-    try {
-        var { Body, From, To } = req.body;
-        const actionType = parseInt(Body);
-        // Fetch the incident action record created when sms is dispatched.
-        const action = await incidentSMSActionService.get({ number: From, resolved: false });
-        // There should only be one pending incident to act upon. If not then this can not be done over sms.
-        if (action[1] || !action[0]) {
-            sendResponseMessage(From, 'You have many pending incidents. Please go to your Dashbard to perform actions on each. Thank you.');
-            return sendItemResponse(req, res, { status: 'Too many pending incidents.' });
-        }
-        switch (actionType) {
-        case 1:
-            await IncidentService.acknowledge(action[0], action[0].userId, action[0].name);
-            await incidentSMSActionService.updateOneBy({_id:action[0]._id}, { acknowledged: true });
-            sendResponseMessage(From, `Incident status acknowledged. Send 2 to ${To} to resolve incident`);
-            return sendItemResponse(req, res, { status: 'acknowledged' });
-        case 2:
-            await IncidentService.resolve(action[0], action[0].userId);
-            await incidentSMSActionService.updateOneBy({_id:action[0]._id}, { acknowledged: true, resolved: true });
-            sendResponseMessage(From, 'Incient status resolved. Thank you.');
-            return sendItemResponse(req, res, { status: 'resolved' });
-        default:
-            sendResponseMessage(From, 'We could not perform with action. Please logon to Fyipe Dashboard to complete. Thank you.');
-            return sendItemResponse(req, res, 'Invalid Number.');
-        }
-    } catch (e) {
-        sendResponseMessage(From, 'We could not perform with action. Please logon to Fyipe Dashboard to complete. Thank you.');
-        return sendErrorResponse(req, res, { status: 'Error' });
-    }
-});
-
 router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (req, res) {
     try {
-        var { to } = req.body;
-        var userId = req.user ? req.user.id : null;
-        var projectId = req.query.projectId;
-        var {validateResend,problem} = await SmsCountService.validateResend(userId);
+        const { to } = req.body;
+        const userId = req.user ? req.user.id : null;
+        const projectId = req.query.projectId;
+        const {validateResend,problem} = await SmsCountService.validateResend(userId);
         if (validateResend) {
-            var sendVerifyToken = await sendVerificationSMS(to, userId,projectId);
+            const sendVerifyToken = await sendVerificationSMS(to, userId,projectId);
             return sendItemResponse(req, res, sendVerifyToken);
         }
         else {
@@ -182,10 +78,10 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function 
 
 router.post('/sms/verify', getUser, isAuthorized, async function (req, res) {
     try {
-        var { to, code } = req.body;
-        var userId = req.user ? req.user.id : null;
-        var projectId = req.query.projectId;
-        var sendVerifyToken = await verifySMSCode(to, code, userId,projectId);
+        const { to, code } = req.body;
+        const userId = req.user ? req.user.id : null;
+        const projectId = req.query.projectId;
+        const sendVerifyToken = await verifySMSCode(to, code, userId,projectId);
         return sendItemResponse(req, res, sendVerifyToken);
     } catch (error) {
         return sendErrorResponse(req, res, {

@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var monitorCategorySchema = new Schema({
+const Schema = mongoose.Schema;
+const monitorCategorySchema = new Schema({
     projectId: {
         type: String,
         ref: 'Project',

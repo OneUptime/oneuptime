@@ -15,14 +15,14 @@ module.exports = {
     get: async function (userId, startingAfter, endingBefore) {
 
         try {
-            var user = await UserService.findOneBy({ _id: userId });
+            const user = await UserService.findOneBy({ _id: userId });
             if (!user) {
-                let error = new Error('User not found.');
+                const error = new Error('User not found.');
                 error.code = 400;
                 ErrorService.log('invoiceService.get', error);
                 throw error;
             } else {
-                var invoices = await stripe.invoices.list(
+                const invoices = await stripe.invoices.list(
                     {
                         customer: user.stripeCustomerId,
                         limit: 10,
@@ -31,7 +31,7 @@ module.exports = {
                         'include[]': 'total_count'
                     });
                 if (!invoices || !invoices.data) {
-                    let error = new Error('Your invoice cannot be retrieved.');
+                    const error = new Error('Your invoice cannot be retrieved.');
                     error.code = 400;
                     ErrorService.log('invoiceService.get', error);
                     throw error;
@@ -45,7 +45,7 @@ module.exports = {
     }
 };
 
-var payment = require('../config/payment');
-var stripe = require('stripe')(payment.paymentPrivateKey);
-var UserService = require('./userService');
-var ErrorService = require('./errorService');
+const payment = require('../config/payment');
+const stripe = require('stripe')(payment.paymentPrivateKey);
+const UserService = require('./userService');
+const ErrorService = require('./errorService');

@@ -4,10 +4,10 @@
  *
  */
 
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var probeSchema = new Schema({
+const Schema = mongoose.Schema;
+const probeSchema = new Schema({
     createdAt: { type: Date, default: Date.now },
     probeKey:{ type: String},
     probeName:{ type: String},

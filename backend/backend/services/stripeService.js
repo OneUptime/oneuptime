@@ -2,9 +2,9 @@
 const Services = {
     events: async function (customerId, subscriptionId, chargeAttemptCount) {
         try {
-            let chargeAttemptStage = chargeAttemptCount === 1 ? 'first' : (chargeAttemptCount === 2 ? 'second' : 'third');
-            var user = await UserService.findOneBy({ stripeCustomerId: customerId });
-            var project = await ProjectService.findOneBy({ stripeSubscriptionId: subscriptionId });
+            const chargeAttemptStage = chargeAttemptCount === 1 ? 'first' : (chargeAttemptCount === 2 ? 'second' : 'third');
+            const user = await UserService.findOneBy({ stripeCustomerId: customerId });
+            const project = await ProjectService.findOneBy({ stripeSubscriptionId: subscriptionId });
 
             await MailService.sendPaymentFailedEmail(project.name, user.email, user.name, chargeAttemptStage);
 
@@ -20,9 +20,9 @@ const Services = {
 
     charges: async function (userId) {
         try {
-            var user = await UserService.findOneBy({ _id: userId });
-            var stripeCustomerId = user.stripeCustomerId;
-            var charges = await stripe.charges.list({ customer: stripeCustomerId });
+            const user = await UserService.findOneBy({ _id: userId });
+            const stripeCustomerId = user.stripeCustomerId;
+            const charges = await stripe.charges.list({ customer: stripeCustomerId });
             return charges.data;
         } catch (error) {
             ErrorService.log('stripeService.charges', error);
@@ -33,8 +33,8 @@ const Services = {
     creditCard: {
         create: async function(tok, userId) {
             try {
-                let tokenCard = await stripe.tokens.retrieve(tok);
-                let cards = await this.get(userId);
+                const tokenCard = await stripe.tokens.retrieve(tok);
+                const cards = await this.get(userId);
                 let duplicateCard = false;
 
                 if (cards && cards.data && cards.data.length > 0 && tokenCard && tokenCard.card) {
@@ -44,19 +44,19 @@ const Services = {
                 }
 
                 if (!duplicateCard) {
-                    var testChargeValue = 100;
-                    var description = 'Verify if card is billable';
-                    var user = await UserService.findOneBy({ _id: userId });
-                    var stripeCustomerId = user.stripeCustomerId;
-                    var card = await stripe.customers.createSource(stripeCustomerId, { source: tok });
-                    var metadata = {
+                    const testChargeValue = 100;
+                    const description = 'Verify if card is billable';
+                    const user = await UserService.findOneBy({ _id: userId });
+                    const stripeCustomerId = user.stripeCustomerId;
+                    const card = await stripe.customers.createSource(stripeCustomerId, { source: tok });
+                    const metadata = {
                         description
                     };
-                    var source = card.id;
-                    var paymentIntent = await Services.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
+                    const source = card.id;
+                    const paymentIntent = await Services.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
                     return paymentIntent;
                 } else {
-                    var error = new Error('Cannot add duplicate card');
+                    const error = new Error('Cannot add duplicate card');
                     error.code = 400;
                     throw error;
                 }
@@ -68,9 +68,9 @@ const Services = {
 
         update: async function (userId, cardId) {
             try {
-                var user = await UserService.findOneBy({ _id: userId });
-                var stripeCustomerId = user.stripeCustomerId;
-                var card = await stripe.customers.update(stripeCustomerId, {
+                const user = await UserService.findOneBy({ _id: userId });
+                const stripeCustomerId = user.stripeCustomerId;
+                const card = await stripe.customers.update(stripeCustomerId, {
                     default_source: cardId
                 });
                 return card;
@@ -82,15 +82,15 @@ const Services = {
 
         delete: async function (cardId, userId) {
             try {
-                var user = await UserService.findOneBy({ _id: userId });
-                var stripeCustomerId = user.stripeCustomerId;
-                var cards = await this.get(userId);
+                const user = await UserService.findOneBy({ _id: userId });
+                const stripeCustomerId = user.stripeCustomerId;
+                const cards = await this.get(userId);
                 if (cards.data.length === 1) {
-                    let error = new Error('Cannot delete the only card');
+                    const error = new Error('Cannot delete the only card');
                     error.code = 403;
                     throw error;
                 }
-                var card = await stripe.customers.deleteSource(stripeCustomerId, cardId);
+                const card = await stripe.customers.deleteSource(stripeCustomerId, cardId);
                 return card;
             } catch (error) {
                 ErrorService.log('stripeService.creditCard.delete', error);
@@ -100,15 +100,15 @@ const Services = {
 
         get: async function (userId, cardId) {
             try {
-                var user = await UserService.findOneBy({ _id: userId });
-                var stripeCustomerId = user.stripeCustomerId;
-                var customer = await stripe.customers.retrieve(stripeCustomerId);
+                const user = await UserService.findOneBy({ _id: userId });
+                const stripeCustomerId = user.stripeCustomerId;
+                const customer = await stripe.customers.retrieve(stripeCustomerId);
                 if (cardId) {
-                    var card = await stripe.customers.retrieveSource(stripeCustomerId, cardId);
+                    const card = await stripe.customers.retrieveSource(stripeCustomerId, cardId);
                     return card;
                 }
                 else {
-                    var cards = await stripe.customers.listSources(stripeCustomerId, {
+                    const cards = await stripe.customers.listSources(stripeCustomerId, {
                         object: 'card'
                     });
                     cards.data = await cards.data.map(card => {
@@ -128,11 +128,11 @@ const Services = {
     },
     chargeCustomerForBalance: async function (userId, chargeAmount, projectId, alertOptions) {
 
-        var description = 'Recharge balance';
-        var stripechargeAmount = chargeAmount * 100;
-        var user = await UserService.findOneBy({ _id: userId });
-        var stripeCustomerId = user.stripeCustomerId;
-        var metadata;
+        const description = 'Recharge balance';
+        const stripechargeAmount = chargeAmount * 100;
+        const user = await UserService.findOneBy({ _id: userId });
+        const stripeCustomerId = user.stripeCustomerId;
+        let metadata;
         if (alertOptions) {
             metadata = {
                 projectId,
@@ -143,34 +143,34 @@ const Services = {
                 projectId
             };
         }
-        var paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata);
+        const paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata);
         return paymentIntent;
     },
 
     updateBalance: async function (paymentIntent) {
         try{
             if (paymentIntent.status === 'succeeded') {
-                var amountRechargedStripe = Number(paymentIntent.amount_received);
+                const amountRechargedStripe = Number(paymentIntent.amount_received);
                 if (amountRechargedStripe) {
-                    var projectId = paymentIntent.metadata.projectId,
+                    const projectId = paymentIntent.metadata.projectId,
                         minimumBalance = paymentIntent.metadata.minimumBalance && Number(paymentIntent.metadata.minimumBalance),
                         rechargeToBalance = paymentIntent.metadata.rechargeToBalance && Number(paymentIntent.metadata.rechargeToBalance),
                         billingUS = paymentIntent.metadata.billingUS && JSON.parse(paymentIntent.metadata.billingUS),
                         billingNonUSCountries = paymentIntent.metadata.billingNonUSCountries && JSON.parse(paymentIntent.metadata.billingNonUSCountries),
                         billingRiskCountries = paymentIntent.metadata.billingRiskCountries && JSON.parse(paymentIntent.metadata.billingRiskCountries);
 
-                    var alertOptions = {
+                    const alertOptions = {
                         minimumBalance,
                         rechargeToBalance,
                         billingUS,
                         billingNonUSCountries,
                         billingRiskCountries
                     };
-                    var amountRecharged = amountRechargedStripe / 100;
-                    var project = await ProjectModel.findById(projectId).lean();
-                    var currentBalance = project.balance;
-                    var newbalance = currentBalance + amountRecharged;
-                    var updateObject = {};
+                    const amountRecharged = amountRechargedStripe / 100;
+                    const project = await ProjectModel.findById(projectId).lean();
+                    const currentBalance = project.balance;
+                    const newbalance = currentBalance + amountRecharged;
+                    let updateObject = {};
                     if (!minimumBalance || !rechargeToBalance) {
                         updateObject = {
                             balance: newbalance,
@@ -183,7 +183,7 @@ const Services = {
                             alertOptions
                         };
                     }
-                    var updatedProject = await ProjectModel.findByIdAndUpdate(projectId, updateObject,
+                    const updatedProject = await ProjectModel.findByIdAndUpdate(projectId, updateObject,
                         { new: true });
                     if (updatedProject.balance === newbalance) {
                         return true;
@@ -199,14 +199,14 @@ const Services = {
     },
     addBalance: async function (userId, chargeAmount, projectId) {
         try {
-            var description = 'Recharge balance';
-            var stripechargeAmount = chargeAmount * 100;
-            var user = await UserService.findOneBy({ _id: userId });
-            var stripeCustomerId = user.stripeCustomerId;
-            var metadata = {
+            const description = 'Recharge balance';
+            const stripechargeAmount = chargeAmount * 100;
+            const user = await UserService.findOneBy({ _id: userId });
+            const stripeCustomerId = user.stripeCustomerId;
+            const metadata = {
                 projectId
             };
-            var paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata );
+            const paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata );
             return paymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.addBalance', error);
@@ -216,20 +216,20 @@ const Services = {
     },
     createInvoice: async function (amount, stripeCustomerId, description, metadata, source) {
         try {
-            var updatedPaymentIntent;
+            let updatedPaymentIntent;
             await stripe.invoiceItems.create({
                 amount: amount,
                 currency: 'usd',
                 customer: stripeCustomerId,
                 description
             });
-            var invoice = await stripe.invoices.create({
+            const invoice = await stripe.invoices.create({
                 customer: stripeCustomerId,
                 collection_method: 'charge_automatically',
                 description
             });
-            var finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
-            var paymentIntent = await stripe.paymentIntents.retrieve(finalizedInvoice.payment_intent);
+            const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
+            const paymentIntent = await stripe.paymentIntents.retrieve(finalizedInvoice.payment_intent);
             if (source) {
                 updatedPaymentIntent= await stripe.paymentIntents.update(paymentIntent.id, {
                     description,
@@ -251,15 +251,15 @@ const Services = {
     },
     makeTestCharge: async function (tokenId, email, companyName) {
         try {
-            var description = 'Verify if card is billable';
-            var testChargeValue = 100;
-            var stripeCustomerId = await PaymentService.createCustomer(email, companyName);
-            var card = await stripe.customers.createSource(stripeCustomerId, { source: tokenId });
-            var metadata = {
+            const description = 'Verify if card is billable';
+            const testChargeValue = 100;
+            const stripeCustomerId = await PaymentService.createCustomer(email, companyName);
+            const card = await stripe.customers.createSource(stripeCustomerId, { source: tokenId });
+            const metadata = {
                 description
             };
-            var source = card.id;
-            var paymentIntent = await this.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
+            const source = card.id;
+            const paymentIntent = await this.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
             return paymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.makeTestCharge', error);
@@ -268,13 +268,13 @@ const Services = {
     }
 };
 
-var payment = require('../config/payment');
-var UserService = require('../services/userService');
-var PaymentService = require('../services/paymentService');
-var ProjectService = require('../services/projectService');
-var ProjectModel = require('../models/project');
-var MailService = require('../services/mailService');
-var ErrorService = require('../services/errorService');
-var stripe = require('stripe')(payment.paymentPrivateKey);
+const payment = require('../config/payment');
+const UserService = require('../services/userService');
+const PaymentService = require('../services/paymentService');
+const ProjectService = require('../services/projectService');
+const ProjectModel = require('../models/project');
+const MailService = require('../services/mailService');
+const ErrorService = require('../services/errorService');
+const stripe = require('stripe')(payment.paymentPrivateKey);
 
 module.exports = Services;

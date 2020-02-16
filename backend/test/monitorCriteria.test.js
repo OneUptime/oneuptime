@@ -1,19 +1,19 @@
 /* eslint-disable linebreak-style */
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const AirtableService = require('../backend/services/airtableService');
 
-var token, projectId, userId, airtableId;
+let token, projectId, userId, airtableId;
 
 describe('Monitor Criteria API', function () {
     this.timeout(20000);
@@ -21,7 +21,7 @@ describe('Monitor Criteria API', function () {
     before(function (done) {
         this.timeout(40000);
         createUser(request, userData.user, function (err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -47,7 +47,7 @@ describe('Monitor Criteria API', function () {
     });
 
     it('should get the monitor criteria', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get('/monitorCriteria').set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');

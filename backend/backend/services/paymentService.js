@@ -5,7 +5,7 @@ module.exports = {
     //Returns: promise
     checkPaymentIntent: async function (paymentIntent) {
         try {
-            var processedPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
+            const processedPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
             return processedPaymentIntent;
         } catch (error) {
             ErrorService.log('paymentService.checkPaymentIntent', error);
@@ -21,7 +21,7 @@ module.exports = {
     createCustomer: async function (email, companyName) {
 
         try {
-            var customer = await stripe.customers.create({
+            const customer = await stripe.customers.create({
                 email: email,
                 description: companyName
             });
@@ -35,7 +35,7 @@ module.exports = {
     // eslint-disable-next-line no-unused-vars
     addPayment: async function (customerId, stripeToken) {
         try {
-            var card = await stripe.customers.createSource(
+            const card = await stripe.customers.createSource(
                 customerId,
             );
             return card;
@@ -52,13 +52,13 @@ module.exports = {
     //Returns : promise
     subscribePlan: async function (stripePlanId, stripeCustomerId, coupon) {
         try {
-            var items = [];
+            const items = [];
             items.push({
                 plan: stripePlanId,
                 quantity: 1
             });
     
-            var subscriptionObj = {};
+            let subscriptionObj = {};
     
             if (coupon) {
                 subscriptionObj = { customer: stripeCustomerId, items: items, coupon: coupon, trial_period_days: 14 };
@@ -67,7 +67,7 @@ module.exports = {
             else {
                 subscriptionObj = { customer: stripeCustomerId, items: items, trial_period_days: 14 };
             }
-            var subscription = await stripe.subscriptions.create(subscriptionObj);
+            const subscription = await stripe.subscriptions.create(subscriptionObj);
             return ({
                 stripeSubscriptionId: subscription.id,
             });
@@ -84,21 +84,21 @@ module.exports = {
     //Returns : promise
     changeSeats: async function (subscriptionId, seats) {
         try {
-            var subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            let subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-            var plan = null;
-            var items = [];
+            let plan = null;
+            const items = [];
             if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
-                let error = new Error('Your subscription cannot be retrieved.');
+                const error = new Error('Your subscription cannot be retrieved.');
                 error.code = 400;
                 ErrorService.log('paymentService.changeSeats', error);
                 throw error;
             } else {
-                for (var i = 0; i < subscription.items.data.length; i++) {
+                for (let i = 0; i < subscription.items.data.length; i++) {
                     plan = await Plans.getPlanById(subscription.items.data[i].plan.id);
 
                     if (plan) {
-                        var item = {
+                        const item = {
                             plan: plan.planId,
                             id: subscription.items.data[i].id,
                             quantity: seats
@@ -119,7 +119,7 @@ module.exports = {
 
     removeSubscription: async function (stripeSubscriptionId) {
         try {
-            var confirmations = [];
+            const confirmations = [];
             confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
             return confirmations;
         } catch (error) {
@@ -131,11 +131,11 @@ module.exports = {
 
     changePlan: async function (subscriptionId, planId, seats ,trialLeft) {
         try {
-            var subscriptionObj = {};
-            var subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            let subscriptionObj = {};
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
             await stripe.subscriptions.del(subscriptionId);
 
-            var items = [];
+            const items = [];
             items.push({
                 plan: planId,
                 quantity: seats
@@ -147,7 +147,7 @@ module.exports = {
             else {
                 subscriptionObj = { customer: subscription.customer, items: items,};
             }
-            var subscriptions = await stripe.subscriptions.create(subscriptionObj);
+            const subscriptions = await stripe.subscriptions.create(subscriptionObj);
             return subscriptions.id;
         } catch (error) {
             ErrorService.log('paymentService.changePlan', error);
@@ -156,25 +156,25 @@ module.exports = {
     },
     chargeAlert: async function(userId, projectId, chargeAmount){
         try {
-            var project = await ProjectService.findOneBy({
+            const project = await ProjectService.findOneBy({
                 _id: projectId
             });
-            var { balance } = project;
-            var { minimumBalance, rechargeToBalance } = project.alertOptions;
+            const { balance } = project;
+            const { minimumBalance, rechargeToBalance } = project.alertOptions;
             if ( balance < minimumBalance ){
-                var chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, project.id);
+                const chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, project.id);
                 if (!(chargeForBalance.paid)){
                     //create notification
-                    var message = 'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
-                    var meta = {
+                    const message = 'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
+                    const meta = {
                         type: 'action',
                         client_secret: chargeForBalance.client_secret
                     };
                     await NotificationService.create(projectId, message, userId, null, meta);
                 }
             }
-            var balanceAfterAlertSent = balance - chargeAmount;
-            var updatedProject = await ProjectModel.findByIdAndUpdate(
+            const balanceAfterAlertSent = balance - chargeAmount;
+            const updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId, {
                     $set: {
                         balance: balanceAfterAlertSent
@@ -193,7 +193,7 @@ module.exports = {
     //Returns : promise
     chargeExtraUser: async function (stripeCustomerId, extraUserPlanId, extraUsersToAdd) {
         try {
-            var subscription = await stripe.subscriptions.create({
+            const subscription = await stripe.subscriptions.create({
                 customer: stripeCustomerId,
                 items: [
                     {
@@ -210,11 +210,11 @@ module.exports = {
     }
 };
 
-var payment = require('../config/payment');
-var stripe = require('stripe')(payment.paymentPrivateKey);
-var Plans = require('../config/plans');
-var ErrorService = require('./errorService');
-var ProjectService = require('./projectService');
-var ProjectModel = require('../models/project');
-var StripeService = require('./stripeService');
-var NotificationService = require('./notificationService');
+const payment = require('../config/payment');
+const stripe = require('stripe')(payment.paymentPrivateKey);
+const Plans = require('../config/plans');
+const ErrorService = require('./errorService');
+const ProjectService = require('./projectService');
+const ProjectModel = require('../models/project');
+const StripeService = require('./stripeService');
+const NotificationService = require('./notificationService');

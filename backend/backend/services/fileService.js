@@ -7,15 +7,15 @@
 module.exports = {
     findOneBy: async function (query) {
         try {
-            var gfs = await Grid(mongoose.connection.db, mongoose.mongo);
+            const gfs = await Grid(mongoose.connection.db, mongoose.mongo);
             gfs.collection('uploads');
             if(!query){
                 query = {};
             }
             // query.deleted = false;
-            var file = await gfs.files.findOne(query);
+            const file = await gfs.files.findOne(query);
             if (!file) {
-                let error = new Error('File is not found.');
+                const error = new Error('File is not found.');
                 error.code = 400;
                 throw error;
             }
@@ -27,6 +27,6 @@ module.exports = {
     }
 };
 
-var mongoose = require('../config/db');
-var Grid = require('gridfs-stream');
-var ErrorService = require('./errorService');
+const mongoose = require('../config/db');
+const Grid = require('gridfs-stream');
+const ErrorService = require('./errorService');

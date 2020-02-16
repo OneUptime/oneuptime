@@ -1,14 +1,14 @@
-var ScheduledEventModel = require('../models/scheduledEvent');
-var UserModel = require('../models/user');
-var ErrorService = require('../services/errorService');
+const ScheduledEventModel = require('../models/scheduledEvent');
+const UserModel = require('../models/user');
+const ErrorService = require('../services/errorService');
 
 
 module.exports = {
 
     create: async function ({ projectId, monitorId }, data) {
         try {
-            var _this = this;
-            var scheduledEvent = new ScheduledEventModel();
+            const _this = this;
+            let scheduledEvent = new ScheduledEventModel();
 
             scheduledEvent.projectId = projectId;
             scheduledEvent.monitorId = monitorId;
@@ -46,14 +46,14 @@ module.exports = {
 
         if (!query.deleted) query.deleted = false;
         try {
-            var updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
+            const updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
                 $set: data
             }, { new: true })
                 .lean();
             if (updatedScheduledEvent.createdById === 'API') {
                 updatedScheduledEvent.createdById = {name: 'API', _id: null};
             } else {
-                var user = await UserModel.findOne({_id: updatedScheduledEvent.createdById}).lean();
+                const user = await UserModel.findOne({_id: updatedScheduledEvent.createdById}).lean();
                 updatedScheduledEvent.createdById = {_id: user._id, name: user.name};
             }
             return updatedScheduledEvent;
@@ -70,7 +70,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await ScheduledEventModel.updateMany(query, {
+            let updatedData = await ScheduledEventModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -83,7 +83,7 @@ module.exports = {
 
     deleteBy: async function (query, userId) {
         try {
-            var scheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
+            const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedAt: Date.now(),
@@ -116,7 +116,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var scheduledEvents = await ScheduledEventModel.find(query)
+            const scheduledEvents = await ScheduledEventModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
@@ -131,7 +131,7 @@ module.exports = {
                     return event;
                 }
                 else {
-                    var user = await UserModel.findOne({
+                    const user = await UserModel.findOne({
                         _id: event.createdById
                     })
                         .lean();
@@ -157,7 +157,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var scheduledEvent = await ScheduledEventModel.findOne(query).lean();
+            const scheduledEvent = await ScheduledEventModel.findOne(query).lean();
 
             if (scheduledEvent.createdById === 'API') {
                 scheduledEvent.createdById = {
@@ -165,7 +165,7 @@ module.exports = {
                     _id: null
                 };
             } else {
-                var user = await UserModel.findOne({
+                const user = await UserModel.findOne({
                     _id: scheduledEvent.createdById
                 }).lean();
                 scheduledEvent.createdById = {
@@ -188,7 +188,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            var count = await ScheduledEventModel.count(query);
+            const count = await ScheduledEventModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('scheduledEventService.countBy', error);

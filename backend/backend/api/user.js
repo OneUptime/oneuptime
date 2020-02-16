@@ -1,30 +1,30 @@
-var express = require('express');
-var UserService = require('../services/userService');
-var ProjectService = require('../services/projectService');
-var jwtKey = require('../config/keys');
-var jwt = require('jsonwebtoken');
-var bcrypt = require('bcrypt');
-var MailService = require('../services/mailService');
+const express = require('express');
+const UserService = require('../services/userService');
+const ProjectService = require('../services/projectService');
+const jwtKey = require('../config/keys');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const MailService = require('../services/mailService');
 const getUser = require('../middlewares/user').getUser;
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
-var sendListResponse = require('../middlewares/response').sendListResponse;
-var router = express.Router();
-var multer = require('multer');
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
+const router = express.Router();
+const multer = require('multer');
 const storage = require('../middlewares/upload');
-var winston = require('winston');
-var constants = require('../config/constants.json');
-var { emaildomains } = require('../config/emaildomains');
-var randToken = require('rand-token');
-var VerificationTokenModel = require('../models/verificationToken');
-var { ACCOUNTS_HOST } = process.env;
-var UserModel = require('../models/user');
-var ErrorService = require('../services/errorService');
+const winston = require('winston');
+const constants = require('../config/constants.json');
+const { emaildomains } = require('../config/emaildomains');
+const randToken = require('rand-token');
+const VerificationTokenModel = require('../models/verificationToken');
+const { ACCOUNTS_HOST } = process.env;
+const UserModel = require('../models/user');
+const ErrorService = require('../services/errorService');
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 router.post('/signup', async function (req, res) {
     try {
-        var data = req.body;
+        const data = req.body;
         if (!data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -94,20 +94,20 @@ router.post('/signup', async function (req, res) {
                 message: 'Name is not in string format.'
             });
         }
-        var user = await UserService.findOneBy({ email: data.email });
+        let user = await UserService.findOneBy({ email: data.email });
         //Checks if user is registered with only email
         if (user) {
             if (!user.password) {
-                var hash = await bcrypt.hash(data.password, constants.saltRounds);
+                const hash = await bcrypt.hash(data.password, constants.saltRounds);
                 // creating jwt refresh token
-                var jwtRefreshToken = randToken.uid(256);
+                const jwtRefreshToken = randToken.uid(256);
                 user = await UserService.updateOneBy({ _id: user._id},{ name: data.name, password: hash, jwtRefreshToken: jwtRefreshToken });
 
                 // Call the MailService.
                 MailService.sendSignupMail(user.email, user.name);
                 UserService.sendToken(user, user.email);
                 // create access token and refresh token.
-                let authUserObj = {
+                const authUserObj = {
                     id: user._id,
                     name: user.name,
                     email: user.email,
@@ -155,7 +155,7 @@ router.post('/signup', async function (req, res) {
             // Call the MailService.
             await MailService.sendSignupMail(user.email, user.name);
             // create access token and refresh token.
-            let authUserObj = {
+            const authUserObj = {
                 id: user._id,
                 name: user.name,
                 email: user.email,
@@ -163,7 +163,7 @@ router.post('/signup', async function (req, res) {
                 cardRegistered: user.stripeCustomerId ? true : false
             };
             winston.info('A User just signed up');
-            var project = await ProjectService.findOneBy({ 'users.userId': user._id });
+            const project = await ProjectService.findOneBy({ 'users.userId': user._id });
             return sendItemResponse(req, res, Object.assign(authUserObj, { project: project }));
         }
     } catch (error) {
@@ -178,8 +178,8 @@ router.post('/signup', async function (req, res) {
 // Returns: 400: Error; 500: Server Error; 200: user
 router.post('/login', async function (req, res) {
     try {
-        var data = req.body;
-        var clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const data = req.body;
+        const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
         if (!data.email) {
             return sendErrorResponse(req, res, {
@@ -210,7 +210,7 @@ router.post('/login', async function (req, res) {
         }
 
         // Call the UserService
-        var user = await UserService.login(data.email, data.password, clientIP);
+        const user = await UserService.login(data.email, data.password, clientIP);
         let authUserObj;
         if (!user._id) {
             authUserObj = {...user};
@@ -246,14 +246,14 @@ router.post('/login', async function (req, res) {
 // Returns: 400: Error; 500: Server Error; 200: user
 router.post('/totp/verifyToken', async function (req, res) {
     try {
-        var data = req.body;
-        var token = data.token;
-        var userId = data.userId;
+        const data = req.body;
+        const token = data.token;
+        let userId = data.userId;
         if (data.email && !data.userId) {
-            var foundUser = await UserService.findOneBy({email: data.email});
+            const foundUser = await UserService.findOneBy({email: data.email});
             userId = foundUser._id;
         }
-        var user = await UserService.verifyAuthToken(token, userId);
+        const user = await UserService.verifyAuthToken(token, userId);
         if (!user || !user._id) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -262,7 +262,7 @@ router.post('/totp/verifyToken', async function (req, res) {
         }
         
         // create access token and refresh token.
-        let userObj = {
+        const userObj = {
             id: user._id,
             name: user.name ? user.name : '',
             email: user.email ? user.email : '',
@@ -300,9 +300,9 @@ router.post('/totp/verifyToken', async function (req, res) {
 // Returns: 400: Error; 500: Server Error; 200: user
 router.post('/verify/backupCode', async function (req, res) {
     try {
-        var data = req.body;
+        const data = req.body;
         // Call the UserService
-        var user;
+        let user;
         user = await UserService.findOneBy({email:data.email});
         if (!user) {
             return sendErrorResponse(req, res, {
@@ -310,7 +310,7 @@ router.post('/verify/backupCode', async function (req, res) {
                 message: 'User not found'
             });
         }
-        var backupCode = user.backupCodes.filter(code => code.code === data.code);
+        const backupCode = user.backupCodes.filter(code => code.code === data.code);
         user = await UserService.verifyUserBackupCode(data.code, user.twoFactorSecretCode, backupCode[0].counter);
         if (!user || !user._id) {
             return sendErrorResponse(req, res, {
@@ -320,7 +320,7 @@ router.post('/verify/backupCode', async function (req, res) {
         }
 
         // create access token and refresh token.
-        let userObj = {
+        const userObj = {
             id: user._id,
             name: user.name ? user.name : '',
             email: user.email ? user.email : '',
@@ -358,8 +358,8 @@ router.post('/verify/backupCode', async function (req, res) {
 // Returns: 400: Error; 500: Server Error; 200: user
 router.post('/totp/token/:userId', async function (req, res) {
     try {
-        var userId = req.params.userId;
-        var user = await UserService.findOneBy({_id:userId});
+        const userId = req.params.userId;
+        const user = await UserService.findOneBy({_id:userId});
         if (!userId || !user._id) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -368,11 +368,11 @@ router.post('/totp/token/:userId', async function (req, res) {
         }
 
         if (user.otpauth_url) {
-            let response = {otpauth_url: user.otpauth_url};
+            const response = {otpauth_url: user.otpauth_url};
             return sendItemResponse(req, res, response);
         }
 
-        var response = await UserService.generateTwoFactorSecret(userId);
+        const response = await UserService.generateTwoFactorSecret(userId);
         return sendItemResponse(req, res, response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -387,7 +387,7 @@ router.post('/totp/token/:userId', async function (req, res) {
 
 router.post('/forgot-password', async function (req, res) {
     try {
-        var data = req.body;
+        const data = req.body;
 
         if (!data.email) {
             return sendErrorResponse(req, res, {
@@ -403,8 +403,8 @@ router.post('/forgot-password', async function (req, res) {
             });
         }
         // Call the UserService.
-        var user = await UserService.forgotPassword(data.email);
-        var forgotPasswordURL = `${ACCOUNTS_HOST}/change-password/${user.resetPasswordToken}`;
+        const user = await UserService.forgotPassword(data.email);
+        const forgotPasswordURL = `${ACCOUNTS_HOST}/change-password/${user.resetPasswordToken}`;
         // Call the MailService.
         await MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
 
@@ -423,7 +423,7 @@ router.post('/forgot-password', async function (req, res) {
 // Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
 router.post('/reset-password', async function (req, res) {
     try {
-        var data = req.body;
+        const data = req.body;
 
         if (!data.password) {
             return sendErrorResponse(req, res, {
@@ -453,7 +453,7 @@ router.post('/reset-password', async function (req, res) {
             });
         }
         // Call the UserService
-        var user = await UserService.resetPassword(data.password, data.token);
+        const user = await UserService.resetPassword(data.password, data.token);
         if (!user) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -479,7 +479,7 @@ router.post('/reset-password', async function (req, res) {
 // Returns: 400: Error; 500: Server Error; 200: user
 router.post('/isInvited', async function (req, res) {
     try {
-        var data = req.body;
+        const data = req.body;
 
         if (!data.email) {
             return sendErrorResponse(req, res, {
@@ -488,7 +488,7 @@ router.post('/isInvited', async function (req, res) {
             });
         }
         // Call the UserService
-        var user = await UserService.findOneBy({ email: data.email });
+        const user = await UserService.findOneBy({ email: data.email });
         if (user) {
             return sendItemResponse(req, res, true);
         } else {
@@ -513,15 +513,15 @@ router.post('/isAuthenticated', getUser, async (req, res) => {
 // Returns: 200: Success, 400: Error; 500: Server Error.
 router.put('/profile', getUser, async function (req, res) {
     try {
-        var upload = multer({
+        const upload = multer({
             storage
         }).fields([{
             name: 'profilePic',
             maxCount: 1
         }]);
         upload(req, res, async function (error) {
-            var userId = req.user ? req.user.id : null;
-            var data = req.body;
+            const userId = req.user ? req.user.id : null;
+            const data = req.body;
 
             if (error) {
                 return sendErrorResponse(req, res, error);
@@ -529,7 +529,7 @@ router.put('/profile', getUser, async function (req, res) {
             if (req.files && req.files.profilePic && req.files.profilePic[0].filename) {
                 data.profilePic = req.files.profilePic[0].filename;
             }
-            var userData = await UserService.findOneBy({_id:userId});
+            const userData = await UserService.findOneBy({_id:userId});
             if(data.email !== userData.email){
                 if(data.email === userData.tempEmail) delete data.email;
                 else {
@@ -539,7 +539,7 @@ router.put('/profile', getUser, async function (req, res) {
             }
             if(data.alertPhoneNumber !== userData.alertPhoneNumber) delete data.alertPhoneNumber;
             // Call the UserService
-            var user = await UserService.updateOneBy({_id : userId},data);
+            const user = await UserService.updateOneBy({_id : userId},data);
             return sendItemResponse(req, res, user);
         });
     } catch (error) {
@@ -549,7 +549,7 @@ router.put('/profile', getUser, async function (req, res) {
 
 router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, res) {
     try {
-        var upload = multer({
+        const upload = multer({
             storage
         }).fields([{
             name: 'profilePic',
@@ -557,8 +557,8 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, 
         }]);
 
         upload(req, res, async function (error) {
-            var userId = req.params.userId;
-            var data = req.body;
+            const userId = req.params.userId;
+            const data = req.body;
 
             if (error) {
                 return sendErrorResponse(req, res, error);
@@ -569,7 +569,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, 
             }
 
             // Call the UserService
-            var user = await UserService.updateOneBy({_id : userId},data);
+            const user = await UserService.updateOneBy({_id : userId},data);
             return sendItemResponse(req, res, user);
         });
     } catch (error) {
@@ -584,8 +584,8 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (req, 
 // Returns: 200: Success, 400: Error; 500: Server Error.
 router.put('/changePassword', getUser, async function (req, res) {
     try {
-        var data = req.body;
-        var userId = req.user ? req.user.id : null;
+        const data = req.body;
+        const userId = req.user ? req.user.id : null;
         data._id = userId;
 
         if (!data.currentPassword) {
@@ -644,8 +644,8 @@ router.put('/changePassword', getUser, async function (req, res) {
             });
         }
 
-        var user = await UserService.changePassword(data);
-        let userObj = {
+        const user = await UserService.changePassword(data);
+        const userObj = {
             id: user._id,
             name: user.name,
             email: user.email,
@@ -670,7 +670,7 @@ router.put('/changePassword', getUser, async function (req, res) {
 // Returns: 200: Success, 400: Error; 500: Server Error.
 router.get('/profile', getUser, async function (req, res) {
     try {
-        var userId = req.user ? req.user.id : null;
+        const userId = req.user ? req.user.id : null;
 
         if (!userId) {
             return sendErrorResponse(req, res, {
@@ -679,8 +679,8 @@ router.get('/profile', getUser, async function (req, res) {
             });
         }
         // Call the UserService
-        var user = await UserService.findOneBy({ _id: userId });
-        let userObj = {
+        const user = await UserService.findOneBy({ _id: userId });
+        const userObj = {
             id: user._id,
             name: user.name ? user.name : '',
             email: user.email ? user.email : '',
@@ -714,11 +714,11 @@ router.get('/profile', getUser, async function (req, res) {
 router.get('/confirmation/:token', async function (req, res) {
     try {
         if (req.params && req.params.token) {
-            var token = await VerificationTokenModel.findOne({ token: req.params.token });
+            const token = await VerificationTokenModel.findOne({ token: req.params.token });
             if (!token) {
                 return res.redirect(ACCOUNTS_HOST + '/user-verify/resend?status=Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq');
             }
-            var user = await UserModel.findOne({
+            const user = await UserModel.findOne({
                 _id: token.userId
             });
             if (!user) {
@@ -727,7 +727,7 @@ router.get('/confirmation/:token', async function (req, res) {
             if (user.isVerified && (!user.tempEmail || (user.tempEmail && user.tempEmail === user.email))) {
                 return res.redirect(ACCOUNTS_HOST + '/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC');
             }
-            var dataUpdate = {isVerified: true};
+            let dataUpdate = {isVerified: true};
             if(user.tempEmail && user.tempEmail !== user.email){
                 dataUpdate = {
                     isVerified: true,
@@ -751,8 +751,8 @@ router.get('/confirmation/:token', async function (req, res) {
 
 router.post('/resend', async function (req, res) {
     if (req.body && req.body.email) {
-        var { email, userId } = req.body;
-        var user;
+        const { email, userId } = req.body;
+        let user;
         if (!userId) {
             user = await UserModel.findOne({ email });
             if (!user) {
@@ -769,7 +769,7 @@ router.post('/resend', async function (req, res) {
                     message: 'No user associated with this account'
                 });
             }
-            var checkUser = await UserModel.findOne({ email });
+            const checkUser = await UserModel.findOne({ email });
             if (checkUser) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -783,7 +783,7 @@ router.post('/resend', async function (req, res) {
                 message: 'User has already been verified.'
             });
         }
-        var token = await UserService.sendToken(user, email);
+        const token = await UserService.sendToken(user, email);
         if (token) {
             res.status(200).send(`A verification email has been sent to ${user.email}`);
         }
@@ -864,9 +864,9 @@ router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function (req,
     try {
         const userId = req.params.userId;
         if (Array.isArray(req.body)) {
-            let data = [];
+            const data = [];
             if (req.body.length > 0) {
-                for (let val of req.body) {
+                for (const val of req.body) {
                     if (!val._id) {
                         // Sanitize
                         if (!val.note) {
@@ -886,10 +886,10 @@ router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function (req,
                     data.push(val);
                 }
 
-                let adminNotes = await UserService.addNotes(userId, data);
+                const adminNotes = await UserService.addNotes(userId, data);
                 return sendItemResponse(req, res, adminNotes);
             } else {
-                let adminNotes = await UserService.addNotes(userId, data);
+                const adminNotes = await UserService.addNotes(userId, data);
                 return sendItemResponse(req, res, adminNotes);
             }
         } else {

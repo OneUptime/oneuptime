@@ -4,13 +4,13 @@ module.exports = {
     // process messages to be sent to slack workspace channels
     sendNotification: async function (projectId, incident, monitor, incidentStatus) {
         try {
-            var self = this;
-            var response;
-            var project = await ProjectService.findOneBy({_id: projectId});
+            const self = this;
+            let response;
+            const project = await ProjectService.findOneBy({_id: projectId});
             if (project && project.parentProjectId) {
                 projectId = project.parentProjectId._id;
             }
-            var query = { projectId: projectId, integrationType: 'webhook', monitorId: monitor._id };
+            let query = { projectId: projectId, integrationType: 'webhook', monitorId: monitor._id };
             if (incidentStatus === 'resolved') {
                 query = {...query, 'notificationOptions.incidentResolved' : true};
             } else if (incidentStatus === 'created') {
@@ -18,8 +18,8 @@ module.exports = {
             } else if (incidentStatus === 'acknowledged') {
                 query = {...query, 'notificationOptions.incidentAcknowledged' : true};
             } else { return; }
-            var integrations = await IntegrationService.findBy(query);
-            var monitorStatus = await MonitorStatusService.findOneBy({ monitorId: monitor._id });
+            const integrations = await IntegrationService.findBy(query);
+            const monitorStatus = await MonitorStatusService.findOneBy({ monitorId: monitor._id });
             // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
             for (const integration of integrations) {
                 response = await self.notify(project, monitor, incident, integration, monitorStatus.status);
@@ -34,7 +34,7 @@ module.exports = {
     // send notification to slack workspace channels
     async notify(project, monitor, incident, integration, monitorStatus) {
         try {
-            let data = {
+            const data = {
                 monitorName: monitor.name,
                 monitorId: monitor._id,
                 projectId: project._id,
@@ -73,7 +73,7 @@ module.exports = {
                 
                 return 'Webhook successfully pinged';
             } else {
-                let error = new Error('Webhook endpoint type missing');
+                const error = new Error('Webhook endpoint type missing');
                 error.code = 400;
                 ErrorService.log('WebHookService.notify', error);
                 throw error;
@@ -85,8 +85,8 @@ module.exports = {
     }
 };
 
-var IntegrationService = require('./integrationService');
-var axios = require('axios');
-var ProjectService = require('./projectService');
-var MonitorStatusService = require('./monitorStatusService');
-var ErrorService = require('./errorService');
+const IntegrationService = require('./integrationService');
+const axios = require('axios');
+const ProjectService = require('./projectService');
+const MonitorStatusService = require('./monitorStatusService');
+const ErrorService = require('./errorService');

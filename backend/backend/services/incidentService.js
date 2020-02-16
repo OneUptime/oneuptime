@@ -17,7 +17,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var incidents = await IncidentModel.find(query)
+            const incidents = await IncidentModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .populate('acknowledgedBy', 'name')
@@ -35,14 +35,14 @@ module.exports = {
 
     create: async function (data) {
         try {
-            var _this = this;
+            const _this = this;
             //create a promise;
-            var project = await ProjectService.findOneBy({ _id: data.projectId });
-            var users = project && project.users && project.users.length ? project.users.map(({ userId }) => userId) : [];
-            var monitorCount = await MonitorService.countBy({ _id: data.monitorId });
+            const project = await ProjectService.findOneBy({ _id: data.projectId });
+            const users = project && project.users && project.users.length ? project.users.map(({ userId }) => userId) : [];
+            const monitorCount = await MonitorService.countBy({ _id: data.monitorId });
 
             if (monitorCount > 0) {
-                var incident = new IncidentModel();
+                let incident = new IncidentModel();
 
                 incident.projectId = data.projectId || null;
                 incident.monitorId = data.monitorId || null;
@@ -66,7 +66,7 @@ module.exports = {
 
                 return incident;
             } else {
-                let error = new Error('Monitor is not present.');
+                const error = new Error('Monitor is not present.');
                 ErrorService.log('incidentService.create', error);
                 error.code = 400;
                 throw error;
@@ -84,7 +84,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var count = await IncidentModel.count(query);
+            const count = await IncidentModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('incidentService.countBy', error);
@@ -99,7 +99,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var incidents = await IncidentModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } });
+            const incidents = await IncidentModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } });
             return incidents;
         } catch (error) {
             ErrorService.log('incidentService.findOneAndUpdate', error);
@@ -118,7 +118,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var incident = await IncidentModel.findOne(query)
+            const incident = await IncidentModel.findOne(query)
                 .populate('acknowledgedBy', 'name')
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
@@ -138,23 +138,24 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var _this = this;
-            var oldIncident = await _this.findOneBy({ _id: query._id, deleted: { $ne: null } });
+            const _this = this;
+            const oldIncident = await _this.findOneBy({ _id: query._id, deleted: { $ne: null } });
 
-            var notClosedBy = oldIncident.notClosedBy;
+            const notClosedBy = oldIncident.notClosedBy;
             if (data.notClosedBy) {
                 data.notClosedBy = notClosedBy.concat(data.notClosedBy);
             }
             data.manuallyCreated = data.manuallyCreated || oldIncident.manuallyCreated || false;
 
-            var updatedIncident = await IncidentModel.findOneAndUpdate(query, {
+            const updatedIncident = await IncidentModel.findOneAndUpdate(query, {
                 $set: data
             }, { new: true });
+            return updatedIncident;
         } catch (error) {
             ErrorService.log('incidentService.updateOneBy', error);
             throw error;
         }
-        return updatedIncident;
+       
     },
 
     updateBy: async function (query, data) {
@@ -164,7 +165,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await IncidentModel.updateMany(query, {
+            let updatedData = await IncidentModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -183,16 +184,16 @@ module.exports = {
             await RealTimeService.sendCreatedIncident(incident);
 
             if (!incident.createdById) {
-                let msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
-                let slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *Fyipe*`;
+                const msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
+                const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *Fyipe*`;
                 await NotificationService.create(incident.projectId, msg, 'fyipe', 'warning');
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
                 // Ping webhook
                 await WebHookService.sendNotification(incident.projectId, incident, incident.monitorId, 'created');
             } else {
-                let msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
-                let slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *${incident.createdById.name}*`;
+                const msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
+                const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *${incident.createdById.name}*`;
                 await NotificationService.create(incident.projectId, msg, incident.createdById.name, 'warning');
                 // send slack notification
                 await SlackService.sendNotification(incident.projectId, incident._id, null, slackMsg, false);
@@ -213,8 +214,8 @@ module.exports = {
      */
     acknowledge: async function (incidentId, userId, name, zapier) {
         try {
-            var _this = this;
-            var incident = await _this.findOneBy({ _id: incidentId, acknowledged: false });
+            const _this = this;
+            let incident = await _this.findOneBy({ _id: incidentId, acknowledged: false });
             if (incident) {
                 incident = await _this.updateOneBy({
                     _id: incident._id
@@ -224,8 +225,8 @@ module.exports = {
                     acknowledgedAt: Date.now(),
                     acknowledgedByZapier: zapier
                 });
-                var downtime = (new Date().getTime() - new Date(incident.createdAt).getTime()) / (1000 * 60);
-                var downtimestring = `${Math.ceil(downtime)} minutes`;
+                const downtime = (new Date().getTime() - new Date(incident.createdAt).getTime()) / (1000 * 60);
+                let downtimestring = `${Math.ceil(downtime)} minutes`;
                 if (downtime < 1) {
                     downtimestring = 'less than a minute';
                 }
@@ -233,13 +234,13 @@ module.exports = {
                     downtimestring = `${Math.floor(downtime / 60)} hours ${Math.floor(downtime % 60)} minutes`;
                 }
 
-                var slackMsg = `*${incident.monitorId.name}* monitor was acknowledged by *${name}* after being down for _${downtimestring}_`;
+                const slackMsg = `*${incident.monitorId.name}* monitor was acknowledged by *${name}* after being down for _${downtimestring}_`;
 
                 // send slack notification
                 await NotificationService.create(incident.projectId, `An Incident was acknowledged by ${name}`, userId, 'acknowledge');
                 await SlackService.sendNotification(incident.projectId, incident._id, userId, slackMsg, incident);
                 // Ping webhook
-                var monitor = await MonitorService.findOneBy({ _id: incident.monitorId });
+                const monitor = await MonitorService.findOneBy({ _id: incident.monitorId });
                 incident = await _this.findOneBy({ _id: incident._id });
                 await AlertService.sendAcknowledgedIncidentToSubscribers(incident);
 
@@ -262,9 +263,9 @@ module.exports = {
     // Returns: promise with incident or error.
     resolve: async function (incidentId, userId, name, zapier) {
         try {
-            var _this = this;
-            var data = {};
-            var incident = await _this.findOneBy({ _id: incidentId });
+            const _this = this;
+            const data = {};
+            let incident = await _this.findOneBy({ _id: incidentId });
 
             if(!incident){
                 return;
@@ -304,15 +305,15 @@ module.exports = {
 
     //
     close: async function (incidentId, userId) {
-        var incident = await IncidentModel.findByIdAndUpdate(incidentId, {
+        const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
             $pull: { notClosedBy: userId }
         });
         return incident;
     },
 
     getUnresolvedIncidents: async function (subProjectIds, userId) {
-        var _this = this;
-        var incidentsUnresolved = await _this.findBy({ projectId: { $in: subProjectIds }, resolved: false });
+        const _this = this;
+        let incidentsUnresolved = await _this.findBy({ projectId: { $in: subProjectIds }, resolved: false });
         incidentsUnresolved = incidentsUnresolved.map(incident => {
             if (incident.notClosedBy.indexOf(userId) < 0) {
                 return _this.updateOneBy({ _id: incident._id }, { notClosedBy: [userId] });
@@ -323,16 +324,16 @@ module.exports = {
         });
         await Promise.all(incidentsUnresolved);
         incidentsUnresolved = await _this.findBy({ projectId: { $in: subProjectIds }, resolved: false });
-        var incidentsResolved = await _this.findBy({ projectId: { $in: subProjectIds }, resolved: true, notClosedBy: userId });
+        const incidentsResolved = await _this.findBy({ projectId: { $in: subProjectIds }, resolved: true, notClosedBy: userId });
 
         return incidentsUnresolved.concat(incidentsResolved);
     },
 
     getSubProjectIncidents: async function (subProjectIds) {
-        var _this = this;
-        let subProjectIncidents = await Promise.all(subProjectIds.map(async (id) => {
-            let incidents = await _this.findBy({ projectId: id }, 10, 0);
-            let count = await _this.countBy({ projectId: id });
+        const _this = this;
+        const subProjectIncidents = await Promise.all(subProjectIds.map(async (id) => {
+            const incidents = await _this.findBy({ projectId: id }, 10, 0);
+            const count = await _this.countBy({ projectId: id });
             return { incidents, count, _id: id, skip: 0, limit: 10 };
         }));
         return subProjectIncidents;
@@ -340,11 +341,11 @@ module.exports = {
 
     sendIncidentResolvedNotification: async function (incident, name) {
         try {
-            var _this = this;
-            var resolvedincident = await _this.findOneBy({ _id: incident._id });
-            var downtime = (new Date().getTime() - new Date(resolvedincident.createdAt).getTime()) / (1000 * 60);
-            var downtimestring = `${Math.ceil(downtime)} minutes`;
-            var msg, slackMsg;
+            const _this = this;
+            const resolvedincident = await _this.findOneBy({ _id: incident._id });
+            const downtime = (new Date().getTime() - new Date(resolvedincident.createdAt).getTime()) / (1000 * 60);
+            let downtimestring = `${Math.ceil(downtime)} minutes`;
+            let msg, slackMsg;
             if (downtime < 1) {
                 downtimestring = 'less than a minute';
             }
@@ -423,16 +424,16 @@ module.exports = {
     }
 };
 
-var IncidentModel = require('../models/incident');
-var MonitorService = require('./monitorService');
-var AlertService = require('./alertService');
-var RealTimeService = require('./realTimeService');
-var NotificationService = require('./notificationService');
-var WebHookService = require('./webHookService');
-var SlackService = require('./slackService');
-var ZapierService = require('./zapierService');
-var ProjectService = require('./projectService');
-var ErrorService = require('./errorService');
-var MonitorStatusService = require('./monitorStatusService');
+const IncidentModel = require('../models/incident');
+const MonitorService = require('./monitorService');
+const AlertService = require('./alertService');
+const RealTimeService = require('./realTimeService');
+const NotificationService = require('./notificationService');
+const WebHookService = require('./webHookService');
+const SlackService = require('./slackService');
+const ZapierService = require('./zapierService');
+const ProjectService = require('./projectService');
+const ErrorService = require('./errorService');
+const MonitorStatusService = require('./monitorStatusService');
 
 
