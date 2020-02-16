@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import  DateTime  from '../../utils/DateTime';
 
-let EscalationSummarySingle = ({
+const EscalationSummarySingle = ({
     isActiveTeam,
     isNextActiveTeam,
     teamMemberList,
@@ -11,15 +11,13 @@ let EscalationSummarySingle = ({
     currentEscalationPolicyCount
 }) => {
 
-    var data = isActiveTeam ? escalation.activeTeam : escalation.nextActiveTeam;
-    if (data)
-        var teamMembers = data.teamMembers;
+    const data = isActiveTeam ? escalation.activeTeam : escalation.nextActiveTeam;
+    let teamMembers = [];
     
-    if(!teamMembers){
-        teamMembers = [];
-    }
-
-    var teamMembersOnPartialDutyCount = teamMembers.filter((member) => {
+    if (data)
+        teamMembers = data.teamMembers;
+    
+    const teamMembersOnPartialDutyCount = teamMembers.filter((member) => {
         return member.startTime && member.startTime !== '' && member.endTime && member.endTime !== ''
     }).length;
 
@@ -57,7 +55,7 @@ let EscalationSummarySingle = ({
                 <div className="bs-Fieldset-fields labelfield" style={{ marginTop: '-1px' }}>
                     {teamMembers && teamMembers.length > 0 && teamMembers.map((member) => {
 
-                        var membersFromList = teamMemberList.filter((memberFromList) => {
+                        let membersFromList = teamMemberList.filter((memberFromList) => {
                             return memberFromList.userId === member.userId;
                         })
 
@@ -105,7 +103,7 @@ let EscalationSummarySingle = ({
                     {teamMembers && teamMembers.filter((member) => {
                         return member.startTime && member.startTime !== '' && member.endTime && member.endTime !== ''
                     }).map((member) => {
-                        var membersFromList = teamMemberList.filter((memberFromList) => {
+                        let membersFromList = teamMemberList.filter((memberFromList) => {
                             return memberFromList.userId === member.userId;
                         })
 

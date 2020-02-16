@@ -5,7 +5,7 @@ import { action } from '@storybook/addon-actions';
 
 localStorage.setItem('id', '5b1c0c29cb06cc23b132db07')
 
-let routes = [
+const routes = [
     {
         'title': 'Project Settings',
         'path': '/project/:projectId/settings',

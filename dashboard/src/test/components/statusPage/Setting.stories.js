@@ -122,7 +122,7 @@ const props = {
     return errors;
 }
 
-  let SettingForm = reduxForm({
+  const SettingForm = reduxForm({
     form: 'Branding', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for

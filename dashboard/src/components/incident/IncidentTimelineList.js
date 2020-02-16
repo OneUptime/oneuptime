@@ -7,8 +7,9 @@ import { currentTimeZone } from '../basic/TimezoneArray';
 import { history } from '../../store';
 
 const IncidentTimelineList = (props) => {
-    var { incident, skip, limit, prevClicked, nextClicked } = props;
-    var  probes  = Object.assign([],incident.incident.probes);
+    const { incident,  prevClicked, nextClicked } = props;
+    let{skip, limit} = props;
+    const  probes  = Object.assign([],incident.incident.probes);
     if (incident.incident && incident.incident.acknowledgedAt) {
         if (incident.incident.acknowledgedBy && incident.incident.acknowledgedBy.name) {
             probes.push({
@@ -30,7 +31,7 @@ const IncidentTimelineList = (props) => {
         }
     }
     probes.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
-    var count = probes && probes.length ? probes.length : null;
+    const count = probes && probes.length ? probes.length : null;
     if (skip && typeof skip === 'string') {
         skip = parseInt(skip, 10);
     }

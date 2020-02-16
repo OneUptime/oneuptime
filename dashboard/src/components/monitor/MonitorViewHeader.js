@@ -65,7 +65,7 @@ export class MonitorViewHeader extends Component {
     }
 
     deleteMonitor = () => {
-        let promise = this.props.deleteMonitor(this.props.monitor._id, this.props.monitor.projectId._id || this.props.monitor.projectId);
+        const promise = this.props.deleteMonitor(this.props.monitor._id, this.props.monitor.projectId._id || this.props.monitor.projectId);
         history.push(`/project/${this.props.currentProject._id}/monitoring`);
         if (!IS_DEV) {
             logEvent('Monitor Deleted', {
@@ -157,10 +157,10 @@ export class MonitorViewHeader extends Component {
                         <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                             <div className="btn-group">
                                 {monitor && probes.map((location, index) => {
-                                    let { logs } = filterProbeData(monitor, location, startDate, endDate);
-                                    let status = getMonitorStatus(monitor.incidents, logs);
-                                    let probe = probes.filter(probe => probe._id === location._id);
-                                    let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
+                                    const { logs } = filterProbeData(monitor, location, startDate, endDate);
+                                    const status = getMonitorStatus(monitor.incidents, logs);
+                                    const probe = probes.filter(probe => probe._id === location._id);
+                                    const lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
 
                                     return (
                                         <ProbeBar

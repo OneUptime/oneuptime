@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Multiselect from 'react-widgets/lib/Multiselect';
 
-let errorStyle = {
+const errorStyle = {
     color: 'red',
     topMargin: '5px'
 }

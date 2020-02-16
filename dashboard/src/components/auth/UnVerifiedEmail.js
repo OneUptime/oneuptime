@@ -14,8 +14,8 @@ class UnVerifiedEmailBox extends Component {
 	
 	render() {
 		const { emailVerificationRequesting, emailVerificationError, emailVerificationData, initialValues } = this.props;
-		var initialUserEmail;
-		var email;
+		let initialUserEmail;
+		let email;
 
         if (initialValues) {
 			initialUserEmail = this.props.initialValues.email;

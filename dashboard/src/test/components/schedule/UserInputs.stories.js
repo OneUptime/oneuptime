@@ -3,13 +3,13 @@ import { storiesOf } from '@storybook/react';
 import { reduxForm } from 'redux-form'
 import UserInputs from '../../../components/schedule/UserInputs'
 
-let UserInputsDecorated = new reduxForm({
+const UserInputsDecorated = new reduxForm({
     form: 'AddUsersForm',
     enableReinitialize: true
 })(UserInputs);
 
 
-let props_with_User_admin = {
+const props_with_User_admin = {
     project: {
         'id': '5b1f39482a62c8611d23c953',
         'users': [
@@ -53,7 +53,7 @@ let props_with_User_admin = {
 
 }
 
-let props_with_user_not_admin = {
+const props_with_user_not_admin = {
     project: {
         'id': '5b1f39482a62c8611d23c953',
         'users': [

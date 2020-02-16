@@ -22,7 +22,7 @@ const props_with_input =
     'fields':[{name: '', url: ''}]
 } 
 
-let RenderLinksForm = reduxForm({
+const RenderLinksForm = reduxForm({
     form: 'Links', // a unique identifier for this form
     enableReinitialize: true
 })(RenderLinks);

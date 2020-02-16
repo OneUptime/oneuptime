@@ -1,17 +1,17 @@
-var amplitude = require('amplitude-js');
-var { env } = require('./config');
+const amplitude = require('amplitude-js');
+const { env } = require('./config');
 
 amplitude.init(env('AMPLITUDE_PUBLIC_KEY'), null, { includeReferrer: true });
 
-export var setUserId = function (userId) {
+export const  setUserId = function (userId) {
     amplitude.setUserId(userId);
 };
-export var identify = function(userId) {
+export const  identify = function(userId) {
     amplitude.identify(userId);
 }
-export var setUserProperties = function(properties) {
+export const  setUserProperties = function(properties) {
     amplitude.setUserProperties(properties);
 }
-export var logEvent = function (event, data) {
+export const  logEvent = function (event, data) {
     amplitude.logEvent(event, data);
 };

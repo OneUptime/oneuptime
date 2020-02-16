@@ -45,9 +45,9 @@ export class MonitorViewSubscriberBox extends Component {
     }
 
     render() {
-        let { createSubscriberModalId } = this.state;
-        let creating = this.props.create ? this.props.create : false;
-        let exporting = this.props.export ? this.props.export : false;
+        const { createSubscriberModalId } = this.state;
+        const creating = this.props.create ? this.props.create : false;
+        const exporting = this.props.export ? this.props.export : false;
         const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
         const { monitorId } = this.props;
         return (

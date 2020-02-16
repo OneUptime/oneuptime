@@ -2,7 +2,7 @@ import React from 'react';
 import { storiesOf } from '@storybook/react';
 import {Modalize} from '../../components/Modalize'
 
-let props = {
+const props = {
     HEADER: 'HEADER',
     CONTENT: 'CONTENT',
     FOOTER: 'FOOTER'

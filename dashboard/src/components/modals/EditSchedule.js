@@ -350,7 +350,7 @@ UpdateSchedule.propTypes = {
     startDate: PropTypes.object,
 };
 
-let NewUpdateSchedule = reduxForm({
+const NewUpdateSchedule = reduxForm({
     form: 'newUpdateSchedule',
     enableReinitialize: true,
     validate,
@@ -369,8 +369,8 @@ const selector = formValueSelector('newUpdateSchedule');
 
 const mapStateToProps = state => {
 
-    let scheduledEventToBeUpdated = state.modal.modals[0].event;
-    let initialValues = {};
+    const scheduledEventToBeUpdated = state.modal.modals[0].event;
+    const initialValues = {};
     const startDate = selector(state, 'startDate');
 
     if (scheduledEventToBeUpdated) {

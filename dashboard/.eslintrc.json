@@ -92,6 +92,11 @@
         "array-callback-return": "error",
         "no-loop-func": "error",
         "jsx-a11y/anchor-is-valid": "error",
-        "no-mixed-operators": "error"
+        "no-mixed-operators": "error",
+        "prefer-const": ["error", {
+            "destructuring": "any",
+            "ignoreReadBeforeAssign": false
+        }],
+        "no-var": "error"
     }
 }

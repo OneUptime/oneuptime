@@ -24,7 +24,7 @@ export function receiveLogout() {
 
 // Logs the user out
 export function logoutUser() {
-  var cookies = new Cookies();
+  const cookies = new Cookies();
   const logoutData = {
     loggedIn: false
   }

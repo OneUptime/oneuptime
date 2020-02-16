@@ -6,7 +6,7 @@ import { User } from '../../config';
 // returns JSX.Element or NULL
 export default function IsMemberSubProject (subProject) {
   
-    var userId = User.getUserId();
+    const userId = User.getUserId();
     if (
         userId && subProject &&
         subProject.users &&

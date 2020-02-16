@@ -41,7 +41,7 @@ class Schedule extends Component {
     render() {
         const { editSchedule, isLoading, error } = this.state;
 
-        var {
+        const {
             escalations,
             teamMembers,
             subProjectId,
@@ -107,12 +107,12 @@ const mapDispatchToProps = dispatch => (
 const mapStateToProps = (state, props) => {
     const { scheduleId } = props.match.params;
 
-    var schedule = state.schedule.subProjectSchedules.map((subProjectSchedule) => {
+    let schedule = state.schedule.subProjectSchedules.map((subProjectSchedule) => {
         return subProjectSchedule.schedules.find(schedule => schedule._id === scheduleId)
     });
 
     schedule = schedule.find(schedule => schedule && schedule._id === scheduleId)
-    var escalations = state.schedule.escalations;
+    const escalations = state.schedule.escalations;
     const { projectId } = props.match.params;
 
     const { subProjectId } = props.match.params;

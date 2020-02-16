@@ -50,8 +50,8 @@ export class ProfileMenu extends Component {
     render() {
         const { profileSettings, position } = this.props;
 
-        var name = User.getName();
-        var email = User.getEmail();
+        const name = User.getName();
+        let email = User.getEmail();
 
         if (profileSettings && profileSettings.data && profileSettings.data.email && profileSettings.data.email !== email) {
             email = profileSettings.data.email;

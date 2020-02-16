@@ -6,7 +6,7 @@ import Modal from './Modal'
 class TooltipModal extends Component {
 
     render() {
-        var {title, body, closeThisDialog} = this.props; 
+        const {title, body, closeThisDialog} = this.props; 
         return (
             <Modal title={title} closeButtonLabel={'Close'} hideAffirmativeButton={true} closeThisDialog={closeThisDialog}>
                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">

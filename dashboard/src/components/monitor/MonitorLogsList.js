@@ -16,9 +16,9 @@ export class MonitorLogsList extends Component {
     }
     render() {
         const { monitorLogs } = this.props;
-        var skip = monitorLogs && monitorLogs.skip ? monitorLogs.skip : null;
-        var limit = monitorLogs && monitorLogs.limit ? monitorLogs.limit : null;
-        var count = monitorLogs && monitorLogs.count ? monitorLogs.count : null;
+        let skip = monitorLogs && monitorLogs.skip ? monitorLogs.skip : null;
+        let limit = monitorLogs && monitorLogs.limit ? monitorLogs.limit : null;
+        const count = monitorLogs && monitorLogs.count ? monitorLogs.count : null;
         if (skip && typeof skip === 'string') {
             skip = parseInt(skip, 10);
         }
@@ -294,7 +294,7 @@ const mapDispatchToProps = (dispatch) => {
 }
 
 function mapStateToProps(state, props) {
-    let monitorId = props.monitorId ? props.monitorId : null;
+    const monitorId = props.monitorId ? props.monitorId : null;
     return {
         monitorLogs: monitorId ? state.monitor.monitorLogs[monitorId] : {},
     };

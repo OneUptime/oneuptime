@@ -158,7 +158,7 @@ SmsTemplatesFormBox.propTypes = {
     resetTemplate: PropTypes.func.isRequired,
 }
 
-let SmsTemplatesFormBoxForm = reduxForm({
+const SmsTemplatesFormBoxForm = reduxForm({
     form: 'smstemplatesform', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for
@@ -172,7 +172,7 @@ const mapDispatchToProps = (dispatch) => {
 
 function mapStateToProps(state) {
     const template = state.smsTemplates.showingTemplate;
-    var val = {
+    const val = {
         body: template.body,
         sms_type: template.smsType,
     }

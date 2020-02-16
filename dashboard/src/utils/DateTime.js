@@ -3,7 +3,7 @@ import differenceInDays from 'date-fns/differenceInDays';
 import differenceInWeeks from'date-fns/differenceInWeeks';
 import differenceInMonths from 'date-fns/differenceInMonths';
 
-var _this = {
+const _this = {
     // This function will strip
     changeDateTimezone: function (date, timezone) {
         if (typeof date === 'string') {
@@ -128,7 +128,7 @@ var _this = {
 
     //This will change the date to today and will retain the time. 
     moveDateToToday(date) {
-        var today = new Date();
+        const today = new Date();
 
         if (typeof date === 'string') {
             date = new Date(date);
@@ -142,7 +142,7 @@ var _this = {
             date = new Date(date);
         }
 
-        var current = new Date();
+        const current = new Date();
         date = moment(date).add(1,'minutes').toDate();
 
         return _this.lessThan(date, current); 

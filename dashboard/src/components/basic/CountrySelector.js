@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types'
 import { countries } from './CountryList';
 
-let errorStyle = {
+const errorStyle = {
   color:'red',
   topMargin:'5px'
 }

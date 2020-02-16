@@ -15,13 +15,13 @@ export class EscalationSummary extends Component {
 
 
     render() {
-        var {
+        const {
             onEditClicked,
             escalations,
             teamMembers
         } = this.props;
 
-        var { isLoading, error } = this.state;
+        const { isLoading, error } = this.state;
 
         return (
             <div className="Box-root Margin-bottom--12">

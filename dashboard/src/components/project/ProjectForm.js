@@ -59,7 +59,7 @@ class _ProjectForm extends React.Component {
 
 	createToken = (values) => {
 		
-		let cardRegistered = User.isCardRegistered() === 'false' ? false: true;
+		const cardRegistered = User.isCardRegistered() === 'false' ? false: true;
 		const { stripe, createProjectRequest, createProjectError, checkCard, email, companyName, submitForm } = this.props;
 		if (cardRegistered) {
 			submitForm(values);
@@ -99,7 +99,7 @@ class _ProjectForm extends React.Component {
 			errorStack,
 			requesting
 		} = this.props;
-		let cardRegistered = User.isCardRegistered();
+		const cardRegistered = User.isCardRegistered();
 
 		return (
 			<form id="frmCreateProject" onSubmit={handleSubmit(this.createToken)}>

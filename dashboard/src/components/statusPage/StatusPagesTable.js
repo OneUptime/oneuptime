@@ -58,7 +58,8 @@ class StatusPagesTable extends Component {
         // SubProject StatusPages List
         const allStatusPages = subProjects && subProjects.map((subProject, i) => {
             const subProjectStatusPage = subProjectStatusPages.find(subProjectStatusPage => subProjectStatusPage._id === subProject._id)
-            let { count, skip, limit } = subProjectStatusPage;
+            let { skip, limit } = subProjectStatusPage;
+            const {count} = subProjectStatusPage;
             skip = parseInt(skip);
             limit = parseInt(limit);
             const statusPages = subProjectStatusPage.statusPages;
@@ -104,8 +105,9 @@ class StatusPagesTable extends Component {
         });
 
         // Add Project Statuspages to All Statuspages List
-        var projectStatusPage = subProjectStatusPages.find(subProjectStatusPage => subProjectStatusPage._id === currentProjectId)
-        let { count, skip, limit } = projectStatusPage;
+        let projectStatusPage = subProjectStatusPages.find(subProjectStatusPage => subProjectStatusPage._id === currentProjectId)
+        let { skip, limit } = projectStatusPage;
+        const {count} = projectStatusPage;
         skip = parseInt(skip);
         limit = parseInt(limit);
         const statusPages = projectStatusPage.statusPages;
@@ -163,9 +165,9 @@ const mapDispatchToProps = dispatch => bindActionCreators({ openModal, closeModa
 function mapStateToProps(state) {
     const currentProject = state.project.currentProject;
     const currentProjectId = currentProject ? currentProject._id : null;
-    var statusPages = state.statusPage.subProjectStatusPages;
+    const statusPages = state.statusPage.subProjectStatusPages;
 
-    var subProjects = state.subProject.subProjects.subProjects;
+    let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);
@@ -173,12 +175,12 @@ function mapStateToProps(state) {
     subProjects = subProjectNames && subProjectNames.map(name => subProjects.find(subProject => subProject.name === name))
 
     // find project statuspages or assign default value
-    var projectStatusPage = statusPages.find(statusPage => statusPage._id === currentProject._id);
+    let projectStatusPage = statusPages.find(statusPage => statusPage._id === currentProject._id);
     projectStatusPage = projectStatusPage ? projectStatusPage : { _id: currentProjectId, statusPages: [], count: 0, skip: 0, limit: 10 };
 
     // find subproject statuspages or assign default value
-    var subProjectStatusPages = subProjects.map(subProject => {
-        var statusPage = statusPages.find(statusPage => statusPage._id === subProject._id);
+    const subProjectStatusPages = subProjects.map(subProject => {
+        const statusPage = statusPages.find(statusPage => statusPage._id === subProject._id);
         return statusPage ? statusPage : { _id: subProject._id, statusPages: [], count: 0, skip: 0, limit: 10 };
     });
     subProjectStatusPages.unshift(projectStatusPage);

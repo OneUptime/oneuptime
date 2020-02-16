@@ -28,7 +28,7 @@ export class AlertAdvanceOption extends Component {
         value._id = this.props.projectId;
         this.props.alertOptionsUpdate(this.props.projectId, value)
             .then(() => {
-                let { paymentIntent } = this.props;
+                const { paymentIntent } = this.props;
                 if (paymentIntent) {
                     //init payment
                     this.handlePaymentIntent(paymentIntent);
@@ -42,7 +42,7 @@ export class AlertAdvanceOption extends Component {
         stripe.handleCardPayment(paymentIntentClientSecret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    var creditedBalance = result.paymentIntent.amount / 100;
+                    const creditedBalance = result.paymentIntent.amount / 100;
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
@@ -62,9 +62,9 @@ export class AlertAdvanceOption extends Component {
     }
 
     componentDidUpdate() {
-        let { formValues } = this.props;
-        let rechargeToBalance = Number(formValues.rechargeToBalance);
-        let minimumBalance = Number(formValues.minimumBalance);
+        const { formValues } = this.props;
+        const rechargeToBalance = Number(formValues.rechargeToBalance);
+        const minimumBalance = Number(formValues.minimumBalance);
 
         if (formValues.billingUS && minimumBalance < 20) {
             this.props.change('minimumBalance', '20')
@@ -356,10 +356,10 @@ AlertAdvanceOption.propTypes = {
     balance: PropTypes.number
 }
 
-let formName = 'AlertAdvanceOption';
+const formName = 'AlertAdvanceOption';
 
 
-let AlertAdvanceOptionForm = new reduxForm({
+const AlertAdvanceOptionForm = new reduxForm({
     form: formName,
 })(AlertAdvanceOption);
 

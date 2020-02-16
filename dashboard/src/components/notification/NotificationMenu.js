@@ -42,14 +42,14 @@ class NotificationMenu extends Component {
     }
 
     handlePaymentIntent = (notification) => {
-        var { client_secret } = notification.meta;
-        var { projectId, _id } = notification;
-        var { stripe, billingActionTaken, openModal, balance } = this.props;
-        var { MessageBoxId } = this.state;
+        const { client_secret } = notification.meta;
+        const { projectId, _id } = notification;
+        const { stripe, billingActionTaken, openModal, balance } = this.props;
+        const { MessageBoxId } = this.state;
         stripe.handleCardPayment(client_secret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    var creditedBalance = result.paymentIntent.amount / 100;
+                    const creditedBalance = result.paymentIntent.amount / 100;
                     billingActionTaken(projectId, _id, {
                         meta: {},
                         icon: 'success',
@@ -79,7 +79,7 @@ class NotificationMenu extends Component {
     }
 
     render() {
-        var userId = User.getUserId();
+        const userId = User.getUserId();
         return this.props.notificationsVisible ?
             (
                 <div className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"

@@ -26,7 +26,7 @@ class AlertCharge extends Component {
         }
     }
     fetchData = () => {
-        var { projectId, downloadAlertCharges } = this.props;
+        const { projectId, downloadAlertCharges } = this.props;
         downloadAlertCharges(projectId)
             .then(() => {
                 this.csvLink.current.link.click();
@@ -104,10 +104,10 @@ class AlertCharge extends Component {
 
 
 const mapStateToProps = (state, props) => {
-    var { projectId } = props.match.params;
-    var downloadedAlertCharges = state.alert.downloadedAlertCharges && state.alert.downloadedAlertCharges.data;
-    var alertCharges = state.alert.alertCharges !== null && state.alert.alertCharges.data;
-    var { requesting, error } = state.alert.downloadedAlertCharges;
+    const { projectId } = props.match.params;
+    const downloadedAlertCharges = state.alert.downloadedAlertCharges && state.alert.downloadedAlertCharges.data;
+    const alertCharges = state.alert.alertCharges !== null && state.alert.alertCharges.data;
+    const { requesting, error } = state.alert.downloadedAlertCharges;
     return { projectId, downloadedAlertCharges, requesting, error, alertCharges }
 }
 

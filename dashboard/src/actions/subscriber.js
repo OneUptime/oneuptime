@@ -36,7 +36,7 @@ export const resetCreateSubscriber = () => {
 export function createSubscriber(projectId, monitorId, data) {
 
     return function (dispatch) {
-        var promise = postApi(`subscriber/${projectId}/subscribe/${monitorId}`, data);
+        const promise = postApi(`subscriber/${projectId}/subscribe/${monitorId}`, data);
 
         dispatch(createSubscriberRequest(promise));
 
@@ -94,7 +94,7 @@ export const resetExportCsv = () => {
 export function exportCSV(projectId, monitorId, skip, limit, csv) {
 
     return function (dispatch) {
-        var promise = getApi(`subscriber/${projectId}/monitor/${monitorId}?skip=${skip}&limit=${limit}&output-type=${csv}`);
+        const promise = getApi(`subscriber/${projectId}/monitor/${monitorId}?skip=${skip}&limit=${limit}&output-type=${csv}`);
 
         dispatch(exportCsvRequest(promise));
 
@@ -153,7 +153,7 @@ export const resetDeleteSubscriber = () => {
 export function deleteSubscriber(projectId, subscriberId) {
 
     return function (dispatch) {
-        var promise = deleteApi(`subscriber/${projectId}/${subscriberId}`, {});
+        const promise = deleteApi(`subscriber/${projectId}/${subscriberId}`, {});
 
         dispatch(deleteSubscriberRequest(promise));
 

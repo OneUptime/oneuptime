@@ -10,7 +10,7 @@ import ShouldRender from '../basic/ShouldRender';
 class DeleteCard extends Component {
 
     handleKeyBoard = (e) => {
-        var { deleteCardModalId } = this.props;
+        const { deleteCardModalId } = this.props;
         switch (e.key) {
             case 'Escape':
                 return this.props.closeModal({

@@ -131,7 +131,7 @@ const props = {
     return errors;
 }
 
-  let BrandingForm = reduxForm({
+  const BrandingForm = reduxForm({
     form: 'Branding', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for
@@ -141,7 +141,7 @@ storiesOf('Status Page', module)
         <BrandingForm {...props} />
     )
 
-    let props_requesting = {
+    const props_requesting = {
       ...props,
       statusPage:{
         ...props.statusPage,
@@ -158,7 +158,7 @@ storiesOf('Status Page', module)
         <BrandingForm {...props_requesting} />
     )
 
-    let props_error = {
+    const props_error = {
       ...props,
       statusPage:{
         ...props.statusPage,

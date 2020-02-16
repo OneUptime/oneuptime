@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import Select from 'react-select-fyipe';
 import { renderIfSubProjectAdmin } from '../../config';
 
-let errorStyle = {
+const errorStyle = {
     color: 'red',
     topMargin: '5px'
 };

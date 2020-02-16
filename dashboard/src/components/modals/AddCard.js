@@ -40,8 +40,8 @@ class _CardForm extends React.Component {
     handleSubmit = async (e) => {
         const { projectId, stripe, addCardSuccess, addCardFailed, addCardRequest } = this.props;
         e.preventDefault();
-        var cardId = '';
-        var tok = {};
+        let cardId = '';
+        let tok = {};
         if (stripe) {
             addCardRequest()
             stripe

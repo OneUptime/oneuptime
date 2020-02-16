@@ -32,7 +32,7 @@ export const resetGetVersion = () => {
 
 export function getVersion() {
     return function (dispatch) {
-        var promise = null;
+        let promise = null;
         promise = getApi('version');
 
         dispatch(getVersionRequest(promise));

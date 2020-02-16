@@ -24,7 +24,8 @@ import { history } from '../../store';
 class WebHookList extends React.Component {
 
     ready() {
-        let { getWebHook, projectId } = this.props;
+        const { getWebHook } = this.props;
+        let { projectId } = this.props;
         if (!projectId) {
             projectId = history.location.pathname.split('project/')[1].split('/')[0];
             getWebHook(projectId);
@@ -78,7 +79,8 @@ class WebHookList extends React.Component {
     render() {
 
         const { webHook, isRequesting, monitorId } = this.props;
-        let { webHooks, count, skip, limit } = webHook;
+        const { count, skip, limit } = webHook;
+        let { webHooks } = webHook;
         let canPaginateForward = (webHook && count) && (count > (skip + limit)) ? true : false;
         let canPaginateBackward = (webHook && skip && skip > 0) ? true : false;
         if (monitorId && webHooks) {

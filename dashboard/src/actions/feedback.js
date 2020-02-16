@@ -47,7 +47,7 @@ export const resetCreateFeedback = () => {
 export function createFeedback(projectId, feedback, page) {
 	return function (dispatch) {
 
-		var promise = postApi(`feedback/${projectId}`, { feedback, page });
+		const promise = postApi(`feedback/${projectId}`, { feedback, page });
 
 		dispatch(createFeedbackRequest());
 

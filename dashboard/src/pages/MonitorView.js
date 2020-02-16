@@ -103,7 +103,7 @@ const mapStateToProps = (state, props) => {
   const monitor = state.monitor.monitorsList.monitors.map(monitor =>
     monitor.monitors.find(monitor =>
       monitor._id === monitorId)).filter(monitor => monitor)[0];
-  let initialValues = {};
+  const initialValues = {};
   if (monitor) {
     initialValues[`name_${monitor._id}`] = monitor.name;
     initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;

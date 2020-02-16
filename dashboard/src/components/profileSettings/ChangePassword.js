@@ -41,7 +41,7 @@ export class ChangePasswordSetting extends Component {
 
     submitForm = (values) => {
         const { reset, openModal } = this.props;
-        var { MessageBoxId } = this.state;
+        const { MessageBoxId } = this.state;
 
         this.props.updateChangePasswordSetting(values).then(function () {
             openModal({
@@ -162,7 +162,7 @@ export class ChangePasswordSetting extends Component {
 
 ChangePasswordSetting.displayName = 'ChangePasswordSetting'
 
-let ChangePasswordSettingForm = reduxForm({
+const ChangePasswordSettingForm = reduxForm({
     form: 'ChangePasswordSetting', // a unique identifier for this form
     validate // <--- validation function given to redux-for
 })(ChangePasswordSetting);

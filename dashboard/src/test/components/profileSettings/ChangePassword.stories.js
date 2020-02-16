@@ -3,13 +3,13 @@ import { storiesOf, action } from '@storybook/react';
 import { reduxForm } from 'redux-form'
 import { ChangePasswordSetting } from '../../../components/profileSettings/ChangePassword'
 
-let ChangePasswordSettingDecorated = new reduxForm({
+const ChangePasswordSettingDecorated = new reduxForm({
     form: 'ChangePasswordSetting',
     enableReinitialize: true
 })(ChangePasswordSetting);
 
 
-let props = {
+const props = {
     'array': {},
     'anyTouched': false,
     'asyncValidating': false,

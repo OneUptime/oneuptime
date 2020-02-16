@@ -75,7 +75,7 @@ export class EmailSmtpBox extends Component {
 
 
     submitForm = (values) => {
-        var { smtpConfigurations, updateSmtpConfig, postSmtpConfig, currentProject } = this.props;
+        const { smtpConfigurations, updateSmtpConfig, postSmtpConfig, currentProject } = this.props;
 
         if (values.smtpswitch) {
             if (!values.secure) {
@@ -346,7 +346,7 @@ EmailSmtpBox.propTypes = {
     emailSmtpDelete: PropTypes.object,
 }
 
-let EmailSmtpBoxForm = reduxForm({
+const EmailSmtpBoxForm = reduxForm({
     form: 'EmailSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
     validate: EmailSmtpBox.validate // <--- validation function given to redux-for
@@ -362,9 +362,9 @@ const mapDispatchToProps = (dispatch) => {
 }
 
 function mapStateToProps(state) {
-    var smtpConfigurations = state.emailTemplates && state.emailTemplates.emailSmtpConfiguration;
-    var showEmailSmtpConfiguration = state.emailTemplates && state.emailTemplates.showEmailSmtpConfiguration;
-    var values = { smtpswitch: false, user: '', pass: '', host: '', from: '', port: '', secure: true };
+    const smtpConfigurations = state.emailTemplates && state.emailTemplates.emailSmtpConfiguration;
+    const showEmailSmtpConfiguration = state.emailTemplates && state.emailTemplates.showEmailSmtpConfiguration;
+    let values = { smtpswitch: false, user: '', pass: '', host: '', from: '', port: '', secure: true };
     if (showEmailSmtpConfiguration) {
         values = {
             smtpswitch: true,
