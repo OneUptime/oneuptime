@@ -56,7 +56,7 @@
     "storybook": "start-storybook -p 9009 -s public",
     "build-storybook": "build-storybook -s public",
     "audit": "npm-audit-ci-wrapper --threshold=high",
-    "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*'"
+    "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,serve'"
   },
   "browserslist": {
     "production": [
