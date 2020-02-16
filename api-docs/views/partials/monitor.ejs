@@ -4,9 +4,10 @@
       <h1>Monitor</h1>
     </b>
     <p>
-      <p>Monitor API, are the one's that actually monitors your resource, and creates a new incident when something
-        unexpected happens. Resource can be a URL, Device, Server, Application or a Process. </p>
+      <p>Monitor API will allow you to create monitors and monitor any resource like APIs, Websites, Servers,
+        Containers, IoT devices and more.</p>
     </p>
+
     <div class="attribute-parameter-container">
       <h3>Path</h3>
       <ul class="doc-item-detail-container">
@@ -33,7 +34,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Monitor<span class="requestType">POST</span></h3>
     <p>
-      <p>Create Monitor.</p>
+      <p>Create Monitor by Project ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -66,7 +67,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -133,8 +134,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Monitor Type- This can be `url` if you monitor a URL, can be `device` if you want to monitor a
-                  device or can be `manual` like the monitor to not monitor anything.</p>
+                <p>The type of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -149,8 +149,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Monitor Type- This can be `url` if you monitor a URL, can be `device` if you want to monitor a
-                  device or can be `manual` like the monitor to not monitor anything.</p>
+                <p>The type of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -388,7 +387,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Monitors<span class="requestType">GET</span></h3>
     <p>
-      <p>Get All Monitors.</p>
+      <p>Get All Monitors by Project ID. Return by skipping and limiting the number of results.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -421,7 +420,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
               </div>
             </div>
           </div>
@@ -436,7 +435,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -458,7 +457,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -826,7 +825,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Monitors By Type<span class="requestType">GET</span></h3>
     <p>
-      <p>Get All Monitors By Type.</p>
+      <p>Get All Monitors by Project ID and Monitor Type. Return by skipping and limiting the number of results.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -859,7 +858,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
               </div>
             </div>
           </div>
@@ -874,7 +873,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -889,7 +888,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The type of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -911,7 +910,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -1115,7 +1114,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Monitor<span class="requestType">GET</span></h3>
     <p>
-      <p>Get Single Monitor.</p>
+      <p>Get Single Monitor by Project ID and Monitor ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1148,7 +1147,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -1163,7 +1162,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The monitor id of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -1282,7 +1281,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Monitor<span class="requestType">PUT</span></h3>
     <p>
-      <p>Edit Monitor.</p>
+      <p>Edit Monitor by Project ID and Monitor ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1315,7 +1314,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -1330,7 +1329,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The monitor id of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -1383,8 +1382,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Monitor Type- This can be `url` if you monitor a URL, can be `device` if you want to monitor a
-                  device or can be `manual` like the monitor to not monitor anything.</p>
+                <p>The type of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -1622,7 +1620,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Monitor<span class="requestType">DELETE</span></h3>
     <p>
-      <p>Delete Monitor.</p>
+      <p>Delete Monitor by Project ID and Monitor ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1655,7 +1653,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -1670,7 +1668,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The monitor id of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -1791,7 +1789,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Server Monitor Log<span class="requestType">POST</span></h3>
     <p>
-      <p>Create Server Monitor Log.</p>
+      <p>Create Server Monitor Log by Project ID and Monitor ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1803,28 +1801,6 @@
             <div class="col-full">
               <div class="item-title">
                 <span>https://api.fyipe.com/monitor/:projectId/log/:monitorId</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
               </div>
             </div>
           </div>
@@ -1846,7 +1822,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -1861,7 +1837,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The monitor id of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -2121,7 +2097,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Monitor Logs<span class="requestType">POST</span></h3>
     <p>
-      <p>Get Monitor Logs.</p>
+      <p>Get Monitor Logs by Project ID and Monitor ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -2154,7 +2130,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -2169,7 +2145,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The monitor id of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -2337,7 +2313,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Aggregate Monitor Logs<span class="requestType">GET</span></h3>
     <p>
-      <p>Get Aggregate Monitor Logs.</p>
+      <p>Get Aggregate Monitor Logs by Project ID and Monitor ID. Return results by Start Date and End Date.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -2370,7 +2346,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The start date of the date range.</p>
               </div>
             </div>
           </div>
@@ -2385,7 +2361,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The end date of the date range.</p>
               </div>
             </div>
           </div>
@@ -2407,7 +2383,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -2422,7 +2398,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The monitor id of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -2554,7 +2530,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Add Monitor Seat To Project<span class="requestType">POST</span></h3>
     <p>
-      <p>Add Monitor Seat To Project.</p>
+      <p>Add Monitor Seat To Project by Project ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -2587,7 +2563,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -2649,7 +2625,7 @@
     <h3>Update Device Monitor Ping Time<span class="requestType">POST</span> or <span class="requestType">GET</span>
     </h3>
     <p>
-      <p>Update Device Monitor Ping Time.</p>
+      <p>Update Device Monitor Ping Time by Project ID and Device ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -2682,7 +2658,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -2697,7 +2673,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The device id of the device monitor.</p>
               </div>
             </div>
           </div>
@@ -2785,7 +2761,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Device Monitor Ping Time<span class="requestType">GET</span></h3>
     <p>
-      <p>Get Device Monitor Ping Time.</p>
+      <p>Get Device Monitor Ping Time by Project ID and Device ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -2818,7 +2794,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -2833,7 +2809,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The device id of the device monitor.</p>
               </div>
             </div>
           </div>
