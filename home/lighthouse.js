@@ -8,11 +8,11 @@ program
 	.option('-w, --web', 'Run lighthouse on the web');
 program.parse(process.argv);
 
-let table = new Table({
+const table = new Table({
 	head: ['url', 'performance', 'accessibility', 'best-practices', 'seo'],
 	style: {head: ['green']},
 });
-let sites = [
+const sites = [
 	'http://localhost:1444',
 	'http://localhost:1444/pricing',
 	'http://localhost:1444/support',
@@ -28,7 +28,7 @@ let sitesIndex = 0;
 let checksFailed = false;
 
 child.on('message', function (score){
-	let scores = [sites[sitesIndex - 1], score.performance, score.accessibility, score.bestPractices, score.seo];
+	const scores = [sites[sitesIndex - 1], score.performance, score.accessibility, score.bestPractices, score.seo];
 	table.push(scores);
 	if (score.performance < 80 || score.accessibility < 80 || score.bestPractices < 80 || score.seo < 80) {
 		checksFailed = true;
