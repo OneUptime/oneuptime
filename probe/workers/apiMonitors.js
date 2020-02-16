@@ -9,43 +9,37 @@ const fetch = require('node-fetch');
 // creates incident if a website is down and resolves it when they come back up
 module.exports = {
     ping: async (monitor) => {
-        if (monitor && monitor.type) {
-            if (monitor.data.url) {
-                try {
-                    let headers = await ApiService.headers(monitor.headers, monitor.bodyType);
-                    let body = await ApiService.body(monitor && monitor.text && monitor.text.length ? monitor.text : monitor.formData, monitor && monitor.text && monitor.text.length ? 'text' : 'formData');
-                    var { res, resp } = await pingfetch(monitor.data.url, monitor.method, body, headers);
-                } catch (error) {
-                    ErrorService.log('ping.pingFetch', error);
-                    throw error;
-                }
-                try {
+        try {
+            if (monitor && monitor.type) {
+                if (monitor.data.url) {
+
+                    const headers = await ApiService.headers(monitor.headers, monitor.bodyType);
+                    const body = await ApiService.body(monitor && monitor.text && monitor.text.length ? monitor.text : monitor.formData, monitor && monitor.text && monitor.text.length ? 'text' : 'formData');
+                    const { res, resp } = await pingfetch(monitor.data.url, monitor.method, body, headers);
+
+
                     await ApiService.ping(monitor._id, { monitor, res, resp, type: monitor.type });
-                } catch (error) {
-                    ErrorService.log('ApiService.ping', error);
-                    throw error;
                 }
-            } else {
-                return;
             }
-        } else {
-            return;
+        } catch (error) {
+            ErrorService.log('apiMonitors.ping', error);
+            throw error;
         }
     }
 };
 
-var pingfetch = async (url, method, body, headers) => {
-    let now = (new Date()).getTime();
-    var resp = null;
-    var res = null;
+const pingfetch = async (url, method, body, headers) => {
+    const now = (new Date()).getTime();
+    let resp = null;
+    let res = null;
     try {
-        var response = await fetch(url, {
+        const response = await fetch(url, {
             method: method,
             body: body,
             headers: headers,
             timeout: 30000
         });
-        var data = await response.json();
+        const data = await response.json();
         resp = { status: response.status, body: data };
     } catch (error) {
         resp = { status: 408, body: error };
