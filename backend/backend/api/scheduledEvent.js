@@ -97,6 +97,15 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async 
                 message: 'Event description is not of string type.'
             });
         }
+
+        const existingScheduledEvent = await ScheduledEventService.findOneBy({name: data.name});
+        if (existingScheduledEvent) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled event name already exists'
+            });
+        }
+
         const scheduledEvent = await ScheduledEventService.create({projectId, monitorId}, data);
         return sendItemResponse(req, res, scheduledEvent);
     } catch (error) {
@@ -108,6 +117,15 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, isUserAdmin, async fun
     try {
         const data = req.body;
         const eventId = req.params.eventId;
+        const existingScheduledEvent = await ScheduledEventService.findOneBy({name: data.name});
+
+        if (existingScheduledEvent && eventId !== existingScheduledEvent._id.toString()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled event name already exists'
+            });
+        }
+
         const scheduledEvent = await ScheduledEventService.updateOneBy({_id:eventId},data);
         if (scheduledEvent) {
             return sendItemResponse(req, res, scheduledEvent);

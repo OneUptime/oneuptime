@@ -212,12 +212,16 @@ describe('User from other project have access to read / write and delete API.', 
 describe('Scheduled Event API - Check pagination for 12 scheduled events', function () {
     this.timeout(20000);
 
-    const scheduledEvents = Array(12).fill({
-        name: 'testPagination',
-        description: 'testPaginationDescription',
-        startDate: '2019-06-11 11:01:52.178',
-        endDate: '2019-06-26 11:31:53.302',
-    });
+    const scheduledEvents = [];
+
+    for (let i = 0; i < 12; i++) {
+        scheduledEvents.push({
+            name: `testPagination${i}`,
+            description: 'testPaginationDescription',
+            startDate: '2019-06-11 11:01:52.178',
+            endDate: '2019-06-26 11:31:53.302',
+        });
+    }
 
 
     before(async function () {
