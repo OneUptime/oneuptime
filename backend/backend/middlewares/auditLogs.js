@@ -20,10 +20,11 @@ module.exports = {
             const blackListedReqObjectPaths = ['body.password'];
             const blackListedResObjectPaths = [];
 
-            // Audit logging is attached to req 'close' event, because of below reasons.
+            // Audit logging is attached to res 'finish' event, because of below reasons.
             //    - To get 'projectId' value if available. (Mostly passed as route parameter)
             //    - To access 'res.resBody' which is added in 'response' middlewares.
-            req.on('close', async () => {
+            //    - Also for some resason when run inside docker container only req.end and res.finish get emmited.
+            res.on('finish', async () => {
                 let userId = req.user && req.user.id ? req.user.id : null;
                 userId =  isValidMongoObjectId(userId) ? userId : null;
 
