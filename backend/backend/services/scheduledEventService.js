@@ -159,19 +159,21 @@ module.exports = {
             query.deleted = false;
             const scheduledEvent = await ScheduledEventModel.findOne(query).lean();
 
-            if (scheduledEvent.createdById === 'API') {
-                scheduledEvent.createdById = {
-                    name: 'API',
-                    _id: null
-                };
-            } else {
-                const user = await UserModel.findOne({
-                    _id: scheduledEvent.createdById
-                }).lean();
-                scheduledEvent.createdById = {
-                    _id: user._id,
-                    name: user.name
-                };
+            if (scheduledEvent) {
+                if (scheduledEvent.createdById === 'API') {
+                    scheduledEvent.createdById = {
+                        name: 'API',
+                        _id: null
+                    };
+                } else {
+                    const user = await UserModel.findOne({
+                        _id: scheduledEvent.createdById
+                    }).lean();
+                    scheduledEvent.createdById = {
+                        _id: user._id,
+                        name: user.name
+                    };
+                }
             }
 
             return scheduledEvent;

@@ -72,7 +72,7 @@ class UpdateSchedule extends React.Component {
 
     render() {
         const { currentDate } = this.state;
-        const { requesting, error, startDate } = this.props;
+        const { requesting, scheduledEventError, startDate } = this.props;
         const { handleSubmit, closeModal } = this.props;
 
         return (
@@ -300,7 +300,7 @@ class UpdateSchedule extends React.Component {
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={error}>
+                                    <ShouldRender if={scheduledEventError}>
                                         <div className="bs-Tail-copy">
                                             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
                                                 <div className="Box-root Margin-right--8">
@@ -308,7 +308,7 @@ class UpdateSchedule extends React.Component {
                                                     </div>
                                                 </div>
                                                 <div className="Box-root">
-                                                    <span style={{ color: 'red' }}>{error}</span>
+                                                    <span style={{ color: 'red' }}>{scheduledEventError}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -345,7 +345,7 @@ UpdateSchedule.propTypes = {
     updateScheduledEvent: PropTypes.func.isRequired,
     updateScheduledEventModalId: PropTypes.string,
     requesting: PropTypes.bool,
-    error: PropTypes.object,
+    scheduledEventError: PropTypes.object,
     initialValues: PropTypes.object,
     startDate: PropTypes.object,
 };
@@ -389,7 +389,7 @@ const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
         updatedScheduledEvent: state.scheduledEvent.updatedScheduledEvent,
-        error: state.scheduledEvent.updatedScheduledEvent.error,
+        scheduledEventError: state.scheduledEvent.updatedScheduledEvent.error,
         requesting: state.scheduledEvent.updatedScheduledEvent.requesting,
         updateScheduledEventModalId: state.modal.modals[0].id,
         initialValues,
