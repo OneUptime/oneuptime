@@ -8,7 +8,7 @@ export function getProbes(projectId, skip, limit) {
   limit = parseInt(limit);
 
   return function (dispatch) {
-    var promise = null;
+    let promise = null;
     if (skip >= 0 && limit >= 0) {
       promise = getApi(`statusPage/${projectId}/probes?skip=${skip}&limit=${limit}`);
     } else {

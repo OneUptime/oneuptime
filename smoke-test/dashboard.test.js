@@ -1,12 +1,11 @@
 const puppeteer = require('puppeteer');
-var should = require('should');
-var utils = require('./test-utils');
-var init = require('./test-init');
+const utils = require('./test-utils');
+const init = require('./test-init');
 
 let browser, page;
 
-let email = utils.generateRandomBusinessEmail();
-let password = '1234567890';
+const email = utils.generateRandomBusinessEmail();
+const password = '1234567890';
 const user = {
     email,
     password
@@ -29,7 +28,7 @@ describe('Monitor API', () => {
     });
 
     it('Should create new monitor with correct details', async () => {
-        let monitorName = utils.generateRandomString();
+        const monitorName = utils.generateRandomString();
         await page.waitForSelector('#monitors');
         await page.click('#monitors');
         await page.waitForSelector('#frmNewMonitor');

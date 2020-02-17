@@ -1,7 +1,7 @@
 const utils = require('./test-utils');
 const puppeteer = require('puppeteer');
 
-var page, browser;
+let page, browser;
 
 beforeAll(async () => {
     browser = await puppeteer.launch(utils.puppeteerLaunchConfig);

@@ -8,19 +8,19 @@ import { fetchMonitorStatuses } from '../actions/status';
 import { filterProbeData, getMonitorStatus } from '../config';
 
 const calculateTime = (statuses, start, range) => {
-  let timeBlock = [];
+  const timeBlock = [];
   let totalUptime = 0;
   let totalTime = 0;
 
   let dayStart = moment(start).startOf('day');
 
-  let reversedStatuses = statuses.slice().reverse();
+  const reversedStatuses = statuses.slice().reverse();
 
   for (let i = 0; i < range; i++) {
-    let dayStartIn = dayStart;
-    let dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
+    const dayStartIn = dayStart;
+    const dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
 
-    let timeObj = {
+    const timeObj = {
       date: dayStart.toISOString(),
       downTime: 0,
       upTime: 0,
@@ -34,8 +34,8 @@ const calculateTime = (statuses, start, range) => {
       }
 
       if (moment(monitorStatus.startTime).isBefore(dayEnd) && moment(monitorStatus.endTime).isAfter(dayStartIn)) {
-        let start = moment(monitorStatus.startTime).isBefore(dayStartIn) ? dayStartIn : moment(monitorStatus.startTime);
-        let end = moment(monitorStatus.endTime).isAfter(dayEnd) ? dayEnd : moment(monitorStatus.endTime);
+        const start = moment(monitorStatus.startTime).isBefore(dayStartIn) ? dayStartIn : moment(monitorStatus.startTime);
+        const end = moment(monitorStatus.endTime).isAfter(dayEnd) ? dayEnd : moment(monitorStatus.endTime);
 
         if (monitorStatus.status === 'offline') {
           timeObj.downTime = timeObj.downTime + end.diff(start, 'minutes');
@@ -104,12 +104,12 @@ class UptimeGraphs extends Component {
     const uptime = uptimePercent || uptimePercent === 0 ? uptimePercent.toString().split('.')[0] : '100';
     const upDays = timeBlock.length;
 
-    let block = [];
+    const block = [];
     for (let i = 0; i < range; i++) {
       block.unshift(<BlockChart monitorId={monitor._id} monitorName={monitor.name} time={timeBlock[i]} key={i} id={i} />);
     }
 
-    let status = {
+    const status = {
       display: 'inline-block',
       borderRadius: '2px',
       height: '8px',
@@ -124,7 +124,7 @@ class UptimeGraphs extends Component {
       status.backgroundColor = 'rgb(250, 117, 90)'; // "red-status";
     }
 
-    var subheading = {}
+    const subheading = {}
     if (colors) {
       subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;
     }

@@ -24,7 +24,7 @@ class Monitors extends Component {
         });
     }
     componentDidMount() {
-        let monitors = {};
+        const monitors = {};
         this.props.monitorIds && this.props.monitorIds.map(m => {
             if (m && m.name && m._id) {
                 monitors[m.name] = true;
@@ -34,8 +34,8 @@ class Monitors extends Component {
         this.setState(monitors);
     }
     handleSubmit = (event) => {
-        var projectId = this.props.statuspage && this.props.statuspage.projectId && this.props.statuspage.projectId._id;
-        var statusPageId = this.props.statuspage._id;
+        const projectId = this.props.statuspage && this.props.statuspage.projectId && this.props.statuspage.projectId._id;
+        const statusPageId = this.props.statuspage._id;
        if (this.state) {
             let monitors = Object.keys(this.state).filter(key => this.state[key]);
             monitors = monitors.map(monitor => this.props.monitorIds.find(el => el.name === monitor));

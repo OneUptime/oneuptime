@@ -21,9 +21,9 @@ class Call extends Component {
     }
     handleSubmit = (event) => {
         if (this.state.phone_number && this.state.phone_number.length) {
-            let validnumber = this.validation(this.state.phone_number);
+            const validnumber = this.validation(this.state.phone_number);
             if (validnumber) {
-                var values = this.state;
+                const values = this.state;
                 values.method = 'sms';
                 this.props.userData(values);
             }
@@ -37,7 +37,7 @@ class Call extends Component {
         event.preventDefault();
     }
     validation = (phone) => {
-        let numbers = /^[0-9]+$/;
+        const numbers = /^[0-9]+$/;
         if (phone.match(numbers)) {
             return true;
         }
