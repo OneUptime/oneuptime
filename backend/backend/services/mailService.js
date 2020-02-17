@@ -158,16 +158,7 @@ module.exports = {
                 });
                 return;
             }
-            if(!EMAIL_ENABLED){
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.'
-                });
-                return;
-            }
+            
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -615,14 +606,23 @@ module.exports = {
                     userName: addedByUser.name
                 }
             };
-
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Success'
             });
             return info;
         } catch (error) {

@@ -3,33 +3,35 @@
 # https://github.com/haraka/Haraka/blob/master/Dockerfile 
 ##
 
+FROM node:10-alpine
 
-# NOTICE: This is user-contributed and not officially supported by the Haraka team. Use at your own risk.
-#
-# This file describes how to build Haraka into a runnable linux container with all dependencies installed
-# To build:
-# 1.) Install docker (http://docker.io)
-# 2.) Clone Haraka repo if you haven't already: git clone https://github.com/haraka/Haraka.git
-# 3.) Modify config/host_list with the domain(s) that you'd like to receive mail to
-# 4.) Build: cd Haraka && docker build .
-# 5.) Run:
-# docker run -d <imageid>
-#
-# VERSION           0.1
-# DOCKER-VERSION    0.5.3
+#set language enviroments
+ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
+    TIMEZONE="Asia/Shanghai" \
+    PORT=25 \
+    LOGLEVEL=warn \
+    DATADIR=/data \
+    DOMAIN="fyipe.com" \
+    HEADER="Haraka Server" 
 
-# See http://phusion.github.io/baseimage-docker/
+# install software
+COPY run.sh /
 
-FROM node:10
+# install dependence
+RUN apk upgrade --update && \
+    apk add --no-cache -t .fetch-deps \
+    autoconf \
+    g++ \
+    gcc \
+    make \
+    python && \
+    addgroup -g 88 -S smtp && \
+    adduser -u 88 -D -S -G smtp -h /data smtp && \
+#install haraka
+    npm install -g --unsafe-perm Haraka toobusy-js && \
+#  # Cleaning up
+    apk del --purge -r .fetch-deps && \
+    apk add --no-cache tzdata openssl execline ca-certificates && \
+    rm -rf /var/cache/apk/* /tmp/* ~/.pearrc && chmod 755 /run.sh
 
-ENV HOME /root
-
-RUN npm install -g Haraka --unsafe
-RUN haraka -i /
-ADD ./config/host_list /config/host_list
-RUN npm install
-
-EXPOSE 25
-
-# Start the init daemon - runit will launch the Haraka process
-CMD ["haraka -c /"]
+CMD ["/run.sh"]
