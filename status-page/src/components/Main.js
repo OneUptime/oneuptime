@@ -60,7 +60,9 @@ class Main extends Component {
 
 	componentDidUpdate(prevProps) {
 		if (prevProps.probes !== this.props.probes) {
-			clearTimeout(this.state.nowHandler);
+			if (this.state.nowHandler) {
+				clearTimeout(this.state.nowHandler);
+			}
 
 			this.setLastAlive();
 		}
@@ -101,7 +103,9 @@ class Main extends Component {
 					window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
 				}
 			}
-		})
+		});
+
+		this.setLastAlive();
 	}
 
 	groupBy(collection, property) {
@@ -163,6 +167,12 @@ class Main extends Component {
 		} else if (error === 'Project Not present') {
 			return 'Invalid Project.';
 		} else return error;
+	}
+
+	componentWillUnmount() {
+		if (this.state.nowHandler) {
+			clearTimeout(this.state.nowHandler);
+		}
 	}
 
 	render() {

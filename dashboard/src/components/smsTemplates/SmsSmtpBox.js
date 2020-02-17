@@ -173,7 +173,7 @@ export class SmsSmtpBox extends Component {
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223136027-Auth-Tokens-and-How-to-Change-Them" target="_blank" rel="noopener noreferrer">Auth Tokenfor your Twilio Account.</a>
+                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223136027-Auth-Tokens-and-How-to-Change-Them" target="_blank" rel="noopener noreferrer">Auth Token for your Twilio Account.</a>
                                                                         </span></p>
                                                                     </div>
                                                                 </div>
