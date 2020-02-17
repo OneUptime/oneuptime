@@ -104,9 +104,9 @@ describe('Audit Logs API', function() {
         });
     });
 
-    it('should reject allAuditLogs request of an unauthenticated user', function(done) {
+    it('should reject get audit logs request of an unauthenticated user', function(done) {
         request
-            .get('/audit-logs/allAuditLogs')
+            .get('/audit-logs')
             .send()
             .end(function(err, res) {
                 expect(res).to.have.status(401);
@@ -114,11 +114,11 @@ describe('Audit Logs API', function() {
             });
     });
 
-    it('should reject allAuditLogs request of NON master-admin user', function(done) {
+    it('should reject get audit logs request of NON master-admin user', function(done) {
         var authorization = `Basic ${token}`;
 
         request
-            .get('/audit-logs/allAuditLogs')
+            .get('/audit-logs/')
             .set('Authorization', authorization)
             .send()
             .end(function(err, res) {
@@ -127,12 +127,12 @@ describe('Audit Logs API', function() {
             });
     });
 
-    it('should send allAuditLogs data for master-admin user', async function() {
+    it('should send get audit logs data for master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         var authorization = `Basic ${token}`;
 
         const res = await request
-            .get('/audit-logs/allAuditLogs')
+            .get('/audit-logs/')
             .set('Authorization', authorization)
             .send();
 
@@ -154,7 +154,7 @@ describe('Audit Logs API', function() {
         await request.get('/version');
 
         const res = await request
-            .get('/audit-logs/allAuditLogs')
+            .get('/audit-logs/')
             .query({ limit: 2 })
             .set('Authorization', authorization)
             .send();
@@ -180,7 +180,7 @@ describe('Audit Logs API', function() {
         const noOfAuditLogsNow = await AuditLogsService.countBy({});
 
         const res = await request
-            .get('/audit-logs/allAuditLogs')
+            .get('/audit-logs/')
             .query({ skip: noOfAuditLogsNow - 2 })
             .set('Authorization', authorization)
             .send();

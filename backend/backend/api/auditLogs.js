@@ -14,7 +14,7 @@ var isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 var sendListResponse = require('../middlewares/response').sendListResponse;
 
-router.get('/allAuditLogs', getUser, isUserMasterAdmin, async function(
+router.get('/', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
