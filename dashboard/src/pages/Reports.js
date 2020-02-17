@@ -8,7 +8,7 @@ import Members from '../components/reports/Members';
 import Monitors from '../components/reports/Monitors';
 import Incidents from '../components/reports/Incidents';
 import ResolveTime from '../components/reports/ResolveTime';
-import Select from 'react-select-fyipe';
+import Select from '../components/basic/react-select-fyipe';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 

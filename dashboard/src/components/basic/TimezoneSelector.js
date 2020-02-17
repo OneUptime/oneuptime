@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types'
-import Select from 'react-select-fyipe';
+import Select from './react-select-fyipe';
 import { Zones } from './TimezoneArray';
 
 let errorStyle = {

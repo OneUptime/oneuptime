@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { getMonitorLogs } from '../../actions/monitor';
 import MonitorLogsList from '../monitor/MonitorLogsList';
 import DateTimeRangeWrapper from './DateTimeRangeWrapper';
-import Select from 'react-select-fyipe';
+import Select from '../../components/basic/react-select-fyipe';
 import ShouldRender from '../../components/basic/ShouldRender';
 import TimeRangeSelector from '../../components/basic/TimeRangeSelector';
 
