@@ -1,13 +1,12 @@
 const puppeteer = require('puppeteer');
-var should = require('should');
-var utils = require('./test-utils');
-var init = require('./test-init');
+const utils = require('./test-utils');
+const init = require('./test-init');
 
 let browser;
 let page;
 
-let email = utils.generateRandomBusinessEmail();
-let password = '1234567890';
+const email = utils.generateRandomBusinessEmail();
+const password = '1234567890';
 const user = {
     email,
     password
@@ -30,8 +29,8 @@ describe('Login API', () => {
         await init.registerUser(user, page);
         await init.loginUser(user, page);
 
-        var localStorageData = await page.evaluate(() => {
-            let json = {};
+        const localStorageData = await page.evaluate(() => {
+            const json = {};
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 json[key] = localStorage.getItem(key);

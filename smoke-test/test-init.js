@@ -1,4 +1,4 @@
-var utils = require('./test-utils');
+const utils = require('./test-utils');
 
 module.exports = {
     /**
@@ -64,7 +64,7 @@ module.exports = {
         await page.type('input[name=state]', utils.user.address.state);
         await page.click('input[name=zipCode]');
         await page.type('input[name=zipCode]', utils.user.address.zipcode);
-        await page.select('#country', 'India')
+        await page.select('#country', 'India');
         await page.click('button[type=submit]');
         await page.waitFor(25000);
     },
@@ -82,9 +82,9 @@ module.exports = {
     selectByText: async function (selector, text, page) {
         await page.click(selector);
         await page.keyboard.type(text);
-        let noOption = await page.$('div.css-1gl4k7y');
+        const noOption = await page.$('div.css-1gl4k7y');
         if (!noOption) {
             await page.keyboard.type(String.fromCharCode(13));
         }
     },
-}
+};
