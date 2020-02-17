@@ -282,10 +282,10 @@ export default (state = INITIAL_STATE, action) => {
 
                                 if (monitorProbes.includes(data.probeId) || !data.probeId) {
                                     monitor.statuses = monitor.statuses.map(probeStatuses => {
-                                        let probeId = probeStatuses._id;
+                                        const probeId = probeStatuses._id;
 
                                         if (probeId === data.probeId || !data.probeId) {
-                                            let previousStatus = probeStatuses.statuses[0];
+                                            const previousStatus = probeStatuses.statuses[0];
                                             previousStatus.endTime = new Date().toISOString();
 
                                             return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
@@ -296,7 +296,7 @@ export default (state = INITIAL_STATE, action) => {
 
                                     if (isValidProbe && !probes.every(probe => monitorProbes.includes(probe._id))) {
                                         // add manual status to all new probes
-                                        let newProbeStatuses = [];
+                                        const newProbeStatuses = [];
 
                                         probes.forEach(probe => {
                                             if (!monitorProbes.includes(probe._id)) {

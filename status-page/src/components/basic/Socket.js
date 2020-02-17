@@ -35,7 +35,7 @@ class SocketApp extends Component {
   }
 
   render() {
-    var thisObj = this;
+    const thisObj = this;
 
     if (this.props.project) {
       socket.on(`updateStatusPage-${this.props.project._id}`, function (data) {
@@ -70,12 +70,12 @@ SocketApp.propTypes = {
   ])
 };
 
-let mapStateToProps = state => ({
+const mapStateToProps = state => ({
   project: state.status.statusPage.projectId,
   probes: state.probe.probes
 });
 
-let mapDispatchToProps = dispatch => (
+const mapDispatchToProps = dispatch => (
   bindActionCreators({
     updatestatuspagebysocket,
     updatemonitorbysocket,
