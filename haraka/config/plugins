@@ -1,0 +1,71 @@
+# This file lists plugins that Haraka will run
+#
+# Plugin ordering often matters, run 'haraka -o -c /path/to/haraka/config'
+# to see the order plugins (and their hooks) will run in.
+#
+# To see a list of all plugins, run 'haraka -l'
+#
+# To see the help docs for a particular plugin, run 'haraka -h plugin.name'
+
+#status
+#process_title
+# Log to syslog (see 'haraka -h syslog')
+# syslog
+
+# CONNECT
+#toobusy
+#karma
+#relay
+# control which IPs, rDNS hostnames, HELO hostnames, MAIL FROM addresses, and
+# RCPT TO address you accept mail from. See 'haraka -h access'.
+# access
+# p0f
+# geoip
+# asn
+# fcrdns
+# block mails from known bad hosts (see config/dnsbl.zones for the DNS zones queried)
+dnsbl
+
+# HELO
+#early_talker
+# see config/helo.checks.ini for configuration
+helo.checks
+# see 'haraka -h tls' for config instructions before enabling!
+# tls
+#
+# AUTH plugins require TLS before AUTH is advertised, see
+#     https://github.com/haraka/Haraka/wiki/Require-SSL-TLS
+# auth/flat_file
+# auth/auth_proxy
+# auth/auth_ldap
+
+# MAIL FROM
+# Only accept mail where the MAIL FROM domain is resolvable to an MX record
+mail_from.is_resolvable
+#spf
+
+# RCPT TO
+# At least one rcpt_to plugin is REQUIRED for inbound email. The simplest
+# plugin is in_host_list, see 'haraka -h rcpt_to.in_host_list' to configure.
+rcpt_to.in_host_list
+#qmail-deliverable
+#rcpt_to.ldap
+#rcpt_to.routes
+
+# DATA
+#bounce
+# Check mail headers are valid
+data.headers
+#data.uribl
+#attachment
+#clamd
+#spamassassin
+#dkim_sign
+#limit
+
+# QUEUE
+# queues: discard  qmail-queue  quarantine  smtp_forward  smtp_proxy
+# Queue mail via smtp - see config/smtp_forward.ini for where your mail goes
+queue/smtp_forward
+
+#watch

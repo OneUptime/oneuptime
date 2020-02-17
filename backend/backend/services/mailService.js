@@ -8,7 +8,7 @@ const defaultEmailTemplates = require('../config/emailTemplate');
 const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
 const { ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST } = process.env;
-
+const EMAIL_ENABLED = !!process.env["EMAIL_ENABLED"]
 const options = {
     viewEngine: {
         extname: '.hbs',
@@ -99,6 +99,18 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
+
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
+
             const info = await mailer.sendMail(mailOptions);
 
             await EmailStatusService.create({
@@ -136,6 +148,26 @@ module.exports = {
                     name: name.split(' ')[0].toString()
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -170,6 +202,16 @@ module.exports = {
                     text: JSON.stringify(lead, null, 2)
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -205,6 +247,16 @@ module.exports = {
                     name: name.split(' ')[0].toString()
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -244,6 +296,16 @@ module.exports = {
                     subject: 'Thank you for your demo request.',
                     template: 'request_demo_body',
                 };
+                if(!EMAIL_ENABLED){
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.'
+                    });
+                    return;
+                }
                 const info = await mailer.sendMail(mailOptions);
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -304,6 +366,16 @@ module.exports = {
                             link: link
                         }
                     };
+                    if(!EMAIL_ENABLED){
+                        await EmailStatusService.create({
+                            from: mailOptions.from,
+                            to: mailOptions.to,
+                            subject: mailOptions.subject,
+                            template: mailOptions.template,
+                            status: 'Email not enabled.'
+                        });
+                        return;
+                    }
                     const info = await mailer.sendMail(mailOptions);
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -349,6 +421,16 @@ module.exports = {
                     forgotPasswordURL
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -389,6 +471,16 @@ module.exports = {
                     accountsURL: ACCOUNTS_HOST
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -430,6 +522,16 @@ module.exports = {
                     registerUrl
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -467,6 +569,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -541,7 +653,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -579,7 +700,16 @@ module.exports = {
                     accountsURL: ACCOUNTS_HOST
                 }
             };
-
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -618,6 +748,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -655,6 +795,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -692,6 +842,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -747,7 +907,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -805,6 +974,16 @@ module.exports = {
                     body: template
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await privateMailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -861,6 +1040,16 @@ module.exports = {
                     body: template
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await privateMailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -918,6 +1107,16 @@ module.exports = {
                     body: template
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await privateMailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -953,6 +1152,16 @@ module.exports = {
                     homeURL: HOME_HOST,
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await privateMailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1004,6 +1213,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1041,6 +1260,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1077,7 +1306,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
-
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1116,6 +1354,16 @@ module.exports = {
                     email: email
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1154,6 +1402,16 @@ module.exports = {
                     dashboardURL: DASHBOARD_HOST
                 }
             };
+            if(!EMAIL_ENABLED){
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.'
+                });
+                return;
+            }
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,

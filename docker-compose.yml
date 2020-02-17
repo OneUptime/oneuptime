@@ -115,6 +115,11 @@ services:
     command: ngrok http backend:3002
     depends_on:
       - backend
+
+  # haraka:
+  #   ports:
+  #     - "25:25"
+  #   build: ./haraka
   
 volumes:
   mongodata:
