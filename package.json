@@ -8,8 +8,9 @@
     "eslint": "^6.8.0",
     "eslint-plugin-jsx-a11y": "^6.2.3",
     "eslint-plugin-react": "^7.17.0",
-    "husky": "^3.1.0",
-    "lint-staged": "^9.5.0"
+    "husky": "^4.2.3",
+    "lint-staged": "^9.5.0",
+    "prettier": "^1.19.1"
   },
   "scripts": {
     "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D"
@@ -31,6 +32,10 @@
     }
   },
   "lint-staged": {
+    "./**/*.{js,jsx}": [
+      "prettier --config .prettierrc.json --write",
+      "git add"
+    ],
     "./dashboard/**/*.{js,jsx}": [
       "eslint dashboard/src -c dashboard/.eslintrc.json --ignore-path dashboard/.eslintignore",
       "git add"

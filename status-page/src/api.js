@@ -16,7 +16,7 @@ export function postApi(url, data) {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
-    var promise = new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
         axios({
             method: 'POST',
             url: `${API_URL}/${url}`,
@@ -38,7 +38,7 @@ export function getApi(url) {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
-    var promise = new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
         axios({
             method: 'GET',
             url: `${API_URL}/${url}`,

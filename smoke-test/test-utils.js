@@ -1,12 +1,12 @@
-const faker = require('faker')
+const faker = require('faker');
 
-var user = faker.helpers.createCard();
+const user = faker.helpers.createCard();
 user.email = generateRandomBusinessEmail();
 user.password = generatePassword();
 user.card = '4111111111111111';
 user.cvv = '100';
 user.expiryDate = '12/23';
-user.message = 'Test message'
+user.message = 'Test message';
 
 const puppeteerLaunchConfig = {
     headless: true,
@@ -14,7 +14,7 @@ const puppeteerLaunchConfig = {
         '--no-sandbox',
         '--disable-setuid-sandbox',
     ]
-}
+};
 
 const HOME_URL = process.env.HOME_URL || 'http://localhost:1444';
 const ACCOUNTS_URL = process.env.ACCOUNTS_URL || 'http://localhost:3003';
@@ -25,7 +25,7 @@ const APIDOCS_URL = process.env.APIDOCS_URL || 'http://localhost:1445';
 
 
 function generateRandomBusinessEmail() {
-    return Math.random().toString(36).substring(8) + '@' + Math.random().toString(24).substring(8) + '.com'
+    return Math.random().toString(36).substring(8) + '@' + Math.random().toString(24).substring(8) + '.com';
 }
 function generatePassword() {
     return Math.random().toString(36).substring(7);
@@ -45,4 +45,4 @@ module.exports = {
     puppeteerLaunchConfig,
     generateRandomString,
     generateRandomBusinessEmail
-}
+};

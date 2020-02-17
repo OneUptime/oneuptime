@@ -142,7 +142,7 @@ export const Validate = {
 export function getQueryVar(variable, url) {
     if (!url) url = window.location.href;
     variable = variable.replace(/[[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
+    const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
@@ -187,16 +187,16 @@ export const filterProbeData = (monitor, probe) => {
 export const getMonitorStatus = statuses => statuses && statuses.length > 0 ? (statuses[0].status || 'online') : 'online';
 
 export function getServiceStatus(monitorsData, probes) {
-    var monitorsLength = monitorsData.length;
-    var probesLength = probes && probes.length;
+    const monitorsLength = monitorsData.length;
+    const probesLength = probes && probes.length;
 
-    var totalServices = monitorsLength * probesLength;
-    var onlineServices = totalServices;
+    const totalServices = monitorsLength * probesLength;
+    let onlineServices = totalServices;
 
     monitorsData.forEach(monitor => {
         probes.forEach(probe => {
-            let statuses = filterProbeData(monitor, probe);
-            let monitorStatus = getMonitorStatus(statuses);
+            const statuses = filterProbeData(monitor, probe);
+            const monitorStatus = getMonitorStatus(statuses);
             if (monitorStatus === 'degraded' || monitorStatus === 'offline') {
                 onlineServices--;
             }

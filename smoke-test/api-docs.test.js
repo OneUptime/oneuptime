@@ -1,16 +1,16 @@
 const utils= require('./test-utils');
 const puppeteer = require('puppeteer');
 
-var page, browser;
+let page, browser;
 
 beforeAll(async () => {
     browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
     page = await browser.newPage();
-})
+});
 
 afterAll(async () => {
     await browser.close();
-})
+});
 
 describe('Check api-docs up', () => {
     test('should get title of api docs page', async () => {
@@ -21,5 +21,5 @@ describe('Check api-docs up', () => {
             return e.innerHTML;
         });
         expect(response).toBe('Fyipe API Documentation');
-    })
-})
+    });
+});
