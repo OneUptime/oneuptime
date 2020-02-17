@@ -60,7 +60,7 @@ class DashboardView extends Component {
         }
 
         if (this.props.monitors.length) {
-            var scriptElement = document.createElement('script');
+            const scriptElement = document.createElement('script');
             scriptElement.type = 'text/javascript';
             scriptElement.src = '/assets/js/landing.base.js';
             document.head.appendChild(scriptElement);
@@ -78,7 +78,7 @@ class DashboardView extends Component {
 
         const { subProjects, currentProject } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
-        var allMonitors = this.props.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
+        let allMonitors = this.props.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
 
         // SubProject Monitors List
         const monitors = subProjects && subProjects.map((subProject, i) => {
@@ -99,7 +99,7 @@ class DashboardView extends Component {
         });
 
         // Add Project Monitors to Monitors List
-        var projectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === currentProjectId)
+        let projectMonitor = this.props.monitor.monitorsList.monitors.find(subProjectMonitor => subProjectMonitor._id === currentProjectId)
         allMonitors = IsUserInSubProject(currentProject) ? allMonitors : allMonitors.filter(monitor => monitor.projectId !== currentProject._id || monitor.projectId._id !== currentProject._id)
         projectMonitor = projectMonitor && projectMonitor.monitors.length > 0 ? (
             <div id={`box_${currentProject.name}`} key={`box_${currentProject.name}`} className="Box-root Margin-vertical--12">
@@ -195,7 +195,7 @@ const mapDispatchToProps = (dispatch) => {
 
 const mapStateToProps = state => {
     const monitor = state.monitor;
-    var subProjects = state.subProject.subProjects.subProjects;
+    let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);

@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 
 import { IncidentList } from '../../../components/incident/IncidentList'
 
-let props = {
+const props = {
     'incidents': {
         'createdAt': '2018-06-12T03:44:32.892Z',
         'pollTime': '2018-06-12T03:44:32.892Z',
@@ -229,9 +229,9 @@ MockIncidentPagination.propTypes = {
 }
 
 
-let MockIncidentPaginationDecorated = connect(null, mapDispatchToProps)(MockIncidentPagination);
+const MockIncidentPaginationDecorated = connect(null, mapDispatchToProps)(MockIncidentPagination);
 
-let mock_getIncidents = (details)=>{
+const mock_getIncidents = (details)=>{
     const submitAction = action('getNext/getPrev');
   submitAction(details);
 }

@@ -120,7 +120,7 @@ export class EditMonitorCategoryForm extends React.Component {
 
 EditMonitorCategoryForm.displayName = 'EditMonitorCategoryForm'
 
-let UpdateMonitorCategoryForm = reduxForm({
+const UpdateMonitorCategoryForm = reduxForm({
     form: 'EditMonitorCategoryForm',
     validate
 })(EditMonitorCategoryForm);

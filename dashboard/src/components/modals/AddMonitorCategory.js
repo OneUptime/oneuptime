@@ -118,7 +118,7 @@ export class AddMonitorCategoryForm extends React.Component {
 
 AddMonitorCategoryForm.displayName = 'AddMonitorCategoryForm'
 
-let CreateAddMonitorCategoryForm = reduxForm({
+const CreateAddMonitorCategoryForm = reduxForm({
     form: 'AddMonitorCategoryForm',
     validate
 })(AddMonitorCategoryForm);

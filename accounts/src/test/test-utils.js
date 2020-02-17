@@ -1,9 +1,9 @@
-var faker = require('faker');
+const faker = require('faker');
 
-var ACCOUNTS_URL = 'http://localhost:3003';
-var DASHBOARD_URL = 'http://localhost:3000';
+const ACCOUNTS_URL = 'http://localhost:3003';
+const DASHBOARD_URL = 'http://localhost:3000';
 
-var puppeteerLaunchConfig = {
+const puppeteerLaunchConfig = {
     args: [
     '--proxy-server=',
     '--no-sandbox',
@@ -19,7 +19,7 @@ var puppeteerLaunchConfig = {
     ],
   };
 
-var user = faker.helpers.createCard();
+const user = faker.helpers.createCard();
 
 function generateWrongEmail() {
     return Math.random().toString(36).substring(8) + '@' + Math.random().toString(24).substring(8) + '.com';

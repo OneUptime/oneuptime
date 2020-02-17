@@ -111,8 +111,8 @@ export class MonitorDetail extends Component {
     }
 
     handleKeyBoard = (e) => {
-        let canNext = (this.props.monitor && this.props.monitor.count) && this.props.monitor.count > this.props.monitor.skip + this.props.monitor.limit ? true : false;
-        let canPrev = this.props.monitor && this.props.monitor.skip <= 0 ? false : true;
+        const canNext = (this.props.monitor && this.props.monitor.count) && this.props.monitor.count > this.props.monitor.skip + this.props.monitor.limit ? true : false;
+        const canPrev = this.props.monitor && this.props.monitor.skip <= 0 ? false : true;
         switch (e.key) {
             case 'ArrowRight':
                 return canNext && this.nextClicked()
@@ -257,10 +257,10 @@ export class MonitorDetail extends Component {
                     <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
                         <div className="btn-group">
                             {monitor && probes.map((location, index) => {
-                                let { logs } = filterProbeData(monitor, location, startDate, endDate);
-                                let status = getMonitorStatus(monitor.incidents, logs);
-                                let probe = probes.filter(probe => probe._id === location._id);
-                                let lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
+                                const { logs } = filterProbeData(monitor, location, startDate, endDate);
+                                const status = getMonitorStatus(monitor.incidents, logs);
+                                const probe = probes.filter(probe => probe._id === location._id);
+                                const lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
 
                                 return (
                                     <ProbeBar

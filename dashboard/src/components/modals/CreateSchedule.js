@@ -69,7 +69,8 @@ class CreateSchedule extends React.Component {
 
     render() {
         const { currentDate } = this.state;
-        let { requesting, error, minStartDate, closeModal, handleSubmit } = this.props;
+        const { requesting, error, closeModal, handleSubmit } = this.props;
+        let { minStartDate } = this.props;
         if (!minStartDate) {
             minStartDate = currentDate;
         }
@@ -345,7 +346,7 @@ CreateSchedule.propTypes = {
     minStartDate: PropTypes.object,
 };
 
-let NewCreateSchedule = reduxForm({
+const NewCreateSchedule = reduxForm({
     form: 'newCreateSchedule',
     enableReinitialize: true,
     validate,

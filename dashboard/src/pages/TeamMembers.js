@@ -95,7 +95,7 @@ const LoadedTeam = props => {
     });
 
     // Add Project TeamMembers to All TeamMembers List
-    var projectTeamMembers = team.subProjectTeamMembers.find(subProjectTeamMember => subProjectTeamMember._id === currentProjectId)
+    let projectTeamMembers = team.subProjectTeamMembers.find(subProjectTeamMember => subProjectTeamMember._id === currentProjectId)
     const projectMembers = Object.assign({},projectTeamMembers);
     projectTeamMembers = projectTeamMembers && projectTeamMembers.teamMembers ? (
         <RenderIfUserInSubProject subProjectId={currentProjectId} key={() => uuid.v4()}>
@@ -241,7 +241,7 @@ TeamApp.propTypes = {
 }
 
 const mapStateToProps = state => {
-    var subProjects = state.subProject.subProjects.subProjects;
+    let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);

@@ -44,7 +44,7 @@ const current_state = {
     }
 }
 
-let state_requesting = {
+const state_requesting = {
     ...current_state,
     monitor: {
         ...current_state.monitor,
@@ -56,7 +56,7 @@ let state_requesting = {
     }
 }
 
-let state_error = {
+const state_error = {
     ...current_state,
     monitor: {
         ...current_state.monitor,

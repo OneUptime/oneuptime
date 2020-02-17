@@ -61,7 +61,7 @@ export class InvoiceList extends Component {
                     {
                         (invoices && invoices.data) && invoices.data.length > 0  ?
                         invoices.data.map((invoice) => {
-                            var invoiceDescription;
+                            let invoiceDescription;
                             if(invoice.billing_reason === 'subscription_update'){
                                 invoiceDescription = 'Regular Plan';
                             } else {
@@ -196,8 +196,8 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = state => {
     const { invoices, nextCount } = state.invoice;
     const { has_more, total_count, count } = invoices;
-    var isRequesting = state.invoice.requesting;
-    var error = state.invoice.error;
+    const isRequesting = state.invoice.requesting;
+    const error = state.invoice.error;
     
 
     return {

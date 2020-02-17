@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest tests",
     "start": "node server.js ",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "fix-lint": "eslint . --fix"
   },
   "dependencies": {
     "mongodb": "^3.5.2"

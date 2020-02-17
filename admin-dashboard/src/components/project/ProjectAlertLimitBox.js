@@ -22,7 +22,7 @@ export class ProjectAlertLimitBox extends Component {
     handleClick = () => {
         const { renewAlertLimit, project } = this.props;
         const { alertLimit } = this.state;
-        var thisObj = this;
+        const thisObj = this;
         renewAlertLimit(project._id, alertLimit)
             .then(() => {
                 if (window.location.href.indexOf('localhost') <= -1) {

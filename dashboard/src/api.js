@@ -6,11 +6,11 @@ import {
     User
 } from './config';
 import { history } from './store';
-var baseURL = API_URL;
+const baseURL = API_URL;
 
-var Q = require('q');
+const Q = require('q');
 
-var headers = {
+const headers = {
     'Access-Control-Allow-Origin': '*',
     'Accept': 'application/json',
     'Content-Type': 'application/json;charset=UTF-8'
@@ -21,7 +21,7 @@ var headers = {
 export function postApi(url, data) {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken()
-    var deffered = Q.defer();
+    const deffered = Q.defer();
 
     axios({
         method: 'POST',
@@ -50,7 +50,7 @@ export function postApi(url, data) {
 export function getApi(url) {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken()
-    var deffered = Q.defer();
+    const deffered = Q.defer();
     axios({
         method: 'GET',
         url: `${baseURL}/${url}`,
@@ -79,7 +79,7 @@ export function getApi(url) {
 export function putApi(url, data) {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken()
-    var deffered = Q.defer();
+    const deffered = Q.defer();
     axios({
         method: 'PUT',
         url: `${baseURL}/${url}`,
@@ -108,7 +108,7 @@ export function putApi(url, data) {
 export function deleteApi(url, data) {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken()
-    var deffered = Q.defer();
+    const deffered = Q.defer();
     axios({
         method: 'DELETE',
         url: `${baseURL}/${url}`,

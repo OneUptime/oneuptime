@@ -19,9 +19,9 @@ function validate(values) {
     const alertArrayErrors = [];
 
     if (values.OnCallAlertBox) {
-        for (var i = 0; i < values.OnCallAlertBox.length; i++) {
-            var repeatErrors = {};
-            let escalationArrayErrors = [];
+        for (let i = 0; i < values.OnCallAlertBox.length; i++) {
+            const repeatErrors = {};
+            const escalationArrayErrors = [];
             if (values.OnCallAlertBox[i]) {
                 if (values.OnCallAlertBox[i].callReminders === '') {
                     repeatErrors.callReminders = 'Please enter how many reminders to send';
@@ -227,7 +227,7 @@ const mapStateToProps = (state, props) => {
     const { scheduleId } = props.match.params;
     const { subProjectId } = props.match.params;
 
-    let OnCallAlertBox = escalations && escalations.length > 0 ? escalations : [
+    const OnCallAlertBox = escalations && escalations.length > 0 ? escalations : [
         {
             callReminders: '3',
             smsReminders: '3',
@@ -259,7 +259,7 @@ const mapStateToProps = (state, props) => {
     };
 }
 
-let OnCallAlertForm = reduxForm({
+const OnCallAlertForm = reduxForm({
     form: 'OnCallAlertBox', // a unique identifier for this form
     validate,// <--- validation function given to redux-for
     enableReinitialize: true

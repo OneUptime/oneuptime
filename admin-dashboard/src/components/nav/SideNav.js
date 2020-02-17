@@ -90,11 +90,11 @@ class SideNav extends Component {
 
 SideNav.displayName = 'SideNav';
 
-let mapStateToProps = function (state_Ignored) {
+const mapStateToProps = function (state_Ignored) {
 	return { };
 }
 
-let mapDispatchToProps = function (dispatch) {
+const mapDispatchToProps = function (dispatch) {
 	return bindActionCreators(
 		{
 			openModal, closeModal

@@ -3,7 +3,7 @@ import { storiesOf,action } from '@storybook/react';
 import { CreateProjectModal } from '../../../components/project/CreateProjectModal'
 import { withKnobs, boolean } from '@storybook/addon-knobs';
 
-let props  = {
+const props  = {
     'match': {
         'path': '/project/:projectId/monitoring',
         'url': '/project/5b1f39482a62c8611d23c953/monitoring',

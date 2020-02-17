@@ -171,7 +171,7 @@ export class FormModal extends Component {
 
 FormModal.displayName = 'InviteMemberFormModal'
 
-let InviteTeamMemberForm = reduxForm({
+const InviteTeamMemberForm = reduxForm({
 	form: 'InviteTeamMember', // a unique identifier for this form
 })(FormModal);
 

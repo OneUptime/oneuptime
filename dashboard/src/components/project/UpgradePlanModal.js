@@ -70,7 +70,7 @@ export class UpgradePlanModal extends Component {
 // }
 
 const mapStateToProps = state => {
-    let planId = state.project.currentProject ? state.project.currentProject.stripePlanId : '';
+    const planId = state.project.currentProject ? state.project.currentProject.stripePlanId : '';
     return {
         initialValues: { planId },
         visible: state.project.showUpgradeForm,

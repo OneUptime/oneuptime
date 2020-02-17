@@ -6,7 +6,7 @@ import { User } from '../../config';
 // params 1: props
 // returns JSX.Element or NULL
 export default function IsAdminSubProject (subProject) {
-    var userId = User.getUserId();
+    const userId = User.getUserId();
     return (
         [null, undefined].every(i => i !== userId) && 
         [null, undefined].every(i => i !== subProject) &&

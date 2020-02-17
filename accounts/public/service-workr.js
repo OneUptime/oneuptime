@@ -1,7 +1,7 @@
 'use strict';
 
-var cacheName = 'Fyipe-Dashboard';
-var filesToCache = [
+const cacheName = 'Fyipe-Dashboard';
+const filesToCache = [
   '/',
   '/assets/css/dashboard.css',
   '/assets/css/newdashboard.css',

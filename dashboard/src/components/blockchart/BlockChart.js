@@ -9,7 +9,7 @@ class BlockChart extends Component {
       let title1 = null;
       if(this.props.time && (this.props.time.downTime || this.props.time.upTime || this.props.time.degradedTime )){
         if(this.props.time.downTime){
-            var downtime = `${this.props.time.downTime} minutes`;
+            let downtime = `${this.props.time.downTime} minutes`;
             if(this.props.time.downTime > 60){
                 downtime = `${Math.floor(this.props.time.downTime / 60)} hrs ${this.props.time.downTime % 60} minutes`;
                 }
@@ -18,7 +18,7 @@ class BlockChart extends Component {
             title1 = `<br>down for ${downtime} minutes`;
           }
           else if(this.props.time.degradedTime) {
-            var degradedtime = `${this.props.time.degradedTime} minutes`;
+            let degradedtime = `${this.props.time.degradedTime} minutes`;
             if(this.props.time.degradedTime > 60){
                 degradedtime = `${Math.floor(this.props.time.degradedTime / 60)} hrs ${this.props.time.degradedTime % 60} minutes`;
                 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { storiesOf, action } from '@storybook/react';
 import EditWebhook from '../../../components/modals/EditWebhook';
-let props = {
+const props = {
     'currentProject': {
         'users': [{
             'userId': '5b1c0c29cb06cc23b132db07',

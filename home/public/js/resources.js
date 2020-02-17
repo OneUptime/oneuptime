@@ -12,7 +12,7 @@
     
     function e(n, e) {
         if (n.hasClass('is-visible')) {
-            var a = $('.shown', n)
+            const a = $('.shown', n)
                 .eq(e);
             a.attr('class', 'hidden'), setTimeout(function () {
                 a.attr('class', 'shown')
@@ -26,7 +26,7 @@
                     if (e.isIntersecting || e.intersectionRatio > 0) {
                         $(a)
                             .addClass('is-visible');
-                        for (var t = $('.hidden', a)
+                        for (let t = $('.hidden', a)
                                 .length; t >= 0; t--) n(a, t)
                     } else $(a)
                         .removeClass('is-visible')
@@ -35,11 +35,11 @@
             else {
                 $(a)
                     .addClass('is-visible');
-                for (var t = $('.hidden', a)
+                for (let t = $('.hidden', a)
                         .length; t >= 0; t--) n(a, t)
             }
         }), setInterval(function () {
-            var n = $('.card')
+            let n = $('.card')
                 .eq(Math.floor(Math.random() * $('.card')
                     .length));
             e(n, Math.floor(Math.random() * $('.shown', n)

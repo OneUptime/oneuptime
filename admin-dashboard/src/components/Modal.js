@@ -18,7 +18,7 @@ const composableComponent = (ComposedComponent) => {
             }
         }
         onConfirm = (value)=> {
-            var _this = this;
+            const _this = this;
             if (this.props.item.onConfirm) {
                 this.props.item.onConfirm(value)
                 .then(() => _this.props.onClose(_this.props.item),

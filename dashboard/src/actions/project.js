@@ -87,7 +87,7 @@ export const resetProjects = () => {
 
 export function getProjects(switchToProjectId) {
 	return function (dispatch) {
-		var promise = getApi('project/projects', null);
+		const promise = getApi('project/projects', null);
 		dispatch(projectsRequest(promise));
 
 		promise.then(function (projects) {
@@ -96,7 +96,7 @@ export function getProjects(switchToProjectId) {
 
 			if (projects.length > 0 && !switchToProjectId) {
 				if(User.getCurrentProjectId()) {
-					let project = projects.filter(project => project._id === User.getCurrentProjectId())
+					const project = projects.filter(project => project._id === User.getCurrentProjectId())
 					dispatch(switchProject(dispatch, project[0]));
 				} else {
 					dispatch(switchProject(dispatch, projects[0]));
@@ -113,7 +113,7 @@ export function getProjects(switchToProjectId) {
 					}
 				}
 				if(User.getCurrentProjectId() && !projectSwitched) {
-					let project = projects.filter(project => project._id === User.getCurrentProjectId());
+					const project = projects.filter(project => project._id === User.getCurrentProjectId());
 					dispatch(switchProject(dispatch, project[0]));
 					projectSwitched = true;
 				}
@@ -170,7 +170,7 @@ export const resetCreateProject = () => {
 export function createProject(values) {
 	return function (dispatch) {
 
-		var promise = postApi('project/create', values);
+		const promise = postApi('project/create', values);
 
 		dispatch(createProjectRequest());
 
@@ -288,7 +288,7 @@ export function resetProjectToken(projectId) {
 
 	return function (dispatch) {
 
-		var promise = getApi(`project/${projectId}/resetToken`);
+		const promise = getApi(`project/${projectId}/resetToken`);
 
 		dispatch(resetProjectTokenRequest());
 
@@ -348,7 +348,7 @@ export function renameProject(projectId, projectName) {
 
 	return function (dispatch) {
 
-		var promise = putApi(`project/${projectId}/renameProject`, { projectName });
+		const promise = putApi(`project/${projectId}/renameProject`, { projectName });
 
 		dispatch(renameProjectRequest());
 
@@ -402,7 +402,7 @@ export function deleteProject(projectId, feedback) {
 
 	return function (dispatch) {
 
-		var promise = deleteApi(`project/${projectId}/deleteProject`, { projectId, feedback });
+		const promise = deleteApi(`project/${projectId}/deleteProject`, { projectId, feedback });
 
 		dispatch(deleteProjectRequest());
 
@@ -464,7 +464,7 @@ export function changePlan(projectId, planId, projectName, oldPlan, newPlan) {
 
 	return function (dispatch) {
 
-		var promise = postApi(`project/${projectId}/changePlan`, { projectName, planId, oldPlan, newPlan });
+		const promise = postApi(`project/${projectId}/changePlan`, { projectName, planId, oldPlan, newPlan });
 
 		dispatch(changePlanRequest());
 
@@ -498,7 +498,7 @@ export function upgradeToEnterpriseMail(projectId, projectName, oldPlan) {
 
 	return function (dispatch) {
 
-		var promise = postApi(`project/${projectId}/upgradeToEnterprise`, { projectName, oldPlan });
+		const promise = postApi(`project/${projectId}/upgradeToEnterprise`, { projectName, oldPlan });
 
 		dispatch(changePlanRequest());
 
@@ -554,7 +554,7 @@ export function exitProjectError(error) {
 export function exitProject(projectId, userId) {
 	return function (dispatch) {
 
-		var promise = deleteApi(`project/${projectId}/user/${userId}/exitProject`, null);
+		const promise = deleteApi(`project/${projectId}/user/${userId}/exitProject`, null);
 		dispatch(exitProjectRequest());
 
 		promise.then(function () {
@@ -611,7 +611,7 @@ export function markProjectForDelete(projectId, feedback) {
 
 	return function (dispatch) {
 
-		var promise = deleteApi(`project/${projectId}/deleteProject`, { projectId, feedback });
+		const promise = deleteApi(`project/${projectId}/deleteProject`, { projectId, feedback });
 
 		dispatch(markProjectForDeleteRequest());
 
@@ -662,7 +662,7 @@ export function alertOptionsUpdate(projectId, alertData) {
 
 	return function (dispatch) {
 
-		var promise = putApi(`project/${projectId}/alertOptions`, alertData);
+		const promise = putApi(`project/${projectId}/alertOptions`, alertData);
 
 		dispatch(alertOptionsUpdateRequest());
 
@@ -711,7 +711,7 @@ export function addBalance(projectId, data) {
 
 	return function (dispatch) {
 
-		var promise = postApi(`stripe/${projectId}/addBalance`, data);
+		const promise = postApi(`stripe/${projectId}/addBalance`, data);
 
 		dispatch(addBalanceRequest());
 
@@ -759,7 +759,7 @@ export function checkCardSuccess(card) {
 export function checkCard(data) {
 
 	return function (dispatch) {
-		var promise = postApi('stripe/checkCard', data)
+		const promise = postApi('stripe/checkCard', data)
 
 		dispatch(checkCardRequest(promise));
 

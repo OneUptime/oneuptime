@@ -35,7 +35,7 @@ export function fetchAlert(projectId) {
 
     return function (dispatch) {
 
-        var promise = getApi(`alert/${projectId}`);
+        const promise = getApi(`alert/${projectId}`);
 
         dispatch(alertRequest());
 
@@ -95,7 +95,7 @@ export function fetchProjectAlert(projectId, skip, limit) {
 
     return function (dispatch) {
 
-        var promise = getApi(`alert/${projectId}/alert?skip=${skip}&limit=${limit}`);
+        const promise = getApi(`alert/${projectId}/alert?skip=${skip}&limit=${limit}`);
 
         dispatch(projectAlertRequest());
 
@@ -160,7 +160,7 @@ export function fetchIncidentAlert(projectId,incidentId,skip,limit) {
 
     return function (dispatch) {
 
-        var promise = getApi(`alert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`);
+        const promise = getApi(`alert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`);
 
         dispatch(incidentAlertRequest());
 
@@ -225,8 +225,9 @@ export function fetchSubscriberAlert(projectId, incidentId, skip, limit) {
     return function (dispatch) {
         skip = skip < 0 ? 0 : skip;
         limit = limit < 0 ? 0 : limit;
+        let promise = null;
         if(skip >= 0 && limit >= 0){
-            var promise = getApi(`subscriberAlert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`);
+            promise = getApi(`subscriberAlert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`);
         }else{
             promise = getApi(`subscriberAlert/${projectId}/incident/${incidentId}`);
         }
@@ -278,7 +279,7 @@ export function fetchAlertChargesSuccess(alertCharges) {
 }
 
 export function fetchAlertCharges(projectId, skip, limit) {
-    var promise;
+    let promise;
     return function (dispatch) {
         if (skip >=0 && limit > 0) {
             promise = getApi(`alert/${projectId}/alert/charges?skip=${skip}&limit=${limit}`)
@@ -334,7 +335,7 @@ export function downloadAlertCharges(projectId) {
 
     return function (dispatch) {
         
-        var promise = getApi(`alert/${projectId}/alert/charges`);
+        const promise = getApi(`alert/${projectId}/alert/charges`);
 
         dispatch(downloadAlertChargesRequest(promise));
 

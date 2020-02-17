@@ -12,7 +12,7 @@ export default function UpgradePlanFields(props) {
     const list = [];
     const plans = PricingPlan.getPlans();
 
-    let reducedPlans = plans.reduce((filtered, plan, index) => {
+    const reducedPlans = plans.reduce((filtered, plan, index) => {
         if (currentProject.stripePlanId === plan.planId) {
             for (let i = 0; i < plans.length; i++) {
                 if (i > index && plans[index].category !== plans[i].category) {

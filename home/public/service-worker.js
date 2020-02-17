@@ -1,7 +1,7 @@
 'use strict';
 
-var cacheName = 'Fyipe-home';
-var filesToCache = [
+const cacheName = 'Fyipe-home';
+const filesToCache = [
   '/',
   '/pricing',
   '/support',

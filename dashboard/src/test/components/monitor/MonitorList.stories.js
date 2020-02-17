@@ -201,7 +201,7 @@ const current_state_1 = {
     }
 }
 
-let state_requesting_error = {
+const state_requesting_error = {
     ...current_state_1,
     monitor: {
         ...current_state_1.monitor,

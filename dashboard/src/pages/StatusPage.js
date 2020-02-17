@@ -32,8 +32,8 @@ class StatusPage extends Component {
             if (this.props.statusPage.subProjectStatusPages && this.props.statusPage.subProjectStatusPages.length > 0) {
                 const { subProjectStatusPages } = this.props.statusPage;
                 subProjectStatusPages.forEach(subProject => {
-                    let statusPages = subProject.statusPages;
-                    var statusPage = statusPages.find(page => page._id === statusPageId);
+                    const statusPages = subProject.statusPages;
+                    const statusPage = statusPages.find(page => page._id === statusPageId);
                     if (statusPage) {
                         this.props.switchStatusPage(statusPage);
                     }

@@ -13,8 +13,8 @@ class About extends Component {
     }
 
     render() {
-        let { versions } = this.props;
-        let currentYear = new Date().getFullYear();
+        const { versions } = this.props;
+        const currentYear = new Date().getFullYear();
 
         return (
             <div onKeyDown={this.handleKeyBoard} className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

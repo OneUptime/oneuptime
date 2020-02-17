@@ -1,7 +1,7 @@
 const axios = require('axios');
 const config = require('./config');
 
-var headers = {
+const headers = {
     'Access-Control-Allow-Origin': '*',
     'Accept': 'application/json',
     'Content-Type': 'application/json;charset=UTF-8',

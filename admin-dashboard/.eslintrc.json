@@ -94,6 +94,11 @@
         "no-mixed-operators": "error",
         "no-useless-constructor": "error",
         "no-duplicate-case": "error",
-        "no-dupe-keys": "error"
+        "no-dupe-keys": "error",
+        "prefer-const": ["error", {
+            "destructuring": "any",
+            "ignoreReadBeforeAssign": false
+        }],
+        "no-var": "error"
     }
 }

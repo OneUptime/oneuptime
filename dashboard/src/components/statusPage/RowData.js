@@ -7,7 +7,7 @@ export class RowData extends Component {
 
     render() {
         const { statusPage, projectId, subProjectId } = this.props
-        let monitorIds = statusPage.monitorIds;
+        const monitorIds = statusPage.monitorIds;
         const gt = i => monitorIds && monitorIds.length > i;
         let monitors = gt(0) ? monitorIds[0].name : 'Not Yet Added';
         monitors += gt(1) ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}` : '';

@@ -4,7 +4,6 @@
   "private": true,
   "main": "server.js",
   "scripts": {
-    "pretest": "eslint --fix --ignore-path .gitignore .",
     "start": "node server.js",
     "dev": "cross-env NODE_ENV=development nodemon server.js",
     "audit": "npm-audit-ci-wrapper --threshold=high",

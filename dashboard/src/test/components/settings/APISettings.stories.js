@@ -5,13 +5,13 @@ import { APISettings } from '../../../components/settings/APISettings'
 import { MockCurrentProject} from '../../ReduxStore_Mock'
 
 localStorage.setItem('id', '5b1c0c29cb06cc23b132db07')
-let mock_resetProjectToken = (projectid)=>{
+const mock_resetProjectToken = (projectid)=>{
     const submitAction = action('resetProjectToken');
   submitAction(projectid);
 }
 
 
-let props = {
+const props = {
     currentProject:{
         '_id': '5b1f39482a62c8611d23c953',
         'users': [

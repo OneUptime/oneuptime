@@ -78,16 +78,18 @@ export default (state = initialState, action) => {
 			};
 
 		case TEAM_LOADING_SUCCESS:
-			var team = action.payload;
-			return {
-				...state,
-				teamLoading: {
-					error: null,
-					requesting: false,
-					success: true,
-				},
-				teamMembers: team
-			};
+			{
+				const team = action.payload;
+				return {
+					...state,
+					teamLoading: {
+						error: null,
+						requesting: false,
+						success: true,
+					},
+					teamMembers: team
+				};
+			}
 
 		case TEAM_LOADING_FAILURE:
 			return {
@@ -99,6 +101,7 @@ export default (state = initialState, action) => {
 					success: false,
 				}
 			};
+
 
 		case TEAM_SUBPROJECT_LOADING_REQUEST:
 			return {
@@ -112,17 +115,19 @@ export default (state = initialState, action) => {
 			};
 
 		case TEAM_SUBPROJECT_LOADING_SUCCESS:
-			var teamMembers = action.payload;
-			return {
-				...state,
-				teamLoading: {
-					...state.teamLoading,
-					error: null,
-					requesting: false,
-					success: true,
-				},
-				subProjectTeamMembers: teamMembers
-			};
+			{
+				const teamMembers = action.payload;
+				return {
+					...state,
+					teamLoading: {
+						...state.teamLoading,
+						error: null,
+						requesting: false,
+						success: true,
+					},
+					subProjectTeamMembers: teamMembers
+				};
+			}
 
 		case TEAM_SUBPROJECT_LOADING_FAILURE:
 			return {

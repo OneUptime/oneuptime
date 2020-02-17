@@ -16,7 +16,7 @@ export class IncidentStatus extends Component {
         this.props = props;
     }
     acknowledge = () => {
-        let userId = User.getUserId();
+        const userId = User.getUserId();
         this.props.acknowledgeIncident(this.props.incident.projectId, this.props.incident._id, userId, this.props.multiple);
         if (!IS_DEV) {
             logEvent('Incident Acknowledged', {
@@ -28,7 +28,7 @@ export class IncidentStatus extends Component {
     }
 
     resolve = () => {
-        let userId = User.getUserId();
+        const userId = User.getUserId();
         this.props.resolveIncident(this.props.incident.projectId, this.props.incident._id, userId, this.props.multiple);
         if (!IS_DEV) {
             logEvent('Incident Resolved', {
@@ -46,8 +46,8 @@ export class IncidentStatus extends Component {
     render() {
         const subProject = this.props.subProjects && this.props.subProjects.filter(subProject => subProject._id === this.props.incident.projectId)[0];
         const loggedInUser = User.getUserId();
-        var isUserInProject = this.props.currentProject && this.props.currentProject.users.some(user => user.userId === loggedInUser);
-        var isUserInSubProject = false;
+        const isUserInProject = this.props.currentProject && this.props.currentProject.users.some(user => user.userId === loggedInUser);
+        let isUserInSubProject = false;
         if (isUserInProject) isUserInSubProject = true;
         else isUserInSubProject = subProject.users.some(user => user.userId === loggedInUser);
         return (

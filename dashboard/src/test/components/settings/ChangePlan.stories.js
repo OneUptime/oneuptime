@@ -7,7 +7,7 @@ import {reduxForm} from 'redux-form'
 
 localStorage.setItem('id', '5b1c0c29cb06cc23b132db07')
 
-let props = {
+const props = {
     currentProject: {
         '_id': '5b1f39482a62c8611d23c953',
         'users': [
@@ -41,7 +41,7 @@ let props = {
 }
 
 
-let props_with_default = Object.assign({},props)
+const props_with_default = Object.assign({},props)
 props_with_default.initialValues = {planId:'plan_CpIZEEfT4YFSvF'}
 
 function Validate(values) {
@@ -56,7 +56,7 @@ function Validate(values) {
 }
 
 
-let ChangePlan = new reduxForm({
+const ChangePlan = new reduxForm({
     form: 'ChangePlan',
     Validate
 })(Plans);

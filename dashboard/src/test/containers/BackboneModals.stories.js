@@ -2,7 +2,7 @@ import React from 'react';
 import { storiesOf, action } from '@storybook/react';
 import { Modals } from '../../containers/BackboneModals'
 
-let test = ()=><span>Hello in Modal Test</span>
+const test = ()=><span>Hello in Modal Test</span>
 test.displayName = 'test'
 
 storiesOf('Containers', module)

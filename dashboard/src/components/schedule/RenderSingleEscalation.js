@@ -10,7 +10,7 @@ import { RenderTeams } from './RenderTeams';
 import { RenderField } from '../basic/RenderField';
 import Tooltip from '../basic/Tooltip';
 
-let RenderSingleEscalation = ({
+const RenderSingleEscalation = ({
     policy, 
     email, 
     sms, 
@@ -341,7 +341,7 @@ let RenderSingleEscalation = ({
                                                 <button className="button-as-anchor"
                                                     onClick={() => {
                                                         //remove rotation data from the object. 
-                                                        var obj = fields.get(policyIndex);
+                                                        const obj = fields.get(policyIndex);
                                                         obj.rotationInterval = null;
                                                         obj.rotateBy = null;
                                                         obj.firstRotationOn = null;

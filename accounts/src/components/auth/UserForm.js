@@ -18,7 +18,7 @@ class UserForm extends Component {
 	}
 	
 	componentDidMount() {
-		var query = queryString.parse(this.props.location.search).status;
+		const query = queryString.parse(this.props.location.search).status;
 		if (query === 'z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk') {
 			this.setState({
 				serverResponse: 'No user found for this token'
@@ -160,8 +160,8 @@ class UserForm extends Component {
 
 UserForm.displayName = 'UserForm'
 
-let validate = function (values) {
-	let error = {};
+const validate = function (values) {
+	const error = {};
 
 	if (!Validate.text(values.name))
 		error.name = 'Name is required.';
@@ -204,7 +204,7 @@ let validate = function (values) {
 
 }
 
-let userForm = reduxForm({
+const userForm = reduxForm({
 	form: 'UserSignupForm',             // <------ same form name
 	destroyOnUnmount: false,
 	validate

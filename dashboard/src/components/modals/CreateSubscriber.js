@@ -406,7 +406,7 @@ class CreateSubscriber extends Component {
 
 CreateSubscriber.displayName = 'CreateSubscriberFormModal'
 
-let CreateSubscriberForm = reduxForm({
+const CreateSubscriberForm = reduxForm({
     form: 'CreateSubscriber', // a unique identifier for this form
     validate
 })(CreateSubscriber);

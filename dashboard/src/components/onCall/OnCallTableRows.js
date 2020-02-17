@@ -48,8 +48,8 @@ Row.propTypes = {
 
 function parseSchedule(schedule) {
     const { name, monitorIds, _id } = schedule;
-    var { escalationIds } = schedule;
-    let userIds = [];
+    const { escalationIds } = schedule;
+    const userIds = [];
     if (escalationIds && escalationIds.length) {
         for (let i = 0; i < escalationIds.length; i++) {
             if (escalationIds[i] && escalationIds[i].teamMember && escalationIds[i].teamMember.length) {
@@ -62,7 +62,7 @@ function parseSchedule(schedule) {
     const gt = i => monitorIds.length > i;
     const ut = i => userIds.length > i;
 
-    let id = _id;
+    const id = _id;
 
     let users = ut(0) ? userIds[0].name : 'Not Yet Added';
     users += ut(1) ? ` and ${userIds.length -1} other${ut(2) ? 's' : ''}` : '';
