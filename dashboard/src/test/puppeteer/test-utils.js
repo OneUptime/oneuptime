@@ -1,9 +1,9 @@
-var faker = require('faker');
+const faker = require('faker');
 
-var ACCOUNTS_URL = 'http://localhost:3003';
-var DASHBOARD_URL = 'http://localhost:3000';
+const ACCOUNTS_URL = 'http://localhost:3003';
+const DASHBOARD_URL = 'http://localhost:3000';
 
-var puppeteerLaunchConfig = {
+const puppeteerLaunchConfig = {
     args: [
         '--proxy-server=',
         '--no-sandbox',
@@ -19,9 +19,9 @@ var puppeteerLaunchConfig = {
     ],
 };
 
-var user = faker.helpers.createCard();
-var cvv = '542';
-var expiryDate = '09/2020';
+const user = faker.helpers.createCard();
+const cvv = '542';
+const expiryDate = '09/2020';
 
 
 function generateWrongEmail() {
@@ -41,21 +41,21 @@ function generateRandomBusinessEmail() {
 }
 
 
-var cardNumber = '4111111111111111';
+const cardNumber = '4111111111111111';
 
-var monitorCategoryName = 'e2e_monitor_category';
+const monitorCategoryName = 'e2e_monitor_category';
 
-var monitorName = 'e2e_monitor';
+const monitorName = 'e2e_monitor';
 
-var monitorUrl = 'https://www.test.com';
+const monitorUrl = 'https://www.test.com';
 
-var scheduledEventDescription = 'event description';
+const scheduledEventDescription = 'event description';
 
-var scheduledEventName = 'event name';
+const scheduledEventName = 'event name';
 
-var updatedScheduledEventDescription = 'event description updated';
+const updatedScheduledEventDescription = 'event description updated';
 
-var updatedScheduledEventName = 'event name updated';
+const updatedScheduledEventName = 'event name updated';
 
 module.exports = {
     ACCOUNTS_URL,

@@ -55,8 +55,8 @@ class TimeRangeSelector extends Component {
     };
 
     renderSelectionValue = () => {
-        var startTime = this.props.startDate ? this.props.startDate.format('LT') : '';
-        var endTime = this.props.endDate ? this.props.endDate.format('LT') : '';
+        const startTime = this.props.startDate ? this.props.startDate.format('LT') : '';
+        const endTime = this.props.endDate ? this.props.endDate.format('LT') : '';
         return (
             <div>
                 <div

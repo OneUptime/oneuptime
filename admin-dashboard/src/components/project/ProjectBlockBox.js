@@ -21,7 +21,7 @@ export class ProjectBlockBox extends Component {
     handleClick = () => {
         const { blockProject, project } = this.props;
         const { blockModalId } = this.state
-        var thisObj = this;
+        const thisObj = this;
         this.props.openModal({
             id: blockModalId,
             onConfirm: () => {

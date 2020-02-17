@@ -115,7 +115,7 @@ const initialState = {
         requesting: false,
         error: null
     },
-    escalationData:[],
+    escalations:[],
     pages: {
 		counter: 1
 	}
@@ -516,7 +516,7 @@ export default function schedule(state = initialState, action) {
                     success: true,
                     error: null
                 },
-                escalationData:action.payload.data,
+                escalations:action.payload.data,
             });
 
         case ESCALATION_REQUEST:

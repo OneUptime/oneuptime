@@ -123,13 +123,13 @@ DashboardApp.propTypes = {
     user: PropTypes.object.isRequired
 }
 
-let mapStateToProps = state => ({
+const mapStateToProps = state => ({
     profile: state.profileSettings,
     notification: state.notifications,
     user: state.user
 })
 
-let mapDispatchToProps = dispatch => (
+const mapDispatchToProps = dispatch => (
     bindActionCreators({
         hideProfileMenu,
         closeNotificationMenu,

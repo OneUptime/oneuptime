@@ -149,26 +149,26 @@ UserBox.propTypes = {
 
 }
 
-let AddUsersForm = new reduxForm({
+const AddUsersForm = new reduxForm({
     form: 'AddUsersForm',
     enableReinitialize: true
 })(UserBox);
 
-let mapStateToProps = (state, props) => {
+const mapStateToProps = (state, props) => {
     const initialValues = {};
     const schedules = state.schedule.schedules.data;
-    const users = state.team.teamMembers.filter(user => user.name && user.name !== '') || [];
+    const users = state.teams.teamMembers.filter(user => user.name && user.name !== '') || [];
     const { projectId } = props.match.params;
-    const isRequesting = state.team.teamLoading.requesting;
+    const isRequesting = state.teams.teamLoading.requesting;
     const addUserRequesting = state.schedule.addUser.requesting;
     const currentProject = state.project.currentProject;
     if (schedules.length > 0 && users.length > 0) {
 
-        let schedule = schedules.find(
+        const schedule = schedules.find(
             ({ _id }) => _id === props.match.params.scheduleId
         );
 
-        let scheduleUserIds = schedule.userIds.map(({ _id }) => _id);
+        const scheduleUserIds = schedule.userIds.map(({ _id }) => _id);
 
         users.forEach(({ userId }) => {
             initialValues[userId] = scheduleUserIds.some(id => userId === id);

@@ -299,7 +299,7 @@ CreateWebHook.propTypes = {
 	data: PropTypes.object,
 };
 
-let NewCreateWebHook = reduxForm({
+const NewCreateWebHook = reduxForm({
 	form: 'newCreateWebHook', // a unique identifier for this form
 	enableReinitialize: true,
 	validate, // <--- validation function given to redux-for

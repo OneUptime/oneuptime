@@ -34,7 +34,7 @@ export const smsTemplatesReset = () => {
 // Calls the API to get sms templates
 export function getSmsTemplates(projectId) {
     return function (dispatch) {
-        var promise = getApi(`smsTemplate/${projectId}`);
+        const promise = getApi(`smsTemplate/${projectId}`);
         dispatch(smsTemplatesRequest(promise));
 
         promise.then(function (sms) {
@@ -86,7 +86,7 @@ export function editSmsTemplateError(error){
 
 export function editSmsTemplates(projectId, data){
     return function(dispatch){
-        var promise = putApi(`smsTemplate/${projectId}`, data);
+        const promise = putApi(`smsTemplate/${projectId}`, data);
         dispatch(editSmsTemplateRequest());
 
         promise.then(function(smsTemplate){
@@ -135,7 +135,7 @@ export function resetSmsTemplatesSuccess(smsTemplates) {
 // Calls the API to reset sms templates
 export function resetSmsTemplates(projectId, templateId) {
     return function (dispatch) {
-        var promise = getApi(`smsTemplate/${projectId}/${templateId}/reset`);
+        const promise = getApi(`smsTemplate/${projectId}/${templateId}/reset`);
         dispatch(resetSmsTemplatesRequest(promise));
 
         promise.then(function (sms) {
@@ -182,7 +182,7 @@ export function smtpConfigSuccess(config) {
 // Calls the API to reset email templates
 export function getSmtpConfig(projectId) {
     return function (dispatch) {
-        var promise = getApi(`smsSmtp/${projectId}`);
+        const promise = getApi(`smsSmtp/${projectId}`);
         dispatch(smtpConfigRequest(promise));
 
         promise.then(function (data) {
@@ -219,7 +219,7 @@ export function getSmtpConfig(projectId) {
 
 export function postSmtpConfig(projectId,data) {
     return function (dispatch) {
-        var promise = postApi(`smsSmtp/${projectId}`,data);
+        const promise = postApi(`smsSmtp/${projectId}`,data);
         dispatch(smtpConfigRequest(promise));
 
         promise.then(function (data) {
@@ -276,7 +276,7 @@ export function deleteSmtpConfigSuccess(config) {
 
 export function deleteSmtpConfig(projectId,smtpId,data) {
     return function (dispatch) {
-        var promise = deleteApi(`smsSmtp/${projectId}/${smtpId}`,data);
+        const promise = deleteApi(`smsSmtp/${projectId}/${smtpId}`,data);
         dispatch(deleteSmtpConfigRequest(promise));
 
         promise.then(function (data) {
@@ -312,7 +312,7 @@ export function deleteSmtpConfig(projectId,smtpId,data) {
 
 export function updateSmtpConfig(projectId,smtpId,data) {
     return function (dispatch) {
-        var promise = putApi(`smsSmtp/${projectId}/${smtpId}`,data);
+        const promise = putApi(`smsSmtp/${projectId}/${smtpId}`,data);
         dispatch(smtpConfigRequest(promise));
 
         promise.then(function (data) {

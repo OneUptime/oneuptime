@@ -6,7 +6,7 @@ import { User } from '../../config';
 // returns JSX.Element or NULL
 export default function(currentProject) {
   
-    var userId = User.getUserId();
+    const userId = User.getUserId();
     if (
         userId && currentProject &&
         currentProject.users &&

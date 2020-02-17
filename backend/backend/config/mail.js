@@ -3,8 +3,8 @@
  * Copyright HackerBay, Inc.
  *
  */
-var secure = false;
-if ( process.env['MAIL_SECURE'] === 'true' ){
+let secure = false;
+if ( process.env['MAIL_SMTP_SECURE'] === 'true' ){
     secure = true;
 }
 

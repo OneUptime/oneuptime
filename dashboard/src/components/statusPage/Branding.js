@@ -70,8 +70,8 @@ export class Branding extends Component {
     changelogo = (e) => {
         e.preventDefault();
 
-        let reader = new FileReader();
-        let file = e.target.files[0];
+        const reader = new FileReader();
+        const file = e.target.files[0];
 
         reader.onloadend = () => {
             this.props.createLogoCache(reader.result);
@@ -88,8 +88,8 @@ export class Branding extends Component {
 
     updloadBannerHandler = (e) => {
         e.preventDefault();
-        let reader = new FileReader();
-        let file = e.target.files[0];
+        const reader = new FileReader();
+        const file = e.target.files[0];
 
         reader.onloadend = () => {
             this.props.createBannerCache(reader.result);
@@ -104,8 +104,8 @@ export class Branding extends Component {
     changefavicon = (e) => {
         e.preventDefault();
 
-        let reader = new FileReader();
-        let file = e.target.files[0];
+        const reader = new FileReader();
+        const file = e.target.files[0];
 
         reader.onloadend = () => {
             this.props.createFaviconCache(reader.result);
@@ -122,7 +122,8 @@ export class Branding extends Component {
 
     removeImageHandler = (e) => {
         const values = {};
-        var { _id, projectId } = this.props.statusPage.status;
+        const { _id } = this.props.statusPage.status;
+        let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         if(_id) values._id = _id;
         const { reset, resetLogoCache, resetFaviconCache, resetBannerCache } = this.props;
@@ -140,7 +141,8 @@ export class Branding extends Component {
     }
 
     submitForm = (values) => {
-        var { _id, projectId } = this.props.statusPage.status
+        const { _id } = this.props.statusPage.status
+        let{projectId} = this.props.statusPage.status
         projectId = projectId ? projectId._id || projectId : null;
         if(_id) values._id = _id;
         const { reset, resetLogoCache, resetFaviconCache, resetBannerCache, colors } = this.props;
@@ -161,13 +163,13 @@ export class Branding extends Component {
 
     render() {
         const { handleSubmit } = this.props;
-        var faviconImage = <span />;
-        var logoImage = <span />;
-        var bannerImage = <span />;
-        var logoUrl = this.props.logourl ? this.props.logourl : this.props.statusPage.status && this.props.statusPage.status.logoPath ? `${API_URL}/file/${this.props.statusPage.status.logoPath}` : '';
-        var faviconUrl = this.props.faviconurl ? this.props.faviconurl : this.props.statusPage.status && this.props.statusPage.status.faviconPath ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}` : '';
-        var bannerUrl = this.props.bannerurl ? this.props.bannerurl : this.props.statusPage.status && this.props.statusPage.status.bannerPath ? `${API_URL}/file/${this.props.statusPage.status.bannerPath}` : '';
-        var colors = this.props.colors && Object.keys(this.props.colors).length > 0 ? this.props.colors : null;
+        let faviconImage = <span />;
+        let logoImage = <span />;
+        let bannerImage = <span />;
+        const logoUrl = this.props.logourl ? this.props.logourl : this.props.statusPage.status && this.props.statusPage.status.logoPath ? `${API_URL}/file/${this.props.statusPage.status.logoPath}` : '';
+        const faviconUrl = this.props.faviconurl ? this.props.faviconurl : this.props.statusPage.status && this.props.statusPage.status.faviconPath ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}` : '';
+        const bannerUrl = this.props.bannerurl ? this.props.bannerurl : this.props.statusPage.status && this.props.statusPage.status.bannerPath ? `${API_URL}/file/${this.props.statusPage.status.bannerPath}` : '';
+        const colors = this.props.colors && Object.keys(this.props.colors).length > 0 ? this.props.colors : null;
         if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.faviconPath) || this.props.faviconurl) {
             faviconImage = <img src={faviconUrl} alt="" className="image-small-circle" />;
         }
@@ -356,8 +358,8 @@ export class Branding extends Component {
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Colors</label>
                                                 <div className="bs-Fieldset-fields">
-                                                    <div className="Box-root Flex-flex" style={{ width: '700px' }}>
-                                                        <ShouldRender if={colors}>
+                                                    {colors &&
+                                                        <div className="Box-root Flex-flex" style={{ width: '700px' }}>
                                                             <div className="Box-root Box-root Box-root Flex-flex">
                                                                 <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='pageBackground'>
                                                                     <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.pageBackground.r }, ${ colors.pageBackground.g }, ${ colors.pageBackground.b }, ${ colors.pageBackground.a })`, }} />
@@ -384,10 +386,10 @@ export class Branding extends Component {
                                                                     <span>Status Page Background</span>
                                                                 </div>
                                                             </div>
-                                                        </ShouldRender>
-                                                    </div>
-                                                    <div className="Box-root Flex-flex" style={{ marginTop: '12px',  width: '700px' }}>
-                                                        <ShouldRender if={colors}>
+                                                        </div>
+                                                    }
+                                                    {colors &&
+                                                        <div className="Box-root Flex-flex" style={{ marginTop: '12px',  width: '700px' }}>
                                                             <div className="Box-root Box-root Box-root Flex-flex">
                                                                 <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='heading'>
                                                                     <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.heading.r }, ${ colors.heading.g }, ${ colors.heading.b }, ${ colors.heading.a })`, }} />
@@ -414,8 +416,8 @@ export class Branding extends Component {
                                                                     <span>Sub Heading Text</span>
                                                                 </div>
                                                             </div>
-                                                        </ShouldRender>
-                                                    </div>
+                                                        </div>
+                                                    }
                                                 </div>
                                             </div>
                                             <div className="bs-Fieldset-row">
@@ -501,7 +503,7 @@ Branding.propTypes = {
     fetchProjectStatusPage: PropTypes.func.isRequired,
 }
 
-let BrandingForm = reduxForm({
+const BrandingForm = reduxForm({
     form: 'Branding', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for

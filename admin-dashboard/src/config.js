@@ -154,7 +154,7 @@ export const Validate = {
     },
 
     card(cardNumber) {
-        var numberValidation = valid.number(cardNumber);
+        const numberValidation = valid.number(cardNumber);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -164,7 +164,7 @@ export const Validate = {
     },
 
     cardExpiration(expiry) {
-        var numberValidation = valid.expirationDate(expiry);
+        const numberValidation = valid.expirationDate(expiry);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -174,7 +174,7 @@ export const Validate = {
     },
 
     cvv(cvv) {
-        var numberValidation = valid.cvv(cvv);
+        const numberValidation = valid.cvv(cvv);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -184,7 +184,7 @@ export const Validate = {
     },
 
     postalCode(postalCode) {
-        var numberValidation = valid.postalCode(postalCode);
+        const numberValidation = valid.postalCode(postalCode);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -313,7 +313,7 @@ export const PricingPlan = {
     },
 
     getPlanById(id) {
-        let plans = this.getPlans();
+        const plans = this.getPlans();
         if (id) return plans.find(plan => plan.planId === id);
         else return plans[0];
     },
@@ -372,7 +372,7 @@ incident as resolved after resolving the
 export function getQueryVar(variable, url) {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
+    const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
@@ -380,17 +380,17 @@ export function getQueryVar(variable, url) {
 }
 
 export function saveFile(content, filename) {
-    var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }
 
 export function makeCriteria(val){
-    let val2 = {};
-    let and = [];
-    let or = [];
+    const val2 = {};
+    const and = [];
+    const or = [];
 
     for (let i = 0; i < val.length; i++) {
-        let val3 = {};
+        const val3 = {};
         if (val[i].responseType && val[i].responseType.length) {
             val3.responseType = val[i].responseType;
         }
@@ -419,10 +419,10 @@ export function makeCriteria(val){
 }
 
 export function mapCriteria(val) {
-    let val2 = [];
+    const val2 = [];
     if (val && val.and && val.and.length) {
         for (let i = 0; i < val.and.length; i++) {
-            let val3 = {};
+            const val3 = {};
             if (val.and[i].responseType && val.and[i].responseType.length) {
                 val3.responseType = val.and[i].responseType;
             }
@@ -451,7 +451,7 @@ export function mapCriteria(val) {
     }
     else if (val && val.or && val.or.length) {
         for (let i = 0; i < val.or.length; i++) {
-            let val3 = {};
+            const val3 = {};
             if (val.or[i].responseType && val.or[i].responseType.length) {
                 val3.responseType = val.or[i].responseType;
             }

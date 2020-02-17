@@ -19,5 +19,5 @@ module.exports = {
     }
 };
 
-var payment = require('../../backend/config/payment');
-var stripe = require('stripe')(payment.paymentPrivateKey);
+const payment = require('../../backend/config/payment');
+const stripe = require('stripe')(payment.paymentPrivateKey);

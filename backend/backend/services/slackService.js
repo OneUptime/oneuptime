@@ -3,9 +3,9 @@ module.exports = {
     // process messages to be sent to slack workspace channels
     sendNotification: async function (projectId, incidentId, userId, text, incident) {
         try {
-            var self = this;
-            var project = await ProjectService.findOneBy({_id: projectId});
-            var integrations = await IntegrationModel.find({
+            const self = this;
+            const project = await ProjectService.findOneBy({_id: projectId});
+            const integrations = await IntegrationModel.find({
                 projectId,
                 integrationType: 'slack'
             });
@@ -13,7 +13,7 @@ module.exports = {
             if (integrations.length === 0) return 'no connected slack workspace to notify';
             for (const integration of integrations) {
                 // call the notify function that just sends the slack notification
-                var response = await self.notify(integration, project, text, incident, incidentId);
+                const response = await self.notify(integration, project, text, incident, incidentId);
                 return response;
             }
         } catch (error) {
@@ -39,7 +39,7 @@ module.exports = {
                     color: color,
                     attachment_type: 'default',
                 };
-                var response = await web.chat.postMessage({
+                const response = await web.chat.postMessage({
                     channel: channelId,
                     text: slackText,
                     attachments: [incAttachment]
@@ -47,7 +47,7 @@ module.exports = {
 
                 return response;
             } else {
-                var res = await web.chat.postMessage({
+                const res = await web.chat.postMessage({
                     channel: channelId,
                     text: slackText
                 });
@@ -60,9 +60,9 @@ module.exports = {
     }
 };
 
-var {
+const {
     WebClient
 } = require('@slack/client');
-var IntegrationModel = require('../models/integration');
-var ProjectService = require('./projectService');
-var ErrorService = require('./errorService');
+const IntegrationModel = require('../models/integration');
+const ProjectService = require('./projectService');
+const ErrorService = require('./errorService');

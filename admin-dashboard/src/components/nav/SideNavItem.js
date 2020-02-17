@@ -19,7 +19,7 @@ export class SidebarNavItem extends Component {
     render() {
         const { RenderListItems } = this;
         const { route, location, match } = this.props;
-        var path = route.path;
+        const path = route.path;
         const isLinkActive = location.pathname === path
         || (location.pathname.match(/users\/([0-9]|[a-z])*/) && route.title === 'Users')
         || (location.pathname.match(/projects\/([0-9]|[a-z])*/) && route.title === 'Projects')  
@@ -71,7 +71,7 @@ export class SidebarNavItem extends Component {
             if (removedLinks.some(link => link === child.title)) return null;
 
             if (child.visible) {
-                let link = child.path.replace(':userId', this.props.match.params.userId);
+                const link = child.path.replace(':userId', this.props.match.params.userId);
                 return (
                     <li id={this.camalize(child.title)} key={`nav ${index}`}>
                         <div style={{ position: 'relative' }}>
@@ -104,7 +104,7 @@ export class SidebarNavItem extends Component {
 
 SidebarNavItem.displayName = 'SidebarNavItem'
 
-let mapStateToProps = state_Ignored => ({})
+const mapStateToProps = state_Ignored => ({})
 
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,

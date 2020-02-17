@@ -37,17 +37,17 @@ export function getProjectIncidents(projectId, skip, limit) {
     limit = parseInt(limit);
 
     return function (dispatch) {
-        var promise = null;
-        if (skip >= 0 && limit >= 0){
+        let promise = null;
+        if (skip >= 0 && limit >= 0) {
             promise = getApi(`incident/${projectId}/incident?skip=${skip}&limit=${limit}`);
-        }else {
+        } else {
             promise = getApi(`incident/${projectId}/incident`);
         }
         dispatch(projectIncidentsRequest(promise));
 
         promise.then(function (incidents) {
-            var data = incidents.data;
-			data.projectId = projectId;
+            const data = incidents.data;
+            data.projectId = projectId;
             dispatch(projectIncidentsSuccess(data));
         }, function (error) {
             if (error && error.response && error.response.data)
@@ -160,7 +160,7 @@ export const createIncidentReset = () => {
 // Calls the API to create new incident.
 export function createNewIncident(projectId, monitorId, incidentType) {
     return function (dispatch) {
-        var promise = postApi(`incident/${projectId}/${monitorId}`, { monitorId, projectId, incidentType });
+        const promise = postApi(`incident/${projectId}/${monitorId}`, { monitorId, projectId, incidentType });
 
         dispatch(createIncidentRequest(monitorId));
 
@@ -174,7 +174,7 @@ export function createNewIncident(projectId, monitorId, incidentType) {
                 type: 'ADD_NEW_INCIDENT_TO_MONITORS',
                 payload: createIncident.data
             });
-            return {createIncident};
+            return { createIncident };
         }, function (error) {
             if (error && error.response && error.response.data)
                 error = error.response.data;
@@ -188,7 +188,7 @@ export function createNewIncident(projectId, monitorId, incidentType) {
                 error = 'Network Error';
             }
             dispatch(createIncidentError(errors(error)));
-            return {error};
+            return { error };
         });
 
         return promise;
@@ -256,7 +256,7 @@ export function resolveIncidentSuccess(incident) {
 export function getIncident(projectId, incidentId) {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch) {
-        var promise = null;
+        let promise = null;
         promise = getApi(`incident/${projectId}/incident/${incidentId}`);
         dispatch(incidentRequest(promise));
 
@@ -283,12 +283,12 @@ export function getIncident(projectId, incidentId) {
 export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch) {
-        var promise = null,
-            data = {
-                decoded: userId,
-                projectId,
-                incidentId
-            }
+        let promise = null;
+        const data = {
+            decoded: userId,
+            projectId,
+            incidentId
+        }
         promise = postApi(`incident/${projectId}/acknowledge/${incidentId}`, data);
         if (multiple) {
             dispatch(acknowledgeIncidentRequest({
@@ -349,12 +349,12 @@ export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
 export function resolveIncident(projectId, incidentId, userId, multiple) {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch) {
-        var promise = null,
-            data = {
-                decoded: userId,
-                projectId,
-                incidentId
-            }
+        let promise = null;
+        const data = {
+            decoded: userId,
+            projectId,
+            incidentId
+        }
         promise = postApi(`incident/${projectId}/resolve/${incidentId}`, data);
         if (multiple) {
             dispatch(resolveIncidentRequest({
@@ -435,7 +435,7 @@ export function closeIncidentSuccess(incident) {
 export function closeIncident(projectId, incidentId) {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch) {
-        var promise = postApi(`incident/${projectId}/close/${incidentId}`, {});
+        const promise = postApi(`incident/${projectId}/close/${incidentId}`, {});
         dispatch(closeIncidentRequest(promise))
 
         promise.then(function (incident) {
@@ -490,7 +490,7 @@ export function resetUnresolvedIncidents() {
 export function fetchUnresolvedIncidents(projectId) {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch) {
-        var promise = null;
+        let promise = null;
 
         promise = getApi(`incident/${projectId}/unresolvedincidents`);
 
@@ -553,8 +553,8 @@ export function investigationNoteSuccess(incident) {
 export function setInvestigationNote(projectId, incidentId, investigationNote) {
 
     return function (dispatch) {
-        var promise = null;
-        var body = {};
+        let promise = null;
+        const body = {};
         body.investigationNote = investigationNote;
         promise = putApi(`incident/${projectId}/incident/${incidentId}`, body);
 
@@ -605,8 +605,8 @@ export function internalNoteSuccess(incident) {
 export function setinternalNote(projectId, incidentId, internalNote) {
 
     return function (dispatch) {
-        var promise = null;
-        var body = {};
+        let promise = null;
+        const body = {};
         body.internalNote = internalNote;
         promise = putApi(`incident/${projectId}/incident/${incidentId}`, body);
 
@@ -663,7 +663,7 @@ export function deleteIncidentReset(error) {
 export function deleteIncident(projectId, incidentId) {
     return function (dispatch) {
 
-        var promise = deleteApi(`incident/${projectId}/${incidentId}`);
+        const promise = deleteApi(`incident/${projectId}/${incidentId}`);
         dispatch(deleteIncidentRequest(incidentId));
 
         promise.then(function (incident) {

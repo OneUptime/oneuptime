@@ -8,36 +8,30 @@ const fetch = require('node-fetch');
 // creates incident if a website is down and resolves it when they come back up
 module.exports = {
     ping: async (monitor) => {
-        if (monitor && monitor.type) {
-            if (monitor.data.url) {
-                try {
-                    var { res, resp } = await pingfetch(monitor.data.url);
-                } catch (error) {
-                    ErrorService.log('ping.pingFetch', error);
-                    throw error;
-                }
-                try {
+        try {
+            if (monitor && monitor.type) {
+                if (monitor.data.url) {
+
+                    const { res, resp } = await pingfetch(monitor.data.url);
+
+
                     await ApiService.ping(monitor._id, { monitor, res, resp, type: monitor.type });
-                } catch (error) {
-                    ErrorService.log('ApiService.ping', error);
-                    throw error;
                 }
-            } else {
-                return;
             }
-        } else {
-            return;
+        } catch (error) {
+            ErrorService.log('UrlMonitors.ping', error);
+            throw error;
         }
     }
 };
 
 const pingfetch = async (url) => {
-    let now = (new Date()).getTime();
-    var resp = null;
-    var res = null;
+    const now = (new Date()).getTime();
+    let resp = null;
+    let res = null;
     try {
-        var response = await fetch(url, { timeout: 30000 });
-        var data = await response.text();
+        const response = await fetch(url, { timeout: 30000 });
+        const data = await response.text();
         resp = { status: response.status, body: data };
     } catch (error) {
         resp = { status: 408, body: error };

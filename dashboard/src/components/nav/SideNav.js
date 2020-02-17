@@ -120,11 +120,11 @@ class SideNav extends Component {
 
 SideNav.displayName = 'SideNav'
 
-let mapStateToProps = function (state) {
+const mapStateToProps = function (state) {
 	return { project: state.project };
 }
 
-let mapDispatchToProps = function (dispatch) {
+const mapDispatchToProps = function (dispatch) {
 	return bindActionCreators(
 		{
 			openModal, closeModal, showProjectSwitcher, hideProjectSwitcher, hideForm

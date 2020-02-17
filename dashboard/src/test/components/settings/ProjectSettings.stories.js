@@ -9,7 +9,7 @@ import { Validate } from '../../../config';
 import { reduxForm, reset } from 'redux-form';
 
 
-let formName = 'ProjectSettings'+Math.floor((Math.random() * 10) + 1);
+const formName = 'ProjectSettings'+Math.floor((Math.random() * 10) + 1);
 function validate(value) {
 
     const errors = {};
@@ -21,10 +21,10 @@ function validate(value) {
     return errors;
 }
 
-let onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
+const onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
 
 
-let ProjectSettingsForm = new reduxForm({
+const ProjectSettingsForm = new reduxForm({
     form: formName,
     enableReinitialize:true,
     validate,
@@ -35,7 +35,7 @@ localStorage.setItem('id', '5b1c0c29cb06cc23b132db07')
 
 const store = mockStore(state)
 
-let props = {
+const props = {
     'array': {},
   'anyTouched': false,
   'asyncValidating': false,

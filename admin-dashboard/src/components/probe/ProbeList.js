@@ -20,7 +20,7 @@ export class ProbeList extends Component {
 
     handleClick = (probeId) => {
         const { deleteProbe} = this.props;
-        var thisObj = this;
+        const thisObj = this;
         const { deleteModalId } = this.state
         this.props.openModal({
             id: deleteModalId,

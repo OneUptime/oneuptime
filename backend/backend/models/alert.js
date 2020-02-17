@@ -4,10 +4,10 @@
  *
  */
 
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var alertSchema = new Schema({
+const Schema = mongoose.Schema;
+const alertSchema = new Schema({
     projectId: { type: String, ref: 'Project' },
     userId: { type: String, ref: 'User' },
     alertVia: String,
@@ -15,6 +15,9 @@ var alertSchema = new Schema({
     monitorId: { type: String, ref: 'Monitor' },
     createdAt: { type: Date, default: Date.now },
     incidentId : { type: String, ref: 'Incident' },
+    onCallScheduleStatus: {type: Schema.Types.ObjectId, ref: 'OnCallScheduleStatus'},
+    schedule: {type: Schema.Types.ObjectId, ref: 'Schedule'},
+    escalation: {type: Schema.Types.ObjectId, ref: 'Escalation'},
     error: { type: Boolean, default: false },
     errorMessage:String,
     deleted: { type: Boolean, default: false},

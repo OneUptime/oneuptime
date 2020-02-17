@@ -1,21 +1,21 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var chai = require('chai');
+const expect = require('chai').expect;
+const chai = require('chai');
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
-var app = require('../server');
-var userData = require('./data/user');
+const app = require('../server');
+const userData = require('./data/user');
 
-var { createUser } = require('./utils/userSignUp');
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var AirtableService = require('../backend/services/airtableService');
-var request = chai.request.agent(app);
-var clusterKey = require('../backend/config/keys').clusterKey;
-var ProbeService = require('../backend/services/probeService');
-var probeId;
-var token, userId, airtableId, projectId;
+const { createUser } = require('./utils/userSignUp');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const clusterKey = require('../backend/config/keys').clusterKey;
+const ProbeService = require('../backend/services/probeService');
+let probeId;
+let token, userId, airtableId, projectId;
 
 describe('Probe API', function () {
     this.timeout(20000);
@@ -23,7 +23,7 @@ describe('Probe API', function () {
     before(function (done) {
         this.timeout(40000);
         createUser(request, userData.user, function (err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -50,7 +50,7 @@ describe('Probe API', function () {
     });
 
     it('should add a probe by admin', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post('/probe/').set('Authorization', authorization).send({
             probeName: 'New Probe',
             clusterKey: clusterKey,
@@ -71,7 +71,7 @@ describe('Probe API', function () {
                         email: userData.newUser.email,
                         password: userData.newUser.password
                     }).end(function (err, res) {
-                        var authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                        const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                         request.post('/probe/').set('Authorization', authorization).send({
                             probeName: 'New Probe',
                             clusterKey: '',
@@ -86,7 +86,7 @@ describe('Probe API', function () {
     });
 
     it('should reject a probe if same name already exists', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post('/probe/').set('Authorization', authorization).send({
             probeName: 'New Probe',
             clusterKey: clusterKey,
@@ -97,7 +97,7 @@ describe('Probe API', function () {
     });
 
     it('should get a list of probe by admin', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get('/probe/').set('Authorization', authorization).send({
             clusterKey: clusterKey,
         }).end(function (err, res) {
@@ -107,7 +107,7 @@ describe('Probe API', function () {
     });
 
     it('should delete a probe by admin', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/probe/${probeId}`).set('Authorization', authorization).send({
             clusterKey: clusterKey,
         }).end(function (err, res) {

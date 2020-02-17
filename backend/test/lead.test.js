@@ -1,16 +1,14 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var chai = require('chai');
+const expect = require('chai').expect;
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var leadService = require('../backend/services/leadService');
-var { imap, openBox, leadEmailContent } = require('./utils/mail');
-var mailParser = require('mailparser').simpleParser;
+const request = chai.request.agent(app);
+const leadService = require('../backend/services/leadService');
+const EmailStatusService = require('../backend/services/emailStatusService');
 
-
-var textAsHtml, leadData = {
+const leadData = {
     'csrf-token': '1',
     analytics_event_id: '',
     fullname: 'John Smith',
@@ -33,32 +31,13 @@ describe('Lead API', function () {
         });
     });
     it('should add lead when requested for type demo and check the sent message', function (done) {
-        request.post('/lead').send(leadData).end(function (err, res) {
+        request.post('/lead').send(leadData).end(async function (err, res) {
             expect(res).to.have.status(200);
             leadService.hardDeleteBy({ _id: res.body._id });
-            imap.once('ready', function () {
-                openBox(function (err, box) {
-                    if (err) throw err;
-                    var seq =  box.messages.total;
-                    var f = imap.fetch(`${seq}:${seq}`, {
-                        bodies: [''],
-                        struct: true
-                    });
-                    f.on('message', function (msg) {
-                        msg.on('body', function (stream) {
-                            mailParser(stream, {}, function (err, parsedMail) {
-                                textAsHtml = parsedMail.text;
-                                expect(textAsHtml).to.be.equal(leadEmailContent);
-                            });
-                        });
-                    });
-                    f.once('end', function () {
-                        imap.end();
-                        done();
-                    });
-                });
-            });
-            imap.connect();
+            const emailStatuses = await EmailStatusService.findBy({});
+            expect(emailStatuses[0].subject).to.equal('Thank you for your demo request.');
+            expect(emailStatuses[0].status).to.equal('Success');
+            done();
         });
     });
 });

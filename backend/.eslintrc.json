@@ -7,7 +7,7 @@
         "node": true,
         "mocha": true
     },
-    "extends": "eslint:recommended",
+    "extends": ["eslint:recommended"],
     "parserOptions": {
         "sourceType": "module",
         "ecmaVersion": 2017
@@ -29,8 +29,10 @@
             "error",
             "always"
         ],
-        "no-unused-vars": "off",
-        "require-atomic-updates": "off",
-        "no-async-promise-executor": "off"
+        "prefer-const": ["error", {
+            "destructuring": "any",
+            "ignoreReadBeforeAssign": false
+        }],
+        "no-var": "error"
     }
 }

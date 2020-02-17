@@ -202,7 +202,7 @@ const current_state_profileMenu = {
     },
 }
 
-let props_no_state_profile = {
+const props_no_state_profile = {
     ...props,
     profile: {
         menuVisible: true 
@@ -225,7 +225,7 @@ const current_state_notification = {
     }
 }
 
-let props_no_state_notification = {
+const props_no_state_notification = {
     ...props,
     notification: {
         notificationsVisible: true 
@@ -250,7 +250,7 @@ const current_state_newProject = {
     }
 }
 
-let props_no_project = {
+const props_no_project = {
     ...props,
     project: {
         ...props.project,
@@ -280,7 +280,7 @@ storiesOf('DashBoard', module)
         }
     }
 
-    let props_no_error = {
+    const props_no_error = {
         ...props,
         project: {
             ...props.project,
@@ -312,7 +312,7 @@ storiesOf('DashBoard', module)
         }
     }
 
-    let props_no_requesting = {
+    const props_no_requesting = {
         ...props,
         project: {
             ...props.project,

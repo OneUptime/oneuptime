@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var statusSchema = new Schema({
+const Schema = mongoose.Schema;
+const statusSchema = new Schema({
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', alias: 'project' }, //which project this statuspage belongs to.
     domain: String,
     monitorIds: [{ type: String, ref: 'Monitor' }],

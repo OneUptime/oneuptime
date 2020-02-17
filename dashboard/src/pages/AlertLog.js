@@ -93,7 +93,7 @@ class AlertLog extends Component {
         });
 
         // Add Project Alerts to All Alerts List
-        var projectAlert = this.props.alerts.data && this.props.alerts.data.length > 0 && this.props.alerts.data.find(projectAlert => projectAlert._id === currentProject._id)
+        let projectAlert = this.props.alerts.data && this.props.alerts.data.length > 0 && this.props.alerts.data.find(projectAlert => projectAlert._id === currentProject._id)
         if (projectAlert && projectAlert.count && typeof projectAlert.count === 'string') {
             projectAlert.count = parseInt(projectAlert.count, 10);
         }
@@ -160,7 +160,7 @@ const mapDispatchToProps = dispatch => (
 )
 
 const mapStateToProps = (state) => {
-    var subProjects = state.subProject.subProjects.subProjects;
+    let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);

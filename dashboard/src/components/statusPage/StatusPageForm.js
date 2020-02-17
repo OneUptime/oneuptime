@@ -118,7 +118,7 @@ export class StatusPageForm extends React.Component{
 
 StatusPageForm.displayName = 'StatusPageForm'
 
-let CreateStatusPageForm = reduxForm({
+const CreateStatusPageForm = reduxForm({
     form: 'StatusPageModalForm',
     validate
 })(StatusPageForm);

@@ -60,7 +60,7 @@ export function resetCloseTutorial() {
 
 export function fetchTutorial() {
     return function (dispatch) {
-        var promise = null;
+        let promise = null;
         promise = getApi('tutorial');
 
         dispatch(fetchTutorialRequest(promise));
@@ -88,7 +88,7 @@ export function fetchTutorial() {
 
 export function closeTutorial(type) {
     return function (dispatch) {
-        var promise = null;
+        let promise = null;
         promise = putApi('tutorial', { type });
 
         dispatch(closeTutorialRequest(promise));

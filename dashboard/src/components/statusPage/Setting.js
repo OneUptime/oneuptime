@@ -46,10 +46,10 @@ export class Setting extends Component {
   }
 
   render() {
-    var statusPageId = '';
-    var hosted = '';
-    var statusurl = '';
-    var { projectId } = this.props.statusPage.status
+    let statusPageId = '';
+    let hosted = '';
+    let statusurl = '';
+    let { projectId } = this.props.statusPage.status
     projectId = projectId ? projectId._id || projectId : null;
     if(this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.domain){
       hosted = this.props.statusPage.status.domain;
@@ -71,7 +71,7 @@ export class Setting extends Component {
     }
     const { handleSubmit, subProjects, currentProject } = this.props;
     const currentProjectId = currentProject ? currentProject._id : null;
-    var subProject = currentProjectId === projectId ? currentProject : false;
+    let subProject = currentProjectId === projectId ? currentProject : false;
     if(!subProject) subProject = subProjects.find(subProject => subProject._id === projectId);
     return (
       <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -167,7 +167,7 @@ Setting.propTypes = {
   subProjects: PropTypes.array.isRequired,
 }
 
-let SettingForm = reduxForm({
+const SettingForm = reduxForm({
   form: 'Setting', // a unique identifier for this form
   enableReinitialize: true,
   validate // <--- validation function given to redux-for

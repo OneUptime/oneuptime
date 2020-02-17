@@ -4,14 +4,14 @@ import { DeleteScheduleBox } from '../../../components/schedule/DeleteBox'
 
 localStorage.setItem('id', '5b1c0c29cb06cc23b132db07')
 
-let props = {
+const props = {
     deleteSchedule: action('deleteSchedule'),
     openModal:action('openModal'),
     isRequesting:false,
     history:{}
 }
 
-let props_isRequesting = {
+const props_isRequesting = {
     deleteSchedule: action('deleteSchedule'),
     openModal:action('openModal'),
     isRequesting:true,

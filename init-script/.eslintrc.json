@@ -31,6 +31,14 @@
     ],
     "no-unused-vars": "off",
     "require-atomic-updates": "off",
-    "no-async-promise-executor": "off"
+    "no-async-promise-executor": "off",
+    "prefer-const": [
+      "error",
+      {
+        "destructuring": "any",
+        "ignoreReadBeforeAssign": false
+      }
+    ],
+    "no-var": "error"
   }
 }

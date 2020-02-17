@@ -2,7 +2,7 @@ module.exports = {
 
     create: async function (data) {
         try {
-            var previousMonitorStatus = await this.findOneBy({ monitorId: data.monitorId, probeId: data.probeId });
+            const previousMonitorStatus = await this.findOneBy({ monitorId: data.monitorId, probeId: data.probeId });
             if (!previousMonitorStatus || (previousMonitorStatus && previousMonitorStatus.status !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
@@ -15,14 +15,14 @@ module.exports = {
                     });
                 }
 
-                var monitorStatus = new MonitorStatusModel();
+                const monitorStatus = new MonitorStatusModel();
 
                 monitorStatus.monitorId = data.monitorId;
                 monitorStatus.probeId = data.probeId || null;
                 monitorStatus.manuallyCreated = data.manuallyCreated || false;
                 monitorStatus.status = data.status;
 
-                var savedMonitorStatus = await monitorStatus.save();
+                const savedMonitorStatus = await monitorStatus.save();
 
                 await this.sendMonitorStatus(savedMonitorStatus);
 
@@ -40,7 +40,7 @@ module.exports = {
                 query = {};
             }
 
-            var updatedMonitorStatus = await MonitorStatusModel.findOneAndUpdate(query,
+            const updatedMonitorStatus = await MonitorStatusModel.findOneAndUpdate(query,
                 { $set: data },
                 {
                     new: true
@@ -59,7 +59,7 @@ module.exports = {
                 query = {};
             }
 
-            var updatedData = await MonitorStatusModel.updateMany(query, {
+            let updatedData = await MonitorStatusModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -88,7 +88,7 @@ module.exports = {
                 query = {};
             }
 
-            var monitorStatus = await MonitorStatusModel.find(query)
+            const monitorStatus = await MonitorStatusModel.find(query)
                 .sort({ createdAt: -1 })
                 .limit(limit)
                 .skip(skip);
@@ -105,7 +105,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            var monitorStatus = await MonitorStatusModel.findOne(query, {}, {
+            const monitorStatus = await MonitorStatusModel.findOne(query, {}, {
                 sort: { 'createdAt': -1 }
             })
                 .lean();
@@ -118,7 +118,7 @@ module.exports = {
 
     async sendMonitorStatus(data) {
         try {
-            var monitor = await MonitorService.findOneBy({ _id: data.monitorId });
+            const monitor = await MonitorService.findOneBy({ _id: data.monitorId });
             if (monitor) {
                 await RealTimeService.updateMonitorStatus(data, monitor.projectId._id);
             }
@@ -129,7 +129,7 @@ module.exports = {
     },
 };
 
-var MonitorStatusModel = require('../models/monitorStatus');
-var MonitorService = require('../services/monitorService');
-var RealTimeService = require('./realTimeService');
-var ErrorService = require('../services/errorService');
+const MonitorStatusModel = require('../models/monitorStatus');
+const MonitorService = require('../services/monitorService');
+const RealTimeService = require('./realTimeService');
+const ErrorService = require('../services/errorService');

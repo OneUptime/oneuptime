@@ -14,8 +14,8 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types'
 
 
-var cookies = new Cookies();
-var logoutData = cookies.get('logoutData');
+const cookies = new Cookies();
+const logoutData = cookies.get('logoutData');
 
 if (!isServer) {
 	history.listen(location => {

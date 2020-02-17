@@ -2,13 +2,13 @@ module.exports = {
     create: async function (data) {
         try {
             data.authToken = await EncryptDecrypt.encrypt(data.authToken);
-            var smsSmtpModel = new SmsSmtpModel();
+            const smsSmtpModel = new SmsSmtpModel();
             smsSmtpModel.projectId = data.projectId;
             smsSmtpModel.accountSid = data.accountSid;
             smsSmtpModel.authToken = data.authToken;
             smsSmtpModel.phoneNumber = data.phoneNumber;
             smsSmtpModel.enabled = true;
-            var smsSmtp = await smsSmtpModel.save();
+            const smsSmtp = await smsSmtpModel.save();
             if (smsSmtp && smsSmtp.authToken) {
                 smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
             }
@@ -30,7 +30,7 @@ module.exports = {
             data.authToken = await EncryptDecrypt.encrypt(data.authToken);
         }
         try {
-            var updatedSmsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
+            const updatedSmsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
@@ -38,12 +38,11 @@ module.exports = {
             if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
                 updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
             }
+            return updatedSmsSmtp;
         } catch (error) {
             ErrorService.log('smsSmtpService.updateOneBy', error);
             throw error;
         }
-
-        return updatedSmsSmtp;
     },
 
     updateBy: async function (query, data) {
@@ -53,7 +52,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await SmsSmtpModel.updateMany(query, {
+            let updatedData = await SmsSmtpModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -66,7 +65,7 @@ module.exports = {
 
     deleteBy: async function (query, userId) {
         try {
-            var smsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
+            const smsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -101,7 +100,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var smsSmtp = await SmsSmtpModel.find(query)
+            const smsSmtp = await SmsSmtpModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -125,7 +124,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var smsSmtp = await SmsSmtpModel.findOne(query)
+            let smsSmtp = await SmsSmtpModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .lean();
@@ -150,7 +149,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await SmsSmtpModel.count(query);
+            const count = await SmsSmtpModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('smsSmtpService.countBy', error);
@@ -169,6 +168,6 @@ module.exports = {
     },
 };
 
-var SmsSmtpModel = require('../models/twilio');
-var ErrorService = require('./errorService');
-var EncryptDecrypt = require('../config/encryptDecrypt');
+const SmsSmtpModel = require('../models/twilio');
+const ErrorService = require('./errorService');
+const EncryptDecrypt = require('../config/encryptDecrypt');

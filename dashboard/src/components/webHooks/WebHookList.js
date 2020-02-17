@@ -19,12 +19,17 @@ import {
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
+import { history } from '../../store';
 
 class WebHookList extends React.Component {
 
     ready() {
-        const { getWebHook, projectId } = this.props;
-        if (projectId) {
+        const { getWebHook } = this.props;
+        let { projectId } = this.props;
+        if (!projectId) {
+            projectId = history.location.pathname.split('project/')[1].split('/')[0];
+            getWebHook(projectId);
+        } else {
             getWebHook(projectId);
         }
         if (!IS_DEV) {
@@ -74,7 +79,8 @@ class WebHookList extends React.Component {
     render() {
 
         const { webHook, isRequesting, monitorId } = this.props;
-        let { webHooks, count, skip, limit } = webHook;
+        const { count, skip, limit } = webHook;
+        let { webHooks } = webHook;
         let canPaginateForward = (webHook && count) && (count > (skip + limit)) ? true : false;
         let canPaginateBackward = (webHook && skip && skip > 0) ? true : false;
         if (monitorId && webHooks) {

@@ -3,7 +3,6 @@ import * as types from '../constants/schedule'
 import errors from '../errors'
 
 // Get a payload of Schedules
-
 export function resetSchedule() {
 	return {
 		type: types.SCHEDULE_FETCH_RESET
@@ -37,11 +36,10 @@ export function fetchSchedules(projectId, skip, limit) {
 
 	return function(dispatch){
 
-	var promise = null;
+	let promise = null;
             promise = getApi(`schedule/${projectId}?skip=${skip || 0}&limit=${limit || 10}`);
         promise.then(function(schedule){
 			dispatch(scheduleSuccess(schedule.data));
-
 		}, function(error){
 			if(error && error.response && error.response.data)
 				error = error.response.data;
@@ -97,7 +95,7 @@ export function fetchSubProjectSchedules(projectId) {
 
 	return function(dispatch){
 
-	var promise = null;
+	let promise = null;
             promise = getApi(`schedule/${projectId}/schedules`);
         promise.then(function(schedule){
 			dispatch(subProjectScheduleSuccess(schedule.data));
@@ -121,7 +119,6 @@ export function fetchSubProjectSchedules(projectId) {
 		return promise;
 	}
 }
-// fetch project statuspage
 
 export function resetProjectSchedule() {
 	return {
@@ -156,7 +153,7 @@ export function fetchProjectSchedule(projectId, skip, limit) {
 
 	return function(dispatch){
 
-	var promise = null;
+	let promise = null;
             promise = getApi(`schedule/${projectId}/schedule?skip=${skip}&limit=${limit}`);
         promise.then(function(schedule){
 			const data = schedule.data;
@@ -211,7 +208,7 @@ export function createScheduleSuccess(schedule) {
 export function createSchedule(projectId, values) {
 	return function(dispatch){
 
-		var promise = postApi(`schedule/${projectId}`, values);
+		const promise = postApi(`schedule/${projectId}`, values);
 
 		dispatch(createScheduleRequest());
 
@@ -270,7 +267,7 @@ export function renameSchedule(projectId, scheduleId, scheduleName) {
 
 	return function(dispatch){
 
-		var promise = putApi(`schedule/${projectId}/${scheduleId}`, { name: scheduleName });
+		const promise = putApi(`schedule/${projectId}/${scheduleId}`, { name: scheduleName });
 
 		dispatch(renameScheduleRequest());
 
@@ -340,12 +337,12 @@ export function deleteSchedule(projectId, scheduleId) {
 
 	return function(dispatch){
 
-		var promise = deleteApi(`schedule/${projectId}/${scheduleId}`);
+		const promise = deleteApi(`schedule/${projectId}/${scheduleId}`);
 
 		dispatch(deleteScheduleRequest());
 
 		promise.then(function(schedule){
-			var data = Object.assign({}, { scheduleId }, schedule.data);
+			const data = Object.assign({}, { scheduleId }, schedule.data);
 			dispatch(fetchSchedules(projectId));
 			return dispatch(deleteScheduleSuccess({ data }))
 
@@ -404,7 +401,7 @@ export function addMonitors(projectId, scheduleId, data) {
 
 	return function(dispatch){
 
-		var promise = putApi(`schedule/${projectId}/${scheduleId}`, data);
+		const promise = putApi(`schedule/${projectId}/${scheduleId}`, data);
 
 		dispatch(addMonitorRequest());
 
@@ -466,7 +463,7 @@ export function addUsers(projectId, scheduleId, data) {
 
 	return function(dispatch){
 
-		var promise = postApi(`schedule/${projectId}/${scheduleId}/addUsers`, data);
+		const promise = postApi(`schedule/${projectId}/${scheduleId}/addUsers`, data);
 
 		dispatch(addUserRequest());
 
@@ -530,7 +527,7 @@ export function addEscalation(projectId, scheduleId, data) {
 
 	return function(dispatch){
 
-		var promise = postApi(`schedule/${projectId}/${scheduleId}/addescalation`, data);
+		const promise = postApi(`schedule/${projectId}/${scheduleId}/addescalation`, data);
 
 		dispatch(escalationRequest());
 
@@ -561,7 +558,7 @@ export function getEscalation(projectId, scheduleId) {
 
 	return function(dispatch){
 
-		var promise = getApi(`schedule/${projectId}/${scheduleId}/getescalation`);
+		const promise = getApi(`schedule/${projectId}/${scheduleId}/getescalation`);
 
 		dispatch(escalationRequest());
 

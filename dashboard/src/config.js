@@ -14,7 +14,7 @@ let domain = null;
 let developmentEnv = false;
 
 export function env(value) {
-    var { _env } = window;
+    const { _env } = window;
     return (_env && _env[`REACT_APP_${value}`]) || process.env[`REACT_APP_${value}`];
 }
 
@@ -50,6 +50,14 @@ export const User = {
 
     getAccessToken() {
         return localStorage.getItem('access_token');
+    },
+
+    setCurrentProjectId(projectId) {
+        localStorage.setItem('current_project_id', projectId);
+    },
+
+    getCurrentProjectId() {
+        return localStorage.getItem('current_project_id');
     },
 
     setAccessToken(token) {
@@ -138,9 +146,14 @@ export const Validate = {
 
     number(number) {
 
-        if (number && number.length && !isNaN(number)) {
+        if(typeof(number) === 'string' && number.length===0){
+            return false;
+        }
+
+        if (number && !isNaN(number)) {
             return true;
         }
+        
         else {
             return false;
         }
@@ -161,7 +174,7 @@ export const Validate = {
     },
 
     card(cardNumber) {
-        var numberValidation = valid.number(cardNumber);
+        const numberValidation = valid.number(cardNumber);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -171,7 +184,7 @@ export const Validate = {
     },
 
     cardExpiration(expiry) {
-        var numberValidation = valid.expirationDate(expiry);
+        const numberValidation = valid.expirationDate(expiry);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -181,7 +194,7 @@ export const Validate = {
     },
 
     cvv(cvv) {
-        var numberValidation = valid.cvv(cvv);
+        const numberValidation = valid.cvv(cvv);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -191,7 +204,7 @@ export const Validate = {
     },
 
     postalCode(postalCode) {
-        var numberValidation = valid.postalCode(postalCode);
+        const numberValidation = valid.postalCode(postalCode);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -322,7 +335,7 @@ export const PricingPlan = {
     },
 
     getPlanById(id) {
-        let plans = this.getPlans();
+        const plans = this.getPlans();
         if (id) return plans.find(plan => plan.planId === id);
         else return plans[0];
     },
@@ -366,7 +379,7 @@ export const tutorials = {
 export function getQueryVar(variable, url) {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
+    const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
@@ -374,17 +387,17 @@ export function getQueryVar(variable, url) {
 }
 
 export function saveFile(content, filename) {
-    var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }
 
 export function makeCriteria(val) {
-    let val2 = {};
-    let and = [];
-    let or = [];
+    const val2 = {};
+    const and = [];
+    const or = [];
 
     for (let i = 0; i < val.length; i++) {
-        let val3 = {};
+        const val3 = {};
         if (val[i].responseType && val[i].responseType.length) {
             val3.responseType = val[i].responseType;
         }
@@ -413,10 +426,10 @@ export function makeCriteria(val) {
 }
 
 export function mapCriteria(val) {
-    let val2 = [];
+    const val2 = [];
     if (val && val.and && val.and.length) {
         for (let i = 0; i < val.and.length; i++) {
-            let val3 = {};
+            const val3 = {};
             if (val.and[i].responseType && val.and[i].responseType.length) {
                 val3.responseType = val.and[i].responseType;
             }
@@ -445,7 +458,7 @@ export function mapCriteria(val) {
     }
     else if (val && val.or && val.or.length) {
         for (let i = 0; i < val.or.length; i++) {
-            let val3 = {};
+            const val3 = {};
             if (val.or[i].responseType && val.or[i].responseType.length) {
                 val3.responseType = val.or[i].responseType;
             }
@@ -475,8 +488,8 @@ export function mapCriteria(val) {
 }
 
 export function renderIfSubProjectAdmin(currentProject, subProjects, subProjectId) {
-    var userId = User.getUserId();
-    var renderItems = false;
+    const userId = User.getUserId();
+    let renderItems = false;
     if (
         userId && currentProject &&
         currentProject.users &&
@@ -510,8 +523,8 @@ export function renderIfSubProjectAdmin(currentProject, subProjects, subProjectI
 }
 
 export function renderIfUserInSubProject(currentProject, subProjects, subProjectId) {
-    var userId = User.getUserId();
-    var renderItems = false;
+    const userId = User.getUserId();
+    let renderItems = false;
     if (
         currentProject &&
         currentProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0) {
@@ -541,10 +554,10 @@ function compareStatus(incident, log) {
 }
 
 export const getMonitorStatus = (incidents, logs) => {
-    let incident = incidents && incidents.length > 0 ? incidents[0] : null;
-    let log = logs && logs.length > 0 ? logs[0] : null;
+    const incident = incidents && incidents.length > 0 ? incidents[0] : null;
+    const log = logs && logs.length > 0 ? logs[0] : null;
 
-    let statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'online'));
+    const statusCompare = incident && log ? compareStatus(incident, log) : (incident ? (!incident.resolved ? incident.incidentType : 'online') : (log ? log.status : 'online'));
 
     return statusCompare || 'online';
 };
@@ -580,3 +593,4 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
 
     return { logs, statuses };
 };
+

@@ -2,12 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types'
 import { countries } from './CountryList';
 
-let errorStyle = {
+const errorStyle = {
   color: '#c23d4b',
   topMargin:'5px'
 }
 
-let selectorStyle = {
+const selectorStyle = {
   color: '#000000'
 }
 

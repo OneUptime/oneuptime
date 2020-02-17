@@ -9,20 +9,20 @@ import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
 
 const calculateTime = (statuses, start, range) => {
-    let timeBlock = [];
+    const timeBlock = [];
     let totalUptime = 0;
     let totalTime = 0;
 
     let dayStart = moment(start).startOf('day');
 
-    let reversedStatuses = statuses.slice().reverse();
+    const reversedStatuses = statuses.slice().reverse();
 
     for (let i = 0; i < range; i++) {
-        let dayStartIn = dayStart;
-        let dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
+        const dayStartIn = dayStart;
+        const dayEnd = i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
 
-        let timeObj = {
-            date: dayStart.toString(),
+        const timeObj = {
+            date: dayStart.toISOString(),
             downTime: 0,
             upTime: 0,
             degradedTime: 0
@@ -30,16 +30,16 @@ const calculateTime = (statuses, start, range) => {
 
         reversedStatuses.forEach(monitorStatus => {
             if (monitorStatus.endTime === null) {
-                monitorStatus.endTime = Date.now();
+                monitorStatus.endTime = new Date().toISOString();
             }
 
             if (moment(monitorStatus.startTime).isBefore(dayEnd) && moment(monitorStatus.endTime).isAfter(dayStartIn)) {
-                let start = moment(monitorStatus.startTime).isBefore(dayStartIn) ? dayStartIn : moment(monitorStatus.startTime);
-                let end = moment(monitorStatus.endTime).isAfter(dayEnd) ? dayEnd : moment(monitorStatus.endTime);
+                const start = moment(monitorStatus.startTime).isBefore(dayStartIn) ? dayStartIn : moment(monitorStatus.startTime);
+                const end = moment(monitorStatus.endTime).isAfter(dayEnd) ? dayEnd : moment(monitorStatus.endTime);
 
                 if (monitorStatus.status === 'offline') {
                     timeObj.downTime = timeObj.downTime + end.diff(start, 'seconds');
-                    timeObj.date = monitorStatus.endTime;
+                    timeObj.date = end.toISOString();
                 }
                 if (monitorStatus.status === 'degraded') {
                     timeObj.degradedTime = timeObj.degradedTime + end.diff(start, 'seconds');
@@ -80,7 +80,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
     useEffect(() => {
         setNow(Date.now());
 
-        let nowHandler = setTimeout(() => {
+        const nowHandler = setTimeout(() => {
             setNow(Date.now());
         }, 300000);
 
@@ -89,7 +89,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
         };
     }, [lastAlive]);
 
-    let block = [];
+    const block = [];
     for (let i = 0; i < range; i++) {
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
@@ -109,7 +109,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
             statusColor = 'blue'
     }
 
-    let isCurrentlyNotMonitoring = (lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) || !lastAlive;
+    const isCurrentlyNotMonitoring = (lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) || !lastAlive;
 
     let monitorInfo;
     if (type === 'server-monitor') {
@@ -144,9 +144,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <ShouldRender if={!isCurrentlyNotMonitoring}>
-                        <AreaChart type={type} data={data} name={'load'} />
-                    </ShouldRender>
+                    <AreaChart type={type} data={data} name={'load'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -179,9 +177,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <ShouldRender if={!isCurrentlyNotMonitoring}>
-                        <AreaChart type={type} data={data} name={'memory'} />
-                    </ShouldRender>
+                    <AreaChart type={type} data={data} name={'memory'} />
                 </div>
             </div>
             <div className="db-Trend">
@@ -214,9 +210,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    <ShouldRender if={!isCurrentlyNotMonitoring}>
-                        <AreaChart type={type} data={data} name={'disk'} />
-                    </ShouldRender>
+                    <AreaChart type={type} data={data} name={'disk'} />
                 </div>
             </div>
             <ShouldRender if={showAll}>
@@ -243,9 +237,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                         </div>
                     </div>
                     <div className="block-chart-main line-chart">
-                        <ShouldRender if={!isCurrentlyNotMonitoring}>
-                            <AreaChart type={type} data={data} name={'temperature'} />
-                        </ShouldRender>
+                        <AreaChart type={type} data={data} name={'temperature'} />
                     </div>
                 </div>
             </ShouldRender>
@@ -324,9 +316,7 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                 </div>
             </div>
             <div className="block-chart-main line-chart">
-                <ShouldRender if={!isCurrentlyNotMonitoring}>
-                    <AreaChart type={type} data={timeBlock} name={'downtime'} symbol="secs" />
-                </ShouldRender>
+                <AreaChart type={type} data={timeBlock} name={'downtime'} symbol="secs" />
             </div>
         </div>
     } else {

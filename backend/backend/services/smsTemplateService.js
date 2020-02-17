@@ -1,12 +1,12 @@
 module.exports = {
     create: async function (data) {
         try {
-            var smsTemplateModel = new SmsTemplateModel();
+            const smsTemplateModel = new SmsTemplateModel();
             smsTemplateModel.projectId = data.projectId || null;
             smsTemplateModel.body = data.body || null;
             smsTemplateModel.smsType = data.smsType || null;
             smsTemplateModel.allowedVariables = smsTemplateVariables[[data.smsType]];
-            var smsTemplate = await smsTemplateModel.save();
+            const smsTemplate = await smsTemplateModel.save();
 
             return smsTemplate;
         } catch (error) {
@@ -22,17 +22,16 @@ module.exports = {
 
         if (!query.deleted) query.deleted = false;
         try {
-            var updatedSmsTemplate = await SmsTemplateModel.findOneAndUpdate(query, {
+            const updatedSmsTemplate = await SmsTemplateModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
+            return updatedSmsTemplate;
         } catch (error) {
             ErrorService.log('smsTemplateService.updateOneBy', error);
             throw error;
         }
-
-        return updatedSmsTemplate;
     },
 
     updateBy: async function (query, data) {
@@ -42,7 +41,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await SmsTemplateModel.updateMany(query, {
+            let updatedData = await SmsTemplateModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -55,7 +54,7 @@ module.exports = {
 
     deleteBy: async function(query, userId){
         try {
-            var smsTemplate = await SmsTemplateModel.findOneAndUpdate(query, {
+            const smsTemplate = await SmsTemplateModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -90,7 +89,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var smsTemplates = await SmsTemplateModel.find(query)
+            const smsTemplates = await SmsTemplateModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -109,7 +108,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var smsTemplate = await SmsTemplateModel.findOne(query)
+            const smsTemplate = await SmsTemplateModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name');
             return smsTemplate;
@@ -126,7 +125,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await SmsTemplateModel.count(query);
+            const count = await SmsTemplateModel.count(query);
             return count;
         }catch(error){
             ErrorService.log('smsTemplateService.countBy', error);
@@ -136,9 +135,9 @@ module.exports = {
 
     getTemplates: async function (projectId){
         try {
-            let _this = this;
-            var templates = await Promise.all(defaultSmsTemplate.map(async (template)=>{
-                var smsTemplate = await _this.findOneBy({projectId: projectId, smsType: template.smsType});
+            const _this = this;
+            const templates = await Promise.all(defaultSmsTemplate.map(async (template)=>{
+                const smsTemplate = await _this.findOneBy({projectId: projectId, smsType: template.smsType});
                 return smsTemplate != null && smsTemplate != undefined ? smsTemplate : template;
             }));
             return templates;
@@ -149,10 +148,10 @@ module.exports = {
     },
 
     resetTemplate: async function (projectId, templateId) {
-        let _this = this;
-        var oldTemplate = await _this.findOneBy({ _id: templateId });
-        var newTemplate = defaultSmsTemplate.filter(template => template.smsType === oldTemplate.smsType)[0];
-        var resetTemplate = await _this.updateOneBy({
+        const _this = this;
+        const oldTemplate = await _this.findOneBy({ _id: templateId });
+        const newTemplate = defaultSmsTemplate.filter(template => template.smsType === oldTemplate.smsType)[0];
+        const resetTemplate = await _this.updateOneBy({
             _id: oldTemplate._id},{
             smsType: newTemplate.smsType,
             body: newTemplate.body,
@@ -172,7 +171,7 @@ module.exports = {
     },
 };
 
-var SmsTemplateModel = require('../models/smsTemplate');
-var ErrorService = require('./errorService');
-var smsTemplateVariables = require('../config/smsTemplateVariables');
-var defaultSmsTemplate = require('../config/smsTemplate');
+const SmsTemplateModel = require('../models/smsTemplate');
+const ErrorService = require('./errorService');
+const smsTemplateVariables = require('../config/smsTemplateVariables');
+const defaultSmsTemplate = require('../config/smsTemplate');

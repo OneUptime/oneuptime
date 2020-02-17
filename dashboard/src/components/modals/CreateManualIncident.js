@@ -53,7 +53,7 @@ class CreateManualIncident extends Component {
 			handleSubmit,
 			newIncident
 		} = this.props;
-		var sameError = newIncident && newIncident.error && newIncident.error === `An unresolved incident of type ${this.state.incidentType} already exists.` ? true : false;
+		const sameError = newIncident && newIncident.error && newIncident.error === `An unresolved incident of type ${this.state.incidentType} already exists.` ? true : false;
 		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
 				<div className="bs-BIM">
@@ -150,7 +150,7 @@ class CreateManualIncident extends Component {
 CreateManualIncident.displayName = 'CreateManualIncident';
 
 
-let CreateManualIncidentForm = reduxForm({
+const CreateManualIncidentForm = reduxForm({
 	form: 'CreateManualIncident'
 })(CreateManualIncident);
 

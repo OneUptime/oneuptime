@@ -3,18 +3,18 @@ import { storiesOf, action } from '@storybook/react';
 import { reduxForm } from 'redux-form'
 import { MonitorBox } from '../../../components/schedule/MonitorBox'
 
-let MonitorBoxDecorated = new reduxForm({
+const MonitorBoxDecorated = new reduxForm({
     form: 'AddUsersForm',
     enableReinitialize: true
 })(MonitorBox);
 
-let props = {
+const props = {
     handleSubmit: action('submit'),
     teamLoading: action('submit'),
     monitors: []
 }
 
-let props_with_users = {
+const props_with_users = {
     handleSubmit: action('submit'),
     teamLoading: action('submit'),
     currentProject: {

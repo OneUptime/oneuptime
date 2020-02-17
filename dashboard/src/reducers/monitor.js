@@ -463,7 +463,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                                     }
                                 }
 
-                                let logData = {
+                                const logData = {
                                     ...data,
                                     maxResponseTime: data.responseTime,
                                     maxCpuLoad: data.cpuLoad,
@@ -475,12 +475,12 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                                 monitor.logs = monitor.logs && monitor.logs.length > 0 ? (
                                     monitor.logs.map(a => a._id).includes(logData.probeId) || !logData.probeId ? monitor.logs.map(probeLogs => {
-                                        let probeId = probeLogs._id;
+                                        const probeId = probeLogs._id;
 
                                         if (probeId === logData.probeId || (!probeId && !logData.probeId)) {
                                             if (probeLogs.logs && probeLogs.logs.length > 0
                                                 && moment(probeLogs.logs[0].createdAt).isSame(moment(logData.createdAt), dateFormat)) {
-                                                let currentLog = probeLogs.logs[0];
+                                                const currentLog = probeLogs.logs[0];
 
                                                 logData.maxResponseTime = data.responseTime > currentLog.maxResponseTime ? data.responseTime : currentLog.maxResponseTime;
                                                 logData.maxCpuLoad = data.cpuLoad > currentLog.maxCpuLoad ? data.cpuLoad : currentLog.maxCpuLoad;
@@ -517,33 +517,58 @@ export default function monitor(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
-                        monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
-                            if (monitor._id === action.payload.monitorId) {
-                                const data = Object.assign({}, action.payload.data);
+                    monitors: state.monitorsList.monitors.map(subProject => {
+                        subProject.monitors = subProject._id === action.payload.status.projectId ? subProject.monitors.map((monitor) => {
+                            if (monitor._id === action.payload.status.monitorId) {
+                                const data = Object.assign({}, action.payload.status.data);
+                                const probes = action.payload.probes;
+                                const isValidProbe = (monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'device')
+                                    && probes && probes.length > 0;
 
-                                monitor.statuses = monitor.statuses && monitor.statuses.length > 0 ? (
-                                    monitor.statuses.map(a => a._id).includes(data.probeId) || !data.probeId ? monitor.statuses.map(probeStatuses => {
-                                        let probeId = probeStatuses._id;
+                                if (monitor.statuses && monitor.statuses.length > 0) {
+                                    const monitorProbes = monitor.statuses.map(a => a._id);
 
-                                        if (probeId === data.probeId || (!probeId && !data.probeId)) {
-                                            let previousStatus = probeStatuses.statuses[0];
-                                            previousStatus.endTime = Date.now();
+                                    if (monitorProbes.includes(data.probeId) || !data.probeId) {
+                                        monitor.statuses = monitor.statuses.map(probeStatuses => {
+                                            const probeId = probeStatuses._id;
 
-                                            return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
-                                        } else {
-                                            return probeStatuses;
+                                            if (probeId === data.probeId || !data.probeId) {
+                                                const previousStatus = probeStatuses.statuses[0];
+                                                previousStatus.endTime = new Date().toISOString();
+
+                                                return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
+                                            } else {
+                                                return probeStatuses;
+                                            }
+                                        });
+
+                                        if (isValidProbe && !probes.every(probe => monitorProbes.includes(probe._id))) {
+                                            // add manual status to all new probes
+                                            const newProbeStatuses = [];
+
+                                            probes.forEach(probe => {
+                                                if (!monitorProbes.includes(probe._id)) {
+                                                    newProbeStatuses.push({ _id: probe._id, statuses: [data] });
+                                                }
+                                            });
+
+                                            monitor.statuses = [...monitor.statuses, ...newProbeStatuses];
                                         }
-                                    }) : [...monitor.statuses, { _id: data.probeId || null, statuses: [data] }]
-                                ) : [{ _id: data.probeId || null, statuses: [data] }];
-
-                                return monitor;
-                            } else {
-                                return monitor;
+                                    } else {
+                                        monitor.statuses = [...monitor.statuses, { _id: data.probeId || null, statuses: [data] }];
+                                    }
+                                } else {
+                                    if (isValidProbe) {
+                                        monitor.statuses = probes.map(probe => ({ _id: probe._id, statuses: [data] }));
+                                    } else {
+                                        monitor.statuses = [{ _id: data.probeId || null, statuses: [data] }];
+                                    }
+                                }
                             }
-                        }) : monitor.monitors;
+                            return monitor;
+                        }) : subProject.monitors;
 
-                        return monitor;
+                        return subProject;
                     })
                 },
                 fetchMonitorStatusesRequest: false
@@ -793,7 +818,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
                             if (monitor._id === action.payload.monitorId._id) {
-                                var incidents = monitor.incidents || [];
+                                let incidents = monitor.incidents || [];
 
                                 if (incidents && incidents.length) {
                                     if (incidents.length > 2) {
@@ -880,7 +905,8 @@ export default function monitor(state = INITIAL_STATE, action) {
             });
 
         case GET_MONITOR_LOGS_FAILURE:
-            var failureLogs = {
+            {
+            const failureLogs = {
                 ...state.monitorLogs,
                 [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
                     {
@@ -901,9 +927,11 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorLogs: failureLogs
             });
+        }
 
         case GET_MONITOR_LOGS_REQUEST:
-            var requestLogs = {
+            {
+            const requestLogs = {
                 ...state.monitorLogs,
                 [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
                     {
@@ -924,6 +952,7 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorLogs: requestLogs
             });
+        }
 
         case GET_MONITOR_LOGS_RESET:
             return Object.assign({}, state, {

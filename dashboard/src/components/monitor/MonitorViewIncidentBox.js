@@ -51,8 +51,8 @@ export class MonitorViewIncidentBox extends Component {
     }
 
     render() {
-        let { createIncidentModalId } = this.state;
-        let creating = this.props.create ? this.props.create : false;
+        const { createIncidentModalId } = this.state;
+        const creating = this.props.create ? this.props.create : false;
         return (
             <div onKeyDown={this.handleKeyBoard}>
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">

@@ -210,7 +210,7 @@ const props = {
     return errors;
 }
 
-  let MonitorsgForm = reduxForm({
+  const MonitorsgForm = reduxForm({
     form: 'Branding', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for

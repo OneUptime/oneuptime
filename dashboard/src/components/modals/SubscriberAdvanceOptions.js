@@ -242,7 +242,7 @@ SubscriberAdvanceOption.propTypes = {
     subscriberOption: PropTypes.object
 };
 
-let NewUpdateSchedule = reduxForm({
+const NewUpdateSchedule = reduxForm({
     form: 'SubscriberAdvanceOptionForm',
     enableReinitialize: true,
     destroyOnUnmount: true
@@ -257,7 +257,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 
 const mapStateToProps = state => {
 
-    let initialValues = {};
+    const initialValues = {};
     const { statusPage, statusPage: { status } } = state;
     const { subscriberOption } = state.statusPage;
     const subscriberAdvanceOptionModalId = state.modal.modals[0].id;

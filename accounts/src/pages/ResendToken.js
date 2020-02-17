@@ -26,7 +26,7 @@ export class ResendTokenForm extends Component {
   componentDidMount() {
     document.body.id = 'login';
     document.body.style.overflow = 'auto';
-    var query = queryString.parse(this.props.location.search).status;
+    const query = queryString.parse(this.props.location.search).status;
 		if(query === 'Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq'){
       this.setState({
         serverResponse: 'Verification link expired.'
@@ -125,7 +125,7 @@ export class ResendTokenForm extends Component {
 ResendTokenForm.displayName = 'ResendTokenForm'
 
 function validate(values) {
-  let errors = {};
+  const errors = {};
   if (!Validate.text(values.email)) {
     errors.email = 'Email is required.'
   }
@@ -135,7 +135,7 @@ function validate(values) {
   return errors;
 }
 
-let resendTokenForm = reduxForm({
+const resendTokenForm = reduxForm({
   form: 'resendTokenForm',
   validate
 })(ResendTokenForm);

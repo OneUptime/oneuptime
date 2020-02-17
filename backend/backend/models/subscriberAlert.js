@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var subscriberAlertSchema = new Schema({
+const Schema = mongoose.Schema;
+const subscriberAlertSchema = new Schema({
     projectId: {type: String, ref: 'Project'},
     subscriberId: { type: String, ref: 'Subscriber' },
     incidentId: { type: String, ref: 'Incident' },

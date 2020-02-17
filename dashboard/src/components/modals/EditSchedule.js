@@ -4,8 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import 'imrc-datetime-picker/dist/imrc-datetime-picker.css';
-import { DatetimePickerTrigger } from 'imrc-datetime-picker';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
 
 import { updateScheduledEvent } from '../../actions/scheduledEvent';
 import { closeModal } from '../../actions/modal';
@@ -13,6 +12,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
+import DateTimeSelector from '../basic/DateTimeSelector';
 
 
 
@@ -32,37 +32,18 @@ function validate(values) {
 class UpdateSchedule extends React.Component {
 
     state = {
-        startDate: moment(this.props.initialValues.startDate),
-        endDate: moment(this.props.initialValues.endDate),
-        startDateCleared: false,
-        endDateCleared: false
+        currentDate: moment(),
     };
-
-
-    handleChangeStartDate = (moment) => {
-        this.setState({
-            startDate: moment,
-            startDateCleared: false
-        });
-    }
-
-    handleChangeEndDate = (moment) => {
-        this.setState({
-            endDate: moment,
-            endDateCleared: false
-        });
-    }
 
     submitForm = (values) => {
         const { updateScheduledEvent, closeModal, updateScheduledEventModalId } = this.props;
-        const { startDate, endDate } = this.state;
         const projectId = this.props.currentProject._id;
         const scheduledEventId = this.props.initialValues._id;
         const postObj = {};
 
         postObj.name = values.name;
-        postObj.startDate = startDate;
-        postObj.endDate = endDate;
+        postObj.startDate = moment(values.startDate);
+        postObj.endDate = moment(values.endDate);
         postObj.description = values.description;
         postObj.showEventOnStatusPage = values.showEventOnStatusPage;
         postObj.callScheduleOnEvent = values.callScheduleOnEvent;
@@ -90,13 +71,8 @@ class UpdateSchedule extends React.Component {
     }
 
     render() {
-        const { startDate, startDateCleared, endDate, endDateCleared } = this.state;
-        const { requesting, error } = this.props;
-
-        const valueStartDate = !startDateCleared && startDate ? startDate.format('MMMM Do YYYY, h:mm a') : '';
-        const valueEndDate = !endDateCleared && endDate ? endDate.format('MMMM Do YYYY, h:mm a') : '';
-
-
+        const { currentDate } = this.state;
+        const { requesting, error, startDate } = this.props;
         const { handleSubmit, closeModal } = this.props;
 
         return (
@@ -148,13 +124,15 @@ class UpdateSchedule extends React.Component {
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <div className="bs-Fieldset-field">
-                                                                <DatetimePickerTrigger
-                                                                    moment={startDate}
-                                                                    onChange={this.handleChangeStartDate}
-                                                                    showTimePicker={true}
-                                                                    closeOnSelectDay={true}>
-                                                                    <input type="text" value={valueStartDate} style={{ width: 200 }} />
-                                                                </DatetimePickerTrigger>
+                                                                <Field
+                                                                    className="bs-TextInput"
+                                                                    type="text"
+                                                                    name="startDate"
+                                                                    component={DateTimeSelector}
+                                                                    placeholder="10pm"
+                                                                    style={{ width: '300px' }}
+                                                                    minDate={currentDate}
+                                                                />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -168,13 +146,16 @@ class UpdateSchedule extends React.Component {
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <div className="bs-Fieldset-field">
-                                                                <DatetimePickerTrigger
-                                                                    moment={endDate}
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    type="text"
+                                                                    name="endDate"
+                                                                    component={DateTimeSelector}
+                                                                    placeholder="10pm"
+                                                                    style={{ width: '300px' }}
+                                                                    minDate={startDate}
                                                                     onChange={this.handleChangeEndDate}
-                                                                    showTimePicker={true}
-                                                                    closeOnSelectDay={true}>
-                                                                    <input type="text" value={valueEndDate} style={{ width: 200 }} />
-                                                                </DatetimePickerTrigger>
+                                                                />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -195,7 +176,7 @@ class UpdateSchedule extends React.Component {
                                                                     rows="5"
                                                                     id="description"
                                                                     placeholder="Event Description"
-                                                                    style={{ width: '250px', resize: 'none' }}
+                                                                    style={{ width: '300px', resize: 'none' }}
                                                                 />
                                                             </div>
                                                         </div>
@@ -365,10 +346,11 @@ UpdateSchedule.propTypes = {
     updateScheduledEventModalId: PropTypes.string,
     requesting: PropTypes.bool,
     error: PropTypes.object,
-    initialValues: PropTypes.object
+    initialValues: PropTypes.object,
+    startDate: PropTypes.object,
 };
 
-let NewUpdateSchedule = reduxForm({
+const NewUpdateSchedule = reduxForm({
     form: 'newUpdateSchedule',
     enableReinitialize: true,
     validate,
@@ -382,15 +364,19 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     }
     , dispatch);
 
+
+const selector = formValueSelector('newUpdateSchedule');
+
 const mapStateToProps = state => {
 
-    let scheduledEventToBeUpdated = state.modal.modals[0].event;
-    let initialValues = {};
+    const scheduledEventToBeUpdated = state.modal.modals[0].event;
+    const initialValues = {};
+    const startDate = selector(state, 'startDate');
 
     if (scheduledEventToBeUpdated) {
         initialValues.name = scheduledEventToBeUpdated.name;
-        initialValues.startDate = scheduledEventToBeUpdated.startDate;
-        initialValues.endDate = scheduledEventToBeUpdated.endDate;
+        initialValues.startDate = scheduledEventToBeUpdated.startDate ? scheduledEventToBeUpdated.startDate : null;
+        initialValues.endDate = scheduledEventToBeUpdated.startDate ? scheduledEventToBeUpdated.endDate : null;
         initialValues.description = scheduledEventToBeUpdated.description;
         initialValues.showEventOnStatusPage = scheduledEventToBeUpdated.showEventOnStatusPage;
         initialValues.callScheduleOnEvent = scheduledEventToBeUpdated.callScheduleOnEvent;
@@ -406,7 +392,8 @@ const mapStateToProps = state => {
         error: state.scheduledEvent.updatedScheduledEvent.error,
         requesting: state.scheduledEvent.updatedScheduledEvent.requesting,
         updateScheduledEventModalId: state.modal.modals[0].id,
-        initialValues
+        initialValues,
+        startDate
     }
 }
 

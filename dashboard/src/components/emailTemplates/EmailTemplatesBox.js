@@ -15,7 +15,7 @@ import { IS_DEV } from '../../config';
 class EmailTemplatesBox extends React.Component {
     submitForm = (values) => {
         const { currentProject } = this.props;
-        let val = this.props.emailTemplates.emailTemplates.templates.map(tmp => {
+        const val = this.props.emailTemplates.emailTemplates.templates.map(tmp => {
             if (tmp.emailType === values.email_type) {
                 tmp.subject = values.subject;
                 tmp.body = values.body;
@@ -43,7 +43,7 @@ class EmailTemplatesBox extends React.Component {
         this.props.changeShowingTemplate(value);
     }
     render() {
-        var templates = this.props.emailTemplates && this.props.emailTemplates.emailTemplates && this.props.emailTemplates.emailTemplates.templates ? this.props.emailTemplates.emailTemplates.templates : [];
+        const templates = this.props.emailTemplates && this.props.emailTemplates.emailTemplates && this.props.emailTemplates.emailTemplates.templates ? this.props.emailTemplates.emailTemplates.templates : [];
         return (
             <div className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
@@ -115,7 +115,7 @@ class EmailTemplatesBox extends React.Component {
 
 EmailTemplatesBox.displayName = 'EmailTemplatesBox';
 
-let EmailTemplatesBoxForm = new reduxForm({
+const EmailTemplatesBoxForm = new reduxForm({
     form: 'EmailTemplates',
     enableReinitialize: true,
     destroyOnUnmount: false

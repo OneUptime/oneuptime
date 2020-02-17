@@ -11,11 +11,70 @@ import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPage, fetchMonitorStatuses, getStatusPageIndividualNote, selectedProbe } from '../actions/status';
+import { getStatusPage, selectedProbe } from '../actions/status';
 import { getProbes } from '../actions/probe';
 
+let greenBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgb(117, 211, 128)'
+};
+let yellowBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgb(255, 222, 36)'
+};
+let redBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgb(250, 117, 90)'
+};
+let greyBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgba(107, 124, 147, 0.2)'
+};
 
 class Main extends Component {
+
+	constructor(props) {
+		super(props);
+
+		this.state = {
+			now: Date.now(),
+			nowHandler: null
+		};
+	}
+
+	componentDidUpdate(prevProps) {
+		if (prevProps.probes !== this.props.probes) {
+			clearTimeout(this.state.nowHandler);
+
+			this.setLastAlive();
+		}
+	}
+
+	setLastAlive = () => {
+		this.setState({ now: Date.now() });
+
+		let nowHandler = setTimeout(() => {
+			this.setState({ now: Date.now() });
+		}, 300000);
+
+		this.setState({ nowHandler });
+	}
 
 	componentDidMount() {
 		if (window.location.search.substring(1) && window.location.search.substring(1) === 'embedded=true') {
@@ -32,16 +91,10 @@ class Main extends Component {
 		}
 
 		this.props.getProbes(projectId, 0, 10).then(() => {
-			this.selectbutton(this.props.activeProbe)
+			this.selectbutton(this.props.activeProbe);
 		});
 
-		this.props.getStatusPage(projectId, url).then(() => {
-			this.props.monitorState.forEach(monitor => {
-				const endDate = moment(Date.now());
-				const startDate = moment(Date.now()).subtract(90, 'days');
-				this.props.fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
-			});
-		}).catch(err => {
+		this.props.getStatusPage(projectId, url).catch(err => {
 			if (err.message === 'Request failed with status code 401') {
 				const { loginRequired } = this.props.login;
 				if (loginRequired) {
@@ -57,9 +110,9 @@ class Main extends Component {
 		for (; i < collection.length; i++) {
 			val = collection[i][property] ? collection[i][property]['name'] : 'no-category';
 			index = values.indexOf(val);
-			if (index > -1)
+			if (index > -1) {
 				result[index].push(collection[i]);
-			else {
+			} else {
 				values.push(val);
 				result.push([collection[i]]);
 			}
@@ -68,19 +121,19 @@ class Main extends Component {
 	}
 
 	groupedMonitors = () => {
-		if (this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0) {
-			let monitorData = this.props.statusData.monitorIds;
-			let groupedMonitorData = this.groupBy(monitorData, 'monitorCategoryId')
+		if (this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0) {
+			let monitorData = this.props.statusData.monitorsData;
+			let groupedMonitorData = this.groupBy(monitorData, 'monitorCategoryId');
 			let monitorCategoryStyle = {
 				display: 'inline-block',
 				marginBottom: 10,
 				fontSize: 10,
 				color: '#8898aa',
 				fontWeight: 'Bold'
-			}
+			};
 			let monitorCategoryGroupContainerStyle = {
 				marginBottom: 40
-			}
+			};
 			return groupedMonitorData.map((groupedMonitors, i) => {
 				return (
 					<div key={i} style={monitorCategoryGroupContainerStyle} className="uptime-graph-header">
@@ -88,13 +141,13 @@ class Main extends Component {
 							<span>{groupedMonitors[0].monitorCategoryId ? groupedMonitors[0].monitorCategoryId.name.toUpperCase() : 'Uncategorized'.toUpperCase()}</span>
 						</div>
 						{groupedMonitors.map((monitor, i) => {
-							return (<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />)
+							return (<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />);
 						})}
 					</div>
-				)
-			})
+				);
+			});
 		} else {
-			return <NoMonitor />
+			return <NoMonitor />;
 		}
 	}
 
@@ -105,15 +158,14 @@ class Main extends Component {
 	renderError = () => {
 		let { error } = this.props.status;
 		if (error === 'Input data schema mismatch.') {
-			return 'StatusPage Not present';
+			return 'Status Page Not present';
 		} else if (error === 'Project Not present') {
 			return 'Invalid Project.';
 		} else return error;
 	}
 
 	render() {
-		const probes = this.props.probes || [];
-		const date = new Date();
+		const probes = this.props.probes;
 		let view = false;
 		let status = '';
 		let serviceStatus = '';
@@ -122,61 +174,35 @@ class Main extends Component {
 		let isGroupedByMonitorCategory = false;
 		let error = this.renderError();
 
-		if (this.props.statusData && this.props.statusData.monitorIds) {
+		if (this.props.statusData && this.props.statusData.monitorsData) {
 			serviceStatus = getServiceStatus(this.props.monitorState, probes);
 			isGroupedByMonitorCategory = this.props.statusData.isGroupedByMonitorCategory;
 			var colors = this.props.statusData.colors
 
 			if (serviceStatus === 'all') {
 				status = 'status-bubble status-up';
-				statusMessage = 'All services are online';
+				statusMessage = 'All Services are Online';
 				faviconurl = '/greenfavicon.ico';
-			}
-			else if (serviceStatus === 'none') {
+			} else if (serviceStatus === 'none') {
 				status = 'status-bubble status-down';
-				statusMessage = 'All services are offline';
+				statusMessage = 'All Services are Offline';
 				faviconurl = '/redfavicon.ico';
-			}
-			else if (serviceStatus === 'some') {
+			} else if (serviceStatus === 'some') {
 				status = 'status-bubble status-paused';
-				statusMessage = 'Some services are offline';
+				statusMessage = 'Some Services are Offline';
 				faviconurl = '/yellowfavicon.ico';
 			}
 			view = true;
 
-			var greenBackground = {
-				display: 'inline-block',
-				borderRadius: '50%',
-				height: '8px',
-				width: '8px',
-				margin: '0 8px 1px 0',
-				backgroundColor: 'rgb(117, 211, 128)'// "green-status"
-			}
-			var yellowBackground = {
-				display: 'inline-block',
-				borderRadius: '50%',
-				height: '8px',
-				width: '8px',
-				margin: '0 8px 1px 0',
-				backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
-			}
-			var redBackground = {
-				display: 'inline-block',
-				borderRadius: '50%',
-				height: '8px',
-				width: '8px',
-				margin: '0 8px 1px 0',
-				backgroundColor: 'rgb(250, 117, 90)'// "red-status"
-			}
 			var heading = {
-				color: `rgba(${ colors.heading.r }, ${ colors.heading.g }, ${ colors.heading.b }, ${ colors.heading.a })`
-			}
+				color: `rgba(${colors.heading.r}, ${colors.heading.g}, ${colors.heading.b}, ${colors.heading.a})`
+			};
 			var backgroundMain = {
-				background: `rgba(${ colors.pageBackground.r }, ${ colors.pageBackground.g }, ${ colors.pageBackground.b }, ${ colors.pageBackground.a })`
-			}
+				background: `rgba(${colors.pageBackground.r}, ${colors.pageBackground.g}, ${colors.pageBackground.b}, ${colors.pageBackground.a})`
+			};
 			var contentBackground = {
-				background: `rgba(${ colors.statusPageBackground.r }, ${ colors.statusPageBackground.g }, ${ colors.statusPageBackground.b }, ${ colors.statusPageBackground.a })`
-			}
+				background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`
+			};
 		}
 
 		return (
@@ -195,7 +221,7 @@ class Main extends Component {
 								<div className="title-wrapper">
 									<span className="title" style={heading}>{statusMessage}</span>
 									<label className="status-time">
-										As of <span className="current-time">{moment(date).format('LLLL')}</span>
+										As of <span className="current-time">{moment(new Date()).format('LLLL')}</span>
 									</label>
 								</div>
 							</div>
@@ -207,7 +233,9 @@ class Main extends Component {
 										key={`probes-btn${index}`}
 										id={`probes-btn${index}`}
 										className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-										<span style={probe.status === 'online' ? greenBackground : probe.status === 'degraded' ? yellowBackground : redBackground}></span>
+										<span style={probe.lastAlive && moment(this.state.now).diff(moment(probe.lastAlive), 'seconds') >= 300 ?
+											greyBackground :
+											(serviceStatus === 'none' ? redBackground : (serviceStatus === 'some' ? yellowBackground : greenBackground))}></span>
 										<span>{probe.probeName}</span>
 									</button>)
 								)}
@@ -218,14 +246,15 @@ class Main extends Component {
 									{isGroupedByMonitorCategory ?
 										this.groupedMonitors() :
 										(this.props.statusData &&
-											this.props.statusData.monitorIds !== undefined &&
-											this.props.statusData.monitorIds.length > 0 ?
-											this.props.statusData.monitorIds
-												.map((monitor, i) =>
-													<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />) :
+											this.props.statusData.monitorsData !== undefined &&
+											this.props.statusData.monitorsData.length > 0 ?
+											this.props.statusData.monitorsData
+												.map((monitor, i) => {
+													return <UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />
+												}) :
 											<NoMonitor />)}
 								</div>
-								{this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0 ?<UptimeLegend background={contentBackground}/>: ''}
+								{this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0 ? <UptimeLegend background={contentBackground} /> : ''}
 							</div>
 						</div>
 					</div>
@@ -298,9 +327,7 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => bindActionCreators({
 	getStatusPage,
-	fetchMonitorStatuses,
 	getProbes,
-	getStatusPageIndividualNote,
 	selectedProbe
 }, dispatch);
 
@@ -308,13 +335,12 @@ Main.propTypes = {
 	statusData: PropTypes.object,
 	status: PropTypes.object,
 	getStatusPage: PropTypes.func,
-	fetchMonitorStatuses: PropTypes.func,
 	getProbes: PropTypes.func,
 	login: PropTypes.object.isRequired,
 	monitorState: PropTypes.array,
 	selectedProbe: PropTypes.func,
 	activeProbe: PropTypes.number,
 	probes: PropTypes.array
-}
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

@@ -7,8 +7,8 @@ import { User } from '../../config';
 // returns JSX.Element or NULL
 function RenderIfMember(props) {
     const {currentProject, children} = props;
-    var userId = User.getUserId();
-    var renderItems = null;
+    const userId = User.getUserId();
+    let renderItems = null;
     if (
         userId && currentProject &&
         currentProject.users &&

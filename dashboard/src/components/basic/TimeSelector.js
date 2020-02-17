@@ -26,6 +26,9 @@ const styles = () => ({
 });
 
 const TimeSelector = ({ input, meta: { touched, error }, style, classes }) => {
+    if (!input.value) {
+        input.value = null;
+    }
     const [value, setValue] = useState(input.value);
     const handleChange = (option) => {
         setValue(option);

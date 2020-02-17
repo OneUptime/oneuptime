@@ -1,16 +1,16 @@
 //eslint-disable-next-line
 function openTab(evt, tabName) {
     // Declare all variables
-    var i, tabcontent, tablinks;
+    let i;
 
     // Get all elements with class="tabcontent" and hide them
-    tabcontent = document.getElementsByClassName('tabcontent');
+    const tabcontent = document.getElementsByClassName('tabcontent');
     for (i = 0; i < tabcontent.length; i++) {
         tabcontent[i].className = tabcontent[i].className.replace(' active', '');
     }
 
     // Get all elements with class="tablinks" and remove the class "active"
-    tablinks = document.getElementsByClassName('tablinks');
+    const tablinks = document.getElementsByClassName('tablinks');
     for (i = 0; i < tablinks.length; i++) {
         tablinks[i].className = tablinks[i].className.replace(' active', '');
     }
@@ -23,11 +23,11 @@ function openTab(evt, tabName) {
 //eslint-disable-next-line
 function openTooltip(name) {
     // Declare all variables
-    var i, tooltip, elclass, element;
-    element = document.getElementById(name);
-    elclass = element.className;
+    let i;
+    const element = document.getElementById(name);
+    const elclass = element.className;
 
-    tooltip = document.getElementsByClassName('tooltiptext');
+    const tooltip = document.getElementsByClassName('tooltiptext');
     for (i = 0; i < tooltip.length; i++) {
         tooltip[i].className = tooltip[i].className.replace(' active', '');
     }
@@ -41,8 +41,8 @@ function openTooltip(name) {
 
 window.onload = function () {
     animateHTML().init();
-    var tooltext = document.getElementsByClassName('tooltiptext');
-    for (var i = 0; i < tooltext.length; i++) {
+    const tooltext = document.getElementsByClassName('tooltiptext');
+    for (let i = 0; i < tooltext.length; i++) {
         tooltext[i].onclick = function (e) {
             e.stopPropagation();
         }
@@ -50,27 +50,27 @@ window.onload = function () {
 
     document.getElementsByTagName('body')[0].onclick = function (e) {
         if (e.target.className !== 'popover-dot' && e.target.className !== 'tooltiptext' && e.target.className !== 'tablinks active') {
-            var tooltip = document.getElementsByClassName('tooltiptext');
-            for (i = 0; i < tooltip.length; i++) {
+            const tooltip = document.getElementsByClassName('tooltiptext');
+            for (let i = 0; i < tooltip.length; i++) {
                 tooltip[i].className = tooltip[i].className.replace(' active', '');
             }
         }
     }
 }
 
-var animateHTML = function () {
-    var elem, windowHeight;
-    var init = function () {
+const animateHTML = function () {
+    let elem, windowHeight;
+    const init = function () {
         elem = document.getElementById('Statuspage');
         windowHeight = window.innerHeight;
         _addEventHandlers();
     }
-    var _addEventHandlers = function () {
+    const _addEventHandlers = function () {
         window.addEventListener('scroll', _checkPosition)
         window.addEventListener('resize', init)
     }
-    var _checkPosition = function () {
-        var posFromTop = elem.getBoundingClientRect().top;
+    const _checkPosition = function () {
+        const posFromTop = elem.getBoundingClientRect().top;
 
         if (posFromTop - windowHeight <= -400) {
             document.getElementById('Statuspage1').parentNode.click();

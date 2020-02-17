@@ -3,29 +3,26 @@
     <h1>API Reference</h1>
     <p>
       <p>
-        The Fyipe API is organized around <a
-          href="http://en.wikipedia.org/wiki/Representational_State_Transfer">REST</a>.
+        The Fyipe API is organized around the <a
+          href="http://en.wikipedia.org/wiki/Representational_State_Transfer">REST</a> framework.
         Our API is designed to have predictable, resource-oriented URLs and to use HTTP response codes to indicate
-        API errors. We use built-in HTTP features, like HTTP authentication and HTTP verbs, which can be understood
-        by
-        off-the-shelf HTTP clients, and we support <a
-          href="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing">cross-origin
-          resource sharing</a> to allow you to interact securely with our API from a client-side web
-        application/mobile application, or any service that can consume HTTP RESTful API's. You should remember
-        that you should never expose your API Key in any
-        public website's client-side code, Project ID however can be exposed).
+        API errors. We use built-in HTTP features like HTTP authentication and HTTP verbs, which can be understood
+        by off-the-shelf HTTP clients, and we support <a
+          href="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing">cross-origin resource sharing</a>
+        to allow you to interact securely with our API from a client-side web application/mobile application,
+        or any service that can consume HTTP RESTful API's.
+        You should remember that you should never expose your API Key in any public website's client-side code, Project
+        ID however can be exposed).
         <a href="http://www.json.org/">JSON</a> will be returned in all responses from the API, including errors
-        (though if you're using API bindings/SDK, we will convert the response to the appropriate language-specific
-        object).
+        (though if you're using API bindings/SDK,
+        we will convert the response to the appropriate language-specific object).
       </p>
-
-
-
-
   </div>
+
   <div class="col-lg-half col-md-half dev-doc-example">
     <div class="doc-example-item">
       <h1>REST API Endpoint</h1>
+
       <div class="example-code">
         <p class="url">https://api.fyipe.com/</p>
       </div>

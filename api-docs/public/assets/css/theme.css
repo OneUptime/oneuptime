@@ -1909,8 +1909,8 @@ aside.cf-sidebar {
 	width: 240px;
 	height: 100%;
 	position: fixed;
-	background-image: linear-gradient(140deg, #191654 0%, #16394A 90%, #43C6AC 100%);
-	background-color: #191654;
+	/* background-image: linear-gradient(140deg, #191654 0%, #16394A 90%, #43C6AC 100%); */
+	background-color: #000000;
 	box-shadow: inset -6px 0px 18px 0px rgba(0, 0, 0, 0.24);
 	-webkit-transition-propery: left, width;
 	-webkit-transition-duration: .3s;
@@ -1953,7 +1953,7 @@ aside.cf-sidebar .sidebar-header .cf-logo {
 aside.cf-sidebar .sidebar-header .cf-logo:before {
 	content: '';
 	display: block;
-	background-image: url("https://fyipe.com/img/FyipeFull.svg");
+	background-image: url("../images/fyipe.svg");
 	width: 135px;
 	height: 82px;
 	background-repeat: no-repeat;
@@ -1962,7 +1962,7 @@ aside.cf-sidebar .sidebar-header .cf-logo:before {
 	margin: 32px auto 0 auto
 }
 
-aside.cf-sidebar .sidebar-header .cf-logo:after {
+/* aside.cf-sidebar .sidebar-header .cf-logo:after {
 	content: '';
 	position: absolute;
 	width: 240px;
@@ -1971,7 +1971,7 @@ aside.cf-sidebar .sidebar-header .cf-logo:after {
 	background-color: #191654;
 	bottom: 0;
 	right: 0
-}
+} */
 
 aside.cf-sidebar .sidebar-navigation {
 	line-height: 1.4;

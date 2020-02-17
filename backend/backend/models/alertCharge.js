@@ -4,10 +4,10 @@
  * 
  */
 
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var alertChargeSchema = new Schema({
+const Schema = mongoose.Schema;
+const alertChargeSchema = new Schema({
     projectId: { type: String, ref: 'Project'},
     chargeAmount: { type: Number, default: 0 },
     closingAccountBalance: { type: Number, default: 0 },

@@ -96,7 +96,7 @@ const mapDispatchToProps = dispatch => (
 const mapStateToProps = (state, props) => {
     const { scheduleId, projectId, subProjectId } = props.match.params;
 
-    var schedule = state.schedule.subProjectSchedules.map((subProjectSchedule)=>{
+    let schedule = state.schedule.subProjectSchedules.map((subProjectSchedule)=>{
         return subProjectSchedule.schedules.find(schedule => schedule._id === scheduleId)
     });
     

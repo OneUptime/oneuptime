@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var leadSchema = new Schema({
+const Schema = mongoose.Schema;
+const leadSchema = new Schema({
     type: String,
     name: String,
     email: String,

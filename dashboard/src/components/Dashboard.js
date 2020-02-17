@@ -206,13 +206,13 @@ DashboardApp.propTypes = {
     ready: PropTypes.func
 }
 
-let mapStateToProps = state => ({
+const mapStateToProps = state => ({
     project: state.project,
     profile: state.profileSettings,
     notification: state.notifications
 })
 
-let mapDispatchToProps = dispatch => (
+const mapDispatchToProps = dispatch => (
     bindActionCreators({
         getProjects,
         showForm,

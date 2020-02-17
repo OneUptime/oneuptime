@@ -6,13 +6,13 @@ import ShouldRender from '../basic/ShouldRender';
 import { RenderMember } from './RenderMember';
 
 let RenderMembers = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex, teamIndex, form }) => {
-    const policyRotation = form[policyIndex].team[teamIndex];
+    const policyRotation = form[policyIndex].teams[teamIndex];
 
     return (
         <ul>
             {
                 fields.map((inputarray, i) => {
-                    const memberValue = policyRotation.teamMember[i];
+                    const memberValue = policyRotation.teamMembers[i];
                     
                     return (
                         <RenderMember
@@ -78,7 +78,10 @@ RenderMembers.propTypes = {
     ]).isRequired,
     policyIndex: PropTypes.number.isRequired,
     teamIndex: PropTypes.number.isRequired,
-    form: PropTypes.object.isRequired,
+    form: PropTypes.oneOfType([
+        PropTypes.array,
+        PropTypes.object
+    ]).isRequired
 }
 
 function mapStateToProps(state) {

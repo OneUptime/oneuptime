@@ -37,7 +37,7 @@ export const resetDeleteWebHook = () => {
 export function deleteWebHook(projectId, webhookId) {
 	return function (dispatch) {
 
-		var promise = deleteApi(`webhook/${projectId}/delete/${webhookId}`, null);
+		const promise = deleteApi(`webhook/${projectId}/delete/${webhookId}`, null);
 
 		dispatch(deleteWebHookRequest());
 
@@ -93,7 +93,7 @@ export const resetGetWebHook = () => {
 export function getWebHook(projectId, skip, limit) {
 
 	return function (dispatch) {
-        var promise = null;
+        let promise = null;
             promise = getApi(`webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10}`);
         dispatch(getWebHookRequest(promise));
 
@@ -151,7 +151,7 @@ export const resetCreateWebHook = () => {
 export function createWebHook(projectId, data) {
 	return function (dispatch) {
 
-		var promise = postApi(`webhook/${projectId}/create`, data);
+		const promise = postApi(`webhook/${projectId}/create`, data);
 
 		dispatch(createWebHookRequest());
 
@@ -207,7 +207,7 @@ export const resetUpdateWebHook = () => {
 export function updateWebHook(projectId, webhookId, data) {
 	return function (dispatch) {
 
-		var promise = putApi(`webhook/${projectId}/${webhookId}`, data);
+		const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 
 		dispatch(updateWebHookRequest());
 

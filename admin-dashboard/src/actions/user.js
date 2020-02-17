@@ -122,7 +122,7 @@ export const updateUserSettingError = error => {
 
 // Calls the API to update user setting.
 export const updateUserSetting = values => async (dispatch) => {
-	let data = new FormData();
+	const data = new FormData();
 	if (values.profilePic && values.profilePic[0]) {
 		data.append('profilePic', values.profilePic[0], values.profilePic[0].name);
 	}

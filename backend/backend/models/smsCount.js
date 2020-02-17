@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var smsCountSchema = new Schema({
+const Schema = mongoose.Schema;
+const smsCountSchema = new Schema({
     userId: { type: String, ref: 'User', alias: 'users' },
     sentTo: String,
     createdAt: { type: Date, default: Date.now},

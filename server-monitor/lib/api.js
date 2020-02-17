@@ -78,7 +78,7 @@ module.exports = (config, apiKey, monitorId) => {
      * @return {(Object | number)} The ping server cron job or the error code.
      */
     start: (id = monitorId) => {
-      let url = `monitor/${projectId}/monitor/${id && typeof id === 'string' ? `${id}/` : ''}?type=server-monitor`;
+      const url = `monitor/${projectId}/monitor/${id && typeof id === 'string' ? `${id}/` : ''}?type=server-monitor`;
 
       return get(url, apiKey, response => {
         return new Promise((resolve, reject) => {

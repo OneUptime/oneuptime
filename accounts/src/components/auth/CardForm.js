@@ -337,7 +337,7 @@ class CardForm extends Component {
 
 CardForm.displayName = 'CardForm';
 
-let validate = function (values) {
+const validate = function (values) {
   const errors = {};
 
   if (!Validate.text(values.cardName)) {
@@ -364,7 +364,7 @@ let validate = function (values) {
 };
 
 
-let cardForm = reduxForm({
+const cardForm = reduxForm({
   form: 'CardForm',              	 // <------ same form name                     // <----- validate form data
   destroyOnUnmount: false,         // <------ preserve form data
   forceUnregisterOnUnmount: true,  // <------ unregister fields on unmount

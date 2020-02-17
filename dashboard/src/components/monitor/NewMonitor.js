@@ -86,9 +86,9 @@ class NewMonitor extends Component {
     }
 
     submitForm = (values) => {
-        var thisObj = this;
+        const thisObj = this;
 
-        var { upgradeModalId } = this.state;
+        const { upgradeModalId } = this.state;
         const postObj = { data: {}, criteria: {} };
         postObj.projectId = values[`subProject_${this.props.index}`]
         postObj.name = values[`name_${this.props.index}`];
@@ -232,7 +232,7 @@ class NewMonitor extends Component {
     }
 
     render() {
-        let requesting = ((this.props.monitor.newMonitor.requesting && !this.props.edit) || (this.props.monitor.editMonitor.requesting && this.props.edit));
+        const requesting = ((this.props.monitor.newMonitor.requesting && !this.props.edit) || (this.props.monitor.editMonitor.requesting && this.props.edit));
 
         const { handleSubmit, subProjects, schedules } = this.props;
         const { monitorCategoryList } = this.props;
@@ -593,7 +593,7 @@ class NewMonitor extends Component {
 
 NewMonitor.displayName = 'NewMonitor';
 
-let NewMonitorForm = new reduxForm({
+const NewMonitorForm = new reduxForm({
     form: 'NewMonitor',
     destroyOnUnmount: true,
     enableReinitialize: true
@@ -621,11 +621,11 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     , dispatch);
 
 const mapStateToProps = (state, ownProps) => {
-    var name = selector(state, 'name_1000');
-    var type = selector(state, 'type_1000');
-    var category = selector(state, 'monitorCategoryId_1000');
-    var subProject = selector(state, 'subProject_1000');
-    var schedule = selector(state, 'callSchedule_1000');
+    const name = selector(state, 'name_1000');
+    const type = selector(state, 'type_1000');
+    const category = selector(state, 'monitorCategoryId_1000');
+    const subProject = selector(state, 'subProject_1000');
+    const schedule = selector(state, 'callSchedule_1000');
 
     if (ownProps.edit) {
         const monitorId = ownProps.match ? ownProps.match.params ? ownProps.match.params.monitorId : null : null;

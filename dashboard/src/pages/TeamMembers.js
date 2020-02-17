@@ -12,6 +12,7 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import ShouldRender from '../components/basic/ShouldRender';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
+import { history } from '../store';
 
 const LoadingState = () => (
     <div className="Box-root Margin-bottom--12">
@@ -94,7 +95,7 @@ const LoadedTeam = props => {
     });
 
     // Add Project TeamMembers to All TeamMembers List
-    var projectTeamMembers = team.subProjectTeamMembers.find(subProjectTeamMember => subProjectTeamMember._id === currentProjectId)
+    let projectTeamMembers = team.subProjectTeamMembers.find(subProjectTeamMember => subProjectTeamMember._id === currentProjectId)
     const projectMembers = Object.assign({},projectTeamMembers);
     projectTeamMembers = projectTeamMembers && projectTeamMembers.teamMembers ? (
         <RenderIfUserInSubProject subProjectId={currentProjectId} key={() => uuid.v4()}>
@@ -164,7 +165,10 @@ class TeamApp extends Component {
     }
 
     componentDidMount() {
-        if (this.props.currentProject) {
+        if (!this.props.currentProject) {
+            const projectId = history.location.pathname.split('project/')[1].split('/')[0];
+            this.props.subProjectTeamLoading(projectId);
+        } else {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
         if (!IS_DEV) {
@@ -237,7 +241,7 @@ TeamApp.propTypes = {
 }
 
 const mapStateToProps = state => {
-    var subProjects = state.subProject.subProjects.subProjects;
+    let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);

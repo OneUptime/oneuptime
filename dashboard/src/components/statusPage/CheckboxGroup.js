@@ -5,7 +5,7 @@ import { Field } from 'redux-form';
 class CheckboxGroup extends React.Component {
 
     checkboxGroup() {
-        let { monitors } = this.props;
+        const { monitors } = this.props;
          
         return monitors.map((monitor, index) => {
             return (

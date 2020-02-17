@@ -43,6 +43,6 @@ module.exports = {
     }
 };
 
-var Airtable = require('airtable');
-var apiKeys = require('../config/keys.js');
-var base = new Airtable({ apiKey: apiKeys.airtableApiKey }).base(apiKeys.airtableBaseId);
+const Airtable = require('airtable');
+const apiKeys = require('../config/keys.js');
+const base = new Airtable({ apiKey: apiKeys.airtableApiKey }).base(apiKeys.airtableBaseId);

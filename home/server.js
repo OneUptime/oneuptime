@@ -1,9 +1,8 @@
-var express = require('express');
-var app = express();
-var bodyParser = require('body-parser');
-var request = require('request'); //eslint-disable-line
-var path = require('path');
-var compression = require('compression');
+const express = require('express');
+const app = express();
+const bodyParser = require('body-parser');
+const path = require('path');
+const compression = require('compression');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));

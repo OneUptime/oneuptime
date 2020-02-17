@@ -65,18 +65,18 @@ export class Monitors extends Component {
                                                     <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                         <div className="Box-root" style={{ height: '5px' }}></div>
                                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        {
-                                                            this.props.currentProject._id === status.projectId._id || this.props.currentProject._id === status.projectId ?
+                                                        { status.projectId &&
+                                                            (this.props.currentProject._id === status.projectId._id || this.props.currentProject._id === status.projectId )?
                                                             <MonitorInputs monitors={this.props.monitors} subProject={this.props.currentProject} /> : false
                                                         }
-                                                        {
+                                                        { status.projectId &&
                                                             subProjects.map((subProject, i)=>{
                                                                 if((subProject._id === status.projectId._id) || (subProject._id === status.projectId)){
                                                                     return (<MonitorInputs monitors={this.props.monitors} subProject={subProject} key={i} />)
                                                                 }
                                                                 return false;
-                                                            }) 
-                                                        } 
+                                                            })
+                                                        }
                                                         </div>
                                                     </div>
                                                 </div>
@@ -142,7 +142,7 @@ Monitors.propTypes = {
     subProjects: PropTypes.array.isRequired,
 }
 
-let MonitorsForm = reduxForm({
+const MonitorsForm = reduxForm({
     form: 'StatuspageMonitors', // a unique identifier for this form
     enableReinitialize: true
 })(Monitors);
@@ -158,7 +158,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 )
 
 const mapStateToProps = state => {
-    let initialValues = {};
+    const initialValues = {};
     const { currentProject } = state.project;
     
     const monitors = state.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
@@ -169,7 +169,7 @@ const mapStateToProps = state => {
             initialValues[_id] = status.monitorIds.some(id => _id === id._id || _id === id);
         });
     }
-    let subProjects = state.subProject.subProjects.subProjects;
+    const subProjects = state.subProject.subProjects.subProjects;
     return { initialValues, monitors, statusPage, currentProject, subProjects };
 }
 

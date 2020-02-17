@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var monitorSchema = new Schema({
+const Schema = mongoose.Schema;
+const monitorSchema = new Schema({
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', alias: 'project' }, //which project this incident belongs to.
     monitorId: { type: String, ref: 'Monitor' }, // which monitor does this incident belongs to.
 
@@ -70,6 +70,7 @@ var monitorSchema = new Schema({
         type: Date
     },
 
-    deletedById: { type: String, ref: 'User' }
+    deletedById: { type: String, ref: 'User' },
+
 });
 module.exports = mongoose.model('Incident', monitorSchema);

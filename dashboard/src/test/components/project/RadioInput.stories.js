@@ -7,13 +7,13 @@ import {reduxForm} from 'redux-form'
 
 localStorage.setItem('id', '5b1c0c29cb06cc23b132db07')
 
-let props = {
+const props = {
     id: 'ID here',
     details: 'Details here',
     value: 'Value here',
 }
 
-let RadioInputDecorated = new reduxForm({
+const RadioInputDecorated = new reduxForm({
     form: 'RadioInput',
 })(RadioInput);
 

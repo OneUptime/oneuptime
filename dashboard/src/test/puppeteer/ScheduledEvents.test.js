@@ -99,6 +99,11 @@ describe('Scheduled event', () => {
             await page.click(addButtonSelector);
 
             await page.waitFor(1000);
+            
+            await page.click('input[name=startDate]');
+            await page.click('div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)');
+            await page.click('input[name=endDate]');
+            await page.click('div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)');
 
             await page.type('input[name=name]', utils.scheduledEventName);
             await page.type('textarea[name=description]', utils.scheduledEventDescription);

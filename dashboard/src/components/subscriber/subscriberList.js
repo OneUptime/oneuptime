@@ -33,7 +33,7 @@ export class SubscriberList extends Component {
             canPrev = false;
         }
 
-        let deleting = this.props.delete ? this.props.delete : false;
+        const deleting = this.props.delete ? this.props.delete : false;
 
         return (
             <div className="div">

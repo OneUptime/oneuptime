@@ -249,7 +249,7 @@ export class PrivateStatusPage extends Component {
 
 PrivateStatusPage.displayName = 'PrivateStatusPage'
 
-let PrivateStatusPageForm = reduxForm({
+const PrivateStatusPageForm = reduxForm({
     form: 'PrivateStatusPages', // a unique identifier for this form
     enableReinitialize: true
 })(PrivateStatusPage);
@@ -274,7 +274,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 )
 
 const mapStateToProps = state => {
-    let initialValues = {};
+    const initialValues = {};
     const { currentProject } = state.project;
     const { statusPage, statusPage: { status } } = state;
 
