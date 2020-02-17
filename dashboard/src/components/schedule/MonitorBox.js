@@ -32,7 +32,7 @@ function submitMonitorForm(values, dispatch, props) {
 export function MonitorBox(props) {
     const { currentProject, subProjects, subProjectId } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
-    var subProject = currentProjectId === subProjectId ||  currentProjectId === subProjectId ? currentProject : false;
+    let subProject = currentProjectId === subProjectId ||  currentProjectId === subProjectId ? currentProject : false;
     if(!subProject) subProject = subProjects.find(subProject => subProject._id === subProjectId || subProject._id === subProjectId._id);
     return (
         <div className="Box-root Margin-bottom--12">
@@ -132,33 +132,33 @@ export function MonitorBox(props) {
 
 MonitorBox.displayName = 'MonitorBox'
 
-let AddMonitorsForm = new reduxForm({
+const AddMonitorsForm = new reduxForm({
     form: 'AddMonitorsForm'
 })(MonitorBox);
 
-let mapStateToProps = (state, props) => {
+const mapStateToProps = (state, props) => {
     const { projectId, subProjectId, scheduleId } = props.match.params;
-    let initialValues = {};
-    var schedule = state.schedule.subProjectSchedules.map((subProjectSchedule)=>{
+    const initialValues = {};
+    let schedule = state.schedule.subProjectSchedules.map((subProjectSchedule)=>{
         return subProjectSchedule.schedules.find(schedule => schedule._id === scheduleId)
     });
     
     schedule = schedule.find(schedule => schedule && schedule._id === scheduleId)
 
-    let monitors = state.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
+    const monitors = state.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
     const isRequesting = state.schedule.addMonitor.requesting;
-    let currentProject = state.project.currentProject;
+    const currentProject = state.project.currentProject;
 
     if (monitors.length > 0 && schedule) {
 
-        let scheduleMonitorIds = schedule.monitorIds.map(({ _id }) => _id);
-        let monitorIds = monitors.map(({_id}) => _id);
+        const scheduleMonitorIds = schedule.monitorIds.map(({ _id }) => _id);
+        const monitorIds = monitors.map(({_id}) => _id);
 
         monitorIds.forEach(_id=>{
             initialValues[_id] = scheduleMonitorIds.includes(_id)
         })
     }
-    let subProjects = state.subProject.subProjects.subProjects;
+    const subProjects = state.subProject.subProjects.subProjects;
 
     return { initialValues, monitors, isRequesting, projectId, subProjectId, currentProject, subProjects };
 }

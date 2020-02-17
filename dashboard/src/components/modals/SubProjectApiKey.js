@@ -81,7 +81,7 @@ class SubProjectApiKey extends Component {
 SubProjectApiKey.displayName = 'SubProjectApiKeyModal'
 
 const mapStateToProps = (state, props) => {
-    var subproject = state.subProject && state.subProject.subProjects && state.subProject.subProjects.subProjects ? state.subProject.subProjects.subProjects : {};
+    let subproject = state.subProject && state.subProject.subProjects && state.subProject.subProjects.subProjects ? state.subProject.subProjects.subProjects : {};
     if (subproject && subproject.length && props.data && props.data.subProjectId) {
         subproject = subproject.find(obj => obj._id === props.data.subProjectId);
     }

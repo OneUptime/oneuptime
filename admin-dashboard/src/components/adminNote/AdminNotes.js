@@ -14,7 +14,7 @@ function validate(values) {
     const adminNotesArrayErrors = [];
 
     if (values.adminNotes) {
-        for (var i = 0; i < values.adminNotes.length; i++) {
+        for (let i = 0; i < values.adminNotes.length; i++) {
             const adminNotesErrors = {}
             if (values.adminNotes[i] && values.adminNotes[i].note) {
 
@@ -112,7 +112,7 @@ AdminNotes.propTypes = {
     handleSubmit: PropTypes.func
 }
 
-let AdminNotesForm = reduxForm({
+const AdminNotesForm = reduxForm({
     form: 'AdminNotes', // a unique identifier for this form
     validate, // <--- validation function given to redux-for
     enableReinitialize: true

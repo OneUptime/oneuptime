@@ -1,4 +1,4 @@
-var utils = require('./test-utils');
+const utils = require('./test-utils');
 
 module.exports = { 
     /**

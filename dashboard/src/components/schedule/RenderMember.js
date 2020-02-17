@@ -3,11 +3,11 @@ import PropTypes from 'prop-types'
 import { Field } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import TimezoneSelector from '../basic/TimezoneSelector';
-import TeamSelector from '../basic/TeamSelector';
+import TeamMemberSelector from '../basic/TeamMemberSelector';
 import TimeSelector from '../basic/TimeSelector';
 import Tooltip from '../basic/Tooltip';
 
-let RenderMember = ({
+const RenderMember = ({
     memberValue, inputarray, subProjectId,
     policyIndex, teamIndex, nameIndex,
     fields
@@ -38,8 +38,8 @@ let RenderMember = ({
                         <Field
                             className="db-BusinessSettings-input TextInput bs-TextInput"
                             type="text"
-                            name={`${inputarray}.member`}
-                            component={TeamSelector}
+                            name={`${inputarray}.userId`}
+                            component={TeamMemberSelector}
                             placeholder="Nawaz"
                             subProjectId={subProjectId}
                             policyIndex={policyIndex}
@@ -123,7 +123,7 @@ let RenderMember = ({
                                 name={`${inputarray}.timezone`}
                                 component={TimezoneSelector}
                                 style={{ width: '250px' }}
-                                placeholder="CXT - Christmas"
+                                placeholder="Select Timezone"
                             />
                             <Tooltip title="On-Call Timezone" >
                                 <div>
@@ -139,7 +139,12 @@ let RenderMember = ({
                     <label className="bs-Fieldset-label"></label>
                     <div className="bs-Fieldset-fields">
                         <button className="button-as-anchor"
-                            onClick={(() => manageVisibility(false, memberHasCallTimes))}
+                            onClick={() => {
+                                memberValue.startTime = null;
+                                memberValue.endTime = null;
+                                memberValue.timezone = null;
+                                manageVisibility(false, memberHasCallTimes)
+                            }}
                         >Remove on-call duty times</button>
                     </div>
                 </div>

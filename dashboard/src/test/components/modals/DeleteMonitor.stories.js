@@ -2,7 +2,7 @@ import React from 'react';
 import { storiesOf, action } from '@storybook/react';
 import DeleteMonitor from '../../../components/modals/DeleteMonitor'
 
-let props = {
+const props = {
     confirmThisDialog:action('confirmThisDialog'),
     closeThisDialog:action('closeThisDialog')
 }

@@ -177,7 +177,7 @@ TemplatesFormBox.propTypes = {
     resetTemplate: PropTypes.func.isRequired,
 }
 
-let TemplatesFormBoxForm = reduxForm({
+const TemplatesFormBoxForm = reduxForm({
     form: 'templatesform', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for
@@ -191,7 +191,7 @@ const mapDispatchToProps = (dispatch) => {
 
 function mapStateToProps(state) {
     const template = state.emailTemplates.showingTemplate;
-    var val = {
+    const val = {
         subject: template.subject,
         body: template.body,
         email_type: template.emailType,

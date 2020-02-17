@@ -4,23 +4,23 @@
  *
  */
 
-var express = require('express');
+const express = require('express');
 
-var router = express.Router();
+const router = express.Router();
 
 const {
     isAuthorized
 } = require('../middlewares/authorization');
 
-var getUser = require('../middlewares/user').getUser;
-var isUserAdmin = require('../middlewares/project').isUserAdmin;
+const getUser = require('../middlewares/user').getUser;
+const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
 
-var MonitorCategoryService = require('../services/monitorCategoryService');
+const MonitorCategoryService = require('../services/monitorCategoryService');
 
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendListResponse = require('../middlewares/response').sendListResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 
 // Route
@@ -30,10 +30,10 @@ var sendItemResponse = require('../middlewares/response').sendItemResponse;
 // Returns: 200: MonitorCategory, 400: Error; 500: Server Error.
 router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        var monitorCategoryName = req.body.monitorCategoryName;
-        var projectId = req.params.projectId;
+        const monitorCategoryName = req.body.monitorCategoryName;
+        const projectId = req.params.projectId;
 
-        var userId = req.user ? req.user.id : null;
+        const userId = req.user ? req.user.id : null;
 
         if (!monitorCategoryName) {
             return sendErrorResponse(req, res, {
@@ -64,7 +64,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
         }
 
         // Call the MonitorCategoryService
-        var monitorCategory = await MonitorCategoryService.create({ projectId, userId, name: monitorCategoryName });
+        const monitorCategory = await MonitorCategoryService.create({ projectId, userId, name: monitorCategoryName });
         return sendItemResponse(req, res, monitorCategory);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -74,10 +74,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 
 router.delete('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        var monitorCategoryId = req.params.monitorCategoryId;
-        var projectId = req.params.projectId;
+        const monitorCategoryId = req.params.monitorCategoryId;
+        const projectId = req.params.projectId;
 
-        var userId = req.user ? req.user.id : null;
+        const userId = req.user ? req.user.id : null;
 
 
         if (!monitorCategoryId) {
@@ -108,7 +108,7 @@ router.delete('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdm
             });
         }
         // Call the MonitorCategoryService
-        var deletedMonitorCategory = await MonitorCategoryService.deleteBy(
+        const deletedMonitorCategory = await MonitorCategoryService.deleteBy(
             {
                 projectId,
                 _id: monitorCategoryId
@@ -124,9 +124,9 @@ router.delete('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdm
 // Route to update a monitor category's name
 router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
     try {
-        var monitorCategoryId = req.params.monitorCategoryId;
-        var projectId = req.params.projectId;
-        var { name } = req.body;
+        const monitorCategoryId = req.params.monitorCategoryId;
+        const projectId = req.params.projectId;
+        const { name } = req.body;
 
         if (!monitorCategoryId) {
             return sendErrorResponse(req, res, {
@@ -157,7 +157,7 @@ router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin,
         }
 
         // Call the MonitorCategoryService
-        var updatedMonitorCategory = await MonitorCategoryService.updateOneBy(
+        const updatedMonitorCategory = await MonitorCategoryService.updateOneBy(
             { projectId, _id: monitorCategoryId },
             { name, projectId, _id: monitorCategoryId }
         );
@@ -169,8 +169,8 @@ router.put('/:projectId/:monitorCategoryId', getUser, isAuthorized, isUserAdmin,
 
 router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
     try {
-        var projectId = req.params.projectId;
-        var query = req.query;
+        const projectId = req.params.projectId;
+        const query = req.query;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -186,8 +186,8 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
             });
         }
         // Call the MonitorCategoryService
-        var monitorCategories = await MonitorCategoryService.findBy({ projectId }, query.limit, query.skip);
-        var count = await MonitorCategoryService.countBy({ projectId });
+        const monitorCategories = await MonitorCategoryService.findBy({ projectId }, query.limit, query.skip);
+        const count = await MonitorCategoryService.countBy({ projectId });
         return sendListResponse(req, res, monitorCategories, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

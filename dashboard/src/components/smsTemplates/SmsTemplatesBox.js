@@ -14,7 +14,7 @@ import { IS_DEV } from '../../config';
 class SmsTemplatesBox extends React.Component {
     submitForm = (values) => {
         const { currentProject } = this.props;
-        let val = this.props.smsTemplates.smsTemplates.templates.map(tmp => {
+        const val = this.props.smsTemplates.smsTemplates.templates.map(tmp => {
             if (tmp.smsType === values.sms_type) {
                 tmp.body = values.body;
                 return tmp;
@@ -41,7 +41,7 @@ class SmsTemplatesBox extends React.Component {
         this.props.changeShowingTemplate(value);
     }
     render() {
-        var templates = this.props.smsTemplates && this.props.smsTemplates.smsTemplates && this.props.smsTemplates.smsTemplates.templates ? this.props.smsTemplates.smsTemplates.templates : [];
+        const templates = this.props.smsTemplates && this.props.smsTemplates.smsTemplates && this.props.smsTemplates.smsTemplates.templates ? this.props.smsTemplates.smsTemplates.templates : [];
         return (
             <div className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
@@ -117,7 +117,7 @@ class SmsTemplatesBox extends React.Component {
 
 SmsTemplatesBox.displayName = 'SmsTemplatesBox';
 
-let SmsTemplatesBoxForm = new reduxForm({
+const SmsTemplatesBoxForm = new reduxForm({
     form: 'SmsTemplates',
     enableReinitialize: true,
     destroyOnUnmount: false

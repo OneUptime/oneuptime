@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
-let greenBackground = {
+const greenBackground = {
     display: 'inline-block',
     borderRadius: '50%',
     height: '8px',
@@ -10,7 +10,7 @@ let greenBackground = {
     margin: '0 8px 1px 0',
     backgroundColor: '#24b47e'
 };
-let yellowBackground = {
+const yellowBackground = {
     display: 'inline-block',
     borderRadius: '50%',
     height: '8px',
@@ -18,7 +18,7 @@ let yellowBackground = {
     margin: '0 8px 1px 0',
     backgroundColor: '#e39f48'
 };
-let redBackground = {
+const redBackground = {
     display: 'inline-block',
     borderRadius: '50%',
     height: '8px',
@@ -26,7 +26,7 @@ let redBackground = {
     margin: '0 8px 1px 0',
     backgroundColor: '#e25950'
 };
-let greyBackground = {
+const greyBackground = {
     display: 'inline-block',
     borderRadius: '50%',
     height: '8px',
@@ -41,7 +41,7 @@ function ProbeBar({ index, name, status, selectbutton, activeProbe, lastAlive })
     useEffect(() => {
         setNow(Date.now());
 
-        let nowHandler = setTimeout(() => {
+        const nowHandler = setTimeout(() => {
             setNow(Date.now());
         }, 300000);
 

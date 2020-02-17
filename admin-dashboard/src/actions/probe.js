@@ -37,7 +37,7 @@ export function getProbes(skip = 0, limit = 10) {
     limit = parseInt(limit);
 
     return function (dispatch) {
-        var promise = null;
+        let promise = null;
             promise = getApi(`probe/?skip=${skip}&limit=${limit}`);
         dispatch(probeRequest(promise));
 

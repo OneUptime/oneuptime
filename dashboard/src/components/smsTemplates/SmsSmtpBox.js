@@ -62,7 +62,7 @@ export class SmsSmtpBox extends Component {
 
 
     submitForm = (values) => {
-        var { smtpConfigurations, updateSmtpConfig, postSmtpConfig, currentProject } = this.props;
+        const { smtpConfigurations, updateSmtpConfig, postSmtpConfig, currentProject } = this.props;
 
         if (values.smssmtpswitch) {
             if (smtpConfigurations.config && smtpConfigurations.config._id) {
@@ -263,7 +263,7 @@ SmsSmtpBox.propTypes = {
     smsSmtpDelete: PropTypes.object,
 }
 
-let SmsSmtpBoxForm = reduxForm({
+const SmsSmtpBoxForm = reduxForm({
     form: 'SmsSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
     validate: SmsSmtpBox.validate // <--- validation function given to redux-for
@@ -279,9 +279,9 @@ const mapDispatchToProps = (dispatch) => {
 }
 
 function mapStateToProps(state) {
-    var smtpConfigurations = state.smsTemplates && state.smsTemplates.smsSmtpConfiguration;
-    var showSmsSmtpConfiguration = state.smsTemplates && state.smsTemplates.showSmsSmtpConfiguration;
-    var values = { smssmtpswitch: false, accountSid: '', authToken: '', phoneNumber: '' };
+    const smtpConfigurations = state.smsTemplates && state.smsTemplates.smsSmtpConfiguration;
+    const showSmsSmtpConfiguration = state.smsTemplates && state.smsTemplates.showSmsSmtpConfiguration;
+    let values = { smssmtpswitch: false, accountSid: '', authToken: '', phoneNumber: '' };
     if (showSmsSmtpConfiguration) {
         values = {
             smssmtpswitch: true,

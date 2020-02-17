@@ -1,4 +1,4 @@
-var utils = require('./test-utils');
+const utils = require('./test-utils');
 
 module.exports = {
     /**
@@ -164,7 +164,7 @@ module.exports = {
     selectByText: async function (selector, text, page) {
         await page.click(selector);
         await page.keyboard.type(text);
-        let noOption = await page.$('div.css-1gl4k7y');
+        const noOption = await page.$('div.css-1gl4k7y');
         if (!noOption) {
             await page.keyboard.type(String.fromCharCode(13));
         }

@@ -182,7 +182,7 @@ export class SubProjectForm extends React.Component {
 
 SubProjectForm.displayName = 'SubProjectForm';
 
-let CreateSubProjectForm = reduxForm({
+const CreateSubProjectForm = reduxForm({
   form: 'SubProjectModalForm',
   enableReinitialize: true
 })(SubProjectForm);

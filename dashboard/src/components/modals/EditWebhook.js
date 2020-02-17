@@ -326,7 +326,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     , dispatch);
 
 const mapStateToProps = (state, props) => {
-	let currentMonitorValue = { value: '', label: 'Select monitor' };
+	const currentMonitorValue = { value: '', label: 'Select monitor' };
 
 	if (props.data && props.data.monitorId) {
 		currentMonitorValue.label = props.data.monitorId.name

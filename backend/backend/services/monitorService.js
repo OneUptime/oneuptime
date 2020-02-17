@@ -5,41 +5,41 @@ module.exports = {
     //Returns: promise with monitor model or error.
     create: async function (data) {
         try {
-            var _this = this;
-            var subProject = null;
-            var existingMonitor = await _this.findBy({ name: data.name, projectId: data.projectId });
+            const _this = this;
+            let subProject = null;
+            const existingMonitor = await _this.findBy({ name: data.name, projectId: data.projectId });
             if (existingMonitor && existingMonitor.length > 0) {
-                let error = new Error('Monitor with that name already exists.');
+                const error = new Error('Monitor with that name already exists.');
                 error.code = 400;
                 ErrorService.log('monitorService.create', error);
                 throw error;
             }
-            var project = await ProjectService.findOneBy({ _id: data.projectId });
+            let project = await ProjectService.findOneBy({ _id: data.projectId });
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
             }
-            var subProjectIds = [];
-            var subProjects = await ProjectService.findBy({ parentProjectId: project._id });
+            let subProjectIds = [];
+            const subProjects = await ProjectService.findBy({ parentProjectId: project._id });
             if (subProjects && subProjects.length > 0) {
                 subProjectIds = subProjects.map(project => project._id);
             }
             subProjectIds.push(project._id);
-            var count = await _this.countBy({ projectId: { $in: subProjectIds } });
-            var monitorCategory = await MonitorCategoryService.findBy({ _id: data.monitorCategoryId });
-            var plan = await Plans.getPlanById(project.stripePlanId);
-            var projectSeats = project.seats;
+            const count = await _this.countBy({ projectId: { $in: subProjectIds } });
+            const monitorCategory = await MonitorCategoryService.findBy({ _id: data.monitorCategoryId });
+            const plan = await Plans.getPlanById(project.stripePlanId);
+            let projectSeats = project.seats;
             if (typeof (projectSeats) === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
             if (!plan) {
-                let error = new Error('Invalid project plan.');
+                const error = new Error('Invalid project plan.');
                 error.code = 400;
                 ErrorService.log('monitorService.create', error);
                 throw error;
             } else {
                 if (count < (projectSeats * 5)) {
-                    var monitor = new MonitorModel();
+                    let monitor = new MonitorModel();
                     monitor.name = data.name;
                     monitor.type = data.type;
                     monitor.createdById = data.createdById;
@@ -71,11 +71,11 @@ module.exports = {
                         if (data.formData && data.formData.length) monitor.formData = data.formData;
                         if (data.headers && data.headers.length) monitor.headers = data.headers;
                     }
-                    var savedMonitor = await monitor.save();
+                    const savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
                     return monitor;
                 } else {
-                    let error = new Error('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
+                    const error = new Error('You can\'t add any more monitors. Please add an extra seat to add more monitors.');
                     error.code = 400;
                     ErrorService.log('monitorService.create', error);
                     throw error;
@@ -87,19 +87,26 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function (query, data, unsetData) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            var monitor = await MonitorModel.findOneAndUpdate(query,
+            let monitor = await MonitorModel.findOneAndUpdate(query,
                 { $set: data },
                 {
                     new: true
-                })
-                .populate('projectId', 'name');
+                });
+            if (unsetData) {
+                monitor = await MonitorModel.findOneAndUpdate(query,
+                    { $unset: unsetData },
+                    {
+                        new: true
+                    });
+            }
+            monitor = await this.findOneBy(query);
 
             await RealTimeService.monitorEdit(monitor);
 
@@ -117,7 +124,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await MonitorModel.updateMany(query, {
+            let updatedData = await MonitorModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -151,11 +158,12 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var monitors = await MonitorModel.find(query)
+            const monitors = await MonitorModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId', 'name');
+                .populate('projectId', 'name')
+                .populate('monitorCategoryId', 'name');
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.findBy', error);
@@ -170,8 +178,9 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var monitor = await MonitorModel.findOne(query)
-                .populate('projectId', 'name');
+            const monitor = await MonitorModel.findOne(query)
+                .populate('projectId', 'name')
+                .populate('monitorCategoryId', 'name');
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
@@ -186,7 +195,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var count = await MonitorModel.count(query)
+            const count = await MonitorModel.count(query)
                 .populate('project', 'name');
             return count;
         } catch (error) {
@@ -202,41 +211,41 @@ module.exports = {
             }
 
             query.deleted = false;
-            var monitor = await MonitorModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } }, { new: true }).populate('deletedById', 'name');
+            const monitor = await MonitorModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now(), deletedById: userId } }, { new: true }).populate('deletedById', 'name');
 
             if (monitor) {
-                var subProject = null;
-                var project = await ProjectService.findOneBy({ _id: monitor.projectId });
+                let subProject = null;
+                let project = await ProjectService.findOneBy({ _id: monitor.projectId });
                 if (project.parentProjectId) {
                     subProject = project;
                     project = await ProjectService.findOneBy({ _id: subProject.parentProjectId });
                 }
 
-                var subProjectIds = [];
-                var subProjects = await ProjectService.findBy({ parentProjectId: project._id });
+                let subProjectIds = [];
+                const subProjects = await ProjectService.findBy({ parentProjectId: project._id });
                 if (subProjects && subProjects.length > 0) {
                     subProjectIds = subProjects.map(project => project._id);
                 }
                 subProjectIds.push(project._id);
-                var monitorsCount = await this.countBy({ projectId: { $in: subProjectIds } });
-                var projectSeats = project.seats;
+                const monitorsCount = await this.countBy({ projectId: { $in: subProjectIds } });
+                let projectSeats = project.seats;
                 if (typeof (projectSeats) === 'string') {
                     projectSeats = parseInt(projectSeats);
                 }
-                var projectUsers = await TeamService.getTeamMembersBy({ parentProjectId: project._id });            // eslint-disable-next-line no-console
-                var seats = await TeamService.getSeats(projectUsers);
+                const projectUsers = await TeamService.getTeamMembersBy({ parentProjectId: project._id });            // eslint-disable-next-line no-console
+                const seats = await TeamService.getSeats(projectUsers);
                 // check if project seats are more based on users in project or by count of monitors
                 if (projectSeats && projectSeats > seats && monitorsCount > 0 && monitorsCount <= ((projectSeats - 1) * 5)) {
                     projectSeats = projectSeats - 1;
                     await PaymentService.changeSeats(project.stripeSubscriptionId, (projectSeats));
                     await ProjectService.updateOneBy({ _id: project._id }, { seats: projectSeats.toString() });
                 }
-                var incidents = await IncidentService.findBy({ monitorId: monitor._id });
+                const incidents = await IncidentService.findBy({ monitorId: monitor._id });
 
                 await Promise.all(incidents.map(async (incident) => {
                     await IncidentService.deleteBy({ _id: incident._id }, userId);
                 }));
-                var alerts = await AlertService.findBy({ monitorId: monitor._id }, userId);
+                const alerts = await AlertService.findBy({query:{ monitorId: monitor._id }});
 
                 await Promise.all(alerts.map(async (alert) => {
                     await AlertService.deleteBy({ _id: alert._id }, userId);
@@ -261,11 +270,11 @@ module.exports = {
         try {
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
-            var _this = this;
+            const _this = this;
 
-            let subProjectMonitors = await Promise.all(subProjectIds.map(async (id) => {
-                let monitors = await _this.findBy({ projectId: id }, limit, skip);
-                let count = await _this.countBy({ projectId: id });
+            const subProjectMonitors = await Promise.all(subProjectIds.map(async (id) => {
+                const monitors = await _this.findBy({ projectId: id }, limit, skip);
+                const count = await _this.countBy({ projectId: id });
                 return { monitors, count, _id: id, skip, limit };
             }));
             return subProjectMonitors;
@@ -277,8 +286,8 @@ module.exports = {
 
     async getProbeMonitors(date) {
         try {
-            var newdate = new Date();
-            var monitors = await MonitorModel.find({ 'pollTime': { $lt: date }, deleted: false });
+            const newdate = new Date();
+            const monitors = await MonitorModel.find({ 'pollTime': { $lt: date }, deleted: false });
             if (monitors && monitors.length) {
                 await MonitorModel.update(
                     { 'pollTime': { $lt: date }, deleted: false },
@@ -298,9 +307,9 @@ module.exports = {
 
     async updateMonitorPingTime(id) {
         try {
-            var newdate = new Date();
-            var thisObj = this;
-            var monitor = await thisObj.updateOneBy({
+            const newdate = new Date();
+            const thisObj = this;
+            const monitor = await thisObj.updateOneBy({
                 _id: id
             }, { $set: { 'lastPingTime': newdate } }, { multi: false });
             return monitor;
@@ -312,11 +321,11 @@ module.exports = {
 
     async updateDeviceMonitorPingTime(projectId, deviceId) {
         try {
-            var thisObj = this;
-            var monitor = await thisObj.findOneBy({ projectId: projectId, data: { deviceId: deviceId } });
+            const thisObj = this;
+            let monitor = await thisObj.findOneBy({ projectId: projectId, data: { deviceId: deviceId } });
 
             if (!monitor) {
-                let error = new Error('Monitor with this Device ID not found in this Project.');
+                const error = new Error('Monitor with this Device ID not found in this Project.');
                 error.code = 400;
                 ErrorService.log('monitorService.updateDeviceMonitorPingTime', error);
                 throw error;
@@ -339,7 +348,8 @@ module.exports = {
             const monitor = await this.findOneBy({ _id: monitorId });
             const isNewMonitor = (moment(endDate)).diff(moment(monitor.createdAt), 'days') < 2;
 
-            let probes, probeLogs = [];
+            let probes;
+            const probeLogs = [];
             if (monitor.type === 'server-monitor') {
                 probes = [undefined];
             } else {
@@ -347,7 +357,7 @@ module.exports = {
             }
 
             for (const probe of probes) {
-                let query = { monitorId, createdAt: { $gte: start, $lte: end } };
+                const query = { monitorId, createdAt: { $gte: start, $lte: end } };
                 if (typeof probe !== 'undefined') {
                     query.probeId = probe._id;
                 }
@@ -384,7 +394,8 @@ module.exports = {
             const end = moment(endDate).toDate();
             const monitor = await this.findOneBy({ _id: monitorId });
 
-            let probes, probeStatuses = [];
+            let probes;
+            const probeStatuses = [];
             if (monitor.type === 'server-monitor' || monitor.type === 'manual') {
                 probes = [undefined];
             } else {
@@ -392,7 +403,7 @@ module.exports = {
             }
 
             for (const probe of probes) {
-                let query = {
+                const query = {
                     monitorId,
                     $or: [
                         { startTime: { $gte: start, $lte: end } },
@@ -404,7 +415,7 @@ module.exports = {
                     query.probeId = { $in: [probe._id, null] };
                 }
 
-                let monitorStatuses = await MonitorStatusService.findBy(query);
+                const monitorStatuses = await MonitorStatusService.findBy(query);
 
                 if (monitorStatuses && monitorStatuses.length > 0) {
                     probeStatuses.push({ _id: typeof probe !== 'undefined' ? probe._id : null, statuses: monitorStatuses });
@@ -420,8 +431,8 @@ module.exports = {
 
     addSeat: async function (query) {
         try {
-            var project = await ProjectService.findOneBy(query);
-            var projectSeats = project.seats;
+            const project = await ProjectService.findOneBy(query);
+            let projectSeats = project.seats;
             if (typeof (projectSeats) === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
@@ -448,32 +459,32 @@ module.exports = {
     // yet to be edited
     async getManualMonitorTime(monitorId) {
         try {
-            var _this = this;
-            var monitorTime = await _this.findOneBy({ _id: monitorId });
-            var monitorIncidents = await IncidentService.findBy({ monitorId });
-            var dateNow = moment().utc();
-            var days = moment(dateNow).utc().startOf('day').diff(moment(monitorTime.createdAt).utc().startOf('day'), 'days');
+            const _this = this;
+            const monitorTime = await _this.findOneBy({ _id: monitorId });
+            const monitorIncidents = await IncidentService.findBy({ monitorId });
+            const dateNow = moment().utc();
+            let days = moment(dateNow).utc().startOf('day').diff(moment(monitorTime.createdAt).utc().startOf('day'), 'days');
 
             if (days > 89) days = 89;
-            var times = [];
-            for (var i = days; i >= 0; i--) {
-                var incidents = [];
-                var temp = {};
-                var status = 'online';
+            const times = [];
+            for (let i = days; i >= 0; i--) {
+                let incidents = [];
+                const temp = {};
+                let status = 'online';
                 temp.date = moment(dateNow).utc().subtract(i, 'days');
                 temp.monitorId = monitorId;
                 if (monitorIncidents && monitorIncidents.length) {
                     incidents = monitorIncidents.filter(inc => {
-                        let creatediff = moment(temp.date).utc().startOf('day').diff(moment(inc.createdAt).utc().startOf('day'), 'days');
-                        let resolveddiff = moment(temp.date).utc().startOf('day').diff(moment(inc.resolvedAt).utc().startOf('day'), 'days');
+                        const creatediff = moment(temp.date).utc().startOf('day').diff(moment(inc.createdAt).utc().startOf('day'), 'days');
+                        const resolveddiff = moment(temp.date).utc().startOf('day').diff(moment(inc.resolvedAt).utc().startOf('day'), 'days');
                         if (creatediff > -1 && resolveddiff < 1) return true;
                         else return false;
                     });
                     status = incidents.some(inc => inc.resolvedAt ? moment(inc.resolvedAt).utc().startOf('day').diff(moment(temp.date).utc().startOf('day'), 'days') > 0 : true) ? 'offline' : 'online';
 
                     incidents = incidents.map(inc => {
-                        let creatediff = moment(temp.date).utc().startOf('day').diff(moment(inc.createdAt).utc().startOf('day'), 'days');
-                        let resolveddiff = inc.resolvedAt ? moment(temp.date).utc().startOf('day').diff(moment(inc.resolvedAt).utc().startOf('day'), 'days') : moment(temp.date).utc().startOf('day').diff(moment().utc().startOf('day'), 'days');
+                        const creatediff = moment(temp.date).utc().startOf('day').diff(moment(inc.createdAt).utc().startOf('day'), 'days');
+                        const resolveddiff = inc.resolvedAt ? moment(temp.date).utc().startOf('day').diff(moment(inc.resolvedAt).utc().startOf('day'), 'days') : moment(temp.date).utc().startOf('day').diff(moment().utc().startOf('day'), 'days');
                         if (creatediff > 0 && resolveddiff < 0) {
                             return 1440;
                         }
@@ -489,7 +500,7 @@ module.exports = {
                     });
                 }
                 if (incidents.length) {
-                    var reduced = incidents.reduce((inc, val) => inc + val);
+                    const reduced = incidents.reduce((inc, val) => inc + val);
                     temp.downTime = reduced < 1440 ? reduced : 1440;
                     temp.upTime = reduced < 1440 ? 1440 - reduced : 0;
                 }
@@ -541,26 +552,26 @@ module.exports = {
     }
 };
 
-var MonitorModel = require('../models/monitor');
-var ProbeService = require('./probeService');
-var MonitorStatusService = require('./monitorStatusService');
-var MonitorLogService = require('./monitorLogService');
-let MonitorLogByHourService = require('./monitorLogByHourService');
-let MonitorLogByDayService = require('./monitorLogByDayService');
-let MonitorLogByWeekService = require('./monitorLogByWeekService');
-var MonitorCategoryService = require('./monitorCategoryService');
-var MonitorCriteriaService = require('./monitorCriteriaService');
-var Plans = require('./../config/plans');
-var RealTimeService = require('./realTimeService');
-var NotificationService = require('./notificationService');
-var ProjectService = require('./projectService');
-var PaymentService = require('./paymentService');
-var IncidentService = require('./incidentService');
-var AlertService = require('./alertService');
-var StatusPageService = require('./statusPageService');
-var ScheduleService = require('./scheduleService');
-var IntegrationService = require('./integrationService');
-var TeamService = require('./teamService');
-var ErrorService = require('./errorService');
-var moment = require('moment');
-var _ = require('lodash');
+const MonitorModel = require('../models/monitor');
+const ProbeService = require('./probeService');
+const MonitorStatusService = require('./monitorStatusService');
+const MonitorLogService = require('./monitorLogService');
+const MonitorLogByHourService = require('./monitorLogByHourService');
+const MonitorLogByDayService = require('./monitorLogByDayService');
+const MonitorLogByWeekService = require('./monitorLogByWeekService');
+const MonitorCategoryService = require('./monitorCategoryService');
+const MonitorCriteriaService = require('./monitorCriteriaService');
+const Plans = require('./../config/plans');
+const RealTimeService = require('./realTimeService');
+const NotificationService = require('./notificationService');
+const ProjectService = require('./projectService');
+const PaymentService = require('./paymentService');
+const IncidentService = require('./incidentService');
+const AlertService = require('./alertService');
+const StatusPageService = require('./statusPageService');
+const ScheduleService = require('./scheduleService');
+const IntegrationService = require('./integrationService');
+const TeamService = require('./teamService');
+const ErrorService = require('./errorService');
+const moment = require('moment');
+const _ = require('lodash');

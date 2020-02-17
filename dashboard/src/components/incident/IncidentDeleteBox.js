@@ -25,7 +25,7 @@ export class IncidentDeleteBox extends Component {
         const projectId = this.props.incident.projectId._id || this.props.incident.projectId;
         const incidentId = this.props.incident._id;
 
-        let promise = this.props.deleteIncident(projectId, incidentId);
+        const promise = this.props.deleteIncident(projectId, incidentId);
         promise.then(()=>{
             history.push(`/project/${this.props.currentProject._id}/monitoring`);
             if (!IS_DEV) {

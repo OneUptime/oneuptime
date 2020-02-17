@@ -3,7 +3,7 @@ import { storiesOf, action } from '@storybook/react';
 import {FormModal} from '../../../components/modals/inviteTeamMember'
 import {reduxForm} from 'redux-form'
 
-let props = {
+const props = {
     'array': {},
     'anyTouched': false,
     'asyncValidating': false,
@@ -91,7 +91,7 @@ let props = {
     handleSubmit:action('handleSubmit')
   }
 
-let InviteTeamMemberForm = reduxForm({
+const InviteTeamMemberForm = reduxForm({
 	form: 'InviteTeamMember', // a unique identifier for this form
 })(FormModal);
 

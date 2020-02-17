@@ -82,7 +82,7 @@ export class FeedbackModal extends Component {
 
 FeedbackModal.displayName = 'FeedbackModal'
 
-let FeedbackModalForm = reduxForm({
+const FeedbackModalForm = reduxForm({
 	form: 'FeedbackModal', // a unique identifier for this form
 })(FeedbackModal);
 

@@ -76,6 +76,11 @@
         "react/no-unescaped-entities": "error",
         "react/display-name": ["error", {
             "ignoreTranspilerName": true
-        }]
+        }],
+        "prefer-const": ["error", {
+            "destructuring": "any",
+            "ignoreReadBeforeAssign": false
+        }],
+        "no-var": "error"
     }
 }

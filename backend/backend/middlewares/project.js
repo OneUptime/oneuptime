@@ -4,11 +4,11 @@
  *
  */
 
-var ProjectService = require('../services/projectService');
-var ErrorService = require('../services/errorService');
-var url = require('url');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var apiMiddleware = require('../middlewares/api');
+const ProjectService = require('../services/projectService');
+const ErrorService = require('../services/errorService');
+const url = require('url');
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const apiMiddleware = require('../middlewares/api');
 
 module.exports = {
     // Description: Checks if user belongs to the project.
@@ -22,8 +22,8 @@ module.exports = {
             if(req.authorizationType === 'MASTER-ADMIN'){
                 next();
             }else {
-                let userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
-                let projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
+                const userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
+                const projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
                 //sanitize
                 if (!projectId) {
                     return sendErrorResponse(req, res, {
@@ -32,14 +32,14 @@ module.exports = {
                     });
                 }
                 // Calls the ProjectService
-                var project = await ProjectService.findOneBy({_id: projectId});
+                const project = await ProjectService.findOneBy({_id: projectId});
                 let isUserPresentInProject = false;
 
                 if (project) {
-                    var subProjects = await ProjectService.findBy({ parentProjectId: project._id });
-                    var projectUsers = project.users;
+                    const subProjects = await ProjectService.findBy({ parentProjectId: project._id });
+                    let projectUsers = project.users;
                     if(subProjects && subProjects.length > 0){
-                        var subProjectUsers = subProjects.map(subProject => subProject.users);
+                        const subProjectUsers = subProjects.map(subProject => subProject.users);
                         subProjectUsers.map((users)=>{
                             projectUsers = projectUsers.concat(users);
                         });
@@ -89,11 +89,11 @@ module.exports = {
             if(req.authorizationType === 'MASTER-ADMIN'){
                 next();
             }else{
-                var userId = req.user ? req.user.id : null;
-                var project = await ProjectService.findOneBy({'users.userId': userId, _id: req.params.projectId});
+                const userId = req.user ? req.user.id : null;
+                const project = await ProjectService.findOneBy({'users.userId': userId, _id: req.params.projectId});
                 if(project){
                     let role;
-                    for(let user of project.users){
+                    for(const user of project.users){
                         if(user.userId === userId){
                             role = user.role;
                             break;
@@ -129,11 +129,11 @@ module.exports = {
             if(req.authorizationType === 'MASTER-ADMIN'){
                 next();
             }else{
-                var UserId = req.user ? req.user.id : null;
-                var project = await ProjectService.findOneBy({'users.userId': UserId, _id: req.params.projectId});
+                const UserId = req.user ? req.user.id : null;
+                const project = await ProjectService.findOneBy({'users.userId': UserId, _id: req.params.projectId});
                 if(project){
-                    var role;
-                    for(let user of project.users){
+                    let role;
+                    for(const user of project.users){
                         if(user.userId === UserId){
                             role = user.role;
                             break;

@@ -2,7 +2,7 @@ const postApi = require('./api').postApi;
 
 module.exports = {
     headers: async (val, type) => {
-        let header = {};
+        const header = {};
         if (type && type.length) {
             header['Content-Type'] = type;
         }

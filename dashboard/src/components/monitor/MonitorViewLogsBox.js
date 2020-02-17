@@ -21,8 +21,8 @@ export class MonitorViewLogsBox extends Component {
     prevClicked = (monitorId, skip, limit) => {
         const { currentProject, getMonitorLogs } = this.props;
         const incidentId = this.props.incidentId ? this.props.incidentId : null;
-        let start = incidentId ? '' : this.props.startDate.clone().utc();
-        let end = incidentId ? '' : this.props.endDate.clone().utc();
+        const start = incidentId ? '' : this.props.startDate.clone().utc();
+        const end = incidentId ? '' : this.props.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -42,8 +42,8 @@ export class MonitorViewLogsBox extends Component {
     nextClicked = (monitorId, skip, limit) => {
         const { currentProject, getMonitorLogs } = this.props;
         const incidentId = this.props.incidentId ? this.props.incidentId : null;
-        let start = incidentId ? '' : this.props.startDate.clone().utc();
-        let end = incidentId ? '' : this.props.endDate.clone().utc();
+        const start = incidentId ? '' : this.props.startDate.clone().utc();
+        const end = incidentId ? '' : this.props.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -98,7 +98,7 @@ export class MonitorViewLogsBox extends Component {
     }
 
     render() {
-        var probeOptions = this.props.probes && this.props.probes.length > 0 ?
+        const probeOptions = this.props.probes && this.props.probes.length > 0 ?
             this.props.probes.map(p => {
                 return { value: p._id, label: p.probeName }
             }) : [];
@@ -182,7 +182,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 )
 
 function mapStateToProps(state, props) {
-    let monitorId = props.monitorId ? props.monitorId : null;
+    const monitorId = props.monitorId ? props.monitorId : null;
     return {
         monitorLogs: monitorId ? state.monitor.monitorLogs[monitorId] : {},
         probes: state.probe.probes.data,

@@ -74,8 +74,8 @@ export default (state = initialState, action) => {
                 notificationsVisible: false
             });
 
-        case 'ADD_NOTIFICATION_BY_SOCKET':
-            var notify = state.notifications.notifications;
+        case 'ADD_NOTIFICATION_BY_SOCKET':{
+            const notify = state.notifications.notifications;
             notify.unshift(action.payload);
             return Object.assign({}, state, {
                 notifications: {
@@ -85,6 +85,7 @@ export default (state = initialState, action) => {
                     notifications: notify
                 }
             });
+        }
 
         case NOTIFICATION_READ_SUCCESS:
             return Object.assign({}, state, {

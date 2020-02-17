@@ -142,7 +142,7 @@ export function markAllAsRead(projectId) {
 export function billingActionTaken(projectId, notificationId, values) {
 	return async function (dispatch) {
 		try {
-			var notification = putApi(`notification/${projectId}/${notificationId}`, values);
+			const notification = putApi(`notification/${projectId}/${notificationId}`, values);
 
 			dispatch(notificationReadSuccess(notification));
 		} catch (error) {

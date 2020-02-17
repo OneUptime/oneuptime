@@ -1,17 +1,18 @@
-var express = require('express');
-var app = express();
-var path = require('path');
-var http = require('http').createServer(app);
-var io = require('socket.io')(http);
-var redisAdapter = require('socket.io-redis');
-var keys = require('./backend/config/keys.js');
-var bodyParser = require('body-parser');
-var cors = require('cors');
+const express = require('express');
+const app = express();
+const path = require('path');
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+const redisAdapter = require('socket.io-redis');
+const keys = require('./backend/config/keys.js');
+const bodyParser = require('body-parser');
+const cors = require('cors');
 
-var { NODE_ENV } = process.env;
+const { NODE_ENV } = process.env;
 
-if (NODE_ENV === 'local' || NODE_ENV === 'development')
-    require('custom-env').env(process.env.NODE_ENV);
+if (!NODE_ENV || NODE_ENV === 'local' || NODE_ENV === 'development'){
+    require('custom-env').env(process.env.NODE_ENV || 'development');
+}
 
 io.adapter(redisAdapter({
     host: keys.redisURL || 'localhost',
@@ -36,9 +37,9 @@ app.use(function (req, res, next) {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-var { RATE_LIMITING_ENABLED } = process.env;
+const { RATE_LIMITING_ENABLED } = process.env;
 if ( RATE_LIMITING_ENABLED === 'true'){
-    var rateLimiter = require('./backend/middlewares/rateLimit');
+    const rateLimiter = require('./backend/middlewares/rateLimit');
     app.use(rateLimiter);
 }
 //View engine setup
@@ -99,6 +100,7 @@ app.get('/', function (req, res) {
         serviceType: 'fyipe-api'
     }));
 });
+
 app.use('/*', function (req, res) {
     res.status(404).render('notFound.ejs', {});
 });
@@ -106,6 +108,9 @@ app.use('/*', function (req, res) {
 function close() {
     server.close();
 }
+
+//attach cron jobs
+require('./backend/workers/main');
 
 module.exports = app;
 

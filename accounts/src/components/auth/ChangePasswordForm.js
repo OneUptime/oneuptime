@@ -88,7 +88,7 @@ export class ChangePasswordForm extends Component {
 ChangePasswordForm.displayName = 'ChangePasswordForm'
 
 function validate(values) {
-  let errors = {};
+  const errors = {};
   if (!Validate.text(values.password)) {
     errors.password = 'Password is required.'
   }
@@ -104,7 +104,7 @@ function validate(values) {
   return errors;
 }
 
-let changePasswordForm = reduxForm({
+const changePasswordForm = reduxForm({
   form: 'changePasswordForm', // a unique identifier for this form
   validate
 })(ChangePasswordForm);

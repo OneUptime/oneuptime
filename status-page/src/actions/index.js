@@ -150,10 +150,10 @@ export function getStatusPageIndividualNote(projectId, monitorId, date, name, ne
   };
 }
 
-export function notmonitoredDays(date, name) {
+export function notmonitoredDays(monitorId, date, name) {
   return function (dispatch) {
     dispatch(statusPageNoteReset());
-    dispatch(individualNoteEnable({ message: 'No data available for this date', name: { name, date } }));
+    dispatch(individualNoteEnable({ message: 'No data available for this date', name: { _id: monitorId, name, date } }));
   };
 }
 

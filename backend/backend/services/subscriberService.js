@@ -1,7 +1,7 @@
 module.exports = {
     create: async function (data) {
-        var _this = this;
-        var subscriberModel = new SubscriberModel();
+        const _this = this;
+        const subscriberModel = new SubscriberModel();
         subscriberModel.projectId = data.projectId || null;
         subscriberModel.monitorId = data.monitorId || null;
         subscriberModel.statusPageId = data.statusPageId || null;
@@ -11,12 +11,13 @@ module.exports = {
         subscriberModel.countryCode = data.countryCode || null;
         subscriberModel.contactWebhook = data.contactWebhook || null;
         try {
-            var subscriber = await subscriberModel.save();
+            const subscriber = await subscriberModel.save();
+            return await _this.findByOne({ _id: subscriber._id });
         } catch (error) {
             ErrorService.log('subscriberService.create', error);
             throw error;
         }
-        return await _this.findByOne({ _id: subscriber._id });
+        
     },
 
     updateOneBy: async function (query, data) {
@@ -26,17 +27,16 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedSubscriber = await SubscriberModel.findOneAndUpdate(query, {
+            const updatedSubscriber = await SubscriberModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
             });
+            return updatedSubscriber;
         } catch (error) {
             ErrorService.log('subscriberService.updateOneBy', error);
             throw error;
         }
-
-        return updatedSubscriber;
     },
 
     updateBy: async function (query, data) {
@@ -46,7 +46,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await SubscriberModel.updateMany(query, {
+            let updatedData = await SubscriberModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -59,7 +59,7 @@ module.exports = {
 
     deleteBy: async function (query, userId) {
         try {
-            var subscriber = await SubscriberModel.findOneAndUpdate(query, {
+            const subscriber = await SubscriberModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -92,7 +92,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var subscribers = await SubscriberModel.find(query)
+            const subscribers = await SubscriberModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -100,9 +100,9 @@ module.exports = {
                 .populate('monitorId')
                 .populate('statusPageId');
 
-            var subscribersArr = [];
-            for (var result of subscribers) {
-                var temp = {};
+            const subscribersArr = [];
+            for (const result of subscribers) {
+                const temp = {};
                 temp._id = result._id;
                 temp.projectId = result.projectId._id;
                 temp.projectName = result.projectId.name;
@@ -127,12 +127,12 @@ module.exports = {
 
     subscribe: async function (data, monitors) {
         try {
-            var _this = this;
-            var success = monitors.map(async monitor => {
-                let newSubscriber = Object.assign({}, data, { monitorId: monitor });
-                let hasSubscribed = await _this.subscriberCheck(newSubscriber);
+            const _this = this;
+            const success = monitors.map(async monitor => {
+                const newSubscriber = Object.assign({}, data, { monitorId: monitor });
+                const hasSubscribed = await _this.subscriberCheck(newSubscriber);
                 if (hasSubscribed) {
-                    let error = new Error('You are already subscribed to this monitor.');
+                    const error = new Error('You are already subscribed to this monitor.');
                     error.code = 400;
                     ErrorService.log('SubscriberService.subscribe', error);
                     throw error;
@@ -140,7 +140,7 @@ module.exports = {
                     return await _this.create(newSubscriber);
                 }
             });
-            var subscriber = await Promise.all(success);
+            const subscriber = await Promise.all(success);
             return subscriber;
         } catch (error) {
             ErrorService.log('SubscriberService.subscribe', error);
@@ -149,8 +149,8 @@ module.exports = {
     },
 
     subscriberCheck: async function (subscriber) {
-        var _this = this;
-        var existingSubscriber = null;
+        const _this = this;
+        let existingSubscriber = null;
         if (subscriber.alertVia === 'sms') {
             existingSubscriber = await _this.findByOne({ monitorId: subscriber.monitorId, contactPhone: subscriber.contactPhone, countryCode: subscriber.countryCode });
         } else if (subscriber.alertVia === 'email') {
@@ -167,7 +167,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            var subscriber = await SubscriberModel.findOne(query)
+            const subscriber = await SubscriberModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorId', 'name');
@@ -186,7 +186,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await SubscriberModel.count(query);
+            const count = await SubscriberModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('SubscriberService.countBy', error);
@@ -244,5 +244,5 @@ module.exports = {
     }
 };
 
-var SubscriberModel = require('../models/subscriber');
-var ErrorService = require('./errorService');
+const SubscriberModel = require('../models/subscriber');
+const ErrorService = require('./errorService');

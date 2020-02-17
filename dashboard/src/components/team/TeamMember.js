@@ -45,7 +45,7 @@ export class TeamMember extends Component {
     }
 
     updateTeamMemberRole(values, to) {
-        var data = {};
+        const data = {};
         data.teamMemberId = values.userId;
         if (values.role === to) {
             return;
@@ -216,7 +216,7 @@ TeamMember.propTypes = {
     userId: PropTypes.string.isRequired
 }
 
-let TeamMemberForm = reduxForm({
+const TeamMemberForm = reduxForm({
     form: 'TeamMember'
 })(TeamMember)
 

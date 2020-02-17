@@ -5,10 +5,10 @@
  *
  */
 
-var mongoose = require('../config/db');
-var Grid = require('gridfs-stream');
-var JsonToCsv = require('./jsonToCsv');
-var ObjectID = require('mongoose').Types.ObjectId;
+const mongoose = require('../config/db');
+const Grid = require('gridfs-stream');
+const JsonToCsv = require('./jsonToCsv');
+const ObjectID = require('mongoose').Types.ObjectId;
 
 function filterKeys (field){
     field = field._doc ? field._doc : field;
@@ -67,10 +67,10 @@ module.exports = {
     sendFileResponse(req, res, file) {
         /** create read stream */
 
-        var gfs = Grid(mongoose.connection.db, mongoose.mongo);
+        const gfs = Grid(mongoose.connection.db, mongoose.mongo);
         gfs.collection('uploads');
 
-        var readstream = gfs.createReadStream({ _id: file._id, root: 'uploads' });
+        const readstream = gfs.createReadStream({ _id: file._id, root: 'uploads' });
 
         /** set the proper content type */
         res.set('Content-Type', file.contentType);
@@ -80,8 +80,9 @@ module.exports = {
     },
 
     sendErrorResponse: function (req, res, error) {
-        //purge request.
-        //req = null;
+        //log error to the console. 
+        console.error(error);
+        
         if (error.statusCode && error.message) {
             res.resBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
             return res.status(error.statusCode).send({ message: error.message });
@@ -111,7 +112,7 @@ module.exports = {
             }
         }
 
-        var response = {};
+        const response = {};
 
         if (!list){
             list=[];
@@ -141,8 +142,8 @@ module.exports = {
         //req = null;
         if (req.query['output-type'] === 'csv') {
             if (!Array.isArray(response.data)) {
-                let properties = Object.keys(response.data);
-                let newObj = {};
+                const properties = Object.keys(response.data);
+                const newObj = {};
                 properties.forEach(prop=>{
                     if(typeof response.data[[prop]] === 'object' && response.data[[prop]] !== null){
                         if(response.data[[prop]].name) response.data[[prop]] = response.data[[prop]].name;
@@ -157,8 +158,8 @@ module.exports = {
             else {
                 response.data = response.data.map(i => { 
                     i = i._doc ? i._doc : i;
-                    let properties = Object.keys(i);
-                    let newObj = {};
+                    const properties = Object.keys(i);
+                    const newObj = {};
                     properties.forEach(prop=>{
                         if(typeof i[[prop]] === 'object' && i[[prop]] !== null){
                             if(i[[prop]].name) i[[prop]] = i[[prop]].name;
@@ -192,8 +193,8 @@ module.exports = {
 
         if (req.query['output-type'] === 'csv') {
             if (!Array.isArray(item)) {
-                let properties = Object.keys(item);
-                let newObj = {};
+                const properties = Object.keys(item);
+                const newObj = {};
                 properties.forEach(prop=>{
                     if(typeof item[[prop]] === 'object' && item[[prop]] !== null){
                         if(item[[prop]].name) item[[prop]] = item[[prop]].name;
@@ -208,8 +209,8 @@ module.exports = {
             else {
                 item = item.map(i => {
                     i = i._doc ? i._doc : i;
-                    let properties = Object.keys(i);
-                    let newObj = {};
+                    const properties = Object.keys(i);
+                    const newObj = {};
                     properties.forEach(prop=>{
                         if(typeof i[[prop]] === 'object' && i[[prop]] !== null){
                             if(i[[prop]].name) i[[prop]] = i[[prop]].name;

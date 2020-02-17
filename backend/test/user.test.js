@@ -1,22 +1,22 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var data = require('./data/user');
-var profile = require('./data/user').profile;
-var chai = require('chai');
+const expect = require('chai').expect;
+const data = require('./data/user');
+const profile = require('./data/user').profile;
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var { createUser } = require('./utils/userSignUp');
-var UserService = require('../backend/services/userService');
-var UserModel = require('../backend/models/user');
-var ProjectService = require('../backend/services/projectService');
-var AirtableService = require('../backend/services/airtableService');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const UserModel = require('../backend/models/user');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
 
-var LoginIPLog = require('../backend/models/LoginIPLog');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const LoginIPLog = require('../backend/models/loginIPLog');
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
-var projectId, userId, airtableId, token;
+let projectId, userId, airtableId, token;
 
 describe('User API', function () {
     this.timeout(20000);
@@ -24,7 +24,7 @@ describe('User API', function () {
     before(function (done) {
         this.timeout(40000);
         createUser(request, data.user, function(err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -74,7 +74,7 @@ describe('User API', function () {
     });
 
     it('should not register with an invalid email', function (done) {
-        var invalidMailUser = Object.assign({}, data.user);
+        const invalidMailUser = Object.assign({}, data.user);
         invalidMailUser.email = 'invalidMail';
         createUser(request, invalidMailUser, function(err, res) {
             expect(res).to.have.status(400);
@@ -83,7 +83,7 @@ describe('User API', function () {
     });
 
     it('should not register with a personal email', function (done) {
-        var personalMailUser = Object.assign({}, data.user);
+        const personalMailUser = Object.assign({}, data.user);
         personalMailUser.email = 'personalAccount@gmail.com';
         createUser(request, personalMailUser, function(err, res) {
             expect(res).to.have.status(400);
@@ -134,13 +134,13 @@ describe('User API', function () {
     });
 
     it('should track IP and other parameters when login in', async function () {
-        var res = await request.post('/user/login').send({
+        const res = await request.post('/user/login').send({
             email: data.user.email,
             password: data.user.password
         });
         expect(res).to.have.status(200);
         expect(res.body.email).to.equal(data.user.email);
-        var log = await LoginIPLog.findOne({ userId });
+        const log = await LoginIPLog.findOne({ userId });
         expect(log).to.be.an('object');
         expect(log).to.have.property('ipLocation');
         expect(log.ipLocation).to.be.an('object');
@@ -258,7 +258,7 @@ describe('User API', function () {
     });
 
     it('should update the profile settings of an authenticated user', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put('/user/profile').set('Authorization', authorization).send(profile).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body._id).to.be.equal(userId);
@@ -267,7 +267,7 @@ describe('User API', function () {
     });
 
     it('should not change a password when the `currentPassword` field is not valid', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put('/user/changePassword').set('Authorization', authorization).send({
             currentPassword: null,
             newPassword: 'abcdefghi',
@@ -279,7 +279,7 @@ describe('User API', function () {
     });
 
     it('should not change a password when the `newPassword` field is not valid', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put('/user/changePassword').set('Authorization', authorization).send({
             currentPassword: '0123456789',
             newPassword: null,
@@ -291,7 +291,7 @@ describe('User API', function () {
     });
 
     it('should not change a password when the `confirmPassword` field is not valid', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put('/user/changePassword').set('Authorization', authorization).send({
             currentPassword: '0123456789',
             newPassword: 'abcdefghi',
@@ -303,7 +303,7 @@ describe('User API', function () {
     });
 
     it('should change a password when all fields are valid', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put('/user/changePassword').set('Authorization', authorization).send({
             currentPassword: '1234567890',
             newPassword: 'abcdefghi',
@@ -316,7 +316,7 @@ describe('User API', function () {
     });
 
     it('should get the profile of an authenticated user', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get('/user/profile').set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body.name).to.be.equal(profile.name);
@@ -325,7 +325,7 @@ describe('User API', function () {
     });
 
     it('should not update the unverified alert phone number through profile update API', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put('/user/profile').set('Authorization', authorization).send(profile).end(function (err, res) {
             expect(res.body._id).to.be.equal(userId);
             expect(res.body.alertPhoneNumber).not.to.be.equal(profile.alertPhoneNumber);

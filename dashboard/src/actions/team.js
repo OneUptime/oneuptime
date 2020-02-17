@@ -29,10 +29,10 @@ export function teamLoading(projectId) {
 
 	return function (dispatch) {
 
-		var promise = getApi(`team/${projectId}`);
+		const promise = getApi(`team/${projectId}`);
 		dispatch(teamLoadingRequest());
 		promise.then(function (response) {
-			var team = response.data;
+			const team = response.data;
 			dispatch(teamLoadingSuccess(team));
 
 		}, function (error) {
@@ -80,10 +80,10 @@ export function subProjectTeamLoading(projectId) {
 
 	return function (dispatch) {
 
-		var promise = getApi(`team/${projectId}/teamMembers`);
+		const promise = getApi(`team/${projectId}/teamMembers`);
 		dispatch(subProjectTeamLoadingRequest());
 		promise.then(function (response) {
-			var team = response.data;
+			const team = response.data;
 			dispatch(subProjectTeamLoadingSuccess(team));
 
 		}, function (error) {
@@ -131,11 +131,11 @@ export function teamCreateError(error) {
 export function teamCreate(projectId, values) {
 	return function (dispatch) {
 
-		var promise = postApi(`team/${projectId}`, values);
+		const promise = postApi(`team/${projectId}`, values);
 		dispatch(teamCreateRequest());
 
 		promise.then(function (response) {
-			var team = response.data;
+			const team = response.data;
 			dispatch(teamCreateSuccess(team));
 
 		}, function (error) {
@@ -194,11 +194,11 @@ export function resetTeamDelete() {
 export function teamDelete(projectId, teamMemberId) {
 	return function (dispatch) {
 
-		var promise = deleteApi(`team/${projectId}/${teamMemberId}`, null);
+		const promise = deleteApi(`team/${projectId}/${teamMemberId}`, null);
 		dispatch(teamDeleteRequest(teamMemberId));
 
 		promise.then(function (response) {
-			var team = response.data;
+			const team = response.data;
 			dispatch(teamDeleteSuccess(team));
 			return { team };
 		}, function (error) {
@@ -246,7 +246,7 @@ export function teamMemberError(error) {
 export function getTeamMember(projectId, teamMemberId) {
 	return function (dispatch) {
 
-		var promise = getApi(`team/${projectId}/${teamMemberId}`);
+		const promise = getApi(`team/${projectId}/${teamMemberId}`);
 		dispatch(teamMemberRequest(teamMemberId));
 
 		promise.then(function (response) {
@@ -294,11 +294,11 @@ export function teamUpdateRoleError(error) {
 // Calls the API to update team member role.
 export function teamUpdateRole(projectId, values) {
 	return function (dispatch) {
-		var promise = putApi(`team/${projectId}/${values.teamMemberId}/changerole`, values);
+		const promise = putApi(`team/${projectId}/${values.teamMemberId}/changerole`, values);
 		dispatch(teamUpdateRoleRequest(values.teamMemberId));
 
 		promise.then(function (response) {
-			var team = response.data;
+			const team = response.data;
 			dispatch(teamUpdateRoleSuccess(team));
 
 		}, function (error) {

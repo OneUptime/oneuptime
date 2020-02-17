@@ -21,7 +21,7 @@ export class UserDeleteBox extends Component {
     handleClick = () => {
         const { deleteUser, userId } = this.props;
         const { deleteModalId } = this.state
-        var thisObj = this;
+        const thisObj = this;
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {

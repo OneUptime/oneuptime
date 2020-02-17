@@ -4,13 +4,13 @@ import { withKnobs, boolean } from '@storybook/addon-knobs';
 import { reduxForm } from 'redux-form'
 import { TeamMember } from '../../../components/team/TeamMember'
 
-let TeamMemberDecorated = new reduxForm({
+const TeamMemberDecorated = new reduxForm({
     form: 'TeamMember',
     enableReinitialize: true
 })(TeamMember);
 
 
-let props = {
+const props = {
   'array': {},
   'anyTouched': false,
   'asyncValidating': false,

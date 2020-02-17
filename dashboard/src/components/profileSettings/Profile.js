@@ -134,9 +134,9 @@ export class ProfileSetting extends Component {
     await this.props.userSettings()
     const profilePic =
       this.props.profileSettings &&
-      this.props.profileSettings.data &&
-      this.props.profileSettings.data.profilePic &&
-      this.props.profileSettings.data.profilePic !== ''
+        this.props.profileSettings.data &&
+        this.props.profileSettings.data.profilePic &&
+        this.props.profileSettings.data.profilePic !== ''
         ? this.props.profileSettings.data.profilePic
         : null
     const { alertPhoneNumber, isVerified, email, twoFactorAuthEnabled } = this.props.initialValues
@@ -175,8 +175,8 @@ export class ProfileSetting extends Component {
   changefile = e => {
     e.preventDefault()
 
-    let reader = new FileReader()
-    let file = e.target.files[0]
+    const reader = new FileReader()
+    const file = e.target.files[0]
 
     reader.onloadend = () => {
       this.props.logFile(reader.result)
@@ -196,7 +196,7 @@ export class ProfileSetting extends Component {
   handleChange = () => {
     const { profileSettings: { data }, updateTwoFactorAuthToken, openModal, setTwoFactorAuth } = this.props;
     if (data.twoFactorAuthEnabled) {
-      updateTwoFactorAuthToken({twoFactorAuthEnabled:false, email: data.email}).then(() => {
+      updateTwoFactorAuthToken({ twoFactorAuthEnabled: false, email: data.email }).then(() => {
         setTwoFactorAuth(!data.twoFactorAuthEnabled);
       });
     } else {
@@ -229,7 +229,7 @@ export class ProfileSetting extends Component {
     const { updateProfileSetting, resetFile } = this.props
 
     values.removedPic = removedPic
-    updateProfileSetting(values).then(function() {
+    updateProfileSetting(values).then(function () {
       resetFile()
     })
     if (!IS_DEV) {
@@ -253,8 +253,9 @@ export class ProfileSetting extends Component {
   }
 
   render() {
-    var { profileSettingState, resendTimer, emailValue, twoFactorAuthSetting } = this.props
-    if (isNaN(resendTimer)) {
+    const { profileSettingState, emailValue, twoFactorAuthSetting } = this.props
+    let { resendTimer } = this.props;
+    if (!Validate.number(resendTimer)) {
       resendTimer = parseInt(resendTimer, 10)
     }
     if (resendTimer < 1) {
@@ -281,8 +282,8 @@ export class ProfileSetting extends Component {
       initialValues
     } = this.props
 
-    var profilePic = profileSettingState.profilePic
-    var isVerified = profileSettingState.isVerified
+    let profilePic = profileSettingState.profilePic
+    let isVerified = profileSettingState.isVerified
 
     if (initialValues) {
       isVerified = this.props.initialValues.isVerified
@@ -290,26 +291,26 @@ export class ProfileSetting extends Component {
 
     profilePic = profilePic === 'null' ? null : profilePic
 
-    var fileData = this.props.fileUrl
+    const fileData = this.props.fileUrl
       ? this.props.fileUrl
       : profilePic
-      ? `${API_URL}/file/${profilePic}`
-      : 'https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404'
-    var profileImage = <span />
+        ? `${API_URL}/file/${profilePic}`
+        : 'https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404'
+    let profileImage = <span />
 
     if (profilePic || this.props.fileUrl) {
       profileImage = <img src={fileData} alt='' className='image-small-circle' style={{ marginTop: '10px' }} />
     }
-    var verifiedEmail =
+    const verifiedEmail =
       isVerified && emailValue === profileSettingState.userEmail && profileSettings.data && emailValue !== profileSettings.data.tempEmail
-    var verifiedPhone =
+    const verifiedPhone =
       (verified && profileSettingState.alertPhoneNumber === profileSettingState.initPhoneVerificationNumber) ||
       (profileSettingState.alertPhoneNumber === initialAlertPhoneNumber &&
         profileSettings.data &&
         profileSettingState.alertPhoneNumber !== profileSettings.data.tempAlertPhoneNumber)
-    var showPhoneVerifyTools = !verifiedPhone
-    var showSendVerification = showPhoneVerifyTools && !initPhoneVerification
-    var showError =
+    const showPhoneVerifyTools = !verifiedPhone
+    const showSendVerification = showPhoneVerifyTools && !initPhoneVerification
+    const showError =
       !verified &&
       (verifySMSCodeError || sendVerificationSMSError) &&
       profileSettingState.alertPhoneNumber === profileSettingState.initPhoneVerificationNumber
@@ -368,12 +369,12 @@ export class ProfileSetting extends Component {
                                 </span>
                               </div>
                             ) : (
-                              <div className='Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2'>
-                                <span className='Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap'>
-                                  Verified
+                                <div className='Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2'>
+                                  <span className='Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap'>
+                                    Verified
                                 </span>
-                              </div>
-                            )}
+                                </div>
+                              )}
                           </div>
                         </ShouldRender>
                       </div>
@@ -394,14 +395,14 @@ export class ProfileSetting extends Component {
                                   {profileSettingState.initAlertEmail
                                     ? profileSettingState.initAlertEmail
                                     : profileSettings.data && profileSettings.data.tempEmail
-                                    ? profileSettings.data.tempEmail
-                                    : ''}{' '}
+                                      ? profileSettings.data.tempEmail
+                                      : ''}{' '}
                                 </span>{' '}
                                 is verified.{' '}
                               </span>
                             ) : (
-                              ''
-                            )}
+                                ''
+                              )}
                             <button
                               className='bs-Button'
                               disabled={profileSettings && profileSettings.requesting}
@@ -450,12 +451,12 @@ export class ProfileSetting extends Component {
                                 </span>
                               </div>
                             ) : (
-                              <div className='Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2'>
-                                <span className='Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap'>
-                                  Verified
+                                <div className='Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2'>
+                                  <span className='Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap'>
+                                    Verified
                                 </span>
-                              </div>
-                            )}
+                                </div>
+                              )}
                           </div>
                         </ShouldRender>
                       </div>
@@ -476,16 +477,16 @@ export class ProfileSetting extends Component {
                                   {profileSettingState.initPhoneVerificationNumber
                                     ? profileSettingState.initPhoneVerificationNumber
                                     : profileSettings.data && profileSettings.data.tempAlertPhoneNumber
-                                    ? profileSettings.data.tempAlertPhoneNumber
-                                    : ''}{' '}
+                                      ? profileSettings.data.tempAlertPhoneNumber
+                                      : ''}{' '}
                                 </span>{' '}
                                 is verified.{' '}
                               </span>
                             </div>
                           </div>
                         ) : (
-                          ''
-                        )}
+                            ''
+                          )}
                         <ShouldRender if={showSendVerification || sendVerificationSMSRequesting}>
                           <div className='bs-Fieldset-row' style={{ marginBottom: -5, marginTop: -5 }}>
                             <label className='bs-Fieldset-label'></label>
@@ -532,7 +533,7 @@ export class ProfileSetting extends Component {
                                 type='text'
                                 name='otp'
                                 id='otp'
-                                placeholder='1234'
+                                placeholder='123456'
                                 component={RenderField}
                                 disabled={verifySMSCodeRequesting}
                                 style={{ width: 120, marginRight: 10 }}
@@ -562,8 +563,8 @@ export class ProfileSetting extends Component {
                                     Resend in {Math.floor(resendTimer / 60)} : {Math.floor(resendTimer % 60)}
                                   </span>
                                 ) : (
-                                  ''
-                                )}
+                                    ''
+                                  )}
                                 {sendVerificationSMSRequesting && (
                                   <div style={{ marginTop: -20 }}>
                                     <ListLoader />
@@ -589,8 +590,8 @@ export class ProfileSetting extends Component {
                                     {sendVerificationSMSError === 'Server Error.' ? (
                                       <span>Please provide a valid phone number.</span>
                                     ) : (
-                                      <span>{sendVerificationSMSError}</span>
-                                    )}
+                                        <span>{sendVerificationSMSError}</span>
+                                      )}
                                   </label>
                                 </div>
                               </label>
@@ -677,10 +678,10 @@ export class ProfileSetting extends Component {
                         </div>
                       </div>
                     </div>
-										<div className='bs-Fieldset-row'>
-											<label className='bs-Fieldset-label'>Two Factor Authentication <br/> by Google Authenticator</label>
-											<div className='bs-Fieldset-fields'>
-												<label className="Toggler-wrap" style={{marginTop:'10px'}}>
+                    <div className='bs-Fieldset-row'>
+                      <label className='bs-Fieldset-label'>Two Factor Authentication <br /> by Google Authenticator</label>
+                      <div className='bs-Fieldset-fields'>
+                        <label className="Toggler-wrap" style={{ marginTop: '10px' }}>
                           <input
                             className="btn-toggler"
                             type='checkbox'
@@ -688,11 +689,11 @@ export class ProfileSetting extends Component {
                             name='twoFactorAuthEnabled'
                             id='twoFactorAuthEnabled'
                             checked={twoFactorAuthEnabled}
-                            />
+                          />
                           <span className="TogglerBtn-slider round"></span>
                         </label>
-											</div>
-										</div>
+                      </div>
+                    </div>
                     <ShouldRender if={twoFactorAuthEnabled}>
                       <div className='bs-Fieldset-row' style={{ marginBottom: -5, marginTop: -5 }}>
                         <label className='bs-Fieldset-label'></label>
@@ -718,7 +719,7 @@ export class ProfileSetting extends Component {
                 <div
                   className='Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart'
                   style={{ marginTop: '10px' }}>
-                  <ShouldRender if={(profileSettings && profileSettings.error) ||(twoFactorAuthEnabled && twoFactorAuthSetting && twoFactorAuthSetting.error)}>
+                  <ShouldRender if={(profileSettings && profileSettings.error) || (twoFactorAuthEnabled && twoFactorAuthSetting && twoFactorAuthSetting.error)}>
                     <div className='Box-root Margin-right--8'>
                       <div className='Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex'></div>
                     </div>
@@ -745,7 +746,7 @@ export class ProfileSetting extends Component {
 
 ProfileSetting.displayName = 'ProfileSetting'
 
-let ProfileSettingForm = reduxForm({
+const ProfileSettingForm = reduxForm({
   form: 'Profile', // a unique identifier for this form,
   enableReinitialize: true,
   validate // <--- validation function given to redux-for
@@ -782,11 +783,11 @@ const mapDispatchToProps = dispatch => {
 }
 
 function mapStateToProps(state) {
-  var resendTimer = state.profileSettings.resendTimer
-  if (isNaN(resendTimer)) {
+  let resendTimer = state.profileSettings.resendTimer
+  if (!Validate.number(resendTimer)) {
     resendTimer = parseInt(resendTimer, 10)
   }
-  var initValues = state.profileSettings.profileSetting ? Object.assign({}, state.profileSettings.profileSetting.data) : {}
+  const initValues = state.profileSettings.profileSetting ? Object.assign({}, state.profileSettings.profileSetting.data) : {}
   if (initValues && initValues.tempAlertPhoneNumber) {
     initValues.alertPhoneNumber = initValues.tempAlertPhoneNumber
   }

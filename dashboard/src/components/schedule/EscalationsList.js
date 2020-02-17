@@ -3,9 +3,9 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { EscalationSingle } from './EscalationSingle';
 
-const EscalationsList = ({ escalationData, subProjectId }) => {
+const EscalationsList = ({ escalations, subProjectId }) => {
   return (
-    escalationData.length >0 ? (
+    escalations.length >0 ? (
       <div className="Box-root Margin-bottom--12">
         <div className="bs-ContentSection Card-root Card-shadow--medium">
           <div className="Box-root">
@@ -22,7 +22,7 @@ const EscalationsList = ({ escalationData, subProjectId }) => {
               </div>
             </div>
           </div>
-          {escalationData.map((escalation, i) => (
+          {escalations.map((escalation, i) => (
             <EscalationSingle
               escalation={escalation}
               key={i}
@@ -42,13 +42,13 @@ const EscalationsList = ({ escalationData, subProjectId }) => {
 EscalationsList.displayName = 'EscalationsList';
 
 EscalationsList.propTypes = {
-  escalationData: PropTypes.array.isRequired,
+  escalations: PropTypes.array.isRequired,
   subProjectId: PropTypes.string.isRequired,
 }
 
 const mapStateToProps = state => {
-  const { escalationData } = state.schedule;
-  return { escalationData }
+  const { escalations } = state.schedule;
+  return { escalations }
 }
 
 export default connect(mapStateToProps)(EscalationsList);

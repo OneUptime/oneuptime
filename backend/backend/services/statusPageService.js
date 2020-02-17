@@ -19,7 +19,7 @@ module.exports = {
             if (!query) query = {};
 
             query.deleted = false;
-            var statusPages = await StatusPageModel.find(query)
+            const statusPages = await StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -35,14 +35,14 @@ module.exports = {
 
     create: async function (data) {
         try {
-            var existingStatusPage = await this.findBy({ name: data.name, projectId: data.projectId });
+            const existingStatusPage = await this.findBy({ name: data.name, projectId: data.projectId });
             if (existingStatusPage && existingStatusPage.length > 0) {
-                let error = new Error('StatusPage with that name already exists.');
+                const error = new Error('StatusPage with that name already exists.');
                 error.code = 400;
                 ErrorService.log('statusPageService.create', error);
                 throw error;
             }
-            var statusPageModel = new StatusPageModel();
+            const statusPageModel = new StatusPageModel();
             statusPageModel.projectId = data.projectId || null;
             statusPageModel.domain = data.domain || null;
             statusPageModel.links = data.links || null;
@@ -65,14 +65,14 @@ module.exports = {
                 // if monitorIds is array
                 if (data.monitorIds.length !== undefined) {
                     statusPageModel.monitorId = [];
-                    for (let monitorId of data.monitorIds) {
+                    for (const monitorId of data.monitorIds) {
                         statusPageModel.monitorId.push(monitorId);
                     }
                 } else {
                     statusPageModel.monitorId = data.monitorIds;
                 }
             }
-            var statusPage = await statusPageModel.save();
+            const statusPage = await statusPageModel.save();
             return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.create', error);
@@ -87,7 +87,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            var count = await StatusPageModel.count(query);
+            const count = await StatusPageModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('statusPageService.countBy', error);
@@ -102,7 +102,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var statusPage = await StatusPageModel.findOneAndUpdate(query, {
+            const statusPage = await StatusPageModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -113,7 +113,7 @@ module.exports = {
             });
 
             if (statusPage) {
-                var subscribers = await SubscriberService.findBy({ statusPageId: statusPage._id });
+                const subscribers = await SubscriberService.findBy({ statusPageId: statusPage._id });
 
                 await Promise.all(subscribers.map(async (subscriber) => {
                     await SubscriberService.deleteBy({ _id: subscriber }, userId);
@@ -128,7 +128,7 @@ module.exports = {
 
     removeMonitor: async function (monitorId) {
         try {
-            var statusPage = await StatusPageModel.findOneAndUpdate({ monitorIds: monitorId }, {
+            const statusPage = await StatusPageModel.findOneAndUpdate({ monitorIds: monitorId }, {
                 $pull: { monitorIds: monitorId }
             });
             return statusPage;
@@ -145,7 +145,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var statusPage = await StatusPageModel.findOne(query)
+            const statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name');
@@ -158,13 +158,13 @@ module.exports = {
 
     updateOneBy: async function (query, data) {
         try {
-            var existingStatusPage = await this.findBy({
+            const existingStatusPage = await this.findBy({
                 name: data.name,
                 projectId: data.projectId,
                 _id: { $not: { $eq: data._id } }
             });
             if (existingStatusPage && existingStatusPage.length > 0) {
-                let error = new Error('StatusPage with that name already exists.');
+                const error = new Error('StatusPage with that name already exists.');
                 error.code = 400;
                 ErrorService.log('statusPageService.updateOneBy', error);
                 throw error;
@@ -173,7 +173,7 @@ module.exports = {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            var updatedStatusPage = await StatusPageModel.findOneAndUpdate(query, {
+            const updatedStatusPage = await StatusPageModel.findOneAndUpdate(query, {
                 $set: data
             }, {
                 new: true
@@ -192,7 +192,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await StatusPageModel.updateMany(query, {
+            let updatedData = await StatusPageModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -205,7 +205,7 @@ module.exports = {
 
     getNotes: async function (query, skip, limit) {
         try {
-            var _this = this;
+            const _this = this;
 
             if (!skip) skip = 0;
 
@@ -216,19 +216,19 @@ module.exports = {
             if (typeof (limit) === 'string') limit = parseInt(limit);
 
             if (!query) query = {};
-            var statuspages = await _this.findBy(query, 0, limit);
+            const statuspages = await _this.findBy(query, 0, limit);
 
             const withMonitors = statuspages.filter((statusPage) => statusPage.monitorIds.length);
-            let statuspage = withMonitors[0];
-            var monitorIds = statuspage.monitorIds.map(m => m._id);
+            const statuspage = withMonitors[0];
+            const monitorIds = statuspage.monitorIds.map(m => m._id);
             if (monitorIds && monitorIds.length) {
-                var notes = await IncidentService.findBy({ monitorId: { $in: monitorIds } }, limit, skip);
-                var count = await IncidentService.countBy({ monitorId: { $in: monitorIds } });
+                const notes = await IncidentService.findBy({ monitorId: { $in: monitorIds } }, limit, skip);
+                const count = await IncidentService.countBy({ monitorId: { $in: monitorIds } });
 
                 return { notes, count };
             }
             else {
-                let error = new Error('no monitor to check');
+                const error = new Error('no monitor to check');
                 error.code = 400;
                 ErrorService.log('statusPage.getNotes', error);
                 throw error;
@@ -241,9 +241,9 @@ module.exports = {
 
     getNotesByDate: async function (query, skip, limit) {
         try {
-            var incidents = await IncidentService.findBy(query, limit, skip);
+            const incidents = await IncidentService.findBy(query, limit, skip);
 
-            var investigationNotes = incidents.map(incident => {
+            const investigationNotes = incidents.map(incident => {
                 return {
                     investigationNote: incident.investigationNote ? incident.investigationNote : '',
                     createdAt: incident.createdAt,
@@ -252,7 +252,7 @@ module.exports = {
                     _id: incident._id,
                 };
             });
-            var count = await IncidentService.countBy(query);
+            const count = await IncidentService.countBy(query);
             return { investigationNotes, count };
         } catch (error) {
             ErrorService.log('statusPageService.getNotesByDate', error);
@@ -260,43 +260,39 @@ module.exports = {
         }
     },
 
-    getStatus: async function (query, user) {
+    getStatus: async function (query, userId) {
         try {
-            var thisObj = this;
+            const thisObj = this;
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            var statusPage = await StatusPageModel.findOne(query)
+            const statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
-                .populate({
-                    path: 'monitorIds',
-                    select: 'name data type monitorCategoryId',
-                    populate: { path: 'monitorCategoryId', select: 'name' }
-                })
+                .populate('monitorIds', 'name')
                 .lean();
             if (statusPage && (statusPage._id || statusPage.id)) {
-                var permitted = await thisObj.isPermitted(user, statusPage);
+                const permitted = await thisObj.isPermitted(userId, statusPage);
                 if (!permitted) {
-                    let error = new Error('You are unauthorized to access the page please login to continue.');
+                    const error = new Error('You are unauthorized to access the page please login to continue.');
                     error.code = 401;
                     ErrorService.log('statusPageService.getStatus', error);
                     throw error;
                 }
-                var monitorIds = statusPage.monitorIds.map(monitorId => monitorId._id.toString());
-                var projectId = statusPage.projectId._id;
-                var subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
-                var subProjectIds = subProjects ? subProjects.map(project => project._id) : null;
-                var monitors = await MonitorService.getMonitorsBySubprojects(subProjectIds, 0, 0);
-                var filteredMonitorData = monitors.map((subProject) => {
+                const monitorIds = statusPage.monitorIds.map(monitorId => monitorId._id.toString());
+                const projectId = statusPage.projectId._id;
+                const subProjects = await ProjectService.findBy({ $or: [{ parentProjectId: projectId }, { _id: projectId }] });
+                const subProjectIds = subProjects ? subProjects.map(project => project._id) : null;
+                const monitors = await MonitorService.getMonitorsBySubprojects(subProjectIds, 0, 0);
+                const filteredMonitorData = monitors.map((subProject) => {
                     return subProject.monitors.filter((monitor => monitorIds.includes(monitor._id.toString())));
                 });
                 statusPage.monitorsData = _.flatten(filteredMonitorData);
             }
             else {
-                let error = new Error('Status Page Not present');
+                const error = new Error('Status Page Not present');
                 error.code = 400;
                 ErrorService.log('statusPageService.getStatus', error);
                 throw error;
@@ -310,21 +306,21 @@ module.exports = {
 
     getIncidents: async function (query) {
         try {
-            var _this = this;
+            const _this = this;
 
             if (!query) query = {};
-            var statuspages = await _this.findBy(query);
+            const statuspages = await _this.findBy(query);
 
             const withMonitors = statuspages.filter((statusPage) => statusPage.monitorIds.length);
-            let statuspage = withMonitors[0];
-            var monitorIds = statuspage.monitorIds.map(m => m._id);
+            const statuspage = withMonitors[0];
+            const monitorIds = statuspage.monitorIds.map(m => m._id);
             if (monitorIds && monitorIds.length) {
-                var incidents = await IncidentService.findBy({ monitorId: { $in: monitorIds } });
-                var count = await IncidentService.countBy({ monitorId: { $in: monitorIds } });
+                const incidents = await IncidentService.findBy({ monitorId: { $in: monitorIds } });
+                const count = await IncidentService.countBy({ monitorId: { $in: monitorIds } });
                 return { incidents, count };
             }
             else {
-                let error = new Error('No monitor to check');
+                const error = new Error('No monitor to check');
                 error.code = 400;
                 throw error;
             }
@@ -333,14 +329,14 @@ module.exports = {
             throw error;
         }
     },
-    isPermitted: async function (user, statusPage) {
+    isPermitted: async function (userId, statusPage) {
         try {
             return new Promise(async (resolve) => {
                 if (statusPage.isPrivate) {
-                    if (user) {
-                        var project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
+                    if (userId) {
+                        const project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
                         if (project && project._id) {
-                            if (project.users.some(({ userId }) => userId === user.id)) {
+                            if (project.users.some(user => user.userId === userId)) {
                                 resolve(true);
                             }
                             else {
@@ -366,10 +362,10 @@ module.exports = {
     },
 
     getSubProjectStatusPages: async function (subProjectIds) {
-        var _this = this;
-        let subProjectStatusPages = await Promise.all(subProjectIds.map(async (id) => {
-            let statusPages = await _this.findBy({ projectId: id }, 0, 10);
-            let count = await _this.countBy({ projectId: id });
+        const _this = this;
+        const subProjectStatusPages = await Promise.all(subProjectIds.map(async (id) => {
+            const statusPages = await _this.findBy({ projectId: id }, 0, 10);
+            const count = await _this.countBy({ projectId: id });
             return { statusPages, count, _id: id, skip: 0, limit: 10 };
         }));
         return subProjectStatusPages;
@@ -417,11 +413,11 @@ module.exports = {
     }
 };
 
-var StatusPageModel = require('../models/statusPage');
-var IncidentService = require('./incidentService');
-var MonitorService = require('./monitorService');
-var ErrorService = require('./errorService');
-var SubscriberService = require('./subscriberService');
-var ProjectService = require('./projectService');
-var _ = require('lodash');
-var defaultStatusPageColors = require('../config/statusPageColors');
+const StatusPageModel = require('../models/statusPage');
+const IncidentService = require('./incidentService');
+const MonitorService = require('./monitorService');
+const ErrorService = require('./errorService');
+const SubscriberService = require('./subscriberService');
+const ProjectService = require('./projectService');
+const _ = require('lodash');
+const defaultStatusPageColors = require('../config/statusPageColors');

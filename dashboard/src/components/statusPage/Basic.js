@@ -34,8 +34,8 @@ export class Branding extends Component {
     changelogo = (e) => {
         e.preventDefault();
 
-        let reader = new FileReader();
-        let file = e.target.files[0];
+        const reader = new FileReader();
+        const file = e.target.files[0];
 
         reader.onloadend = () => {
             this.props.createLogoCache(reader.result);
@@ -53,8 +53,8 @@ export class Branding extends Component {
     changefavicon = (e) => {
         e.preventDefault();
 
-        let reader = new FileReader();
-        let file = e.target.files[0];
+        const reader = new FileReader();
+        const file = e.target.files[0];
 
         reader.onloadend = () => {
             this.props.createFaviconCache(reader.result);
@@ -70,7 +70,8 @@ export class Branding extends Component {
     }
 
     submitForm = (values) => {
-        var { _id, projectId } = this.props.statusPage.status
+        const { _id } = this.props.statusPage.status
+        let {projectId} = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         if(_id) values._id = _id;
         const { reset, resetLogoCache, resetFaviconCache } = this.props;
@@ -90,11 +91,11 @@ export class Branding extends Component {
     render() {
         const { handleSubmit } = this.props;
         // eslint-disable-next-line no-unused-vars
-        var faviconImage = <span />;
+        let faviconImage = <span />;
         // eslint-disable-next-line no-unused-vars
-        var logoImage = <span />;
-        var logoUrl = this.props.logourl ? this.props.logourl : this.props.statusPage.status && this.props.statusPage.status.logoPath ? `${API_URL}/file/${this.props.statusPage.status.logoPath}` : '';
-        var faviconUrl = this.props.faviconurl ? this.props.faviconurl : this.props.statusPage.status && this.props.statusPage.status.faviconPath ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}` : '';
+        let logoImage = <span />;
+        const logoUrl = this.props.logourl ? this.props.logourl : this.props.statusPage.status && this.props.statusPage.status.logoPath ? `${API_URL}/file/${this.props.statusPage.status.logoPath}` : '';
+        const faviconUrl = this.props.faviconurl ? this.props.faviconurl : this.props.statusPage.status && this.props.statusPage.status.faviconPath ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}` : '';
         if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.faviconPath) || this.props.faviconurl) {
             faviconImage = <img src={faviconUrl} alt="" className="image-small-circle" />;
         }
@@ -187,7 +188,7 @@ Branding.propTypes = {
     fetchProjectStatusPage: PropTypes.func.isRequired,
 }
 
-let BasicForm = reduxForm({
+const BasicForm = reduxForm({
     form: 'BasicForm', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for

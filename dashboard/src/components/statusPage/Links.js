@@ -21,7 +21,7 @@ function validate(values) {
     const linksArrayErrors = [];
 
     if (values.links) {
-        for (var i = 0; i < values.links.length; i++) {
+        for (let i = 0; i < values.links.length; i++) {
             const linkErrors = {}
             if (values.links[i].name) {
 
@@ -204,7 +204,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 
 const mapStateToProps = state => {
     const status = state.statusPage.status || [];
-    let links = [];
+    const links = [];
 
     status.links && status.links.forEach((link) => {
         links.push({
@@ -220,7 +220,7 @@ const mapStateToProps = state => {
     };
 }
 
-let LinksForm = reduxForm({
+const LinksForm = reduxForm({
     form: 'Links', // a unique identifier for this form
     validate, // <--- validation function given to redux-for
     enableReinitialize: true

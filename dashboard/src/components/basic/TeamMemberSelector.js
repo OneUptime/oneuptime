@@ -4,13 +4,13 @@ import { formValueSelector } from 'redux-form';
 import PropTypes from 'prop-types';
 import Select from 'react-select-fyipe';
 
-let errorStyle = {
+const errorStyle = {
     color: 'red',
     topMargin: '5px'
 };
 
-const TeamSelector = ({ input, placeholder, meta: { touched, error }, subProjectTeam, form, policyIndex, teamIndex }) => {
-    const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].team[teamIndex].teamMember, subProjectTeam);
+const TeamMemberSelector = ({ input, placeholder, meta: { touched, error }, subProjectTeam, form, policyIndex, teamIndex }) => {
+    const allowedTeamMembers = makeAllowedTeamMembers(form[policyIndex].teams[teamIndex].teamMember, subProjectTeam);
 
     const allowedOptionsForDropdown = [{ value: '', label: 'Select Team Member...' }].concat(allowedTeamMembers.map(member => {
         return {
@@ -78,9 +78,9 @@ const TeamSelector = ({ input, placeholder, meta: { touched, error }, subProject
     );
 };
 
-TeamSelector.displayName = 'TeamSelector';
+TeamMemberSelector.displayName = 'TeamMemberSelector';
 
-TeamSelector.propTypes = {
+TeamMemberSelector.propTypes = {
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     meta: PropTypes.object.isRequired,
@@ -90,15 +90,15 @@ TeamSelector.propTypes = {
     teamIndex: PropTypes.number.isRequired,
 };
 
-function makeAllowedTeamMembers(teamMembers, subProjectTeam = []) {
-    const validTeamMembers = teamMembers.filter(member => member.member);
-    if (!validTeamMembers.length)
+function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
+    const validTeamMembers = teamMembers.filter(member => member.userId);
+    if (validTeamMembers.length === 0)
       return subProjectTeam;
 
     const memberMap = new Map();
     const allowedTeamMembers = [];
     validTeamMembers.forEach(member => {
-      memberMap.set(member.member, member);
+      memberMap.set(member.userId, member);
     });
     const memberArray = Array.from(memberMap.keys());
     subProjectTeam.forEach(TM => {
@@ -121,4 +121,4 @@ function mapStateToProps(state, props) {
     };
 }
 
-export default connect(mapStateToProps)(TeamSelector);
+export default connect(mapStateToProps)(TeamMemberSelector);

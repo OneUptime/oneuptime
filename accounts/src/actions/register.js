@@ -71,7 +71,7 @@ export const resetSignup = () => {
 // Calls the API to register a user.
 export function signupUser(values) {
 	return function (dispatch) {
-		var promise = postApi('user/signup', values);
+		const promise = postApi('user/signup', values);
 		dispatch(signUpRequest(promise));
 		promise.then(function (user) {
 			dispatch(signupSuccess(user.data));
@@ -157,7 +157,7 @@ export const resetIsUserInvited = () => {
 // Calls the API to register a user.
 export function isUserInvited(values) {
 	return function (dispatch) {
-		var promise = postApi('user/isInvited', values);
+		const promise = postApi('user/isInvited', values);
 		dispatch(isUserInvitedRequest(promise));
 		promise.then(function (response) {
 			dispatch(isUserInvitedSuccess(response.data));
@@ -204,7 +204,7 @@ export function addCardSuccess(card) {
 export function addCard(data) {
 
 	return function (dispatch) {
-		var promise = postApi('stripe/checkCard', data)
+		const promise = postApi('stripe/checkCard', data)
 
 		dispatch(addCardRequest(promise));
 

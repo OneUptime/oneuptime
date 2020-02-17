@@ -15,7 +15,8 @@ export class AlertChargesList extends Component {
         this.props = props;
     }
     componentDidMount() {
-        let { fetchAlertCharges, projectId } = this.props;
+        const { fetchAlertCharges } = this.props;
+        let { projectId } = this.props;
         if (!projectId) {
             projectId = history.location.pathname.split('project/')[1].split('/')[0];
             fetchAlertCharges(projectId, 0, 5);
@@ -65,7 +66,7 @@ export class AlertChargesList extends Component {
                     </thead>
                     <tbody>
                         {!isRequesting && alertCharges && alertCharges.length > 0 &&
-                            alertCharges.map(alertCharge => 
+                            alertCharges.map(alertCharge =>
                                 <tr className="Table-row db-ListViewItem bs-ActionsParent" key={alertCharge.alertId._id}>
                                     <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink" style={{ height: '1px' }}>
                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -119,7 +120,7 @@ export class AlertChargesList extends Component {
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
                     {(!alertCharges || alertCharges.length === 0) && !isRequesting && !error ? 'No Alert charge' : null}
                     {error && error ? error : null}
-                    { error && error === 'You cannot edit the project because you\'re not an owner.' ? 'Alert Charges are available to only owners.' : error }
+                    {error && error === 'You cannot edit the project because you\'re not an owner.' ? 'Alert Charges are available to only owners.' : error}
                 </div>
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">

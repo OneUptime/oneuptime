@@ -1,25 +1,25 @@
 module.exports = {
     create: async function (data) {
         try {
-            var _this = this;
+            const _this = this;
             let probeKey;
             if (data.probeKey) {
                 probeKey = data.probeKey;
             } else {
                 probeKey = uuidv1();
             }
-            let storedProbe = await _this.findOneBy({ probeName: data.probeName });
+            const storedProbe = await _this.findOneBy({ probeName: data.probeName });
             if (storedProbe && storedProbe.probeName) {
-                let error = new Error('Probe name already exists.');
+                const error = new Error('Probe name already exists.');
                 error.code = 400;
                 ErrorService.log('probe.create', error);
                 throw error;
             }
             else {
-                let probe = new ProbeModel();
+                const probe = new ProbeModel();
                 probe.probeKey = probeKey;
                 probe.probeName = data.probeName;
-                var savedProbe = await probe.save();
+                const savedProbe = await probe.save();
                 return savedProbe;
             }
         } catch (error) {
@@ -35,7 +35,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var probe = await ProbeModel.findOneAndUpdate(query,
+            const probe = await ProbeModel.findOneAndUpdate(query,
                 { $set: data },
                 {
                     new: true
@@ -54,7 +54,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            var updatedData = await ProbeModel.updateMany(query, {
+            let updatedData = await ProbeModel.updateMany(query, {
                 $set: data
             });
             updatedData = await this.findBy(query);
@@ -84,7 +84,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var probe = await ProbeModel.find(query)
+            const probe = await ProbeModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -102,7 +102,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var probe = await ProbeModel.findOne(query);
+            const probe = await ProbeModel.findOne(query);
             return probe;
         } catch (error) {
             ErrorService.log('ProbeService.findOneBy', error);
@@ -117,7 +117,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            var count = await ProbeModel.count(query);
+            const count = await ProbeModel.count(query);
             return count;
         } catch (error) {
             ErrorService.log('ProbeService.countBy', error);
@@ -131,7 +131,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            var probe = await ProbeModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now() } }, { new: true });
+            const probe = await ProbeModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now() } }, { new: true });
             return probe;
         } catch (error) {
             ErrorService.log('ProbeService.deleteBy', error);
@@ -151,7 +151,7 @@ module.exports = {
 
     sendProbe: async function (probeId, monitorId) {
         try {
-            var probe = await this.findOneBy({ _id: probeId });
+            const probe = await this.findOneBy({ _id: probeId });
             if (probe) {
                 delete probe._doc.deleted;
                 await RealTimeService.updateProbe(probe, monitorId);
@@ -164,17 +164,17 @@ module.exports = {
 
     saveMonitorLog: async function (data) {
         try {
-            var _this = this;
-            var monitor, autoAcknowledge, autoResolve, incidentIds;
-            var monitorStatus = await MonitorStatusService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId });
-            var log = await MonitorLogService.create(data);
-            var lastStatus = monitorStatus && monitorStatus.status ? monitorStatus.status : null;
+            const _this = this;
+            let monitor, autoAcknowledge, autoResolve, incidentIds;
+            const monitorStatus = await MonitorStatusService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId });
+            let log = await MonitorLogService.create(data);
+            const lastStatus = monitorStatus && monitorStatus.status ? monitorStatus.status : null;
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
                 // if different, create a new monitor status and incident
                 await MonitorStatusService.create(data);
-                let incident = await _this.incidentCreateOrUpdate(data);
+                const incident = await _this.incidentCreateOrUpdate(data);
                 monitor = incident.monitor;
                 incidentIds = incident.incidentIds;
                 autoAcknowledge = lastStatus && lastStatus === 'degraded' ? monitor.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? monitor.criteria.down.autoAcknowledge : false;
@@ -193,8 +193,8 @@ module.exports = {
 
     getMonitorLog: async function (data) {
         try {
-            var date = new Date();
-            var log = await MonitorLogService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId, createdAt: { $lt: data.date || date } });
+            const date = new Date();
+            const log = await MonitorLogService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId, createdAt: { $lt: data.date || date } });
             return log;
         } catch (error) {
             ErrorService.log('probeService.getMonitorLog', error);
@@ -204,9 +204,9 @@ module.exports = {
 
     incidentCreateOrUpdate: async function (data) {
         try {
-            var monitor = await MonitorService.findOneBy({ _id: data.monitorId });
-            var incidents = await IncidentService.findBy({ monitorId: data.monitorId, incidentType: data.status, resolved: false });
-            var incidentIds = [];
+            const monitor = await MonitorService.findOneBy({ _id: data.monitorId });
+            const incidents = await IncidentService.findBy({ monitorId: data.monitorId, incidentType: data.status, resolved: false });
+            let incidentIds = [];
 
             if (data.status === 'online' && monitor && monitor.criteria && monitor.criteria.up && monitor.criteria.up.createAlert) {
                 if (incidents && incidents.length) {
@@ -294,9 +294,9 @@ module.exports = {
 
     incidentResolveOrAcknowledge: async function (data, lastStatus, autoAcknowledge, autoResolve) {
         try {
-            var incidents = await IncidentService.findBy({ monitorId: data.monitorId, incidentType: lastStatus, resolved: false });
-            var incidentsV1 = [];
-            var incidentsV2 = [];
+            const incidents = await IncidentService.findBy({ monitorId: data.monitorId, incidentType: lastStatus, resolved: false });
+            const incidentsV1 = [];
+            const incidentsV2 = [];
             if (incidents && incidents.length) {
                 if (lastStatus && lastStatus !== data.status) {
                     incidents.map(async (incident) => {
@@ -313,7 +313,7 @@ module.exports = {
                 }
             }
             await Promise.all(incidentsV1.map(async (incident) => {
-                let newIncident = await IncidentService.updateOneBy({
+                const newIncident = await IncidentService.updateOneBy({
                     _id: incident._id
                 }, {
                     probes: incident.probes.concat([{
@@ -328,8 +328,8 @@ module.exports = {
             }));
 
             incidentsV2.map(async (incident) => {
-                let trueArray = [];
-                let falseArray = [];
+                const trueArray = [];
+                const falseArray = [];
                 incident.probes.map(probe => {
                     if (probe.status) {
                         trueArray.push(probe);
@@ -361,7 +361,7 @@ module.exports = {
 
     updateProbeStatus: async function (probeId) {
         try {
-            var probe = await ProbeModel.findOneAndUpdate({ _id: probeId }, { $set: { lastAlive: Date.now() } }, { new: true });
+            const probe = await ProbeModel.findOneAndUpdate({ _id: probeId }, { $set: { lastAlive: Date.now() } }, { new: true });
             return probe;
         } catch (error) {
             ErrorService.log('probeService.updateProbeStatus', error);
@@ -371,8 +371,8 @@ module.exports = {
 
     conditions: async (payload, resp, con) => {
         let stat = true;
-        let status = resp ? (resp.status ? resp.status : (resp.statusCode ? resp.statusCode : null)) : null;
-        let body = resp && resp.body ? resp.body : null;
+        const status = resp ? (resp.status ? resp.status : (resp.statusCode ? resp.statusCode : null)) : null;
+        const body = resp && resp.body ? resp.body : null;
 
         if (con && con.and && con.and.length) {
             stat = await checkAnd(payload, con.and, status, body);
@@ -384,7 +384,7 @@ module.exports = {
     },
 };
 
-var _ = require('lodash');
+const _ = require('lodash');
 
 const checkAnd = async (payload, con, statusCode, body) => {
     let validity = true;
@@ -550,9 +550,9 @@ const checkAnd = async (payload, con, statusCode, body) => {
             }
         }
         else if (con[i] && con[i].responseType === 'storageUsage') {
-            let size = parseInt(payload.totalStorage || 0);
-            let used = parseInt(payload.storageUsed || 0);
-            let free = (size - used) / Math.pow(1e3, 3);
+            const size = parseInt(payload.totalStorage || 0);
+            const used = parseInt(payload.storageUsed || 0);
+            const free = (size - used) / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (!(con[i] && con[i].field1 && free > con[i].field1)) {
                     validity = false;
@@ -654,13 +654,13 @@ const checkAnd = async (payload, con, statusCode, body) => {
             }
         }
         if (con[i] && con[i].collection && con[i].collection.and && con[i].collection.and.length) {
-            let temp = await checkAnd(payload, con[i].collection.and, statusCode, body);
+            const temp = await checkAnd(payload, con[i].collection.and, statusCode, body);
             if (!temp) {
                 validity = temp;
             }
         }
         else if (con[i] && con[i].collection && con[i].collection.or && con[i].collection.or.length) {
-            let temp1 = await checkOr(payload, con[i].collection.or, statusCode, body);
+            const temp1 = await checkOr(payload, con[i].collection.or, statusCode, body);
             if (!temp1) {
                 validity = temp1;
             }
@@ -832,9 +832,9 @@ const checkOr = async (payload, con, statusCode, body) => {
             }
         }
         else if (con[i] && con[i].responseType === 'storageUsage') {
-            let size = parseInt(payload.totalStorage || 0);
-            let used = parseInt(payload.storageUsed || 0);
-            let free = (size - used) / Math.pow(1e3, 3);
+            const size = parseInt(payload.totalStorage || 0);
+            const used = parseInt(payload.storageUsed || 0);
+            const free = (size - used) / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (con[i] && con[i].field1 && free > con[i].field1) {
                     validity = true;
@@ -936,13 +936,13 @@ const checkOr = async (payload, con, statusCode, body) => {
             }
         }
         if (con[i] && con[i].collection && con[i].collection.and && con[i].collection.and.length) {
-            let temp = await checkAnd(payload, con[i].collection.and, statusCode, body);
+            const temp = await checkAnd(payload, con[i].collection.and, statusCode, body);
             if (temp) {
                 validity = temp;
             }
         }
         else if (con[i] && con[i].collection && con[i].collection.or && con[i].collection.or.length) {
-            let temp1 = await checkOr(payload, con[i].collection.or, statusCode, body);
+            const temp1 = await checkOr(payload, con[i].collection.or, statusCode, body);
             if (temp1) {
                 validity = temp1;
             }
@@ -951,11 +951,11 @@ const checkOr = async (payload, con, statusCode, body) => {
     return validity;
 };
 
-let ProbeModel = require('../models/probe');
-let RealTimeService = require('./realTimeService');
-let ErrorService = require('./errorService');
-let uuidv1 = require('uuid/v1');
-let MonitorService = require('./monitorService');
-let MonitorStatusService = require('./monitorStatusService');
-let MonitorLogService = require('./monitorLogService');
-let IncidentService = require('./incidentService');
+const ProbeModel = require('../models/probe');
+const RealTimeService = require('./realTimeService');
+const ErrorService = require('./errorService');
+const uuidv1 = require('uuid/v1');
+const MonitorService = require('./monitorService');
+const MonitorStatusService = require('./monitorStatusService');
+const MonitorLogService = require('./monitorLogService');
+const IncidentService = require('./incidentService');

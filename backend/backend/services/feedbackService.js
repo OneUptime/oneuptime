@@ -12,7 +12,7 @@ module.exports = {
     //Returns: promise
     create: async function (projectId, message, page, createdById) {
         try {
-            var feedback = new FeedbackModel();
+            let feedback = new FeedbackModel();
 
             feedback.message = message;
             feedback.page = page;
@@ -21,12 +21,12 @@ module.exports = {
             feedback = await feedback.save();
             feedback = feedback.toObject();
 
-            var project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({ _id: projectId });
             feedback.project = project;
 
-            var user = await UserService.findOneBy({ _id: createdById });
+            const user = await UserService.findOneBy({ _id: createdById });
 
-            var record = await AirtableService.logFeedback({
+            const record = await AirtableService.logFeedback({
                 message,
                 name: user.name,
                 email: user.email,
@@ -55,9 +55,9 @@ module.exports = {
     }
 };
 
-var FeedbackModel = require('../models/feedback');
-var MailService = require('./mailService');
-var ErrorService = require('./errorService');
-var UserService = require('./userService');
-var ProjectService = require('./projectService');
-var AirtableService = require('./airtableService');
+const FeedbackModel = require('../models/feedback');
+const MailService = require('./mailService');
+const ErrorService = require('./errorService');
+const UserService = require('./userService');
+const ProjectService = require('./projectService');
+const AirtableService = require('./airtableService');

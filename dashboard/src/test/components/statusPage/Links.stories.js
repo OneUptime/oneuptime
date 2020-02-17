@@ -126,13 +126,13 @@ function validate(values) {
   return errors;
 }
 
-let LinksForm = reduxForm({
+const LinksForm = reduxForm({
   form: 'Branding', // a unique identifier for this form
   enableReinitialize: true,
   validate // <--- validation function given to redux-for
 })(Links);
 
-let props_nonrequesting = {
+const props_nonrequesting = {
   'statusPage': {
     'setting': {
       'error': null,
@@ -184,7 +184,7 @@ let props_nonrequesting = {
     }
   },
 }
-let props_requesting = {
+const props_requesting = {
   'statusPage': {
     'setting': {
       'error': null,

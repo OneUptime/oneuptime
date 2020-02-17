@@ -2,13 +2,13 @@ import React from 'react';
 import { storiesOf, action } from '@storybook/react';
 import { IncidentInvestigation } from '../../../components/incident/IncidentInvestigation'
 
-let mock_setData = (details)=>{
+const mock_setData = (details)=>{
     const submitAction = action('setdata');
   submitAction(details);
 }
 
 
-let props = {
+const props = {
     'incident': {
         'acknowledged': false,
         'resolved': false,

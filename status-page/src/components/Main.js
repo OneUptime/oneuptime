@@ -11,10 +11,70 @@ import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPage, fetchMonitorStatuses, getStatusPageIndividualNote, selectedProbe } from '../actions/status';
+import { getStatusPage, selectedProbe } from '../actions/status';
 import { getProbes } from '../actions/probe';
 
+let greenBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgb(117, 211, 128)'
+};
+let yellowBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgb(255, 222, 36)'
+};
+let redBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgb(250, 117, 90)'
+};
+let greyBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgba(107, 124, 147, 0.2)'
+};
+
 class Main extends Component {
+
+	constructor(props) {
+		super(props);
+
+		this.state = {
+			now: Date.now(),
+			nowHandler: null
+		};
+	}
+
+	componentDidUpdate(prevProps) {
+		if (prevProps.probes !== this.props.probes) {
+			clearTimeout(this.state.nowHandler);
+
+			this.setLastAlive();
+		}
+	}
+
+	setLastAlive = () => {
+		this.setState({ now: Date.now() });
+
+		let nowHandler = setTimeout(() => {
+			this.setState({ now: Date.now() });
+		}, 300000);
+
+		this.setState({ nowHandler });
+	}
 
 	componentDidMount() {
 		if (window.location.search.substring(1) && window.location.search.substring(1) === 'embedded=true') {
@@ -34,13 +94,7 @@ class Main extends Component {
 			this.selectbutton(this.props.activeProbe);
 		});
 
-		this.props.getStatusPage(projectId, url).then(() => {
-			this.props.monitorState.forEach(monitor => {
-				const endDate = moment(Date.now());
-				const startDate = moment(Date.now()).subtract(90, 'days');
-				this.props.fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
-			});
-		}).catch(err => {
+		this.props.getStatusPage(projectId, url).catch(err => {
 			if (err.message === 'Request failed with status code 401') {
 				const { loginRequired } = this.props.login;
 				if (loginRequired) {
@@ -67,8 +121,8 @@ class Main extends Component {
 	}
 
 	groupedMonitors = () => {
-		if (this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0) {
-			let monitorData = this.props.statusData.monitorIds;
+		if (this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0) {
+			let monitorData = this.props.statusData.monitorsData;
 			let groupedMonitorData = this.groupBy(monitorData, 'monitorCategoryId');
 			let monitorCategoryStyle = {
 				display: 'inline-block',
@@ -120,7 +174,7 @@ class Main extends Component {
 		let isGroupedByMonitorCategory = false;
 		let error = this.renderError();
 
-		if (this.props.statusData && this.props.statusData.monitorIds) {
+		if (this.props.statusData && this.props.statusData.monitorsData) {
 			serviceStatus = getServiceStatus(this.props.monitorState, probes);
 			isGroupedByMonitorCategory = this.props.statusData.isGroupedByMonitorCategory;
 			var colors = this.props.statusData.colors
@@ -140,30 +194,6 @@ class Main extends Component {
 			}
 			view = true;
 
-			var greenBackground = {
-				display: 'inline-block',
-				borderRadius: '50%',
-				height: '8px',
-				width: '8px',
-				margin: '0 8px 1px 0',
-				backgroundColor: 'rgb(117, 211, 128)'// "green-status"
-			};
-			var yellowBackground = {
-				display: 'inline-block',
-				borderRadius: '50%',
-				height: '8px',
-				width: '8px',
-				margin: '0 8px 1px 0',
-				backgroundColor: 'rgb(255, 222, 36)'// "yellow-status"
-			};
-			var redBackground = {
-				display: 'inline-block',
-				borderRadius: '50%',
-				height: '8px',
-				width: '8px',
-				margin: '0 8px 1px 0',
-				backgroundColor: 'rgb(250, 117, 90)'// "red-status"
-			};
 			var heading = {
 				color: `rgba(${colors.heading.r}, ${colors.heading.g}, ${colors.heading.b}, ${colors.heading.a})`
 			};
@@ -203,7 +233,9 @@ class Main extends Component {
 										key={`probes-btn${index}`}
 										id={`probes-btn${index}`}
 										className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-										<span style={probe.status === 'online' ? greenBackground : probe.status === 'degraded' ? yellowBackground : redBackground}></span>
+										<span style={probe.lastAlive && moment(this.state.now).diff(moment(probe.lastAlive), 'seconds') >= 300 ?
+											greyBackground :
+											(serviceStatus === 'none' ? redBackground : (serviceStatus === 'some' ? yellowBackground : greenBackground))}></span>
 										<span>{probe.probeName}</span>
 									</button>)
 								)}
@@ -214,14 +246,15 @@ class Main extends Component {
 									{isGroupedByMonitorCategory ?
 										this.groupedMonitors() :
 										(this.props.statusData &&
-											this.props.statusData.monitorIds !== undefined &&
-											this.props.statusData.monitorIds.length > 0 ?
-											this.props.statusData.monitorIds
-												.map((monitor, i) =>
-													<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />) :
+											this.props.statusData.monitorsData !== undefined &&
+											this.props.statusData.monitorsData.length > 0 ?
+											this.props.statusData.monitorsData
+												.map((monitor, i) => {
+													return <UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />
+												}) :
 											<NoMonitor />)}
 								</div>
-								{this.props.statusData && this.props.statusData.monitorIds !== undefined && this.props.statusData.monitorIds.length > 0 ? <UptimeLegend background={contentBackground} /> : ''}
+								{this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0 ? <UptimeLegend background={contentBackground} /> : ''}
 							</div>
 						</div>
 					</div>
@@ -294,9 +327,7 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => bindActionCreators({
 	getStatusPage,
-	fetchMonitorStatuses,
 	getProbes,
-	getStatusPageIndividualNote,
 	selectedProbe
 }, dispatch);
 
@@ -304,7 +335,6 @@ Main.propTypes = {
 	statusData: PropTypes.object,
 	status: PropTypes.object,
 	getStatusPage: PropTypes.func,
-	fetchMonitorStatuses: PropTypes.func,
 	getProbes: PropTypes.func,
 	login: PropTypes.object.isRequired,
 	monitorState: PropTypes.array,

@@ -3,13 +3,13 @@ import { storiesOf, action } from '@storybook/react';
 import { withKnobs, boolean } from '@storybook/addon-knobs';
 import { IncidentAlert } from '../../../components/incident/IncidentAlert'
 
-let mock_nav = (details)=>{
+const mock_nav = (details)=>{
     const submitAction = action('getNext/getPrev');
   submitAction(details);
 }
 
 
-let props = {
+const props = {
     'match': {
       'path': '/project/:projectId/incidents/:incidentId',
       'url': '/project/5b1f39482a62c8611d23c953/incidents/5b2d2a92f5e4115b698b2cff',

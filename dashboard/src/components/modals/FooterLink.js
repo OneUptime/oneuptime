@@ -140,7 +140,7 @@ function validate(values) {
 	return errors;
 }
 
-let CreateFooterLinkForm = reduxForm({
+const CreateFooterLinkForm = reduxForm({
 	form: 'CreateFooterLink',
 	validate, // <--- validation function given to redux-for
 })(CreateFooterLink);
@@ -156,7 +156,7 @@ const mapDispatchToProps = (dispatch) => {
 
 function mapStateToProps(state, ownProps) {
 	const status = state.statusPage.status || [];
-    let links = [];
+    const links = [];
 
     status.links && status.links.forEach((link) => {
         links.push({

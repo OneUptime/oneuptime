@@ -12,9 +12,9 @@ export class MonitorTitle extends Component {
     }
 
     render() {
-        let { monitor, status } = this.props;
+        const { monitor, status } = this.props;
 
-        let url = monitor && monitor.data && monitor.data.url ? monitor.data.url : null;
+        const url = monitor && monitor.data && monitor.data.url ? monitor.data.url : null;
 
         let badgeColor;
         switch (monitor.type) {

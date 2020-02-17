@@ -33,10 +33,10 @@ export class MonitorCategories extends Component {
 
     render() {
 
-        let footerBorderTopStyle = { margin: 0, padding: 0 }
+        const footerBorderTopStyle = { margin: 0, padding: 0 }
         let canNext = (this.props.count > (parseInt(this.props.skip) + parseInt(this.props.limit))) ? true : false;
         let canPrev = (parseInt(this.props.skip) <= 0) ? false : true;
-        let { isRequesting, error, monitorCategories } = this.props;
+        const { isRequesting, error, monitorCategories } = this.props;
 
         if (isRequesting || !monitorCategories) {
             canNext = false;

@@ -166,7 +166,7 @@ class TwoFactorAuthModal extends Component {
 
 TwoFactorAuthModal.displayName = 'TwoFactorAuthModal';
 
-let TwoFactorAuthForm = reduxForm({
+const TwoFactorAuthForm = reduxForm({
     form: 'TwoFactorAuthForm',
 })(TwoFactorAuthModal);
 

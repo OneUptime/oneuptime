@@ -47,7 +47,7 @@ export function decrementNextCount() {
 export function getInvoice(projectId, startingAfter, endingBefore) {
 
     return function (dispatch) {
-        var promise = null;
+        let promise = null;
         const reqFornext = Boolean(startingAfter) && !endingBefore;
         const reqForPrev = Boolean(endingBefore) && Boolean(startingAfter)
 

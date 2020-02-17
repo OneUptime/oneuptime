@@ -3,9 +3,9 @@
  * Copyright HackerBay, Inc.
  *
  */
-var ProbeService = require('../services/probeService');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var ErrorService = require('../services/errorService');
+const ProbeService = require('../services/probeService');
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const ErrorService = require('../services/errorService');
 
 module.exports = {
     isAuthorizedProbe: async function (req, res, next) {
@@ -45,8 +45,8 @@ module.exports = {
                     message: 'Probe Name not found.'
                 });
             }
-            var probe = await ProbeService.findOneBy({ probeKey });
-            if (probe && probe.probeName && probe.probeName === probeName) {
+            const probe = await ProbeService.findOneBy({ probeKey, probeName });
+            if (probe) {
                 req.probe = {};
                 req.probe.id = probe._id;
                 await ProbeService.updateProbeStatus(probe._id);

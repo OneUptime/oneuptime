@@ -45,16 +45,16 @@ export class ScheduledEventBox extends Component {
     }
 
     render() {
-        let { createScheduledEventModalId } = this.state;
-        let { scheduledEvents, limit, count, skip, profileSettings, error, requesting } = this.props;
-        let footerBorderTopStyle = { margin: 0, padding: 0 }
+        const { createScheduledEventModalId } = this.state;
+        const { scheduledEvents, limit, count, skip, profileSettings, error, requesting } = this.props;
+        const footerBorderTopStyle = { margin: 0, padding: 0 }
 
-        let canNext = (count > (parseInt(skip) + parseInt(limit))) ? true : false;
-        let canPrev = (parseInt(skip) <= 0) ? false : true;
+        const canNext = (count > (parseInt(skip) + parseInt(limit))) ? true : false;
+        const canPrev = (parseInt(skip) <= 0) ? false : true;
         const projectId = this.props.monitor ? this.props.monitor.projectId._id || this.props.monitor.projectId : null;
 
         return (
-            <div onKeyDown={this.handleKeyBoard}>
+            <div onKeyDown={this.handleKeyBoard} className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">

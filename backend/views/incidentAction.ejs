@@ -74,10 +74,10 @@
                                             valign="top">
                                             <img width="50px" height="50px" class="image-header" src=<%='/img/' + action + '.svg' %>
                                             <br>
-                                            <h1><%= message %></h1>
+                                            <h1><%= title_message %></h1>
                                             <p>
-                                                    <%= meta_message %>. You can view the status of this incident and provide notes on the
-                                                    <a href="https://dashboard.fyipe.com" >Dashboard</a>
+                                                    <%= body_message %>. You can view the status of this incident and provide notes on the
+                                                    <a href='<%= dashboard_url %>' >Dashboard</a>
                                                     and provide notes.
                                             </p>
                                             <br> <p style="color:#444444;"> Thank you for using Fyipe.</p>
@@ -104,7 +104,7 @@
                                 <tbody>
                                     <tr style="color:#a8b9c6;font-size:11px;font-family:proxima_nova,'Open Sans','Lucida Grande','Segoe UI',Arial,Verdana,'Lucida Sans Unicode',Tahoma,'Sans Serif'">
                                         <td width="400" align="left"></td>
-                                        <td width="128" align="right">© 2018 <span class="il">Fyipe</span></td>
+                                        <td width="128" align="right">© 2020 <span class="il">Fyipe</span></td>
                                     </tr>
                                 </tbody>
                             </table>

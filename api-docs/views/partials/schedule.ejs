@@ -4,8 +4,8 @@
       <h1>Schedule</h1>
     </b>
     <p>
-      <p>Schedule API, defines who in your team will be alerted when the incident is created. How the escalation polies
-        are created, and more. </p>
+      <p>Schedule API will allow you to connect your team members to specific monitors, so only on-duty members
+        who are responsible for certain monitors are alerted when an incident is created.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -34,7 +34,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Schedule<span class="requestType">POST</span></h3>
     <p>
-      <p>Create Schedule.</p>
+      <p>Create Schedule by Project ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -66,7 +66,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -195,7 +195,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Schedules<span class="requestType">GET</span></h3>
     <p>
-      <p>Get All Schedules.</p>
+      <p>Get All Schedules by Project ID. Return by skipping and limiting the number of results.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -228,7 +228,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
               </div>
             </div>
           </div>
@@ -243,7 +243,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -265,7 +265,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -353,7 +353,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Schedules<span class="requestType">GET</span></h3>
     <p>
-      <p>Get All Schedules.</p>
+      <p>Get All Schedules by Project ID. Return by skipping and limiting the number of results.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -386,7 +386,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
               </div>
             </div>
           </div>
@@ -401,7 +401,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -423,7 +423,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -512,7 +512,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All SubProjects Schedules<span class="requestType">GET</span></h3>
     <p>
-      <p>Get All SubProjects Schedules.</p>
+      <p>Get All SubProjects Schedules by Project ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -545,7 +545,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -637,7 +637,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Schedule<span class="requestType">PUT</span></h3>
     <p>
-      <p>Edit Schedule.</p>
+      <p>Edit Schedule by Project ID and Schedule ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -670,7 +670,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -685,7 +685,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The schedule id of the project schedule.</p>
               </div>
             </div>
           </div>
@@ -829,7 +829,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Schedule<span class="requestType">DELETE</span></h3>
     <p>
-      <p>Delete Schedule.</p>
+      <p>Delete Schedule by Project ID and Schedule ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -862,7 +862,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -877,7 +877,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The schedule id of the project schedule.</p>
               </div>
             </div>
           </div>
@@ -934,7 +934,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Add Escalation<span class="requestType">POST</span></h3>
     <p>
-      <p>Add Schedule Escalation.</p>
+      <p>Add Schedule Escalation by Project ID and Schedule ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -967,7 +967,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -982,7 +982,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The schedule id of the project schedule.</p>
               </div>
             </div>
           </div>
@@ -1029,9 +1029,9 @@
               <p>
 [
   {
-    "callFrequency": "10",
-    "smsFrequency": "10",
-    "emailFrequency": "10",
+    "callReminders": 3,
+    "smsReminders": 3,
+    "emailReminders": 3,
     "email": true,
     "sms": true,
     "call": false,
@@ -1047,7 +1047,7 @@
         ]
       }
     ],
-    "rotationFrequency": "day"
+    "rotateBy": "day"
   }
 ]
               </p>
@@ -1084,10 +1084,10 @@
       }
     ],
     "createdAt": "2020-01-14T20:23:49.525Z",
-    "callFrequency": "10",
-    "smsFrequency": "10",
-    "emailFrequency": "10",
-    "rotationFrequency": "day",
+    "callReminders": "10",
+    "smsReminders": "10",
+    "emailReminders": "10",
+    "rotateBy": "day",
     "rotationInterval": null,
     "projectId": {
       "_id": "5e089f94b400211639928c94",
@@ -1110,7 +1110,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Escalation<span class="requestType">GET</span></h3>
     <p>
-      <p>Get Schedule Escalation.</p>
+      <p>Get Schedule Escalation by Project ID and Schedule ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1143,7 +1143,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -1158,7 +1158,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The schedule id of the project schedule.</p>
               </div>
             </div>
           </div>
@@ -1208,10 +1208,10 @@
         }
       ],
       "createdAt": "2020-01-14T20:23:49.525Z",
-      "callFrequency": "10",
-      "smsFrequency": "10",
-      "emailFrequency": "10",
-      "rotationFrequency": "day",
+      "callReminders": "10",
+      "smsReminders": "10",
+      "emailReminders": "10",
+      "rotateBy": "day",
       "rotationInterval": null,
       "projectId": {
         "_id": "5e089f94b400211639928c94",

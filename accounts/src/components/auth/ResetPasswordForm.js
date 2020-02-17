@@ -76,7 +76,7 @@ export class ResetPasswordForm extends Component {
 ResetPasswordForm.displayName = 'ResetPasswordForm'
 
 function validate(values) {
-  let errors = {};
+  const errors = {};
   if (!Validate.text(values.email)) {
     errors.email = 'Email is required.'
   }
@@ -86,7 +86,7 @@ function validate(values) {
   return errors;
 }
 
-let resetPasswordForm = reduxForm({
+const resetPasswordForm = reduxForm({
   form: 'resetPasswordForm', // a unique identifier for this form
   validate
 })(ResetPasswordForm);

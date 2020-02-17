@@ -4,8 +4,8 @@
       <h1>Status Page</h1>
     </b>
     <p>
-      <p>Status Page API, creates a status page for your team or your customers (exactly like https://status.fyipe.com)
-      </p>
+      <p>Status Page API will allow your team members and customers to view real-time status and health of your Fyipe
+        project monitors (like https://status.fyipe.com).</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -34,7 +34,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Status Page<span class="requestType">POST</span></h3>
     <p>
-      <p> Create a status page in the project. </p>
+      <p>Create Status Page by Project ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -54,28 +54,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -83,13 +61,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -97,7 +75,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -268,7 +246,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -278,25 +256,19 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:projectId</p>
+          <p class="url">https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354</p>
 
           <p>Request Body</p>
-          <pre><code class="language-json"><p>{
-"api-key":"xxx",
-"name": "Sample Status Page",
-"monitorIds": ["Ab0c129e367534000fdbc46f"],
-"domain": "https://status.fyipe.com",
-"links": {
-"name": "Sample Link",
-"url": "https://samplelink.com"
-},
-"isPrivate":false,
-"description": "Sample description",
-"title": "Sample Title",
-"copyright": "HackerBay, Inc.",
-"faviconPath": "https://path-to-fav-icon/favicon.ico",
-"logoPath": "https://path-to-logo/logo.ico"
-}</p></code></pre>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "name": "Zenith 2",
+  "monitorIds": []
+}            
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
 
@@ -304,52 +276,73 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                        <code class="language-json">
-                          <p>{
-"api-key":"xxx",
-"name": "Sample Status Page",
-"monitors": {
-"_id": "Ab0c129e367534000fdbc46f",
-"name": "Sample Monitor"
-},
-"domain": "https://status.fyipe.com",
-"links": {
-"name": "Sample Link",
-"url": "https://samplelink.com"
-},
-"isPrivate":false,
-"description": "Sample description",
-"title": "Sample Title",
-"copyright": "HackerBay, Inc.",
-"faviconPath": "https://path-to-fav-icon/favicon.ico",
-"logoPath": "https://path-to-logo/logo.ico",
-"_id": "5bbe0286d2f835000fb63e91",
-"createdBy": {
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-},
-"project": {
-"_id": "5b0c129e367534000fdbc46f",
-"name": "CloudBoost"
-},
-"createdAt": "2018-10-10T13:45:42.206Z",
-                                
+            <code class="language-json">
+              <p>
+{
+  "monitorIds": [],
+  "links": null,
+  "isPrivate": null,
+  "isSubscriberEnabled": false,
+  "isGroupedByMonitorCategory": false,
+  "showScheduledEvents": true,
+  "enableRSSFeed": true,
+  "emailNotification": true,
+  "smsNotification": true,
+  "webhookNotification": true,
+  "deleted": false,
+  "_id": "5e3bfa83de29ed659247259d",
+  "createdAt": "2020-02-06T11:37:39.786Z",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "domain": null,
+  "title": null,
+  "name": "Zenith 2",
+  "description": null,
+  "copyright": null,
+  "faviconPath": null,
+  "logoPath": null,
+  "bannerPath": null,
+  "colors": {
+    "pageBackground": {
+      "r": 238,
+      "g": 242,
+      "b": 246,
+      "a": 1
+    },
+    "statusPageBackground": {
+      "r": 246,
+      "g": 249,
+      "b": 252,
+      "a": 1
+    },
+    "heading": {
+      "r": 50,
+      "g": 50,
+      "b": 93,
+      "a": 0.8
+    },
+    "subheading": {
+      "r": 50,
+      "g": 50,
+      "b": 93,
+      "a": 0.8
+    }
+  },
+  "__v": 0
 }
-</p>
-    
-                        </code>
-                    </pre>
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
   </section>
 </article>
 
-<article id="get-status-pages" class="cf-grid-container dev-doc-item-container">
+<article id="get-all-status-pages" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Status Pages<span class="requestType">GET</span></h3>
+    <h3>Get All Status Pages<span class="requestType">GET</span></h3>
     <p>
-      <p> Get all status pages by Project </p>
+      <p>Get All Status Pages by Project ID. Return by skipping and limiting the number of results.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -376,13 +369,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type">string</span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>API Key for the project or sub project</p>
+                <p>The number of results to skip in the response body.</p>
               </div>
             </div>
           </div>
@@ -397,189 +390,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>Number of items you would like to return from the API.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>skip</span>
-                <span class="item-type">integer</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Number of items you would need to skip. This is used in pagination</p>
-              </div>
-            </div>
-          </div>
-        </li>
-
-
-
-
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Path Variables</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-  </section>
-
-  <section class="col-lg-half col-md-half dev-doc-example">
-    <div class="sample-type type-curl">
-      <div id="exampleRequest" class="doc-example-item doc-example-request">
-        <h1>Example Request</h1>
-
-        <div class="example-code example-response">
-          <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:projectId/dashboard</p>
-        </div>
-      </div>
-
-      <div class="doc-example-item">
-        <h1>Example Response (200)</h1>
-        <div class="example-code example-response">
-          <pre>
-                        <code class="language-json">
-                          <p>
-{
-"data":[{
-"_id":"5cef7d6d9d9d972fd9f505f4",
-"monitorIds":[
-  {
-    "_id":"5cf0fea7a59bae3762ae4391",
-    "name":"Test",
-    "type":"url",
-    "data":{
-        "url":"https://www.test.com"
-    },
-    "monitorCategoryId":{
-        "_id":"5cf0cd658ffd6b2475396665",
-        "name":"US EAST"
-    },
-    "time":[
-        {
-          "date":"2019-06-04T05:54:53.114Z",
-          "monitorId":"5cf0fea7a59bae3762ae4391",
-          "upTime":254,
-          "downTime":3
-        },
-        {
-          "upTime":606,
-          "downTime":22,
-          "_id":"5cf56730c3e8414fe087425c",
-          "date":"2019-06-03T18:29:00.912Z",
-          "monitorId":"5cf0fea7a59bae3762ae4391",
-          "status":"online",
-          "__v":0
-        },
-        {
-          "upTime":491,
-          "downTime":7,
-          "_id":"5cf2c43a7319f36a0243b600",
-          "date":"2019-06-01T18:29:00.319Z",
-          "monitorId":"5cf0fea7a59bae3762ae4391",
-          "status":"online",
-          "__v":0
-        }
-      ],
-      "stat":"online",
-      "totalUptimePercent":97.68618944323933
-    }
-],
-"links":null,
-"isGroupedByMonitorCategory":true,
-"deleted":false,
-"createdAt":"2019-05-30T06:51:25.565Z",
-"projectId":{
-    "_id":"5ce6a2fd2ffa26020dbe00b7",
-    "name":"Sample"
-},
-"domain":null,
-"title":"Sample status page title",
-"name":Sample status page name,
-"isPrivate":false,
-"description":null,
-"copyright":null,
-"faviconPath":null,
-"logoPath":null,
-"isSubscriberEnabled":true,
-"__v":0
-}],
-"count":1,
-"skip":0,
-"limit":10
-}
-                          </p>
-    
-                        </code>
-                    </pre>
-        </div>
-      </div>
-    </div>
-  </section>
-</article>
-
-<article id="get-status-pages" class="cf-grid-container dev-doc-item-container">
-  <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Status Pages<span class="requestType">GET</span></h3>
-    <p>
-      <p></p>
-    </p>
-
-    <div class="attribute-parameter-container">
-      <h3>Path</h3>
-
-      <ul class="doc-item-detail-container">
-        <li>
-          <div class="cf-grid-row">
-            <div class="col-full">
-              <div class="item-title">
-                <span>https://api.fyipe.com/statusPage/:projectId/statuspages</span>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -595,13 +406,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -617,17 +428,141 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:projectId/statuspages</p>
+          <p class="url">https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354/dashboard?skip=0&limit=5</p>
         </div>
       </div>
 
       <div class="doc-example-item">
         <h1>Example Response (200)</h1>
-
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e3bfa83de29ed659247259d",
+      "monitorIds": [],
+      "links": null,
+      "isPrivate": null,
+      "isSubscriberEnabled": false,
+      "isGroupedByMonitorCategory": false,
+      "showScheduledEvents": true,
+      "enableRSSFeed": true,
+      "emailNotification": true,
+      "smsNotification": true,
+      "webhookNotification": true,
+      "createdAt": "2020-02-06T11:37:39.786Z",
+      "projectId": {
+        "_id": "5e2ecf45516aae26b133f354",
+        "name": "Bello"
+      },
+      "domain": null,
+      "title": null,
+      "name": "Zenith 2",
+      "description": null,
+      "copyright": null,
+      "faviconPath": null,
+      "logoPath": null,
+      "bannerPath": null,
+      "colors": {
+        "pageBackground": {
+          "r": 238,
+          "g": 242,
+          "b": 246,
+          "a": 1
+        },
+        "statusPageBackground": {
+          "r": 246,
+          "g": 249,
+          "b": 252,
+          "a": 1
+        },
+        "heading": {
+          "r": 50,
+          "g": 50,
+          "b": 93,
+          "a": 0.8
+        },
+        "subheading": {
+          "r": 50,
+          "g": 50,
+          "b": 93,
+          "a": 0.8
+        }
+      }
+    },
+    {
+      "_id": "5e3adb35fb75ab7729a63a5d",
+      "monitorIds": [
+        {
+          "_id": "5e321f87542c6f61d1292a83",
+          "name": "Google Home"
+        },
+        {
+          "_id": "5e3154a8e991437d71ed1f16",
+          "name": "Tello"
+        },
+        {
+          "_id": "5e343f60598e9625817c0164",
+          "name": "Ubuntu Machine"
+        }
+      ],
+      "links": null,
+      "isPrivate": null,
+      "isSubscriberEnabled": true,
+      "isGroupedByMonitorCategory": false,
+      "showScheduledEvents": true,
+      "enableRSSFeed": true,
+      "emailNotification": true,
+      "smsNotification": true,
+      "webhookNotification": true,
+      "createdAt": "2020-02-05T15:11:49.439Z",
+      "projectId": {
+        "_id": "5e2ecf45516aae26b133f354",
+        "name": "Bello"
+      },
+      "domain": null,
+      "title": "Zenith",
+      "name": "Zenith",
+      "description": "Zenith",
+      "copyright": null,
+      "faviconPath": null,
+      "logoPath": null,
+      "bannerPath": "c96f5f7fc70bea01a2c5a1b0aef8b053",
+      "colors": {
+        "pageBackground": {
+          "r": 238,
+          "g": 242,
+          "b": 246,
+          "a": 1
+        },
+        "statusPageBackground": {
+          "r": 246,
+          "g": 249,
+          "b": 252,
+          "a": 1
+        },
+        "heading": {
+          "r": 50,
+          "g": 50,
+          "b": 93,
+          "a": 0.8
+        },
+        "subheading": {
+          "r": 50,
+          "g": 50,
+          "b": 93,
+          "a": 0.8
+        }
+      }
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>
@@ -636,11 +571,11 @@
   </section>
 </article>
 
-<article id="get-status-pages" class="cf-grid-container dev-doc-item-container">
+<article id="get-all-status-pages" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Status Pages<span class="requestType">GET</span></h3>
+    <h3>Get All Status Pages<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get All Status Pages by Project ID. Return by skipping and limiting the number of results.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -667,13 +602,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -689,13 +639,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -711,7 +661,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:projectId/statuspage</p>
+          <p class="url">https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354/statuspage?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -721,7 +671,339 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e3bfa83de29ed659247259d",
+      "monitorIds": [],
+      "links": null,
+      "isPrivate": null,
+      "isSubscriberEnabled": false,
+      "isGroupedByMonitorCategory": false,
+      "showScheduledEvents": true,
+      "enableRSSFeed": true,
+      "emailNotification": true,
+      "smsNotification": true,
+      "webhookNotification": true,
+      "createdAt": "2020-02-06T11:37:39.786Z",
+      "projectId": {
+        "_id": "5e2ecf45516aae26b133f354",
+        "name": "Bello"
+      },
+      "domain": null,
+      "title": null,
+      "name": "Zenith 2",
+      "description": null,
+      "copyright": null,
+      "faviconPath": null,
+      "logoPath": null,
+      "bannerPath": null,
+      "colors": {
+        "pageBackground": {
+          "r": 238,
+          "g": 242,
+          "b": 246,
+          "a": 1
+        },
+        "statusPageBackground": {
+          "r": 246,
+          "g": 249,
+          "b": 252,
+          "a": 1
+        },
+        "heading": {
+          "r": 50,
+          "g": 50,
+          "b": 93,
+          "a": 0.8
+        },
+        "subheading": {
+          "r": 50,
+          "g": 50,
+          "b": 93,
+          "a": 0.8
+        }
+      }
+    },
+    {
+      "_id": "5e3adb35fb75ab7729a63a5d",
+      "monitorIds": [
+        {
+          "_id": "5e321f87542c6f61d1292a83",
+          "name": "Google Home"
+        },
+        {
+          "_id": "5e3154a8e991437d71ed1f16",
+          "name": "Tello"
+        },
+        {
+          "_id": "5e343f60598e9625817c0164",
+          "name": "Ubuntu Machine"
+        }
+      ],
+      "links": null,
+      "isPrivate": null,
+      "isSubscriberEnabled": true,
+      "isGroupedByMonitorCategory": false,
+      "showScheduledEvents": true,
+      "enableRSSFeed": true,
+      "emailNotification": true,
+      "smsNotification": true,
+      "webhookNotification": true,
+      "createdAt": "2020-02-05T15:11:49.439Z",
+      "projectId": {
+        "_id": "5e2ecf45516aae26b133f354",
+        "name": "Bello"
+      },
+      "domain": null,
+      "title": "Zenith",
+      "name": "Zenith",
+      "description": "Zenith",
+      "copyright": null,
+      "faviconPath": null,
+      "logoPath": null,
+      "bannerPath": "c96f5f7fc70bea01a2c5a1b0aef8b053",
+      "colors": {
+        "pageBackground": {
+          "r": 238,
+          "g": 242,
+          "b": 246,
+          "a": 1
+        },
+        "statusPageBackground": {
+          "r": 246,
+          "g": 249,
+          "b": 252,
+          "a": 1
+        },
+        "heading": {
+          "r": 50,
+          "g": 50,
+          "b": 93,
+          "a": 0.8
+        },
+        "subheading": {
+          "r": 50,
+          "g": 50,
+          "b": 93,
+          "a": 0.8
+        }
+      }
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-subprojects-status-pages" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All SubProjects Status Pages<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All SubProjects Status Pages by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/statusPage/:projectId/statuspages</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354/statuspages</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "statusPages": [],
+    "count": 0,
+    "_id": "5e321f54542c6f61d1292a5a",
+    "skip": 0,
+    "limit": 10
+  },
+  {
+    "statusPages": [
+      {
+        "_id": "5e3bfa83de29ed659247259d",
+        "monitorIds": [],
+        "links": null,
+        "isPrivate": null,
+        "isSubscriberEnabled": false,
+        "isGroupedByMonitorCategory": false,
+        "showScheduledEvents": true,
+        "enableRSSFeed": true,
+        "emailNotification": true,
+        "smsNotification": true,
+        "webhookNotification": true,
+        "createdAt": "2020-02-06T11:37:39.786Z",
+        "projectId": {
+          "_id": "5e2ecf45516aae26b133f354",
+          "name": "Bello"
+        },
+        "domain": null,
+        "title": null,
+        "name": "Zenith 2",
+        "description": null,
+        "copyright": null,
+        "faviconPath": null,
+        "logoPath": null,
+        "bannerPath": null,
+        "colors": {
+          "pageBackground": {
+            "r": 238,
+            "g": 242,
+            "b": 246,
+            "a": 1
+          },
+          "statusPageBackground": {
+            "r": 246,
+            "g": 249,
+            "b": 252,
+            "a": 1
+          },
+          "heading": {
+            "r": 50,
+            "g": 50,
+            "b": 93,
+            "a": 0.8
+          },
+          "subheading": {
+            "r": 50,
+            "g": 50,
+            "b": 93,
+            "a": 0.8
+          }
+        }
+      },
+      {
+        "_id": "5e3adb35fb75ab7729a63a5d",
+        "monitorIds": [
+          {
+            "_id": "5e321f87542c6f61d1292a83",
+            "name": "Google Home"
+          },
+          {
+            "_id": "5e3154a8e991437d71ed1f16",
+            "name": "Tello"
+          },
+          {
+            "_id": "5e343f60598e9625817c0164",
+            "name": "Ubuntu Machine"
+          }
+        ],
+        "links": null,
+        "isPrivate": null,
+        "isSubscriberEnabled": true,
+        "isGroupedByMonitorCategory": false,
+        "showScheduledEvents": true,
+        "enableRSSFeed": true,
+        "emailNotification": true,
+        "smsNotification": true,
+        "webhookNotification": true,
+        "createdAt": "2020-02-05T15:11:49.439Z",
+        "projectId": {
+          "_id": "5e2ecf45516aae26b133f354",
+          "name": "Bello"
+        },
+        "domain": null,
+        "title": "Zenith",
+        "name": "Zenith",
+        "description": "Zenith",
+        "copyright": null,
+        "faviconPath": null,
+        "logoPath": null,
+        "bannerPath": "c96f5f7fc70bea01a2c5a1b0aef8b053",
+        "colors": {
+          "pageBackground": {
+            "r": 238,
+            "g": 242,
+            "b": 246,
+            "a": 1
+          },
+          "statusPageBackground": {
+            "r": 246,
+            "g": 249,
+            "b": 252,
+            "a": 1
+          },
+          "heading": {
+            "r": 50,
+            "g": 50,
+            "b": 93,
+            "a": 0.8
+          },
+          "subheading": {
+            "r": 50,
+            "g": 50,
+            "b": 93,
+            "a": 0.8
+          }
+        }
+      }
+    ],
+    "count": 2,
+    "_id": "5e2ecf45516aae26b133f354",
+    "skip": 0,
+    "limit": 10
+  }
+]              
+              </p>
             </code>
           </pre>
         </div>
@@ -734,7 +1016,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Status Page<span class="requestType">GET</span></h3>
     <p>
-      <p> Get status pages by ID </p>
+      <p>Get Single Status Pages by Status Page ID and URL.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -761,13 +1043,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
+                <span>url</span>
                 <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>API Key for the project or sub project</p>
+                <p>The url of the status page.</p>
               </div>
             </div>
           </div>
@@ -783,13 +1065,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>statusPageId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The status page id of the project status page.</p>
               </div>
             </div>
           </div>
@@ -805,7 +1087,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:statusPageId</p>
+          <p class="url">https://api.fyipe.com/statusPage/5e3bfa83de29ed659247259d</p>
         </div>
       </div>
 
@@ -813,75 +1095,66 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                          <code class="language-json">
-                            <p>
+            <code class="language-json">
+              <p>
 {
-"_id":"5cef7d6d9d9d972fd9f505f4",
-"monitorIds":[
-  {
-    "_id":"5cf0fea7a59bae3762ae4391",
-    "name":"Test",
-    "type":"url",
-    "data":{
-        "url":"https://www.test.com"
+  "_id": "5e3bfa83de29ed659247259d",
+  "monitorIds": [],
+  "links": null,
+  "isPrivate": null,
+  "isSubscriberEnabled": false,
+  "isGroupedByMonitorCategory": false,
+  "showScheduledEvents": true,
+  "enableRSSFeed": true,
+  "emailNotification": true,
+  "smsNotification": true,
+  "webhookNotification": true,
+  "deleted": false,
+  "createdAt": "2020-02-06T11:37:39.786Z",
+  "projectId": {
+    "_id": "5e2ecf45516aae26b133f354",
+    "name": "Bello"
+  },
+  "domain": null,
+  "title": null,
+  "name": "Zenith 2",
+  "description": null,
+  "copyright": null,
+  "faviconPath": null,
+  "logoPath": null,
+  "bannerPath": null,
+  "colors": {
+    "pageBackground": {
+      "r": 238,
+      "g": 242,
+      "b": 246,
+      "a": 1
     },
-    "monitorCategoryId":{
-        "_id":"5cf0cd658ffd6b2475396665",
-        "name":"US EAST"
+    "statusPageBackground": {
+      "r": 246,
+      "g": 249,
+      "b": 252,
+      "a": 1
     },
-    "time":[
-        {
-          "date":"2019-06-04T05:54:53.114Z",
-          "monitorId":"5cf0fea7a59bae3762ae4391",
-          "upTime":254,
-          "downTime":3
-        },
-        {
-          "upTime":606,
-          "downTime":22,
-          "_id":"5cf56730c3e8414fe087425c",
-          "date":"2019-06-03T18:29:00.912Z",
-          "monitorId":"5cf0fea7a59bae3762ae4391",
-          "status":"online",
-          "__v":0
-        },
-        {
-          "upTime":491,
-          "downTime":7,
-          "_id":"5cf2c43a7319f36a0243b600",
-          "date":"2019-06-01T18:29:00.319Z",
-          "monitorId":"5cf0fea7a59bae3762ae4391",
-          "status":"online",
-          "__v":0
-        }
-    ],
-    "stat":"online",
-    "totalUptimePercent":97.68618944323933
-  }
-],
-"links":null,
-"isGroupedByMonitorCategory":true,
-"deleted":false,
-"createdAt":"2019-05-30T06:51:25.565Z",
-"projectId":{
-  "_id":"5ce6a2fd2ffa26020dbe00b7",
-  "name":"Sample"
-},
-"domain":null,
-"title":"Sample status page",
-"name":null,
-"isPrivate":false,
-"description":null,
-"copyright":null,
-"faviconPath":null,
-"logoPath":null,
-"isSubscriberEnabled":true,
-"__v":0
+    "heading": {
+      "r": 50,
+      "g": 50,
+      "b": 93,
+      "a": 0.8
+    },
+    "subheading": {
+      "r": 50,
+      "g": 50,
+      "b": 93,
+      "a": 0.8
+    }
+  },
+  "__v": 0,
+  "monitorsData": []
 }
-                            </p>
-      
-                          </code>
-                      </pre>
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -892,7 +1165,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Edit Status Page<span class="requestType">PUT</span></h3>
     <p>
-      <p> Update a status page in the project. </p>
+      <p>Edit Status Page by Project ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -912,28 +1185,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p></p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -941,13 +1192,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
               </div>
             </div>
           </div>
@@ -955,7 +1206,7 @@
       </ul>
     </div>
 
-    <div class="attribute-parameter-container">
+    <!-- <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -1126,7 +1377,7 @@
           </div>
         </li>
       </ul>
-    </div>
+    </div> -->
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -1136,25 +1387,21 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:projectId</p>
+          <p class="url">https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354</p>
 
           <p>Request Body</p>
-          <pre><code class="language-json"><p>{
-"api-key":"xxx",
-"name": "Sample Status Page",
-"monitorIds": ["Ab0c129e367534000fdbc46f"],
-"domain": "https://status.fyipe.com",
-"links": {
-"name": "Sample Link",
-"url": "https://samplelink.com"
-},
-"isPrivate":false,
-"description": "Sample description",
-"title": "Sample Title",
-"copyright": "HackerBay, Inc.",
-"faviconPath": "https://path-to-fav-icon/favicon.ico",
-"logoPath": "https://path-to-logo/logo.ico"
-}</p></code></pre>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "_id": "5e3bfa83de29ed659247259d",
+  "monitorIds": [
+    "5e321f87542c6f61d1292a83"
+  ]
+}            
+            </p>
+          </code>
+        </pre>
         </div>
       </div>
 
@@ -1162,41 +1409,64 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                          <code class="language-json">
-                            <p>{
-"api-key":"xxx",
-"name": "Sample Status Page",
-"monitors": {
-"_id": "Ab0c129e367534000fdbc46f",
-"name": "Sample Monitor"
-},
-"domain": "https://status.fyipe.com",
-"links": {
-"name": "Sample Link",
-"url": "https://samplelink.com"
-},
-"isPrivate":false,
-"description": "Sample description",
-"title": "Sample Title",
-"copyright": "HackerBay, Inc.",
-"faviconPath": "https://path-to-fav-icon/favicon.ico",
-"logoPath": "https://path-to-logo/logo.ico"
-"_id": "5bbe0286d2f835000fb63e91",
-"createdBy": {
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-},
-"project": {
-"_id": "5b0c129e367534000fdbc46f",
-"name": "CloudBoost"
-},
-"createdAt": "2018-10-10T13:45:42.206Z",
-
-}
-                            </p>
-      
-                          </code>
-                      </pre>
+            <code class="language-json">
+              <p>
+{
+  "monitorIds": [
+    "5e321f87542c6f61d1292a83"
+  ],
+  "links": null,
+  "isPrivate": null,
+  "isSubscriberEnabled": false,
+  "isGroupedByMonitorCategory": false,
+  "showScheduledEvents": true,
+  "enableRSSFeed": true,
+  "emailNotification": true,
+  "smsNotification": true,
+  "webhookNotification": true,
+  "deleted": false,
+  "_id": "5e3bfa83de29ed659247259d",
+  "createdAt": "2020-02-06T11:37:39.786Z",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "domain": null,
+  "title": null,
+  "name": "Zenith 2",
+  "description": null,
+  "copyright": null,
+  "faviconPath": null,
+  "logoPath": null,
+  "bannerPath": null,
+  "colors": {
+    "pageBackground": {
+      "r": 238,
+      "g": 242,
+      "b": 246,
+      "a": 1
+    },
+    "statusPageBackground": {
+      "r": 246,
+      "g": 249,
+      "b": 252,
+      "a": 1
+    },
+    "heading": {
+      "r": 50,
+      "g": 50,
+      "b": 93,
+      "a": 0.8
+    },
+    "subheading": {
+      "r": 50,
+      "g": 50,
+      "b": 93,
+      "a": 0.8
+    }
+  },
+  "__v": 0
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -1207,7 +1477,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Delete Status Page<span class="requestType">DELETE</span></h3>
     <p>
-      <p> Delete a status page by Status Page ID </p>
+      <p>Delete Status Page by Project ID and Status Page ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1227,29 +1497,6 @@
     </div>
 
     <div class="attribute-parameter-container">
-      <h3>Query Params</h3>
-
-      <ul class="doc-item-detail-container">
-
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>api-key</span>
-                <span class="item-type  ">string</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>API Key for your Fyipe Project</p>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="attribute-parameter-container">
       <h3>Path Variables</h3>
 
       <ul class="doc-item-detail-container">
@@ -1257,13 +1504,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>statusPageId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The status page id of the project status page.</p>
               </div>
             </div>
           </div>
@@ -1279,7 +1541,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:projectId/:statusPageId</p>
+          <p class="url">https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354/5e3bfa83de29ed659247259d</p>
         </div>
       </div>
 
@@ -1287,41 +1549,66 @@
         <h1>Example Response (200)</h1>
         <div class="example-code example-response">
           <pre>
-                            <code class="language-json">
-                              <p>{
-"api-key":"xxx",
-"name": "Sample Status Page",
-"monitors": {
-"_id": "Ab0c129e367534000fdbc46f",
-"name": "Sample Monitor"
-},
-"domain": "https://status.fyipe.com",
-"links": {
-"name": "Sample Link",
-"url": "https://samplelink.com"
-},
-"isPrivate":false,
-"description": "Sample description",
-"title": "Sample Title",
-"copyright": "HackerBay, Inc.",
-"faviconPath": "https://path-to-fav-icon/favicon.ico",
-"logoPath": "https://path-to-logo/logo.ico"
-"_id": "5bbe0286d2f835000fb63e91",
-"createdBy": {
-"_id": "5b0c1298367534000fdbc46e",
-"name": "Nawaz Dhandala"
-},
-"project": {
-"_id": "5b0c129e367534000fdbc46f",
-"name": "CloudBoost"
-},
-"createdAt": "2018-10-10T13:45:42.206Z",
-
-}
-                              </p>
-        
-                            </code>
-                        </pre>
+            <code class="language-json">
+              <p>
+{
+  "monitorIds": [
+    "5e321f87542c6f61d1292a83"
+  ],
+  "links": null,
+  "isPrivate": null,
+  "isSubscriberEnabled": false,
+  "isGroupedByMonitorCategory": false,
+  "showScheduledEvents": true,
+  "enableRSSFeed": true,
+  "emailNotification": true,
+  "smsNotification": true,
+  "webhookNotification": true,
+  "deleted": true,
+  "_id": "5e3bfa83de29ed659247259d",
+  "createdAt": "2020-02-06T11:37:39.786Z",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "domain": null,
+  "title": null,
+  "name": "Zenith 2",
+  "description": null,
+  "copyright": null,
+  "faviconPath": null,
+  "logoPath": null,
+  "bannerPath": null,
+  "colors": {
+    "pageBackground": {
+      "r": 238,
+      "g": 242,
+      "b": 246,
+      "a": 1
+    },
+    "statusPageBackground": {
+      "r": 246,
+      "g": 249,
+      "b": 252,
+      "a": 1
+    },
+    "heading": {
+      "r": 50,
+      "g": 50,
+      "b": 93,
+      "a": 0.8
+    },
+    "subheading": {
+      "r": 50,
+      "g": 50,
+      "b": 93,
+      "a": 0.8
+    }
+  },
+  "__v": 0,
+  "deletedAt": "2020-02-06T12:38:34.968Z",
+  "deletedById": "5e2ecf3f516aae26b133f352"
+}                
+              </p>
+            </code>
+          </pre>
         </div>
       </div>
     </div>
@@ -1332,7 +1619,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Status Page RSS<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Status Page RSS by Status Page ID and URL.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1359,13 +1646,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>url</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The url of the status page.</p>
               </div>
             </div>
           </div>
@@ -1381,13 +1668,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>statusPageId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The status page id of the project status page.</p>
               </div>
             </div>
           </div>
@@ -1403,7 +1690,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:statusPageId/rss</p>
+          <p class="url">https://api.fyipe.com/statusPage/5e3bfa83de29ed659247259d/rss</p>
         </div>
       </div>
 
@@ -1413,7 +1700,106 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <Title>Incidents for status page Zenith</Title>
+  <Description>RSS feed for all incidents related to monitors attached to status page</Description>
+  <Link>http://localhost:3002/statusPage/rss</Link>
+  <LastBuildDate>Thu Feb 06 2020 12:44:44 GMT+0100 (West Africa Standard Time)</LastBuildDate>
+  <Language>en</Language>
+  <Incidents>
+    <Incident>
+      <IncidentType>offline</IncidentType>
+      <IncidentId>5e3485a6f798176b8eceaa29</IncidentId>
+      <MonitorName>Google Home</MonitorName>
+      <MonitorId>5e321f87542c6f61d1292a83</MonitorId>
+      <ManuallyCreated>false</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>offline</IncidentType>
+      <IncidentId>5e3443912d08987eda83a4df</IncidentId>
+      <MonitorName>Google Home</MonitorName>
+      <MonitorId>5e321f87542c6f61d1292a83</MonitorId>
+      <ManuallyCreated>false</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>degraded</IncidentType>
+      <IncidentId>5e3317c7cafe407ab9351f40</IncidentId>
+      <MonitorName>Google Home</MonitorName>
+      <MonitorId>5e321f87542c6f61d1292a83</MonitorId>
+      <ManuallyCreated>false</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>degraded</IncidentType>
+      <IncidentId>5e3316d9cafe407ab9351ed2</IncidentId>
+      <MonitorName>Google Home</MonitorName>
+      <MonitorId>5e321f87542c6f61d1292a83</MonitorId>
+      <ManuallyCreated>false</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>degraded</IncidentType>
+      <IncidentId>5e33169ecafe407ab9351ec3</IncidentId>
+      <MonitorName>Google Home</MonitorName>
+      <MonitorId>5e321f87542c6f61d1292a83</MonitorId>
+      <ManuallyCreated>true</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>offline</IncidentType>
+      <IncidentId>5e33168bcafe407ab9351ec0</IncidentId>
+      <MonitorName>Tello</MonitorName>
+      <MonitorId>5e3154a8e991437d71ed1f16</MonitorId>
+      <ManuallyCreated>true</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>degraded</IncidentType>
+      <IncidentId>5e33165dcafe407ab9351eb5</IncidentId>
+      <MonitorName>Google Home</MonitorName>
+      <MonitorId>5e321f87542c6f61d1292a83</MonitorId>
+      <ManuallyCreated>false</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>offline</IncidentType>
+      <IncidentId>5e323bb2ab4ef87817ebf957</IncidentId>
+      <MonitorName>Tello</MonitorName>
+      <MonitorId>5e3154a8e991437d71ed1f16</MonitorId>
+      <ManuallyCreated>true</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>offline</IncidentType>
+      <IncidentId>5e323b5fab4ef87817ebf94c</IncidentId>
+      <MonitorName>Google Home</MonitorName>
+      <MonitorId>5e321f87542c6f61d1292a83</MonitorId>
+      <ManuallyCreated>true</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>offline</IncidentType>
+      <IncidentId>5e323b30ab4ef87817ebf93f</IncidentId>
+      <MonitorName>Google Home</MonitorName>
+      <MonitorId>5e321f87542c6f61d1292a83</MonitorId>
+      <ManuallyCreated>true</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+    <Incident>
+      <IncidentType>degraded</IncidentType>
+      <IncidentId>5e323ad1ab4ef87817ebf932</IncidentId>
+      <MonitorName>Google Home</MonitorName>
+      <MonitorId>5e321f87542c6f61d1292a83</MonitorId>
+      <ManuallyCreated>true</ManuallyCreated>
+      <InvestigationNote/>
+    </Incident>
+  </Incidents>
+</rss>
+              </p>
             </code>
           </pre>
         </div>
@@ -1422,11 +1808,12 @@
   </section>
 </article>
 
-<article id="get-notes" class="cf-grid-container dev-doc-item-container">
+<article id="get-status-page-notes" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Notes<span class="requestType">GET</span></h3>
+    <h3>Get Status Page Notes<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Status Page Notes by Project ID and Status Page ID. Return by skipping and limiting the number of results.
+      </p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1453,13 +1840,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -1475,13 +1877,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>statusPageId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The status page id of the project status page.</p>
               </div>
             </div>
           </div>
@@ -1497,7 +1914,8 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:projectId/:statusPageId/notes</p>
+          <p class="url">
+            https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354/5e3bfa83de29ed659247259d/notes?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -1507,7 +1925,225 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "_id": "5e3485a6f798176b8eceaa29",
+      "probes": [
+        {
+          "status": true,
+          "_id": "5e3485a6f798176b8eceaa2a",
+          "probeId": {
+            "_id": "5e2ede37dbe0ab20a749ed9b",
+            "probeName": "US East"
+          },
+          "updatedAt": "2020-01-31T19:53:10.599Z",
+          "reportedStatus": "offline"
+        }
+      ],
+      "createdAt": "2020-01-31T19:53:10.599Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "createdById": null,
+      "incidentType": "offline",
+      "acknowledgedAt": "2020-01-31T19:54:56.571Z",
+      "acknowledgedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-31T19:54:56.571Z",
+      "resolvedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "_id": "5e348476f798176b8ecea8c7",
+      "probes": [
+        {
+          "status": true,
+          "_id": "5e348476f798176b8ecea8c8",
+          "probeId": {
+            "_id": "5e2ede37dbe0ab20a749ed9b",
+            "probeName": "US East"
+          },
+          "updatedAt": "2020-01-31T19:48:06.495Z",
+          "reportedStatus": "degraded"
+        }
+      ],
+      "createdAt": "2020-01-31T19:48:06.493Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "createdById": null,
+      "incidentType": "degraded",
+      "acknowledgedAt": "2020-01-31T19:48:14.839Z",
+      "acknowledgedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-31T19:48:14.839Z",
+      "resolvedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "_id": "5e3481e2f798176b8ecea4ec",
+      "probes": [
+        {
+          "status": true,
+          "_id": "5e3481e2f798176b8ecea4ed",
+          "probeId": {
+            "_id": "5e2ede37dbe0ab20a749ed9b",
+            "probeName": "US East"
+          },
+          "updatedAt": "2020-01-31T19:37:06.548Z",
+          "reportedStatus": "degraded"
+        }
+      ],
+      "createdAt": "2020-01-31T19:37:06.548Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "createdById": null,
+      "incidentType": "degraded",
+      "acknowledgedAt": "2020-01-31T19:39:53.962Z",
+      "acknowledgedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-31T19:39:53.962Z",
+      "resolvedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "_id": "5e347fc6f798176b8ecea2a1",
+      "probes": [
+        {
+          "status": true,
+          "_id": "5e347fc6f798176b8ecea2a2",
+          "probeId": {
+            "_id": "5e2ede37dbe0ab20a749ed9b",
+            "probeName": "US East"
+          },
+          "updatedAt": "2020-01-31T19:28:06.789Z",
+          "reportedStatus": "degraded"
+        }
+      ],
+      "createdAt": "2020-01-31T19:28:06.788Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "createdById": null,
+      "incidentType": "degraded",
+      "acknowledgedAt": "2020-01-31T19:35:40.653Z",
+      "acknowledgedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-31T19:35:40.653Z",
+      "resolvedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": null,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "_id": "5e347f17f798176b8ecea1be",
+      "probes": [
+        {
+          "status": true,
+          "_id": "5e347f17f798176b8ecea1bf",
+          "probeId": {
+            "_id": "5e2ede37dbe0ab20a749ed9b",
+            "probeName": "US East"
+          },
+          "updatedAt": "2020-01-31T19:25:11.713Z",
+          "reportedStatus": "degraded"
+        }
+      ],
+      "createdAt": "2020-01-31T19:25:11.712Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "createdById": null,
+      "incidentType": "degraded",
+      "acknowledgedAt": "2020-01-31T19:27:49.224Z",
+      "acknowledgedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-01-31T19:27:49.224Z",
+      "resolvedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      }
+    }
+  ],
+  "count": 29,
+  "skip": 0,
+  "limit": 5
+}               
+              </p>
             </code>
           </pre>
         </div>
@@ -1516,11 +2152,12 @@
   </section>
 </article>
 
-<article id="get-note" class="cf-grid-container dev-doc-item-container">
+<article id="get-status-page-monitor-notes" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get Note<span class="requestType">GET</span></h3>
+    <h3>Get Status Page Monitor Notes<span class="requestType">GET</span></h3>
     <p>
-      <p></p>
+      <p>Get Status Page Monitor Notes by Project ID and Monitor ID. Return by skipping and limiting the number of
+        results.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1547,13 +2184,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>skip</span>
+                <span class="item-type">integer</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
               </div>
             </div>
           </div>
@@ -1569,13 +2221,28 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span></span>
-                <span class="item-type"></span>
+                <span>projectId</span>
+                <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p></p>
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
               </div>
             </div>
           </div>
@@ -1591,7 +2258,9 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://api.fyipe.com/statusPage/:projectId/:monitorId/individualnotes</p>
+          <p class="url">
+            https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354/5e321f87542c6f61d1292a83/individualnotes?skip=0&limit=5
+          </p>
         </div>
       </div>
 
@@ -1601,7 +2270,352 @@
         <div class="example-code example-response">
           <pre>
             <code class="language-json">
-              <p></p>
+              <p>
+{
+  "data": [
+    {
+      "investigationNote": "",
+      "createdAt": "2020-01-31T19:53:10.599Z",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "resolved": true,
+      "_id": "5e3485a6f798176b8eceaa29"
+    },
+    {
+      "investigationNote": "",
+      "createdAt": "2020-01-31T19:48:06.493Z",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "resolved": true,
+      "_id": "5e348476f798176b8ecea8c7"
+    },
+    {
+      "investigationNote": "",
+      "createdAt": "2020-01-31T19:37:06.548Z",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "resolved": true,
+      "_id": "5e3481e2f798176b8ecea4ec"
+    },
+    {
+      "investigationNote": "",
+      "createdAt": "2020-01-31T19:28:06.788Z",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "resolved": true,
+      "_id": "5e347fc6f798176b8ecea2a1"
+    },
+    {
+      "investigationNote": "",
+      "createdAt": "2020-01-31T19:25:11.712Z",
+      "monitorId": {
+        "_id": "5e321f87542c6f61d1292a83",
+        "name": "Google Home"
+      },
+      "resolved": true,
+      "_id": "5e347f17f798176b8ecea1be"
+    }
+  ],
+  "count": 16,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-monitor-statuses" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Monitor Statuses<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Monitor Statuses by Project ID and Monitor ID. Return results by Start Date and End Date.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/statusPage/:projectId/:monitorId/monitorStatuses</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>startDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The start date of the date range.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>endDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The end date of the date range.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354d/5e321f87542c6f61d1292a83/monitorStatuses</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e2ede37dbe0ab20a749ed9b",
+      "statuses": [
+        {
+          "manuallyCreated": false,
+          "endTime": null,
+          "_id": "5e3b1f94927afc6d082372ea",
+          "startTime": "2020-02-05T20:03:32.688Z",
+          "createdAt": "2020-02-05T20:03:32.688Z",
+          "monitorId": "5e321f87542c6f61d1292a83",
+          "probeId": "5e2ede37dbe0ab20a749ed9b"
+        },
+        {
+          "manuallyCreated": false,
+          "endTime": null,
+          "_id": "5e322885542c6f61d1292c7c",
+          "startTime": "2020-01-30T00:51:17.983Z",
+          "createdAt": "2020-01-30T00:51:17.983Z",
+          "monitorId": "5e321f87542c6f61d1292a83",
+          "probeId": "5e2ede37dbe0ab20a749ed9b",
+          "responseTime": null,
+          "status": "online"
+        }
+      ]
+    }
+  ],
+  "count": 1
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-probes" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Probes<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Probes by Project ID. Return by skipping and limiting the number of results.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/statusPage/:projectId/probes</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/statusPage/5e2ecf45516aae26b133f354/probes?skip=0&limit=5</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e2ede37dbe0ab20a749ed9b",
+      "createdAt": "2020-01-27T11:53:35.429Z",
+      "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4",
+      "probeName": "US East",
+      "lastAlive": "2020-02-05T20:09:34.596Z"
+    },
+    {
+      "_id": "5e2ede71dbe0ab20a749edd4",
+      "createdAt": "2020-01-27T11:53:35.429Z",
+      "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce5",
+      "probeName": "US West",
+      "lastAlive": "2020-01-27T11:53:35.429Z"
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
             </code>
           </pre>
         </div>

@@ -463,7 +463,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                                     }
                                 }
 
-                                let logData = {
+                                const logData = {
                                     ...data,
                                     maxResponseTime: data.responseTime,
                                     maxCpuLoad: data.cpuLoad,
@@ -475,12 +475,12 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                                 monitor.logs = monitor.logs && monitor.logs.length > 0 ? (
                                     monitor.logs.map(a => a._id).includes(logData.probeId) || !logData.probeId ? monitor.logs.map(probeLogs => {
-                                        let probeId = probeLogs._id;
+                                        const probeId = probeLogs._id;
 
                                         if (probeId === logData.probeId || (!probeId && !logData.probeId)) {
                                             if (probeLogs.logs && probeLogs.logs.length > 0
                                                 && moment(probeLogs.logs[0].createdAt).isSame(moment(logData.createdAt), dateFormat)) {
-                                                let currentLog = probeLogs.logs[0];
+                                                const currentLog = probeLogs.logs[0];
 
                                                 logData.maxResponseTime = data.responseTime > currentLog.maxResponseTime ? data.responseTime : currentLog.maxResponseTime;
                                                 logData.maxCpuLoad = data.cpuLoad > currentLog.maxCpuLoad ? data.cpuLoad : currentLog.maxCpuLoad;
@@ -530,10 +530,10 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                                     if (monitorProbes.includes(data.probeId) || !data.probeId) {
                                         monitor.statuses = monitor.statuses.map(probeStatuses => {
-                                            let probeId = probeStatuses._id;
+                                            const probeId = probeStatuses._id;
 
                                             if (probeId === data.probeId || !data.probeId) {
-                                                let previousStatus = probeStatuses.statuses[0];
+                                                const previousStatus = probeStatuses.statuses[0];
                                                 previousStatus.endTime = new Date().toISOString();
 
                                                 return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
@@ -544,7 +544,7 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                                         if (isValidProbe && !probes.every(probe => monitorProbes.includes(probe._id))) {
                                             // add manual status to all new probes
-                                            let newProbeStatuses = [];
+                                            const newProbeStatuses = [];
 
                                             probes.forEach(probe => {
                                                 if (!monitorProbes.includes(probe._id)) {
@@ -818,7 +818,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors = monitor._id === action.payload.projectId ? monitor.monitors.map((monitor) => {
                             if (monitor._id === action.payload.monitorId._id) {
-                                var incidents = monitor.incidents || [];
+                                let incidents = monitor.incidents || [];
 
                                 if (incidents && incidents.length) {
                                     if (incidents.length > 2) {
@@ -905,7 +905,8 @@ export default function monitor(state = INITIAL_STATE, action) {
             });
 
         case GET_MONITOR_LOGS_FAILURE:
-            var failureLogs = {
+            {
+            const failureLogs = {
                 ...state.monitorLogs,
                 [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
                     {
@@ -926,9 +927,11 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorLogs: failureLogs
             });
+        }
 
         case GET_MONITOR_LOGS_REQUEST:
-            var requestLogs = {
+            {
+            const requestLogs = {
                 ...state.monitorLogs,
                 [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
                     {
@@ -949,6 +952,7 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorLogs: requestLogs
             });
+        }
 
         case GET_MONITOR_LOGS_RESET:
             return Object.assign({}, state, {

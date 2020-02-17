@@ -55,8 +55,8 @@ class IncidentLog extends React.Component {
     }
 
     render() {
-        let { createIncidentModalId } = this.state;
-        let creating = this.props.create ? this.props.create : false;
+        const { createIncidentModalId } = this.state;
+        const creating = this.props.create ? this.props.create : false;
         const { subProjects, currentProject, subProjectIncidents, incidents } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
@@ -97,7 +97,7 @@ class IncidentLog extends React.Component {
         });
 
         // Add Project Incidents to All Incidents List
-        var projectIncident = subProjectIncidents && subProjectIncidents.find(subProjectIncident => subProjectIncident._id === currentProjectId)
+        let projectIncident = subProjectIncidents && subProjectIncidents.find(subProjectIncident => subProjectIncident._id === currentProjectId)
         if (projectIncident && incidents) {
             projectIncident.requesting = incidents.requesting
             projectIncident.error = incidents.error
@@ -157,7 +157,7 @@ class IncidentLog extends React.Component {
 }
 
 const mapStateToProps = state => {
-    var subProjects = state.subProject.subProjects.subProjects;
+    let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);
