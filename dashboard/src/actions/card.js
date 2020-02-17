@@ -26,7 +26,7 @@ export function addCardSuccess(card) {
 export function addCard(projectId, token) {
 
     return function (dispatch) {
-        var promise = postApi(`stripe/${projectId}/creditCard/${token}`)
+        const promise = postApi(`stripe/${projectId}/creditCard/${token}`)
 
         dispatch(addCardRequest(promise));
 
@@ -73,7 +73,7 @@ export function fetchCardsSuccess(cards) {
 export function fetchCards(projectId) {
 
     return function (dispatch) {
-        var promise = getApi(`stripe/${projectId}/creditCard`)
+        const promise = getApi(`stripe/${projectId}/creditCard`)
 
         dispatch(fetchCardsRequest(promise));
 
@@ -121,7 +121,7 @@ export function deleteCardSuccess(card) {
 export function deleteCard(projectId, cardId) {
 
     return function (dispatch) {
-        var promise = deleteApi(`stripe/${projectId}/creditCard/${cardId}`)
+        const promise = deleteApi(`stripe/${projectId}/creditCard/${cardId}`)
 
         dispatch(deleteCardRequest(promise));
 
@@ -172,7 +172,7 @@ export function setDefaultCardSuccess(card) {
 export function setDefaultCard(projectId, cardId) {
 
     return function (dispatch) {
-        var promise = putApi(`stripe/${projectId}/creditCard/${cardId}`)
+        const promise = putApi(`stripe/${projectId}/creditCard/${cardId}`)
 
         dispatch(setDefaultCardRequest(promise, cardId));
 

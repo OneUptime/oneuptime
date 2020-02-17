@@ -7,7 +7,7 @@ import TeamMemberSelector from '../basic/TeamMemberSelector';
 import TimeSelector from '../basic/TimeSelector';
 import Tooltip from '../basic/Tooltip';
 
-let RenderMember = ({
+const RenderMember = ({
     memberValue, inputarray, subProjectId,
     policyIndex, teamIndex, nameIndex,
     fields

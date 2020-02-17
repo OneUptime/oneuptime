@@ -20,7 +20,7 @@ export class ProjectDeleteBox extends Component {
 
     handleClick = () => {
         const { deleteProject, project } = this.props;
-        var thisObj = this;
+        const thisObj = this;
         const { deleteModalId } = this.state
         this.props.openModal({
             id: deleteModalId,

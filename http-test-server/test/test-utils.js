@@ -1,8 +1,8 @@
-var faker = require('faker');
+const faker = require('faker');
 
-var HTTP_TEST_SERVER_URL = 'http://localhost:3010';
+const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 
-var puppeteerLaunchConfig = {
+const puppeteerLaunchConfig = {
     args: [
         '--proxy-server=',
         '--no-sandbox',
@@ -18,7 +18,7 @@ var puppeteerLaunchConfig = {
     ],
 };
 
-var user = faker.helpers.createCard();
+const user = faker.helpers.createCard();
 
 function generateRandomString(){
     return Math.random().toString(36).substring(10); 

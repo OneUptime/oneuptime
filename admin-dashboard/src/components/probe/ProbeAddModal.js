@@ -134,7 +134,7 @@ class ProbeAddModal extends Component {
 
 ProbeAddModal.displayName = 'ProbeAddFormModal'
 
-let ProbeAddModalForm = reduxForm({
+const ProbeAddModalForm = reduxForm({
     form: 'AddProbe', // a unique identifier for this form
 })(ProbeAddModal);
 

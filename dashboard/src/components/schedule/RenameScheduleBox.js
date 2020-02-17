@@ -126,11 +126,11 @@ export class RenameScheduleBox extends Component {
 
 RenameScheduleBox.displayName = 'RenameScheduleBox'
 
-let formName = 'RenameSchedule' + Math.floor((Math.random() * 10) + 1);
+const formName = 'RenameSchedule' + Math.floor((Math.random() * 10) + 1);
 
-let onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
+const onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
 
-let RenameScheduleForm = new reduxForm({
+const RenameScheduleForm = new reduxForm({
     form: formName,
     validate,
     onSubmitSuccess,
@@ -144,7 +144,7 @@ const mapDispatchToProps = dispatch => (
 const mapStateToProps = (state, props) => {
     const { scheduleId, subProjectId } = props.match.params;
 
-    var schedule = state.schedule.subProjectSchedules.map((subProjectSchedule)=>{
+    let schedule = state.schedule.subProjectSchedules.map((subProjectSchedule)=>{
         return subProjectSchedule.schedules.find(schedule => schedule._id === scheduleId)
     });
     

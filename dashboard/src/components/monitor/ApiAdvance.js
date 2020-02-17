@@ -36,7 +36,7 @@ export class ApiAdvance extends Component {
     }
 
     render() {
-        let { bodytype } = this.props;
+        const { bodytype } = this.props;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium" style={style}>
                 <div className="Box-root">

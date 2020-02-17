@@ -32,11 +32,11 @@ export const resetSubProjects = () => {
 export function getSubProjects(projectId,skip=0,limit=10) {
 
 	return function (dispatch) {
-		var promise = getApi(`project/${projectId}/subProjects?skip=${skip}&limit=${limit}`);
+		const promise = getApi(`project/${projectId}/subProjects?skip=${skip}&limit=${limit}`);
 		dispatch(subProjectsRequest(promise));
 
 		promise.then( function(subProjects) {
-        let subData = {
+        const subData = {
           subProjects: subProjects.data.data,
           count: subProjects.data.count,
           skip,
@@ -105,7 +105,7 @@ export function createNewSubProjectReset() {
 export function createSubProject(projectId, subProjectName) {
 	return function (dispatch) {
 
-		var promise = postApi(`project/${projectId}/subProject`, {subProjectName});
+		const promise = postApi(`project/${projectId}/subProject`, {subProjectName});
 
 		dispatch(createSubProjectRequest());
 
@@ -166,7 +166,7 @@ export function resetSubProjectToken(subProjectId) {
 
 	return function (dispatch) {
 
-		var promise = getApi(`project/${subProjectId}/resetToken`);
+		const promise = getApi(`project/${subProjectId}/resetToken`);
 
 		dispatch(resetSubProjectTokenRequest());
 
@@ -231,7 +231,7 @@ export function renameSubProject(projectId, subProjectId, subProjectName) {
 
 	return function (dispatch) {
 
-		var promise = putApi(`project/${projectId}/${subProjectId}`, { subProjectName });
+		const promise = putApi(`project/${projectId}/${subProjectId}`, { subProjectName });
 
 		dispatch(renameSubProjectRequest());
 
@@ -294,7 +294,7 @@ export function deleteSubProject(projectId, subProjectId) {
 
 	return function (dispatch) {
 
-		var promise = deleteApi(`project/${projectId}/${subProjectId}`, { subProjectId });
+		const promise = deleteApi(`project/${projectId}/${subProjectId}`, { subProjectId });
 
 		dispatch(deleteSubProjectRequest());
 
@@ -348,7 +348,7 @@ export function exitSubProjectError(error) {
 export function exitSubProject(projectId, subProjectId, userId) {
 	return function (dispatch) {
 
-		var promise = deleteApi(`subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`, null);
+		const promise = deleteApi(`subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`, null);
 		dispatch(exitSubProjectRequest());
 
 		promise.then(function () {
@@ -405,7 +405,7 @@ export function markSubProjectForDelete(projectId, subProjectId, feedback) {
 
 	return function (dispatch) {
 
-		var promise = deleteApi(`subProject/${projectId}/${subProjectId}/deleteProject`, { subProjectId, feedback });
+		const promise = deleteApi(`subProject/${projectId}/${subProjectId}/deleteProject`, { subProjectId, feedback });
 
 		dispatch(markSubProjectForDeleteRequest());
 

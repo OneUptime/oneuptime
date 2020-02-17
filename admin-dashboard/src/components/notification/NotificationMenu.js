@@ -8,7 +8,7 @@ import moment from 'moment';
 class NotificationMenu extends Component {
 
     render() {
-        var userId = User.getUserId();
+        const userId = User.getUserId();
         return this.props.visible ?
             (
                 <div className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"

@@ -99,14 +99,14 @@ export class VerifyBackupCode extends Component {
 VerifyBackupCode.displayName = 'VerifyBackupCode';
 
 function validate(values) {
-	let errors = {};
+	const errors = {};
 	if (!values.code) {
 		errors.code = 'Please provide a backup code.';
 	}
 	return errors;
 }
 
-let verifyBackupCodeForm = reduxForm({
+const verifyBackupCodeForm = reduxForm({
 	form: 'verifyBackupCode',
 	validate
 })(VerifyBackupCode);

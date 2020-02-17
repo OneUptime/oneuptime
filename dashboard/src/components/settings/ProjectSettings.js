@@ -118,11 +118,11 @@ ProjectSettings.propTypes = {
     projectId: PropTypes.string
 }
 
-let formName = 'ProjectSettings'+Math.floor((Math.random() * 10) + 1);
+const formName = 'ProjectSettings'+Math.floor((Math.random() * 10) + 1);
 
-let onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
+const onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
 
-let ProjectSettingsForm = new reduxForm({
+const ProjectSettingsForm = new reduxForm({
     form: formName,
     enableReinitialize:true,
     validate,

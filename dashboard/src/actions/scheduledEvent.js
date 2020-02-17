@@ -6,7 +6,7 @@ export function fetchscheduledEvents(projectId, monitorId, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function (dispatch) {
-        var promise = null;
+        let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(`scheduledEvent/${projectId}/${monitorId}?skip=${skip}&limit=${limit}`);
         } else {
@@ -59,7 +59,7 @@ export function fetchscheduledEventsFailure(error) {
 export function createScheduledEvent(projectId, monitorId, values) {
 
     return function (dispatch) {
-        var promise = postApi(`scheduledEvent/${projectId}/${monitorId}`, values);
+        const promise = postApi(`scheduledEvent/${projectId}/${monitorId}`, values);
         dispatch(createScheduledEventRequest());
 
         promise.then(function (scheduledEvent) {
@@ -107,7 +107,7 @@ export function createScheduledEventFailure(error) {
 export function deleteScheduledEvent(projectId, scheduledEventId) {
     return function (dispatch) {
 
-        var promise = deleteApi(`scheduledEvent/${projectId}/${scheduledEventId}`);
+        const promise = deleteApi(`scheduledEvent/${projectId}/${scheduledEventId}`);
         dispatch(deleteScheduledEventRequest(scheduledEventId));
 
         promise.then(function (scheduledEvent) {
@@ -156,7 +156,7 @@ export function deleteScheduledEventFailure(error) {
 export function updateScheduledEvent(projectId, scheduledEventId, values) {
 
     return function (dispatch) {
-        var promise = putApi(`scheduledEvent/${projectId}/${scheduledEventId}`, values);
+        const promise = putApi(`scheduledEvent/${projectId}/${scheduledEventId}`, values);
         dispatch(updateScheduledEventRequest());
 
         promise.then(function (updatedScheduledEvent) {

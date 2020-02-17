@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 
-let errorStyle = {
+const errorStyle = {
     color:'#c23d4b',
     width: '222px'
 }

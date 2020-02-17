@@ -114,13 +114,13 @@ Plans.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
 }
 
-let ChangePlan = new reduxForm({
+const ChangePlan = new reduxForm({
     form: 'ChangePlan',
     Validate
 })(Plans);
 
 const mapStateToProps = state => {
-    let planId = state.project.currentProject ? state.project.currentProject.stripePlanId : '';
+    const planId = state.project.currentProject ? state.project.currentProject.stripePlanId : '';
     return {
         initialValues: { planId },
         currentProject: state.project.currentProject,

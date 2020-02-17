@@ -21,7 +21,7 @@ export class ResponseComponent extends Component {
     }
     render() {
         const { type } = this.props;
-        let status = {
+        const status = {
             display: 'inline-block',
             borderRadius: '2px',
             height: '8px',

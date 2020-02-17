@@ -2,13 +2,13 @@ import React from 'react';
 import { storiesOf, action } from '@storybook/react';
 import { DeleteScheduleModal } from '../../../components/schedule/DeleteScheduleModal'
 
-let props = {
+const props = {
     confirmThisDialog: action('submit'),
     closeThisDialog:action('submit'),
     isRequesting:false
 }
 
-let props_isRequesting = {
+const props_isRequesting = {
     confirmThisDialog: action('submit'),
     closeThisDialog:action('submit'),
     isRequesting:true

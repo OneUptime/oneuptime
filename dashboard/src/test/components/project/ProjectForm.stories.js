@@ -22,7 +22,7 @@ function validate(values) {
 
 localStorage.setItem('id', '5b1c0c29cb06cc23b132db07')
 
-let props = {
+const props = {
     'array': {},
     'anyTouched': false,
     'asyncValidating': false,
@@ -159,7 +159,7 @@ let props = {
     hideForm:action('hideForm')
 }
 
-let ProjectFormDecorated = new reduxForm({
+const ProjectFormDecorated = new reduxForm({
     form: 'ProjectForm',
     validate
 })(ProjectForm);

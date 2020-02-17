@@ -27,7 +27,7 @@ class CreateIncident extends Component {
 		if (values.monitors) {
 			values = values.monitors;
 		}
-		var projectId = currentProject._id;
+		let projectId = currentProject._id;
 		const subProjectMonitor = monitors.find(subProjectMonitor => subProjectMonitor._id === data.subProjectId);
 		subProjectMonitor.monitors.forEach((monitor) => {
 			if (monitor._id === values) projectId = monitor.projectId._id || monitor.projectId;
@@ -144,7 +144,7 @@ class CreateIncident extends Component {
 
 CreateIncident.displayName = 'CreateIncidentFormModal'
 
-let CreateIncidentForm = reduxForm({
+const CreateIncidentForm = reduxForm({
 	form: 'CreateNewIncident', // a unique identifier for this form
 	validate
 })(CreateIncident);

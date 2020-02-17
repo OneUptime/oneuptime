@@ -37,10 +37,10 @@ export function loginSuccess(user) {
 		};
 	}
 
-	var state = store.getState();
-	var { statusPageLogin, statusPageURL } = state.login;
+	const state = store.getState();
+	const { statusPageLogin, statusPageURL } = state.login;
 	if (statusPageLogin) {
-		var newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
+		const newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
 		return window.location = newURL;
 	}
 	User.setUserId(user.id);
@@ -50,8 +50,8 @@ export function loginSuccess(user) {
 	User.setCardRegistered(user.cardRegistered);
 
 	//share localStorage with dashboard app
-	var cookies = new Cookies();
-	var userData = user;
+	let cookies = new Cookies();
+	let userData = user;
 	cookies.set('data', userData, { path: '/', maxAge: 30, domain: DOMAIN_URL });
 
 	if(user.role === 'master-admin'){
@@ -102,7 +102,7 @@ export function loginUser(values) {
 	if(redirect) values.redirect = redirect;
 	return function (dispatch) {
 
-		var promise = postApi('user/login', values);
+		const promise = postApi('user/login', values);
 		dispatch(loginRequest(promise));
 
 		promise.then(function (user) {
@@ -136,7 +136,7 @@ export function verifyAuthToken(values) {
 	const email = User.getEmail();
 	values.email = email;
 	return function (dispatch) {
-		var promise = postApi('user/totp/verifyToken', values);
+		const promise = postApi('user/totp/verifyToken', values);
 		dispatch(verifyTokenRequest(promise));
 
 		promise.then(function (user) {
@@ -188,7 +188,7 @@ export function verifyBackupCode(values) {
 	const email = User.getEmail();
 	values.email = email;
 	return function (dispatch) {
-		var promise = postApi('user/verify/backupCode', values);
+		const promise = postApi('user/verify/backupCode', values);
 		dispatch(useBackupCodeRequest(promise));
 
 		promise.then(function (user) {

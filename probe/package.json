@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
-    "pretest": "eslint --fix --ignore-path .gitignore .",
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "echo 'no tests'",
     "audit": "npm-audit-ci-wrapper --threshold=high",
+    "fix-lint": "eslint . --fix",
     "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*'"
   },
   "repository": {

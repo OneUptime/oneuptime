@@ -142,7 +142,7 @@ Monitors.propTypes = {
     subProjects: PropTypes.array.isRequired,
 }
 
-let MonitorsForm = reduxForm({
+const MonitorsForm = reduxForm({
     form: 'StatuspageMonitors', // a unique identifier for this form
     enableReinitialize: true
 })(Monitors);
@@ -158,7 +158,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 )
 
 const mapStateToProps = state => {
-    let initialValues = {};
+    const initialValues = {};
     const { currentProject } = state.project;
     
     const monitors = state.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
@@ -169,7 +169,7 @@ const mapStateToProps = state => {
             initialValues[_id] = status.monitorIds.some(id => _id === id._id || _id === id);
         });
     }
-    let subProjects = state.subProject.subProjects.subProjects;
+    const subProjects = state.subProject.subProjects.subProjects;
     return { initialValues, monitors, statusPage, currentProject, subProjects };
 }
 

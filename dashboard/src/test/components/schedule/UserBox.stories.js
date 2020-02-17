@@ -3,20 +3,20 @@ import { storiesOf, action } from '@storybook/react';
 import { reduxForm } from 'redux-form'
 import { UserBox } from '../../../components/schedule/UserBox'
 
-let AddUsersForm = new reduxForm({
+const AddUsersForm = new reduxForm({
     form: 'AddUsersForm',
     enableReinitialize: true
 })(UserBox);
 
 
 
-let props = {
+const props = {
     handleSubmit: action('submit'),
     teamLoading: action('submit'),
     users: []
 }
 
-let props_with_users = {
+const props_with_users = {
     handleSubmit: action('submit'),
     teamLoading: action('submit'),
     currentProject: {

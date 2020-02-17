@@ -17,7 +17,7 @@ export class RegisterForm extends Component {
   }
 
   userFormSubmitted = (values) => {
-    let thisObj = this;
+    const thisObj = this;
     this.props.saveUserState(values);
     this.props.isUserInvited(values).then(function (value) {
       if (value.data) {
@@ -70,7 +70,7 @@ export class RegisterForm extends Component {
 
 RegisterForm.displayName = 'RegisterForm';
 
-let registerForm = reduxForm({
+const registerForm = reduxForm({
   form: 'RegisterForm'
 })(RegisterForm);
 

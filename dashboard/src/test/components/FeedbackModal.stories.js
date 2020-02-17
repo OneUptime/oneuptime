@@ -3,7 +3,7 @@ import { storiesOf, action } from '@storybook/react';
 import {FeedbackModal} from '../../components/FeedbackModal'
 import {reduxForm} from 'redux-form'
 
-let props = {
+const props = {
     createFeedback:action('createFeedback'),
     closeFeedbackModal:action('closeFeedbackModal'),
     reset:action('reset'),
@@ -13,7 +13,7 @@ let props = {
     handleSubmit:action('handleSubmit')
 }
 
-let FeedbackModalForm = reduxForm({
+const FeedbackModalForm = reduxForm({
 	form: 'FeedbackModal', // a unique identifier for this form
 })(FeedbackModal);
 

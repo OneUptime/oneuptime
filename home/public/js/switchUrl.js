@@ -1,6 +1,6 @@
 
-var accountsUrl = '';
-var backendUrl = '';
+let accountsUrl = '';
+let backendUrl = '';
 if (window.location.href.indexOf('localhost') > -1) {
     accountsUrl = 'http://localhost:3003';
     backendUrl = 'http://localhost:3002';

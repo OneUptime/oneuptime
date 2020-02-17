@@ -31,7 +31,7 @@ export function updateProfileSettingError(error) {
 export function updateProfileSetting(values) {
 
 	return function (dispatch) {
-		let data = new FormData();
+		const data = new FormData();
 		if (values.profilePic && values.profilePic !== 'null') {
 			if (!values.removedPic) {
 				if (values.profilePic && typeof values.profilePic !== 'object') {
@@ -51,10 +51,10 @@ export function updateProfileSetting(values) {
 		data.append('timezone', values.timezone);
 		data.append('alertPhoneNumber', values.alertPhoneNumber);
 
-		var promise = putApi('user/profile', data);
+		const promise = putApi('user/profile', data);
 		dispatch(updateProfileSettingRequest());
 		promise.then(function (response) {
-			var profileSettings = response.data;
+			const profileSettings = response.data;
 			dispatch(updateProfileSettingSuccess(profileSettings));
 			return profileSettings;
 		}, function (error) {
@@ -100,10 +100,10 @@ export function twoFactorAuthTokenError(error) {
 
 export function verifyTwoFactorAuthToken(values) {
 	return function (dispatch) {
-		var promise = postApi('user/totp/verifyToken', values);
+		const promise = postApi('user/totp/verifyToken', values);
 		dispatch(twoFactorAuthTokenRequest());
 		promise.then(function (response) {
-			var payload = response.data;
+			const payload = response.data;
 			dispatch(twoFactorAuthTokenSuccess(payload));
 			return payload;
 		}, function (error) {
@@ -147,10 +147,10 @@ export function generateTwoFactorQRCodeError(error) {
 
 export function generateTwoFactorQRCode(userId) {
 	return function (dispatch) {
-		var promise = postApi(`user/totp/token/${userId}`);
+		const promise = postApi(`user/totp/token/${userId}`);
 		dispatch(generateTwoFactorQRCodeRequest());
 		promise.then(function (response) {
-			var payload = response.data;
+			const payload = response.data;
 			dispatch(generateTwoFactorQRCodeSuccess(payload));
 			return payload;
 		}, function (error) {
@@ -175,10 +175,10 @@ export function generateTwoFactorQRCode(userId) {
 
 export function updateTwoFactorAuthToken(data) {
 	return function (dispatch) {
-		var promise = putApi('user/profile', data);
+		const promise = putApi('user/profile', data);
 		dispatch(twoFactorAuthTokenRequest());
 		promise.then(function (response) {
-			var payload = response.data;
+			const payload = response.data;
 			dispatch(twoFactorAuthTokenSuccess(payload));
 			return payload;
 		}, function (error) {
@@ -227,7 +227,7 @@ export function updateChangePasswordSetting(data) {
 
 	return function (dispatch) {
 
-		var promise = putApi('user/changePassword', data);
+		const promise = putApi('user/changePassword', data);
 		dispatch(updateChangePasswordSettingRequest());
 
 		promise.then(function () {
@@ -298,11 +298,11 @@ export function userSettings() {
 
 	return function (dispatch) {
 
-		var promise = getApi('user/profile');
+		const promise = getApi('user/profile');
 		dispatch(userSettingsRequest());
 
 		promise.then(function (response) {
-			var settings = response.data;
+			const settings = response.data;
 			dispatch(userSettingsSuccess(settings));
 			return settings;
 		}, function (error) {
@@ -390,7 +390,7 @@ export function sendEmailVerificationError(error) {
 export function sendEmailVerificationLink(values) {
 	return function (dispatch) {
 
-		var promise = postApi('user/resend', values);
+		const promise = postApi('user/resend', values);
 		dispatch(sendEmailVerificationRequest());
 
 		promise.then(function (data) {
@@ -418,11 +418,11 @@ export function sendVerificationSMS(projectId, values) {
 
 	return function (dispatch) {
 
-		var promise = postApi(`twilio/sms/sendVerificationToken?projectId=${projectId}`, values);
+		const promise = postApi(`twilio/sms/sendVerificationToken?projectId=${projectId}`, values);
 		dispatch(sendVerificationSMSRequest());
 
 		promise.then(function (response) {
-			var vericationAction = response.data;
+			const vericationAction = response.data;
 			dispatch(sendVerificationSMSSuccess(vericationAction));
 			return vericationAction;
 		}, function (error) {
@@ -475,11 +475,11 @@ export function verifySMSCode(projectId, values) {
 
 	return function (dispatch) {
 
-		var promise = postApi(`twilio/sms/verify?projectId=${projectId}`, values);
+		const promise = postApi(`twilio/sms/verify?projectId=${projectId}`, values);
 		dispatch(verifySMSCodeRequest());
 
 		promise.then(function (response) {
-			var verificationResult = response.data;
+			const verificationResult = response.data;
 			dispatch(verifySMSCodeSuccess(verificationResult));
 			return verificationResult;
 		}, function (error) {

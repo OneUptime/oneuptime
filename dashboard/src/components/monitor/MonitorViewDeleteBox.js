@@ -23,7 +23,7 @@ export class MonitorViewDeleteBox extends Component {
 
     deleteMonitor = () => {
         const projectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
-        let promise = this.props.deleteMonitor(this.props.monitor._id, projectId);
+        const promise = this.props.deleteMonitor(this.props.monitor._id, projectId);
         history.push(`/project/${this.props.currentProject._id}/monitoring`);
         if (!IS_DEV) {
             logEvent('Monitor Deleted', {
@@ -49,7 +49,7 @@ export class MonitorViewDeleteBox extends Component {
         if (this.props.monitorState && this.props.monitorState.deleteMonitor && this.props.monitorState.deleteMonitor === this.props.monitor._id) {
             deleting = true;
         }
-        let { deleteModalId } = this.state;
+        const { deleteModalId } = this.state;
 
         return (
             <div onKeyDown={this.handleKeyBoard} className="Box-root Margin-bottom--12">

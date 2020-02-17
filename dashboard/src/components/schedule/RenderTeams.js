@@ -4,7 +4,7 @@ import { FieldArray } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderMembers } from './RenderMembers';
 
-let RenderTeams = ({
+const RenderTeams = ({
   fields, subProjectId, policyIndex,
   rotateBy
 }) => {

@@ -95,10 +95,10 @@ class Invoice extends Component {
 
 
 const mapStateToProps = (state, props) => {
-    var {projectId} = props.match.params;
-    var invoices = state.invoice.invoices;
-    var isRequesting = state.invoice.requesting;
-    var isSuccessful = state.invoice.success;
+    const {projectId} = props.match.params;
+    const invoices = state.invoice.invoices;
+    const isRequesting = state.invoice.requesting;
+    const isSuccessful = state.invoice.success;
 
     return { projectId, invoices, isRequesting, isSuccessful }
 }

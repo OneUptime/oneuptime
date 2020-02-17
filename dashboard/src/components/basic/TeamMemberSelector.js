@@ -4,7 +4,7 @@ import { formValueSelector } from 'redux-form';
 import PropTypes from 'prop-types';
 import Select from 'react-select-fyipe';
 
-let errorStyle = {
+const errorStyle = {
     color: 'red',
     topMargin: '5px'
 };

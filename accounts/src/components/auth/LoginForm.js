@@ -21,7 +21,7 @@ export class LoginForm extends Component {
 
 	componentDidMount() {
 		const query = queryString.parse(this.props.location.search).status;
-		var serverResponse = '';
+		let serverResponse = '';
 		if (query === 'IIYQNdn4impaXQeeteTBEBmz0If1rlwC') {
 			serverResponse = 'Email already verified. You can now login.'
 		}
@@ -105,7 +105,7 @@ export class LoginForm extends Component {
 
 LoginForm.displayName = 'LoginForm'
 
-let validate = function (values) {
+const validate = function (values) {
 	const errors = {};
 	if (!Validate.text(values.email)) {
 		errors.email = 'Email is required.'
@@ -124,7 +124,7 @@ let validate = function (values) {
 	return errors;
 }
 
-let loginForm = reduxForm({
+const loginForm = reduxForm({
 	form: 'LoginForm', // a unique identifier for this form
 	validate,
 	destroyOnUnmount: false

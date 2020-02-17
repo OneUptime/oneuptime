@@ -44,7 +44,7 @@ class SocketApp extends Component {
     }
 
     render() {
-        var thisObj = this;
+        const thisObj = this;
         const loggedInUser = User.getUserId();
 
         if (this.props.project) {
@@ -206,7 +206,7 @@ class SocketApp extends Component {
             });
             socket.on(`TeamMemberDelete-${this.props.project._id}`, function (data) {
                 if (data.projectId === thisObj.props.project._id) {
-                    var projectUser = data.teamMembers.find(member => member.userId === User.getUserId());
+                    const projectUser = data.teamMembers.find(member => member.userId === User.getUserId());
                     if (!projectUser) {
                         thisObj.props.openModal({
                             id: uuid.v4(),
@@ -216,9 +216,9 @@ class SocketApp extends Component {
                         })
                     }
                 } else {
-                    var subProjectUser = data.teamMembers.find(member => member.userId === User.getUserId());
-                    var subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId)
-                    var subProjectName = subProject ? subProject.name : '';
+                    const subProjectUser = data.teamMembers.find(member => member.userId === User.getUserId());
+                    const subProject = thisObj.props.subProjects.find(subProject => subProject._id === data.projectId)
+                    const subProjectName = subProject ? subProject.name : '';
                     if (!subProjectUser) {
                         thisObj.props.openModal({
                             id: uuid.v4(),
@@ -248,13 +248,13 @@ SocketApp.propTypes = {
     ])
 };
 
-let mapStateToProps = state => ({
+const mapStateToProps = state => ({
     project: state.project.currentProject,
     subProjects: state.subProject.subProjects.subProjects,
     probes: state.probe.probes.data
 });
 
-let mapDispatchToProps = dispatch => (
+const mapDispatchToProps = dispatch => (
     bindActionCreators({
         incidentresolvedbysocket,
         incidentacknowledgedbysocket,

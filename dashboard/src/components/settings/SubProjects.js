@@ -17,20 +17,20 @@ export class SubProjects extends Component {
   }
 
   paginatePrev = () => {
-    let { skip, getSubProjects, currentProject } = this.props
+    const { skip, getSubProjects, currentProject } = this.props
     getSubProjects(currentProject._id, skip ? skip - 10 : 10, 10)
   }
 
   paginateNext = () => {
-    let { skip, getSubProjects, currentProject } = this.props
+    const { skip, getSubProjects, currentProject } = this.props
     getSubProjects(currentProject._id, skip ? skip + 10 : 10, 10)
   }
 
   render() {
     const { limit, skip, count, subProjectState } = this.props
     const { subProjects } = subProjectState
-    let canNext = count > skip + limit ? false : true
-    let canPrev = skip <= 0 ? true : false
+    const canNext = count > skip + limit ? false : true
+    const canPrev = skip <= 0 ? true : false
     const _this = this
     return (
       <div className='bs-BIM'>

@@ -22,9 +22,9 @@ if (!isServer) {
 	});
 }
 
-var cookies = new Cookies();
+const cookies = new Cookies();
 
-var userData = cookies.get('data');
+const userData = cookies.get('data');
 if (userData !== undefined) {
 	User.setUserId(userData.id);
 	User.setAccessToken(userData.tokens.jwtAccessToken);

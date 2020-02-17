@@ -8,7 +8,7 @@ import { hideProfileMenu } from '../../actions/profile'
 export class ProfileMenu extends Component {
     
     logout(){
-       var values = {name: User.getName(),email: User.getEmail()};
+       const values = {name: User.getName(),email: User.getEmail()};
         User.clear();
         window.location.href='/login'; //hard refresh.
         if(window.location.href.indexOf('localhost') <= -1){
@@ -17,8 +17,8 @@ export class ProfileMenu extends Component {
     }
 
     render() {
-        var name = User.getName();
-        var email = User.getEmail();
+        const name = User.getName();
+        const email = User.getEmail();
 
         return  this.props.visible ? 
             (

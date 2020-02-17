@@ -69,7 +69,7 @@ export class CustomerBalance extends Component {
         stripe.handleCardPayment(paymentIntentClientSecret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    var creditedBalance = result.paymentIntent.amount / 100;
+                    const creditedBalance = result.paymentIntent.amount / 100;
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
@@ -202,11 +202,11 @@ CustomerBalance.propTypes = {
     getProjects: PropTypes.func
 }
 
-let formName = 'CustomerBalance' + Math.floor((Math.random() * 10) + 1);
+const formName = 'CustomerBalance' + Math.floor((Math.random() * 10) + 1);
 
-let onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
+const onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
 
-let CustomerBalanceForm = new reduxForm({
+const CustomerBalanceForm = new reduxForm({
     form: formName,
     enableReinitialize: true,
     validate,

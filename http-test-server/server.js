@@ -1,9 +1,9 @@
-var express = require('express');
-var app = express();
-var path = require('path');
-var bodyParser = require('body-parser');
+const express = require('express');
+const app = express();
+const path = require('path');
+const bodyParser = require('body-parser');
 
-var { NODE_ENV } = process.env;
+const { NODE_ENV } = process.env;
 
 if (NODE_ENV === 'local' || NODE_ENV === 'development')
     require('custom-env').env(process.env.NODE_ENV);

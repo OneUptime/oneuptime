@@ -77,7 +77,7 @@ export class OnCall extends Component {
 
     handleKeyBoard = (e) => {
         const schedulesPerPage = 10;
-        let { subProjectSchedules, pages } = this.props;
+        const { subProjectSchedules, pages } = this.props;
         const canPaginateForward = subProjectSchedules.data ? subProjectSchedules.data.length >= (pages.counter + 1) * schedulesPerPage : null;
         const canPaginateBackward = pages.counter > 1;
         switch (e.key) {
@@ -91,12 +91,13 @@ export class OnCall extends Component {
     }
 
     render() {
-        let { isRequesting, subProjectSchedules, subProjects, currentProject } = this.props;
+        const { isRequesting, subProjectSchedules, subProjects, currentProject } = this.props;
 
         // SubProject Schedules List
         const allSchedules = subProjects && subProjects.map((subProject, i) => {
             const subProjectSchedule = subProjectSchedules.find(subProjectSchedule => subProjectSchedule._id === subProject._id)
-            let { count, skip, limit } = subProjectSchedule;
+            let { skip, limit } = subProjectSchedule;
+            const { count } = subProjectSchedule;
             skip = parseInt(skip);
             limit = parseInt(limit);
             const schedules = subProjectSchedule.schedules;
@@ -147,8 +148,9 @@ export class OnCall extends Component {
 
         // Add Project Schedules to All Schedules List
         const currentProjectId = currentProject ? currentProject._id : null;
-        var projectSchedule = subProjectSchedules && subProjectSchedules.find(subProjectSchedule => subProjectSchedule._id === currentProjectId)
-        let { count, skip, limit } = projectSchedule || {};
+        let projectSchedule = subProjectSchedules && subProjectSchedules.find(subProjectSchedule => subProjectSchedule._id === currentProjectId)
+        let { skip, limit } = projectSchedule || {};
+        const { count } = projectSchedule || {};
         skip = parseInt(skip);
         limit = parseInt(limit);
         const schedules = projectSchedule ? projectSchedule.schedules : [];
@@ -225,7 +227,7 @@ const mapDispatchToProps = dispatch => (
 
 const mapStateToProps = (state, props) => {
     const { projectId } = props.match.params;
-    var subProjects = state.subProject.subProjects.subProjects;
+    let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);
@@ -233,15 +235,15 @@ const mapStateToProps = (state, props) => {
     subProjects = subProjectNames && subProjectNames.map(name => subProjects.find(subProject => subProject.name === name))
 
     const currentProjectId = projectId;
-    var schedules = state.schedule.subProjectSchedules;
+    const schedules = state.schedule.subProjectSchedules;
 
     // find project schedules or assign default value
-    var projectSchedule = schedules.find(schedule => schedule._id === currentProjectId);
+    let projectSchedule = schedules.find(schedule => schedule._id === currentProjectId);
     projectSchedule = projectSchedule ? projectSchedule : { _id: currentProjectId, schedules: [], count: 0, skip: 0, limit: 10 };
 
     // find subproject schedules or assign default value
-    var subProjectSchedules = subProjects && subProjects.map(subProject => {
-        var schedule = schedules.find(schedule => schedule._id === subProject._id);
+    const subProjectSchedules = subProjects && subProjects.map(subProject => {
+        const schedule = schedules.find(schedule => schedule._id === subProject._id);
         return schedule ? schedule : { _id: subProject._id, schedules: [], count: 0, skip: 0, limit: 10 };
     });
 

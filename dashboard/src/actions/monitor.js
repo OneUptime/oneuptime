@@ -11,7 +11,7 @@ import { change, autofill } from 'redux-form';
 export function fetchMonitors(projectId) {
     return function (dispatch) {
 
-        var promise = getApi(`monitor/${projectId}`);
+        const promise = getApi(`monitor/${projectId}`);
         dispatch(fetchMonitorsRequest());
 
         promise.then(function (monitors) {
@@ -69,7 +69,7 @@ export function resetFetchMonitors() {
 export function createMonitor(projectId, values) {
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch) {
-        var promise = postApi(`monitor/${projectId}`, values);
+        const promise = postApi(`monitor/${projectId}`, values);
         dispatch(createMonitorRequest());
 
         promise.then(function (monitor) {
@@ -129,7 +129,7 @@ export function editMonitor(projectId, values) {
 
     return function (dispatch) {
 
-        var promise = putApi(`monitor/${projectId}/${values._id}`, values);
+        const promise = putApi(`monitor/${projectId}/${values._id}`, values);
         dispatch(editMonitorRequest());
 
         promise.then(function (monitor) {
@@ -195,7 +195,7 @@ export function resetEditMonitor() {
 export function deleteMonitor(monitorId, projectId) {
     return function (dispatch) {
 
-        var promise = deleteApi(`monitor/${projectId}/${monitorId}`, { monitorId });
+        const promise = deleteApi(`monitor/${projectId}/${monitorId}`, { monitorId });
         dispatch(deleteMonitorRequest(monitorId));
 
         promise.then(function (monitor) {
@@ -255,7 +255,7 @@ export function deleteProjectMonitors(projectId) {
 export function fetchMonitorsIncidents(projectId, monitorId, skip, limit) {
     return function (dispatch) {
 
-        var promise = postApi(`incident/${projectId}/monitor/${monitorId}`, { limit, skip });
+        const promise = postApi(`incident/${projectId}/monitor/${monitorId}`, { limit, skip });
         dispatch(fetchMonitorsIncidentsRequest(monitorId));
 
         promise.then(function (monitors) {
@@ -305,7 +305,7 @@ export function fetchMonitorsIncidentsFailure(error) {
 export function fetchMonitorsSubscribers(projectId, monitorId, skip, limit) {
     return function (dispatch) {
 
-        var promise = getApi(`subscriber/${projectId}/monitor/${monitorId}?limit=${limit}&skip=${skip}`);
+        const promise = getApi(`subscriber/${projectId}/monitor/${monitorId}?limit=${limit}&skip=${skip}`);
         dispatch(fetchMonitorsSubscribersRequest(monitorId));
 
         promise.then(function (subscribers) {
@@ -355,7 +355,7 @@ export function fetchMonitorsSubscribersFailure(error) {
 // Fetch Monitor Logs
 export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
-        var promise = postApi(`monitor/${projectId}/monitorLog/${monitorId}`, { startDate, endDate });
+        const promise = postApi(`monitor/${projectId}/monitorLog/${monitorId}`, { startDate, endDate });
         dispatch(fetchMonitorLogsRequest());
         dispatch(updateDateRange(startDate, endDate));
 
@@ -411,7 +411,7 @@ export function fetchMonitorLogsFailure(error) {
 // Fetch Monitor Statuses list
 export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
     return function (dispatch) {
-        var promise = postApi(`monitor/${projectId}/monitorStatuses/${monitorId}`, { startDate, endDate });
+        const promise = postApi(`monitor/${projectId}/monitorStatuses/${monitorId}`, { startDate, endDate });
         dispatch(fetchMonitorStatusesRequest());
 
         promise.then(function (monitorStatuses) {
@@ -460,7 +460,7 @@ export function fetchMonitorStatusesFailure(error) {
 export function fetchMonitorCriteria() {
 
     return function (dispatch) {
-        var promise = getApi('monitorCriteria');
+        const promise = getApi('monitorCriteria');
         dispatch(fetchMonitorCriteriaRequest());
 
         promise.then(function (monitorCriteria) {
@@ -525,7 +525,7 @@ export function setMonitorCriteria(monitorName, monitorCategory, monitorSubProje
 export function getMonitorLogs(projectId, monitorId, skip, limit, startDate, endDate, probeValue, incidentId) {
     return function (dispatch) {
 
-        var promise = postApi(`monitor/${projectId}/monitorLogs/${monitorId}`, { skip, limit, startDate, endDate, probeValue, incidentId: incidentId ? incidentId : null });
+        const promise = postApi(`monitor/${projectId}/monitorLogs/${monitorId}`, { skip, limit, startDate, endDate, probeValue, incidentId: incidentId ? incidentId : null });
         dispatch(getMonitorLogsRequest({ monitorId }));
 
         promise.then(function (monitors) {
@@ -572,7 +572,7 @@ export function addSeat(projectId) {
 
     return function (dispatch) {
 
-        var promise = postApi(`monitor/${projectId}/addseat`, {});
+        const promise = postApi(`monitor/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
 
         promise.then(function (monitor) {

@@ -17,7 +17,7 @@ class Modal extends Component {
 	}
 
 	render() {
-		var { title, closeButtonLabel, affirmativeButtonLabel, isLoading } = this.props;
+		const { title, closeButtonLabel, affirmativeButtonLabel, isLoading } = this.props;
 
 		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
