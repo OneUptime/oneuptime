@@ -61,7 +61,7 @@ export class MonitorDetail extends Component {
     setLastAlive = () => {
         this.setState({ now: Date.now() });
 
-        let nowHandler = setTimeout(() => {
+        const nowHandler = setTimeout(() => {
             this.setState({ now: Date.now() });
         }, 300000);
 

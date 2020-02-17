@@ -187,20 +187,45 @@ export default function monitor(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: false,
-                    monitors: state.monitorsList.monitors.map((monitor) => {
-                        monitor.monitors = monitor.monitors.map((monitor) => {
-                            if (monitor._id === action.payload._id) {
-                                if (!action.payload.incidents) action.payload.incidents = monitor.incidents;
-                                if (!action.payload.subscribers) action.payload.subscribers = monitor.subscribers;
-                                if (!action.payload.skip) action.payload.skip = monitor.skip;
-                                if (!action.payload.limit) action.payload.limit = monitor.limit;
-                                if (!action.payload.count) action.payload.count = monitor.count;
-                                return action.payload;
+                    monitors: state.monitorsList.monitors.map(project => {
+                        const subProject = Object.assign({}, project);
+                        const subProjectMonitors = subProject.monitors && subProject.monitors.slice();
+
+                        const newMonitor = Object.assign({}, action.payload);
+
+                        const monitorIndex = subProjectMonitors && subProjectMonitors.findIndex(monitor => monitor._id === newMonitor._id);
+                        const isSubProjectMonitor = monitorIndex > -1;
+
+                        if (subProject._id === newMonitor.projectId._id) {
+                            if (isSubProjectMonitor) {
+                                const oldMonitor = Object.assign({}, subProjectMonitors[monitorIndex]);
+
+                                if (!newMonitor.logs) newMonitor.logs = oldMonitor.logs;
+                                if (!newMonitor.statuses) newMonitor.statuses = oldMonitor.statuses;
+                                if (!newMonitor.incidents) newMonitor.incidents = oldMonitor.incidents;
+                                if (!newMonitor.subscribers) newMonitor.subscribers = oldMonitor.subscribers;
+                                if (!newMonitor.skip) newMonitor.skip = oldMonitor.skip;
+                                if (!newMonitor.limit) newMonitor.limit = oldMonitor.limit;
+                                if (!newMonitor.count) newMonitor.count = oldMonitor.count;
+
+                                subProjectMonitors[monitorIndex] = newMonitor;
                             } else {
-                                return monitor;
+                                newMonitor.skip = 0;
+                                newMonitor.limit = 0;
+                                newMonitor.count = 0;
+
+                                subProjectMonitors.unshift(newMonitor);
+                                subProject.count += 1;
                             }
-                        })
-                        return monitor;
+                        } else {
+                            if (isSubProjectMonitor) {
+                                subProjectMonitors.splice(monitorIndex, 1);
+                                subProject.count -= 1;
+                            }
+                        }
+
+                        subProject.monitors = subProjectMonitors;
+                        return subProject;
                     })
                 },
                 editMonitor: {
@@ -906,53 +931,53 @@ export default function monitor(state = INITIAL_STATE, action) {
 
         case GET_MONITOR_LOGS_FAILURE:
             {
-            const failureLogs = {
-                ...state.monitorLogs,
-                [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
-                    {
-                        ...state.monitorLogs[action.payload.monitorId],
-                        error: action.payload.error
-                    } :
-                    {
-                        logs: [],
-                        probes: [],
-                        error: action.payload.error,
-                        requesting: false,
-                        success: false,
-                        skip: 0,
-                        limit: 10,
-                        count: null
-                    }
-            };
-            return Object.assign({}, state, {
-                monitorLogs: failureLogs
-            });
-        }
+                const failureLogs = {
+                    ...state.monitorLogs,
+                    [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
+                        {
+                            ...state.monitorLogs[action.payload.monitorId],
+                            error: action.payload.error
+                        } :
+                        {
+                            logs: [],
+                            probes: [],
+                            error: action.payload.error,
+                            requesting: false,
+                            success: false,
+                            skip: 0,
+                            limit: 10,
+                            count: null
+                        }
+                };
+                return Object.assign({}, state, {
+                    monitorLogs: failureLogs
+                });
+            }
 
         case GET_MONITOR_LOGS_REQUEST:
             {
-            const requestLogs = {
-                ...state.monitorLogs,
-                [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
-                    {
-                        ...state.monitorLogs[action.payload.monitorId],
-                        requesting: true
-                    } :
-                    {
-                        logs: [],
-                        probes: [],
-                        error: null,
-                        requesting: true,
-                        success: false,
-                        skip: 0,
-                        limit: 10,
-                        count: null
-                    }
-            };
-            return Object.assign({}, state, {
-                monitorLogs: requestLogs
-            });
-        }
+                const requestLogs = {
+                    ...state.monitorLogs,
+                    [action.payload.monitorId]: state.monitorLogs[action.payload.monitorId] ?
+                        {
+                            ...state.monitorLogs[action.payload.monitorId],
+                            requesting: true
+                        } :
+                        {
+                            logs: [],
+                            probes: [],
+                            error: null,
+                            requesting: true,
+                            success: false,
+                            skip: 0,
+                            limit: 10,
+                            count: null
+                        }
+                };
+                return Object.assign({}, state, {
+                    monitorLogs: requestLogs
+                });
+            }
 
         case GET_MONITOR_LOGS_RESET:
             return Object.assign({}, state, {
