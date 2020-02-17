@@ -8,10 +8,10 @@ const url = require('url');
 const _ = require('lodash');
 const isValidMongoObjectId = require('mongoose').Types.ObjectId.isValid;
 
-var AuditLogsService = require('../services/auditLogsService');
-var ErrorService = require('../services/errorService');
-var sendErrorResponse = require('./response').sendErrorResponse;
-var { getProjectId } = require('./api');
+const AuditLogsService = require('../services/auditLogsService');
+const ErrorService = require('../services/errorService');
+const sendErrorResponse = require('./response').sendErrorResponse;
+const { getProjectId } = require('./api');
 
 module.exports = {
     log: async function(req, res, next) {

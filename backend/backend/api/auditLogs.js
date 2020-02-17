@@ -4,15 +4,15 @@
  *
  */
 
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 
-var AuditLogsService = require('../services/auditLogsService');
-var getUser = require('../middlewares/user').getUser;
-var isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const AuditLogsService = require('../services/auditLogsService');
+const getUser = require('../middlewares/user').getUser;
+const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendListResponse = require('../middlewares/response').sendListResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
 
 router.get('/', getUser, isUserMasterAdmin, async function(
     req,

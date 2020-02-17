@@ -4,10 +4,10 @@
  *
  */
 
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var auditLogsSchema = new Schema({
+const Schema = mongoose.Schema;
+const auditLogsSchema = new Schema({
     userId: { type: String, ref: 'User' },
     projectId: { type: String, ref: 'Project' },
     request: { type: Object },

@@ -1,21 +1,21 @@
 process.env.PORT = 3020;
-var chai = require('chai');
-var expect = require('chai').expect;
+const chai = require('chai');
+const expect = require('chai').expect;
 
-var userData = require('./data/user');
-var app = require('../server');
+const userData = require('./data/user');
+const app = require('../server');
 chai.use(require('chai-http'));
-var request = chai.request.agent(app);
+const request = chai.request.agent(app);
 
-var { createUser } = require('./utils/userSignUp');
-var AuditLogsService = require('../backend/services/auditLogsService');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var AirtableService = require('../backend/services/airtableService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const { createUser } = require('./utils/userSignUp');
+const AuditLogsService = require('../backend/services/auditLogsService');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
-var token, projectId, userId, airtableId;
-var testSuiteStartTime, testCaseStartTime;
+let token, projectId, userId, airtableId;
+let testSuiteStartTime, testCaseStartTime;
 
 describe('Audit Logs API', function() {
     this.timeout(30000);
@@ -24,7 +24,7 @@ describe('Audit Logs API', function() {
         testSuiteStartTime = new Date();
         this.timeout(40000);
         createUser(request, userData.user, function(err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             airtableId = res.body.airtableId;
@@ -115,7 +115,7 @@ describe('Audit Logs API', function() {
     });
 
     it('should reject get audit logs request of NON master-admin user', function(done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
         request
             .get('/audit-logs/')
@@ -129,7 +129,7 @@ describe('Audit Logs API', function() {
 
     it('should send get audit logs data for master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
         const res = await request
             .get('/audit-logs/')
@@ -146,7 +146,7 @@ describe('Audit Logs API', function() {
 
     it('should send appopriate data set when limit is provided', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
         // Just making three API request to make Logs.
         await request.get('/version');
@@ -170,7 +170,7 @@ describe('Audit Logs API', function() {
 
     it('should send appopriate data set when skip is provided', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
         // Just making three API request to make Logs.
         await request.get('/version');
@@ -205,7 +205,7 @@ describe('Audit Logs API', function() {
     });
 
     it('should reject search request of NON master-admin user', function(done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
         request
             .post('/audit-logs/search')
@@ -219,7 +219,7 @@ describe('Audit Logs API', function() {
 
     it('should send Searched AuditLogs data for master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
         const res = await request
             .post('/audit-logs/search')
@@ -236,7 +236,7 @@ describe('Audit Logs API', function() {
 
     it('should send only matched result to provided search string when searched.', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
         // Just making three API request to make Logs.
         await request.get('/version');

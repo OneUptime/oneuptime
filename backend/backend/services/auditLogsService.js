@@ -11,7 +11,7 @@ module.exports = {
 
             if (!query) query = {};
 
-            var auditLogs = await AuditLogsModel.find(query)
+            const auditLogs = await AuditLogsModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -29,20 +29,20 @@ module.exports = {
             query = {};
         }
 
-        var count = await AuditLogsModel.count(query);
+        const count = await AuditLogsModel.count(query);
         return count;
     },
 
     create: async function(data) {
         try {
-            var auditLogsModel = new AuditLogsModel({
+            const auditLogsModel = new AuditLogsModel({
                 userId: data.userId,
                 projectId: data.projectId,
                 request: data.request,
                 response: data.response
             });
 
-            var auditLog = await auditLogsModel.save();
+            const auditLog = await auditLogsModel.save();
             return auditLog;
         } catch (error) {
             ErrorService.log('auditLogs.create', error);
@@ -51,7 +51,7 @@ module.exports = {
     },
 
     search: async function({ filter, skip, limit }) {
-        var _this = this;
+        const _this = this;
         const query = {
             'request.apiSection': { $regex: new RegExp(filter), $options: 'i' }
         };
@@ -73,5 +73,5 @@ module.exports = {
     }
 };
 
-var AuditLogsModel = require('../models/auditLogs');
-let ErrorService = require('./errorService');
+const AuditLogsModel = require('../models/auditLogs');
+const ErrorService = require('./errorService');
