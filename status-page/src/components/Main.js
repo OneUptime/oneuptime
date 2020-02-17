@@ -14,7 +14,7 @@ import { connect } from 'react-redux';
 import { getStatusPage, selectedProbe } from '../actions/status';
 import { getProbes } from '../actions/probe';
 
-let greenBackground = {
+const greenBackground = {
 	display: 'inline-block',
 	borderRadius: '50%',
 	height: '8px',
@@ -22,7 +22,7 @@ let greenBackground = {
 	margin: '0 8px 1px 0',
 	backgroundColor: 'rgb(117, 211, 128)'
 };
-let yellowBackground = {
+const yellowBackground = {
 	display: 'inline-block',
 	borderRadius: '50%',
 	height: '8px',
@@ -30,7 +30,7 @@ let yellowBackground = {
 	margin: '0 8px 1px 0',
 	backgroundColor: 'rgb(255, 222, 36)'
 };
-let redBackground = {
+const redBackground = {
 	display: 'inline-block',
 	borderRadius: '50%',
 	height: '8px',
@@ -38,7 +38,7 @@ let redBackground = {
 	margin: '0 8px 1px 0',
 	backgroundColor: 'rgb(250, 117, 90)'
 };
-let greyBackground = {
+const greyBackground = {
 	display: 'inline-block',
 	borderRadius: '50%',
 	height: '8px',
@@ -71,7 +71,7 @@ class Main extends Component {
 	setLastAlive = () => {
 		this.setState({ now: Date.now() });
 
-		let nowHandler = setTimeout(() => {
+		const nowHandler = setTimeout(() => {
 			this.setState({ now: Date.now() });
 		}, 300000);
 
@@ -109,8 +109,9 @@ class Main extends Component {
 	}
 
 	groupBy(collection, property) {
-		var i = 0, val, index,
-			values = [], result = [];
+		let i = 0, val, index;
+		const values = [], result = [];
+
 		for (; i < collection.length; i++) {
 			val = collection[i][property] ? collection[i][property]['name'] : 'no-category';
 			index = values.indexOf(val);
@@ -126,16 +127,16 @@ class Main extends Component {
 
 	groupedMonitors = () => {
 		if (this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0) {
-			let monitorData = this.props.statusData.monitorsData;
-			let groupedMonitorData = this.groupBy(monitorData, 'monitorCategoryId');
-			let monitorCategoryStyle = {
+			const monitorData = this.props.statusData.monitorsData;
+			const groupedMonitorData = this.groupBy(monitorData, 'monitorCategoryId');
+			const monitorCategoryStyle = {
 				display: 'inline-block',
 				marginBottom: 10,
 				fontSize: 10,
 				color: '#8898aa',
 				fontWeight: 'Bold'
 			};
-			let monitorCategoryGroupContainerStyle = {
+			const monitorCategoryGroupContainerStyle = {
 				marginBottom: 40
 			};
 			return groupedMonitorData.map((groupedMonitors, i) => {
@@ -160,7 +161,7 @@ class Main extends Component {
 	}
 
 	renderError = () => {
-		let { error } = this.props.status;
+		const { error } = this.props.status;
 		if (error === 'Input data schema mismatch.') {
 			return 'Status Page Not present';
 		} else if (error === 'Project Not present') {
@@ -182,12 +183,12 @@ class Main extends Component {
 		let statusMessage = '';
 		let faviconurl = '';
 		let isGroupedByMonitorCategory = false;
-		let error = this.renderError();
-
+		const error = this.renderError();
+		let heading, backgroundMain, contentBackground;
 		if (this.props.statusData && this.props.statusData.monitorsData) {
 			serviceStatus = getServiceStatus(this.props.monitorState, probes);
 			isGroupedByMonitorCategory = this.props.statusData.isGroupedByMonitorCategory;
-			var colors = this.props.statusData.colors
+			const colors = this.props.statusData.colors
 
 			if (serviceStatus === 'all') {
 				status = 'status-bubble status-up';
@@ -204,13 +205,15 @@ class Main extends Component {
 			}
 			view = true;
 
-			var heading = {
+			heading = {
 				color: `rgba(${colors.heading.r}, ${colors.heading.g}, ${colors.heading.b}, ${colors.heading.a})`
 			};
-			var backgroundMain = {
+			
+			backgroundMain = {
 				background: `rgba(${colors.pageBackground.r}, ${colors.pageBackground.g}, ${colors.pageBackground.b}, ${colors.pageBackground.a})`
 			};
-			var contentBackground = {
+
+			contentBackground = {
 				background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`
 			};
 		}

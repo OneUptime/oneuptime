@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { API_URL, User } from '../config';
-var Q = require('q');
+const Q = require('q');
 
 export const STATUSPAGE_REQUEST = 'STATUSPAGE_REQUEST';
 export const STATUSPAGE_SUCCESS = 'STATUSPAGE_SUCCESS';
@@ -29,7 +29,7 @@ export function statusPageFailure(error) {
 // Calls the API to get status
 export function getStatusPage(statusPageId, url) {
   return function (dispatch) {
-    var promise = getApi(`/statusPage/${statusPageId}?url=${url}`);
+    const promise = getApi(`/statusPage/${statusPageId}?url=${url}`);
     dispatch(statusPageRequest());
 
     promise.then(function (Data) {
@@ -100,7 +100,7 @@ export function individualNoteDisable() {
 // Calls the API to get status
 export function getStatusPageNote(projectId, statusPageId, skip) {
   return function (dispatch) {
-    var promise = getApi(`/statusPage/${projectId}/${statusPageId}/notes?skip=${skip}`);
+    const promise = getApi(`/statusPage/${projectId}/${statusPageId}/notes?skip=${skip}`);
     dispatch(statusPageNoteRequest());
 
     promise.then(function (Data) {
@@ -126,7 +126,7 @@ export function getStatusPageNote(projectId, statusPageId, skip) {
 
 export function getStatusPageIndividualNote(projectId, monitorId, date, name, need) {
   return function (dispatch) {
-    var promise = getApi(`/statusPage/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}`);
+    const promise = getApi(`/statusPage/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}`);
     dispatch(statusPageNoteRequest());
 
     promise.then(function (Data) {
@@ -183,7 +183,7 @@ export function moreNoteFailure(error) {
 
 export function getMoreNote(projectId, statusPageId, skip) {
   return function (dispatch) {
-    var promise = getApi(`/statusPage/${projectId}/${statusPageId}/notes?skip=${skip}`);
+    const promise = getApi(`/statusPage/${projectId}/${statusPageId}/notes?skip=${skip}`);
     dispatch(moreNoteRequest());
     promise.then(function (Data) {
       dispatch(moreNoteSuccess(Data.data));
@@ -206,7 +206,7 @@ export function getMoreNote(projectId, statusPageId, skip) {
 }
 
 function getApi(url) {
-  var deffered = Q.defer();
+  const deffered = Q.defer();
   axios({
     method: 'GET',
     url: `${API_URL}${url}`

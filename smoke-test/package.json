@@ -4,7 +4,9 @@
   "description": "Smoke tests for fyipe",
   "main": "index.test.js",
   "scripts": {
-    "test": "jest --runInBand ."
+    "test": "jest --runInBand .",
+    "lint": "eslint .",
+    "fix-lint": "eslint . --fix"
   },
   "keywords": [],
   "author": "",

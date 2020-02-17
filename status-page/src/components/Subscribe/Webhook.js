@@ -22,9 +22,9 @@ class Webhook extends Component {
     handleSubmit = (event) => {
         if (this.state.endpoint && this.state.endpoint.length) {
             if (this.state.email && this.state.email.length) {
-                let validemail = this.validation(this.state.email);
+                const validemail = this.validation(this.state.email);
                 if (validemail) {
-                    var values = this.state;
+                    const values = this.state;
                     values.method = 'webhook';
                     this.props.userData(values);
                 }

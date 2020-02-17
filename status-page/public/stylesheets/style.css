@@ -105,7 +105,7 @@ div.block-chart {
       opacity: 0.6;
 
       /* DEFAULT IS GREEN */
-      background: rgb(188, 255, 174);
+      background: #6CDB56;
     }
 
     div.block-chart div.bar.empty:hover {

@@ -84,15 +84,19 @@ module.exports = {
         console.error(error);
         
         if (error.statusCode && error.message) {
+            res.resBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
             return res.status(error.statusCode).send({ message: error.message });
         }
 
         else if (error.code && error.message && typeof error.code === 'number') {
+            res.resBody = { message: error.message };
             return res.status(error.code).send({ message: error.message });
         } else if (error instanceof mongoose.Error.CastError){
+            res.resBody = { code: 400, message: 'Input data schema mismatch.' };
             return res.status(400).send({ code: 400, message: 'Input data schema mismatch.' });
         }
         else {
+            res.resBody = { message: 'Server Error.' };
             return res.status(500).send({ message: 'Server Error.' });
         }
     },
@@ -171,6 +175,8 @@ module.exports = {
             response.data = await JsonToCsv.ToCsv(response.data);
         }
 
+        res.resBody = response;  // To be used in 'auditLog' middleware to log reponse data;
+
         return res.status(200).send(response);
     },
 
@@ -218,6 +224,8 @@ module.exports = {
             }
             item = await JsonToCsv.ToCsv(item);
         }
+
+        res.resBody = item;  // To be used in 'auditLog' middleware to log reponse data;
 
         return res.status(200).send(item);
     }

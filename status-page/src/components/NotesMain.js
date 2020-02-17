@@ -159,8 +159,8 @@ class NotesMain extends Component {
 NotesMain.displayName = 'NotesMain';
 
 const mapStateToProps = (state) => {
-    var skip = state.status.notes && state.status.notes.skip ? state.status.notes.skip : 0;
-    var count = state.status.notes && state.status.notes.count ? state.status.notes.count : 0;
+    let skip = state.status.notes && state.status.notes.skip ? state.status.notes.skip : 0;
+    let count = state.status.notes && state.status.notes.count ? state.status.notes.count : 0;
     if (typeof skip === 'string') {
         skip = parseInt(skip, 10);
     }

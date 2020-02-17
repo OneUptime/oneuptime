@@ -20,9 +20,9 @@ class Message extends Component {
     }
     handleSubmit = (event) => {
         if (this.state.email && this.state.email.length) {
-            let validemail = this.validation(this.state.email);
+            const validemail = this.validation(this.state.email);
             if (validemail) {
-                var values = this.state;
+                const values = this.state;
                 values.method = 'email';
                 this.props.userData(values);
             }

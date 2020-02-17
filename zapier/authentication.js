@@ -9,7 +9,6 @@ const testAuth = (z, bundle) => {
     return z.request({
         url: 'https://api.fyipe.com/zapier/test',
     }).then((response) => {
-        console.log('response: ', response);
         if (response.status === 400) {
             throw new Error('The API Key or Project ID you supplied is invalid!');
         }

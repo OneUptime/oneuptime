@@ -97,6 +97,11 @@
         "eqeqeq": "error",
         "jsx-a11y/anchor-is-valid": "error",
         "array-callback-return": "error",
-        "no-loop-func": "error"
+        "no-loop-func": "error",
+        "prefer-const": ["error", {
+            "destructuring": "any",
+            "ignoreReadBeforeAssign": false
+        }],
+        "no-var": "error"
     }
 }

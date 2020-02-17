@@ -24,11 +24,12 @@
     "react-dom": "^16.5.2",
     "react-frontload": "^1.0.3",
     "react-ga": "^2.5.3",
+    "react-json-view": "^1.19.1",
     "react-mixpanel": "0.0.11",
     "react-redux": "^5.0.7",
     "react-router-dom": "^4.2.2",
     "react-router-redux": "^4.0.8",
-    "react-scripts": "^3.0.1",
+    "react-scripts": "^3.4.0",
     "react-select-fyipe": "^2.1.8",
     "react-widgets": "^4.4.9",
     "redux": "^3.7.2",
@@ -45,7 +46,7 @@
     "build": "react-scripts build",
     "test": "jest src/test/puppeteer/index.test.js",
     "start": "node index.js",
-    "audit": "npm-audit-ci-wrapper --threshold=high",
+    "audit": "npm-audit-ci-wrapper --threshold=low",
     "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,js-uuid,acorn'"
   },
   "devDependencies": {

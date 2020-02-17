@@ -45,7 +45,7 @@ export const resetLogin = () => {
 export const loginUser = (values) => {
 	return function (dispatch) {
 
-		var promise = postApi('user/login', values);
+		const promise = postApi('user/login', values);
 		dispatch(loginRequest(promise));
 
 		promise.then(function (user) {

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { connect } from 'react-redux';
 import { formValueSelector } from 'redux-form';
 import PropTypes from 'prop-types';
-import Select from 'react-select-fyipe';
+import Select from './react-select-fyipe';
 
 const errorStyle = {
     color: 'red',

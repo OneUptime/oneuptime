@@ -69,7 +69,7 @@ class CreateSchedule extends React.Component {
 
     render() {
         const { currentDate } = this.state;
-        const { requesting, error, closeModal, handleSubmit } = this.props;
+        const { requesting, scheduledEventError, closeModal, handleSubmit } = this.props;
         let { minStartDate } = this.props;
         if (!minStartDate) {
             minStartDate = currentDate;
@@ -297,7 +297,7 @@ class CreateSchedule extends React.Component {
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={error}>
+                                    <ShouldRender if={scheduledEventError}>
                                         <div className="bs-Tail-copy">
                                             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
                                                 <div className="Box-root Margin-right--8">
@@ -305,7 +305,7 @@ class CreateSchedule extends React.Component {
                                                     </div>
                                                 </div>
                                                 <div className="Box-root">
-                                                    <span style={{ color: 'red' }}>{error}</span>
+                                                    <span style={{ color: 'red' }}>{scheduledEventError}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -342,7 +342,7 @@ CreateSchedule.propTypes = {
     createScheduledEventModalId: PropTypes.string,
     data: PropTypes.object,
     requesting: PropTypes.bool,
-    error: PropTypes.object,
+    scheduledEventError: PropTypes.object,
     minStartDate: PropTypes.object,
 };
 
@@ -367,7 +367,7 @@ const mapStateToProps = state => {
     return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,
         requesting: state.scheduledEvent.newScheduledEvent.requesting,
-        error: state.scheduledEvent.newScheduledEvent.error,
+        scheduledEventError: state.scheduledEvent.newScheduledEvent.error,
         createScheduledEventModalId: state.modal.modals[0].id,
         minStartDate
     }
