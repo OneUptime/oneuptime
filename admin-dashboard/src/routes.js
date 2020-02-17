@@ -5,7 +5,8 @@ const {
 	User,
 	Projects,
 	Project,
-	Probes
+	Probes,
+	AuditLogs
 } = pages;
 
 export const groups = [
@@ -55,6 +56,15 @@ export const groups = [
 				visible: true,
 				subRoutes: [],
 				index: 3
+			},
+			{
+				title: 'Audit Logs',
+				path: '/auditLogs',
+				icon: 'auditLogs',
+				component: AuditLogs,
+				visible: true,
+				subRoutes: [],
+				index: 4
 			},
 		]
 	},
