@@ -24,6 +24,7 @@
     "react-dom": "^16.5.2",
     "react-frontload": "^1.0.3",
     "react-ga": "^2.5.3",
+    "react-json-view": "^1.19.1",
     "react-mixpanel": "0.0.11",
     "react-redux": "^5.0.7",
     "react-router-dom": "^4.2.2",
