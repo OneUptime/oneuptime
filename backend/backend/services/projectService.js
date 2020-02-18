@@ -40,7 +40,11 @@ module.exports = {
                 }];
             }
             projectModel.name = data.name || null;
-            projectModel.slug = data.slug || null;
+
+            let name = data.name;
+            name = slugify(name);
+            name = `${name}-${generate('1234567890', 8)}`;
+            projectModel.slug = name.toLowerCase();
             projectModel.apiKey = uuidv1();
             projectModel.stripePlanId = data.stripePlanId || null;
             projectModel.stripeSubscriptionId = data.stripeSubscriptionId || null;
@@ -137,6 +141,14 @@ module.exports = {
             if (!data.apiKey && !oldProject.apiKey) {
                 data.apiKey = uuidv1();
             }
+            
+            if(data.name){
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
+            }
+
             let updatedProject = await ProjectModel.findOneAndUpdate(
                 query,
                 {
@@ -503,3 +515,5 @@ const EscalationService = require('./escalationService');
 const StripeService = require('./stripeService');
 const TeamService = require('./teamService');
 const StatusPageService = require('./statusPageService');
+const slugify = require('slugify');
+const generate = require('nanoid/generate');
