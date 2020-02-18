@@ -7,9 +7,19 @@ import { currentTimeZone } from '../basic/TimezoneArray';
 import { history } from '../../store';
 
 const IncidentTimelineList = (props) => {
-    const { incident,  prevClicked, nextClicked } = props;
-    let{skip, limit} = props;
-    const  probes  = Object.assign([],incident.incident.probes);
+    const { incident, prevClicked, nextClicked } = props;
+    let { skip, limit } = props;
+    const probes = Object.assign([], incident.incident.probes);
+    if (incident.incident && incident.incident.manuallyCreated) {
+        if (incident.incident.createdById && incident.incident.createdById.name) {
+            probes.unshift({
+                updatedAt: incident.incident.createdAt,
+                name: incident.incident.createdById.name,
+                id: incident.incident.createdById._id,
+                reportedStatus: incident.incident.incidentType
+            });
+        }
+    }
     if (incident.incident && incident.incident.acknowledgedAt) {
         if (incident.incident.acknowledgedBy && incident.incident.acknowledgedBy.name) {
             probes.push({
@@ -141,23 +151,23 @@ const IncidentTimelineList = (props) => {
                                                                                     </span>
                                                                                 </div>)
                                                                                 : log && log.reportedStatus && log.reportedStatus === 'Resolved' ?
-                                                                                (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>Resolved</span>
-                                                                                    </span>
-                                                                                </div>)
-                                                                                : log && log.reportedStatus && log.reportedStatus === 'Acknowledged' ?
-                                                                                    (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                        <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                            <span>Acknowledged</span>
+                                                                                    (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>Resolved</span>
                                                                                         </span>
                                                                                     </div>)
-                                                                                :
-                                                                                (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>Unknown Status</span>
-                                                                                    </span>
-                                                                                </div>)
+                                                                                    : log && log.reportedStatus && log.reportedStatus === 'Acknowledged' ?
+                                                                                        (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>Acknowledged</span>
+                                                                                            </span>
+                                                                                        </div>)
+                                                                                        :
+                                                                                        (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>Unknown Status</span>
+                                                                                            </span>
+                                                                                        </div>)
                                                                     }
                                                                 </div>
                                                             </div>
