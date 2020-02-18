@@ -60,7 +60,7 @@ class TopContent extends Component {
 	}
 
 	render() {
-		const IMG_URL = this.props.profilePic && this.props.profilePic !== '' && this.props.profilePic !== 'null' ? `url(${API_URL}/file/${this.props.profilePic})` : 'url(https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404)';
+		const IMG_URL = this.props.profilePic && this.props.profilePic !== '' && this.props.profilePic !== 'null' ? `url(${API_URL}/file/${this.props.profilePic})` : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
 		const userId = User.getUserId();
 		let count = 0;
 		if (this.props.notifications && this.props.notifications.notifications && this.props.notifications.notifications.length) {

@@ -24,7 +24,7 @@ export class DeleteProjectBox extends Component {
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        Delete Project
+                                        Cancel Subscription and Delete Project
                                     </span>
                                 </span>
                                 <p>

@@ -295,7 +295,7 @@ export class ProfileSetting extends Component {
       ? this.props.fileUrl
       : profilePic
         ? `${API_URL}/file/${profilePic}`
-        : 'https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404'
+        : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'
     let profileImage = <span />
 
     if (profilePic || this.props.fileUrl) {
