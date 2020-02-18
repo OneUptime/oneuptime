@@ -36,7 +36,7 @@ describe('Lead API', function () {
             leadService.hardDeleteBy({ _id: res.body._id });
             const emailStatuses = await EmailStatusService.findBy({});
             expect(emailStatuses[0].subject).to.equal('Thank you for your demo request.');
-            expect(emailStatuses[0].status).to.equal('Email not enabled.');
+            expect(emailStatuses[0].status).to.equal('Success');
             done();
         });
     });

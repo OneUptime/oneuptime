@@ -37,7 +37,7 @@ describe('Email verification API', function () {
     it('should send email verification', async function () {
         const emailStatuses = await EmailStatusService.findBy({});
         expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
-        expect(emailStatuses[0].status).to.equal('Email not enabled.');
+        expect(emailStatuses[0].status).to.equal('Success');
     });
 
     it('should not login non-verified user', async function () {
