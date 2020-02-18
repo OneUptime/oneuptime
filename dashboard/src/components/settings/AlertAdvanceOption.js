@@ -234,7 +234,7 @@ export class AlertAdvanceOption extends Component {
                                                                         </div>
                                                                     </div>
                                                                     <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                        <label><span>Enable calling to US Numbers</span></label>
+                                                                        <label><span>Enable call and SMS alerts to US Numbers</span></label>
                                                                     </div>
                                                                 </label>
                                                             </div>
@@ -260,7 +260,9 @@ export class AlertAdvanceOption extends Component {
                                                                         </div>
                                                                     </div>
                                                                     <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                        <label><span>Enable calling to Non-US Numbers (except high risk countries)</span></label>
+                                                                        <label><span>Enable call and SMS alerts to Non-US Numbers <a target="_blank" className="underline" rel="noopener noreferrer" href="https://www.twilio.com/docs/sip-trunking/voice-dialing-geographic-permissions#the-highest-risk-countries-for-toll-fraud-in-world">
+                                                                            <span>(except these high risk countries)</span>
+                                                                        </a></span></label>
                                                                     </div>
                                                                 </label>
                                                             </div>
@@ -286,7 +288,9 @@ export class AlertAdvanceOption extends Component {
                                                                         </div>
                                                                     </div>
                                                                     <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                        <label><span>Enable calling to high risk countries</span></label>
+                                                                        <label><span>Enable call and SMS alerts to <a target="_blank" className="underline" rel="noopener noreferrer" href="https://www.twilio.com/docs/sip-trunking/voice-dialing-geographic-permissions#the-highest-risk-countries-for-toll-fraud-in-world">
+                                                                            <span>these high risk countries</span>
+                                                                        </a></span></label>
                                                                     </div>
                                                                 </label>
                                                             </div>
@@ -300,9 +304,7 @@ export class AlertAdvanceOption extends Component {
                                                                 <label className="Checkbox">
                                                                     <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
                                                                         <label>
-                                                                            <a target="_blank" rel="noopener noreferrer" href="https://www.twilio.com/docs/sip-trunking/voice-dialing-geographic-permissions#the-highest-risk-countries-for-toll-fraud-in-world">
-                                                                                <span>See high risk countries</span>
-                                                                            </a>
+
                                                                         </label>
                                                                     </div>
                                                                 </label>

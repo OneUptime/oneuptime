@@ -96,7 +96,7 @@ export class TeamMember extends Component {
                     <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                             <span>
-                                {this.props.name ? 'Online ' + this.props.lastActive + ' ago' : 'Invitation Sent'}
+                                {this.props.name ? 'Online ' + this.props.lastActive : 'Invitation Sent'}
                             </span>
                         </span>
                     </div>
