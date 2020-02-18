@@ -98,7 +98,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, isUserAdmin, async 
             });
         }
 
-        const existingScheduledEvent = await ScheduledEventService.findOneBy({name: data.name});
+        const existingScheduledEvent = await ScheduledEventService.findOneBy({name: data.name, monitorId: monitorId});
         if (existingScheduledEvent) {
             return sendErrorResponse(req, res, {
                 code: 400,
