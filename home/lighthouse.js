@@ -30,7 +30,7 @@ let checksFailed = false;
 child.on('message', function (score){
 	const scores = [sites[sitesIndex - 1], score.performance, score.accessibility, score.bestPractices, score.seo];
 	table.push(scores);
-	if (score.performance < 80 || score.accessibility < 80 || score.bestPractices < 80 || score.seo < 80) {
+	if (score.performance < 50 || score.accessibility < 80 || score.bestPractices < 70 || score.seo < 80) {
 		checksFailed = true;
 	}
 	if (sitesIndex < sites.length) {
