@@ -39,7 +39,7 @@ process.on('message', function (data) {
 		scores.accessibility = Math.ceil(results.lhr.categories.accessibility.score * 100);
 		scores.bestPractices = Math.ceil(results.lhr.categories['best-practices'].score * 100);
 		scores.seo = Math.ceil(results.lhr.categories.seo.score * 100);
-		if (scores.performance < 80 || scores.accessibility < 80 || scores.bestPractices < 80 || scores.seo < 80) {
+		if (scores.performance < 50 || scores.accessibility < 80 || scores.bestPractices < 70 || scores.seo < 80) {
 			spinner.fail();
 		} else {
 			spinner.succeed();
