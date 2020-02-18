@@ -3,7 +3,7 @@ const StringUtil = require('../utils/string');
 module.exports = {
     user: {
         name: 'John Smith',
-        email: StringUtil.generateRandomString(10)+'@fyipe.com',
+        email: StringUtil.generateRandomString(10)+'@tmpmail.com',
         password:'1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',

@@ -236,6 +236,7 @@ export class ProfileSetting extends Component {
       logEvent('Update Profile', values)
     }
     User.setEmail(values.email)
+    User.setName(values.name)
   }
 
   removeProfilePic = () => {
