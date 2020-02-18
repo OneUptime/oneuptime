@@ -15,8 +15,8 @@ const UserModel = require('../models/user');
 const UserService = require('./userService');
 const SmsCountService = require('./smsCountService');
 const AlertService = require('./alertService');
-const CallEnabled = process.env['CALL_ENABLED'] === "true";
-const SMSEnabled = process.env['SMS_ENABLED'] === "true";
+const CallEnabled = process.env['CALL_ENABLED'] === 'true';
+const SMSEnabled = process.env['SMS_ENABLED'] === 'true';
 
 const getTwilioSettings = async (projectId) => {
     let { accountSid, authToken, phoneNumber } = twilioCredentials;

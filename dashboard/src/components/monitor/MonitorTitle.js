@@ -90,7 +90,7 @@ export class MonitorTitle extends Component {
                                     Currently {isCurrentlyNotMonitoring && 'Not'} Monitoring &nbsp;
                                 <a href={url}>{url}</a>
                                 </span>}
-                                {monitor.type === "manual" && monitor.data && monitor.data.description && monitor.data.description!=="" && <span>
+                                {monitor.type === 'manual' && monitor.data && monitor.data.description && monitor.data.description!=='' && <span>
                                     Description: {monitor.data.description}
                                 </span>}
                             </span>

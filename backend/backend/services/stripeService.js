@@ -207,7 +207,7 @@ const Services = {
                 projectId
             };
             const paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata);
-            var project = await ProjectService.findOneBy({_id: projectId})
+            const project = await ProjectService.findOneBy({_id: projectId});
             await ProjectService.updateOneBy(
                 { _id: projectId },
                 {
