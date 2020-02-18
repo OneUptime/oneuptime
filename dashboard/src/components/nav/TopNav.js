@@ -106,10 +106,12 @@ class TopContent extends Component {
 										}}
 									>
 										<span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-											{(this.props.feedback.feedback.success || this.props.feedback.feedback.requesting) && (!this.props.feedback.feedback.error) ? <span>Thank you for your feedback.</span> : <span>Feedback about this page?</span>}
 											{
-												(this.props.feedback.feedback.error) ? <span>Sorry, Please try again.</span> : null
+												
 											}
+											{((this.props.feedback.feedback.success || this.props.feedback.feedback.requesting)) ? <span>Thank you for your feedback.</span> : null}
+											{((!this.props.feedback.feedback.success && !this.props.feedback.feedback.requesting && !this.props.feedback.feedback.error )) ? <span>Feedback about this page?</span> : null}
+											{(this.props.feedback.feedback.error) ? <span>Sorry, Please try again.</span> : null}
 										</span>
 
 									</div>

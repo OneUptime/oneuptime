@@ -8,7 +8,7 @@ const defaultEmailTemplates = require('../config/emailTemplate');
 const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
 const { ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST } = process.env;
-const EMAIL_ENABLED = !!process.env['EMAIL_ENABLED'];
+const EMAIL_ENABLED = process.env['EMAIL_ENABLED']==="true";
 const options = {
     viewEngine: {
         extname: '.hbs',
