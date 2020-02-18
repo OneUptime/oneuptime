@@ -9,7 +9,7 @@ const Services = {
             await MailService.sendPaymentFailedEmail(project.name, user.email, user.name, chargeAttemptStage);
 
             if (chargeAttemptCount === 3) {
-                await UserService.updateOneBy({ _id: user._id},{ paymentFailedDate: new Date });
+                await UserService.updateOneBy({ _id: user._id }, { paymentFailedDate: new Date });
             }
             return { paymentStatus: 'failed' };
         } catch (error) {
@@ -31,7 +31,7 @@ const Services = {
     },
 
     creditCard: {
-        create: async function(tok, userId) {
+        create: async function (tok, userId) {
             try {
                 const tokenCard = await stripe.tokens.retrieve(tok);
                 const cards = await this.get(userId);
@@ -53,7 +53,7 @@ const Services = {
                         description
                     };
                     const source = card.id;
-                    const paymentIntent = await Services.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
+                    const paymentIntent = await Services.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source);
                     return paymentIntent;
                 } else {
                     const error = new Error('Cannot add duplicate card');
@@ -148,7 +148,7 @@ const Services = {
     },
 
     updateBalance: async function (paymentIntent) {
-        try{
+        try {
             if (paymentIntent.status === 'succeeded') {
                 const amountRechargedStripe = Number(paymentIntent.amount_received);
                 if (amountRechargedStripe) {
@@ -206,7 +206,14 @@ const Services = {
             const metadata = {
                 projectId
             };
-            const paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata );
+            const paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata);
+            var project = await ProjectService.findOneBy({_id: projectId})
+            await ProjectService.updateOneBy(
+                { _id: projectId },
+                {
+                    balance: project.balance+chargeAmount
+                }
+            );
             return paymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.addBalance', error);
@@ -231,7 +238,7 @@ const Services = {
             const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
             const paymentIntent = await stripe.paymentIntents.retrieve(finalizedInvoice.payment_intent);
             if (source) {
-                updatedPaymentIntent= await stripe.paymentIntents.update(paymentIntent.id, {
+                updatedPaymentIntent = await stripe.paymentIntents.update(paymentIntent.id, {
                     description,
                     metadata,
                     source
@@ -243,7 +250,7 @@ const Services = {
                 });
             }
             return updatedPaymentIntent;
-        } catch(error) {
+        } catch (error) {
             ErrorService.log('stripeService.createInvoice', error);
             throw error;
         }
@@ -259,7 +266,7 @@ const Services = {
                 description
             };
             const source = card.id;
-            const paymentIntent = await this.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source );
+            const paymentIntent = await this.createInvoice(testChargeValue, stripeCustomerId, description, metadata, source);
             return paymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.makeTestCharge', error);

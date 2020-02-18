@@ -170,7 +170,7 @@ export class CustomerBalance extends Component {
                                                 type="submit"
                                             >
                                                 <ShouldRender if={!this.props.isRequesting}>
-                                                    <span>Add</span>
+                                                    <span>Recharge Account</span>
                                                 </ShouldRender>
                                                 <ShouldRender if={this.props.isRequesting}>
                                                     <FormLoader />

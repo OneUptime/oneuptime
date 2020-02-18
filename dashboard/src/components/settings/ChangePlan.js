@@ -48,12 +48,12 @@ export class Plans extends Component {
                                         <div className="Box-root">
                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                 <span>
-                                                    Upgrade Subscription Plan
+                                                    Change Fyipe Plan
                                         </span>
                                             </span>
                                             <p>
                                                 <span>
-                                                    Upgrade your subscription plan
+                                                    Upgrade or change your subscription. To cancel your subscription, please delete this project.
                                         </span>
                                             </p>
                                         </div>
