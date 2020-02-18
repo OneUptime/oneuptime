@@ -282,7 +282,7 @@ describe('Monitor Detail API', () => {
             await page.click(moreButtonSelector);
             await page.waitFor(2000);
 
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 10; i++) {
                 const addButtonSelector = '#addScheduledEventButton';
                 await page.click(addButtonSelector);
                 await page.waitFor(1000);
@@ -312,7 +312,7 @@ describe('Monitor Detail API', () => {
             var scheduledEventRows = await page.$$(createdScheduledEventSelector);
             var countScheduledEvent = scheduledEventRows.length;
 
-            expect(countScheduledEvent).toEqual(1);
+            expect(countScheduledEvent).toEqual(5);
 
             const prevSelector = await page.$('#btnPrevSchedule');
 

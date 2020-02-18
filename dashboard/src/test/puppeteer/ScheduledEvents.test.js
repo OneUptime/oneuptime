@@ -57,7 +57,7 @@ describe('Scheduled event', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 100000
+            timeout: 120000
         });
 
         cluster.on('taskerror', (err) => {
@@ -93,12 +93,12 @@ describe('Scheduled event', () => {
             const moreButtonSelector = `#more_details_${data.monitorName}`;
             await page.click(moreButtonSelector);
 
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             addButtonSelector = '#addScheduledEventButton';
             await page.click(addButtonSelector);
 
-            await page.waitFor(1000);
+            await page.waitFor(5000);
             
             await page.click('input[name=startDate]');
             await page.click('div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)');
@@ -116,7 +116,7 @@ describe('Scheduled event', () => {
 
 
             createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
-            await page.waitFor(1000);
+            await page.waitFor(5000);
 
             var createdScheduledEventName = await page.$eval(createdScheduledEventSelector, el => el.textContent);
             
@@ -136,7 +136,7 @@ describe('Scheduled event', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 100000
+            timeout: 120000
         });
 
         cluster.on('taskerror', (err) => {
@@ -156,7 +156,7 @@ describe('Scheduled event', () => {
             await page.waitForSelector(createdScheduledEventSelector);
             await page.click(createdScheduledEventSelector);
 
-            await page.waitFor(1000);
+            await page.waitFor(5000);
 
             await page.click('input[name=name]', { clickCount: 3 })
             await page.keyboard.press('Backspace')
@@ -175,7 +175,7 @@ describe('Scheduled event', () => {
 
             await page.click('#updateScheduledEventButton');
 
-            await page.waitFor(1000);
+            await page.waitFor(5000);
 
             var createdScheduledEventName = await page.$eval(createdScheduledEventSelector, el => el.textContent);
             
@@ -195,7 +195,7 @@ describe('Scheduled event', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 100000
+            timeout: 120000
         });
 
         cluster.on('taskerror', (err) => {
@@ -217,7 +217,7 @@ describe('Scheduled event', () => {
             await page.waitForSelector(deleteButtonSelector);
             await page.click(deleteButtonSelector);
 
-            await page.waitFor(1000);
+            await page.waitFor(5000);
 
             var scheduledEventCounterSelector = '#scheduledEventCount'
             var scheduledEventCount = await page.$eval(scheduledEventCounterSelector, el => el.textContent);
