@@ -140,7 +140,7 @@ module.exports = {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'Activate your Fyipe account',
+                subject: '[Fyipe] Verify your Email',
                 template: 'send_verification_email',
                 context: {
                     homeURL: HOME_HOST,
