@@ -43,6 +43,7 @@ export class IncidentTimelineBox extends Component {
 IncidentTimelineBox.displayName = 'IncidentTimelineBox';
 
 IncidentTimelineBox.propTypes = {
+    currentProject: PropTypes.object,
     getIncidentTimeline: PropTypes.func,
     incident: PropTypes.object,
     incidentTimeline: PropTypes.object,
