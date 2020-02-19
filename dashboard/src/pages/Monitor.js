@@ -88,7 +88,7 @@ class DashboardView extends Component {
                 <div id={`box_${subProject.name}`} className="Box-root Margin-vertical--12" key={i}>
                     <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
                         <ShouldRender if={subProjects && subProjects.length > 0}>
-                            <div className="Box-root Padding-top--20 Padding-left--20">
+                            <div className="Box-root Padding-top--20 Padding-left--20 Padding-bottom--20 Card-shadow--medium">
                                 <Badge id={`badge_${subProject.name}`} color={'blue'}>{subProject.name}</Badge>
                             </div>
                         </ShouldRender>
@@ -105,7 +105,7 @@ class DashboardView extends Component {
             <div id={`box_${currentProject.name}`} key={`box_${currentProject.name}`} className="Box-root Margin-vertical--12">
                 <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
                     <ShouldRender if={subProjects && subProjects.length > 0}>
-                        <div className="Box-root Padding-top--20 Padding-left--20">
+                        <div className="Box-root Padding-top--20 Padding-left--20 Padding-bottom--20 Card-shadow--medium">
                             <Badge id={`badge_${currentProject.name}`} color={'red'}>Project</Badge>
                         </div>
                     </ShouldRender>
