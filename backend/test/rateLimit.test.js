@@ -9,14 +9,14 @@ describe('API limit rate', function () {
 
     before(function () {
         process.env.PORT = 3020;
-        process.env.WINDOWMS = 5000;
-        process.env.MAX = 3;
+        process.env.RATE_LIMIT_TIME_PERIOD_IN_MS = 5000;
+        process.env.RATE_LIMIT_REQUEST_LIMIT = 3;
         process.env.RATE_LIMITING_ENABLED = true;
 
         const sinon = require('sinon');
         sandbox = sinon.createSandbox();
-        sandbox.stub(process.env, 'WINDOWMS').value('5000');
-        sandbox.stub(process.env, 'MAX').value('3');
+        sandbox.stub(process.env, 'RATE_LIMIT_TIME_PERIOD_IN_MS').value('5000');
+        sandbox.stub(process.env, 'RATE_LIMIT_REQUEST_LIMIT').value('3');
         sandbox.stub(process.env, 'RATE_LIMITING_ENABLED').value('true');
         app = require('../server');
         request = chai.request(app);
