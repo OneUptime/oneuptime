@@ -201,7 +201,7 @@ describe('Stripe payment API', function () {
                 await sleep(20000);
                 const project = await ProjectService.findOneBy({ _id: projectId });
                 const { balance } = project;
-                expect(balance).to.be.equal(200); // 100 added previously.
+                expect(balance).to.be.equal(100); 
             }
         }
     });

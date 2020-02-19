@@ -207,13 +207,7 @@ const Services = {
                 projectId
             };
             const paymentIntent = await this.createInvoice(stripechargeAmount, stripeCustomerId, description, metadata);
-            const project = await ProjectService.findOneBy({_id: projectId});
-            await ProjectService.updateOneBy(
-                { _id: projectId },
-                {
-                    balance: project.balance+chargeAmount
-                }
-            );
+            ///IMPORTANT: Balance gets updated via Stripe Webhook if payment is successfull.
             return paymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.addBalance', error);

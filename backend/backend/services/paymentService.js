@@ -156,10 +156,10 @@ module.exports = {
     },
     chargeAlert: async function(userId, projectId, chargeAmount){
         try {
-            let project = await ProjectService.findOneBy({
+            const project = await ProjectService.findOneBy({
                 _id: projectId
             });
-            let { balance } = project;
+            const { balance } = project;
             const { minimumBalance, rechargeToBalance } = project.alertOptions;
             if ( balance < minimumBalance ){
                 const chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, project.id);
@@ -172,19 +172,10 @@ module.exports = {
                     };
                     await NotificationService.create(projectId, message, userId, null, meta);
                 }
-                project = await ProjectService.findOneBy({
-                    _id: projectId
-                });
-                balance = project.balance;
+                
             }
-            const balanceAfterAlertSent = balance - chargeAmount;
-            const updatedProject = await ProjectModel.findByIdAndUpdate(
-                projectId, {
-                    $set: {
-                        balance: balanceAfterAlertSent
-                    }
-                }, { new: true });
-            return updatedProject;
+            ///IMPORTANT: Balance gets updated via Stripe Webhook.
+            return project;
         } catch (error) {
             ErrorService.log('paymentService.chargeAlert', error);
             throw error;
