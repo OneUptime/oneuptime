@@ -3,23 +3,19 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import IncidentTimelineList from './IncidentTimelineList';
+import { getIncidentTimeline } from '../../actions/incident';
 
 export class IncidentTimelineBox extends Component {
-    constructor(props) {
-        super(props)
-        this.state = { skip: 0 }
-    }
-    prevClicked = () => {
-        this.setState({ skip: this.state.skip - this.props.limit});
-    }
 
-    nextClicked = () => {
-        this.setState({ skip: this.state.skip + this.props.limit});
+    componentDidUpdate(prevProps) {
+        if (prevProps.incident !== this.props.incident && !this.props.incident.timeline) {
+            this.props.getIncidentTimeline(this.props.currentProject._id, this.props.incident._id, parseInt(this.props.incidentTimeline.skip, 10), parseInt(this.props.incidentTimeline.limit, 10));
+        }
     }
 
     render() {
         return (
-            <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
+            <div className="Box-root Card-shadow--medium">
                 <div className="db-Trends-header Box-background--white Box-divider--surface-bottom-1">
                     <div className="ContentHeader Box-root Box-background--white Flex-flex Flex-direction--column">
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
@@ -37,29 +33,31 @@ export class IncidentTimelineBox extends Component {
                     </div>
                 </div>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
-                    <IncidentTimelineList incident={this.props.incident} skip={this.state.skip} limit={this.props.limit} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
+                    <IncidentTimelineList incident={this.props.incident} prevClicked={this.props.previous} nextClicked={this.props.next} />
                 </div>
             </div>
         );
     }
 }
 
-IncidentTimelineBox.displayName = 'IncidentTimelineBox'
+IncidentTimelineBox.displayName = 'IncidentTimelineBox';
 
 IncidentTimelineBox.propTypes = {
-  incident: PropTypes.object,
-  limit: PropTypes.number
-}
+    getIncidentTimeline: PropTypes.func,
+    incident: PropTypes.object,
+    incidentTimeline: PropTypes.object,
+    next: PropTypes.func,
+    previous: PropTypes.func
+};
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-    {}, dispatch
-)
+    { getIncidentTimeline }, dispatch
+);
 
 function mapStateToProps(state) {
     return {
         currentProject: state.project.currentProject,
-        incident:state.incident.incident,
-        limit: 10
+        incidentTimeline: state.incident.incident,
     };
 }
 

@@ -1,4 +1,6 @@
 import React from 'react';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
 import PropTypes from 'prop-types'
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
@@ -7,54 +9,26 @@ import { currentTimeZone } from '../basic/TimezoneArray';
 import { history } from '../../store';
 
 const IncidentTimelineList = (props) => {
-    const { incident, prevClicked, nextClicked } = props;
-    let { skip, limit } = props;
-    const probes = Object.assign([], incident.incident.probes);
-    if (incident.incident && incident.incident.manuallyCreated) {
-        if (incident.incident.createdById && incident.incident.createdById.name) {
-            probes.unshift({
-                updatedAt: incident.incident.createdAt,
-                name: incident.incident.createdById.name,
-                id: incident.incident.createdById._id,
-                reportedStatus: incident.incident.incidentType
-            });
-        }
+    const { incident: { timeline }, prevClicked, nextClicked, requesting, error } = props;
+    let { count, skip, limit } = props;
+
+    if (count && typeof count === 'string') {
+        count = parseInt(count, 10);
     }
-    if (incident.incident && incident.incident.acknowledgedAt) {
-        if (incident.incident.acknowledgedBy && incident.incident.acknowledgedBy.name) {
-            probes.push({
-                updatedAt: incident.incident.acknowledgedAt,
-                name: incident.incident.acknowledgedBy.name,
-                id: incident.incident.acknowledgedBy._id,
-                reportedStatus: 'Acknowledged'
-            });
-        }
-    }
-    if (incident.incident && incident.incident.resolvedAt) {
-        if (incident.incident.resolvedBy && incident.incident.resolvedBy.name) {
-            probes.push({
-                updatedAt: incident.incident.resolvedAt,
-                name: incident.incident.resolvedBy.name,
-                id: incident.incident.resolvedBy._id,
-                reportedStatus: 'Resolved'
-            });
-        }
-    }
-    probes.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
-    const count = probes && probes.length ? probes.length : null;
     if (skip && typeof skip === 'string') {
         skip = parseInt(skip, 10);
     }
     if (limit && typeof limit === 'string') {
         limit = parseInt(limit, 10);
     }
+    if (!count) count = timeline && timeline.length ? timeline.length : 0;
     if (!skip) skip = 0;
-    if (!limit) limit = 0;
+    if (!limit) limit = 10;
 
-    let canNext = count && count > (skip + limit) ? true : false;
+    let canNext = count > (skip + limit) ? true : false;
     let canPrev = (skip <= 0) ? false : true;
 
-    if (incident && (incident.requesting || count < 1)) {
+    if (requesting || count < 1) {
         canNext = false;
         canPrev = false;
     }
@@ -81,8 +55,8 @@ const IncidentTimelineList = (props) => {
                     </thead>
                     <tbody className="Table-body">
                         {
-                            probes && probes.length > 0 ? (
-                                probes.map((log, i) => {
+                            timeline && timeline.length > 0 ? (
+                                timeline.map((log, i) => {
                                     return (<tr id={`incident_timeline_${i}`} key={i} className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
 
                                         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '210px' }}>
@@ -97,10 +71,10 @@ const IncidentTimelineList = (props) => {
                                                         <div
                                                             className="Box-root Margin-right--16"
                                                             style={{ cursor: 'pointer' }}
-                                                            onClick={() => { history.push('/profile/' + log.id) }}
+                                                            onClick={() => { history.push('/profile/' + log.createdById._id) }}
                                                         >
                                                             <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
-                                                            <span>{log.name ? log.name : 'Unknown User'}</span>
+                                                            <span>{log.createdById.name ? log.createdById.name : 'Unknown User'}</span>
                                                         </div>
                                                     }
                                                 </span>
@@ -115,7 +89,7 @@ const IncidentTimelineList = (props) => {
                                                                 <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                     <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                         <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                            <span>{currentTimeZone ? momentTz(log.updatedAt).tz(currentTimeZone).format('lll') : moment(log.updatedAt).format('lll')}</span>
+                                                                            <span>{currentTimeZone ? momentTz(log.createdAt).tz(currentTimeZone).format('lll') : moment(log.createdAt).format('lll')}</span>
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -132,42 +106,36 @@ const IncidentTimelineList = (props) => {
                                                         <div className="Box-root Flex-flex">
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                    {log && log.reportedStatus && log.reportedStatus === 'offline' ?
+                                                                    {log && log.status && log.status === 'closed' ?
                                                                         (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                <span>offline</span>
+                                                                                <span>Closed</span>
                                                                             </span>
                                                                         </div>)
-                                                                        : log && log.reportedStatus && log.reportedStatus === 'online' ?
+                                                                        : log && log.status && log.status === 'resolved' ?
                                                                             (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                    <span>online</span>
+                                                                                    <span>Resolved</span>
                                                                                 </span>
                                                                             </div>)
-                                                                            : log && log.reportedStatus && log.reportedStatus === 'degraded' ?
+                                                                            : log && log.status && log.status === 'acknowledged' ?
                                                                                 (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                     <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>degraded</span>
+                                                                                        <span>Acknowledged</span>
                                                                                     </span>
                                                                                 </div>)
-                                                                                : log && log.reportedStatus && log.reportedStatus === 'Resolved' ?
-                                                                                    (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                            <span>Resolved</span>
+                                                                                : log && log.status && log.status === 'created' ?
+                                                                                    (<div className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--blue Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>Created</span>
                                                                                         </span>
                                                                                     </div>)
-                                                                                    : log && log.reportedStatus && log.reportedStatus === 'Acknowledged' ?
-                                                                                        (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                                <span>Acknowledged</span>
-                                                                                            </span>
-                                                                                        </div>)
-                                                                                        :
-                                                                                        (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                                <span>Unknown Status</span>
-                                                                                            </span>
-                                                                                        </div>)
+                                                                                    :
+                                                                                    (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>Unknown Status</span>
+                                                                                        </span>
+                                                                                    </div>)
                                                                     }
                                                                 </div>
                                                             </div>
@@ -185,15 +153,14 @@ const IncidentTimelineList = (props) => {
                                 <tr></tr>
                         }
                     </tbody>
-
                 </table>
             </div>
 
-            {incident && incident.requesting ? <ListLoader /> : null}
+            {requesting ? <ListLoader /> : null}
 
             <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                {!probes || !probes.length ? 'We don\'t have any Probes yet' : null}
-                {incident && incident.error ? incident.error : null}
+                {!timeline || !timeline.length ? 'We don\'t have any activity yet' : null}
+                {error}
             </div>
             <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                 <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
@@ -222,14 +189,31 @@ const IncidentTimelineList = (props) => {
     );
 }
 
-IncidentTimelineList.displayName = 'IncidentTimelineList'
+IncidentTimelineList.displayName = 'IncidentTimelineList';
 
 IncidentTimelineList.propTypes = {
-    incident: PropTypes.any,
-    limit: PropTypes.any,
+    incident: PropTypes.object,
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
-    skip: PropTypes.any
+    count: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    requesting: PropTypes.bool,
+    error: PropTypes.any
+};
+
+const mapDispatchToProps = dispatch => bindActionCreators(
+    {}, dispatch
+);
+
+function mapStateToProps(state) {
+    return {
+        count: state.incident.incident.count,
+        skip: state.incident.incident.skip,
+        limit: state.incident.incident.limit,
+        requesting: state.incident.fetchIncidentTimelineRequest,
+        error: state.incident.incident.error
+    };
 }
 
-export default IncidentTimelineList;
+export default connect(mapStateToProps, mapDispatchToProps)(IncidentTimelineList);

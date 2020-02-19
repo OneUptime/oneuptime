@@ -64,6 +64,13 @@ module.exports = {
                 incident = await _this.findOneBy({ _id: incident._id });
                 await _this._sendIncidentCreatedAlert(incident);
 
+                await IncidentTimelineService.create({
+                    incidentId: incident._id,
+                    createdById: data.createdById,
+                    probeId: data.probeId,
+                    status: 'created'
+                });
+
                 return incident;
             } else {
                 const error = new Error('Monitor is not present.');
@@ -155,7 +162,6 @@ module.exports = {
             ErrorService.log('incidentService.updateOneBy', error);
             throw error;
         }
-       
     },
 
     updateBy: async function (query, data) {
@@ -250,6 +256,14 @@ module.exports = {
             } else {
                 incident = await _this.findOneBy({ _id: incidentId, acknowledged: true });
             }
+
+            await IncidentTimelineService.create({
+                incidentId: incidentId,
+                createdById: userId,
+                createdByZapier: zapier,
+                status: 'acknowledged'
+            });
+
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.acknowledge', error);
@@ -267,7 +281,7 @@ module.exports = {
             const data = {};
             let incident = await _this.findOneBy({ _id: incidentId });
 
-            if(!incident){
+            if (!incident) {
                 return;
             }
 
@@ -276,6 +290,13 @@ module.exports = {
                 data.acknowledgedBy = userId;
                 data.acknowledgedAt = Date.now();
                 data.acknowledgedByZapier = zapier;
+
+                await IncidentTimelineService.create({
+                    incidentId: incidentId,
+                    createdById: userId,
+                    createdByZapier: zapier,
+                    status: 'acknowledged'
+                });
             }
             data.resolved = true;
             data.resolvedBy = userId;
@@ -296,6 +317,14 @@ module.exports = {
             await _this.sendIncidentResolvedNotification(incident, name);
             await RealTimeService.incidentResolved(incident);
             await ZapierService.pushToZapier('incident_resolve', incident);
+
+            await IncidentTimelineService.create({
+                incidentId: incidentId,
+                createdById: userId,
+                createdByZapier: zapier,
+                status: 'resolved'
+            });
+
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.resolve', error);
@@ -305,10 +334,22 @@ module.exports = {
 
     //
     close: async function (incidentId, userId) {
-        const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
-            $pull: { notClosedBy: userId }
-        });
-        return incident;
+        try {
+            const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
+                $pull: { notClosedBy: userId }
+            });
+
+            await IncidentTimelineService.create({
+                incidentId: incidentId,
+                createdById: userId,
+                status: 'closed'
+            });
+
+            return incident;
+        } catch (error) {
+            ErrorService.log('incidentService.close', error);
+            throw error;
+        }
     },
 
     getUnresolvedIncidents: async function (subProjectIds, userId) {
@@ -425,6 +466,7 @@ module.exports = {
 };
 
 const IncidentModel = require('../models/incident');
+const IncidentTimelineService = require('../models/incidentTimeline');
 const MonitorService = require('./monitorService');
 const AlertService = require('./alertService');
 const RealTimeService = require('./realTimeService');

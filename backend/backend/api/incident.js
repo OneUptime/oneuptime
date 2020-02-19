@@ -7,6 +7,7 @@
 const express = require('express');
 const moment = require('moment');
 const IncidentService = require('../services/incidentService');
+const IncidentTimelineService = require('../services/incidentTimelineService');
 const MonitorStatusService = require('../services/monitorStatusService');
 const RealTimeService = require('../services/realTimeService');
 const DashboardUrl = process.env.DASHBOARD_HOST;
@@ -157,6 +158,17 @@ router.get('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
     }
 });
 
+router.get('/:projectId/timeline/:incidentId', getUser, isAuthorized, async function (req, res) {
+    try {
+        const incidentId = req.params.incidentId;
+        const timeline = await IncidentTimelineService.findBy({ incidentId }, req.query.skip || 0, req.query.limit || 10);
+        const count = await IncidentTimelineService.countBy({ incidentId });
+        return sendListResponse(req, res, timeline, count); // frontend expects sendListResponse
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/:projectId/unresolvedincidents', getUser, isAuthorized, getSubProjects, async function (req, res) {
     try {
         const subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
@@ -190,7 +202,7 @@ router.post('/:projectId/resolve/:incidentId', getUser, isAuthorized, async func
         const userId = req.user ? req.user.id : null;
         // Call the IncidentService
         const incident = await IncidentService.resolve(req.params.incidentId, userId);
-        
+
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -234,7 +246,7 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
         }
         // Call the IncidentService
         let incident = await IncidentService.updateOneBy({ _id: incidentId }, data);
-        
+
         if (incident && incident._id) {
             incident = await IncidentService.findOneBy({ _id: incident._id, projectId: incident.projectId });
             await RealTimeService.updateIncidentNote(incident);
@@ -270,7 +282,7 @@ router.get('/:projectId/resolve/:incidentId', getUser, isAuthorized, async funct
     try {
         const userId = req.user ? req.user.id : null;
         await IncidentService.resolve(req.params.incidentId, userId);
-        return res.status(200).render('incidentAction.ejs', {title: 'Incident Resolved', title_message: 'Incident Resolved', body_message: 'Your incident is now resolved.', action: 'resolve', dashboard_url: DashboardUrl});
+        return res.status(200).render('incidentAction.ejs', { title: 'Incident Resolved', title_message: 'Incident Resolved', body_message: 'Your incident is now resolved.', action: 'resolve', dashboard_url: DashboardUrl });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -286,7 +298,7 @@ router.get('/:projectId/acknowledge/:incidentId', getUser, isAuthorized, async f
     try {
         const userId = req.user ? req.user.id : null;
         await IncidentService.acknowledge(req.params.incidentId, userId, req.user.name);
-        return res.status(200).render('incidentAction.ejs', {title: 'Incident Acknowledged', title_message: 'Incident Acknowledged', body_message: 'Your incident is now acknowledged', action: 'acknowledge', dashboard_url: DashboardUrl});
+        return res.status(200).render('incidentAction.ejs', { title: 'Incident Acknowledged', title_message: 'Incident Acknowledged', body_message: 'Your incident is now acknowledged', action: 'acknowledge', dashboard_url: DashboardUrl });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
