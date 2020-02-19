@@ -174,8 +174,14 @@ module.exports = {
                 }
                 
             }
-            ///IMPORTANT: Balance gets updated via Stripe Webhook.
-            return project;
+            const balanceAfterAlertSent = balance - chargeAmount;
+            const updatedProject = await ProjectModel.findByIdAndUpdate(
+                projectId, {
+                    $set: {
+                        balance: balanceAfterAlertSent
+                    }
+                }, { new: true });
+            return updatedProject;
         } catch (error) {
             ErrorService.log('paymentService.chargeAlert', error);
             throw error;
