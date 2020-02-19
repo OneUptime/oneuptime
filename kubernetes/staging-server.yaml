@@ -205,11 +205,11 @@ spec:
               value: "https://staging.fyipe.com"
             - name: NODE_ENV
               value: "development"
-            - name: RATE_LIMIT_TIME_PERIOD_IN_MS
+            - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
               value: "216000"
-            - name: RATE_LIMIT_REQUEST_LIMIT
+            - name: RATE_LIMITTER_REQUEST_LIMIT
               value: "5000"
-            - name: RATE_LIMITING_ENABLED
+            - name: RATE_LIMITTER_ENABLED
               value: "false"
           ports:
             - containerPort: 3002
