@@ -25,7 +25,7 @@ spec:
           name: dashboard
           imagePullPolicy: Always
           env:
-            - name: FYIPE_SAAS_SERVICE
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
               value: "http://dashboard.app.local:3000"
@@ -89,7 +89,7 @@ spec:
           name: accounts
           imagePullPolicy: Always
           env:
-            - name: FYIPE_SAAS_SERVICE
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
               value: "http://accounts.app.local:3003"
@@ -153,7 +153,7 @@ spec:
           name: backend
           imagePullPolicy: Always
           env:
-            - name: FYIPE_SAAS_SERVICE
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: JWT_SECRET
               value: "idfn3873458973457453"
@@ -307,7 +307,7 @@ spec:
           name: home
           imagePullPolicy: Always
           env:
-            - name: FYIPE_SAAS_SERVICE
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
               value: "http://home.app.local:1444"
@@ -367,7 +367,7 @@ spec:
           name: api-docs
           imagePullPolicy: Always
           env:
-            - name: FYIPE_SAAS_SERVICE
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
               value: "http://api-docs.app.local:1445"
@@ -425,7 +425,7 @@ spec:
           name: status-page
           imagePullPolicy: Always
           env:
-            - name: FYIPE_SAAS_SERVICE
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
               value: "http://statuspage.app.local:3006"
@@ -485,7 +485,7 @@ spec:
           name: admin-dashboard
           imagePullPolicy: Always
           env:
-            - name: FYIPE_SAAS_SERVICE
+            - name: IS_SAAS_SERVICE
               value: "true"
           ports:
             - containerPort: 3100
@@ -534,7 +534,7 @@ spec:
           name: probe-1
           imagePullPolicy: Always
           env:
-            - name: FYIPE_SAAS_SERVICE
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: SERVER_URL
               value: "http://backend.app.local:3002"
@@ -592,7 +592,7 @@ spec:
           name: probe-2
           imagePullPolicy: Always
           env:
-            - name: FYIPE_SAAS_SERVICE
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: SERVER_URL
               value: "http://backend.app.local:3002"
