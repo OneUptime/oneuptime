@@ -172,8 +172,6 @@ spec:
               value: "sk_test_YxwnzywggtAd8jDaHecNmHiN"
             - name: PORT
               value: "3002"
-            - name: CLUSTER_KEY
-              value: "1e9fbee1-00b6-6040-6990-0fef8c37b14c"
             - name: EMAIL_ENABLED
               value: "true"  
             - name: CALL_ENABLED
@@ -210,6 +208,10 @@ spec:
               value: "5000"
             - name: RATE_LIMITTER_ENABLED
               value: "false"
+            - name: AIRTABLE_API_KEY
+              value: "keyenXfDDP4Dutazt"
+            - name: AIRTABLE_BASE_ID
+              value: "appgek0ngJaHhppeJ"
           ports:
             - containerPort: 3002
               hostPort: 3002
