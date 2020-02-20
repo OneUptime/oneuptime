@@ -135,20 +135,18 @@ div.block-chart {
 }
 
 .status-up {
-  background-image: url(/images/status_lights/green.svg);
+  border-radius: 50px;
+  width: 8px;
+  height: 8px;
 }
 
-.status-paused{
-  background-image: url(/images/status_lights/yellow.svg);
-}
+.status-paused{}
 
 .status-down .status-time {
   color: #FFCEC7;
 }
 
-.status-down {
-  background-image: url(/images/status_lights/red.svg);
-}
+.status-down {}
 
 .status-loading {
   background: url(/images/status_lights/loading.gif) center no-repeat;
@@ -225,7 +223,6 @@ div.block-chart {
 
 .banner {
   width: 100%;
-  height: 250px;
 }
 
 /******* Content *******/
@@ -402,9 +399,15 @@ div.block-chart {
   padding-left: 10px;
 }
 
+.incident-status-bubble {
+  top: 40px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50px;
+}
+
 .uptime-legend {
   background: #f7f7f7;
-  border-top: 2px solid white;
 
   padding-top: 20px;
   padding-bottom: 20px;
@@ -533,7 +536,7 @@ div.feed-header {
         transform: rotate(45deg);
         left: -5px;
         top: 11px;
-        background: #fdfdfd;
+        background-color: inherit;
       }
 
 
@@ -745,7 +748,6 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 .btn-group .icon-container {
   background-color: #f7f7f7; /* Green background */
-  border: 2px solid #fdfdfd; /* Green border */
   color: #000000; /* White text */
   padding: 6px; /* Some padding */
   cursor: pointer; /* Pointer/hand icon */
@@ -759,6 +761,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 .btn-group .icon-container.selected{
   background-color: #f7f7f7;
   border-bottom: none;
+  border-top: none;
   color: black;
 }
 .btn-group .icon-container {

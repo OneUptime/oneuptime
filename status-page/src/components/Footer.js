@@ -7,7 +7,7 @@ class Footer extends Component {
         if(!link.url) return null;
         return (
             <li>
-                <a rel='noopener noreferrer' target="_blank" href={link.url}>{link.name}</a>
+                <a rel='noopener noreferrer' target="_blank" href={link.url} style={this.props.textColor}>{link.name}</a>
             </li>
         );
     }
@@ -15,6 +15,9 @@ class Footer extends Component {
 
 Footer.displayName = 'Footer'
 
-Footer.propTypes = {link: PropTypes.object}
+Footer.propTypes = {
+    link: PropTypes.object,
+    textColor: PropTypes.object,
+}
 
 export default Footer;

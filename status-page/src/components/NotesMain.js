@@ -46,14 +46,49 @@ class NotesMain extends Component {
 
     render() {
         let note = '';
+        let contentBackground, primaryTextColor, secondaryTextColor, downtimeColor, uptimeColor, degradedColor, noteBackgroundColor;
+        const subheading = {};
+        if (this.props.statusPage) {
+            const colors = this.props.statusPage.colors
+            contentBackground = {
+				background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`
+            };
+            subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;
+            primaryTextColor = {
+				color: `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`
+			};
+            secondaryTextColor = {
+				color: `rgba(${colors.secondaryText.r}, ${colors.secondaryText.g}, ${colors.secondaryText.b}, ${colors.secondaryText.a})`
+            };
+            downtimeColor = {
+				backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`
+			};
+			uptimeColor = {
+				backgroundColor: `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`
+			};
+			degradedColor = {
+				backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`
+			};
+			noteBackgroundColor = {
+				background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`
+			};
+        }
         if (this.props.noteData && this.props.noteData.notes) {
-            note = <Notes notes={this.props.noteData.notes} />;
+            note = <Notes
+                        notes={this.props.noteData.notes}
+                        secondaryTextColor={secondaryTextColor}
+                        primaryTextColor={primaryTextColor}
+                        downtimeColor={downtimeColor}
+                        uptimeColor={uptimeColor}
+                        degradedColor={degradedColor}
+                        noteBackgroundColor={noteBackgroundColor}
+                    />;
         }
         const { enableRSSFeed, smsNotification, webhookNotification, emailNotification } = this.props.statusPage;
         const showSubscriberOption = enableRSSFeed || smsNotification || webhookNotification || emailNotification;
 
         return (
-            <div className="twitter-feed white box" style={{ overflow: 'visible' }}>
+            <div className="twitter-feed white box" style={{ overflow: 'visible', ...contentBackground }}>
                 <div className="messages" style={{ position: 'relative' }}>
 
                     <ShouldRender if={this.props.noteData && !this.props.noteData.error}>
@@ -61,10 +96,10 @@ class NotesMain extends Component {
 
                             <div className="feed-header clearfix" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap' }}>
                                 <ShouldRender if={!this.props.individualnote}>
-                                    <span className="feed-title">Past Incidents</span>
+                                    <span className="feed-title" style={subheading}>Past Incidents</span>
                                 </ShouldRender>
                                 <ShouldRender if={this.props.individualnote}>
-                                    <span className="feed-title">Incidents for {this.props.individualnote ? this.props.individualnote.name : ''} on {this.props.individualnote ? moment(this.props.individualnote.date).format('LL') : ''}</span>
+                                    <span className="feed-title" style={primaryTextColor}>Incidents for {this.props.individualnote ? this.props.individualnote.name : ''} on {this.props.individualnote ? moment(this.props.individualnote.date).format('LL') : ''}</span>
                                 </ShouldRender>
                                 <ShouldRender if={this.props.isSubscriberEnabled === true && showSubscriberOption}>
                                     <button className="bs-Button-subscribe" type="submit" onClick={() => this.subscribebutton()} style={{ marginLeft: 'auto', marginRight: '18px', marginTop: '-8px' }}><span>Subscribe</span></button>
@@ -96,7 +131,8 @@ class NotesMain extends Component {
                                             className="time"
                                             style={{
                                                 fontSize: '0.8em',
-                                                marginLeft: '0px'
+                                                marginLeft: '0px',
+                                                ...secondaryTextColor
                                             }}>
                                             {this.props.notesmessage ? this.props.notesmessage : 'No incidents yet'}.
                                             </span>
