@@ -1,8 +1,8 @@
 const rateLimit = require('express-rate-limit');
-const { WINDOWMS, MAX } = process.env;
+const { RATE_LIMITTER_TIME_PERIOD_IN_MS, RATE_LIMITTER_REQUEST_LIMIT } = process.env;
 const limiter = rateLimit({
-    windowMs: Number(WINDOWMS), 
-    max: Number(MAX),
+    windowMs: Number(RATE_LIMITTER_TIME_PERIOD_IN_MS), 
+    max: Number(RATE_LIMITTER_REQUEST_LIMIT),
     keyGenerator: function (req) {
         const accessToken = req.headers.authorization || req.query.accessToken;
         if (accessToken){

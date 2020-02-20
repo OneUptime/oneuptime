@@ -1,5 +1,4 @@
-const slugify = require('slugify');
-const generate = require('nanoid/generate');
+
 const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
@@ -76,14 +75,6 @@ const projectSchema = new Schema({
         note: { type: String },
         createdAt: { type: Date }
     }],
-});
-
-projectSchema.pre('save', function (next) {
-    let name = this.get('name');
-    name = slugify(name);
-    name = `${name}-${generate('1234567890', 5)}`;
-    this.slug = name;
-    next();
 });
 
 module.exports = mongoose.model('Project', projectSchema);

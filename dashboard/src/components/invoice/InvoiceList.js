@@ -165,7 +165,7 @@ export class InvoiceList extends Component {
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{invoices && count ? count + (invoices && count > 1 ? ' Invoices' : ' Invoice') : null}</span>
+                                {/* No count added to this table because Stripe API does not return count. */}
                             </span>
                         </span>
                     </div>

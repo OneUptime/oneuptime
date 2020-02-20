@@ -37,8 +37,8 @@ app.use(function (req, res, next) {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-const { RATE_LIMITING_ENABLED } = process.env;
-if ( RATE_LIMITING_ENABLED === 'true'){
+const { RATE_LIMITTER_ENABLED } = process.env;
+if ( RATE_LIMITTER_ENABLED === 'true'){
     const rateLimiter = require('./backend/middlewares/rateLimit');
     app.use(rateLimiter);
 }

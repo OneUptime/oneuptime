@@ -8,7 +8,7 @@ const defaultEmailTemplates = require('../config/emailTemplate');
 const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
 const { ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST } = process.env;
-const EMAIL_ENABLED = !!process.env['EMAIL_ENABLED'];
+const EMAIL_ENABLED = process.env['EMAIL_ENABLED']==='true';
 const options = {
     viewEngine: {
         extname: '.hbs',
@@ -140,7 +140,7 @@ module.exports = {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'Activate your Fyipe account',
+                subject: '[Fyipe] Verify your Email',
                 template: 'send_verification_email',
                 context: {
                     homeURL: HOME_HOST,

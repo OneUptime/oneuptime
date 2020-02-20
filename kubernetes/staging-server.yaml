@@ -1,8 +1,10 @@
 # This is the staging Kubectl config which is used to run the staging cluster in Kubernetes.
 #
-# IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO test-server.yaml
+# IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO ci-server.yaml, staging-server.yaml, and production-server.yaml
 #
 
+
+############-----DASHBOARD----##################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,9 +24,9 @@ spec:
       containers:
         - image: registry.gitlab.com/fyipe-project/dashboard:master
           name: dashboard
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
               value: "https://staging-dashboard.fyipe.com"
@@ -62,6 +64,9 @@ spec:
     app: dashboard
   type: LoadBalancer
 ---
+#########################################
+
+############-----ACCOUNTS----#############################
 # Fyipe App Accounts Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -82,9 +87,9 @@ spec:
       containers:
         - image: registry.gitlab.com/fyipe-project/accounts:master
           name: accounts
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
               value: "https://staging-accounts.fyipe.com"
@@ -93,7 +98,7 @@ spec:
             - name: BACKEND_HOST
               value: "https://staging-api.fyipe.com"
             - name: DOMAIN
-              value: ".fyipe.com"
+              value: "fyipe.com"
             - name: STRIPE_PUBLIC_KEY
               value: "pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv"
             - name: AMPLITUDE_PUBLIC_KEY
@@ -122,6 +127,11 @@ spec:
     app: accounts
   type: LoadBalancer
 ---
+
+###########################################
+
+
+###########-----BACKEND------##############
 # Fyipe Backend Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -142,9 +152,9 @@ spec:
       containers:
         - image: registry.gitlab.com/fyipe-project/backend:master
           name: backend
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: JWT_SECRET
               value: "idfn3873458973457453"
@@ -163,41 +173,43 @@ spec:
               value: "sk_test_YxwnzywggtAd8jDaHecNmHiN"
             - name: PORT
               value: "3002"
+            - name: CLUSTER_KEY
+              value: "lkjdfsas-89ul-et5r-jmkf-u98pura8r89e"
+            - name: EMAIL_ENABLED
+              value: "true"  
+            - name: CALL_ENABLED
+              value: "true"
+            - name: SMS_ENABLED
+              value: "true"
             - name: MAIL_USER
               value: "noreply@fyipe.com"
             - name: MAIL_PASSWORD
-              value: "gBote8sHiWpbxGEJo9Puv8cevW"
+              value: "qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD"
             - name: MAIL_SERVER_SMTP
-              value: "mail.hackerbay.io"
+              value: "smtp.google.com"
             - name: MAIL_PORT_SMTP
-              value: "587"
-            - name: MAIL_SERVER_IMAP
-              value: "mail.hackerbay.io"
-            - name: MAIL_PORT_IMAP
-              value: "993"
+              value: "465"
+            - name: MAIL_SMTP_SECURE
+              value: "true"
             - name: MAIL_FROM
-              value: "noreply@fyipe.com"
+              value: "Fyipe"
             - name: EMAIL_VERIFY_TIME
               value: "3600"
-            - name: MAIL_SECURE
-              value: "false"
             - name: DASHBOARD_HOST
               value: "https://staging-dashboard.fyipe.com"
             - name: BACKEND_HOST
               value: "https://staging-api.fyipe.com"
             - name: ACCOUNTS_HOST
               value: "https://staging-accounts.fyipe.com"
-            - name: CLUSTER_KEY
-              value: "lkjdfsas-89ul-et5r-jmkf-u98pura8r89e"
             - name: HOME_HOST
               value: "https://staging.fyipe.com"
             - name: NODE_ENV
               value: "development"
-            - name: WINDOWMS
+            - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
               value: "216000"
-            - name: MAX
+            - name: RATE_LIMITTER_REQUEST_LIMIT
               value: "5000"
-            - name: RATE_LIMITING_ENABLED
+            - name: RATE_LIMITTER_ENABLED
               value: "false"
           ports:
             - containerPort: 3002
@@ -223,6 +235,56 @@ spec:
     app: backend
   type: LoadBalancer
 ---
+###########################################
+
+###########-----SLACK------##############
+# Slack
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slack
+  labels:
+    app: slack
+spec:
+  selector:
+    matchLabels:
+      app: slack
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: slack
+    spec:
+      containers:
+        - image: registry.gitlab.com/fyipe-project/slack:master
+          name: slack
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 1267
+              hostPort: 1267
+              name: slack
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: slack
+  name: slack
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 1267
+  selector:
+    app: slack
+  type: LoadBalancer
+---
+###########################################
+
+###########-----HOME------##############
 # Fyipe Home
 apiVersion: apps/v1
 kind: Deployment
@@ -243,10 +305,18 @@ spec:
       containers:
         - image: registry.gitlab.com/fyipe-project/home:master
           name: home
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
+            - name: HOST
+              value: "https://staging.fyipe.com"
+            - name: DASHBOARD_HOST
+              value: "https://staging-dashboard.fyipe.com"
+            - name: BACKEND_HOST
+              value: "https://staging-api.fyipe.com"
+            - name: ACCOUNTS_HOST
+              value: "https://staging-accounts.fyipe.com"
           ports:
             - containerPort: 1444
               hostPort: 1444
@@ -270,6 +340,131 @@ spec:
     app: home
   type: LoadBalancer
 ---
+###########################################
+
+
+###########-----API-DOCS------##############
+
+# Fyipe API docs Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-docs
+  labels:
+    app: api-docs
+spec:
+  selector:
+    matchLabels:
+      app: api-docs
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: api-docs
+    spec:
+      containers:
+        - image: registry.gitlab.com/fyipe-project/api-docs:master
+          name: api-docs
+          imagePullPolicy: Always
+          env:
+            - name: IS_SAAS_SERVICE
+              value: "true"
+            - name: HOST
+              value: "https://staging-docs.fyipe.com"
+            - name: BACKEND_HOST
+              value: "https://staging-api.fyipe.com"
+            - name: DASHBOARD_HOST
+              value: "https://staging-dashboard.fyipe.com"
+          ports:
+            - containerPort: 1445
+              hostPort: 1445
+              name: api-docs
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+# Fyipe API docs Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: api-docs
+  name: api-docs
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 1445
+  selector:
+    app: api-docs
+  type: LoadBalancer
+---
+
+###########################################
+
+
+
+###########-----STATUS_PAGE------#################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status-page
+  labels:
+    app: status-page
+spec:
+  selector:
+    matchLabels:
+      app: status-page
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: status-page
+    spec:
+      containers:
+        - image: registry.gitlab.com/fyipe-project/status-page:master
+          name: status-page
+          imagePullPolicy: Always
+          env:
+            - name: IS_SAAS_SERVICE
+              value: "true"
+            - name: HOST
+              value: "https://staging-statuspage.fyipe.com"
+            - name: DASHBOARD_HOST
+              value: "https://staging-dashboard.fyipe.com"
+            - name: BACKEND_HOST
+              value: "https://staging-api.fyipe.com"
+            - name: ACCOUNTS_HOST
+              value: "https://staging-accounts.fyipe.com"
+          ports:
+            - containerPort: 3006
+              hostPort: 3006
+              name: status-page
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: status-page
+  name: status-page
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3006
+  selector:
+    app: status-page
+  type: LoadBalancer
+---
+###########################################
+
+
+##########-ADMIN-DASHBORD-#################
+
 # Fyipe Admin dashboard
 apiVersion: apps/v1
 kind: Deployment
@@ -290,9 +485,9 @@ spec:
       containers:
         - image: registry.gitlab.com/fyipe-project/admin-dashboard:master
           name: admin-dashboard
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
           ports:
             - containerPort: 3100
@@ -317,122 +512,31 @@ spec:
     app: admin-dashboard
   type: LoadBalancer
 ---
-# Slack
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: slack
-  labels:
-    app: slack
-spec:
-  selector:
-    matchLabels:
-      app: slack
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: slack
-    spec:
-      containers:
-        - image: registry.gitlab.com/fyipe-project/slack:master
-          name: slack
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: FYIPE_HOSTED
-              value: "true"
-          ports:
-            - containerPort: 1267
-              hostPort: 1267
-              name: slack
-      restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: slack
-  name: slack
-spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 1267
-  selector:
-    app: slack
-  type: LoadBalancer
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: status-page
-  labels:
-    app: status-page
-spec:
-  selector:
-    matchLabels:
-      app: status-page
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: status-page
-    spec:
-      containers:
-        - image: registry.gitlab.com/fyipe-project/status-page:master
-          name: status-page
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: FYIPE_HOSTED
-              value: "true"
-          ports:
-            - containerPort: 3006
-              hostPort: 3006
-              name: status-page
-      restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: status-page
-  name: status-page
-spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3006
-  selector:
-    app: status-page
-  type: LoadBalancer
----
+
+########-PROBE-1-#################
 # Probe service and deployement
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: probe
+  name: probe-1
   labels:
-    app: probe
+    app: probe-1
 spec:
   selector:
     matchLabels:
-      app: probe
-  replicas: 1
+      app: probe-1
+  replicas: 1 # THIS SHOULD STRICTLY BE 1
   template:
     metadata:
       labels:
-        app: probe
+        app: probe-1
     spec:
       containers:
         - image: registry.gitlab.com/fyipe-project/probe:master
-          name: probe
-          imagePullPolicy: IfNotPresent
+          name: probe-1
+          imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: SERVER_URL
               value: "https://staging-api.fyipe.com"
@@ -441,11 +545,11 @@ spec:
             - name: PROBE_NAME
               value: "EU"
             - name: PROBE_KEY
-              value: "lkjdfsas-89ul-et5r-jmkf-u98pura8r89e"
+              value: "jfgkljfdlk9085-lfgl85553242"
           ports:
             - containerPort: 3008
               hostPort: 3008
-              name: probe
+              name: probe-1
       restartPolicy: Always
       imagePullSecrets:
         - name: gitlabcredv2
@@ -454,19 +558,81 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: probe
-  name: probe
+    app: probe-1
+  name: probe-1
 spec:
   ports:
     - port: 80
       protocol: TCP
       targetPort: 3008
   selector:
-    app: probe
+    app: probe-1
+  type: LoadBalancer
+---
+###########################
+
+
+########-PROBE-2-##########
+# Probe service and deployement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe-2
+  labels:
+    app: probe-2
+spec:
+  selector:
+    matchLabels:
+      app: probe-2
+  replicas: 1 # THIS SHOULD STRICTLY BE 1
+  template:
+    metadata:
+      labels:
+        app: probe-2
+    spec:
+      containers:
+        - image: registry.gitlab.com/fyipe-project/probe:master
+          name: probe-2
+          imagePullPolicy: Always
+          env:
+            - name: IS_SAAS_SERVICE
+              value: "true"
+            - name: SERVER_URL
+              value: "https://staging-api.fyipe.com"
+            - name: PORT
+              value: "3008"
+            - name: PROBE_NAME
+              value: "US"
+            - name: PROBE_KEY
+              value: "hfgjoy6op97767534535-fglgdf5646"
+          ports:
+            - containerPort: 3008
+              hostPort: 3008
+              name: probe-2
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: probe-2
+  name: probe-2
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3008
+  selector:
+    app: probe-2
   type: LoadBalancer
 ---
 
-# Init Script deployment
+###########################
+
+
+########-INIT-SCRIPT-##########
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -477,7 +643,7 @@ spec:
   selector:
     matchLabels:
       app: init-script
-  replicas: 1
+  replicas: 1 #STRICTLY 1
   template:
     metadata:
       labels:
@@ -487,10 +653,19 @@ spec:
         - image: registry.gitlab.com/fyipe-project/init-script:master
           name: init-script
           imagePullPolicy: Always
+          env:
+            - name: MONGO_URL
+              value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
       restartPolicy: Always
       imagePullSecrets:
         - name: gitlabcredv2
 ---
+
+###########################
+
+
+############-MONGODB-###############
+
 
 apiVersion: v1
 kind: Service
@@ -505,22 +680,6 @@ spec:
   clusterIP: None
   selector:
     role: mongo
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis
-spec:
-  type: ClusterIP
-  ports:
-    - port: 6379
-      targetPort: 6379
-      name: client
-    - port: 16379
-      targetPort: 16379
-      name: gossip
-  selector:
-    app: redis
 ---
 # stateful set config for mongo
 apiVersion: apps/v1
@@ -564,6 +723,36 @@ spec:
           requests:
             storage: 900Gi
 ---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: productiondata
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
+reclaimPolicy: Retain
+---
+
+###########################
+
+
+############-REDIS-###############
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: client
+    - port: 16379
+      targetPort: 16379
+      name: gossip
+  selector:
+    app: redis
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -589,7 +778,7 @@ metadata:
   name: redis
 spec:
   serviceName: redis
-  replicas: 6
+  replicas: 3
   selector:
     matchLabels:
       app: redis
@@ -633,6 +822,10 @@ spec:
           requests:
             storage: 1Gi
 ---
+###########################
+
+
+############-MONGO-BACKUP-###############
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -645,18 +838,16 @@ spec:
       storage: 900Gi
   storageClassName: primarybackup
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
 metadata:
-  name: mongo-secondary-backup-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 900Gi
-  storageClassName: secondbackup
+  name: primarybackup
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+reclaimPolicy: Retain
 ---
+
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -695,6 +886,22 @@ spec:
         - name: mongo-backup
           persistentVolumeClaim:
             claimName: mongo-backup-pvc
+---
+##################################################
+
+
+############-MONGO-BACKUP-SECONDARY-###############
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-secondary-backup-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 900Gi
+  storageClassName: secondbackup
 ---
 apiVersion: v1
 kind: ReplicationController
@@ -738,28 +945,10 @@ spec:
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: productiondata
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-ssd
-reclaimPolicy: Retain
----
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: primarybackup
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-standard
-reclaimPolicy: Retain
----
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
   name: secondbackup
 provisioner: kubernetes.io/gce-pd
 parameters:
   type: pd-standard
 reclaimPolicy: Retain
 ---
-
+##################################################

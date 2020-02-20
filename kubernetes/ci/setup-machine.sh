@@ -33,19 +33,14 @@ sudo iptables -P FORWARD ACCEPT
 echo "RUNNING COMMAND:  sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget"
 sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget
 #Install Docker and setup registry and insecure access to it.
-#IF docker is already installed, do not install docker.
-
-if [[ ! $(which docker) ]]
-then
-    echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
-    curl -sSL https://get.docker.com/ | sh
-    echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
-    sudo touch /etc/docker/daemon.json
-    echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
-    echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
-    echo "RUNNING COMMAND: sudo systemctl restart docker"
-    sudo systemctl restart docker
-fi
+echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
+curl -sSL https://get.docker.com/ | sh
+echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
+sudo touch /etc/docker/daemon.json
+echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
+echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
+echo "RUNNING COMMAND: sudo systemctl restart docker"
+sudo systemctl restart docker
 
 # We do not need to install kubectl here.
 # if [[ ! $(which kubectl) ]]

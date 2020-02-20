@@ -222,13 +222,21 @@ router.post('/:projectId/:scheduleId/addEscalation', getUser, isAuthorized, isUs
                     });
                 }
 
+                const teamMemberUserIds = team.teamMembers.map(member => member.userId);
+
                 for (const teamMember of team.teamMembers) {
                     const data = {};
                     if (!teamMember.userId) {
-                        
                         return sendErrorResponse(req, res, {
                             code: 400,
                             message: 'Please add team members to your on-call schedule '+ (req.body.length>1 ?' in Escalation Policy '+escalationPolicyCount : '')
+                        });
+                    }
+
+                    if (teamMemberUserIds.filter(userId => userId == teamMember.userId).length > 1) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'Please remove duplicate team members from your on-call schedule' + (req.body.length > 1 ? ' in Escalation Policy ' + escalationPolicyCount : '')
                         });
                     }
 

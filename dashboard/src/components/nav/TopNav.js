@@ -60,7 +60,7 @@ class TopContent extends Component {
 	}
 
 	render() {
-		const IMG_URL = this.props.profilePic && this.props.profilePic !== '' && this.props.profilePic !== 'null' ? `url(${API_URL}/file/${this.props.profilePic})` : 'url(https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404)';
+		const IMG_URL = this.props.profilePic && this.props.profilePic !== '' && this.props.profilePic !== 'null' ? `url(${API_URL}/file/${this.props.profilePic})` : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
 		const userId = User.getUserId();
 		let count = 0;
 		if (this.props.notifications && this.props.notifications.notifications && this.props.notifications.notifications.length) {
@@ -106,10 +106,12 @@ class TopContent extends Component {
 										}}
 									>
 										<span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-											{(this.props.feedback.feedback.success || this.props.feedback.feedback.requesting) && (!this.props.feedback.feedback.error) ? <span>Thank you for your feedback.</span> : <span>Feedback about this page?</span>}
 											{
-												(this.props.feedback.feedback.error) ? <span>Sorry, Please try again.</span> : null
+												
 											}
+											{((this.props.feedback.feedback.success || this.props.feedback.feedback.requesting)) ? <span>Thank you for your feedback.</span> : null}
+											{((!this.props.feedback.feedback.success && !this.props.feedback.feedback.requesting && !this.props.feedback.feedback.error )) ? <span>Feedback about this page?</span> : null}
+											{(this.props.feedback.feedback.error) ? <span>Sorry, Please try again.</span> : null}
 										</span>
 
 									</div>
