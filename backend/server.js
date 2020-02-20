@@ -1,6 +1,6 @@
 const { NODE_ENV } = process.env;
 
-if (!NODE_ENV || NODE_ENV === 'local' || NODE_ENV === 'development'){
+if (!NODE_ENV || NODE_ENV === 'development'){
     require('custom-env').env(process.env.NODE_ENV || 'development');
 }
 
