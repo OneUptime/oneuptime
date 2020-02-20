@@ -234,7 +234,7 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
         if (data.internalNote && typeof data.internalNote !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Internal Note  is not in string type.'
+                message: 'Internal Note is not in string type.'
             });
         }
 
@@ -245,9 +245,21 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
             });
         }
         // Call the IncidentService
-        let incident = await IncidentService.updateOneBy({ _id: incidentId }, data);
+        let incident = await IncidentService.findOneBy({ _id: incidentId });
 
         if (incident && incident._id) {
+            const status = (data.internalNote && !incident.internalNote) ||
+                (data.investigationNote && !incident.investigationNote) ?
+                `${data.internalNote ? 'internal' : 'investigation'} notes added` :
+                `${data.internalNote ? 'internal' : 'investigation'} notes updated`;
+
+            incident = await IncidentService.updateOneBy({ _id: incident._id }, data);
+            await IncidentTimelineService.create({
+                incidentId: incident._id,
+                createdById: req.user.id,
+                status
+            });
+
             incident = await IncidentService.findOneBy({ _id: incident._id, projectId: incident.projectId });
             await RealTimeService.updateIncidentNote(incident);
         }

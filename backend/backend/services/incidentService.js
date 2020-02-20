@@ -339,12 +339,6 @@ module.exports = {
                 $pull: { notClosedBy: userId }
             });
 
-            await IncidentTimelineService.create({
-                incidentId: incidentId,
-                createdById: userId,
-                status: 'closed'
-            });
-
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.close', error);
@@ -466,7 +460,7 @@ module.exports = {
 };
 
 const IncidentModel = require('../models/incident');
-const IncidentTimelineService = require('../models/incidentTimeline');
+const IncidentTimelineService = require('./incidentTimelineService');
 const MonitorService = require('./monitorService');
 const AlertService = require('./alertService');
 const RealTimeService = require('./realTimeService');

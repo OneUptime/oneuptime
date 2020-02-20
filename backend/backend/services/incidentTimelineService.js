@@ -24,6 +24,44 @@ module.exports = {
         }
     },
 
+    updateOneBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            let incidentTimeline = await IncidentTimelineModel.findOneAndUpdate(query,
+                { $set: data },
+                {
+                    new: true
+                });
+            incidentTimeline = await this.findOneBy(query);
+
+            return incidentTimeline;
+        } catch (error) {
+            ErrorService.log('incidentTimelineService.updateOneBy', error);
+            throw error;
+        }
+    },
+
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            let incidentTimelines = await IncidentTimelineModel.updateMany(query, {
+                $set: data
+            });
+            incidentTimelines = await this.findBy(query);
+
+            return incidentTimelines;
+        } catch (error) {
+            ErrorService.log('incidentTimelineService.updateMany', error);
+            throw error;
+        }
+    },
+
     findBy: async function (query, skip, limit) {
         try {
             if (!skip) skip = 0;

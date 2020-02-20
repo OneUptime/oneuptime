@@ -26,7 +26,7 @@ export class IncidentTimelineBox extends Component {
                                 </span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <span>Here&#39;s the timeline of probes that created this incident.</span>
+                                    <span>Here&#39;s the timeline of users and probes activities.</span>
                                 </span>
                             </div>
                         </div>
