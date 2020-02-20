@@ -1,3 +1,9 @@
+const { NODE_ENV } = process.env;
+
+if (!NODE_ENV || NODE_ENV === 'local' || NODE_ENV === 'development'){
+    require('custom-env').env(process.env.NODE_ENV || 'development');
+}
+
 const express = require('express');
 const app = express();
 const path = require('path');
@@ -8,11 +14,7 @@ const keys = require('./backend/config/keys.js');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-const { NODE_ENV } = process.env;
 
-if (!NODE_ENV || NODE_ENV === 'local' || NODE_ENV === 'development'){
-    require('custom-env').env(process.env.NODE_ENV || 'development');
-}
 
 io.adapter(redisAdapter({
     host: keys.redisURL || 'localhost',
