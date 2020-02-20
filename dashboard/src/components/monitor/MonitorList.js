@@ -11,7 +11,7 @@ export function MonitorList(props) {
         monitorDetails = props.monitors.map((monitor, i) => (
             <div id={`monitor${i}`} key={monitor._id}>
                 <RenderIfUserInSubProject subProjectId={monitor.projectId._id || monitor.projectId}>
-                    <MonitorDetail monitor={monitor} index={monitor._id} key={monitor._id} />
+                    <MonitorDetail shouldRenderProjectType={props.shouldRenderProjectType} projectName={props.projectName} projectType={props.projectType} monitor={monitor} index={monitor._id} key={monitor._id} />
                 </RenderIfUserInSubProject>
             </div>
         ));

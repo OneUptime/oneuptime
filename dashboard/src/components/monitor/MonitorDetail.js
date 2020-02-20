@@ -175,6 +175,11 @@ export class MonitorDetail extends Component {
 
         return (
             <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
+                <ShouldRender if={this.props.shouldRenderProjectType}>
+                    <div className="Box-root Padding-top--20 Padding-left--20 Padding-bottom--20">
+                        <Badge id={`badge_${this.props.projectName}`} color={this.props.projectType === 'project' ? 'red' : 'blue'}>{this.props.projectName}</Badge>
+                    </div>
+                </ShouldRender>
                 <div className="db-Trends-header">
                     <div className="db-Trends-title">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
@@ -414,7 +419,10 @@ MonitorDetail.propTypes = {
     selectedProbe: PropTypes.func.isRequired,
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
-    activeIncident: PropTypes.string
+    activeIncident: PropTypes.string,
+    projectName: PropTypes.string,
+    projectType: PropTypes.string,
+    shouldRenderProjectType: PropTypes.bool
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorDetail);
