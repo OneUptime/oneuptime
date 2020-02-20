@@ -86,7 +86,7 @@ class DashboardView extends Component {
             return subProjectMonitor && subProjectMonitor.monitors.length > 0 ? (
                 <div id={`box_${subProject.name}`} className="Box-root Margin-vertical--12" key={i}>
                     <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
-                        <MonitorList projectType={'subproject'} projectName={subProject.name} monitors={subProjectMonitor.monitors} />
+                        <MonitorList shouldRenderProjectType={ subProjects && subProjects.length > 0 } projectType={'subproject'} projectName={subProject.name} monitors={subProjectMonitor.monitors} />
                     </div>
                 </div>
             ) : false;
@@ -98,7 +98,7 @@ class DashboardView extends Component {
         projectMonitor = projectMonitor && projectMonitor.monitors.length > 0 ? (
             <div id={`box_${currentProject.name}`} key={`box_${currentProject.name}`} className="Box-root Margin-vertical--12">
                 <div className="db-Trends Card-root" style={{ 'overflow': 'visible' }}>
-                    <MonitorList projectType={'project'} projectName={'Project'} monitors={projectMonitor.monitors} />
+                    <MonitorList shouldRenderProjectType={ subProjects && subProjects.length > 0 } projectType={'project'} projectName={'Project'} monitors={projectMonitor.monitors} />
                 </div>
             </div>
         ) : false;
