@@ -825,9 +825,9 @@ deploy_staging_probe:
     - sudo docker push registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/probe:master
     - sudo docker push fyipeproject/probe:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe probe=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-1 probe-1=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     # Additionally update probe1 deployment as well.
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe1 probe1=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-2 probe-2=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -853,7 +853,8 @@ deploy_production_probe:
     - sudo docker push registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push registry.gitlab.com/fyipe-project/probe:latest
     - sudo docker push fyipeproject/probe:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe probe=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-1 probe-1=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-2 probe-2=registry.gitlab.com/fyipe-project/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
