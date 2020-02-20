@@ -179,7 +179,7 @@ module.exports = {
     async sendMonitorLog(data) {
         try {
             const monitor = await MonitorService.findOneBy({ _id: data.monitorId });
-            if (monitor) {
+            if (monitor && monitor.projectId._id) {
                 await RealTimeService.updateMonitorLog(data, monitor.projectId._id);
             }
         } catch (error) {

@@ -29,26 +29,26 @@ class ResetAPIKey extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>ResetAPIKey</span>
+                                        <span>Reset API Key</span>
                                     </span>
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
-								<p>
-									<span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-										Resetting the API Key will break all your existing integrations with the Fyipe API.
+                                <p>
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Resetting the API Key will break all your existing integrations with the Fyipe API.
 									</span>
-								</p>
-								<p>
-									<span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-										<strong>Are you sure you want to continue?</strong>
+                                </p>
+                                <p>
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Are you sure you want to continue?
 									</span>
-								</p>
+                                </p>
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button className="bs-Button bs-DeprecatedButton bs-Button--red" type="button" onClick={this.props.confirmThisDialog}>
-										<ShouldRender if={!this.props.isRequesting}>
+                                        <ShouldRender if={!this.props.isRequesting}>
                                             <span>RESET</span>
                                         </ShouldRender>
                                         <ShouldRender if={this.props.isRequesting}>
@@ -78,8 +78,8 @@ const mapStateToProps = state => (
 
 ResetAPIKey.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
-	confirmThisDialog: PropTypes.func.isRequired,
-	isRequesting: PropTypes.oneOf([null,undefined,true,false]),
+    confirmThisDialog: PropTypes.func.isRequired,
+    isRequesting: PropTypes.oneOf([null, undefined, true, false]),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ResetAPIKey);

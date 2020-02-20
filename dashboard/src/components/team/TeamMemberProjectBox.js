@@ -76,7 +76,7 @@ const TeamMemberProjectBox = (props) => (
                                             name={i.name}
                                             email={i.email}
                                             role={i.role}
-                                            lastActive={moment().fromNow(i.lastActive)}
+                                            lastActive={moment(i.lastActive).fromNow()}
                                             subProjectId={props.teamMembers._id}
                                         />
                                 )

@@ -172,6 +172,7 @@ module.exports = {
                     };
                     await NotificationService.create(projectId, message, userId, null, meta);
                 }
+                
             }
             const balanceAfterAlertSent = balance - chargeAmount;
             const updatedProject = await ProjectModel.findByIdAndUpdate(

@@ -200,6 +200,9 @@ export class MonitorDetail extends Component {
                                             Currently {isCurrentlyNotMonitoring && 'Not'} Monitoring &nbsp;
                                         <a href={url}>{url}</a>
                                         </span>}
+                                        {monitor.type === 'manual' && monitor.data && monitor.data.description && monitor.data.description !== '' && <span>
+                                            Description: {monitor.data.description}
+                                        </span>}
                                     </span>
                                 </div>
                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">

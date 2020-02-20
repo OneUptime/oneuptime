@@ -2,7 +2,7 @@ version: "3.7"
 services:
   
   mongo:
-      image: mongo:3.4
+      image: mongo:4.0
       ports:
         - "27017:27017"
       volumes:
@@ -108,6 +108,13 @@ services:
       - PROBE_KEY=test-key
     depends_on:
       - backend
+
+  api-docs:
+    ports:
+      - "1445:1445"
+    build: ./api-docs
+    env_file: 
+      - ./api-docs/.env
 
   ngrok:
     ports:

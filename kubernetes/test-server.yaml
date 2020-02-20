@@ -1,8 +1,9 @@
-# This is the staging Kubectl config which is used to run the staging cluster in Kubernetes and also in CI/CD.
-#
-# IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO production-server.yaml
+# This is the staging Kubectl config which is used to run the test cluster in Single Node Kubernetes (microk8s) and also in CI/CD.
+# IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO ci-server.yaml, staging-server.yaml, and production-server.yaml
 # Images Tagged with localhost:32000 because of https://microk8s.io/docs/working
 
+
+############-----DASHBOARD----#############################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,7 +25,7 @@ spec:
           name: dashboard
           imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
               value: "http://dashboard.app.local:3000"
@@ -33,7 +34,7 @@ spec:
             - name: BACKEND_HOST
               value: "http://backend.app.local:3002"
             - name: DOMAIN
-              value: ".app.local"
+              value: "app.local"
             - name: STRIPE_PUBLIC_KEY
               value: "pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv"
             - name: AMPLITUDE_PUBLIC_KEY
@@ -62,6 +63,10 @@ spec:
     app: dashboard
   type: LoadBalancer
 ---
+#########################################
+
+
+############-----ACCOUNTS----#############################
 # Fyipe Accounts Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -84,7 +89,7 @@ spec:
           name: accounts
           imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
               value: "http://accounts.app.local:3003"
@@ -93,7 +98,7 @@ spec:
             - name: DASHBOARD_HOST
               value: "http://dashboard.app.local:3000"
             - name: DOMAIN
-              value: ".app.local"
+              value: "app.local"
             - name: STRIPE_PUBLIC_KEY
               value: "pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv"
             - name: AMPLITUDE_PUBLIC_KEY
@@ -122,60 +127,10 @@ spec:
     app: accounts
   type: LoadBalancer
 ---
-# Fyipe API docs Deployment
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: api-docs
-  labels:
-    app: api-docs
-spec:
-  selector:
-    matchLabels:
-      app: api-docs
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: api-docs
-    spec:
-      containers:
-        - image: localhost:32000/api-docs:master
-          name: api-docs
-          imagePullPolicy: Always
-          env:
-            - name: FYIPE_HOSTED
-              value: "true"
-            - name: HOST
-              value: "accounts"
-            - name: BACKEND_HOST
-              value: "backend"
-            - name: DASHBOARD_HOST
-              value: "dashboard"
-          ports:
-            - containerPort: 1445
-              hostPort: 1445
-              name: api-docs
-      restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
----
-# Fyipe API docs Service
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: api-docs
-  name: api-docs
-spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 1445
-  selector:
-    app: api-docs
-  type: LoadBalancer
----
+###########################################
+
+
+###########-----BACKEND------##############
 # Fyipe Backend Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -198,7 +153,7 @@ spec:
           name: backend
           imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: JWT_SECRET
               value: "idfn3873458973457453"
@@ -217,41 +172,43 @@ spec:
               value: "sk_test_YxwnzywggtAd8jDaHecNmHiN"
             - name: PORT
               value: "3002"
+            - name: CLUSTER_KEY
+              value: "1e9fbee1-00b6-6040-6990-0fef8c37b14c"
+            - name: EMAIL_ENABLED
+              value: "true"  
+            - name: CALL_ENABLED
+              value: "true"
+            - name: SMS_ENABLED
+              value: "true"
             - name: MAIL_USER
               value: "noreply@fyipe.com"
             - name: MAIL_PASSWORD
-              value: "gBote8sHiWpbxGEJo9Puv8cevW"
+              value: "qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD"
             - name: MAIL_SERVER_SMTP
-              value: "mail.hackerbay.io"
+              value: "smtp.google.com"
             - name: MAIL_PORT_SMTP
-              value: "587"
-            - name: MAIL_SERVER_IMAP
-              value: "mail.hackerbay.io"
-            - name: MAIL_PORT_IMAP
-              value: "993"
+              value: "465"
+            - name: MAIL_SMTP_SECURE
+              value: "true"
             - name: MAIL_FROM
-              value: "noreply@fyipe.com"
+              value: "Fyipe"
             - name: EMAIL_VERIFY_TIME
               value: "3600"
-            - name: MAIL_SECURE
-              value: "false"
             - name: DASHBOARD_HOST
               value: "http://dashboard.app.local:3000"
             - name: BACKEND_HOST
               value: "http://backend.app.local:3002"
             - name: ACCOUNTS_HOST
               value: "http://accounts.app.local:3003"
-            - name: CLUSTER_KEY
-              value: "1e9fbee1-00b6-6040-6990-0fef8c37b14c"
             - name: HOME_HOST
               value: "http://home.app.local:1444"
             - name: NODE_ENV
               value: "development"
-            - name: WINDOWMS
+            - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
               value: "216000"
-            - name: MAX
+            - name: RATE_LIMITTER_REQUEST_LIMIT
               value: "5000"
-            - name: RATE_LIMITING_ENABLED
+            - name: RATE_LIMITTER_ENABLED
               value: "false"
           ports:
             - containerPort: 3002
@@ -277,6 +234,9 @@ spec:
     app: backend
   type: LoadBalancer
 ---
+###########################################
+
+###########-----SLACK------##############
 # Slack
 apiVersion: apps/v1
 kind: Deployment
@@ -321,6 +281,10 @@ spec:
     app: slack
   type: LoadBalancer
 ---
+###########################################
+
+
+###########-----HOME------##############
 # Fyipe Home
 apiVersion: apps/v1
 kind: Deployment
@@ -343,16 +307,16 @@ spec:
           name: home
           imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
-              value: "home"
-            - name: BACKEND_HOST
-              value: "backend"
-            - name: ACCOUNTS_HOST
-              value: "accounts"
+              value: "http://home.app.local:1444"
             - name: DASHBOARD_HOST
-              value: "dashboard"
+              value: "http://dashboard.app.local:3000"
+            - name: BACKEND_HOST
+              value: "http://backend.app.local:3002"
+            - name: ACCOUNTS_HOST
+              value: "http://accounts.app.local:3003"
           ports:
             - containerPort: 1444
               hostPort: 1444
@@ -376,6 +340,70 @@ spec:
     app: home
   type: LoadBalancer
 ---
+###########################################
+
+
+###########-----API-DOCS------##############
+
+# Fyipe API docs Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-docs
+  labels:
+    app: api-docs
+spec:
+  selector:
+    matchLabels:
+      app: api-docs
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: api-docs
+    spec:
+      containers:
+        - image: localhost:32000/api-docs:master
+          name: api-docs
+          imagePullPolicy: Always
+          env:
+            - name: IS_SAAS_SERVICE
+              value: "true"
+            - name: HOST
+              value: "http://api-docs.app.local:1445"
+            - name: BACKEND_HOST
+              value: "http://backend.app.local:3002"
+            - name: DASHBOARD_HOST
+              value: "http://dashboard.app.local:3000"
+          ports:
+            - containerPort: 1445
+              hostPort: 1445
+              name: api-docs
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+# Fyipe API docs Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: api-docs
+  name: api-docs
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 1445
+  selector:
+    app: api-docs
+  type: LoadBalancer
+---
+###########################################
+
+
+###########-----STATUS-PAGE------##############
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -397,16 +425,16 @@ spec:
           name: status-page
           imagePullPolicy: Always
           env:
-            - name: FYIPE_HOSTED
+            - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
-              value: "statuspage"
-            - name: BACKEND_HOST
-              value: "backend"
+              value: "http://statuspage.app.local:3006"
             - name: ACCOUNTS_HOST
-              value: "accounts"
+              value: "http://accounts.app.local:3003"
+            - name: BACKEND_HOST
+              value: "http://backend.app.local:3002"
             - name: DASHBOARD_HOST
-              value: "dashboard"
+              value: "http://dashboard.app.local:3000"
           ports:
             - containerPort: 3006
               hostPort: 3006
@@ -414,61 +442,6 @@ spec:
       restartPolicy: Always
       imagePullSecrets:
         - name: gitlabcredv2
----
-# Probe service and deployement
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: probe
-  labels:
-    app: probe
-spec:
-  selector:
-    matchLabels:
-      app: probe
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: probe
-    spec:
-      containers:
-        - image: localhost:32000/probe:master
-          name: probe
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: FYIPE_HOSTED
-              value: "true"
-            - name: SERVER_URL
-              value: "http://backend.app.local:3002"
-            - name: PORT
-              value: "3008"
-            - name: PROBE_NAME
-              value: "EU"
-            - name: PROBE_KEY
-              value: "1e9fbee1-00b6-6040-6990-0fef8c37b14c"
-          ports:
-            - containerPort: 3008
-              hostPort: 3008
-              name: probe
-      restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: probe
-  name: probe
-spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3008
-  selector:
-    app: probe
-  type: LoadBalancer
 ---
 apiVersion: v1
 kind: Service
@@ -485,6 +458,207 @@ spec:
     app: status-page
   type: LoadBalancer
 ---
+###########################################
+
+
+
+###################---ADMIN DASHBOARD-########################
+# Fyipe Admin dashboard
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-dashboard
+  labels:
+    app: admin-dashboard
+spec:
+  selector:
+    matchLabels:
+      app: admin-dashboard
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: admin-dashboard
+    spec:
+      containers:
+        - image: localhost:32000/admin-dashboard:master
+          name: admin-dashboard
+          imagePullPolicy: Always
+          env:
+            - name: IS_SAAS_SERVICE
+              value: "true"
+          ports:
+            - containerPort: 3100
+              hostPort: 3100
+              name: admin-dashboard
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: admin-dashboard
+  name: admin-dashboard
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3100
+  selector:
+    app: admin-dashboard
+  type: LoadBalancer
+---
+
+########-PROBE-1-#################
+# Probe service and deployement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe-1
+  labels:
+    app: probe-1
+spec:
+  selector:
+    matchLabels:
+      app: probe-1
+  replicas: 1 # THIS SHOULD STRICTLY BE 1
+  template:
+    metadata:
+      labels:
+        app: probe-1
+    spec:
+      containers:
+        - image: localhost:32000/probe:master
+          name: probe-1
+          imagePullPolicy: Always
+          env:
+            - name: IS_SAAS_SERVICE
+              value: "true"
+            - name: SERVER_URL
+              value: "http://backend.app.local:3002"
+            - name: PORT
+              value: "3008"
+            - name: PROBE_NAME
+              value: "EU"
+            - name: PROBE_KEY
+              value: "test-key"
+          ports:
+            - containerPort: 3008
+              hostPort: 3008
+              name: probe-1
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: probe-1
+  name: probe-1
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3008
+  selector:
+    app: probe-1
+  type: LoadBalancer
+---
+###########################
+
+########-PROBE-2-##########
+# Probe service and deployement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe-2
+  labels:
+    app: probe-2
+spec:
+  selector:
+    matchLabels:
+      app: probe-2
+  replicas: 1 # THIS SHOULD STRICTLY BE 1
+  template:
+    metadata:
+      labels:
+        app: probe-2
+    spec:
+      containers:
+        - image: localhost:32000/probe:master
+          name: probe-2
+          imagePullPolicy: Always
+          env:
+            - name: IS_SAAS_SERVICE
+              value: "true"
+            - name: SERVER_URL
+              value: "http://backend.app.local:3002"
+            - name: PORT
+              value: "3008"
+            - name: PROBE_NAME
+              value: "US"
+            - name: PROBE_KEY
+              value: "test-key"
+          ports:
+            - containerPort: 3008
+              hostPort: 3009
+              name: probe-2
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: probe-2
+  name: probe-2
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3009
+  selector:
+    app: probe-2
+  type: LoadBalancer
+---
+###########################
+
+########-INIT-SCRIPT-##########
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: init-script
+  labels:
+    app: init-script
+spec:
+  selector:
+    matchLabels:
+      app: init-script
+  replicas: 1 #STRICTLY 1
+  template:
+    metadata:
+      labels:
+        app: init-script
+    spec:
+      containers:
+        - image: localhost:32000/init-script:master
+          name: init-script
+          imagePullPolicy: Always
+          env:
+            - name: MONGO_URL
+              value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: gitlabcredv2
+---
+
+###########################
+
+########-MONGODB-##########
 apiVersion: v1
 kind: Service
 metadata:
@@ -498,22 +672,6 @@ spec:
   clusterIP: None
   selector:
     role: mongo
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis
-spec:
-  type: ClusterIP
-  ports:
-    - port: 6379
-      targetPort: 6379
-      name: client
-    - port: 16379
-      targetPort: 16379
-      name: gossip
-  selector:
-    app: redis
 ---
 # stateful set config for mongo
 apiVersion: apps/v1
@@ -557,6 +715,35 @@ spec:
           requests:
             storage: 900Gi
 ---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: productiondata
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
+reclaimPolicy: Retain
+---
+###########################
+
+
+##########-REDIS-##########
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: client
+    - port: 16379
+      targetPort: 16379
+      name: gossip
+  selector:
+    app: redis
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -582,7 +769,7 @@ metadata:
   name: redis
 spec:
   serviceName: redis
-  replicas: 6
+  replicas: 3
   selector:
     matchLabels:
       app: redis
@@ -626,6 +813,10 @@ spec:
           requests:
             storage: 1Gi
 ---
+########################################
+
+###############----Mongo Backups----###
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -638,18 +829,17 @@ spec:
       storage: 900Gi
   storageClassName: primarybackup
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
+
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
 metadata:
-  name: mongo-secondary-backup-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 900Gi
-  storageClassName: secondbackup
+  name: primarybackup
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+reclaimPolicy: Retain
 ---
+
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -689,6 +879,9 @@ spec:
           persistentVolumeClaim:
             claimName: mongo-backup-pvc
 ---
+########################################
+
+###############----Mongo SECONDARY----###
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -728,24 +921,7 @@ spec:
           persistentVolumeClaim:
             claimName: mongo-secondary-backup-pvc
 ---
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: productiondata
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-ssd
-reclaimPolicy: Retain
----
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: primarybackup
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-standard
-reclaimPolicy: Retain
----
+
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
@@ -754,5 +930,17 @@ provisioner: kubernetes.io/gce-pd
 parameters:
   type: pd-standard
 reclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-secondary-backup-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 900Gi
+  storageClassName: secondbackup
 ---
 
