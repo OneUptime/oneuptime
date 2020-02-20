@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "1f289f6e-f3c6-4d53-9559-073acd2972bf",
+		"_postman_id": "029b2a3c-7aac-4411-89b0-3f280fcc7f53",
 		"name": "Fyipe",
 		"description": "Fyipe backend",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -3903,6 +3903,150 @@
 							],
 							"cookie": [],
 							"body": "{\n    \"acknowledged\": true,\n    \"acknowledgedByZapier\": null,\n    \"resolved\": true,\n    \"resolvedByZapier\": null,\n    \"internalNote\": \"\",\n    \"investigationNote\": \"\",\n    \"createdByZapier\": false,\n    \"notClosedBy\": [\n        \"5e1b7f0f41127144f8144abb\",\n        \"5e162d9f1b8ae8185921498f\",\n        \"5e089f88b400211639928c92\"\n    ],\n    \"manuallyCreated\": true,\n    \"deleted\": false,\n    \"_id\": \"5e1ce11ee6a04216343592bb\",\n    \"probes\": [],\n    \"createdAt\": \"2020-01-13T21:29:02.315Z\",\n    \"projectId\": \"5e089f94b400211639928c94\",\n    \"monitorId\": \"5e08a21b25c59a1c8033c7e7\",\n    \"createdById\": \"5e089f88b400211639928c92\",\n    \"incidentType\": \"offline\",\n    \"__v\": 0,\n    \"acknowledgedAt\": \"2020-01-13T21:34:12.600Z\",\n    \"acknowledgedBy\": \"5e089f88b400211639928c92\",\n    \"resolvedAt\": \"2020-01-13T21:34:34.186Z\",\n    \"resolvedBy\": \"5e089f88b400211639928c92\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Incident Timeline",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:3002/incident/:projectId/timeline/:incidentId?skip=0&limit=5",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"incident",
+								":projectId",
+								"timeline",
+								":incidentId"
+							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "5e2ecf45516aae26b133f354"
+								},
+								{
+									"key": "incidentId",
+									"value": "5e4ebf11f6ae637506e0f534"
+								}
+							]
+						},
+						"description": "Get Incident Timeline"
+					},
+					"response": [
+						{
+							"name": "Get Incident Timeline",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:3002/incident/:projectId/timeline/:incidentId?skip=0&limit=5",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"incident",
+										":projectId",
+										"timeline",
+										":incidentId"
+									],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									],
+									"variable": [
+										{
+											"key": "projectId",
+											"value": "5e2ecf45516aae26b133f354"
+										},
+										{
+											"key": "incidentId",
+											"value": "5e4ebf11f6ae637506e0f534"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "undefined"
+								},
+								{
+									"key": "Access-Control-Allow-Credentials",
+									"value": "true"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET,PUT,POST,DELETE,OPTIONS"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1286"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"506-/SO1Y3I5VMGieHsPni62glVqfkA\""
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2020 22:51:36 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"createdByZapier\": false,\n            \"_id\": \"5e4ec0b5f6ae637506e0f71b\",\n            \"createdAt\": \"2020-02-20T17:24:05.046Z\",\n            \"incidentId\": \"5e4ebf11f6ae637506e0f534\",\n            \"createdById\": {\n                \"_id\": \"5e2ecf3f516aae26b133f352\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"status\": \"internal notes updated\"\n        },\n        {\n            \"createdByZapier\": false,\n            \"_id\": \"5e4ec0b3f6ae637506e0f718\",\n            \"createdAt\": \"2020-02-20T17:24:03.920Z\",\n            \"incidentId\": \"5e4ebf11f6ae637506e0f534\",\n            \"createdById\": {\n                \"_id\": \"5e2ecf3f516aae26b133f352\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"status\": \"investigation notes updated\"\n        },\n        {\n            \"createdByZapier\": false,\n            \"_id\": \"5e4ec0adf6ae637506e0f715\",\n            \"createdAt\": \"2020-02-20T17:23:57.292Z\",\n            \"incidentId\": \"5e4ebf11f6ae637506e0f534\",\n            \"createdById\": {\n                \"_id\": \"5e2ecf3f516aae26b133f352\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"status\": \"internal notes added\"\n        },\n        {\n            \"createdByZapier\": false,\n            \"_id\": \"5e4ec0a7f6ae637506e0f712\",\n            \"createdAt\": \"2020-02-20T17:23:51.638Z\",\n            \"incidentId\": \"5e4ebf11f6ae637506e0f534\",\n            \"createdById\": {\n                \"_id\": \"5e2ecf3f516aae26b133f352\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"status\": \"resolved\"\n        },\n        {\n            \"createdByZapier\": false,\n            \"_id\": \"5e4ec0a3f6ae637506e0f70d\",\n            \"createdAt\": \"2020-02-20T17:23:47.004Z\",\n            \"incidentId\": \"5e4ebf11f6ae637506e0f534\",\n            \"createdById\": {\n                \"_id\": \"5e2ecf3f516aae26b133f352\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"status\": \"investigation notes added\"\n        }\n    ],\n    \"count\": 7,\n    \"skip\": 0,\n    \"limit\": 5\n}"
 						}
 					]
 				}
@@ -18228,7 +18372,7 @@
 							"status": "OK",
 							"code": 200,
 							"_postman_previewlanguage": "json",
-							"header": null,
+							"header": [],
 							"cookie": [],
 							"body": "{\n    \"id\": \"pi_1GAjnfIt5jR0TXkE3ZdPpNPR\",\n    \"object\": \"payment_intent\",\n    \"allowed_source_types\": [\n        \"card\"\n    ],\n    \"amount\": 100,\n    \"amount_capturable\": 0,\n    \"amount_received\": 0,\n    \"application\": null,\n    \"application_fee_amount\": null,\n    \"canceled_at\": null,\n    \"cancellation_reason\": null,\n    \"capture_method\": \"automatic\",\n    \"charges\": {\n        \"object\": \"list\",\n        \"data\": [],\n        \"has_more\": false,\n        \"total_count\": 0,\n        \"url\": \"/v1/charges?payment_intent=pi_1GAjnfIt5jR0TXkE3ZdPpNPR\"\n    },\n    \"client_secret\": \"pi_1GAjnfIt5jR0TXkE3ZdPpNPR_secret_eluz6j3g7BzofkkwaeVSEidTw\",\n    \"confirmation_method\": \"automatic\",\n    \"created\": 1581370095,\n    \"currency\": \"usd\",\n    \"customer\": \"cus_GiA7x3vTeEVPLa\",\n    \"description\": \"Verify if card is billable\",\n    \"invoice\": \"in_1GAjneIt5jR0TXkE6QRfDiA4\",\n    \"last_payment_error\": null,\n    \"livemode\": false,\n    \"metadata\": {\n        \"description\": \"Verify if card is billable\"\n    },\n    \"next_action\": null,\n    \"next_source_action\": null,\n    \"on_behalf_of\": null,\n    \"payment_method\": null,\n    \"payment_method_options\": {\n        \"card\": {\n            \"installments\": null,\n            \"request_three_d_secure\": \"automatic\"\n        }\n    },\n    \"payment_method_types\": [\n        \"card\"\n    ],\n    \"receipt_email\": null,\n    \"review\": null,\n    \"setup_future_usage\": null,\n    \"shipping\": null,\n    \"source\": \"card_1GAjncIt5jR0TXkEf7BpMrgV\",\n    \"statement_descriptor\": null,\n    \"statement_descriptor_suffix\": null,\n    \"status\": \"requires_confirmation\",\n    \"transfer_data\": null,\n    \"transfer_group\": null\n}"
 						}
@@ -26110,7 +26254,7 @@
 								}
 							],
 							"cookie": [],
-							"body": null
+							"body": ""
 						}
 					]
 				}
