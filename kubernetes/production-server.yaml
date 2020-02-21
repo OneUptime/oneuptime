@@ -658,7 +658,7 @@ spec:
           env:
             - name: MONGO_URL
               value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
-      restartPolicy: Always
+      restartPolicy: Never
       imagePullSecrets:
         - name: gitlabcredv2
 ---

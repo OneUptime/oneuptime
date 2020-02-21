@@ -9,6 +9,8 @@ try {
         require('custom-env').env(process.env.NODE_ENV || 'development');
     }
 
+   
+
     const path = require('path');
     const http = require('http').createServer(app);
     const io = require('socket.io')(http);
@@ -17,15 +19,13 @@ try {
     const bodyParser = require('body-parser');
     const cors = require('cors');
 
-
-
     io.adapter(redisAdapter({
         host: keys.redisURL || 'localhost',
         port: process.env.REDIS_PORT || 6379
     }));
 
     global.io = io;
-
+    
     app.use(cors());
 
     app.use(function (req, res, next) {
@@ -38,7 +38,7 @@ try {
         res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization');
         next();
     });
-
+   
     app.use(bodyParser.urlencoded({ extended: true }));
     app.use(bodyParser.json());
 
@@ -54,7 +54,8 @@ try {
     app.use(express.static(path.join(__dirname, 'views')));
 
     app.use(require('./backend/middlewares/auditLogs').log);
-
+    
+    
     // Routes(API)
     app.use('/server', require('./backend/api/server'));
     app.use('/alert', require('./backend/api/alert'));
@@ -91,7 +92,7 @@ try {
     app.use('/tutorial', require('./backend/api/tutorial'));
     app.use('/audit-logs', require('./backend/api/auditLogs'));
     app.set('port', process.env.PORT || 3002);
-
+    
     const server = http.listen(app.get('port'), function () {
         // eslint-disable-next-line
         console.log('Server Started on port ' + app.get('port'));
@@ -105,7 +106,7 @@ try {
             serviceType: 'fyipe-api'
         }));
     });
-
+    
     app.use('/*', function (req, res) {
         res.status(404).render('notFound.ejs', {});
     });

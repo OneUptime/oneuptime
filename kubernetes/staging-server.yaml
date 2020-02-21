@@ -635,35 +635,25 @@ spec:
 
 
 ########-INIT-SCRIPT-##########
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: init-script
-  labels:
-    app: init-script
 spec:
-  selector:
-    matchLabels:
-      app: init-script
-  replicas: 1 #STRICTLY 1
   template:
-    metadata:
-      labels:
-        app: init-script
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/init-script:master
-          name: init-script
-          imagePullPolicy: Always
-          env:
-            - name: MONGO_URL
-              value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
-      restartPolicy: Always
+      - name: init-script
+        image: registry.gitlab.com/fyipe-project/init-script:master
+        imagePullPolicy: Always
+        env:
+          - name: MONGO_URL
+            value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
+      restartPolicy: Never
       imagePullSecrets:
         - name: gitlabcredv2
 ---
-
-###########################
+####################################
 
 
 ############-MONGODB-###############
