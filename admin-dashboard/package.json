@@ -1,6 +1,6 @@
 {
   "name": "fyipe-admin-dashboard",
-  "version": "3.0.1731",
+  "version": "3.0.1739",
   "private": true,
   "dependencies": {
     "acorn": "^7.1.0",
