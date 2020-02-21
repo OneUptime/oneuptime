@@ -40,6 +40,10 @@
       "eslint dashboard/src -c dashboard/.eslintrc.json --ignore-path dashboard/.eslintignore",
       "git add"
     ],
+    "./backend/**/*.js": [
+      "eslint backend/backend -c backend/.eslintrc.json --ignore-path backend/.eslintignore",
+      "git add"
+    ],
     "./accounts/**/*.{js,jsx}": [
       "eslint accounts/src -c accounts/.eslintrc.json --ignore-path accounts/.eslintignore",
       "git add"
