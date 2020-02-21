@@ -1,17 +1,3 @@
-# Docker registry env vars to create Kubernetes secret.
-echo "RUNNING COMMAND: DOCKER_REGISTRY_SERVER=\$DOCKERREGISTRY"
-DOCKER_REGISTRY_SERVER=$DOCKERREGISTRY
-echo "RUNNING COMMAND: DOCKER_USER=\$DOCKERUSERNAME"
-DOCKER_USER=$DOCKERUSERNAME
-echo "RUNNING COMMAND: DOCKER_EMAIL=\$DOCKEREMAIL"
-DOCKER_EMAIL=$DOCKEREMAIL
-echo "RUNNING COMMAND: DOCKER_PASSWORD=\$DOCKERPASSWORD"
-DOCKER_PASSWORD=$DOCKERPASSWORD
-# Create kubenetes secret.
-echo "RUNNING COMMAND: sudo k delete secret gitlabcredv2 || echo 'No gitlabcredv2 key found'"
-sudo k delete secret gitlabcredv2 || echo 'No gitlabcredv2 key found'
-echo "RUNNING COMMAND: sudo k create secret docker-registry gitlabcredv2 --docker-server=\$DOCKER_REGISTRY_SERVER --docker-username=\$DOCKER_USER --docker-password=\$DOCKER_PASSWORD --docker-email=\$DOCKER_EMAIL"
-sudo k create secret docker-registry gitlabcredv2 --docker-server=$DOCKER_REGISTRY_SERVER --docker-username=$DOCKER_USER --docker-password=$DOCKER_PASSWORD --docker-email=$DOCKER_EMAIL
 # Create the entire cluster.
 echo "RUNNING COMMAND: sudo k create -f ./kubernetes/test.yaml"
 sudo k create -f ./kubernetes/test.yaml

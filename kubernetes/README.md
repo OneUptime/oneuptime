@@ -1,42 +1,9 @@
 # Setup Production Server
 
-
-### Setup Docker Credentials
-
-On your local terminal
-
-```
-DOCKER_REGISTRY_SERVER=https://index.docker.io/v1/
-DOCKER_USER=Type your dockerhub username, same as when you `docker login`
-DOCKER_EMAIL=Type your dockerhub email, same as when you `docker login`
-DOCKER_PASSWORD=Type your dockerhub pw, same as when you `docker login`
-
-kubectl create secret docker-registry regcred \
-  --docker-server=$DOCKER_REGISTRY_SERVER \
-  --docker-username=$DOCKER_USER \
-  --docker-password=$DOCKER_PASSWORD \
-  --docker-email=$DOCKER_EMAIL
-```
-
-### Setup Gitlab Credentials
-
-```
-DOCKER_REGISTRY_SERVER= registry.gitlab.com
-DOCKER_USER=Type your gitlab username, same as when you `gitlab login`
-DOCKER_EMAIL=Type your gitlab email, same as when you `gitlab login`
-DOCKER_PASSWORD=Type your gitlab pw, same as when you `gitlab login`
-
-kubectl create secret docker-registry gitlabcredv2 \
-  --docker-server=$DOCKER_REGISTRY_SERVER \
-  --docker-username=$DOCKER_USER \
-  --docker-password=$DOCKER_PASSWORD \
-  --docker-email=$DOCKER_EMAIL
-```
-
-###  Run the production-server.yml file. 
+###  Run the production.yml file. 
 
 run the file specific to the project with their specific names.
-`kubectl create -f production-server.yml`
+`kubectl create -f production.yml`
 
 # Kubernetes file for Fyipe Deployment. 
 
