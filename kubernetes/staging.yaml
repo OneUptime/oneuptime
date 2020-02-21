@@ -1,6 +1,6 @@
 # This is the staging Kubectl config which is used to run the staging cluster in Kubernetes.
 #
-# IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO ci-server.yaml, staging-server.yaml, and production-server.yaml
+# IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO ci-server.yaml, staging.yaml, and production.yaml
 #
 
 

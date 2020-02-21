@@ -1,10 +1,6 @@
-##############
-# PLEASE READ:
-# This is the production Kubectl config which is used to run the production cluster in Kubernetes.
-#
-# IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO ci-server.yaml, server.yaml, and production-server.yaml
-##############
-
+# This is the staging Kubectl config which is used to run the test cluster in Single Node Kubernetes (microk8s) and also in CI/CD.
+# IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO ci-server.yaml, staging.yaml, and production.yaml
+# Images Tagged with localhost:32000 because of https://microk8s.io/docs/working
 
 
 ############-----DASHBOARD----#############################
@@ -18,29 +14,29 @@ spec:
   selector:
     matchLabels:
       app: dashboard
-  replicas: 3
+  replicas: 1
   template:
     metadata:
       labels:
         app: dashboard
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/dashboard:latest
+        - image: localhost:32000/dashboard:master
           name: dashboard
           imagePullPolicy: Always
           env:
             - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
-              value: "https://dashboard.fyipe.com"
+              value: "http://dashboard.app.local:3000"
             - name: ACCOUNTS_HOST
-              value: "https://accounts.fyipe.com"
+              value: "http://accounts.app.local:3003"
             - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
+              value: "http://backend.app.local:3002"
             - name: DOMAIN
-              value: "fyipe.com"
+              value: "app.local"
             - name: STRIPE_PUBLIC_KEY
-              value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
+              value: "pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv"
             - name: AMPLITUDE_PUBLIC_KEY
               value: "cb70632f45c1ca7fe6180812c0d6494a"
           ports:
@@ -51,7 +47,6 @@ spec:
       imagePullSecrets:
         - name: gitlabcredv2
 ---
-
 # Fyipe Dashoard Service
 apiVersion: v1
 kind: Service
@@ -71,8 +66,8 @@ spec:
 #########################################
 
 
-
 ############-----ACCOUNTS----#############################
+# Fyipe Accounts Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -83,29 +78,29 @@ spec:
   selector:
     matchLabels:
       app: accounts
-  replicas: 3
+  replicas: 1
   template:
     metadata:
       labels:
         app: accounts
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/accounts:latest
+        - image: localhost:32000/accounts:master
           name: accounts
           imagePullPolicy: Always
           env:
             - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
-              value: "https://accounts.fyipe.com"
-            - name: DASHBOARD_HOST
-              value: "https://dashboard.fyipe.com"
+              value: "http://accounts.app.local:3003"
             - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
+              value: "http://backend.app.local:3002"
+            - name: DASHBOARD_HOST
+              value: "http://dashboard.app.local:3000"
             - name: DOMAIN
-              value: "fyipe.com"
+              value: "app.local"
             - name: STRIPE_PUBLIC_KEY
-              value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
+              value: "pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv"
             - name: AMPLITUDE_PUBLIC_KEY
               value: "cb70632f45c1ca7fe6180812c0d6494a"
           ports:
@@ -116,9 +111,7 @@ spec:
       imagePullSecrets:
         - name: gitlabcredv2
 ---
-
-
-# Fyipe Accounts Service
+# Fyipe Account Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -138,7 +131,6 @@ spec:
 
 
 ###########-----BACKEND------##############
-
 # Fyipe Backend Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -150,14 +142,14 @@ spec:
   selector:
     matchLabels:
       app: backend
-  replicas: 3
+  replicas: 1
   template:
     metadata:
       labels:
         app: backend
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/backend:latest
+        - image: localhost:32000/backend:master
           name: backend
           imagePullPolicy: Always
           env:
@@ -166,7 +158,7 @@ spec:
             - name: JWT_SECRET
               value: "idfn3873458973457453"
             - name: MONGO_URL
-              value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
+              value: "mongodb://mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
             - name: REDIS_HOST
               valueFrom:
                 configMapKeyRef:
@@ -175,9 +167,9 @@ spec:
             - name: REDIS_PORT
               value: "6379"
             - name: STRIPE_PUBLIC_KEY
-              value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
+              value: "pk_test_4I2S0sD0TYJxEWQTYlC2Rk6E"
             - name: STRIPE_PRIVATE_KEY
-              value: "sk_live_ADLzzMrOCz0kyYTsxWatAqxh"
+              value: "sk_test_YxwnzywggtAd8jDaHecNmHiN"
             - name: PORT
               value: "3002"
             - name: EMAIL_ENABLED
@@ -190,26 +182,26 @@ spec:
               value: "noreply@fyipe.com"
             - name: MAIL_PASSWORD
               value: "qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD"
-            - name: MAIL_FROM
-              value: "Fyipe"
             - name: MAIL_SERVER_SMTP
               value: "smtp.google.com"
             - name: MAIL_PORT_SMTP
               value: "465"
             - name: MAIL_SMTP_SECURE
               value: "true"
+            - name: MAIL_FROM
+              value: "Fyipe"
             - name: EMAIL_VERIFY_TIME
               value: "3600"
-            - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
-            - name: ACCOUNTS_HOST
-              value: "https://accounts.fyipe.com"
-            - name: HOME_HOST
-              value: "https://fyipe.com"
             - name: DASHBOARD_HOST
-              value: "https://dashboard.fyipe.com"
+              value: "http://dashboard.app.local:3000"
+            - name: BACKEND_HOST
+              value: "http://backend.app.local:3002"
+            - name: ACCOUNTS_HOST
+              value: "http://accounts.app.local:3003"
+            - name: HOME_HOST
+              value: "http://home.app.local:1444"
             - name: NODE_ENV
-              value: "production"
+              value: "development"
             - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
               value: "216000"
             - name: RATE_LIMITTER_REQUEST_LIMIT
@@ -219,7 +211,7 @@ spec:
             - name: AIRTABLE_API_KEY
               value: "keyenXfDDP4Dutazt"
             - name: AIRTABLE_BASE_ID
-              value: "appff3DtEBUNxGN9W"
+              value: "appgek0ngJaHhppeJ"
           ports:
             - containerPort: 3002
               hostPort: 3002
@@ -246,7 +238,6 @@ spec:
 ---
 ###########################################
 
-
 ###########-----SLACK------##############
 # Slack
 apiVersion: apps/v1
@@ -266,7 +257,7 @@ spec:
         app: slack
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/slack:latest
+        - image: localhost:32000/slack:master
           name: slack
           imagePullPolicy: Always
           ports:
@@ -295,7 +286,7 @@ spec:
 ###########################################
 
 
-###########-----HOME------#################
+###########-----HOME------##############
 # Fyipe Home
 apiVersion: apps/v1
 kind: Deployment
@@ -307,27 +298,27 @@ spec:
   selector:
     matchLabels:
       app: home
-  replicas: 3
+  replicas: 1
   template:
     metadata:
       labels:
         app: home
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/home:latest
+        - image: localhost:32000/home:master
           name: home
           imagePullPolicy: Always
           env:
             - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
-              value: "https://fyipe.com"
+              value: "http://home.app.local:1444"
             - name: DASHBOARD_HOST
-              value: "https://dashboard.fyipe.com"
+              value: "http://dashboard.app.local:3000"
             - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
+              value: "http://backend.app.local:3002"
             - name: ACCOUNTS_HOST
-              value: "https://accounts.fyipe.com"
+              value: "http://accounts.app.local:3003"
           ports:
             - containerPort: 1444
               hostPort: 1444
@@ -353,6 +344,7 @@ spec:
 ---
 ###########################################
 
+
 ###########-----API-DOCS------##############
 
 # Fyipe API docs Deployment
@@ -373,18 +365,18 @@ spec:
         app: api-docs
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/api-docs:latest
+        - image: localhost:32000/api-docs:master
           name: api-docs
           imagePullPolicy: Always
           env:
             - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
-              value: "https://docs.fyipe.com"
+              value: "http://api-docs.app.local:1445"
             - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
+              value: "http://backend.app.local:3002"
             - name: DASHBOARD_HOST
-              value: "https://dashboard.fyipe.com"
+              value: "http://dashboard.app.local:3000"
           ports:
             - containerPort: 1445
               hostPort: 1445
@@ -409,9 +401,10 @@ spec:
     app: api-docs
   type: LoadBalancer
 ---
+###########################################
 
 
-###########-----STATUS PAGE------#################
+###########-----STATUS-PAGE------##############
 
 apiVersion: apps/v1
 kind: Deployment
@@ -423,27 +416,27 @@ spec:
   selector:
     matchLabels:
       app: status-page
-  replicas: 3
+  replicas: 1
   template:
     metadata:
       labels:
         app: status-page
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/status-page:latest
+        - image: localhost:32000/status-page:master
           name: status-page
           imagePullPolicy: Always
           env:
             - name: IS_SAAS_SERVICE
               value: "true"
             - name: HOST
-              value: "https://statuspage.fyipe.com"
-            - name: DASHBOARD_HOST
-              value: "https://staging-dashboard.fyipe.com"
-            - name: BACKEND_HOST
-              value: "https://staging-api.fyipe.com"
+              value: "http://statuspage.app.local:3006"
             - name: ACCOUNTS_HOST
-              value: "https://staging-accounts.fyipe.com"
+              value: "http://accounts.app.local:3003"
+            - name: BACKEND_HOST
+              value: "http://backend.app.local:3002"
+            - name: DASHBOARD_HOST
+              value: "http://dashboard.app.local:3000"
           ports:
             - containerPort: 3006
               hostPort: 3006
@@ -467,9 +460,12 @@ spec:
     app: status-page
   type: LoadBalancer
 ---
-########################################
+###########################################
 
-############-ADMIN-DASHBOARD-#########
+
+
+###################---ADMIN DASHBOARD-########################
+# Fyipe Admin dashboard
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -487,7 +483,7 @@ spec:
         app: admin-dashboard
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/admin-dashboard:latest
+        - image: localhost:32000/admin-dashboard:master
           name: admin-dashboard
           imagePullPolicy: Always
           env:
@@ -516,7 +512,6 @@ spec:
     app: admin-dashboard
   type: LoadBalancer
 ---
-##################################
 
 ########-PROBE-1-#################
 # Probe service and deployement
@@ -537,20 +532,20 @@ spec:
         app: probe-1
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/probe:latest
+        - image: localhost:32000/probe:master
           name: probe-1
           imagePullPolicy: Always
           env:
             - name: IS_SAAS_SERVICE
               value: "true"
             - name: SERVER_URL
-              value: "https://api.fyipe.com"
+              value: "http://backend.app.local:3002"
             - name: PORT
               value: "3008"
             - name: PROBE_NAME
               value: "EU"
             - name: PROBE_KEY
-              value: "lfg9859-30as-nm32-q2as-jsdfg89547hjg"
+              value: "test-key"
           ports:
             - containerPort: 3008
               hostPort: 3008
@@ -595,23 +590,23 @@ spec:
         app: probe-2
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/probe:latest
+        - image: localhost:32000/probe:master
           name: probe-2
           imagePullPolicy: Always
           env:
             - name: IS_SAAS_SERVICE
               value: "true"
             - name: SERVER_URL
-              value: "https://api.fyipe.com"
+              value: "http://backend.app.local:3002"
             - name: PORT
               value: "3008"
             - name: PROBE_NAME
               value: "US"
             - name: PROBE_KEY
-              value: "qerw234ewr-30as-nm32-q2as-poi90"
+              value: "test-key"
           ports:
             - containerPort: 3008
-              hostPort: 3008
+              hostPort: 3009
               name: probe-2
       restartPolicy: Always
       imagePullSecrets:
@@ -627,7 +622,7 @@ spec:
   ports:
     - port: 80
       protocol: TCP
-      targetPort: 3008
+      targetPort: 3009
   selector:
     app: probe-2
   type: LoadBalancer
@@ -652,7 +647,7 @@ spec:
         app: init-script
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/init-script:latest
+        - image: localhost:32000/init-script:master
           name: init-script
           imagePullPolicy: Always
           env:
@@ -665,9 +660,7 @@ spec:
 
 ###########################
 
-
 ########-MONGODB-##########
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -682,15 +675,17 @@ spec:
   selector:
     role: mongo
 ---
-
 # stateful set config for mongo
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongo
 spec:
-  serviceName: "mongo-headless"
+  serviceName: mongo-headless
   replicas: 3
+  selector:
+    matchLabels:
+      role: mongo
   template:
     metadata:
       labels:
@@ -723,7 +718,7 @@ spec:
             storage: 900Gi
 ---
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: productiondata
 provisioner: kubernetes.io/gce-pd
@@ -734,7 +729,7 @@ reclaimPolicy: Retain
 ###########################
 
 
-########-REDIS-############
+##########-REDIS-##########
 apiVersion: v1
 kind: Service
 metadata:
@@ -820,10 +815,10 @@ spec:
           requests:
             storage: 1Gi
 ---
-###########################
+########################################
 
+###############----Mongo Backups----###
 
-########-MONGO=BACKUP-PRIMARY-############
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -836,6 +831,17 @@ spec:
       storage: 900Gi
   storageClassName: primarybackup
 ---
+
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: primarybackup
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+reclaimPolicy: Retain
+---
+
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -875,33 +881,9 @@ spec:
           persistentVolumeClaim:
             claimName: mongo-backup-pvc
 ---
-kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
-metadata:
-  name: primarybackup
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-standard
-reclaimPolicy: Retain
----
-###########################################
+########################################
 
-
-########-MONGO=BACKUP-SECONDARY-############
-
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mongo-secondary-backup-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 900Gi
-  storageClassName: secondbackup
----
-
+###############----Mongo SECONDARY----###
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -941,8 +923,9 @@ spec:
           persistentVolumeClaim:
             claimName: mongo-secondary-backup-pvc
 ---
+
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: secondbackup
 provisioner: kubernetes.io/gce-pd
@@ -950,5 +933,16 @@ parameters:
   type: pd-standard
 reclaimPolicy: Retain
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-secondary-backup-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 900Gi
+  storageClassName: secondbackup
+---
 
-#######################
