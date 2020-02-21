@@ -3,8 +3,6 @@ import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import Dashboard from '../components/Dashboard';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
-import Invoice from '../components/invoice/Invoice';
-import PaymentCard from '../components/paymentCard/PaymentCard';
 import AlertCharges from '../components/alert/AlertCharges';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import ChangePlan from '../components/settings/ChangePlan';
@@ -13,42 +11,37 @@ import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 
 class Billing extends Component {
-
-  constructor(props) {
-    super(props);
-    this.props = props;
-  }
-
-  componentDidMount() {
-    if (!IS_DEV) {
-      logEvent('Billing page Loaded');
+    constructor(props) {
+        super(props);
+        this.props = props;
     }
-  }
 
-  render() {
-    return (
-      <Dashboard>
-        <div className="Margin-vertical--12">
-          <CustomerBalance />
-          <AlertCharges/>
+    componentDidMount() {
+        if (!IS_DEV) {
+            logEvent('Billing page Loaded');
+        }
+    }
 
-          <RenderIfOwner>
-            <ChangePlan />
-          </RenderIfOwner>
+    render() {
+        return (
+            <Dashboard>
+                <div className="Margin-vertical--12">
+                    <CustomerBalance />
+                    <AlertCharges />
 
-          <RenderIfOwner>
-            <AlertAdvanceOption />
-          </RenderIfOwner>
+                    <RenderIfOwner>
+                        <ChangePlan />
+                    </RenderIfOwner>
 
-          <Invoice />
-
-          <PaymentCard />
-        </div>
-      </Dashboard>
-    );
-  }
+                    <RenderIfOwner>
+                        <AlertAdvanceOption />
+                    </RenderIfOwner>
+                </div>
+            </Dashboard>
+        );
+    }
 }
 
-Billing.displayName = 'Billing'
+Billing.displayName = 'Billing';
 
 export default withRouter(connect(null, null)(Billing));
