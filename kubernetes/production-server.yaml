@@ -48,8 +48,7 @@ spec:
               hostPort: 3000
               name: dashboard
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 
 # Fyipe Dashoard Service
@@ -113,10 +112,8 @@ spec:
               hostPort: 3003
               name: accounts
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
----
 
+---
 
 # Fyipe Accounts Service
 apiVersion: v1
@@ -225,9 +222,9 @@ spec:
               hostPort: 3002
               name: backend
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
+
 # Fyipe Backend Deployment
 apiVersion: v1
 kind: Service
@@ -274,8 +271,7 @@ spec:
               hostPort: 1267
               name: slack
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -333,8 +329,7 @@ spec:
               hostPort: 1444
               name: home
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -390,9 +385,9 @@ spec:
               hostPort: 1445
               name: api-docs
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
+
 # Fyipe API docs Service
 apiVersion: v1
 kind: Service
@@ -449,8 +444,7 @@ spec:
               hostPort: 3006
               name: status-page
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -498,8 +492,7 @@ spec:
               hostPort: 3100
               name: admin-dashboard
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -556,8 +549,7 @@ spec:
               hostPort: 3008
               name: probe-1
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -614,8 +606,7 @@ spec:
               hostPort: 3008
               name: probe-2
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -659,8 +650,7 @@ spec:
             - name: MONGO_URL
               value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 
 ###########################
