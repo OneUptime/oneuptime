@@ -25,7 +25,7 @@ spec:
         app: dashboard
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/dashboard:latest
+        - image: fyipeproject/dashboard:latest
           name: dashboard
           imagePullPolicy: Always
           env:
@@ -90,7 +90,7 @@ spec:
         app: accounts
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/accounts:latest
+        - image: fyipeproject/accounts:latest
           name: accounts
           imagePullPolicy: Always
           env:
@@ -157,7 +157,7 @@ spec:
         app: backend
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/backend:latest
+        - image: fyipeproject/backend:latest
           name: backend
           imagePullPolicy: Always
           env:
@@ -266,7 +266,7 @@ spec:
         app: slack
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/slack:latest
+        - image: fyipeproject/slack:latest
           name: slack
           imagePullPolicy: Always
           ports:
@@ -314,7 +314,7 @@ spec:
         app: home
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/home:latest
+        - image: fyipeproject/home:latest
           name: home
           imagePullPolicy: Always
           env:
@@ -373,7 +373,7 @@ spec:
         app: api-docs
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/api-docs:latest
+        - image: fyipeproject/api-docs:latest
           name: api-docs
           imagePullPolicy: Always
           env:
@@ -430,7 +430,7 @@ spec:
         app: status-page
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/status-page:latest
+        - image: fyipeproject/status-page:latest
           name: status-page
           imagePullPolicy: Always
           env:
@@ -487,7 +487,7 @@ spec:
         app: admin-dashboard
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/admin-dashboard:latest
+        - image: fyipeproject/admin-dashboard:latest
           name: admin-dashboard
           imagePullPolicy: Always
           env:
@@ -537,7 +537,7 @@ spec:
         app: probe-1
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/probe:latest
+        - image: fyipeproject/probe:latest
           name: probe-1
           imagePullPolicy: Always
           env:
@@ -595,7 +595,7 @@ spec:
         app: probe-2
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/probe:latest
+        - image: fyipeproject/probe:latest
           name: probe-2
           imagePullPolicy: Always
           env:
@@ -652,7 +652,7 @@ spec:
         app: init-script
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/init-script:latest
+        - image: fyipeproject/init-script:latest
           name: init-script
           imagePullPolicy: Always
           env:
