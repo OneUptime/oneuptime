@@ -17,12 +17,12 @@ try {
     const bodyParser = require('body-parser');
     const cors = require('cors');
 
-    io.adapter(redisAdapter({
-        host: keys.redisURL || 'localhost',
-        port: process.env.REDIS_PORT || 6379
-    }));
+    // io.adapter(redisAdapter({
+    //     host: keys.redisURL || 'localhost',
+    //     port: process.env.REDIS_PORT || 6379
+    // }));
 
-    global.io = io;
+    // global.io = io;
     
     app.use(cors());
 
