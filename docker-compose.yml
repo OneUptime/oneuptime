@@ -116,6 +116,9 @@ services:
     env_file: 
       - ./api-docs/.env
 
+  ##IMPORTANT: 
+  ## This container is used to expose backend api to the internet 
+  ## which is essential to debug "Webhooks" from services like Stripe, Twilio, etc. 
   ngrok:
     ports:
       - "4040:4040"
@@ -123,7 +126,9 @@ services:
     command: ngrok http backend:3002
     depends_on:
       - backend
-
+    
+  ##IMPORTANT: 
+  ## This container is an SMTP server used to send emails. 
   haraka:
     ports:
       - "25:25"

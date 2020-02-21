@@ -29,8 +29,8 @@ TODO
 - Install Robomongo / Mongo Compass / or any other MongoDB UI Tool.
 - Make sure MongoDB and Redis are NOT running (NO services should run on port 27017 and 6379)
 - Run `sudo bash install.sh` - This will take some time (30 mins maybe or more) when you run this for the first time. 
-- The above command runs the project in Docker Compose. 
-- If you're working on particular project, your changes will not be reflected in Docker Compose automatically. In this case
+- The above command runs the entire project in Docker Compose. 
+- If you're working on particular sub-project (for ex: accounts, admin-dashboard or literally anything else), your changes will not be reflected in Docker Compose automatically. In this case
     - Delete the docker container of the project you're working on. (`sudo docker stop containerId` and `sudo docker rm containerId`)
     - Once the container is deleted, cd into that project run `npm install` and `npm run dev`.
     - Let other projects / containers run on docker. They will work perfectly fine with a project you're working on.
