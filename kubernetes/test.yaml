@@ -630,6 +630,9 @@ spec:
 ###########################
 
 ########-INIT-SCRIPT-##########
+#########
+#UPDATE: Any update to this file should also be accompanied with ./init-script/test.yaml
+#########
 apiVersion: batch/v1
 kind: Job
 metadata:
