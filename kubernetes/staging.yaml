@@ -3,7 +3,6 @@
 # IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO ci-server.yaml, staging.yaml, and production.yaml
 #
 
-
 ############-----DASHBOARD----##################
 apiVersion: apps/v1
 kind: Deployment
@@ -642,36 +641,73 @@ spec:
           env:
             - name: MONGO_URL
               value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
-      restartPolicy: Always
+      restartPolicy: Never
 
 ---
 ####################################
 
 
-############-MONGODB-###############
+############-MONGO DB-##############
 
+# IMPORTANT: Inspiration from: https://github.com/Fyipe/k8s-mongo-sidecar
+# Replicasets are configured automatically. 
+# You DO NEED to get into a mongo container to configre them. 
 
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mongo
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: pod-service-endpoint-reader
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - services
+      - endpoints
+    verbs:
+      - get
+      - list
+      - watch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: system:serviceaccount:default:mongo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pod-service-endpoint-reader
+subjects:
+  - kind: ServiceAccount
+    name: mongo
+    namespace: default
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongo-headless
+  name: mongo
   labels:
-    name: mongo-headless
+    name: mongo
 spec:
   ports:
-    - port: 27017
-      targetPort: 27017
+  - port: 27017
+    targetPort: 27017
   clusterIP: None
   selector:
     role: mongo
 ---
-# stateful set config for mongo
-apiVersion: apps/v1
+apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
   name: mongo
 spec:
-  serviceName: "mongo-headless"
+  serviceName: "mongo"
   replicas: 3
   selector:
     matchLabels:
@@ -680,44 +716,46 @@ spec:
     metadata:
       labels:
         role: mongo
-        environment: production
+        environment: test #Apparently setting this to any other var makes mongo-sidecar fail.
     spec:
-      terminationGracePeriodSeconds: 10
+      serviceAccountName: mongo
+      automountServiceAccountToken: true
+      terminationGracePeriodSeconds: 30
       containers:
         - name: mongo
-          image: mongo:4.0
-          command: ["/bin/sh", "-c"]
+          image: mongo:4
+          command:
+            - mongod
           args:
-            [
-              "echo 2J2W5Jm7G38y169r8s5T1dW > mongo.key; chmod 600 mongo.key; mongod --replSet fyipe --keyFile mongo.key --smallfiles --noprealloc --bind_ip_all",
-            ]
+            - "--replSet=rs0"
+            - "--bind_ip=0.0.0.0"
           ports:
             - containerPort: 27017
           volumeMounts:
-            - name: persistent-storage
+            - name: mongo-persistent-storage
               mountPath: /data/db
+        - name: mongo-sidecar
+          image: morphy/k8s-mongo-sidecar
+          env:
+            - name: KUBERNETES_POD_LABELS
+              value: "role=mongo,environment=test"
+            - name: KUBERNETES_SERVICE_NAME
+              value: "mongo"
   volumeClaimTemplates:
-    - metadata:
-        name: persistent-storage
-        annotations:
-          volume.beta.kubernetes.io/storage-class: productiondata
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 900Gi
+  - metadata:
+      name: mongo-persistent-storage
+    spec:
+      storageClassName: fast
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi
 ---
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: productiondata
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-ssd
-reclaimPolicy: Retain
----
-
-###########################
+#
+#Important: Storage Class for Azure, AWS can be found here. 
+#https://github.com/Fyipe/k8s-mongo-sidecar/tree/master/example
+#
+##################################
 
 
 ############-REDIS-###############
@@ -806,7 +844,7 @@ spec:
           requests:
             storage: 1Gi
 ---
-###########################
+#########################################
 
 
 ############-MONGO-BACKUP-###############
@@ -825,6 +863,7 @@ spec:
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
+  
   name: primarybackup
 provisioner: kubernetes.io/gce-pd
 parameters:
