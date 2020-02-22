@@ -22,7 +22,7 @@ spec:
         app: dashboard
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/dashboard:master
+        - image: fyipeproject/dashboard:master
           name: dashboard
           imagePullPolicy: Always
           env:
@@ -45,8 +45,7 @@ spec:
               hostPort: 3000
               name: dashboard
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 # Fyipe Dashoard Service
 apiVersion: v1
@@ -85,7 +84,7 @@ spec:
         app: accounts
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/accounts:master
+        - image: fyipeproject/accounts:master
           name: accounts
           imagePullPolicy: Always
           env:
@@ -108,8 +107,7 @@ spec:
               hostPort: 3003
               name: accounts
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 # Fyipe Accounts Service
 apiVersion: v1
@@ -150,7 +148,7 @@ spec:
         app: backend
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/backend:master
+        - image: fyipeproject/backend:master
           name: backend
           imagePullPolicy: Always
           env:
@@ -218,8 +216,7 @@ spec:
               hostPort: 3002
               name: backend
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 # Fyipe Backend Deployment
 apiVersion: v1
@@ -258,7 +255,7 @@ spec:
         app: slack
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/slack:master
+        - image: fyipeproject/slack:master
           name: slack
           imagePullPolicy: Always
           ports:
@@ -266,8 +263,7 @@ spec:
               hostPort: 1267
               name: slack
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -305,7 +301,7 @@ spec:
         app: home
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/home:master
+        - image: fyipeproject/home:master
           name: home
           imagePullPolicy: Always
           env:
@@ -324,8 +320,7 @@ spec:
               hostPort: 1444
               name: home
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -365,7 +360,7 @@ spec:
         app: api-docs
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/api-docs:master
+        - image: fyipeproject/api-docs:master
           name: api-docs
           imagePullPolicy: Always
           env:
@@ -382,8 +377,7 @@ spec:
               hostPort: 1445
               name: api-docs
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 # Fyipe API docs Service
 apiVersion: v1
@@ -425,7 +419,7 @@ spec:
         app: status-page
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/status-page:master
+        - image: fyipeproject/status-page:master
           name: status-page
           imagePullPolicy: Always
           env:
@@ -444,8 +438,7 @@ spec:
               hostPort: 3006
               name: status-page
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -485,7 +478,7 @@ spec:
         app: admin-dashboard
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/admin-dashboard:master
+        - image: fyipeproject/admin-dashboard:master
           name: admin-dashboard
           imagePullPolicy: Always
           env:
@@ -496,8 +489,7 @@ spec:
               hostPort: 3100
               name: admin-dashboard
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -534,7 +526,7 @@ spec:
         app: probe-1
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/probe:master
+        - image: fyipeproject/probe:master
           name: probe-1
           imagePullPolicy: Always
           env:
@@ -553,8 +545,7 @@ spec:
               hostPort: 3008
               name: probe-1
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -593,7 +584,7 @@ spec:
         app: probe-2
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/probe:master
+        - image: fyipeproject/probe:master
           name: probe-2
           imagePullPolicy: Always
           env:
@@ -612,8 +603,7 @@ spec:
               hostPort: 3008
               name: probe-2
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 apiVersion: v1
 kind: Service
@@ -652,15 +642,14 @@ spec:
         app: init-script
     spec:
       containers:
-        - image: registry.gitlab.com/fyipe-project/init-script:master
+        - image: fyipeproject/init-script:master
           name: init-script
           imagePullPolicy: Always
           env:
             - name: MONGO_URL
               value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
       restartPolicy: Always
-      imagePullSecrets:
-        - name: gitlabcredv2
+
 ---
 
 ###########################
