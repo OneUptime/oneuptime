@@ -162,7 +162,7 @@ module.exports = {
         const incidentArr = [];
         await Promise.all(monitors.map(async (monitor) => {
             let lastIncident = await IncidentService.findOneBy({ monitorId: monitor, acknowledged: false });
-            lastIncident = await IncidentService.acknowledge(lastIncident._id, null, 'Zapier', true);
+            lastIncident = await IncidentService.acknowledge(lastIncident._id, null, 'Zapier', null, true);
             const monitorObj = await MonitorService.findOneBy({ _id: monitor });
             let project = await ProjectService.findOneBy({ _id: monitorObj.project._id });
             if (project.parentProjectId) {
@@ -182,7 +182,7 @@ module.exports = {
         await Promise.all(monitors.map(async (monitor) => {
             let incidents = await IncidentService.findBy({ monitorId: monitor, acknowledged: false });
             incidents = await Promise.all(incidents.map(async (incident) => {
-                return await IncidentService.acknowledge(incident._id, null, 'Zapier', true);
+                return await IncidentService.acknowledge(incident._id, null, 'Zapier', null, true);
             }));
             const monitorObj = await MonitorService.findOneBy({ _id: monitor });
             let project = await ProjectService.findOneBy({ _id: monitorObj.project._id });
@@ -201,7 +201,7 @@ module.exports = {
         const zapierResponse = {};
         const incidentArr = [];
         await Promise.all(incidents.map(async (incident) => {
-            await IncidentService.acknowledge(incident, null, 'Zapier', true);
+            await IncidentService.acknowledge(incident, null, 'Zapier', null, true);
             const incidentObj = await IncidentService.findOneBy({ _id: incident });
             let project = await ProjectService.findOneBy({ _id: incidentObj.projectId });
             if (project.parentProjectId) {
@@ -220,7 +220,7 @@ module.exports = {
         const incidentArr = [];
         await Promise.all(monitors.map(async (monitor) => {
             let lastIncident = await IncidentService.findOneBy({ monitorId: monitor, resolved: false });
-            lastIncident = await IncidentService.resolve(lastIncident._id, null, 'Zapier', true);
+            lastIncident = await IncidentService.resolve(lastIncident._id, null, 'Zapier', null, true);
             const monitorObj = await MonitorService.findOneBy({ _id: monitor });
             let project = await ProjectService.findOneBy({ _id: monitorObj.project._id });
             if (project.parentProjectId) {
@@ -240,7 +240,7 @@ module.exports = {
         await Promise.all(monitors.map(async (monitor) => {
             let incidents = await IncidentService.findBy({ monitorId: monitor, resolved: false });
             incidents = await Promise.all(incidents.map(async (incident) => {
-                return await IncidentService.resolve(incident._id, null, 'Zapier', true);
+                return await IncidentService.resolve(incident._id, null, 'Zapier', null, true);
             }));
             const monitorObj = await MonitorService.findOneBy({ _id: monitor });
             let project = await ProjectService.findOneBy({ _id: monitorObj.project._id });
@@ -259,7 +259,7 @@ module.exports = {
         const zapierResponse = {};
         const incidentArr = [];
         await Promise.all(incidents.map(async (incident) => {
-            await IncidentService.resolve(incident, null, 'Zapier', true);
+            await IncidentService.resolve(incident, null, 'Zapier', null, true);
             const incidentObj = await IncidentService.findOneBy({ _id: incident });
             let project = await ProjectService.findOneBy({ _id: incidentObj.projectId });
             if (project.parentProjectId) {

@@ -9,6 +9,10 @@ export function incidentresolvedbysocket(incident) {
             type: 'INCIDENT_RESOLVED_BY_SOCKET',
             payload: { data: incident }
         });
+        dispatch({
+            type: 'RESOLVE_INCIDENT_SUCCESS',
+            payload: incident
+        });
     };
 }
 
@@ -18,6 +22,10 @@ export function incidentacknowledgedbysocket(incident) {
         dispatch({
             type: 'INCIDENT_ACKNOWLEDGED_BY_SOCKET',
             payload: { data: incident }
+        });
+        dispatch({
+            type: 'ACKNOWLEDGE_INCIDENT_SUCCESS',
+            payload: incident
         });
     };
 }

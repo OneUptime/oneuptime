@@ -248,8 +248,8 @@ router.put('/:projectId/incident/:incidentId', getUser, isAuthorized, async func
         let incident = await IncidentService.findOneBy({ _id: incidentId });
 
         if (incident && incident._id) {
-            const status = (data.internalNote && !incident.internalNote) ||
-                (data.investigationNote && !incident.investigationNote) ?
+            const status = (data.internalNote && (!incident.internalNote || (incident.internalNote && incident.internalNote === ''))) ||
+                (data.investigationNote && (!incident.investigationNote || (incident.investigationNote && incident.investigationNote === ''))) ?
                 `${data.internalNote ? 'internal' : 'investigation'} notes added` :
                 `${data.internalNote ? 'internal' : 'investigation'} notes updated`;
 

@@ -218,7 +218,7 @@ module.exports = {
      * @param {string} name Name of user performing the action.
      * @returns {object} Promise with incident or error.
      */
-    acknowledge: async function (incidentId, userId, name, zapier) {
+    acknowledge: async function (incidentId, userId, name, probeId, zapier) {
         try {
             const _this = this;
             let incident = await _this.findOneBy({ _id: incidentId, acknowledged: false });
@@ -248,6 +248,15 @@ module.exports = {
                 // Ping webhook
                 const monitor = await MonitorService.findOneBy({ _id: incident.monitorId });
                 incident = await _this.findOneBy({ _id: incident._id });
+
+                await IncidentTimelineService.create({
+                    incidentId: incidentId,
+                    createdById: userId,
+                    probeId: probeId,
+                    createdByZapier: zapier,
+                    status: 'acknowledged'
+                });
+
                 await AlertService.sendAcknowledgedIncidentToSubscribers(incident);
 
                 await WebHookService.sendNotification(incident.projectId, incident, monitor, 'acknowledged');
@@ -256,13 +265,6 @@ module.exports = {
             } else {
                 incident = await _this.findOneBy({ _id: incidentId, acknowledged: true });
             }
-
-            await IncidentTimelineService.create({
-                incidentId: incidentId,
-                createdById: userId,
-                createdByZapier: zapier,
-                status: 'acknowledged'
-            });
 
             return incident;
         } catch (error) {
@@ -275,7 +277,7 @@ module.exports = {
     // Params:
     // Param 1: data: {incidentId}
     // Returns: promise with incident or error.
-    resolve: async function (incidentId, userId, name, zapier) {
+    resolve: async function (incidentId, userId, name, probeId, zapier) {
         try {
             const _this = this;
             const data = {};
@@ -294,6 +296,7 @@ module.exports = {
                 await IncidentTimelineService.create({
                     incidentId: incidentId,
                     createdById: userId,
+                    probeId: probeId,
                     createdByZapier: zapier,
                     status: 'acknowledged'
                 });
@@ -307,23 +310,34 @@ module.exports = {
             incident = await _this.findOneBy({ _id: incident._id });
 
             if (incident.probes && incident.probes.length > 0) {
-                incident.probes.map(async probe => {
-                    await MonitorStatusService.create({ monitorId: incident.monitorId._id, probeId: probe.probeId._id, status: 'online' });
+                incident.probes.forEach(async probe => {
+                    await MonitorStatusService.create({
+                        monitorId: incident.monitorId._id,
+                        probeId: probe.probeId._id,
+                        manuallyCreated: userId ? true : false,
+                        status: 'online'
+                    });
                 });
             } else {
-                await MonitorStatusService.create({ monitorId: incident.monitorId._id, status: 'online' });
+                await MonitorStatusService.create({
+                    monitorId: incident.monitorId._id,
+                    probeId,
+                    manuallyCreated: userId ? true : false,
+                    status: 'online'
+                });
             }
-
-            await _this.sendIncidentResolvedNotification(incident, name);
-            await RealTimeService.incidentResolved(incident);
-            await ZapierService.pushToZapier('incident_resolve', incident);
 
             await IncidentTimelineService.create({
                 incidentId: incidentId,
                 createdById: userId,
+                probeId: probeId,
                 createdByZapier: zapier,
                 status: 'resolved'
             });
+
+            await _this.sendIncidentResolvedNotification(incident, name);
+            await RealTimeService.incidentResolved(incident);
+            await ZapierService.pushToZapier('incident_resolve', incident);
 
             return incident;
         } catch (error) {

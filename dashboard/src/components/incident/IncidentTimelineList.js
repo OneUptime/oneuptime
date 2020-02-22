@@ -67,15 +67,20 @@ const IncidentTimelineList = (props) => {
                                                             <img src='/assets/img/robotics.svg' style={{ display: 'inline-block', height: '20px', width: '20px', borderRadius: '50%', margin: '5px 10px -4px 0px', backgroundColor: '#14AAD9' }} alt="" />
                                                             <span>{log.probeId.probeName ? log.probeId.probeName : 'Unknown Probe'}</span>
                                                         </div>
-                                                        :
-                                                        <div
-                                                            className="Box-root Margin-right--16"
-                                                            style={{ cursor: 'pointer' }}
-                                                            onClick={() => { history.push('/profile/' + log.createdById._id) }}
-                                                        >
-                                                            <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
-                                                            <span>{log.createdById.name ? log.createdById.name : 'Unknown User'}</span>
-                                                        </div>
+                                                        : log.createdByZapier ?
+                                                            <div className="Box-root Margin-right--16">
+                                                                <img src='/assets/img/robotics.svg' style={{ display: 'inline-block', height: '20px', width: '20px', borderRadius: '50%', margin: '5px 10px -4px 0px', backgroundColor: '#14AAD9' }} alt="" />
+                                                                <span>Zapier</span>
+                                                            </div>
+                                                            :
+                                                            <div
+                                                                className="Box-root Margin-right--16"
+                                                                style={{ cursor: 'pointer' }}
+                                                                onClick={() => { history.push('/profile/' + log.createdById._id) }}
+                                                            >
+                                                                <img src='/assets/img/profile-user.svg' className="userIcon" alt="" />
+                                                                <span>{log.createdById.name ? log.createdById.name : 'Unknown User'}</span>
+                                                            </div>
                                                     }
                                                 </span>
                                             </div>
@@ -106,28 +111,28 @@ const IncidentTimelineList = (props) => {
                                                         <div className="Box-root Flex-flex">
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                    {log && log.status && log.status === 'closed' ?
+                                                                    {log && log.status && (log.status === 'closed' || log.status === 'offline') ?
                                                                         (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                <span>Closed</span>
+                                                                                <span>{log.status}</span>
                                                                             </span>
                                                                         </div>)
-                                                                        : log && log.status && log.status === 'resolved' ?
+                                                                        : log && log.status && (log.status === 'resolved' || log.status === 'online') ?
                                                                             (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                    <span>Resolved</span>
+                                                                                    <span>{log.status}</span>
                                                                                 </span>
                                                                             </div>)
-                                                                            : log && log.status && log.status === 'acknowledged' ?
+                                                                            : log && log.status && (log.status === 'acknowledged' || log.status === 'degraded') ?
                                                                                 (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                     <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>Acknowledged</span>
+                                                                                        <span>{log.status}</span>
                                                                                     </span>
                                                                                 </div>)
-                                                                                : log && log.status && log.status === 'created' ?
+                                                                                : log && log.status && (log.status === 'created' || log.status === 'internal notes added' || log.status === 'investigation notes added') ?
                                                                                     (<div className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--blue Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                            <span>Created</span>
+                                                                                            <span>{log.status}</span>
                                                                                         </span>
                                                                                     </div>)
                                                                                     : log && log.status && (log.status === 'internal notes updated' || log.status === 'investigation notes updated') ?
@@ -136,18 +141,12 @@ const IncidentTimelineList = (props) => {
                                                                                                 <span>{log.status}</span>
                                                                                             </span>
                                                                                         </div>)
-                                                                                        : log && log.status && (log.status === 'internal notes added' || log.status === 'investigation notes added') ?
-                                                                                            (<div className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                                <span className="Badge-text Text-color--blue Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                                    <span>{log.status}</span>
-                                                                                                </span>
-                                                                                            </div>)
-                                                                                            :
-                                                                                            (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                                    <span>Unknown Status</span>
-                                                                                                </span>
-                                                                                            </div>)
+                                                                                        :
+                                                                                        (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>{log.status || 'Unknown Status'}</span>
+                                                                                            </span>
+                                                                                        </div>)
                                                                     }
                                                                 </div>
                                                             </div>
