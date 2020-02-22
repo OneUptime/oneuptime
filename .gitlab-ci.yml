@@ -566,9 +566,9 @@ version_update:
   before_script:
     - cd ..
     - rm -rf app
-    - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipeproject/app.git
+    - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
     - cd app
-    - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipeproject/app.git
+    - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
   stage: VersionUpdate
   script:
     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
@@ -1044,7 +1044,7 @@ deploy_staging_server-monitor:
     - cd server-monitor
     - sudo npm install -g json
     - git checkout $CI_COMMIT_REF_NAME
-    - git pull https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipeproject/app
+    - git pull https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
     - json -I -f package.json -e 'this.name="fyipe-server-monitor-staging"'
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
     - npm publish
