@@ -163,12 +163,9 @@ spec:
             - name: JWT_SECRET
               value: "idfn3873458973457453"
             - name: MONGO_URL
-              value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
+              value: "mongodb://mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0"
             - name: REDIS_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: redis-host
-                  key: REDIS_HOST
+              value: "redis-0.redis.default.svc.cluster.local"
             - name: REDIS_PORT
               value: "6379"
             - name: STRIPE_PUBLIC_KEY
@@ -642,168 +639,187 @@ spec:
           imagePullPolicy: Always
           env:
             - name: MONGO_URL
-              value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=fyipe"
+              value: "mongodb://mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0"
       restartPolicy: Never
 
 ---
 ###########################
 
 
-########-MONGODB-##########
+############-MONGO DB-##############
+
+# IMPORTANT: Inspiration from: https://github.com/Fyipe/k8s-mongo-sidecar
+# Replicasets are configured automatically. 
+# You DO NEED to get into a mongo container to configre them. 
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mongo
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: pod-service-endpoint-reader
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - services
+      - endpoints
+    verbs:
+      - get
+      - list
+      - watch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: system:serviceaccount:default:mongo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pod-service-endpoint-reader
+subjects:
+  - kind: ServiceAccount
+    name: mongo
+    namespace: default
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongo-headless
+  name: mongo
   labels:
-    name: mongo-headless
+    name: mongo
 spec:
   ports:
-    - port: 27017
-      targetPort: 27017
+  - port: 27017
+    targetPort: 27017
   clusterIP: None
   selector:
     role: mongo
 ---
-
-# stateful set config for mongo
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongo
 spec:
-  serviceName: "mongo-headless"
+  serviceName: "mongo"
   replicas: 3
+  selector:
+    matchLabels:
+      role: mongo
   template:
     metadata:
       labels:
         role: mongo
-        environment: production
+        environment: test #Apparently setting this to any other var makes mongo-sidecar fail.
     spec:
-      terminationGracePeriodSeconds: 10
+      serviceAccountName: mongo
+      automountServiceAccountToken: true
+      terminationGracePeriodSeconds: 30
       containers:
         - name: mongo
-          image: mongo:4.0
-          command: ["/bin/sh", "-c"]
+          image: mongo:4
+          command:
+            - mongod
           args:
-            [
-              "echo 2J2W5Jm7G38y169r8s5T1dW > mongo.key; chmod 600 mongo.key; mongod --replSet fyipe --keyFile mongo.key --smallfiles --noprealloc --bind_ip_all",
-            ]
+            - "--replSet=rs0"
+            - "--bind_ip=0.0.0.0"
           ports:
             - containerPort: 27017
           volumeMounts:
-            - name: persistent-storage
+            - name: mongo-persistent-storage
               mountPath: /data/db
+        - name: mongo-sidecar
+          image: morphy/k8s-mongo-sidecar
+          env:
+            - name: KUBERNETES_POD_LABELS
+              value: "role=mongo,environment=test"
+            - name: KUBERNETES_SERVICE_NAME
+              value: "mongo"
   volumeClaimTemplates:
-    - metadata:
-        name: persistent-storage
-        annotations:
-          volume.beta.kubernetes.io/storage-class: productiondata
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 900Gi
+  - metadata:
+      name: mongo-persistent-storage
+    spec:
+      storageClassName: fast
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 900Gi
 ---
-kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
-metadata:
-  name: productiondata
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-ssd
-reclaimPolicy: Retain
----
-###########################
+#
+#Important: Storage Class for Azure, AWS can be found here. 
+#https://github.com/Fyipe/k8s-mongo-sidecar/tree/master/example
+#
+##################################
 
 
-########-REDIS-############
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis
-spec:
-  type: ClusterIP
-  ports:
-    - port: 6379
-      targetPort: 6379
-      name: client
-    - port: 16379
-      targetPort: 16379
-      name: gossip
-  selector:
-    app: redis
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: redis
-data:
-  update-node.sh: |
-    #!/bin/sh
-    REDIS_NODES="/data/nodes.conf"
-    sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
-    exec "$@"
-  redis.conf: |+
-    cluster-enabled yes
-    cluster-require-full-coverage no
-    cluster-node-timeout 15000
-    cluster-config-file /data/nodes.conf
-    cluster-migration-barrier 1
-    appendonly yes
-    protected-mode no
----
-apiVersion: apps/v1
+############-REDIS-###############
+apiVersion: apps/v1 
 kind: StatefulSet
 metadata:
   name: redis
+  labels:
+    app: redis
 spec:
-  serviceName: redis
-  replicas: 3
+  serviceName: "redis"
   selector:
     matchLabels:
       app: redis
+      role: master
+      tier: backend
+  replicas: 1 #Strictly 1. We're not forming a cluster. 
   template:
     metadata:
       labels:
         app: redis
+        role: master
+        tier: backend
     spec:
       containers:
-        - name: redis
-          image: redis:5.0.7
-          ports:
-            - containerPort: 6379
-              name: client
-            - containerPort: 16379
-              name: gossip
-          command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-          volumeMounts:
-            - name: conf
-              mountPath: /conf
-              readOnly: false
+      - name: master
+        image: redis
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - containerPort: 6379
+        volumeMounts:
             - name: data
               mountPath: /data
               readOnly: false
-      volumes:
-        - name: conf
-          configMap:
-            name: redis
-            defaultMode: 0755
   volumeClaimTemplates:
-    - metadata:
-        name: data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 1Gi
+  - metadata:
+      name: data
+    spec:
+      storageClassName: fast
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi
 ---
-###########################
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: redis
+    role: master
+    tier: backend
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: redis
+    role: master
+    tier: backend
+---
+#########################################
 
 
 ########-MONGO=BACKUP-PRIMARY-############
@@ -842,10 +858,6 @@ spec:
           env:
             - name: MAX_BACKUPS
               value: "15"
-            - name: MONGODB_USER
-              value: "admin"
-            - name: MONGODB_PASS
-              value: "372b60f4-704c-4205-8e5c-45cdbf44b1fc"
             - name: MONGODB_HOST
               value: "mongo-0.mongo-headless.default.svc.cluster.local"
             - name: MONGODB_PORT
@@ -908,10 +920,6 @@ spec:
           env:
             - name: MAX_BACKUPS
               value: "15"
-            - name: MONGODB_USER
-              value: "admin"
-            - name: MONGODB_PASS
-              value: "372b60f4-704c-4205-8e5c-45cdbf44b1fc"
             - name: MONGODB_HOST
               value: "mongo-0.mongo-headless.default.svc.cluster.local"
             - name: MONGODB_PORT
