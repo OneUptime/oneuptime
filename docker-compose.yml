@@ -19,7 +19,7 @@ services:
       - "3002:3002"
     build: ./backend
     env_file: 
-      - ./backend/.env.development
+      - ./backend/.env
     environment: 
       - MONGO_URL=mongodb://mongo:27017/fyipedb
       - REDIS_HOST=redis
