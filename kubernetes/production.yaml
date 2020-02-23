@@ -42,7 +42,7 @@ spec:
             - name: STRIPE_PUBLIC_KEY
               value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
             - name: AMPLITUDE_PUBLIC_KEY
-              value: "cb70632f45c1ca7fe6180812c0d6494a"
+              value: "802d95003af23aad17ed068b6cfdeb2b"
           ports:
             - containerPort: 3000
               hostPort: 3000
@@ -106,7 +106,7 @@ spec:
             - name: STRIPE_PUBLIC_KEY
               value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
             - name: AMPLITUDE_PUBLIC_KEY
-              value: "cb70632f45c1ca7fe6180812c0d6494a"
+              value: "802d95003af23aad17ed068b6cfdeb2b"
           ports:
             - containerPort: 3003
               hostPort: 3003
