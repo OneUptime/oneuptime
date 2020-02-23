@@ -4,6 +4,7 @@ const app = express();
 const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {
+    // Load env vars from /backend/.env 
     require('custom-env').env();
 }
 
