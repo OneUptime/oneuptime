@@ -38,7 +38,7 @@ spec:
             - name: STRIPE_PUBLIC_KEY
               value: "pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv"
             - name: AMPLITUDE_PUBLIC_KEY
-              value: "cb70632f45c1ca7fe6180812c0d6494a"
+              value: "4b76c47248f969446af69dfdbf687d90"
           ports:
             - containerPort: 3000
               hostPort: 3000
@@ -100,7 +100,7 @@ spec:
             - name: STRIPE_PUBLIC_KEY
               value: "pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv"
             - name: AMPLITUDE_PUBLIC_KEY
-              value: "cb70632f45c1ca7fe6180812c0d6494a"
+              value: "4b76c47248f969446af69dfdbf687d90"
           ports:
             - containerPort: 3003
               hostPort: 3003
