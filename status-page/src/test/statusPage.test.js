@@ -1,5 +1,5 @@
 // Load env vars from the backend. 
-require('custom-env').env(null, '../../../backend');
+require('custom-env').env(null, '../backend');
 
 var puppeteer = require('puppeteer');
 var expect = require('chai').expect;
