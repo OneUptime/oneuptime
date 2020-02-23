@@ -726,11 +726,19 @@ spec:
   - metadata:
       name: mongo-persistent-storage
     spec:
-      storageClassName: fast
+      storageClassName: mongo
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
           storage: 900Gi
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: mongo
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
 ---
 #
 #Important: Storage Class for Azure, AWS can be found here. 
@@ -778,7 +786,7 @@ spec:
   - metadata:
       name: data
     spec:
-      storageClassName: fast
+      storageClassName: redis
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
@@ -800,6 +808,14 @@ spec:
     app: redis
     role: master
     tier: backend
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: redis
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
 ---
 #########################################
 
