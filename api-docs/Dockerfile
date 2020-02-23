@@ -1,5 +1,5 @@
 # Pull base image nodejs image.
-FROM node:10
+FROM node:12.16.1
 
 RUN mkdir -p /usr/src/app
 
