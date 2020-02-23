@@ -29,7 +29,6 @@ module.exports = {
             const userModel = new UserModel();
             userModel.name = data.name || null;
             userModel.email = data.email || null;
-            userModel.password = data.password || null;
             userModel.companyName = data.companyName || null;
             userModel.companyRole = data.companyRole || null;
             userModel.companySize = data.companySize || null;
@@ -37,7 +36,6 @@ module.exports = {
             userModel.companyPhoneNumber = data.companyPhoneNumber || null;
             userModel.onCallAlert = data.onCallAlert || null;
             userModel.profilePic = data.profilePic || null;
-            userModel.jwtRefreshToken = data.jwtRefreshToken || null;
             userModel.stripeCustomerId = data.stripeCustomerId || null;
             userModel.resetPasswordToken = data.resetPasswordToken || null;
             userModel.resetPasswordExpires = data.resetPasswordExpires || null;
@@ -50,6 +48,10 @@ module.exports = {
             userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
             userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
             userModel.otpauth_url = data.otpauth_url || null;
+            const hash = await bcrypt.hash(data.password, constants.saltRounds);
+
+            userModel.password = hash;
+            userModel.jwtRefreshToken = randToken.uid(256);
 
             const user = await userModel.save();
             return user;
@@ -226,11 +228,6 @@ module.exports = {
                     }
                     const customerId = processedPaymentIntent.customer;
 
-                    const hash = await bcrypt.hash(data.password, constants.saltRounds);
-
-                    data.password = hash;
-                    // creating jwt refresh token
-                    data.jwtRefreshToken = randToken.uid(256);
                     //save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
 
