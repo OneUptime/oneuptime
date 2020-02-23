@@ -10,6 +10,9 @@ module.exports = {
     //Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
     //Returns: promise
     logUser: function ({ name, email, phone, company, jobRole, createdAt }) {
+        if(!apiKeys.airtableApiKey || !apiKeys.airtableBaseId)
+            return;
+
         return base('User').create({
             'Name': name,
             'Email': email,
@@ -21,6 +24,9 @@ module.exports = {
     },
 
     deleteUser: function (airtableId) {
+        if(!apiKeys.airtableApiKey || !apiKeys.airtableBaseId)
+            return;
+
         return base('User').destroy(airtableId);
     },
 
@@ -29,6 +35,9 @@ module.exports = {
     //Param 1: data: Feedback data (message, name, email, project, page).
     //Returns: promise
     logFeedback: function ({ message, name, email, project, page }) {
+        if(!apiKeys.airtableApiKey || !apiKeys.airtableBaseId)
+            return;
+
         return base('Feedback').create({
             'Feedback Text': message,
             'User Full Name': name,
@@ -39,6 +48,13 @@ module.exports = {
     },
 
     deleteFeedback: function (airtableId) {
+        if(!apiKeys.airtableApiKey || !apiKeys.airtableBaseId)
+            return;
+
+        if(!airtableId){
+            return;
+        }
+
         return base('Feedback').destroy(airtableId);
     }
 };

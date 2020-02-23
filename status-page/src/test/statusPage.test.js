@@ -1,3 +1,4 @@
+process.env.MONGO_URL = 'mongodb://localhost/fyipedb'
 var puppeteer = require('puppeteer');
 var expect = require('chai').expect;
 var chai = require('chai');
