@@ -1,7 +1,7 @@
 const express = require('express');
 const UserService = require('../services/userService');
 const ProjectService = require('../services/projectService');
-const jwtKey = require('../config/keys');
+const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const MailService = require('../services/mailService');
@@ -229,7 +229,7 @@ router.post('/login', async function (req, res) {
                 tokens: {
                     jwtAccessToken: `${jwt.sign({
                         id: user._id
-                    }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                    }, jwtSecretKey, { expiresIn: 8640000 })}`,
                     jwtRefreshToken: user.jwtRefreshToken,
                 },
                 role: user.role || null
@@ -285,7 +285,7 @@ router.post('/totp/verifyToken', async function (req, res) {
             tokens: {
                 jwtAccessToken: `${jwt.sign({
                     id: user._id
-                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                }, jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
             tempEmail:user.tempEmail || null,
@@ -343,7 +343,7 @@ router.post('/verify/backupCode', async function (req, res) {
             tokens: {
                 jwtAccessToken: `${jwt.sign({
                     id: user._id
-                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                }, jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
             tempEmail:user.tempEmail || null,
@@ -657,7 +657,7 @@ router.put('/changePassword', getUser, async function (req, res) {
             tokens: {
                 jwtAccessToken: `${jwt.sign({
                     id: user._id
-                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                }, jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
         };
@@ -703,7 +703,7 @@ router.get('/profile', getUser, async function (req, res) {
             tokens: {
                 jwtAccessToken: `${jwt.sign({
                     id: user._id
-                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                }, jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
             tempEmail:user.tempEmail || null,

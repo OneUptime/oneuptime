@@ -1,4 +1,4 @@
-process.env.MONGO_URL = 'mongodb://localhost/fyipedb'
+require('custom-env').env(null, '../../../backend');
 var puppeteer = require('puppeteer');
 var expect = require('chai').expect;
 var chai = require('chai');

@@ -24,13 +24,12 @@ const path = require('path');
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const redisAdapter = require('socket.io-redis');
-const keys = require('./backend/config/keys.js');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
 io.adapter(redisAdapter({
-    host: keys.redisURL || 'localhost',
-    port: process.env.REDIS_PORT || 6379
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT
 }));
 
 global.io = io;

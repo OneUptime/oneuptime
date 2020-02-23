@@ -1,11 +1,10 @@
 const rateLimit = require('express-rate-limit');
 const redisStore = require('rate-limit-redis');
-const keys = require('../config/keys.js');
 const { RATE_LIMITTER_TIME_PERIOD_IN_MS, RATE_LIMITTER_REQUEST_LIMIT } = process.env;
 
 const limiter = rateLimit({
     store: new redisStore({
-        redisURL: `//${keys.redisURL || 'localhost'}`,
+        redisURL: `//${process.env['REDIS_HOST']}`,
         expiry: Number(RATE_LIMITTER_TIME_PERIOD_IN_MS) / 1000, // convert to seconds, same as windowMs
     }),
     max: Number(RATE_LIMITTER_REQUEST_LIMIT),
