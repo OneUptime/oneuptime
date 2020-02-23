@@ -51,7 +51,7 @@ const userSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ['master-admin']
+        enum: ['master-admin', 'user']
     },
     isBlocked: {
         type: Boolean,

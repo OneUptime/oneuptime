@@ -29,6 +29,7 @@ module.exports = {
             const userModel = new UserModel();
             userModel.name = data.name || null;
             userModel.email = data.email || null;
+            userModel.role = data.role || 'user';
             userModel.companyName = data.companyName || null;
             userModel.companyRole = data.companyRole || null;
             userModel.companySize = data.companySize || null;

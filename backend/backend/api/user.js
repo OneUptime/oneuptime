@@ -25,6 +25,10 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 router.post('/signup', async function (req, res) {
     try {
         const data = req.body;
+
+        //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API. 
+        delete data.role;
+
         if (!data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
