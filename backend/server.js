@@ -9,6 +9,15 @@ try {
         require('custom-env').env(process.env.NODE_ENV || 'development');
     }
 
+    process.on('exit', () => {
+        console.log("Server Shutdown");
+    });
+    
+    process.on('uncaughtException', (err) => {
+        console.log('uncaught exception occurred');
+        console.log(err);
+    });
+
     const path = require('path');
     const http = require('http').createServer(app);
     const io = require('socket.io')(http);
