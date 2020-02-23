@@ -163,7 +163,7 @@ spec:
             - name: JWT_SECRET
               value: "idfn3873458973457453"
             - name: MONGO_URL
-              value: "mongodb://mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0"
+              value: "mongodb://mongo-0.mongo.default.svc.cluster.local:27017,mongo-1.mongo.default.svc.cluster.local:27017,mongo-2.mongo.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0"
             - name: REDIS_HOST
               value: "redis-0.redis.default.svc.cluster.local"
             - name: REDIS_PORT
@@ -639,7 +639,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: MONGO_URL
-              value: "mongodb://mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0"
+              value: "mongodb://mongo-0.mongo.default.svc.cluster.local:27017,mongo-1.mongo.default.svc.cluster.local:27017,mongo-2.mongo.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0"
       restartPolicy: Never
 
 ---
@@ -859,7 +859,7 @@ spec:
             - name: MAX_BACKUPS
               value: "15"
             - name: MONGODB_HOST
-              value: "mongo-0.mongo-headless.default.svc.cluster.local"
+              value: "mongo-0.mongo.default.svc.cluster.local"
             - name: MONGODB_PORT
               value: "27017"
           volumeMounts:
@@ -921,7 +921,7 @@ spec:
             - name: MAX_BACKUPS
               value: "15"
             - name: MONGODB_HOST
-              value: "mongo-0.mongo-headless.default.svc.cluster.local"
+              value: "mongo-0.mongo.default.svc.cluster.local"
             - name: MONGODB_PORT
               value: "27017"
           volumeMounts:
