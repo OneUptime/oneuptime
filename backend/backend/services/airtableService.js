@@ -60,7 +60,7 @@ module.exports = {
 };
 
 const Airtable = require('airtable');
-const AirtableApiKey = process.env.process.env['AIRTABLE_API_KEY'];
+const AirtableApiKey = process.env['AIRTABLE_API_KEY'];
 const AirtableBaseId = process.env['AIRTABLE_BASE_ID'];
 let base = null;
 if(AirtableApiKey && AirtableBaseId)
