@@ -111,20 +111,20 @@ router.post('/webHook/pi', async function(req, res) {
                 endpointSecret
             );
             switch (event.type) {
-                case 'payment_intent.succeeded':
-                    paymentIntentData = event.data.object;
-                    if (paymentIntentData.description === 'Recharge balance') {
-                        status = await StripeService.updateBalance(
-                            paymentIntentData
-                        );
-                        return sendItemResponse(req, res, status);
-                    }
-                    return sendItemResponse(req, res, false);
-                default:
-                    return sendErrorResponse(req, res, {
-                        message: 'Invalid event',
-                        code: 400,
-                    });
+            case 'payment_intent.succeeded':
+                paymentIntentData = event.data.object;
+                if (paymentIntentData.description === 'Recharge balance') {
+                    status = await StripeService.updateBalance(
+                        paymentIntentData
+                    );
+                    return sendItemResponse(req, res, status);
+                }
+                return sendItemResponse(req, res, false);
+            default:
+                return sendErrorResponse(req, res, {
+                    message: 'Invalid event',
+                    code: 400,
+                });
             }
         } else {
             paymentIntentData = req.body.data.object;
