@@ -40,8 +40,8 @@ describe('Lead API', function () {
             if(emailStatuses[0].subject.includes('New Lead')){
                 expect(emailStatuses[0].subject).to.equal('New Lead Added' );
                 expect(emailStatuses[0].status).to.equal('Email not enabled.');
-                expect(emailStatuses[0].subject).to.equal('Thank you for your demo request.');
-                expect(emailStatuses[0].status).to.equal('Email not enabled.');
+                expect(emailStatuses[1].subject).to.equal('Thank you for your demo request.');
+                expect(emailStatuses[1].status).to.equal('Email not enabled.');
             }else{
                 expect(emailStatuses[0].subject).to.equal('Thank you for your demo request.');
                 expect(emailStatuses[0].status).to.equal('Email not enabled.');
