@@ -20,7 +20,7 @@ const leadData = {
     type: 'demo'
 };
 
-describe.only('Lead API', function () {
+describe('Lead API', function () {
     this.timeout(20000);
 
     it('should add lead when requested for type demo or whitepaper', function (done) {

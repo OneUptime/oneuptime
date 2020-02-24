@@ -84,7 +84,7 @@
     "babel-runtime": "^6.26.0",
     "depcheck": "^0.9.2",
     "jest-localstorage-mock": "^2.2.0",
-    "npm-audit-ci-wrapper": "^2.4.1",
+    "npm-audit-ci-wrapper": "^2.4.3",
     "redux-logger": "^3.0.6",
     "redux-mock-store": "^1.5.3"
   },
