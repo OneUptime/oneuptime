@@ -3,7 +3,7 @@
 # https://github.com/haraka/Haraka/blob/master/Dockerfile 
 ##
 
-FROM node:12.16.1
+FROM node:12.16.1-alpine
 
 #set language enviroments
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \

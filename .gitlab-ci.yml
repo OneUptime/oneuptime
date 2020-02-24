@@ -555,7 +555,6 @@ e2e_test:
     - cd smoke-test
     - npm ci
     - npm run test
-
   only:
     refs:
       - release
