@@ -29,7 +29,7 @@ module.exports = {
             const userModel = new UserModel();
             userModel.name = data.name || null;
             userModel.email = data.email || null;
-            userModel.password = data.password || null;
+            userModel.role = data.role || 'user';
             userModel.companyName = data.companyName || null;
             userModel.companyRole = data.companyRole || null;
             userModel.companySize = data.companySize || null;
@@ -37,7 +37,6 @@ module.exports = {
             userModel.companyPhoneNumber = data.companyPhoneNumber || null;
             userModel.onCallAlert = data.onCallAlert || null;
             userModel.profilePic = data.profilePic || null;
-            userModel.jwtRefreshToken = data.jwtRefreshToken || null;
             userModel.stripeCustomerId = data.stripeCustomerId || null;
             userModel.resetPasswordToken = data.resetPasswordToken || null;
             userModel.resetPasswordExpires = data.resetPasswordExpires || null;
@@ -50,6 +49,10 @@ module.exports = {
             userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
             userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
             userModel.otpauth_url = data.otpauth_url || null;
+            const hash = await bcrypt.hash(data.password, constants.saltRounds);
+
+            userModel.password = hash;
+            userModel.jwtRefreshToken = randToken.uid(256);
 
             const user = await userModel.save();
             return user;
@@ -226,11 +229,6 @@ module.exports = {
                     }
                     const customerId = processedPaymentIntent.customer;
 
-                    const hash = await bcrypt.hash(data.password, constants.saltRounds);
-
-                    data.password = hash;
-                    // creating jwt refresh token
-                    data.jwtRefreshToken = randToken.uid(256);
                     //save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
 
@@ -526,7 +524,7 @@ module.exports = {
             } else {
                 const userObj = { id: user._id };
 
-                const accessToken = `${jwt.sign(userObj, jwtKey.jwtSecretKey, { expiresIn: 86400 })}`;
+                const accessToken = `${jwt.sign(userObj, jwtSecretKey, { expiresIn: 86400 })}`;
                 const jwtRefreshToken = randToken.uid(256);
 
                 user = await _this.updateOneBy({ _id: user._id }, { jwtRefreshToken: jwtRefreshToken });
@@ -670,7 +668,7 @@ module.exports = {
     getAccessToken: function({userId, expiresIn}){
         return jwt.sign({
             id: userId
-        }, jwtKey.jwtSecretKey, { expiresIn: expiresIn});
+        }, jwtSecretKey, { expiresIn: expiresIn});
     }
 
 };
@@ -687,7 +685,7 @@ const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const jwt = require('jsonwebtoken');
 const iplocation = require('iplocation').default;
-const jwtKey = require('../config/keys');
+const jwtSecretKey = process.env['JWT_SECRET'];
 const { BACKEND_HOST, NODE_ENV } = process.env;
 const VerificationTokenModel = require('../models/verificationToken');
 const MailService = require('../services/mailService');

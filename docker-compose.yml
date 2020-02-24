@@ -2,7 +2,7 @@ version: "3.7"
 services:
   
   mongo:
-      image: mongo:4.0
+      image: mongo:3.6
       ports:
         - "27017:27017"
       volumes:
@@ -19,7 +19,7 @@ services:
       - "3002:3002"
     build: ./backend
     env_file: 
-      - ./backend/.env.development
+      - ./backend/.env
     environment: 
       - MONGO_URL=mongodb://mongo:27017/fyipedb
       - REDIS_HOST=redis

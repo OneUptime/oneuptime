@@ -1,6 +1,6 @@
 {
   "name": "fyipe-backend",
-  "version": "3.0.1729",
+  "version": "3.0.1797",
   "private": true,
   "dependencies": {
     "@slack/client": "^4.12.0",
@@ -34,6 +34,7 @@
     "nodemailer-express-handlebars": "^3.1.0",
     "otplib": "^12.0.0",
     "rand-token": "^0.4.0",
+    "rate-limit-redis": "^1.7.0",
     "slugify": "^1.3.1",
     "socket.io": "^2.3.0",
     "socket.io-redis": "^5.2.0",

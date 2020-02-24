@@ -1,3 +1,6 @@
+// Load env vars from the backend. 
+require('custom-env').env(null, '../backend');
+
 var puppeteer = require('puppeteer');
 var expect = require('chai').expect;
 var chai = require('chai');
@@ -16,9 +19,7 @@ var monitor = testData.monitor;
 var monitorCategory = testData.monitorCategory;
 var statusPage = testData.statusPage;
 
-
 var browser, page, statusPageURL;
-
 
 describe('Status page monitors check', function () {
     this.timeout(30000);
