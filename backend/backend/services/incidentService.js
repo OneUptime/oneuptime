@@ -68,7 +68,7 @@ module.exports = {
                     incidentId: incident._id,
                     createdById: data.createdById,
                     probeId: data.probeId,
-                    status: 'created'
+                    status: data.incidentType
                 });
 
                 return incident;

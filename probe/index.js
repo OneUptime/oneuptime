@@ -6,6 +6,8 @@ const Main = require('./workers/main');
 const cron = require('node-cron');
 const config = require('./utils/config');
 
+const cronMinuteStartTime = Math.floor(Math.random() * 50);
+
 app.use(cors());
 app.set('port', process.env.PORT || 3008);
 
@@ -24,6 +26,10 @@ app.get('/', function (req, res) {
 });
 
 // This cron runs every minute
-cron.schedule('* * * * *',() =>{Main.runJob();});
+cron.schedule('* * * * *', () => {
+    setTimeout(() => {
+        Main.runJob();
+    }, cronMinuteStartTime * 1000);
+});
 
 module.exports = app;

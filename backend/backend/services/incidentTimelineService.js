@@ -75,7 +75,7 @@ module.exports = {
             }
 
             const incidentTimelines = await IncidentTimelineModel.find(query)
-                .sort([['createdAt', -1]])
+                .sort([['createdAt', 1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('createdById', 'name')
