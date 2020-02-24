@@ -1,7 +1,7 @@
 const express = require('express');
 const UserService = require('../services/userService');
 const ProjectService = require('../services/projectService');
-const jwtKey = require('../config/keys');
+const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const MailService = require('../services/mailService');
@@ -25,6 +25,10 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 router.post('/signup', async function (req, res) {
     try {
         const data = req.body;
+
+        //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API. 
+        delete data.role;
+
         if (!data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -225,7 +229,7 @@ router.post('/login', async function (req, res) {
                 tokens: {
                     jwtAccessToken: `${jwt.sign({
                         id: user._id
-                    }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                    }, jwtSecretKey, { expiresIn: 8640000 })}`,
                     jwtRefreshToken: user.jwtRefreshToken,
                 },
                 role: user.role || null
@@ -281,7 +285,7 @@ router.post('/totp/verifyToken', async function (req, res) {
             tokens: {
                 jwtAccessToken: `${jwt.sign({
                     id: user._id
-                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                }, jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
             tempEmail:user.tempEmail || null,
@@ -339,7 +343,7 @@ router.post('/verify/backupCode', async function (req, res) {
             tokens: {
                 jwtAccessToken: `${jwt.sign({
                     id: user._id
-                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                }, jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
             tempEmail:user.tempEmail || null,
@@ -653,7 +657,7 @@ router.put('/changePassword', getUser, async function (req, res) {
             tokens: {
                 jwtAccessToken: `${jwt.sign({
                     id: user._id
-                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                }, jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
         };
@@ -699,7 +703,7 @@ router.get('/profile', getUser, async function (req, res) {
             tokens: {
                 jwtAccessToken: `${jwt.sign({
                     id: user._id
-                }, jwtKey.jwtSecretKey, { expiresIn: 8640000 })}`,
+                }, jwtSecretKey, { expiresIn: 8640000 })}`,
                 jwtRefreshToken: user.jwtRefreshToken,
             },
             tempEmail:user.tempEmail || null,

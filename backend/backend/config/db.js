@@ -6,9 +6,8 @@
 
 
 const mongoose = require('mongoose');
-const keys = require('./keys.js');
-
-mongoose.connect(keys.dbURL,{
+const mongoUrl = process.env['MONGO_URL'];
+mongoose.connect(mongoUrl,{
     'useUnifiedTopology': true, 
     'useCreateIndex': true, 
     'useNewUrlParser': true

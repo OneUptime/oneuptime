@@ -29,6 +29,7 @@ module.exports = {
             const userModel = new UserModel();
             userModel.name = data.name || null;
             userModel.email = data.email || null;
+            userModel.role = data.role || 'user';
             userModel.companyName = data.companyName || null;
             userModel.companyRole = data.companyRole || null;
             userModel.companySize = data.companySize || null;
@@ -523,7 +524,7 @@ module.exports = {
             } else {
                 const userObj = { id: user._id };
 
-                const accessToken = `${jwt.sign(userObj, jwtKey.jwtSecretKey, { expiresIn: 86400 })}`;
+                const accessToken = `${jwt.sign(userObj, jwtSecretKey, { expiresIn: 86400 })}`;
                 const jwtRefreshToken = randToken.uid(256);
 
                 user = await _this.updateOneBy({ _id: user._id }, { jwtRefreshToken: jwtRefreshToken });
@@ -667,7 +668,7 @@ module.exports = {
     getAccessToken: function({userId, expiresIn}){
         return jwt.sign({
             id: userId
-        }, jwtKey.jwtSecretKey, { expiresIn: expiresIn});
+        }, jwtSecretKey, { expiresIn: expiresIn});
     }
 
 };
@@ -684,7 +685,7 @@ const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const jwt = require('jsonwebtoken');
 const iplocation = require('iplocation').default;
-const jwtKey = require('../config/keys');
+const jwtSecretKey = process.env['JWT_SECRET'];
 const { BACKEND_HOST, NODE_ENV } = process.env;
 const VerificationTokenModel = require('../models/verificationToken');
 const MailService = require('../services/mailService');

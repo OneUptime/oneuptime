@@ -4,7 +4,7 @@
  *
  */
 
-const jwtKey = require('../config/keys');
+const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const url = require('url');
 const UserService = require('../services/userService');
@@ -43,7 +43,7 @@ module.exports = {
             const token = accessToken.split(' ')[1] || accessToken;
 
             //Decode the token
-            jwt.verify(token, jwtKey.jwtSecretKey, (err, decoded) => {
+            jwt.verify(token, jwtSecretKey, (err, decoded) => {
                 if (err) {
                     return sendErrorResponse(req, res, {
                         code: 401,
@@ -87,7 +87,7 @@ module.exports = {
                 const token = accessToken.split(' ')[1] || accessToken;
 
                 //Decode the token
-                jwt.verify(token, jwtKey.jwtSecretKey, (err, decoded) => {
+                jwt.verify(token, jwtSecretKey, (err, decoded) => {
                     if (err) {
                         return sendErrorResponse(req, res, {
                             code: 401,
@@ -121,7 +121,7 @@ module.exports = {
                     });
                 }
                 const token = accessToken.split(' ')[1] || accessToken;
-                jwt.verify(token, jwtKey.jwtSecretKey, async (err, decoded) => {
+                jwt.verify(token, jwtSecretKey, async (err, decoded) => {
                     if (err) {
                         return sendErrorResponse(req, res, {
                             code: 401,
