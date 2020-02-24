@@ -8,10 +8,12 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function (user, page) {
+    registerUser: async function(user, page) {
         const { email } = user;
         let frame, elementHandle;
-        await page.goto(utils.ACCOUNTS_URL + '/register', { waitUntil: 'networkidle2' });
+        await page.goto(utils.ACCOUNTS_URL + '/register', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
@@ -39,21 +41,21 @@ module.exports = {
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=cardnumber]');
         await frame.type('input[name=cardnumber]', '42424242424242424242', {
-            delay: 50
+            delay: 50,
         });
 
         elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=cvc]');
         await frame.type('input[name=cvc]', '123', {
-            delay: 50
+            delay: 50,
         });
 
         elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=exp-date]');
         await frame.type('input[name=exp-date]', '11/23', {
-            delay: 50
+            delay: 50,
         });
         await page.click('input[name=address1]');
         await page.type('input[name=address1]', utils.user.address.streetA);
@@ -65,13 +67,15 @@ module.exports = {
         await page.type('input[name=state]', utils.user.address.state);
         await page.click('input[name=zipCode]');
         await page.type('input[name=zipCode]', utils.user.address.zipcode);
-        await page.select('#country', 'India')
+        await page.select('#country', 'India');
         await page.click('button[type=submit]');
         await page.waitFor(25000);
     },
-    loginUser: async function (user, page) {
+    loginUser: async function(user, page) {
         const { email, password } = user;
-        await page.goto(utils.ACCOUNTS_URL + '/login', { waitUntil: 'networkidle2' });
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
@@ -81,7 +85,7 @@ module.exports = {
         await page.waitFor(15000);
         // await page.screenshot({path: 'screenshot-login.png'});
     },
-    addSchedule: async function (callSchedule, page) {
+    addSchedule: async function(callSchedule, page) {
         await page.waitForSelector('#callSchedules');
         await page.click('#callSchedules');
         await page.evaluate(() => {
@@ -93,7 +97,7 @@ module.exports = {
         await page.waitFor(2000);
         // await page.screenshot({path: 'screenshot-addSchedule.png'});
     },
-    addSubProject: async function (subProjectName, page) {
+    addSubProject: async function(subProjectName, page) {
         const subProjectNameSelector = await page.$('#btn_Add_SubProjects');
         if (subProjectNameSelector) {
             await page.waitForSelector('#btn_Add_SubProjects');
@@ -113,7 +117,7 @@ module.exports = {
         await page.waitFor(5000);
         // await page.screenshot({ path: 'screenshot-addSubProject.png' });
     },
-    addUserToProject: async function (data, page) {
+    addUserToProject: async function(data, page) {
         const { email, role, subProjectName } = data;
         await page.waitForSelector('#teamMembers');
         await page.click('#teamMembers');
@@ -127,17 +131,19 @@ module.exports = {
         await page.waitFor(10000);
         // await page.screenshot({ path: 'screenshot-addUserToProject.png' });
     },
-    switchProject: async function (projectName, page) {
+    switchProject: async function(projectName, page) {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
         await page.waitForSelector('#accountSwitcher');
-        const element = await page.$(`#accountSwitcher > div[title="${projectName}"]`);
+        const element = await page.$(
+            `#accountSwitcher > div[title="${projectName}"]`
+        );
         await element.click();
         await page.waitFor(5000);
         // await page.screenshot({ path: 'screenshot-switchProject.png' });
     },
-    renameProject: async function (newProjectName, page) {
+    renameProject: async function(newProjectName, page) {
         await page.reload({ waitUntil: 'domcontentloaded' });
         const projectNameSelector = await page.$('input[name=project_name');
         if (projectNameSelector) {
@@ -155,13 +161,13 @@ module.exports = {
         await page.waitFor(5000);
         // await page.screenshot({ path: 'screenshot-renameProject.png' });
     },
-    clear: async function (selector, page) {
+    clear: async function(selector, page) {
         const input = await page.$(selector);
-        await input.click({ clickCount: 3 })
+        await input.click({ clickCount: 3 });
         await input.type('');
         // await page.screenshot({path: 'screenshot-clear.png'});
     },
-    selectByText: async function (selector, text, page) {
+    selectByText: async function(selector, text, page) {
         await page.click(selector);
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
@@ -170,7 +176,7 @@ module.exports = {
         }
         // await page.screenshot({ path: 'screenshot-selectByText.png' });
     },
-    addMonitorToProject: async function (monitorName, page) {
+    addMonitorToProject: async function(monitorName, page) {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#monitors');
         await page.click('#monitors');
@@ -185,7 +191,7 @@ module.exports = {
         await page.waitFor(5000);
         // await page.screenshot({ path: `screenshot-addMonitorToProject${monitorName}.png` });
     },
-    addMonitorToSubProject: async function (monitorName, projectName, page) {
+    addMonitorToSubProject: async function(monitorName, projectName, page) {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#monitors');
         await page.click('#monitors');
@@ -201,8 +207,10 @@ module.exports = {
         await page.waitFor(5000);
         // await page.screenshot({ path: `screenshot-addMonitorToSubProject${monitorName}.png` });
     },
-    addIncidentToProject: async function (monitorName, projectName, page) {
-        const createIncidentSelector = await page.$(`#btnCreateIncident_${projectName}`);
+    addIncidentToProject: async function(monitorName, projectName, page) {
+        const createIncidentSelector = await page.$(
+            `#btnCreateIncident_${projectName}`
+        );
         if (createIncidentSelector) {
             await page.waitForSelector(`#btnCreateIncident_${projectName}`);
             await page.click(`#btnCreateIncident_${projectName}`);
@@ -211,7 +219,9 @@ module.exports = {
             await page.click('#createIncident');
             await page.waitFor(5000);
         } else {
-            await page.waitForSelector('#monitors > div > span > ul > li > div > a');
+            await page.waitForSelector(
+                '#monitors > div > span > ul > li > div > a'
+            );
             await page.click('#monitors > div > span > ul > li > div > a');
             await page.waitForSelector(`#btnCreateIncident_${projectName}`);
             await page.click(`#btnCreateIncident_${projectName}`);
@@ -222,8 +232,10 @@ module.exports = {
         }
         // await page.screenshot({path: 'screenshot-addIncidentToProject.png'});
     },
-    addStatusPageToProject: async function (statusPageName, projectName, page) {
-        const createStatusPageSelector = await page.$(`#btnCreateStatusPage_${projectName}`);
+    addStatusPageToProject: async function(statusPageName, projectName, page) {
+        const createStatusPageSelector = await page.$(
+            `#btnCreateStatusPage_${projectName}`
+        );
         if (createStatusPageSelector) {
             await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
             await page.click(`#btnCreateStatusPage_${projectName}`);
@@ -243,8 +255,10 @@ module.exports = {
         }
         // await page.screenshot({path: 'screenshot-addStatusPageToProject.png'});
     },
-    addScheduleToProject: async function (scheduleName, projectName, page) {
-        const createStatusPageSelector = await page.$(`#btnCreateStatusPage_${projectName}`);
+    addScheduleToProject: async function(scheduleName, projectName, page) {
+        const createStatusPageSelector = await page.$(
+            `#btnCreateStatusPage_${projectName}`
+        );
         if (createStatusPageSelector) {
             await page.waitForSelector(`#btnCreateSchedule_${projectName}`);
             await page.click(`#btnCreateSchedule_${projectName}`);
@@ -264,15 +278,38 @@ module.exports = {
         }
         // await page.screenshot({path: 'screenshot-addScheduleToProject.png'});
     },
+    addScheduledEvent: async function(eventName, eventDescription, page) {
+        const addButtonSelector = '#addScheduledEventButton';
+        await page.click(addButtonSelector);
+        await page.waitFor(2000);
+
+        await page.click('input[name=startDate]');
+        await page.click(
+            'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
+        );
+        await page.click('input[name=endDate]');
+        await page.click(
+            'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
+        );
+
+        await page.type('input[name=name]', eventName);
+        await page.type('textarea[name=description]', eventDescription);
+
+        await page.evaluate(() => {
+            document.querySelector('input[name=showEventOnStatusPage]').click();
+        });
+        await page.click('#createScheduledEventButton');
+        await page.waitFor(5000);
+    },
     filterRequest: async (request, response) => {
         if ((await request.url()).match(/user\/login/)) {
             request.respond({
                 status: 200,
                 contentType: 'application/json',
-                body: JSON.stringify(response)
+                body: JSON.stringify(response),
             });
         } else {
             request.continue();
         }
-    }
-}
+    },
+};
