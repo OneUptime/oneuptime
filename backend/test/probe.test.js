@@ -16,7 +16,7 @@ let token, userId, projectId;
 const probeKey = 'test-key';
 const generateRandomString = require('./utils/string').generateRandomString;
 
-describe.only('Probe API', function () {
+describe('Probe API', function () {
     this.timeout(20000);
 
     before(async function () {
