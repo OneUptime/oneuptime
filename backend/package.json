@@ -64,7 +64,7 @@
     "depcheck": "^0.9.2",
     "mocha": "^6.2.2",
     "nodemon": "^1.18.4",
-    "npm-audit-ci-wrapper": "^2.2.1",
+    "npm-audit-ci-wrapper": "^2.4.3",
     "sinon": "^4.5.0"
   }
 }

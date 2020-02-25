@@ -49,9 +49,10 @@ module.exports = {
             userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
             userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
             userModel.otpauth_url = data.otpauth_url || null;
-            const hash = await bcrypt.hash(data.password, constants.saltRounds);
-
-            userModel.password = hash;
+            if(data.password){
+                const hash = await bcrypt.hash(data.password, constants.saltRounds);
+                userModel.password = hash;
+            }
             userModel.jwtRefreshToken = randToken.uid(256);
 
             const user = await userModel.save();

@@ -31,7 +31,7 @@
     "babel-eslint": "^10.0.3",
     "depcheck": "^0.9.2",
     "nodemon": "^2.0.2",
-    "npm-audit-ci-wrapper": "^2.4.1"
+    "npm-audit-ci-wrapper": "^2.4.3"
   },
   "jest": {
     "collectCoverageFrom": [

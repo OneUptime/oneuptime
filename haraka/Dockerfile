@@ -3,6 +3,9 @@
 # https://github.com/haraka/Haraka/blob/master/Dockerfile 
 ##
 
+###
+#Important: Highly dependent on *-alpine image.
+###
 FROM node:12.16.1-alpine
 
 #set language enviroments

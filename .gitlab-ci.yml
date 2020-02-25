@@ -537,7 +537,7 @@ build_n_test_server-monitor:
       - hotfix-release
 
 ##E2E Stage.
-e2e_test:
+e2e_minikube_test:
   stage: E2E
   script:
     - chmod +x ./kubernetes/ci/setup-machine.sh
@@ -555,7 +555,33 @@ e2e_test:
     - cd smoke-test
     - npm ci
     - npm run test
+  only:
+    refs:
+      - release
+      - master
 
+##E2E Stage.
+e2e_docker_compose_test:
+  stage: E2E
+  script:
+    - sudo apt-get update
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    # Install Docker Compose.
+    - sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    - sudo chmod +x /usr/local/bin/docker-compose
+    - sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+    # Install the cluster. 
+    - sudo bash install.sh
+    # Set env var
+    - export HOME_URL=http://localhost:1444
+    - export ACCOUNTS_URL=http://localhost:3003
+    - export DASHBOARD_URL=http://localhost:3000
+    - export BACKEND_URL=http://localhost:3002
+    - export STATUSPAGE_URL=http://localhost:3006
+    - export APIDOCS_URL=http://localhost:1445
+    - cd smoke-test
+    - npm ci
+    - npm run test
   only:
     refs:
       - release
