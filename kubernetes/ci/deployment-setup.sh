@@ -3,6 +3,7 @@ openssl enc -in encrypted-credentials.enc -out encrypted-credentials.tar -d -aes
 tar -xvf encrypted-credentials.tar
 cd ..
 cd ..
+
 sudo snap install kubectl --classic
 sudo docker login -u $DOCKERUSERNAME -p $PERSONAL_ACCESS_TOKEN registry.gitlab.com
 #[ ! -d "$HOME/.kube" ] && mkdir "$HOME/.kube"
