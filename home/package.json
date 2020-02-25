@@ -32,7 +32,7 @@
     "jest": "^24.8.0",
     "lighthouse": "^5.6.0",
     "nodemon": "^2.0.2",
-    "npm-audit-ci-wrapper": "^2.4.1",
+    "npm-audit-ci-wrapper": "^2.4.3",
     "ora": "^4.0.3",
     "puppeteer": "^1.20.0",
     "start-server-and-test": "^1.9.1"
