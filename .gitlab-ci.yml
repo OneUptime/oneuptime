@@ -627,7 +627,7 @@ deploy_staging_backend:
     - sudo docker tag fyipeproject/backend:master fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/backend:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/backend backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/backend backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -650,7 +650,7 @@ deploy_production_backend:
     - sudo docker tag fyipeproject/backend:latest fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/backend:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/backend backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/backend backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -677,7 +677,7 @@ deploy_staging_api-docs:
     - sudo docker tag fyipeproject/api-docs:master fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/api-docs:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/api-docs api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/api-docs api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -700,7 +700,7 @@ deploy_production_api-docs:
     - sudo docker tag fyipeproject/api-docs:latest fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/api-docs:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/api-docs api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/api-docs api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -726,7 +726,7 @@ deploy_staging_home:
     - sudo docker tag fyipeproject/home:master fyipeproject/home:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/home:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/home:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/home home=fyipeproject/home:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/home home=fyipeproject/home:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -749,7 +749,7 @@ deploy_production_home:
     - sudo docker tag fyipeproject/home:latest fyipeproject/home:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/home:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/home:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/home home=fyipeproject/home:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/home home=fyipeproject/home:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -775,7 +775,7 @@ deploy_staging_slack:
     - sudo docker tag fyipeproject/slack:master fyipeproject/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/slack:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/slack slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/slack slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -798,7 +798,7 @@ deploy_production_slack:
     - sudo docker tag fyipeproject/slack:latest fyipeproject/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/slack:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/slack slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/slack slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -824,9 +824,9 @@ deploy_staging_probe:
     - sudo docker tag fyipeproject/probe:master fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-1 probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/probe-1 probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Additionally update probe1 deployment as well.
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-2 probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/probe-2 probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -849,8 +849,8 @@ deploy_production_probe:
     - sudo docker tag fyipeproject/probe:latest fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-1 probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-2 probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/probe-1 probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/probe-2 probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -876,7 +876,7 @@ deploy_staging_status-page:
     - sudo docker tag fyipeproject/status-page:master fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/status-page status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/status-page status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -899,7 +899,7 @@ deploy_production_status-page:
     - sudo docker tag fyipeproject/status-page:latest fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/status-page status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/status-page status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -925,7 +925,7 @@ deploy_staging_admin-dashboard:
     - sudo docker tag fyipeproject/admin-dashboard:master fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/admin-dashboard admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/admin-dashboard admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -948,7 +948,7 @@ deploy_production_admin-dashboard:
     - sudo docker tag fyipeproject/admin-dashboard:latest fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/admin-dashboard admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/admin-dashboard admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -974,7 +974,7 @@ deploy_staging_accounts:
     - sudo docker tag fyipeproject/accounts:master fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/accounts:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/accounts accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/accounts accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -997,7 +997,7 @@ deploy_production_accounts:
     - sudo docker tag fyipeproject/accounts:latest fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/accounts:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/accounts accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/accounts accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -1023,7 +1023,7 @@ deploy_staging_dashboard:
     - sudo docker tag fyipeproject/dashboard:master fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/dashboard:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/dashboard dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/dashboard dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -1046,7 +1046,7 @@ deploy_production_dashboard:
     - sudo docker tag fyipeproject/dashboard:latest fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/dashboard:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/dashboard dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo kubectl set image deployment/dashboard dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -1116,8 +1116,8 @@ deploy_staging_init-script:
     - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/init-script:master
     ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
-    - sudo $HOME/google-cloud-sdk/bin/kubectl delete job init-script
-    - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./kubernetes/init-script/staging.yaml
+    - sudo kubectl delete job init-script
+    - sudo kubectl create -f ./kubernetes/init-script/staging.yaml
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -1141,8 +1141,8 @@ deploy_production_init-script:
     - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/init-script:latest
     ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
-    - sudo $HOME/google-cloud-sdk/bin/kubectl delete job init-script
-    - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./kubernetes/init-script/production.yaml
+    - sudo kubectl delete job init-script
+    - sudo kubectl create -f ./kubernetes/init-script/production.yaml
     # Cleanup
     - chmod +x ./kubernetes/ci/deployment-cleanup.sh
     - ./kubernetes/ci/deployment-cleanup.sh
@@ -1231,7 +1231,7 @@ staging_rollback_dashboard:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/dashboard
+    - sudo kubectl rollout undo deployment/dashboard
   only:
     refs:
       - master
@@ -1249,7 +1249,7 @@ staging_rollback_accounts:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/accounts
+    - sudo kubectl rollout undo deployment/accounts
   only:
     refs:
       - master
@@ -1267,7 +1267,7 @@ staging_rollback_backend:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
+    - sudo kubectl rollout undo deployment/backend
   only:
     refs:
       - master
@@ -1285,7 +1285,7 @@ staging_rollback_home:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
+    - sudo kubectl rollout undo deployment/home
   only:
     refs:
       - master
@@ -1303,7 +1303,7 @@ staging_rollback_slack:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/slack
+    - sudo kubectl rollout undo deployment/slack
   only:
     refs:
       - master
@@ -1321,7 +1321,7 @@ staging_rollback_status-page:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/status-page
+    - sudo kubectl rollout undo deployment/status-page
   only:
     refs:
       - master
@@ -1339,7 +1339,7 @@ staging_rollback_api-docs:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/api-docs
+    - sudo kubectl rollout undo deployment/api-docs
   only:
     refs:
       - master
@@ -1357,7 +1357,7 @@ staging_rollback_admin-dashboard:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/admin-dashboard
+    - sudo kubectl rollout undo deployment/admin-dashboard
   only:
     refs:
       - master
@@ -1375,9 +1375,9 @@ staging_rollback_probe:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
+    - sudo kubectl rollout undo deployment/probe
     # Additionally rollback probe1 deployment
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe1
+    - sudo kubectl rollout undo deployment/probe1
   only:
     refs:
       - master
@@ -1396,7 +1396,7 @@ production_rollback_dashboard:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/dashboard
+    - sudo kubectl rollout undo deployment/dashboard
   only:
     refs:
       - release
@@ -1412,7 +1412,7 @@ production_rollback_accounts:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/accounts
+    - sudo kubectl rollout undo deployment/accounts
   only:
     refs:
       - release
@@ -1428,7 +1428,7 @@ production_rollback_backend:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
+    - sudo kubectl rollout undo deployment/backend
   only:
     refs:
       - release
@@ -1444,7 +1444,7 @@ production_rollback_home:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
+    - sudo kubectl rollout undo deployment/home
   only:
     refs:
       - release
@@ -1460,7 +1460,7 @@ production_rollback_slack:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/slack
+    - sudo kubectl rollout undo deployment/slack
   only:
     refs:
       - release
@@ -1476,7 +1476,7 @@ production_rollback_status-page:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/status-page
+    - sudo kubectl rollout undo deployment/status-page
   only:
     refs:
       - release
@@ -1492,7 +1492,7 @@ production_rollback_api-docs:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/api-docs
+    - sudo kubectl rollout undo deployment/api-docs
   only:
     refs:
       - release
@@ -1508,7 +1508,7 @@ production_rollback_admin-dashboard:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/admin-dashboard
+    - sudo kubectl rollout undo deployment/admin-dashboard
   only:
     refs:
       - release
@@ -1524,7 +1524,7 @@ production_rollback_probe:
     - chmod +x ./kubernetes/ci/job-status.sh
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
+    - sudo kubectl rollout undo deployment/probe
   only:
     refs:
       - release

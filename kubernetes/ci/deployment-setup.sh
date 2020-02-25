@@ -5,3 +5,4 @@ cd ..
 cd ..
 sudo snap install kubectl --classic
 sudo docker login -u $DOCKERUSERNAME -p $PERSONAL_ACCESS_TOKEN registry.gitlab.com
+[ ! -d "$HOME/.kube" ] && sudo mkdir "$HOME/.kube"
