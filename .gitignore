@@ -31,3 +31,6 @@ cleanup.sh
 *.local.yaml
 
 nohup.out*
+
+encrypted-credentials.tar
+encrypted-credentials/

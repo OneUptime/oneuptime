@@ -1,6 +1,6 @@
 {
   "name": "fyipe-dashboard",
-  "version": "3.0.1797",
+  "version": "3.0.1891",
   "private": true,
   "dependencies": {
     "@beam-australia/react-env": "^2.1.2",
