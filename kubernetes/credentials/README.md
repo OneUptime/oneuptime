@@ -1,3 +1,6 @@
+### Important
+- `openssl` on ubuntu and mac are different. Files encrypted with one *may* not decrypt with other. Encrypt file using an `openssl` version used in CI. 
+
 ### Encrypt:
 - tar -cvf encrypted-credentials.tar .
 - openssl enc -in encrypted-credentials.tar -out encrypted-credentials.enc -e -aes-256-cbc -k your_key

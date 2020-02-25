@@ -3,7 +3,5 @@ openssl enc -in encrypted-credentials.enc -out encrypted-credentials.tar -d -aes
 tar -xvf encrypted-credentials.tar
 cd ..
 cd ..
-curl -sSL https://sdk.cloud.google.com | bash > /dev/null;
-source $HOME/google-cloud-sdk/path.bash.inc
-$HOME/google-cloud-sdk/bin/gcloud components update kubectl
+sudo snap install kubectl --classic
 sudo docker login -u $DOCKERUSERNAME -p $PERSONAL_ACCESS_TOKEN registry.gitlab.com
