@@ -15,11 +15,11 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import { UploadFile } from '../basic/UploadFile';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
+import Colors from './Colors';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
-import { SketchPicker } from 'react-color';
 
 //Client side validation
 function validate(values) {
@@ -355,71 +355,16 @@ export class Branding extends Component {
                                                     </ShouldRender>
                                                 </div>
                                             </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">Colors</label>
-                                                <div className="bs-Fieldset-fields">
-                                                    {colors &&
-                                                        <div className="Box-root Flex-flex" style={{ width: '700px' }}>
-                                                            <div className="Box-root Box-root Box-root Flex-flex">
-                                                                <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='pageBackground'>
-                                                                    <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.pageBackground.r }, ${ colors.pageBackground.g }, ${ colors.pageBackground.b }, ${ colors.pageBackground.a })`, }} />
-                                                                </div>
-                                                                {this.state.displayColorPicker && this.state.currentColorPicker === 'pageBackground' && <div style={{position: 'absolute',zIndex: '2'}}>
-                                                                    <div onClick={this.handleClose} style={{position: 'fixed',top: '0px',right: '0px',bottom: '0px',left: '0px'}}/>
-                                                                        <SketchPicker color={colors.pageBackground} onChange={this.handleChange} />
-                                                                    </div>
-                                                                }
-                                                                <div style={{ marginLeft: '8px', marginTop: '5px', marginRight: '15px', width: '100%' }}>
-                                                                    <span>Page Background</span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="Box-root Padding-horizontal--10 Padding-vertical--0 Box-root Flex-flex">
-                                                                <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='statusPageBackground'>
-                                                                    <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.statusPageBackground.r }, ${ colors.statusPageBackground.g }, ${ colors.statusPageBackground.b }, ${ colors.statusPageBackground.a })`, }} />
-                                                                </div>
-                                                                {this.state.displayColorPicker && this.state.currentColorPicker === 'statusPageBackground' && <div style={{position: 'absolute',zIndex: '2'}}>
-                                                                    <div onClick={this.handleClose} style={{position: 'fixed',top: '0px',right: '0px',bottom: '0px',left: '0px'}}/>
-                                                                        <SketchPicker color={colors.statusPageBackground} onChange={this.handleChange} />
-                                                                    </div>
-                                                                }
-                                                                <div style={{ marginLeft: '8px', marginTop: '5px', marginRight: '15px' }}>
-                                                                    <span>Status Page Background</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                    {colors &&
-                                                        <div className="Box-root Flex-flex" style={{ marginTop: '12px',  width: '700px' }}>
-                                                            <div className="Box-root Box-root Box-root Flex-flex">
-                                                                <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='heading'>
-                                                                    <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.heading.r }, ${ colors.heading.g }, ${ colors.heading.b }, ${ colors.heading.a })`, }} />
-                                                                </div>
-                                                                {this.state.displayColorPicker && this.state.currentColorPicker === 'heading' && <div style={{position: 'absolute',zIndex: '2'}}>
-                                                                    <div onClick={this.handleClose} style={{position: 'fixed',top: '0px',right: '0px',bottom: '0px',left: '0px'}}/>
-                                                                        <SketchPicker color={colors.heading} onChange={this.handleChange} />
-                                                                    </div>
-                                                                }
-                                                                <div style={{ marginLeft: '8px', marginTop: '5px', marginRight: '15px' }}>
-                                                                    <span>Heading Text</span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="Box-root Padding-horizontal--40 Box-root Flex-flex" style={{ marginLeft: '25px' }}>
-                                                                <div onClick={this.handleClick} style={{padding: '3px',background: '#fff',borderRadius: '1px',boxShadow: '0 0 0 1px rgba(0,0,0,.1)',display: 'inline-block',cursor: 'pointer', width: '36px', height: '27px'}} id='subheading'>
-                                                                    <div style={{ padding: '3px', width: '30px', height: '20px', borderRadius: '1px', boxShadow: '0 0 0 1px rgba(0,0,0,.1)', background: `rgba(${ colors.subheading.r }, ${ colors.subheading.g }, ${ colors.subheading.b }, ${ colors.subheading.a })`, }} />
-                                                                </div>
-                                                                {this.state.displayColorPicker && this.state.currentColorPicker === 'subheading' && <div style={{position: 'absolute',zIndex: '2'}}>
-                                                                    <div onClick={this.handleClose} style={{position: 'fixed',top: '0px',right: '0px',bottom: '0px',left: '0px'}}/>
-                                                                        <SketchPicker color={colors.subheading} onChange={this.handleChange} />
-                                                                    </div>
-                                                                }
-                                                                <div style={{ marginLeft: '8px', marginTop: '5px', marginRight: '15px' }}>
-                                                                    <span>Sub Heading Text</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            </div>
+                                            {colors &&
+                                                <Colors
+                                                    colors={colors}
+                                                    currentColorPicker={this.state.currentColorPicker}
+                                                    displayColorPicker={this.state.displayColorPicker}
+                                                    handleClick={this.handleClick}
+                                                    handleChange={this.handleChange}
+                                                    handleClose={this.handleClose}
+                                                />
+                                            }
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Copyright</label>
                                                 <div className="bs-Fieldset-fields">

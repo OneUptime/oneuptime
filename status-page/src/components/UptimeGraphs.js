@@ -116,17 +116,19 @@ class UptimeGraphs extends Component {
       width: '8px',
       margin: '0 8px 1px 0',
     };
-    if (monitorStatus === 'degraded') {
-      status.backgroundColor = 'rgb(255, 222, 36)'; // "yellow-status";
-    } else if (monitorStatus === 'online') {
-      status.backgroundColor = 'rgb(117, 211, 128)'; // "green-status";
-    } else {
-      status.backgroundColor = 'rgb(250, 117, 90)'; // "red-status";
-    }
 
-    const subheading = {}
+    const subheading = {};
+    const primaryText = {};
     if (colors) {
       subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;
+      primaryText.color = `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`
+      if (monitorStatus === 'degraded') {
+        status.backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`; // "degraded-status";
+      } else if (monitorStatus === 'online') {
+        status.backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`; // "online-status";
+      } else {
+        status.backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`; // "red-downtime";
+      }
     }
 
     return (
@@ -136,7 +138,7 @@ class UptimeGraphs extends Component {
           <span className="uptime-stat-name" style={subheading}>{monitor.name}</span>
           <span className="url" style={{ paddingLeft: '0px' }}>{monitor && monitor.data && monitor.data.url ? <a style={{ color: '#8898aa', textDecoration: 'none', paddingLeft: '0px' }}
             href={monitor.data.url} target="_blank" rel="noopener noreferrer">{monitor.data.url}</a> : <span style={{ color: '#8898aa', textDecoration: 'none', paddingLeft: '0px' }}>{monitor.type === 'manual' ? '' : monitor.type}</span>}</span>
-          <span className="percentage" style={subheading}><em>{uptime}%</em> uptime for the last {upDays > range ? range : upDays} day{upDays > 1 ? 's' : ''}</span>
+          <span className="percentage" style={primaryText}><em>{uptime}%</em> uptime for the last {upDays > range ? range : upDays} day{upDays > 1 ? 's' : ''}</span>
         </div>
         <div className="block-chart">
           {block}
